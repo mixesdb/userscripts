@@ -1,16 +1,16 @@
 // ==UserScript==
-// @name         Mixes.wiki Userscripts Helper (by Mixes.wiki)
-// @author       User:Martin@Mixes.wiki (Subfader@GitHub)
+// @name         MixesDB Userscripts Helper (by MixesDB)
+// @author       User:Martin@MixesDB (Subfader@GitHub)
 // @version      2024.10.13.1
-// @description  Change the look and behaviour of the Mixes.wiki website to enable feature usable by other Mixes.wiki userscripts.
-// @homepageURL  https://www.mixes.wiki/w/Help:Mixes.wiki_userscripts
+// @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
+// @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
-// @updateURL    https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/Mixes.wiki_userscripts_helper/script.user.js
-// @downloadRL   https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/Mixes.wiki_userscripts_helper/script.user.js
-// @require      https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixes-wiki/userscripts/refs/heads/main/includes/global.js?v-Mixes.wiki_1
-// @match        https://www.mixes.wiki/*
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/MixesDB_userscripts_helper/script.user.js
+// @downloadRL   https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/MixesDB_userscripts_helper/script.user.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_1
+// @match        https://www.mixesdb.com/*
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
