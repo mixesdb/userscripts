@@ -10,14 +10,14 @@
  * Font size of inserted elements weird
  * Buggy if set to body globally
  */
-.mixeswiki-menu-hl {
+.mdb-menu-hl {
 	font-size: 1rem;
 }
-.mixeswiki-menu,
-.mixeswiki-tid-table th {
+.mdb-menu,
+.mdb-tid-table th {
 	font-size: .9rem;
 }
-.mixeswiki-info,
+.mdb-info,
 .MuiDataGrid-cellContent:not(img),
 td a.white-link,
 #tlEditor {
@@ -31,11 +31,11 @@ div[contenteditable="plaintext-only"] {
 /*
  * Menu
  */
-.mixeswiki-menu-hl {
+.mdb-menu-hl {
 	padding: 0;
 	margin: 20px 0 5px;
 }
-.mixeswiki-menu a {
+.mdb-menu a {
 	font-size: 1em !important;
 	color: #fff !important;
 	text-decoration: none;
@@ -44,7 +44,7 @@ div[contenteditable="plaintext-only"] {
 /*
  * Tables
  */
-.mixeswiki-tid-table td.AudioStreamType img {
+.mdb-tid-table td.AudioStreamType img {
 	padding-top: 5px;
 	max-height: 2em;
 }
@@ -66,40 +66,40 @@ div[contenteditable="plaintext-only"] {
 /*
  * Search on Mixes.wiki icon link
  */
-#mixeswiki-searchLink-detailPage {
+#mdb-searchLink-detailPage {
 	padding-left: 13px;
 }
-.mixeswiki-searchLink-list img {
+.mdb-searchLink-list img {
 	margin-top: 12px !important;
 }
-.mixeswiki-searchLink-list.active,
+.mdb-searchLink-list.active,
 .mw-searchLink-list.visited,
-.mixeswiki-searchLink-list:visited  {
+.mdb-searchLink-list:visited  {
 	opacity: .38;
 }
 
 /*
  * Player
  */
-.mixeswiki-player-audiostream {
+.mdb-player-audiostream {
 	margin: 10px 0 -10px;
 }
 
 /*
  * Replaced search
  */
-#mixeswiki-replacedSearch {
+#mdb-replacedSearch {
 	width: 100%;
 	display: table;
 }
-#mixeswiki-replacedSearch .mixeswiki-element {
+#mdb-replacedSearch .mdb-element {
 	min-height: 28px;
 	display: table-cell;
 }
-#mixeswiki-replacedSearch button {
+#mdb-replacedSearch button {
 	width: 70px;
 	font-weight: bold;
 }
-#mixeswiki-replacedSearch .replaced-search-input {
-	width: calc( 100% - 75px - .5rem ); /* .5rem = .mixeswiki-element padding */
+#mdb-replacedSearch .replaced-search-input {
+	width: calc( 100% - 75px - .5rem ); /* .5rem = .mdb-element padding */
 }
