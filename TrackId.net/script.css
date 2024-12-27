@@ -73,7 +73,7 @@ div[contenteditable="plaintext-only"] {
 	margin-top: 12px !important;
 }
 .mdb-searchLink-list.active,
-.mw-searchLink-list.visited,
+.mdb-searchLink-list.visited,
 .mdb-searchLink-list:visited  {
 	opacity: .38;
 }
