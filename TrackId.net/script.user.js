@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_52
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_53
 // @include      http*trackid.net*
 // @noframes
 // @run-at       document-end
@@ -18,7 +18,7 @@
 
 // dev environment
 var dev = 0,
-    cacheVersion = 45;
+    cacheVersion = 46;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
