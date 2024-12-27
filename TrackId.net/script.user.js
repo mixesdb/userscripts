@@ -18,7 +18,7 @@
 
 // dev environment
 var dev = 0,
-    cacheVersion = 46;
+    cacheVersion = 47;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

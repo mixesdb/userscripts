@@ -5,6 +5,7 @@
 	display: none !important;
 }
 
+
 /*
  * Highlight color (orange)
  */
@@ -25,6 +26,7 @@
 	list-style: none;
 	margin: 0;
 }
+
 
 /*
  * Elements
@@ -51,7 +53,10 @@ button.mdb-element {
 	font-size: .9rem;
 }
 
-/* Tracklist textarea */
+
+/*
+ * Tracklist textarea
+ */
 textarea#mixesdb-TLbox {
 	font-size: 12px;
 	font-family: Consolas, monospace;
