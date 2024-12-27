@@ -50,3 +50,9 @@
 button.mdb-element {
 	font-size: .9rem;
 }
+
+/* Tracklist textarea */
+textarea#mixesdb-TLbox {
+	font-size: 12px;
+	font-family: Consolas, monospace;
+}
