@@ -1,16 +1,16 @@
 // ==UserScript==
-// @name         TrackId.net (by Mixes.wiki)
-// @author       User:Martin@Mixes.wiki (Subfader@GitHub)
-// @version      2024.12.05.1
-// @description  Change the look and behaviour of certain DJ culture related websites to help contributing to Mixes.wiki, e.g. add copy-paste ready tracklists in wiki syntax.
-// @homepageURL  https://www.mixes.wiki/w/Help:Mixes.wiki_userscripts
+// @name         TrackId.net (by MixesDB)
+// @author       User:Martin@MixesDB (Subfader@GitHub)
+// @version      2024.12.26.1
+// @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
+// @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
-// @updateURL    https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/TrackId.net/script.user.js
-// @downloadRL   https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/TrackId.net/script.user.js
-// @require      https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://cdn.rawgit.com/mixes-wiki/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixes-wiki/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_46
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js
+// @downloadURL  https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_46
 // @include      http*trackid.net*
 // @noframes
 // @run-at       document-end
@@ -28,7 +28,7 @@ var dev = 0,
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var scriptName = "TrackId.net",
-    repo = ( dev == 1 ) ? "Subfader" : "mixes-wiki",
+    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
 loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -137,8 +137,8 @@ function searchOnMixesWiki(text, target, size) {
         }
 
         var textOut = trackidNet_FixTitle(text),
-            url = 'https://www.mixes.wiki/w/index.php?title=&search=' + encodeURIComponent(textOut),
-            linkTitle = 'Search &quot;' + text + '&quot; on Mixes.wiki',
+            url = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(textOut),
+            linkTitle = 'Search &quot;' + text + '&quot; on MixesDB',
             searchLink = '<a id="' + idName + '" class="' + className + '" href="' + url + '" title="' + linkTitle + '" target="_blank"><img width="' + size + '" src="' + mwLogoUrl_64 + '" alt="' + linkTitle + '"/></a>';
 
         return searchLink;
@@ -533,7 +533,7 @@ function funcTidTables(jNode) {
  * Submit request URLs
  * https://trackid.net/submitrequest
  * https://trackid.net/submitrequest?url=https://soundcloud.com/djrog/latin-vibes&keywords=foo%20bar
- * Passing URL pramater requires the userscript "Mixes.wiki Userscripts Helper (by Mixes.wiki)"
+ * Passing URL pramater requires the userscript "MixesDB Userscripts Helper (by MixesDB)"
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
