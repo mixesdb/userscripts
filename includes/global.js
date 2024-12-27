@@ -94,23 +94,23 @@ function durToSec( dur ) {
 }
 
 
-/*
+/* 
  * Create elements
  */
 
 // create_input
 function create_input( text, className, id ) {
-	return '<input class="mixeswiki-element input '+ className +'" id="'+id+'" name="'+id+'" value="'+text+'" />';
+	return '<input class="mdb-element input '+ className +'" id="'+id+'" name="'+id+'" value="'+text+'" />';
 }
 
 // create_note
 function create_note( text, className ) {
-	return '<span class="mixeswiki-element note '+ className +'">'+text+'</span>';
+	return '<span class="mdb-element note '+ className +'">'+text+'</span>';
 }
 
 // create_button
 function create_button( text, className, type ) {
-	return '<button type="'+type+'" class="mixeswiki-element button '+ className +'">'+text+'</button>';
+	return '<button type="'+type+'" class="mdb-element button '+ className +'">'+text+'</button>';
 }
 
 
