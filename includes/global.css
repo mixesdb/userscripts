@@ -1,27 +1,27 @@
 /*
  * Basics
  */
-.mixeswiki-hide {
+.mdb-hide {
 	display: none !important;
 }
 
 /*
  * Highlight color (orange)
  */
-.mixeswiki-highlight,
-.mixeswiki-menu-hl {
+.mdb-highlight,
+.mdb-menu-hl {
 	color: #f90;
 }
 
 /*
  * nolist
  */
-.mixeswiki-nolist {
+.mdb-nolist {
 	margin-block-start: 0;
 	margin-block-end: 0;
 	padding-inline-start: 0;
 }
-.mixeswiki-nolist li {
+.mdb-nolist li {
 	list-style: none;
 	margin: 0;
 }
@@ -29,24 +29,24 @@
 /*
  * Elements
  */
-.mixeswiki-element {
+.mdb-element {
 	margin: 1rem 0;
 	padding: .25rem .5rem;
 }
-.mixeswiki-element.input:not(.inline) {
+.mdb-element.input:not(.inline) {
 	display: block;
 	width: 100%;
 }
-.mixeswiki-element.input {
+.mdb-element.input {
 	padding: .25rem .5rem;
 	font-family: monospace;
 	font-size: 12px;
 	border: 2px solid #fc6;
 }
-.mixeswiki-element.note {
+.mdb-element.note {
 	background-color: #eee;
 	color: #f60;
 }
-button.mixeswiki-element {
+button.mdb-element {
 	font-size: .9rem;
 }
