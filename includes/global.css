@@ -59,6 +59,6 @@ button.mdb-element {
  */
 textarea#mixesdb-TLbox,
 textarea.mono {
-	font-size: 12px;
-	font-family: Consolas, monospace;
+	font-size: 12px !important;
+	font-family: Consolas, monospace !important;
 }
