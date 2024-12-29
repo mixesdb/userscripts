@@ -1,4 +1,4 @@
-console.log( "script.funcs.js loaded" );
+log( "script.funcs.js loaded" );
 
 /*
  * Artwork funcs
