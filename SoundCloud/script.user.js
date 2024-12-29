@@ -17,7 +17,13 @@
 // @run-at       document-end
 // ==/UserScript==
 
-// dev environment
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * User settings
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// Dev environment
 var dev = 0,
     cacheVersion = 1;
 
