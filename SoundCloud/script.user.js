@@ -67,6 +67,9 @@ function artwork_wait(jNode) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Stream players > Favorite button
+ * 
+ * TODO:
+ * Enable in playlists https://soundcloud.com/resident-advisor
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
