@@ -10,8 +10,13 @@
  * Highlight color (orange)
  */
 .mdb-highlight,
+.mdb-highlight a,
 .mdb-menu-hl {
-	color: #f90;
+	color: #f90 !important;
+}
+.mdb-darkorange,
+.mdb-darkorange a {
+	color: #f60 !important;
 }
 
 /*
