@@ -56,7 +56,7 @@ function artwork_wait(jNode) {
     logFunc( "artwork_wait" );
     log( location.href );
 
-    // Artwork link tzo original
+    // Artwork link to original
     var artworkWrapper = $(".listenArtworkWrapper"),
         artwork_url = $(".sc-artwork",artworkWrapper).html().replace(/.+&quot;(htt.+(?:jpg|png)).+/, "$1");
     log( artworkWrapper.html() );
