@@ -1,3 +1,5 @@
+log( "script.funcs.js loaded" );
+
 /*
  * Artwork funcs
  */
