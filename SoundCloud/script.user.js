@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_1
-// @updateURL    https://cdn.rawgit.com/Subfader/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_1
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_1
 // @include      http*soundcloud.com*
 // @noframes
 // @grant        unsafeWindow
