@@ -21,7 +21,6 @@
  * User settings
  * You need to set these on each update, but updates happen rarely for this script
  *
-
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // Apple Music links: force to open in browser?
