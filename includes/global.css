@@ -5,6 +5,10 @@
 	display: none !important;
 }
 
+.hand,
+.mdb-toggle {
+    cursor: pointer;
+}
 
 /*
  * Highlight color (orange)
@@ -18,6 +22,7 @@
 .mdb-darkorange a {
 	color: #f60 !important;
 }
+
 
 /*
  * nolist
