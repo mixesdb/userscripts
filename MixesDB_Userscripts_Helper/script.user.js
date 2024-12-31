@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2024.12.30.1
+// @version      2024.12.31.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -26,11 +26,11 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-var appleMusic_linksOpenInBrowser = 0; // default: 0
+var appleMusic_linksOpenInBrowser = 1; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-var appleMusic_countryCode_switch = ""; // default: ""
+var appleMusic_countryCode_switch = "de"; // default: ""
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -39,9 +39,15 @@ var appleMusic_countryCode_switch = ""; // default: ""
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// fixRequestPlayerUrl
+function fixRequestPlayerUrl( url ) {
+    return url.replace( "www.youtu.be", "youtu.be" );
+}
+
 // tidLinkFromUrl
 function tidLinkFromUrl( requestPlayerUrl, keywords ) {
-    var domain = new URL( requestPlayerUrl ).hostname.replace("www.",""),
+    var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
+        domain = new URL( urlFixed ).hostname.replace("www.",""),
         cont = false;
 
     //logVar( "domain", domain );
@@ -51,9 +57,9 @@ function tidLinkFromUrl( requestPlayerUrl, keywords ) {
     }
 
     if( cont ) {
-        var tidUrl = "https://trackid.net/submitrequest?requestUrl="+encodeURIComponent( requestPlayerUrl )+"&keywords="+encodeURIComponent( keywords ),
+        var tidUrl = "https://trackid.net/submitrequest?requestUrl="+encodeURIComponent( urlFixed )+"&keywords="+encodeURIComponent( keywords ),
             tidLogo = '<img class="op05" style="padding-bottom:3px" width="19" src="https://www.mixesdb.com/w/images/3/3c/trackid.net.png" alt="TrackId.net Logo">',
-            link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+requestPlayerUrl+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
+            link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
         return link;
     } else {
         log( domain + " cannot be requested on TrackId.net" );
@@ -122,7 +128,8 @@ d.ready(function(){ // needed for mw.config
                 // change pageIcon URL only if supported domains
                 var tidLink_possible = tidLinkFromUrl( requestPlayerUrl, keywords );
                 if( tidLink_possible ) {
-                    var urlRequest = "https://trackid.net/submitrequest?requestUrl="+requestPlayerUrl+"&keywords="+keywords;
+                    var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
+                        urlRequest = "https://trackid.net/submitrequest?requestUrl="+urlFixed+"&keywords="+keywords;
 
                     linkIcon.attr("href", urlRequest).attr("data-hreforig", urlSearch);
 
