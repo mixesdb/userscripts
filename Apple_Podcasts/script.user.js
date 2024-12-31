@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2024.12.30.2
+// @version      2024.12.30.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -27,7 +27,7 @@ var dev = 0,
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var scriptName = "SoundCloud",
+var scriptName = "Apple_Podcasts",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
@@ -45,6 +45,6 @@ waitForKeyElements(".episode .link-action", episodeLinksWait);
 
 function episodeLinksWait(jNode) {
     var url = jNode.attr("href"),
-        dragLink = '<div style="margin-top:0"><input class="mdb-element" style="width:100%;" value="'+url+'" /></div>';
+        dragLink = '<div style="padding:.25em 0 1em"><input class="mdb-element" style="width:100%;" value="'+url+'" /></div>';
     jNode.closest("li").append( dragLink );
 }
