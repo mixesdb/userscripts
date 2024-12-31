@@ -202,6 +202,8 @@ function apiTracklist( tl, type, genType ) {
  * redirect on every url change event listener
  */
 function redirectOnUrlChange( delay_ms=0 ) {
+	logFunc( "redirectOnUrlChange(" );
+
     window.setTimeout(function(){
         // event listener
         var pushState = history.pushState;
@@ -222,6 +224,7 @@ function redirectOnUrlChange( delay_ms=0 ) {
 
         // redirect
         window.addEventListener('locationchange', function(){
+        	log( "URL change!" )
             var newUrl = location.href;
             log( 'onlocationchange event occurred > redirecting to ' + newUrl );
             window.location.replace( newUrl );
