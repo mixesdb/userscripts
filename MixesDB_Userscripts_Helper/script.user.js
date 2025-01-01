@@ -147,6 +147,7 @@ function triggerVisiblePlayer( wrapper ) {
  * Mix page title icons and Explorer title icons fpr
  ** TrackId.net request submission
  ** Apple Podcasts search
+ * Also allow on page edit (preview)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 logFunc( "Quicker Submit Request" );
@@ -154,13 +155,12 @@ logFunc( "Quicker Submit Request" );
 d.ready(function(){ // needed for mw.config
 
     // Prepare variables to check if we're on a mix page etc.
-    var actionView =  $("body").hasClass("action-view") ? true : false,
-        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+    var wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
         wgTitle = mw.config.get("wgTitle"),
         wgPageName = mw.config.get("wgPageName");
 
     // On mix pages
-    if( actionView && wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
+    if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
         log( "Criteria for mix page matched." );
 
         // TrackId.net link icon
