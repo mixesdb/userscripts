@@ -30,14 +30,14 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 0; // default: 0
+const appleMusic_linksOpenInBrowser = 1; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = ""; // default: ""
+const appleMusic_countryCode_switch = "de"; // default: ""
 
 /*
- * TrackId.net
+ * TrackId.net settings
  */
 // Submit player URLs to the TID request form
 // * On Explorer mix results add an icon to the title bar
