@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.6
+// @version      2025.01.01.7
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -214,6 +214,12 @@ d.ready(function(){ // needed for mw.config
             }
 
             var keywords = getKeywordsFromTitle( titleWrapper );
+
+            // Customize keywords for more precise results
+            var title = titleWrapper.text();
+            if( title.match(/Resident Advisor \(RA\.\d+\)/) ) {
+                keywords = title.replace( /^.+ - (.+) - Resident Advisor \((RA\.\d+)\)/g, "$2 $1");
+            }
 
             if( keywords ) var applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
             if( applePodcastsSearchLink ) $("#pageIcons").prepend( applePodcastsSearchLink );
