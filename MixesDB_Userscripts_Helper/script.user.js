@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.7
+// @version      2025.01.01.8
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -77,6 +77,19 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 // getKeywordsFromTitle
 function getKeywordsFromTitle( titleWrapper ) {
     return normalizeTitleForSearch( titleWrapper.text() );
+}
+
+// function getKeywordsFromTitle_Customized_AP
+// Customize keywords for more precise results
+function getKeywordsFromTitle_Customized_AP( titleWrapper ) {
+    var title = titleWrapper.text(),
+        keywords = getKeywordsFromTitle( titleWrapper );
+
+    if( title.match(/Resident Advisor \(RA\.\d+\)/) ) {
+        keywords = title.replace( /^.+ - (.+) - Resident Advisor \((RA\.\d+)\)/g, "$2 $1");
+    }
+
+    return keywords;
 }
 
 // get applePodcastsSearchLink
@@ -213,13 +226,7 @@ d.ready(function(){ // needed for mw.config
                 var titleWrapper = $("#firstHeading #firstHeadingTitle");
             }
 
-            var keywords = getKeywordsFromTitle( titleWrapper );
-
-            // Customize keywords for more precise results
-            var title = titleWrapper.text();
-            if( title.match(/Resident Advisor \(RA\.\d+\)/) ) {
-                keywords = title.replace( /^.+ - (.+) - Resident Advisor \((RA\.\d+)\)/g, "$2 $1");
-            }
+            var keywords = getKeywordsFromTitle_Customized_AP( titleWrapper );
 
             if( keywords ) var applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
             if( applePodcastsSearchLink ) $("#pageIcons").prepend( applePodcastsSearchLink );
@@ -264,7 +271,7 @@ d.ready(function(){ // needed for mw.config
         if( applePodcasts_addSearchIcons ) {
             $(".explorerTitle").each(function(){
                 var wrapper = this,
-                    keywords = getKeywordsFromTitle( $(".explorerTitleLink", wrapper) ),
+                    keywords = getKeywordsFromTitle_Customized_AP( $(".explorerTitleLink", wrapper) ),
                     applePodcastsSearchLink = getApplePodcastsSearchLink( "explorerTitleIcon", keywords );
 
                 if( applePodcastsSearchLink ) $(".greylinks", wrapper).prepend( applePodcastsSearchLink );
