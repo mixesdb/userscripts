@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2024.12.31.1
+// @version      2025.01.01.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -35,7 +35,28 @@ var appleMusic_countryCode_switch = "de"; // default: ""
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * TrackId.net support
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var dev = 0,
+    cacheVersion = 1,
+    scriptName = "MixesDB_Userscripts_Helper",
+    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
+    pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
+
+//loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+
+
+function getKeywordsFromTitle( titleWrapper ) {
+    return normalizeTitleForSearch( titleWrapper.text() );
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * TrackId.net functions
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -58,7 +79,7 @@ function tidLinkFromUrl( requestPlayerUrl, keywords ) {
 
     if( cont ) {
         var tidUrl = "https://trackid.net/submitrequest?requestUrl="+encodeURIComponent( urlFixed )+"&keywords="+encodeURIComponent( keywords ),
-            tidLogo = '<img class="op05" style="padding-bottom:3px" width="19" src="https://www.mixesdb.com/w/images/3/3c/trackid.net.png" alt="TrackId.net Logo">',
+            tidLogo = '<img class="op05" src="https://www.mixesdb.com/w/images/3/3c/trackid.net.png" alt="TrackId.net Logo">',
             link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
         return link;
     } else {
@@ -71,10 +92,9 @@ function tidLinkFromUrl( requestPlayerUrl, keywords ) {
 function triggerVisiblePlayer( wrapper ) {
     var firstPlayerVisible = $(".playerWrapper.on-explorer:visible", wrapper).first(),
         playerUrl = firstPlayerVisible.attr("data-playerurl"),
-        title = $(".explorerTitleLink", wrapper).text(),
-        keywords = normalizeTitleForSearch( title );
+        keywords = getKeywordsFromTitle( $(".explorerTitleLink", wrapper) );
 
-    log( title + " > " + playerUrl );
+    log( playerUrl );
     //logVar( "keywords", keywords );
 
     if( playerUrl && keywords ) {
@@ -89,14 +109,19 @@ function triggerVisiblePlayer( wrapper ) {
     }
 }
 
-/*
- * Quicker "Submit Request"
- */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Mix page title icons and Explorer title icons fpr
+ ** TrackId.net request submission
+ ** Apple Podcasts search
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 logFunc( "Quicker Submit Request" );
 
 d.ready(function(){ // needed for mw.config
 
-    // Prepare variables to check if we're on a mix page
+    // Prepare variables to check if we're on a mix page etc.
     var actionView =  $("body").hasClass("action-view") ? true : false,
         wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
         wgTitle = mw.config.get("wgTitle"),
@@ -106,6 +131,7 @@ d.ready(function(){ // needed for mw.config
     if( actionView && wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
         log( "Criteria for mix page matched." );
 
+        // TrackId.net link icon
         // On click add request page url for the first visible player
         $("#pageIconPlayers.trackIdNet").click(function(){
             var linkIcon = $("#pageIcons a.trackIdNet");
@@ -147,6 +173,7 @@ d.ready(function(){ // needed for mw.config
     if( actionView && wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
         log( "Criteria for MixesDB:Explorer/Mixes matched." );
 
+        // TrackId.net link icon
         // Initially on each result wrapper
         $(".explorerResult").each(function(){
             triggerVisiblePlayer( this );
@@ -163,6 +190,16 @@ d.ready(function(){ // needed for mw.config
             setTimeout(function() {
                 triggerVisiblePlayer( wrapper );
             }, msWaitToggle );
+        });
+
+        // Apple Podcasts search link icon
+        $(".explorerTitle").each(function(){
+            var wrapper = this,
+                keywords = getKeywordsFromTitle( $(".explorerTitleLink", wrapper) ),
+                applePodcastsSearchUrl = "https://podcasts.apple.com/us/search?term="+encodeURIComponent( keywords ),
+                applePodcastsSearchLink = '<a class="explorerTitleIcon applePodcastsSearch" href="'+applePodcastsSearchUrl+'" title="Search \''+keywords+'\’ in Apple Podcasts" target="_blank"><img src="https://www.mixesdb.com/w/images/a/ad/Apple_Podcasts_logo.svg" width="17" alt="Apple Podcasts icon"/></a>';
+
+            $(".greylinks", wrapper).prepend( applePodcastsSearchLink );
         });
     } else {
         log( "Criteria for MixesDB:Explorer/Mixes not matched." );

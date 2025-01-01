@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2024.12.31.2
+// @version      2025.01.01.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -16,10 +16,6 @@
 // @run-at       document-end
 // ==/UserScript==
 
-// Dev environment
-var dev = 0,
-    cacheVersion = 1;
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -27,12 +23,14 @@ var dev = 0,
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var scriptName = "Apple_Podcasts",
+var dev = 0,
+    cacheVersion = 1,
+    scriptName = "Apple_Podcasts",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
 loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-//loadRawCss( pathRaw + "Apple_Podcasts/script.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -74,4 +72,27 @@ function episodePageWait(jNode) {
 waitForKeyElements(".mdb-element.header input.dragUrl", dragUrlInputWait);
 function dragUrlInputWait(jNode) {
     jNode.select().focus();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * On search insert keywords when coming from search link
+ * extends MixesDB Userscripts Helper
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+var keywords = getURLParameter( "term" );
+
+logVar( "keywords", keywords );
+
+if( keywords ) {
+    waitForKeyElements(".navigation__header input.search-input__text-field", searchInputWait);
+    function searchInputWait(jNode) {
+
+        setTimeout(function() {
+            var searchForm = '<form class="mdb-element search" action="/'+urlPath(1)+'/search"><input type="text" name="term" value="'+keywords+'"><input type="submit" value="Search"></form>';
+            $("main .page-container").prepend( searchForm );
+            $(".mdb-element.search input[type=text]").focus().select();
+        }, 500 );
+    }
 }
