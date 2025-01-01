@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.5
+// @version      2025.01.01.6
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -147,7 +147,6 @@ function triggerVisiblePlayer( wrapper ) {
  * Mix page title icons and Explorer title icons fpr
  ** TrackId.net request submission
  ** Apple Podcasts search
- * Also allow on page edit (preview)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 logFunc( "Quicker Submit Request" );
@@ -155,11 +154,15 @@ logFunc( "Quicker Submit Request" );
 d.ready(function(){ // needed for mw.config
 
     // Prepare variables to check if we're on a mix page etc.
-    var wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+    var actionView =  $("body").hasClass("action-view") ? true : false,
+        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
         wgTitle = mw.config.get("wgTitle"),
         wgPageName = mw.config.get("wgPageName");
 
-    // On mix pages
+    /*
+     * On mix pages
+     * Also allow on page edit (preview)
+     */
     if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
         log( "Criteria for mix page matched." );
 
@@ -204,9 +207,15 @@ d.ready(function(){ // needed for mw.config
 
         // Apple Podcast search icon
         if( applePodcasts_addSearchIcons ) {
-            var keywords = getKeywordsFromTitle( $("#firstHeading .mw-page-title-main") ),
-                applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
+            if( actionView ) {
+                var titleWrapper = $("#firstHeading .mw-page-title-main");
+            } else {
+                var titleWrapper = $("#firstHeading #firstHeadingTitle");
+            }
 
+            var keywords = getKeywordsFromTitle( titleWrapper );
+
+            if( keywords ) var applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
             if( applePodcastsSearchLink ) $("#pageIcons").prepend( applePodcastsSearchLink );
         } else {
             log( "applePodcasts_addSearchIcons diabled." );
@@ -216,8 +225,10 @@ d.ready(function(){ // needed for mw.config
         log( "Criteria for mix page not matched." );
     }
 
-    // On MixesDB:Explorer/Mixes
-    if( actionView && wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
+    /*
+     * On MixesDB:Explorer/Mixes
+     */
+    if(  wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
         log( "Criteria for MixesDB:Explorer/Mixes matched." );
 
         // TrackId.net link icon
