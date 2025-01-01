@@ -1,11 +1,19 @@
+/* Exploer result title icons */
 .explorerTitleIcon {
 	padding-left: 5px;
 }
 .explorerTitleIcon.tidSubmit img {
-	margin-top: -4px;
-	height: 19px;
+	margin-top: -8px;
+	height: 20px;
 }
 .explorerTitleIcon.applePodcastsSearch img {
 	margin-top: -8px;
 	height: 17px;
+}
+
+/* Page title icons */
+.pageIcon.applePodcastsSearch img {
+	height: 18px;
+	width: auto;
+	padding-left: 5px;
 }
