@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.6
+// @version      2025.01.01.7
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -23,7 +23,7 @@
  * Referenced CSS files blocked by AP server!
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var css = '.mdb-element.search{margin:20px 30px 0}.mdb-element.search *{font-size:1.4rem}.mdb-element.search input[type=submit]{width:6em;margin-left:10px}.mdb-element.search input{padding:.5rem .75rem}.mdb-element.search input[type=text]{width:calc(100% - 6em - 10px)}';
+var css = '.mdb-element.search{margin:20px 30px 0}.mdb-element.search *{font-size:1.4rem}.mdb-element.search input[type=submit]{width:6em;margin-left:10px}.mdb-element.search input{padding:.5rem .75rem}.mdb-element.search input[type=text]{width:calc(100% - 6em - 10px)}.mdb-element.dragUrl{padding:2px 4px;}';
 $("head").append('<style>'+css+'</style>');
 
 
@@ -38,15 +38,16 @@ function makeDragUrl( url, classWrapper, cssWrapper, cssElement ) {
     return '<div class="mdb-element '+classWrapper+'" style="'+cssWrapper+'"><input class="mdb-element dragUrl" style="width: 100%; '+cssElement+'" value="'+url+'" /></div>';
 }
 
-/* On show pagesm, episode lists, search results (Episodes section) */
+/* On show pages, episode lists, search results (Episodes section) */
 waitForKeyElements(".episode .link-action", episodeListWait);
 function episodeListWait(jNode) {
     var episodeUrl = jNode.attr("href"),
         cssWrapper = 'padding: .25em 0 1em;';
-
+    /*
     if( is_safari ) {
         cssWrapper = 'margin: -.6rem 0 0';
     }
+    */
 
     var dragLink = makeDragUrl( episodeUrl, 'list', cssWrapper, '' );
 
@@ -57,7 +58,8 @@ function episodeListWait(jNode) {
 waitForKeyElements(".container-detail-header", episodePageWait);
 function episodePageWait(jNode) {
     var headings = $(".headings__subtitles", jNode),
-        dragLink = makeDragUrl( location.href, 'header', 'width: 100%; max-width: 48em;', '' );
+        cssWrapper = 'margin-top: .5rem; width: 100%; max-width: 48em;',
+        dragLink = makeDragUrl( location.href, 'header', cssWrapper, '' );
 
     headings.css("width", "100%");
     headings.after( dragLink );
