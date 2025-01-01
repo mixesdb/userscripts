@@ -1,14 +1,36 @@
-/* Exploer result title icons */
+/* Explorer result title icons */
 .explorerTitleIcon {
 	padding-left: 5px;
 }
 .explorerTitleIcon.tidSubmit img {
 	margin-top: -8px;
 	height: 20px;
+	width: auto;
 }
 .explorerTitleIcon.applePodcastsSearch img {
 	margin-top: -8px;
 	height: 17px;
+	width: auto;
+}
+@media screen and (max-width:550px) {
+	body.skin--responsive .monobook-body .explorerTitleIcon.tidSubmit img {
+		margin-top: -2px;
+		width: 17px !important;
+	}
+	body.skin--responsive .monobook-body .explorerTitleIcon img {
+		margin-top: -2px;
+		width: 15px !important;
+	}
+}
+
+/* HOTFIX issue#478 */
+@media screen and (max-width:550px) {
+	body.skin--responsive .monobook-body .explorerTitleIcon.tidSubmit img {
+		max-width: 17px !important;
+	}
+	body.skin--responsive .monobook-body .explorerTitleIcon img {
+		max-width: 15px !important;
+	}
 }
 
 /* Page title icons */
