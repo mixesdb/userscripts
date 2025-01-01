@@ -1,0 +1,11 @@
+.explorerTitleIcon {
+	padding-left: 5px;
+}
+.explorerTitleIcon.tidSubmit img {
+	margin-top: -4px;
+	height: 19px;
+}
+.explorerTitleIcon.applePodcastsSearch img {
+	margin-top: -8px;
+	height: 17px;
+}

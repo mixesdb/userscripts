@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2024.12.29.6
+// @version      2025.01.01.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,16 +17,6 @@
 // @run-at       document-end
 // ==/UserScript==
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * User settings
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// Dev environment
-var dev = 0,
-    cacheVersion = 1;
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -34,12 +24,14 @@ var dev = 0,
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var scriptName = "SoundCloud",
+var dev = 0,
+    cacheVersion = 1,
+    scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
 loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( pathRaw + "SoundCloud/script.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
