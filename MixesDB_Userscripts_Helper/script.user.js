@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.8
+// @version      2025.01.01.9
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -30,11 +30,11 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 0; // default: 0
+const appleMusic_linksOpenInBrowser = 1; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = ""; // default: ""
+const appleMusic_countryCode_switch = "de"; // default: ""
 
 /*
  * TrackId.net settings
@@ -60,13 +60,13 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 1,
+    cacheVersion = 2,
     scriptName = "MixesDB_Userscripts_Helper",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
 //loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+//loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
