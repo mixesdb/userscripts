@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.9
+// @version      2025.01.01.10
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -23,7 +23,7 @@
  * Referenced CSS files blocked by AP server!
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var css = 'img.mdb-logo{background:#eee;padding:2px}.mdb-element.search{margin:20px 30px 0}.mdb-element.search *{font-size:1.4rem}.mdb-element.search input[type=submit]{width:6em;margin-left:10px}.mdb-element.search input{padding:.5rem .75rem}.mdb-element.search input[type=text]{width:calc(100% - 6em - 10px)}.mdb-searchLink-wrapper{width:30px!important}.mdb-element.dragUrl,.mdb-element.list{float:right;width:calc(100% - 30px)!important}.mdb-element.dragUrl{padding:2px 4px;width:100%!important}ol[data-testid=episodes-list] li{clear:both;padding-bottom:.35rem}ol[data-testid=episodes-list] li img.mdb-logo{margin:.35rem 0 0;height:17px}&& img.mdb-logo{height:24px}';
+var css = 'img.mdb-logo {   background: #eee;   padding: 1px;}/* Search */.mdb-element.search { margin: 20px 30px 0;}.mdb-element.search * {    font-size: 1.4rem;}.mdb-element.search input[type=submit] { width: 6em; margin-left: 10px;}.mdb-element.search input {  padding: .5rem .75rem}.mdb-element.search input[type=text] {    width: calc(100% - 6em - 10px);}.mdb-searchLink-wrapper {   display: inline;}/* dragUrl */.mdb-element.dragUrl,.mdb-element.list {  float: right;   width: calc(100% - 35px) !important}.mdb-element.dragUrl {  max-height: 23px;   padding: 12px 4px !important;   width: 100% !important;}ol[data-testid=episodes-list] li {  clear: both;    padding-bottom: .35rem;}ol[data-testid=episodes-list] li img.mdb-logo { margin: .35rem 0 0; height: 22px;}h1.headings__title img.mdb-logo { height: 24px;   margin-left: 10px;}';
 $("head").append('<style>'+css+'</style>');
 
 
