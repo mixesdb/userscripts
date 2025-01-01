@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.4
+// @version      2025.01.01.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -20,17 +20,11 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
- * global.js URL needs to be changed manually
+ * Referenced CSS files blocked by AP server!
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var dev = 0,
-    cacheVersion = 1,
-    scriptName = "Apple_Podcasts",
-    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
-    pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
-
-loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+var css = '.mdb-element.search{margin:20px 30px 0}.mdb-element.search *{font-size:1.4rem}.mdb-element.search input[type=submit]{width:6em;margin-left:10px}.mdb-element.search input{padding:.5rem .75rem}.mdb-element.search input[type=text]{width:calc(100% - 6em - 10px)}';
+$("head").append('<style>'+css+'</style>');
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -44,7 +38,7 @@ function makeDragUrl( url, classWrapper, cssWrapper, cssElement ) {
     return '<div class="mdb-element '+classWrapper+'" style="'+cssWrapper+'"><input class="mdb-element dragUrl" style="width: 100%; '+cssElement+'" value="'+url+'" /></div>';
 }
 
-/* On show pages / episode lists */
+/* On show pagesm, episode lists, search results (Episodes section) */
 waitForKeyElements(".episode .link-action", episodeListWait);
 function episodeListWait(jNode) {
     var episodeUrl = jNode.attr("href"),
@@ -64,8 +58,24 @@ waitForKeyElements(".container-detail-header", episodePageWait);
 function episodePageWait(jNode) {
     var headings = $(".headings__subtitles", jNode),
         dragLink = makeDragUrl( location.href, 'header', 'width: 100%; max-width: 48em;', '' );
+
     headings.css("width", "100%");
     headings.after( dragLink );
+}
+
+/* On Search result (Top Results section) */
+waitForKeyElements(".top-search-lockup-wrapper", topResultWait);
+function topResultWait( jNode ) {
+    var episodeUrl = $("a.link-action", jNode).attr("href"),
+        cssWrapper = 'margin: .3rem 0 0;';
+
+    if( is_safari ) {
+        cssWrapper = 'margin: -.6rem 0 0';
+    }
+
+    var dragLink = makeDragUrl( episodeUrl, 'topResult', cssWrapper, '' );
+
+    jNode.append( dragLink );
 }
 
 /* Select dragUrl input */
@@ -77,7 +87,8 @@ function dragUrlInputWait(jNode) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * On search insert keywords when coming from search link
+ * On search insert keywords in bigger form
+ * When coming from search links, the keywords are not added to standard search input
  * extends MixesDB Userscripts Helper
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -93,6 +104,6 @@ if( keywords ) {
             var searchForm = '<form class="mdb-element search" action="/'+urlPath(1)+'/search"><input type="text" name="term" value="'+keywords+'"><input type="submit" value="Search"></form>';
             $("main .page-container").prepend( searchForm );
             $(".mdb-element.search input[type=text]").focus().select();
-        }, 1200 );
+        }, 1500 );
     }
 }
