@@ -125,7 +125,7 @@ function create_button( text, className, type ) {
  * normalizeTitleForSearch
  */
 function normalizeTitleForSearch( title ) {
-    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " );
+    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " ).trim();
 }
 
 
