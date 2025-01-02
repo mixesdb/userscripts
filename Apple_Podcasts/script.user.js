@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.10
+// @version      2025.01.02.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -11,6 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Apple_Podcasts_7
 // @match        https://*podcasts.apple.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=podcasts.apple.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
