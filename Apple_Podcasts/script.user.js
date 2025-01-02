@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.02.2
+// @version      2025.01.02.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -136,9 +136,7 @@ var keywords = getURLParameter( "term" ).trim();
 logVar( "keywords", keywords );
 
 if( keywords ) {
-    waitForKeyElements(".navigation__header input.search-input__text-field", searchInputWait);
-    function searchInputWait(jNode) {
-
+    waitForKeyElements(".navigation__header input.search-input__text-field", function( jNode ) {
         setTimeout(function() {
             var searchForm = '<form class="mdb-element search" action="/'+urlPath(1)+'/search"><input type="text" name="term" value="'+keywords+'"><input type="submit" value="Search"></form>';
             $("main .content-container").prepend( searchForm );
@@ -149,5 +147,5 @@ if( keywords ) {
             }
 
         }, 1250 );
-    }
+    });
 }
