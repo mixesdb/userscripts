@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.1
+// @version      2025.01.02.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,6 +12,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_54
 // @include      http*trackid.net*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
@@ -76,7 +77,7 @@ redirectOnUrlChange( 20 );
 /*
  * grab url path and fire functions
  */
-$(document).ready(function(){
+d.ready(function(){
     var contentWrapper = $(".MuiGrid-grid-xs-12"),
         path1 = window.location.pathname.replace(/^\//, "");
 

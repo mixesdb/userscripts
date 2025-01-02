@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.01.11
+// @version      2025.01.02.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -11,6 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_6
 // @match        https://www.mixesdb.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
@@ -30,11 +31,11 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 0; // default: 0
+const appleMusic_linksOpenInBrowser = 1; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = ""; // default: ""
+const appleMusic_countryCode_switch = "de"; // default: ""
 
 /*
  * TrackId.net settings
