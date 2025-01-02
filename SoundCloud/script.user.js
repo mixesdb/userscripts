@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.02.1
+// @version      2025.01.02.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -41,8 +41,7 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements(".listenArtworkWrapper", artwork_wait);
-function artwork_wait(jNode) {
+waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
     logFunc( "artwork_wait" );
     log( location.href );
 
@@ -54,7 +53,7 @@ function artwork_wait(jNode) {
     if( typeof artwork_url  !== "undefined" ) {
         append_artwork( artwork_url );
     }
-}
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -66,8 +65,7 @@ function artwork_wait(jNode) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", onFavoriteButton_wait);
-function onFavoriteButton_wait(jNode) {
+waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
     logFunc( "onFavoriteButton_wait" );
 
     // is favorited
@@ -81,4 +79,4 @@ function onFavoriteButton_wait(jNode) {
 
     // mark as processed
     jNode.addClass("mdb-processed-favorited");
-}
+});
