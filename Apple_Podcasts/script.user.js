@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Podcasts (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.02.1
+// @version      2025.01.02.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -59,8 +59,7 @@ function makeDragUrl( url, classWrapper, cssWrapper, cssElement ) {
 /*
  * On show pages, episode lists, search results (Episodes section)
  */
-waitForKeyElements(".episode .link-action", episodeListWait);
-function episodeListWait(jNode) {
+waitForKeyElements(".episode .link-action", function( jNode ) {
     var episodeUrl = jNode.attr("href"),
         cssWrapper = 'padding: .25em 0 1em;';
     /*
@@ -72,13 +71,12 @@ function episodeListWait(jNode) {
     var dragLink = makeDragUrl( episodeUrl, 'list', cssWrapper, '' );
 
     jNode.closest("li").append( dragLink );
-}
+});
 
 /*
  * On episode page
  */
-waitForKeyElements(".container-detail-header", episodePageWait);
-function episodePageWait(jNode) {
+waitForKeyElements(".container-detail-header", function( jNode ) {
     var headings = $(".headings__subtitles", jNode),
         title = $("h1.headings__title"),
         titleText = title.text(),
@@ -91,19 +89,17 @@ function episodePageWait(jNode) {
     title.append( mdbSearchLink );
 
     cleanupAddedElements();
-}
+});
 
 // Select dragUrl input in header
-waitForKeyElements(".mdb-element.header input.dragUrl", dragUrlInputWait);
-function dragUrlInputWait(jNode) {
+waitForKeyElements(".mdb-element.header input.dragUrl", function( jNode ) {
     jNode.select().focus();
-}
+});
 
 /*
  * On search result (Top Results section)
  */
-waitForKeyElements(".top-search-lockup-wrapper", topResultWait);
-function topResultWait( jNode ) {
+waitForKeyElements(".top-search-lockup-wrapper", function( jNode ) {
     var episodeUrl = $("a.link-action", jNode).attr("href"),
         cssWrapper = 'margin: .35rem 0 0;';
 
@@ -112,13 +108,12 @@ function topResultWait( jNode ) {
     jNode.append( dragLink );
 
     $(".section--mixedSearch li:first-of-type .mdb-element.dragUrl").select().focus();
-}
+});
 
 /*
  * On show pages
  */
-waitForKeyElements("ol[data-testid='episodes-list'] li", showPageEpisodesWait);
-function showPageEpisodesWait( jNode ) {
+waitForKeyElements("ol[data-testid='episodes-list'] li", function( jNode ) {
     var titleLink = $(".episode-details__title-wrapper .multiline-clamp__text", jNode),
         titleText = titleLink.text(),
         mdbSearchLink = makeMdbSearchLink( titleText );
@@ -126,7 +121,7 @@ function showPageEpisodesWait( jNode ) {
     jNode.append( mdbSearchLink );
 
     cleanupAddedElements();
-}
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
