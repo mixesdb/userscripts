@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.02.1
+// @version      2025.01.03.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -31,11 +31,11 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 0; // default: 0
+const appleMusic_linksOpenInBrowser = 1; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = ""; // default: ""
+const appleMusic_countryCode_switch = "de"; // default: ""
 
 /*
  * TrackId.net settings
@@ -96,7 +96,12 @@ function getKeywordsFromTitle_Customized_AP( titleWrapper ) {
 // get applePodcastsSearchLink
 function getApplePodcastsSearchLink( className, keywords ) {
     var applePodcastsSearchUrl = "https://podcasts.apple.com/us/search?term="+encodeURIComponent( keywords );
-    return '<a class="'+className+' applePodcastsSearch" href="'+applePodcastsSearchUrl+'" title="Search \''+keywords+'\’ in Apple Podcasts" target="_blank"><img src="https://www.mixesdb.com/w/images/a/ad/Apple_Podcasts_logo.svg" alt="Apple Podcasts icon"/></a>';
+
+    // mak eicon link
+    // max-height to avoid flashing original icon size (script.css loads later)
+    var iconLink = '<a class="'+className+' applePodcastsSearch" href="'+applePodcastsSearchUrl+'" title="Search \''+keywords+'\’ in Apple Podcasts" target="_blank"><img src="https://www.mixesdb.com/w/images/a/ad/Apple_Podcasts_logo.svg" style="max-height:18px" alt="Apple Podcasts icon"/></a>';
+
+    return iconLink;
 }
 
 
@@ -127,7 +132,7 @@ function tidLinkFromUrl( requestPlayerUrl, keywords ) {
 
     if( cont ) {
         var tidUrl = "https://trackid.net/submitrequest?requestUrl="+encodeURIComponent( urlFixed )+"&keywords="+encodeURIComponent( keywords ),
-            tidLogo = '<img class="op05" src="https://www.mixesdb.com/w/images/3/3c/trackid.net.png" alt="TrackId.net Logo">',
+            tidLogo = '<img class="op05" src="https://www.mixesdb.com/w/images/3/3c/trackid.net.png" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
             link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
         return link;
     } else {
