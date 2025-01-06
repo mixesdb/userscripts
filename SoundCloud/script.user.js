@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.06.2
+// @version      2025.01.06.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_3
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_4
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @noframes
@@ -91,7 +91,8 @@ waitForKeyElements(".listenDetails__trackList li.trackList__item a.trackItem__tr
     var playerUrlFixed = linkRemoveSetParameter( jNode.attr("href") );    
     
     jNode.attr( "href", playerUrlFixed )
-         .attr( "target", "_blank" );
+         .attr( "target", "_blank" )
+         .attr( "title", playerUrlFixed+" (opens in a new tab)" );
 });
 
 // Compact playlists
@@ -99,7 +100,7 @@ waitForKeyElements(".listenDetails__trackList li.trackList__item a.trackItem__tr
 waitForKeyElements(".compactTrackList__listWrapper li.compactTrackList__item span.compactTrackListItem__trackTitle", function( jNode ) {
     var playerUrlFixed = linkRemoveSetParameter( jNode.attr( "data-permalink-path") );
     
-    jNode.after( '<a href="'+playerUrlFixed+'" target="_blank" class="mdb-element mdb-copyLink sc-link-dark sc-link-primary sc-font-light">Link</a>' );
+    jNode.after( '<a href="'+playerUrlFixed+'" title="'+playerUrlFixed+' (opens in a new tab)" target="_blank" class="mdb-element mdb-copyLink sc-link-dark sc-link-primary sc-font-light">Link</a>' );
 });
 
 // .copyLink on click open new tab
