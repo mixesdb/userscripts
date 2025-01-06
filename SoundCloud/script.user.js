@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.06.3
+// @version      2025.01.06.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -81,7 +81,7 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Playlist links
+ * Links in playlist sets
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -113,6 +113,25 @@ waitForKeyElements(".mdb-copyLink", function( jNode ) {
 
 // button to copy link (no href)
 // hide it (would copy url with in parameter)
+waitForKeyElements(".listenDetails__trackList li.trackList__item a.trackItem__trackTitle", function( jNode ) {
+    jNode.hide();
+});
 waitForKeyElements(".listenDetails__trackList li.trackList__item button.sc-button-copylink", function( jNode ) {
     jNode.hide();
 });
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Favorited buttons
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// if favorited before, show hidden soundActions
+/*
+waitForKeyElements(".listenDetails li button.sc-button-like.sc-button-selected:not(.mdb-processed)", function( jNode ) {
+    jNode.addClass("mdb-processed");
+    
+    jNode.closest(".trackItem__actions").css('margin-left','.5rem').show();
+});
+*/
