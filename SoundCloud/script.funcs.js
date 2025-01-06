@@ -44,7 +44,7 @@ waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
             $("#mdb-artwork-input-wrapper").append('<div id="mdb-artwork-info"><a href="'+origUrl+'" target="_blank">'+artworkInfo+'</a></div>');
     };
     img.src = origUrl;
-}
+});
 
 
 /*
