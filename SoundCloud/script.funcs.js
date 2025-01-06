@@ -3,6 +3,7 @@ log( "script.funcs.js loaded" );
 /*
  * Artwork funcs
  */
+// append_artwork()
 function append_artwork( artwork_url ) {
     logFunc( "append_artwork" );
 
@@ -26,10 +27,7 @@ function append_artwork( artwork_url ) {
 
 // Artwork info
 // runs after append_artwork() replaced the artwork
-waitForKeyElements("img#mdb-artwork-img", append_artwork_info_wait);
-function append_artwork_info_wait( jNode ) {
-    logFunc( "append_artwork_info_wait" );
-
+waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
     var origUrl = jNode.attr("src").replace(/(\r\n|\n|\r)/gm, ""), // replace line breaks
         imageType = origUrl.replace(/^.+\.([a-zA-Z]{3})/, "$1").toUpperCase();
         //imageType = origUrl.substr( origUrl.length - 3 ).toUpperCase();
@@ -46,4 +44,13 @@ function append_artwork_info_wait( jNode ) {
             $("#mdb-artwork-input-wrapper").append('<div id="mdb-artwork-info"><a href="'+origUrl+'" target="_blank">'+artworkInfo+'</a></div>');
     };
     img.src = origUrl;
+}
+
+
+/*
+ * Playlist funcs
+ */
+// linkRemoveSetParameter
+function linkRemoveSetParameter( url ) {
+    return url.replace( /^(.+)\?in=.+$/, "$1" );
 }
