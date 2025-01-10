@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.02.2
+// @version      2025.01.10.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -601,7 +601,7 @@ function on_submitrequest() {
 
     // Add keywords to search input
     if( keywords !== "" ) {
-        waitForKeyElements( "#search-box", function( jNode ) {
+        waitForKeyElements( ".MuiButton-root", function( jNode ) {
             logFunc( "submitRequest_searchInput_wait" );
 
             var newSearch = '<form id="mdb-replacedSearch" action="https://trackid.net/audiostreams" method="GET">';
@@ -611,6 +611,15 @@ function on_submitrequest() {
                 newSearch += '</form>';
 
             jNode.closest(".header-mid.MuiBox-root").replaceWith( newSearch );
+        });
+        
+        // Click button "View Tracklist" when it appeas
+        waitForKeyElements( "button.MuiButton-root", function( jNode ) {
+            var buttonText = jNode.text();
+            
+            if( buttonText == "View Tracklist" ) {
+                //jNode.click();
+            }
         });
     }
 }
