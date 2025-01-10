@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.03.1
+// @version      2025.01.10.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -326,7 +326,9 @@ function waitAppleMusicLinks(jNode) {
     logVar( "appleMusic_countryCode_switch", appleMusic_countryCode_switch );
 
     if( appleMusic_countryCode_switch != "" ) {
-        item_url = item_url.replace( /music.apple.com\/..\//g, "music.apple.com/"+appleMusic_countryCode_switch+"/" );
+        item_url = item_url.replace( /music.apple.com\/..\//g, "music.apple.com/"+appleMusic_countryCode_switch+"/" )
+                           .replace( "?at=1000l5EX&term=", "?term=" ) /* HOTFIX issue#509 */
+                           ;
     }
 
     // prepare url for switch
