@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.10.1
+// @version      2025.01.10.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -31,11 +31,11 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 1; // default: 0
+const appleMusic_linksOpenInBrowser = 0; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = "de"; // default: ""
+const appleMusic_countryCode_switch = ""; // default: ""
 
 /*
  * TrackId.net settings
@@ -225,27 +225,37 @@ d.ready(function(){ // needed for mw.config
         } else {
             log( "trackIdnet_addRequestSubmissionIcon diabled." );
         }
+    }
 
-        // Apple Podcast search icon
+    /*
+     * On mix pages and Category pages
+     */
+    if( ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
+        || wgNamespaceNumber==14
+      ) {
+        // Apple Podcasts search link icon
         if( applePodcasts_addSearchIcons ) {
             if( actionView ) {
                 var titleWrapper = $("#firstHeading .mw-page-title-main");
             } else {
                 var titleWrapper = $("#firstHeading #firstHeadingTitle");
             }
+            
+            if( wgNamespaceNumber==14 ) {
+                var keywords = wgTitle; // on Category
+            } else {
+                var keywords = getKeywordsFromTitle_Customized_AP( titleWrapper );
+            }
 
-            var keywords = getKeywordsFromTitle_Customized_AP( titleWrapper );
-
+            
             if( keywords ) var applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
             if( applePodcastsSearchLink ) $("#pageIcons").prepend( applePodcastsSearchLink );
         } else {
             log( "applePodcasts_addSearchIcons diabled." );
         }
-
-    } else {
-        log( "Criteria for mix page not matched." );
+        
     }
-
+    
     /*
      * On MixesDB:Explorer/Mixes
      */
@@ -287,8 +297,6 @@ d.ready(function(){ // needed for mw.config
         } else {
             log( "applePodcasts_addSearchIcons diabled." );
         }
-    } else {
-        log( "Criteria for MixesDB:Explorer/Mixes not matched." );
     }
 });
 
