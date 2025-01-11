@@ -5,6 +5,10 @@
 	display: none !important;
 }
 
+.floatR {
+	float: right;
+}
+
 .hand,
 .mdb-toggle {
     cursor: pointer;
@@ -65,10 +69,16 @@ button.mdb-element {
 
 
 /*
- * Tracklist textarea
+ * Tracklist output
  */
 textarea#mixesdb-TLbox,
 textarea.mono {
 	font-size: 12px !important;
 	font-family: Consolas, monospace !important;
+	color: #111 !important;
+}
+#tlEditor-feedback-rows {
+	font-weight: 600;
+	background: hsla(0, 0%, 79%, 0.7);
+	text-shadow: 1px 1px hsla(0, 0%, 39%, 0.5);
 }
