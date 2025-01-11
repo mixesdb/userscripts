@@ -82,3 +82,6 @@ textarea.mono {
 	background: hsla(0, 0%, 79%, 0.7);
 	text-shadow: 1px 1px hsla(0, 0%, 39%, 0.5);
 }
+#tlEditor-feedback-text code {
+	font-size: 12px !important;
+}
