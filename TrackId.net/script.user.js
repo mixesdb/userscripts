@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.10.1
+// @version      2025.01.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -401,8 +401,7 @@ function funcTidTables(jNode) {
 
     var audiostreams = [],
         heading = $(".MuiGrid-grid-xs-12 p.MuiTypography-body1"),
-        grid = $(".data-grid", jNode).add(".MuiDataGrid-root"),
-        addCheck = true;
+        grid = $(".data-grid", jNode).add(".MuiDataGrid-root");
 
     if (grid.length == 1 && grid.is(":visible")) {
         var tableClass = heading.text().replace(/ /g, ""),
@@ -416,14 +415,6 @@ function funcTidTables(jNode) {
             if (textId == "#") textId = "Index";
             if (textId) tbody.append('<th id="' + textId + '">' + text + '</th>');
         });
-
-        if (urlPath(1) == "audiostreams") {
-            addCheck = false;
-        }
-
-        if (addCheck) {
-            tbody.append('<th id="mixesdbPageCheck">MixesDB<br />check</th>');
-        }
 
         $(".MuiDataGrid-row").each(function () {
             log("get urls" + $(this).html());
@@ -445,8 +436,6 @@ function funcTidTables(jNode) {
                         break;
                 }
             }
-
-            log("table addCheck: " + addCheck);
 
             // each gridd cell
             tbody.append('<tr id="' + rowId + '" data-' + urlType + '="' + urlValue + '"></tr>');
@@ -470,10 +459,7 @@ function funcTidTables(jNode) {
                     checkAction = "–",
                     searchLink = searchOnMixesDB(mixTitle, "list", 26);
                 if (searchLink) checkAction = searchLink;
-
-                if (addCheck) {
-                    thisTr.append('<td class="mixesdbPageCheck-status center"><span class="mixesdbPageCheck-status-no hidden">' + checkAction + '</span></td>');
-                }
+                
             } else {
                 log( "No listItemText!" );
             }
@@ -601,7 +587,7 @@ function on_submitrequest() {
 
     // Add keywords to search input
     if( keywords !== "" ) {
-        waitForKeyElements( ".MuiButton-root", function( jNode ) {
+        waitForKeyElements( "#search-box", function( jNode ) {
             logFunc( "submitRequest_searchInput_wait" );
 
             var newSearch = '<form id="mdb-replacedSearch" action="https://trackid.net/audiostreams" method="GET">';
@@ -611,15 +597,6 @@ function on_submitrequest() {
                 newSearch += '</form>';
 
             jNode.closest(".header-mid.MuiBox-root").replaceWith( newSearch );
-        });
-        
-        // Click button "View Tracklist" when it appeas
-        waitForKeyElements( "button.MuiButton-root", function( jNode ) {
-            var buttonText = jNode.text();
-            
-            if( buttonText == "View Tracklist" ) {
-                //jNode.click();
-            }
         });
     }
 }
