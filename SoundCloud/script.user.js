@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.07.1
+// @version      2025.01.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,6 +37,31 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Basics
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+// url parameters
+var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
+    getHideReposts = getURLParameter("hideReposts") == "true" ? "true" : "false",
+    getHideFav = getURLParameter("hideFav") == "true" ? "true" : "false";
+
+logVar( "getHidePl", getHidePl );
+logVar( "getHideReposts", getHideReposts );
+logVar( "getHideFav",getHideFav );
+
+// removeFavedPlayer_ifOptedIn
+function removeFavedPlayer_ifOptedIn( jNode ) {
+    logFunc( "removeFavedPlayer_ifOptedIn" );
+
+    if( getHideFav == "true" ) {
+        log( "Hidden: " + jNode.closest(".soundTitle__title") );
+        jNode.closest(".soundList__item").remove();
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Artwork
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -57,13 +82,12 @@ waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Stream players > Favorite button
+ * Favorite button
  *
  * TODO:
  * Enable in playlists https://soundcloud.com/resident-advisor
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
     // is favorited
     if( jNode.hasClass("sc-button-selected") ) {
@@ -72,6 +96,9 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
 
         // Highlight player title if favorited
         title.addClass("mdb-darkorange");
+
+        // remve faved player
+        removeFavedPlayer_ifOptedIn( jNode );
     }
 
     // mark as processed
@@ -145,8 +172,10 @@ waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
 
 // on click
 // scrolling is needed because it wouldn't load more when all visible are removed
-waitForKeyElements(".soundList ul li .mdb-removeItem", function( jNode ) {
+waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
     $(".mdb-removeItem").click(function(){
+        log( "click remove" );
+
         // keep lazy loading active
         $(".lazyInfo").remove();
         $(".lazyLoadingList__list, .userStream__list .soundList").after('<div style="text-align:center; margin-bottom:20px" class="lazyInfo">Problems loading more players? Try scrolling up and down.</div>');
@@ -164,4 +193,76 @@ waitForKeyElements(".soundList ul li .mdb-removeItem", function( jNode ) {
         // remove
         $(this).closest(".soundList__item").remove();
     });
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Hide options
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+// stream
+waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
+waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
+waitForKeyElements(".soundList.lazyLoadingList", lazyLoadingList);
+function lazyLoadingList(jNode) {
+    logFunc( "lazyLoadingList" );
+
+    // add checkboxes
+    if( $("#mdb-streamActions").length === 0 ) {
+        jNode.before('<div id="mdb-streamActions" class="spotlightTitle sc-text-grey sc-border-light-bottom"></div>');
+
+        var sa = $("#mdb-streamActions"),
+            checkedPl = "checked",
+            checkedFav = "";
+        if( getHidePl == "false" ) var checkedPl = '';
+        if( getHideReposts == "true" ) var checkedReposts = 'checked';
+        if( getHideFav == "true" ) var checkedFav = 'checked';
+
+        sa.append('<h3 class="sc-text-light">Hide:</h3>');
+        sa.append('<h3><label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label></h3>');
+        sa.append('<h3><label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label></h3>');
+        sa.append('<h3><label class="pointer"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label></h3>');
+    }
+
+    // reload
+    var windowLocation = window.location,
+        href = $(location).attr('href');
+
+    if( typeof href != "undefined" ) {
+        var url = href.replace(/\?.*$/g,"");
+    }
+
+    if( typeof url != "undefined" ) {
+        $("#hidePl").change(function(){
+            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav;
+                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav;
+        }});
+        $("#hideReposts").change(function(){
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav;
+        }});
+        $("#hideFav").change(function(){
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false";
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true";
+        }});
+    }
+}
+
+// each playlist
+waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
+    if( getHidePl == "true" ) {
+        log( "Hidden: " + jNode.closest(".soundTitle__title") );
+        jNode.closest(".soundList__item").remove();
+    }
+});
+
+// each repost player
+waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
+    if( getHidePl == "true" ) {
+        log( "Hidden: " + jNode.closest(".soundTitle__title") );
+        jNode.closest(".soundList__item").remove();
+    }
 });
