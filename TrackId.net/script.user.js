@@ -587,5 +587,12 @@ function on_submitrequest() {
 
             jNode.closest(".header-mid.MuiBox-root").replaceWith( newSearch );
         });
+
+        // Click button "View Tracklist" when it appeas
+        waitForKeyElements( "button.MuiButton-root", function( jNode ) {
+            if( jNode.text() == "View Tracklist" ) {
+                jNode.click();
+            }
+        });
     }
 }
