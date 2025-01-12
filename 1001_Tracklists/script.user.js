@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.12.1
+// @version      2025.01.12.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -39,6 +39,7 @@ loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 function thousandoneTl() {
+    runMain = false;
     $(".adRow").remove();
     // remove hidden elements that appear in text
     $(".tlUserInfo").remove();
@@ -121,8 +122,24 @@ function thousandoneTl() {
  * Run funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+var runMain = true;
 if( urlPath(1) == "tracklist") {
     waitForKeyElements("#tlTab .trackValue", function( jNode ) {
-        thousandoneTl();
+        if( runMain ) {
+            thousandoneTl();
+        }
     });
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Remove adblocker blocker
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+waitForKeyElements("#overlay", function( jNode ) {
+    jNode.remove();
+});
+waitForKeyElements("#btn_msgpane_ok", function( jNode ) {
+    jNode.click();
+});
