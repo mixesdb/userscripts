@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.11.2
+// @version      2025.01.12.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -39,15 +39,13 @@ loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 function thousandoneTl() {
-    run1001 = false;
-
     $(".adRow").remove();
-	// remove hidden elements that appear in text
-	$(".tlUserInfo").remove();
-	$(".tgHid").remove();
+    // remove hidden elements that appear in text
+    $(".tlUserInfo").remove();
+    $(".tgHid").remove();
 
     var t = $("#tlTab");
-    if(t.length > 0 ) {
+    if( t.length > 0 ) {
         var tl = "",
             li = $("#tlTab > div"),
             len = li.length,
@@ -66,7 +64,7 @@ function thousandoneTl() {
                 track += song;
                 if( label != "" ) track += " ["+label+"]";
 
-                //xc( track );
+                //log( track );
                 if( track != "" && track != " " )  {
                     tl += track + "\n";
                 }
@@ -87,33 +85,33 @@ function thousandoneTl() {
             }
         });
 
-        xc( tl );
+        log( tl );
 
         // fixes
-		var tl = tl.replace('&thinsp;', ' ')
+        var tl = tl.replace('&thinsp;', ' ')
                    .replace(' (ID Remix) (ID Remix)', ' (ID Remix)')
                    .replace(/;(.+)\n\n;(.+)/g, ';$1 - $2')
                    .replace(/undefined - undefined/gi, '?');
 
         // dur fixes
-		if( /\[\d+:\d+]/.test(tl) ) {
-			tl = tl.replace( /\[(\d)] /, "[0$1:00] " )
-			       .replace( /\[(\d+)] /, "[$1:00] " );
-		}
-		if( /\[\d\d:\d\d]/.test(tl) && /\[1:\d\d:\d\d]/.test(tl) ) {
-			tl = tl.replace( /\[(\d\d:\d\d)] /gm, "[0:$1] " );
-			tl = tl.replace( /\[(\d:\d\d)] /gm, "[0:0$1] " );
-		}
+        if( /\[\d+:\d+]/.test(tl) ) {
+            tl = tl.replace( /\[(\d)] /, "[0$1:00] " )
+                   .replace( /\[(\d+)] /, "[$1:00] " );
+        }
+        if( /\[\d\d:\d\d]/.test(tl) && /\[1:\d\d:\d\d]/.test(tl) ) {
+            tl = tl.replace( /\[(\d\d:\d\d)] /gm, "[0:$1] " );
+            tl = tl.replace( /\[(\d:\d\d)] /gm, "[0:0$1] " );
+        }
 
-		var res = apiTracklist( tl, "thousandoneTl" ),
-			tlApi = res.text,
-			feedback = res.feedback;
+        var res = apiTracklist( tl, "thousandoneTl" ),
+            tlApi = res.text,
+            feedback = res.feedback;
 
-		if( tlApi ) {
-			t.prepend( ta );
+        if( tlApi ) {
+            t.prepend( ta );
             $("#mixesdb-TLbox").css("position","inherit").append( tlApi );
-		    fixTLbox( res.feedback );
-		}
+            fixTLbox( res.feedback );
+        }
     }
 }
 
@@ -125,6 +123,6 @@ function thousandoneTl() {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 if( urlPath(1) == "tracklist") {
     waitForKeyElements("#tlTab .trackValue", function( jNode ) {
-        if(run1001) thousandoneTl();
+        thousandoneTl();
     });
 }
