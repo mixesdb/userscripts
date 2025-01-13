@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.11.1
+// @version      2025.01.13.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_5
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @noframes
@@ -25,6 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var dev = 0,
     cacheVersion = 2,
     scriptName = "SoundCloud",
@@ -40,6 +41,7 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
  * Basics
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 // url parameters
 var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
     getHideReposts = getURLParameter("hideReposts") == "true" ? "true" : "false",
@@ -71,7 +73,7 @@ waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
 
     // Artwork link tzo original
     var artworkWrapper = $(".listenArtworkWrapper"),
-        artwork_url = $(".sc-artwork",artworkWrapper).html().replace(/.+&quot;(htt.+(?:jpg|png)).+/, "$1");
+        artwork_url = $(".sc-artwork", artworkWrapper).html().replace(/.+&quot;(htt.+(?:jpg|png)).+/, "$1");
     log( artworkWrapper.html() );
     logVar( "artwork_url", artwork_url );
     if( typeof artwork_url  !== "undefined" ) {
@@ -88,6 +90,7 @@ waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
  * Enable in playlists https://soundcloud.com/resident-advisor
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
     // is favorited
     if( jNode.hasClass("sc-button-selected") ) {
@@ -114,13 +117,15 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
 
 // player links and link buttons
 // https://soundcloud.com/resident-advisor/sets/ra-podcast
-waitForKeyElements(".listenDetails__trackList li.trackList__item a.trackItem__trackTitle", function( jNode ) {
+waitForKeyElements(".listenDetails__trackList li a.trackItem__trackTitle", playlistSetsCaseOne );
+waitForKeyElements(".systemPlaylistTrackList__list li a.trackItem__trackTitle", playlistSetsCaseOne );
+function playlistSetsCaseOne( jNode ) {
     var playerUrlFixed = linkRemoveSetParameter( jNode.attr("href") );
 
     jNode.attr( "href", playerUrlFixed )
          .attr( "target", "_blank" )
          .attr( "title", playerUrlFixed+" (opens in a new tab)" );
-});
+}
 
 // Compact playlists
 // https://soundcloud.com/resident-advisor
@@ -153,6 +158,7 @@ waitForKeyElements(".listenDetails__trackList li button.sc-button-copylink", fun
  * Favorited buttons
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 // if favorited before, show hidden soundActions
 waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", function( jNode ) {
     jNode.css('margin-left','.5rem').show();
@@ -164,6 +170,7 @@ waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", functi
  * [X] remove button
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 // if favorited before, show hidden soundActions
 waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
     var removeItem = '<div class="mdb-removeItem hand sc-text-grey" title="Remove the player (this session only)">X</div>';
@@ -201,7 +208,6 @@ waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
  * Hide options
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 
 // stream
 waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
