@@ -52,5 +52,6 @@ waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
  */
 // linkRemoveSetParameter
 function linkRemoveSetParameter( url ) {
-    return url.replace( /^(.+)\?in=.+$/, "$1" );
+    return url.replace( /^(.+)\?in=.+$/, "$1" )
+              .replace( /^(.+)\?in_system_playlist=.+$/, "$1" );
 }
