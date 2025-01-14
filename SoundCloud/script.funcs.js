@@ -50,10 +50,26 @@ waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
 /*
  * Playlist funcs
  */
+
 // linkRemoveSetParameter
 function linkRemoveSetParameter( url ) {
     return url.replace( /^(.+)\?in=.+$/, "$1" )
               .replace( /^(.+)\?in_system_playlist=.+$/, "$1" );
+}
+
+
+/*
+ * Hiding options funcs
+ */
+
+// removeFavedPlayer_ifOptedIn
+function removeFavedPlayer_ifOptedIn( jNode ) {
+    logFunc( "removeFavedPlayer_ifOptedIn" );
+
+    if( getHideFav == "true" ) {
+        log( "Hidden: " + jNode.closest(".soundTitle__title") );
+        jNode.closest(".soundList__item").remove();
+    }
 }
 
 
