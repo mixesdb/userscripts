@@ -201,6 +201,15 @@ button.mdb-toggle.selected {
     margin: 0 6px 6px 0;
 }
 
+.fullListenHero {
+    width: 100% !important;
+}
+
+.mdb-tidSubmit {
+    float: right;
+    margin: .5rem 2rem .5rem 0;
+}
+
 /* "More" soundActions: indicate available download */
 .mdb-fakeDlButton {
     margin-right: -1px !important; /* optical */
