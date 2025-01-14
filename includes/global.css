@@ -27,6 +27,13 @@
 	color: #f60 !important;
 }
 
+/*
+ * Highlight warning
+ */
+.mdb-warning {
+    color:crimson;
+}
+
 
 /*
  * nolist
