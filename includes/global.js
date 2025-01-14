@@ -106,6 +106,30 @@ function durToSec( dur ) {
     return seconds;
 }
 
+// convertHMS()
+function convertHMS( s ) {
+    var h = Math.floor(s / 3600); //Get whole hours
+    s -= h * 3600;
+    var m = Math.floor(s / 60); //Get remaining minutes
+    s -= m * 60;
+    return h + ":" + (m < 10 ? '0' + m : m) + ":" + (s < 10 ? '0' + s : s); //zero padding on minutes and seconds
+}
+
+// selectText()
+function selectText( e ) {
+    var t = document.getElementById(e),
+		n = window.getSelection(),
+		r = document.createRange();
+    r.selectNodeContents(t);
+	n.removeAllRanges();
+	n.addRange(r)
+}
+
+// normalizeTitleForSearch
+function normalizeTitleForSearch( title ) {
+    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " ).trim();
+}
+
 
 /* 
  * Create elements
@@ -124,14 +148,6 @@ function create_note( text, className ) {
 // create_button
 function create_button( text, className, type ) {
 	return '<button type="'+type+'" class="mdb-element button '+ className +'">'+text+'</button>';
-}
-
-
-/*
- * normalizeTitleForSearch
- */
-function normalizeTitleForSearch( title ) {
-    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " ).trim();
 }
 
 
@@ -206,6 +222,41 @@ function apiTracklist( tl, type, genType ) {
 	var res = JSON.parse(jqXHR.responseText);
 
 	return res;
+}
+
+
+/*
+ * API related funcs
+ */
+
+// linkify
+function linkify( inputText ) {
+    var replacedText, replacePattern1, replacePattern2, replacePattern3;
+
+    //URLs starting with http://, https://, or ftp://
+    replacePattern1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+    replacedText = inputText.replace(replacePattern1, '<a href="$1" target="_blank">$1</a>');
+
+    //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
+    replacePattern2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim;
+    replacedText = replacedText.replace(replacePattern2, '$1<a href="http://$2" target="_blank">$2</a>');
+
+    //Change email addresses to mailto:: links.
+    replacePattern3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
+    replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
+
+    return replacedText;
+}
+
+// textify
+function textify( text ) {
+    return text
+        .replace( /({\n|\n})/gm, "" )
+        .replace( /^\t{1}/gm, "" )
+        .replace( /"user": \t/, '"user":\n' )
+        .replace( /("|,|null,?)/g, '' )
+        .replace( /\\n/g, '<br />' )
+    ;
 }
 
 
