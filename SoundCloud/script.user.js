@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.14.2
+// @version      2025.01.14.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -396,7 +396,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                         // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
                         // therefor rename the dropdown to "DL"
                         if( downloadable ) {
-                            $(".sc-button-more", jNode).removeClass("sc-button-more").addClass("sc-button-download").text("DL");
+                            $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
                         }
 
                         // duration
