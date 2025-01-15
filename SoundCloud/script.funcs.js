@@ -74,6 +74,50 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 
 
 /*
+ * API funcs
+ */
+const apiUrlToolsX = "https://www.mixesdb.com/tools/api/api.php",
+      scAccessToken_cookie_id = "SoundCloud_userscript_by_MixesDB_scAccessToken",
+      scAccessToken_cookie_expire = 0.0063; // 0.0063 = 3599 secs in days
+
+// getScAccessTokenFromApi
+// Get access_token and set as cookie
+// SC's user cookie 'oauth_token' doesn't work with the API
+function getScAccessTokenFromApi(handleData) {
+    logFunc( "getScAccessTokenFromApi" );
+    var scAccessToken_fromCookie = ( typeof( Cookies.get(scAccessToken_cookie_id) ) !== "undefined" ) ? Cookies.get( scAccessToken_cookie_id ) : '';
+    // check if set as cookie
+    if( scAccessToken_fromCookie == "" ) {
+        log( "token not in cookie" );
+        $.ajax({
+            type: "POST",
+            url: apiUrlToolsX,
+            data: { query: "getScAccessToken" }
+        })
+        .fail(function() {
+            console.log( "Cannot access MixesDB API or error!" );
+        })
+        .done(function(data) {
+            log( "API called. data: " + data );
+            var dataParsed = jQuery.parseJSON( data );
+            log( "data parsed: " + data.access_token );
+            if( dataParsed !== null ) {
+                handleData( dataParsed.access_token );
+                Cookies.set( scAccessToken_cookie_id, dataParsed.access_token, { expires: scAccessToken_cookie_expire, domain: domain } );
+            }
+        });
+    } else {
+        log( "token in cookie :)" );
+        handleData( scAccessToken_fromCookie );
+    }
+}
+
+// addApiErrorNote
+function addApiErrorNote() {
+    $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding. Please check back later.</p>');
+}
+
+/*
  * append_fileDetails()
  */
 function append_fileDetails( duration, soundActions, bytes="" ) {
