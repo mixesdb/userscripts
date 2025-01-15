@@ -114,8 +114,12 @@ function getScAccessTokenFromApi(handleData) {
 }
 
 // addApiErrorNote
-function addApiErrorNote() {
-    $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding. Please check back later.</p>');
+function addApiErrorNote( reason="" ) {
+    var reasonAdd = "";
+    if( reason != "" ) {
+        reasonAdd = ' ('+reason+')';
+    }
+    $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding'+reasonAdd+'. Please check back later.</p>');
 }
 
 /*
