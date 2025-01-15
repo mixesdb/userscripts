@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.15.3
+// @version      2025.01.15.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -327,7 +327,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                 scAccessToken = output;
                 logVar( "scAccessToken", scAccessToken );
                 
-                if( scAccessToken ) {
+                if( scAccessToken != "null" ) {
                     // Call API on current page
                     var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
                     logVar( "currentTrack_id", currentTrack_id );
@@ -343,10 +343,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                         dataType: "json",
                         url: scApiURl_currentTrack,
                         success: function( t ) {
-                            if( !t ) {
-                                addApiErrorNote();
-                            }
-
+                            
                             var kind = t.kind,
                                 id = t.id,
                                 title = t.title,
