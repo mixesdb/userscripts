@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.14.4
+// @version      2025.01.15.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -317,116 +317,119 @@ var RUN_sc_button_group = true;
 waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function( jNode ) {
     if( RUN_sc_button_group ) {
         RUN_sc_button_group = false;
+        
+        if( urlPath(2) != "sets" ) {
 
-        logFunc( "Player page / sound action buttons" );
+            logFunc( "Player page / sound action buttons" );
 
-        // API call
-        getScAccessTokenFromApi(function(output){
-            scAccessToken = output;
-            logVar( "scAccessToken", scAccessToken );
+            // API call
+            getScAccessTokenFromApi(function(output){
+                scAccessToken = output;
+                logVar( "scAccessToken", scAccessToken );
 
-            // Call API on current page
-            var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
-            logVar( "currentTrack_id", currentTrack_id );
-            var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
-            //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
+                // Call API on current page
+                var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
+                logVar( "currentTrack_id", currentTrack_id );
+                var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
+                //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
 
-            logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
+                logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
 
-            $.ajax({
-                beforeSend: function(request) {
-                    request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
-                },
-                dataType: "json",
-                url: scApiURl_currentTrack,
-                success: function( t ) {
+                $.ajax({
+                    beforeSend: function(request) {
+                        request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
+                    },
+                    dataType: "json",
+                    url: scApiURl_currentTrack,
+                    success: function( t ) {
 
-                    var kind = t.kind,
-                        id = t.id,
-                        title = t.title,
-                        created_at = formatScDate( t.created_at ),
-                        release_date = formatScDate( t.release_date ),
-                        last_modified = formatScDate( t.last_modified ),
-                        permalink_url = t.permalink_url,
-                        artwork_url = t.artwork_url,
-                        duration = t.duration,
-                        downloadable = t.downloadable,
-                        download_url = t.download_url;
+                        var kind = t.kind,
+                            id = t.id,
+                            title = t.title,
+                            created_at = formatScDate( t.created_at ),
+                            release_date = formatScDate( t.release_date ),
+                            last_modified = formatScDate( t.last_modified ),
+                            permalink_url = t.permalink_url,
+                            artwork_url = t.artwork_url,
+                            duration = t.duration,
+                            downloadable = t.downloadable,
+                            download_url = t.download_url;
 
-                    logVar( "kind", kind );
-                    logVar( "title", title );
-                    logVar( "duration", duration );
-                    logVar( "downloadable", downloadable );
+                        logVar( "kind", kind );
+                        logVar( "title", title );
+                        logVar( "duration", duration );
+                        logVar( "downloadable", downloadable );
 
-                    if( kind == "track" ) {
-                        // trackHeader
-                        var soundActions = jNode,
-                            trackHeader = $("#mdb-trackHeader");
+                        if( kind == "track" ) {
+                            // trackHeader
+                            var soundActions = jNode,
+                                trackHeader = $("#mdb-trackHeader");
 
-                        if( $("h1", trackHeader).length === 0 ) {
-                            var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="mdb-selectOnClick hand">'+title+'</h1>';
-                            trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
-                            trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
-                            if( release_date != "" ) {
-                                trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-releaseDate"><span>Release date:</span> <date id="mdb-trackHeader-date2" class="mdb-selectOnClick hand">'+release_date+'</date></span>';
+                            if( $("h1", trackHeader).length === 0 ) {
+                                var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="mdb-selectOnClick hand">'+title+'</h1>';
+                                trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
+                                trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
+                                if( release_date != "" ) {
+                                    trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-releaseDate"><span>Release date:</span> <date id="mdb-trackHeader-date2" class="mdb-selectOnClick hand">'+release_date+'</date></span>';
+                                }
+                                if( last_modified != "" ) {
+                                    trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-lastmodDate"><span>Last modified:</span> <date id="mdb-trackHeader-date3" class="mdb-selectOnClick hand">'+last_modified+'</date></span>';
+                                }
+                                trackHeader_content += '</p>';
+
+                                logVar( "trackHeader_content", trackHeader_content );
+
+                                trackHeader.append( trackHeader_content );
+
+                                var dateClass = "highlight mdb-selectOnClick hand";
+                                if( release_date == "" ) {
+                                    $("#mdb-trackHeader-releaseInfo-createDate date").addClass( dateClass );
+                                } else {
+                                    $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
+                                }
                             }
-                            if( last_modified != "" ) {
-                                trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-lastmodDate"><span>Last modified:</span> <date id="mdb-trackHeader-date3" class="mdb-selectOnClick hand">'+last_modified+'</date></span>';
+
+                            // add toggleTarget
+                            if( $("#mdb-toggle-target").length === 0 ) {
+                                $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
                             }
-                            trackHeader_content += '</p>';
 
-                            logVar( "trackHeader_content", trackHeader_content );
-
-                            trackHeader.append( trackHeader_content );
-
-                            var dateClass = "highlight mdb-selectOnClick hand";
-                            if( release_date == "" ) {
-                                $("#mdb-trackHeader-releaseInfo-createDate date").addClass( dateClass );
-                            } else {
-                                $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
+                            // indicate download is available
+                            // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
+                            // therefor rename the dropdown to "DL"
+                            if( downloadable ) {
+                                $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
                             }
-                        }
 
-                        // add toggleTarget
-                        if( $("#mdb-toggle-target").length === 0 ) {
-                            $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
-                        }
+                            // duration
+                            if( duration !== null ) {
+                                if( $("#mdb-fileInfo").length === 0 ) {
+                                    //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
+                                    var bytes = "";
+                                    append_fileDetails( duration, soundActions, bytes );
+                                }
+                            }
 
-                        // indicate download is available
-                        // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
-                        // therefor rename the dropdown to "DL"
-                        if( downloadable ) {
-                            $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
-                        }
+                            // apiText-toggleButton
+                            //log($("#apiText-toggleButton").length);
+                            if( $("#apiText-toggleButton").length === 0 ) {
+                                var apiText = textify( JSON.stringify( t, null, "\t" ) ),
+                                    apiTextLinkified = linkify( apiText );
+                                logVar( "apiText", apiText );
 
-                        // duration
-                        if( duration !== null ) {
-                            if( $("#mdb-fileInfo").length === 0 ) {
-                                //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
-                                var bytes = "";
-                                append_fileDetails( duration, soundActions, bytes );
+                                soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
+                                $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
                             }
                         }
+                    },
+                    error: function() {
+                        log( "No track or no API!" );
 
-                        // apiText-toggleButton
-                        //log($("#apiText-toggleButton").length);
-                        if( $("#apiText-toggleButton").length === 0 ) {
-                            var apiText = textify( JSON.stringify( t, null, "\t" ) ),
-                                apiTextLinkified = linkify( apiText );
-                            logVar( "apiText", apiText );
-
-                            soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
-                            $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
-                        }
+                        $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding. Please check back later.</p>');
                     }
-                },
-                error: function() {
-                    log( "No track or no API!" );
-                    
-                    $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding. Please check back later.</p>');
-                }
+                });
             });
-        });
+        }
     }
 });
 
@@ -443,5 +446,4 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
     var keywords = normalizeTitleForSearch( $('meta[property="og:title"]').attr("content") ),
         tidUrl = makeTidSubmitUrl( current_url, keywords );
     $("#mdb-trackHeader").prepend('<p class="mdb-tidSubmit"><a href="'+tidUrl+'" target="_blank">Submit to TrackId.net</a></p>');
-    
 });
