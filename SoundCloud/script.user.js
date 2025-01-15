@@ -328,7 +328,6 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                 logVar( "scAccessToken", scAccessToken );
                 
                 if( scAccessToken ) {
-
                     // Call API on current page
                     var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
                     logVar( "currentTrack_id", currentTrack_id );
