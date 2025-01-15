@@ -342,6 +342,9 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                     dataType: "json",
                     url: scApiURl_currentTrack,
                     success: function( t ) {
+                        if( !t ) {
+                            addApiErrorNote();
+                        }
 
                         var kind = t.kind,
                             id = t.id,
@@ -424,8 +427,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                     },
                     error: function() {
                         log( "No track or no API!" );
-
-                        $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding. Please check back later.</p>');
+                        addApiErrorNote();
                     }
                 });
             });
