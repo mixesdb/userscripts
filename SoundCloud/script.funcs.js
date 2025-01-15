@@ -3,6 +3,7 @@ log( "script.funcs.js loaded" );
 /*
  * Artwork funcs
  */
+
 // append_artwork()
 function append_artwork( artwork_url ) {
     logFunc( "append_artwork" );
