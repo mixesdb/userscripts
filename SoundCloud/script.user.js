@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.16.1
+// @version      2025.01.16.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -350,8 +350,6 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                 created_at = formatScDate( t.created_at ),
                                 release_date = formatScDate( t.release_date ),
                                 last_modified = formatScDate( t.last_modified ),
-                                permalink_url = t.permalink_url,
-                                artwork_url = t.artwork_url,
                                 duration = t.duration,
                                 downloadable = t.downloadable,
                                 download_url = t.download_url;
@@ -414,7 +412,33 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                 // apiText-toggleButton
                                 //log($("#apiText-toggleButton").length);
                                 if( $("#apiText-toggleButton").length === 0 ) {
-                                    var apiText = textify( JSON.stringify( t, null, "\t" ) ),
+                                    // remove artwork_url
+                                    // add modified artwork url for -original.ext
+                                    var artwork_url = t.artwork_url,
+                                        artwork_url_original_try = artwork_url.replace("-large.", "-original.");
+                                    delete t["artwork_url"];
+
+                                    // move description to end of t array
+                                    var description = t.description;
+                                    delete t["description"];
+                                    t["description"] = description;
+
+                                    // move user to end of t array
+                                    var user = t.user;
+                                    delete t["user"];
+                                    t["user"] = user;
+
+                                    // build new re-ordered t_new array
+                                    // artwork urls on top
+                                    var t_new = { "artwork_url_original (try)" : artwork_url_original_try };
+                                    t_new["artwork_url"] = artwork_url;
+
+                                    $.each( t, function(key, value) {
+                                        t_new[key] = value;
+                                    });
+
+                                    // prepare apiText for toggle output
+                                    var apiText = textify( JSON.stringify( t_new, null, "\t" ) ),
                                         apiTextLinkified = linkify( apiText );
                                     logVar( "apiText", apiText );
 
