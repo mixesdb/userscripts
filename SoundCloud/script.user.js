@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.16.2
+// @version      2025.01.16.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -432,7 +432,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                     // artwork urls on top
                                     var t_new = { "artwork_url_original (try)" : artwork_url_original_try };
                                     t_new["artwork_url"] = artwork_url;
-
+                                    // add remaining t values
                                     $.each( t, function(key, value) {
                                         t_new[key] = value;
                                     });
@@ -449,7 +449,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                         },
                         error: function() {
                             log( "No track or no API!" );
-                            addApiErrorNote( "unknown error" );
+                            addApiErrorNote( "unknown error / access token from cookie" );
                         }
                     });
                 } else {
