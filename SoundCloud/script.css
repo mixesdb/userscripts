@@ -31,7 +31,8 @@
     padding-bottom: 8px;
 }
 
-button.mdb-toggle.selected {
+button.mdb-toggle.selected,
+a.sc_button-mdb:hover, a.sc_button-mdb:active {
     border-color: #f60;
 }
 
