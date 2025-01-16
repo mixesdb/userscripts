@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.16.2
+// @version      2025.01.16.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -154,7 +154,7 @@ function triggerVisiblePlayer( wrapper ) {
         var tidLink = tidLinkFromUrl( playerUrl, keywords );
         if( tidLink ) {
             log( "Adding TID link for " + playerUrl );
-            $(".explorerTitle .greylinks", wrapper).prepend( tidLink );
+            $(".explorerTitle .greylinks", wrapper).append( tidLink );
             $(".tidSubmit", wrapper).fadeIn( msFadeSlow );
         } else {
             log( "Skipped." );
@@ -292,7 +292,7 @@ d.ready(function(){ // needed for mw.config
                     keywords = getKeywordsFromTitle_Customized_AP( $(".explorerTitleLink", wrapper) ),
                     applePodcastsSearchLink = getApplePodcastsSearchLink( "explorerTitleIcon", keywords );
 
-                if( applePodcastsSearchLink ) $(".greylinks", wrapper).prepend( applePodcastsSearchLink );
+                if( applePodcastsSearchLink ) $(".greylinks", wrapper).append( applePodcastsSearchLink );
             });
         } else {
             log( "applePodcasts_addSearchIcons diabled." );
