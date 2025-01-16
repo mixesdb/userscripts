@@ -77,27 +77,15 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 /*
  * API funcs
  */
-const apiUrlToolsX = "https://www.mixesdb.com/tools/api/api.php";
-
-// SC access token is properly cached and renewed via server
-// still store it in a local cookie for a short time
-// to reduce server hammering with casually browsing SC
-// while ensuring the user also gets a renewed token quickly
-const scAccessToken_cookie_id = "MixesDB_userscript_accessToken",
-      scAccessToken_cookie_expire = 0.00208333; // 180 seconds in days
 
 // getScAccessTokenFromApi
-// Get access_token and set as cookie
-// SC's user cookie 'oauth_token' doesn't work with the API
+// Get access_token
 function getScAccessTokenFromApi(handleData) {
     logFunc( "getScAccessTokenFromApi" );
-    var scAccessToken_fromCookie = ( typeof( Cookies.get(scAccessToken_cookie_id) ) !== "undefined" ) ? Cookies.get( scAccessToken_cookie_id ) : '';
-    // check if set as cookie
-    if( scAccessToken_fromCookie == "" ) {
         log( "token not in cookie" );
         $.ajax({
             type: "POST",
-            url: apiUrlToolsX,
+            url: apiUrlTools,
             data: { query: "getScAccessToken" }
         })
         .fail(function() {
@@ -109,13 +97,8 @@ function getScAccessTokenFromApi(handleData) {
             log( "data parsed: " + data.access_token );
             if( dataParsed !== null ) {
                 handleData( dataParsed.access_token );
-                Cookies.set( scAccessToken_cookie_id, dataParsed.access_token, { expires: scAccessToken_cookie_expire, domain: domain } );
             }
         });
-    } else {
-        log( "token in cookie :)" );
-        handleData( scAccessToken_fromCookie );
-    }
 }
 
 // addApiErrorNote
