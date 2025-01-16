@@ -67,7 +67,7 @@ function getURLParameter(name) {
 
 // makeTidSubmitUrl
 function makeTidSubmitUrl( playerUrl, keywords="" ) {
-    return 'https://trackid.net/submitrequest?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
+    return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
 }
 
 
