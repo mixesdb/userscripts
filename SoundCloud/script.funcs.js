@@ -1,5 +1,7 @@
 log( "script.funcs.js loaded" );
 
+const apiUrlTools_repeatedFromGlobaJS = 'https://www.mixesdb.com/tools/api/api.php';
+
 /*
  * Artwork funcs
  */
@@ -85,7 +87,7 @@ function getScAccessTokenFromApi(handleData) {
         log( "token not in cookie" );
         $.ajax({
             type: "POST",
-            url: apiUrlTools,
+            url: apiUrlTools_repeatedFromGlobaJS,
             data: { query: "getScAccessToken" }
         })
         .fail(function() {
