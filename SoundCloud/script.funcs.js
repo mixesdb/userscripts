@@ -84,23 +84,22 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 // Get access_token
 function getScAccessTokenFromApi(handleData) {
     logFunc( "getScAccessTokenFromApi" );
-        log( "token not in cookie" );
-        $.ajax({
-            type: "POST",
-            url: apiUrlTools_repeatedFromGlobaJS,
-            data: { query: "getScAccessToken" }
-        })
-        .fail(function() {
-            console.log( "Cannot access MixesDB API or error!" );
-        })
-        .done(function(data) {
-            log( "API called. data: " + data );
-            var dataParsed = jQuery.parseJSON( data );
-            log( "data parsed: " + data.access_token );
-            if( dataParsed !== null ) {
-                handleData( dataParsed.access_token );
-            }
-        });
+    $.ajax({
+        type: "POST",
+        url: apiUrlTools_repeatedFromGlobaJS,
+        data: { query: "getScAccessToken" }
+    })
+    .fail(function() {
+        console.log( "Cannot access MixesDB API or error!" );
+    })
+    .done(function(data) {
+        log( "API called. data: " + data );
+        var dataParsed = jQuery.parseJSON( data );
+        log( "data parsed: " + data.access_token );
+        if( dataParsed !== null ) {
+            handleData( dataParsed.access_token );
+        }
+    });
 }
 
 // addApiErrorNote
