@@ -77,9 +77,14 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 /*
  * API funcs
  */
-const apiUrlToolsX = "https://www.mixesdb.com/tools/api/api.php",
-      scAccessToken_cookie_id = "SoundCloud_userscript_by_MixesDB_scAccessToken",
-      scAccessToken_cookie_expire = 0.0063; // 0.0063 = 3599 secs in days
+const apiUrlToolsX = "https://www.mixesdb.com/tools/api/api.php";
+
+// SC access token is properly cached and renewed via server
+// still store it in a local cookie for a short time
+// to reduce server hammering with casually browsing SC
+// while ensuring the user also gets a renewed token quickly
+const scAccessToken_cookie_id = "MixesDB_userscript_accessToken",
+      scAccessToken_cookie_expire = 0.00208333; // 180 seconds in days
 
 // getScAccessTokenFromApi
 // Get access_token and set as cookie
