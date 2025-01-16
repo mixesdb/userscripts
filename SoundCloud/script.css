@@ -205,9 +205,9 @@ button.mdb-toggle.selected {
     width: 100% !important;
 }
 
-.mdb-tidSubmit {
-    float: right;
-    margin: .5rem 2rem .5rem 0;
+.soundActions .mdb-tidSubmit img {
+    max-height: 20px;
+    margin-right: 0 !important;
 }
 
 /* "More" soundActions: indicate available download */

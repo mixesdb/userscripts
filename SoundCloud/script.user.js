@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.16.6
+// @version      2025.01.16.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_10
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_11
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @noframes
@@ -27,7 +27,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 3,
+    cacheVersion = 4,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -46,7 +46,8 @@ var scAccessToken;
 
 const fast = 200,
       soundActionFakeButtonClass = 'sc_button-mdb sc-button-secondary sc-button sc-button-medium mdb-item',
-      current_url = location.href;
+      current_url = location.href,
+      tidIconUrl = 'https://www.mixesdb.com/w/images/3/3c/trackid.net.png';
 
 // url parameters
 var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
@@ -444,6 +445,11 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                     soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
                                     $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
                                 }
+
+                                // TID submit button
+                                var keywords = normalizeTitleForSearch( t.title ),
+                                    tidLink = makeTidSubmitLink( t.permalink_url, keywords, "soundActions-button" );
+                                soundActions.append( tidLink );
                             }
                         },
                         error: function() {
@@ -467,9 +473,4 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
     // Add here instead of after API call for less flashing
     var trackHeader = '<div id="mdb-trackHeader"></div>';
     jNode.before( trackHeader );
-    
-    // TID submit link
-    var keywords = normalizeTitleForSearch( $('meta[property="og:title"]').attr("content") ),
-        tidUrl = makeTidSubmitUrl( current_url, keywords );
-    $("#mdb-trackHeader").prepend('<p class="mdb-tidSubmit"><a href="'+tidUrl+'" target="_blank">Submit to TrackId.net</a></p>');
 });
