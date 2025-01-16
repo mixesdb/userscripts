@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.16.1
+// @version      2025.01.16.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -72,7 +72,7 @@ d.ready(function(){
     logVar( "path1", path1 );
 
     switch( path1 ) {
-        case "submitrequest":
+        case "submiturl":
             on_submitrequest();
             break;
     }

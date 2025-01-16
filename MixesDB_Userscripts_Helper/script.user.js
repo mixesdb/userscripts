@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.16.1
+// @version      2025.01.16.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -212,7 +212,7 @@ d.ready(function(){ // needed for mw.config
                     var tidLink_possible = tidLinkFromUrl( requestPlayerUrl, keywords );
                     if( tidLink_possible ) {
                         var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
-                            urlRequest = "https://trackid.net/submitrequest?requestUrl="+urlFixed+"&keywords="+keywords;
+                            urlRequest = makeTidSubmitUrl( urlFixed, keywords );
 
                         linkIcon.attr("href", urlRequest).attr("data-hreforig", urlSearch);
 
