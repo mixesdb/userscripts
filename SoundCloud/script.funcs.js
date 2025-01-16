@@ -112,6 +112,19 @@ function addApiErrorNote( reason="" ) {
     $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding'+reasonAdd+'. Please check back later.</p>');
 }
 
+// makeTidSubmitLink
+function makeTidSubmitLink( current_url, keywords, type ) {
+    var tidUrl = makeTidSubmitUrl( current_url, keywords ),
+        className = "";
+
+    if( type == "soundActions-button" ) {
+       className = soundActionFakeButtonClass;
+    }
+    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit '+className+'"><img src="'+tidIconUrl+'" title="Submit this to TrackId.net" alt="TID"></a>';
+    return tidLink;
+}
+
+
 /*
  * append_fileDetails()
  */
