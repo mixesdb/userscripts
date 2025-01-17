@@ -197,7 +197,7 @@ waitForKeyElements(".mdb-selectOnClick", function( jNode ) {
 
         var tagName = $(this).prop("tagName");
         //log( tagName );
-        if( tagName == 'DATE' || tagName == "H1" ) {
+        if( tagName == 'DATE' || tagName == "H1" || tagName == "SPAN" ) {
             selectText( $(this).attr("id") );
         }
     });
