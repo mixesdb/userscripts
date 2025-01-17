@@ -122,22 +122,12 @@ a.sc_button-mdb:active {
     color: #fff;
 }
 
-.listenEngagement__commentForm {
-    margin: 0 0 -8px;
-}
-
 .userStream h3 {
     margin: 0 0 10px;
 }
 
 .infoStats__table td {
     vertical-align: bottom;
-}
-
-.sc-border-light-right:not(td),
-.l-user-main {
-    width: 100%;
-    border-right: 0;
 }
 
 .mdb-removeItem {
