@@ -32,7 +32,7 @@
 }
 
 button.mdb-toggle.selected,
-a.sc_button-mdb:hover, a.sc_button-mdb:active {
+a.sc_button-mdb:active {
     border-color: #f60;
 }
 
