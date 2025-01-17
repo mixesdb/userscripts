@@ -179,9 +179,12 @@ a.sc_button-mdb:active {
     color: #333
 }
 
-#mdb-streamActions h3,
+#mdb-streamActions * {
+    font-size: 1rem !important;
+}
+#mdb-streamActions span,
 #mdb-streamActions label {
-    font-size: 16px;
+    padding-right: 1rem;
 }
 
 #mdb-streamActions label input {
