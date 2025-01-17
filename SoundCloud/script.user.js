@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.2
+// @version      2025.01.17.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_6
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_7
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_13
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -399,7 +399,8 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                     $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
                                 }
 
-                                // duration
+                                // file details
+                                // TODO: get bytes from download url
                                 if( duration !== null ) {
                                     if( $("#mdb-fileInfo").length === 0 ) {
                                         //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
@@ -465,6 +466,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
 });
 
 
+
 /*
  * Re-order added soundActsions buttons (async)
  */
@@ -472,7 +474,6 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
 waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", function( jNode ) {
     jNode.addClass("moved").appendTo( $(".soundActions") );
 });
-
 
 /*
  * trackHeader

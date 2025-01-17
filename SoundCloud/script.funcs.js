@@ -178,20 +178,3 @@ waitForKeyElements(".mdb-toggle", function( jNode ) {
         if( toggleId == "mdb-fileDetails" ) $("#mdb-fileDetails textarea").click();
     });
 });
-
-
-/*
- * mdb-select-onClick
- */
-waitForKeyElements(".mdb-selectOnClick", function( jNode ) {
-    jNode.click(function(){
-        log( "click" );
-        $(this).addClass("selected").select().focus();
-
-        var tagName = $(this).prop("tagName");
-        //log( tagName );
-        if( tagName == 'DATE' || tagName == "H1" ) {
-            selectText( $(this).attr("id") );
-        }
-    });
-});
