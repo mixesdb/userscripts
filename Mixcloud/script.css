@@ -5,15 +5,37 @@
 	font-family: "DM Sans", sans-serif;
 }
 
+
 /*
  * action buttons
  */
+.mdb-mc-text-white,
 .mdb-actionLink {
 	color: white;
+}
+.mdb-actionLink {
 	font-size: 16px;
 }
 .mdb-tidSubmit img {
 	max-height: 30px;
+}
+
+
+/*
+ * Other
+ */
+.mdb-artwork-info {
+	float: right;
+}
+.mdb-artwork-input-wrapper {
+	padding: 10px 0 0;
+}
+#mdb-artwork-input {
+	background-color: #444;
+	color: #ddd;
+	font-size: 12px;
+	margin-right: 10px;
+	width: calc( 100% - 7.5em - 10px );
 }
 
 /*
