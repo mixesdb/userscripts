@@ -99,12 +99,30 @@ function loadRawCss( urlVar ) {
 }
 
 // normalizeTitleForSearch
-function normalizeTitleForSearch( title ) {
-    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " ).trim();
+function normalizeTitleForSearch( text ) {
+    logFunc( "normalizeTitleForSearch" );
+
+    if (text) {
+        logVar( "text", text );
+        var textOut = text.replace(/[|-]/g, " ")
+            .replace( / [-@] /g, " " )
+            .replace( /[-().]/g, " " )
+            .replace( /  /g, " " )
+            .replace(/(#|\[|]|\(|\)|\.|\*| I )/g, " ")
+            .replace(/ (Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)( |-|$)/g, " ")
+            .replace(/\s+/g, " ")
+            .replace(/(\/)/g, " ")
+            .replace(/ (on) /g, " ")
+            .replace(/RA (\d)/g, "RA.$1")
+            .trim();
+
+        logVar( "textOut", textOut );
+
+        return textOut;
 }
 
 // makeMdbSearchLink
-function makeMdbSearchLink(text, target, size) {
+function makeMdbSearchLink( text, target, size ) {
     logFunc( "searchOnMixesDB" );
 
     if (text !== "") {
@@ -122,8 +140,8 @@ function makeMdbSearchLink(text, target, size) {
                 break;
         }
 
-        var textOut = trackidNet_FixTitle(text),
-            url = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(textOut),
+        var text_normalized = normalizeTitleForSearch(text),
+            url = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(text_normalized),
             linkTitle = 'Search &quot;' + text + '&quot; on MixesDB',
             searchLink = '<a id="' + idName + '" class="' + className + '" href="' + url + '" title="' + linkTitle + '" target="_blank"><img width="' + size + '" src="' + mdbLogoUrl_64 + '" alt="' + linkTitle + '"/></a>';
 
