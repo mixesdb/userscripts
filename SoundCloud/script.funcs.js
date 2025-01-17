@@ -1,7 +1,7 @@
 log( "script.funcs.js loaded" );
 
 const apiUrlTools_repeatedFromGlobaJS = 'https://www.mixesdb.com/tools/api/api.php';
-
+const tidIconUrl_repeatedFromGlobaJS = 'https://www.mixesdb.com/w/images/3/3c/trackid.net.png';
 /*
  * Artwork funcs
  */
