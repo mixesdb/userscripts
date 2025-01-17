@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.13
+// @version      2025.01.17.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -363,7 +363,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                     trackHeader = $("#mdb-trackHeader");
 
                                 if( $("h1", trackHeader).length === 0 ) {
-                                    var searchLink = makeMdbSearchLink( title, "detail page", 30 ),
+                                    var searchLink = makeMdbSearchLink( title, "detail page", 25 ),
                                         trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span>'+searchLink+'</h1>';
 
                                     trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
