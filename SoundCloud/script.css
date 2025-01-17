@@ -195,6 +195,10 @@ a.sc_button-mdb:active {
     width: 100% !important;
 }
 
+.soundActions button {
+    min-width: 33px !important;
+}
+
 .soundActions .mdb-tidSubmit img {
     max-height: 20px;
     margin-right: 0 !important;
