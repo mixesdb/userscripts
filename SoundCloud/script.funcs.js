@@ -119,7 +119,7 @@ function makeTidSubmitLink( current_url, keywords, type ) {
     if( type == "soundActions-button" ) {
        className = soundActionFakeButtonClass;
     }
-    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit '+className+'"><img src="'+tidIconUrl+'" title="Submit this to TrackId.net" alt="TID"></a>';
+    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit '+className+'"><img src="'+tidIconUrl_repeatedFromGlobaJS+'" title="Submit this to TrackId.net" alt="TID"></a>';
     return tidLink;
 }
 
