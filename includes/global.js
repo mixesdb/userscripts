@@ -104,7 +104,7 @@ function normalizeTitleForSearch( text ) {
 
     if( text ) {
         logVar( "text", text );
-        
+
         var textOut = text.replace(/[|-]/g, " ")
             .replace( / [-@] /g, " " )
             .replace( /[-().]/g, " " )
@@ -120,6 +120,7 @@ function normalizeTitleForSearch( text ) {
         logVar( "textOut", textOut );
 
         return textOut;
+    }
 }
 
 // makeMdbSearchLink
