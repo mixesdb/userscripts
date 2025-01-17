@@ -6,6 +6,11 @@
     color: #bbb;
 }
 
+/* Hide right sidebar on stream pages */
+.l-user-sidebar-right {
+    display: none;
+}
+
 #mdb-trackHeader h1 {
     margin-top: 10px;
 }
