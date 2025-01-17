@@ -125,23 +125,6 @@ function makeTidSubmitLink( current_url, keywords, type ) {
 
 
 /*
- * append_fileDetails()
- */
-function append_fileDetails( duration, soundActions, bytes="" ) {
-    log( "append_fileDetails(): " + duration );
-
-    var dur = convertHMS(  Math.floor(duration / 1000)  );
-
-    if( dur !== null ) {
-        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
-
-        var fileDetails = '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">{|{{NormalTableFormat-Bytes}}\n! dur\n! bytes\n! kbps\n|-\n| '+dur+'\n| '+bytes+'\n| \n|}</textarea></div>';
-        $("#mdb-toggle-target").append( fileDetails );
-    }
-}
-
-
-/*
  * formatScDate()
  */
 function formatScDate( date ) {

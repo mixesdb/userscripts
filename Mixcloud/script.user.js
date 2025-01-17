@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.3
+// @version      2025.01.17.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_6
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_8
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -55,6 +55,8 @@ redirectOnUrlChange( 1000 );
 
 // createToggleApiArea
 function createToggleApiArea( urlVar ) {
+    logFunc( "createToggleApiArea" );
+
     logVar( "urlVar", urlVar );
 
     $.get(urlVar, function( data ) {
@@ -71,6 +73,8 @@ function createToggleApiArea( urlVar ) {
 
 // appendArtworkInfo
 function appendArtworkInfo( artwork_max_url, imgWrapper ) {
+    logFunc( "appendArtworkInfo" );
+
     var img = new Image();
 
     img.onload = function(){
@@ -100,7 +104,6 @@ if( urlPath(2) != "" ) {
         logVar( "artwork_max_url", artwork_max_url );
 
         appendArtworkInfo( artwork_max_url, jNode )
-
     });
 }
 
@@ -116,14 +119,44 @@ if( urlPath(2) != "" ) {
     waitForKeyElements('button[aria-label="Add To"]:not(.processed)', function( jNode ) {
         jNode.addClass("processed");
 
+        var apiUrl = url.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
+
         // create wrappers to ensure prefered order of async created elements
-        jNode.after( '<span id="mdb-apiLink-wrapper"></span><span id="mdb-tidSubmit-wrapper"></span>' );
+        jNode.after( '<span id="mdb-apiLink-wrapper"></span><span id="mdb-durToggle-wrapper"></span><span id="mdb-tidSubmit-wrapper"></span>' );
 
         // add api toggle link
-        var apiUrl = url.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" ),
-            apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text" href="javascript:void(o);" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
+        var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text" href="javascript:void(o);" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
         logVar( "apiUrl", apiUrl );
         $("#mdb-apiLink-wrapper").after( apiButton );
+
+        /*
+         * Using API data
+         */
+        $.get(apiUrl, function( data ) {
+            // add dur toggle
+            var dur_sec = data["audio_length"],
+                durToggleWrapper = getFileDetails_forToggle( dur_sec ),
+                dur = convertHMS( dur_sec ),
+                durToggleLink = '<a id="mdb-durToggleLink" class="mdb-actionLink mdb-mc-text" href="javascript:void(0);">'+dur+'</a>';
+
+            // add dur button
+            $("#mdb-durToggle-wrapper").append( durToggleLink );
+
+            // append toggle wrapper
+                jNode.addClass("processed-dur");
+                jNode.closest("div").after( '<div id="mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
+
+            // toggle dur
+            waitForKeyElements('#mdb-durToggleLink', function( jNode ) {
+                jNode.click(function(){
+                    log("click");
+                    $("#mdb-fileDetails").toggle();
+                    $("#mdb-fileDetails textarea").select().focus();
+                });
+            });
+
+
+        }, "json" );
 
         // add TID submit link
         var keywords = $('meta[property="og:title"]').attr("content"),
