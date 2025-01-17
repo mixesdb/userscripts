@@ -102,8 +102,9 @@ function loadRawCss( urlVar ) {
 function normalizeTitleForSearch( text ) {
     logFunc( "normalizeTitleForSearch" );
 
-    if (text) {
+    if( text ) {
         logVar( "text", text );
+        
         var textOut = text.replace(/[|-]/g, " ")
             .replace( / [-@] /g, " " )
             .replace( /[-().]/g, " " )
