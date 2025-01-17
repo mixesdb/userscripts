@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.1
+// @version      2025.01.17.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,12 +37,24 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Basics
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 1000 );
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // createToggleApiArea
-function createToggleApiArea(urlVar) {
+function createToggleApiArea( urlVar ) {
     logVar( "urlVar", urlVar );
 
     $.get(urlVar, function( data ) {
@@ -55,6 +67,41 @@ function createToggleApiArea(urlVar) {
             $("#toggleApiText").slideDown();
         });
     }, "text" );
+}
+
+// appendArtworkInfo
+function appendArtworkInfo( artwork_max_url, imgWrapper ) {
+    var img = new Image();
+
+    img.onload = function(){
+        var imageWidth = this.width,
+            imageHeight = this.height,
+            artworkInfo = imageWidth +'&thinsp;x&thinsp;'+ imageHeight,
+            artworkInfo_link = '<a href="'+artwork_max_url+'" class="mdb-artwork-img mdb-mc-text-white" target="_blank">'+artworkInfo+'</a>';
+
+        imgWrapper.after( '<div class="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+artwork_max_url+'" />'+artworkInfo_link+'</div>' );
+    };
+    img.src = artwork_max_url;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Original artwork
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+if( urlPath(2) != "" ) {
+    waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.processed)', function( jNode ) {
+        jNode.addClass("processed");
+
+        var artwork_thumb_url = jNode.attr("src"),
+            artwork_max_url = artwork_thumb_url.replace(/\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/"); /* https://community.metabrainz.org/t/is-there-a-native-optimal-size-for-cover-art-from-mixcloud/640075 */
+
+        logVar( "artwork_max_url", artwork_max_url );
+
+        appendArtworkInfo( artwork_max_url, jNode )
+
+    });
 }
 
 
