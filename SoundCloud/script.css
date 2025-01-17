@@ -47,6 +47,11 @@ a.sc_button-mdb:active {
     box-shadow: 0 1px 0 0 #f2f2f2;
 }
 
+#mdb-searchLink-detailPage img {
+    display: inline !important;
+    padding-left: 15px;
+}
+
 #apiText {
     white-space: break-spaces;
 }

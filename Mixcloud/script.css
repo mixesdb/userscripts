@@ -5,6 +5,14 @@
 	font-family: "DM Sans", sans-serif;
 }
 
+/*
+ * MixesDB search link
+ */
+#mdb-searchLink-detailPage img {
+    display: inline !important;
+    padding-left: 12px;
+}
+
 
 /*
  * Action buttons

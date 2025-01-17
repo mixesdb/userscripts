@@ -145,7 +145,7 @@ function makeMdbSearchLink( text, target, size ) {
         var text_normalized = normalizeTitleForSearch(text),
             url = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(text_normalized),
             linkTitle = 'Search &quot;' + text + '&quot; on MixesDB',
-            searchLink = '<a id="' + idName + '" class="' + className + '" href="' + url + '" title="' + linkTitle + '" target="_blank"><img width="' + size + '" src="' + mdbLogoUrl_64 + '" alt="' + linkTitle + '"/></a>';
+            searchLink = '<a id="' + idName + '" class="' + className + '" href="' + url + '" title="' + linkTitle + '" target="_blank"><img height="' + size + '" src="' + mdbLogoUrl_64 + '" alt="' + linkTitle + '"/></a>';
 
         return searchLink;
 
