@@ -100,6 +100,11 @@ function loadRawCss( urlVar ) {
     });
 }
 
+// normalizeTitleForSearch
+function normalizeTitleForSearch( title ) {
+    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " ).trim();
+}
+
 // durToSec
 function durToSec( dur ) {
     var hms = dur.trim();   // your input string
@@ -130,9 +135,30 @@ function selectText( e ) {
 	n.addRange(r)
 }
 
-// normalizeTitleForSearch
-function normalizeTitleForSearch( title ) {
-    return title.replace( / [-@] /g, " " ).replace( /[-().]/g, " " ).replace( /  /g, " " ).trim();
+// mdb-select-onClick
+waitForKeyElements(".mdb-selectOnClick", function( jNode ) {
+    jNode.click(function(){
+        log( "click" );
+        $(this).addClass("selected").select().focus();
+
+        var tagName = $(this).prop("tagName");
+        //log( tagName );
+        if( tagName == 'DATE' || tagName == "H1" ) {
+            selectText( $(this).attr("id") );
+        }
+    });
+});
+
+// getFileDetails_forToggle
+function getFileDetails_forToggle( dur_sec, bytes="" ) {
+    logFunc( "getFileDetails_forToggle" );
+
+    var dur = convertHMS( dur_sec );
+    logVar( "dur", dur );
+
+    if( dur !== null ) {
+       return '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">{|{{NormalTableFormat-Bytes}}\n! dur\n! bytes\n! kbps\n|-\n| '+dur+'\n| '+bytes+'\n| \n|}</textarea></div>';
+    }
 }
 
 
@@ -154,23 +180,6 @@ function create_note( text, className ) {
 function create_button( text, className, type ) {
 	return '<button type="'+type+'" class="mdb-element button '+ className +'">'+text+'</button>';
 }
-
-
-/*
- * mdb-select-onClick
- */
-waitForKeyElements(".mdb-selectOnClick", function( jNode ) {
-    jNode.click(function(){
-        log( "click" );
-        $(this).addClass("selected").select().focus();
-
-        var tagName = $(this).prop("tagName");
-        //log( tagName );
-        if( tagName == 'DATE' || tagName == "H1" ) {
-            selectText( $(this).attr("id") );
-        }
-    });
-});
 
 
 /*

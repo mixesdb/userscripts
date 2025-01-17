@@ -7,7 +7,7 @@
 
 
 /*
- * action buttons
+ * Action buttons
  */
 .mdb-mc-text-white,
 .mdb-actionLink {
@@ -22,13 +22,13 @@
 
 
 /*
- * Other
+ * Artwork
  */
 .mdb-artwork-info {
 	float: right;
 }
 .mdb-artwork-input-wrapper {
-	padding: 10px 0 0;
+	margin-top: 5px;
 }
 #mdb-artwork-input {
 	background-color: #444;
@@ -38,10 +38,19 @@
 	width: calc( 100% - 7.5em - 10px );
 }
 
+
 /*
- * Other
+ * Toogle dur
  */
-pre#toggleApiText {
+#mdb-durToggle-wrapper-parent {
+	margin: 0 auto;
+	text-align: center;
+}
+#mdb-fileDetails textarea {
+	min-width: 18em;
+}
+pre#toggleApiText,
+#mdb-fileDetails textarea {
 	font-size: 12px !important;
 	font-family: Consolas, monospace;
 }

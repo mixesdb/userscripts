@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.3
+// @version      2025.01.17.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -18,6 +18,17 @@
 // @run-at       document-end
 // ==/UserScript==
 
+// getFileDetails_forToggle
+function getFileDetails_forToggle( dur_sec, bytes="" ) {
+    logFunc( "getFileDetails_forToggle" );
+
+    var dur = convertHMS( dur_sec );
+    logVar( "dur", dur );
+
+    if( dur !== null ) {
+       return '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">{|{{NormalTableFormat-Bytes}}\n! dur\n! bytes\n! kbps\n|-\n| '+dur+'\n| '+bytes+'\n| \n|}</textarea></div>';
+    }
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -349,13 +360,12 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                 created_at = formatScDate( t.created_at ),
                                 release_date = formatScDate( t.release_date ),
                                 last_modified = formatScDate( t.last_modified ),
-                                duration = t.duration,
+                                dur_ms = t.duration,
                                 downloadable = t.downloadable,
                                 download_url = t.download_url;
 
                             logVar( "kind", kind );
                             logVar( "title", title );
-                            logVar( "duration", duration );
                             logVar( "downloadable", downloadable );
 
                             if( kind == "track" ) {
@@ -401,11 +411,17 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
 
                                 // file details
                                 // TODO: get bytes from download url
-                                if( duration !== null ) {
+                                if( dur_sec !== null ) {
                                     if( $("#mdb-fileInfo").length === 0 ) {
                                         //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
-                                        var bytes = "";
-                                        append_fileDetails( duration, soundActions, bytes );
+                                        var bytes = "",
+                                            dur_sec = Math.floor(dur_ms/ 1000),
+                                            durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
+                                            dur = convertHMS( dur_sec );
+
+                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+
+                                        $("#mdb-toggle-target").append( durToggleWrapper );
                                     }
                                 }
 
