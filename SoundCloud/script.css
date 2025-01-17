@@ -140,10 +140,6 @@ a.sc_button-mdb:active {
     border-right: 0;
 }
 
-.l-sidebar-right {
-    display: none;
-}
-
 .mdb-removeItem {
     text-align: center;
     margin: -2px 0 -10px 17px;
