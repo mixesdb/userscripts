@@ -465,7 +465,6 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
 });
 
 
-
 /*
  * Re-order added soundActsions buttons (async)
  */
@@ -473,6 +472,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
 waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", function( jNode ) {
     jNode.addClass("moved").appendTo( $(".soundActions") );
 });
+
 
 /*
  * trackHeader

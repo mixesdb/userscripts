@@ -1,0 +1,25 @@
+/*
+ * Basics
+ */
+.mdb-mc-text {
+	font-family: "DM Sans", sans-serif;
+}
+
+/*
+ * action buttons
+ */
+.mdb-actionLink {
+	color: white;
+	font-size: 16px;
+}
+.mdb-tidSubmit img {
+	max-height: 30px;
+}
+
+/*
+ * Other
+ */
+pre#toggleApiText {
+	font-size: 12px !important;
+	font-family: Consolas, monospace;
+}
