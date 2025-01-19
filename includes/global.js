@@ -210,8 +210,8 @@ function normalizeStreamingServiceTracks( text ) {
 
 // durToSec
 function durToSec( dur ) {
-    var hms = dur.trim();   // your input string
-    var a = hms.split(':'); // split it at the colons
+    var hms = dur.trim();
+    var a = hms.split(':');
 
     // minutes are worth 60 seconds. Hours are worth 60 minutes.
     var seconds = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
@@ -221,9 +221,9 @@ function durToSec( dur ) {
 
 // convertHMS()
 function convertHMS( s ) {
-    var h = Math.floor(s / 3600); //Get whole hours
+    var h = Math.floor(s / 3600); // Get whole hours
     s -= h * 3600;
-    var m = Math.floor(s / 60); //Get remaining minutes
+    var m = Math.floor(s / 60); // Get remaining minutes
     s -= m * 60;
     return h + ":" + (m < 10 ? '0' + m : m) + ":" + (s < 10 ? '0' + s : s); //zero padding on minutes and seconds
 }
@@ -233,9 +233,7 @@ function convertHMS( s ) {
 function durToSec_MS( dur ) {
     var hms = dur.trim();   // your input string
     var a = hms.split(':'); // split it at the colons
-
-    // minutes are worth 60 seconds.
-    var seconds = (+a[0]) * 60 + (+a[1]);
+    var seconds = (+a[0]) * 60 + (+a[1]); // min x 60 + sec
 
     return seconds;
 }
@@ -305,6 +303,7 @@ function getFileDetails_forToggle( dur_sec, bytes="" ) {
  * Create elements
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 // create_input
 function create_input( text, className, id ) {
 	return '<input class="mdb-element input '+ className +'" id="'+id+'" name="'+id+'" value="'+text+'" />';
@@ -379,8 +378,6 @@ function apiTracklist( tl, type, genType ) {
 	var data = { query: "tracklistEditor",
 				 type: type,
 				 genType: genType,
-				 // Mixcloud bug when unicode_repl.js is included
-				 //text: replaceUnicode( tl )
 				 text: tl
 			   };
 
@@ -429,7 +426,7 @@ function getTracklistArr( tl, from="", cues="" ) {
                 if( cues == "track duration" ) {
                     dur = timePrefix;
 
-                    if( index > 0 ) { // first track has nothing no previous track dur to add (cue will be 00 or 000)
+                    if( index > 0 ) { // first track has no previous track dur to add (cue will be 00 or 000)
                         var index_prev = index - 1,
                         dur_previousRow = rows[index_prev].replace( /(\[)(.+)(\] .+)$/g, "$2" );
 
@@ -446,8 +443,8 @@ function getTracklistArr( tl, from="", cues="" ) {
             }
 
             // label
-            if( row.match( /^(\[[\d:]+\] )?.+ - .+ \[.+\]$/g ) ) {
-                label = row.replace( /^(\[[\d:]+\] )?(.+ - .+ \[)(.+)(\])$$/, "$3" );
+            if( row.match( /^.+ - .+ \[.+\]$/g ) ) {
+                label = row.replace( /^(.+ - .+ \[)(.+)(\])$$/, "$2" );
             }
 
             // trackObj
@@ -613,4 +610,5 @@ function redirectOnUrlChange( delay_ms=0 ) {
  * End
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 log( "globals.js loaded" );
