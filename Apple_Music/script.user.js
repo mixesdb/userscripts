@@ -1,0 +1,173 @@
+// ==UserScript==
+// @name         Apple Music (by MixesDB)
+// @author       User:Martin@MixesDB (Subfader@GitHub)
+// @version      2025.01.19.1
+// @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
+// @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
+// @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.user.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Apple_Music_1
+// @match        https://*music.apple.com/*
+// @match        https://*beta.music.apple.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=music.apple.com
+// @run-at       document-end
+// ==/UserScript==
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var dev = 0,
+    cacheVersion = 2,
+    scriptName = "Apple_Music",
+    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
+    pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
+
+loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Basics
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+const apiWhitelisted = false;
+const pageReadyDelay = 1200;
+
+$("#mdb-tl-fakeOutput").remove();
+
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 600 );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Album and playist pages
+ * Track durations are added as cue prefix to sum them uo via makeTracklistFromArr()
+ * But disabled tracks have no durations (e.g. pre-release albums)
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+setTimeout(function() {
+    waitForKeyElements('meta[property="og:type"]', function( jNode ) {
+        var pageType = jNode.attr("content"); // urlPath(2) returnas "commerce" on playlisst?!!
+        logVar( "pageType", pageType );
+
+        if( pageType == "music.album" || pageType == "music.song" ) {
+            var tl = "",
+                allTracksHaveDurs = true;
+
+            $(".songs-list-row--album:not(.mdb-tl-processed)").each(function() {
+                $(this).addClass("mdb-tl-processed");
+
+                // join artist links to array, to then join with " & "
+                var artistArr = [];
+                $(".songs-list-row__by-line a", this).each(function() {
+                    artistArr.push( $(this).text().trim().replace(/^NaN/,"") );
+                });
+
+                var dur = $("time", this).text().trim().replace(/^NaN/,""),
+                    artist = artistArr.join(" & "),
+                    song = normalizeStreamingServiceTracks( $(".songs-list-row__song-name", this).text().trim() );
+
+                // if the artist empty, use the general album artist
+                if( artist == "" ) {
+                    var artistArr = [];
+                    $("main .headings__subtitles a").each(function(){
+                        artistArr.push( $(this).text().trim().replace(/^NaN/,"") );
+                    });
+                    artist = artistArr.join(" & ");
+                    log( "No track artist, using album artist: " + artist );
+                }
+
+                if( dur !== "" ) {
+                    tl += "["+dur+"] ";
+                } else {
+                    allTracksHaveDurs = false;
+                }
+                tl += artist  +" - "+ song + "\n";
+            });
+
+            tl = tl.trim();
+            log( "tl (after initial build):\n" + tl );
+
+            if( tl !== "" ) {
+                var tlTarget = $(".songs-list__header").closest(".section");
+
+                // build cue from durs?
+                log( "tl (before building cues via array):\n" + tl );
+
+                var doCueSum = "track duration";
+                if( !allTracksHaveDurs ) {
+                    doCueSum = "allTracksHaveDurs-not";
+                }
+
+                var tlArr = getTracklistArr( tl, "Apple Music", doCueSum );
+                logArr( "tlArr", tlArr );
+
+                var tl_cuesAsDur = makeTracklistFromArr( tlArr, "Apple Music", doCueSum );
+                log( "tl_cuesAsDur\n" + tl_cuesAsDur );
+
+                if( !apiWhitelisted ) {
+                    log( "No soup for you! *.music.apple.com doesn't allow external ressources liek api.php" );
+
+                    var output = "",
+                        rowCount = tl_cuesAsDur.split("\n").length - 1;
+
+                    output += '<table id="mdb-tl-fakeOutput">';
+                    output += '<td id="mdb-noSoup-wrapper"><img src="'+noSoupForYou_base64Url+'" width="270" alt="No soup for you!"></td><td>';
+                    output += '<p class="mdb-highlight">apple.com doesn\'t allow loading external ressources like the Tracklist Editor API.<br />Format this to the standard format by pasting into the Tracklist Editor manually.</p>';
+                    output += '<textarea id="mixesdb-TLbox" class="mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
+
+                    if( allTracksHaveDurs ) {
+                        var tl_cuesAsDur_controlVersion = makeTracklistFromArr( tlArr, "Apple Music", "track duration control" );
+                        log( "tl_cuesAsDur_controlVersion\n" + tl_cuesAsDur_controlVersion );
+
+                        output += '<p class="mdb-highlight">[Cue] minutes are calculated by adding up the track durations. <a id="mdb-toggle-tl-controlVersion" href="javascript:void(0);">Control version</a></p>';
+                        output += '<pre id="mdb-tl-controlVersion" class="mdb-selectOnClick" style="display:none">'+tl_cuesAsDur_controlVersion+'</pre>';
+                        output += '</td></table>';
+                    }
+
+                    tlTarget.before( output );
+                    fixTLbox();
+
+                } else {
+                    if( tl_cuesAsDur ) {
+                        var res = apiTracklist( tl_cuesAsDurl, "Standard" ),
+                            tlApi = res.text;
+                        logVar( "tlApi:\n" + tlApi );
+
+                        if( tlApi ) {
+                            tlTarget.before(ta); // Migth not work because global.js cannot be loaded(?) > Further testing once api.php can be called
+                            $("#mixesdb-TLbox").val( tlApi );
+                            fixTLbox(res.feedback);
+                        }
+                    }
+                }
+            }
+        } else {
+            log( "No album or playlist page: " + pageType );
+        }
+    });
+}, pageReadyDelay );
+
+/*
+ * Toggle control version tracklist
+ */
+waitForKeyElements("#mdb-toggle-tl-controlVersion", function(jNode) {
+    jNode.click(function() {
+        $("#mdb-tl-controlVersion").toggle();
+    });
+});
