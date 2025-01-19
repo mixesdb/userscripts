@@ -24,6 +24,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var dev = 0,
     cacheVersion = 1,
     scriptName = "1001_Tracklists",
@@ -38,6 +39,7 @@ loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion
  * main
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 function thousandoneTl() {
     runMain = false;
     $(".adRow").remove();
@@ -122,6 +124,7 @@ function thousandoneTl() {
  * Run funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var runMain = true;
 if( urlPath(1) == "tracklist") {
     waitForKeyElements("#tlTab .trackValue", function( jNode ) {
@@ -137,9 +140,11 @@ if( urlPath(1) == "tracklist") {
  * Remove adblocker blocker
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements("#overlay", function( jNode ) {
     jNode.remove();
 });
+
 waitForKeyElements("#btn_msgpane_ok", function( jNode ) {
     jNode.click();
 });

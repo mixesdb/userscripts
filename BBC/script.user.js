@@ -24,6 +24,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var dev = 0,
     cacheVersion = 1,
     scriptName = "BBC",
@@ -38,6 +39,7 @@ loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion
  * main
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 function mainFX() {
     var ep = $(".prog-layout.programmes-page"),
         ul = $("ul.segments-list__items"),
@@ -129,6 +131,7 @@ function mainFX() {
  * Run funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements("ul.segments-list__items", mainWait);
 function mainWait(jNode) {
     mainFX();
