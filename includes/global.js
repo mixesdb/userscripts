@@ -53,7 +53,7 @@ logVar( "is_safari", is_safari );
 
 // urlPath
 function urlPath(n) {
-	return url.split('/')[n+2];
+	return $(location).attr('href').split('/')[n+2];
 }
 var domain = urlPath(0).replace(/.+\.(.+\.[a-z0-9]+)/gi, '$1'),
 	subdomain = urlPath(0);
@@ -197,7 +197,7 @@ waitForKeyElements(".mdb-selectOnClick", function( jNode ) {
 
         var tagName = $(this).prop("tagName");
         //log( tagName );
-        if( tagName == 'DATE' || tagName == "H1" || tagName == "SPAN" ) {
+        if( tagName == 'DATE' || tagName == "H1" || tagName == "SPAN" || tagName == "PRE" ) {
             selectText( $(this).attr("id") );
         }
     });
