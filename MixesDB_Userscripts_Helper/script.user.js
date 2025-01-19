@@ -190,7 +190,7 @@ d.ready(function(){ // needed for mw.config
         // TrackId.net link icon
         // On click add request page url for the first visible player
         if( trackIdnet_addRequestSubmissionIcon ) {
-            $("#pageIconPlayers.trackIdNet").click(function(){
+            $("#pageIconPlayers.trackIdNet").click(function(){ /* false ID (issue#530) */
                 var linkIcon = $("#pageIcons a.trackIdNet");
 
                 // Prevent URLs from adding up after 1st click
