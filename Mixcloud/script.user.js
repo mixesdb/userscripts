@@ -43,7 +43,7 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 /*
  * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ * A tiny delay is needed, otherwise there's constant reloading.
  */
 redirectOnUrlChange( 1000 );
 

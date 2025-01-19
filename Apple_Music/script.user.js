@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.19.4
+// @version      2025.01.19.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -51,7 +51,7 @@ $("#mdb-tl-fakeOutput").remove();
 
 /*
  * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ * A tiny delay is needed, otherwise there's constant reloading.
  */
 redirectOnUrlChange( 750 );
 
@@ -139,8 +139,8 @@ setTimeout(function() {
                             rowCount = tl_cuesAsDur_controlVersion.split("\n").length - 1;
                         log( "tl_cuesAsDur_controlVersion\n" + tl_cuesAsDur_controlVersion );
 
-                        output += '<p class="mdb-highlight">[Cue] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
-                        output += '<textarea id="mdb-tl-controlVersion" class="mdb-selectOnClick mdb-tlBox" rows="'+rowCount+'" style="display:none">'+tl_cuesAsDur_controlVersion+'</textarea>';
+                        output += '<p class="mdb-highlight">[CUE] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
+                        output += '<textarea id="mdb-tl-controlVersion" class="mdb-tlBox" rows="'+rowCount+'" style="display:none">'+tl_cuesAsDur_controlVersion+'</textarea>';
                         output += '</td></table>';
                     }
 
