@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.19.2
+// @version      2025.01.19.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @match        https://*music.apple.com/*
 // @match        https://*beta.music.apple.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=music.apple.com
-// @resource     IMPORTED_CSS_1 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.css?v-Apple_Music_1
+// @resource     IMPORTED_CSS_1 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.css?v-Apple_Music_2
 // @resource     IMPORTED_CSS_2 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css
-// @resource     IMPORTED_CSS_3 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.css?v-Apple_Music_1
+// @resource     IMPORTED_CSS_3 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.css?v-Apple_Music_3
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
 // @run-at       document-end
@@ -53,7 +53,7 @@ $("#mdb-tl-fakeOutput").remove();
  * Before anythings starts: Reload the page
  * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
  */
-redirectOnUrlChange( 600 );
+redirectOnUrlChange( 750 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -124,14 +124,14 @@ setTimeout(function() {
                 log( "tl_cuesAsDur\n" + tl_cuesAsDur );
 
                 if( !apiWhitelisted ) {
-                    log( "No soup for you! *.music.apple.com doesn't allow external ressources liek api.php" );
+                    log( "No soup for you! *.music.apple.com doesn't allow external resources like api.php" );
 
                     var output = "",
                         rowCount = tl_cuesAsDur.split("\n").length - 1;
 
                     output += '<table id="mdb-tl-fakeOutput">';
                     output += '<td id="mdb-noSoup-wrapper"><img src="'+noSoupForYou_base64Url+'" width="270" alt="No soup for you!"></td><td>';
-                    output += '<p class="mdb-highlight">apple.com doesn\'t allow loading external ressources like the Tracklist Editor API.<br />Format this to the standard format by pasting into the Tracklist Editor manually.</p>';
+                    output += '<p class="mdb-highlight">music.apple.com restricts loading external resources like the Tracklist Editor API.<br />Format this to the standard format by pasting into the Tracklist Editor manually.</p>';
                     output += '<textarea id="mixesdb-TLbox" class="mdb-tlBox mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
 
                     if( allTracksHaveDurs ) {
