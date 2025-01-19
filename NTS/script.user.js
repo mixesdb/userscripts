@@ -24,6 +24,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var dev = 0,
     cacheVersion = 2,
     scriptName = "NTS",
@@ -38,6 +39,7 @@ loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion
  * main
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements("ul.tracklist__tracks", function( jNode ) {
         var tlE = jNode;
 

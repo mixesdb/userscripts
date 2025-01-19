@@ -24,6 +24,10 @@
     border: 1px solid #aaa;
 }
 
+#mdb-tl-fakeOutput textarea:focus-visible {
+    outline: none !important;
+}
+
 #mdb-tl-fakeOutput button {
     padding: 5px 8px;
 }
