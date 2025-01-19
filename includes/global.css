@@ -79,6 +79,7 @@ button.mdb-element {
  * Tracklist output
  */
 textarea#mixesdb-TLbox,
+textarea.mdb-tlBox,
 textarea.mono {
 	font-size: 12px !important;
 	font-family: Consolas, monospace !important;
