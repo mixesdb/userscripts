@@ -5,18 +5,6 @@
 
 
 
-
-
-// selectText
-function selectText(element) {
-	var text = document.getElementById(element),
-		selection = window.getSelection(),
-		range = document.createRange();
-	range.selectNodeContents(text);
-	selection.removeAllRanges();
-	selection.addRange(range);
-}
-
 // selectInput
 function selectInput(input) { //jump to end to see the ID
 	input.val(input.val()).focus().select().addClass('mixesdb-inputSelected');
@@ -30,14 +18,10 @@ function selectUniqueInput() {
 	e.addClass('mixesdb-inputSelected');
 }
 
-
-
 // sortTextareaAlphabetically
 function sortTextareaAlphabetically(t) {
     return t.split('\n').sort().join('\n');
 }
-
-
 
 // secondsToMin
 function secondsToMin(s,pad) {
@@ -67,14 +51,6 @@ jQuery.fn.justText = function() {
             .end()
             .text();
 };
-
-
-
-$("input.selectOnClick").click(function(){
-	$(this).focus();
-	$(this).select();
-	$(this).addClass('mixesdb-inputSelected');
-});
 
 
 /*
@@ -112,28 +88,6 @@ jQuery.createEventCapturing = (function () {
         });
     };
 })();
-
-
-/*
- * linkify()
- */
-function linkify( inputText ) {
-    var replacedText, replacePattern1, replacePattern2, replacePattern3;
-
-    //URLs starting with http://, https://, or ftp://
-    replacePattern1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-    replacedText = inputText.replace(replacePattern1, '<a href="$1" target="_blank">$1</a>');
-
-    //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
-    replacePattern2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim;
-    replacedText = replacedText.replace(replacePattern2, '$1<a href="http://$2" target="_blank">$2</a>');
-
-    //Change email addresses to mailto:: links.
-    replacePattern3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
-    replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
-
-    return replacedText;
-}
 
 
 /*
