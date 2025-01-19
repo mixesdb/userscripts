@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.19.1
+// @version      2025.01.19.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,25 +13,29 @@
 // @match        https://*music.apple.com/*
 // @match        https://*beta.music.apple.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=music.apple.com
+// @resource     IMPORTED_CSS_1 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.css?v-Apple_Music_1
+// @resource     IMPORTED_CSS_2 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css
+// @resource     IMPORTED_CSS_3 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.css?v-Apple_Music_1
+// @grant        GM_getResourceText
+// @grant        GM_addStyle
 // @run-at       document-end
 // ==/UserScript==
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Load @ressource files with variables
- * global.js URL needs to be changed manually
+ * Load CSS the hard way (CSP)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var dev = 0,
-    cacheVersion = 2,
-    scriptName = "Apple_Music",
-    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
-    pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
+const my_css_1 = GM_getResourceText("IMPORTED_CSS_1");
+GM_addStyle(my_css_1);
 
-loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+const my_css_2 = GM_getResourceText("IMPORTED_CSS_2");
+GM_addStyle(my_css_2);
+
+const my_css_3 = GM_getResourceText("IMPORTED_CSS_3");
+GM_addStyle(my_css_3);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -101,7 +105,6 @@ setTimeout(function() {
             });
 
             tl = tl.trim();
-            log( "tl (after initial build):\n" + tl );
 
             if( tl !== "" ) {
                 var tlTarget = $(".songs-list__header").closest(".section");
@@ -129,14 +132,15 @@ setTimeout(function() {
                     output += '<table id="mdb-tl-fakeOutput">';
                     output += '<td id="mdb-noSoup-wrapper"><img src="'+noSoupForYou_base64Url+'" width="270" alt="No soup for you!"></td><td>';
                     output += '<p class="mdb-highlight">apple.com doesn\'t allow loading external ressources like the Tracklist Editor API.<br />Format this to the standard format by pasting into the Tracklist Editor manually.</p>';
-                    output += '<textarea id="mixesdb-TLbox" class="mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
+                    output += '<textarea id="mixesdb-TLbox" class="mdb-tlBox mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
 
                     if( allTracksHaveDurs ) {
-                        var tl_cuesAsDur_controlVersion = makeTracklistFromArr( tlArr, "Apple Music", "track duration control" );
+                        var tl_cuesAsDur_controlVersion = makeTracklistFromArr( tlArr, "Apple Music", "track duration control" ),
+                            rowCount = tl_cuesAsDur_controlVersion.split("\n").length - 1;
                         log( "tl_cuesAsDur_controlVersion\n" + tl_cuesAsDur_controlVersion );
 
-                        output += '<p class="mdb-highlight">[Cue] minutes are calculated by adding up the track durations. <a id="mdb-toggle-tl-controlVersion" href="javascript:void(0);">Control version</a></p>';
-                        output += '<pre id="mdb-tl-controlVersion" class="mdb-selectOnClick" style="display:none">'+tl_cuesAsDur_controlVersion+'</pre>';
+                        output += '<p class="mdb-highlight">[Cue] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
+                        output += '<textarea id="mdb-tl-controlVersion" class="mdb-selectOnClick mdb-tlBox" rows="'+rowCount+'" style="display:none">'+tl_cuesAsDur_controlVersion+'</textarea>';
                         output += '</td></table>';
                     }
 
