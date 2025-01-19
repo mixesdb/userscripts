@@ -58,7 +58,7 @@ waitForKeyElements(".mdb-element.select", function( jNode ) {
 
 /*
  * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ * A tiny delay is needed, otherwise there's constant reloading.
  */
 redirectOnUrlChange( 20 );
 

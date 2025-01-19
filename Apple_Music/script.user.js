@@ -51,7 +51,7 @@ $("#mdb-tl-fakeOutput").remove();
 
 /*
  * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ * A tiny delay is needed, otherwise there's constant reloading.
  */
 redirectOnUrlChange( 750 );
 
@@ -139,7 +139,7 @@ setTimeout(function() {
                             rowCount = tl_cuesAsDur_controlVersion.split("\n").length - 1;
                         log( "tl_cuesAsDur_controlVersion\n" + tl_cuesAsDur_controlVersion );
 
-                        output += '<p class="mdb-highlight">[Cue] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
+                        output += '<p class="mdb-highlight">[CUE] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
                         output += '<textarea id="mdb-tl-controlVersion" class="mdb-selectOnClick mdb-tlBox" rows="'+rowCount+'" style="display:none">'+tl_cuesAsDur_controlVersion+'</textarea>';
                         output += '</td></table>';
                     }
