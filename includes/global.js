@@ -185,9 +185,15 @@ function normalizeStreamingServiceTracks( text ) {
     // Pointless versions
     var textOut = text
         .replace( " (Mixed)", "" )
-        .replace( " [Mixed]", "" )
     ;
 
+	// [] to ()
+	// https://music.apple.com/de/album/foo/1647160327
+	var textOut = textOut
+		.replace( /\[/g, "(" )
+		.replace( /\]/g, ")" )
+	;
+	
     /*
      * IDs for live mixes, e.g. on Apple Music
      * https://music.apple.com/us/album/foo/1500933343
