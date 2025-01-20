@@ -582,7 +582,7 @@ function textify( text ) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 function redirectOnUrlChange( delay_ms=0 ) {
-	logFunc( "redirectOnUrlChange(" );
+	logFunc( "redirectOnUrlChange" );
 
     window.setTimeout(function(){
         // event listener
