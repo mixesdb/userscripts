@@ -183,13 +183,13 @@ function normalizeTitleForSearch( text ) {
 function normalizeStreamingServiceTracks( text ) {
 	// [] to ()
 	// https://music.apple.com/de/album/foo/1647160327
-	var textOut = textOut
+	var textOut = text
 		.replace( /\[/g, "(" )
 		.replace( /\]/g, ")" )
 	;
 	
     // Pointless versions
-    var textOut = text
+    var textOut = textOut
         .replace( " (Mixed)", "" )
     ;
 	
