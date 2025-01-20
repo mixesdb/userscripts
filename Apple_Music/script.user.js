@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.19.7
+// @version      2025.01.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -20,6 +20,35 @@
 // @grant        GM_addStyle
 // @run-at       document-end
 // ==/UserScript==
+
+
+/*
+ * Before anythings starts: Reload the page
+ * A tiny delay is needed, otherwise there's constant reloading.
+ */
+
+// Apple Music reload fix for Safari
+// cannot use redirectOnUrlChange() because URL is
+// https://beta.music.apple.com/includes/commerce/fetch-proxy.html?product=music&devToken=…
+if( is_safari ) {
+    var detectUrlChange_delay = 150,
+        detectUrlChange_val_prev = window.location.href;
+
+    setTimeout(function() {
+        setInterval(function() {
+            var detectUrlChange_val_curr = window.location.href;
+            //logVar( "detectUrlChange_val_prev", detectUrlChange_val_prev );
+            //logVar( "detectUrlChange_val_curr", detectUrlChange_val_curr );
+            //logVar( "window.location.href", window.location.href );
+
+            if( detectUrlChange_val_prev != detectUrlChange_val_curr ) {
+                window.location.replace( detectUrlChange_val_curr );
+            }
+        }, detectUrlChange_delay );
+    }, detectUrlChange_delay );
+} else {
+    redirectOnUrlChange( 750 );
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -48,12 +77,6 @@ const apiWhitelisted = false;
 const pageReadyDelay = 1200;
 
 $("#mdb-tl-fakeOutput").remove();
-
-/*
- * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
- */
-redirectOnUrlChange( 750 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
