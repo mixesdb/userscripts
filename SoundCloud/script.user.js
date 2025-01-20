@@ -1,39 +1,66 @@
 // ==UserScript==
-// @name         SoundCloud (by MixesDB)
+// @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.14
+// @version      2025.01.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
-// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_14
-// @include      http*soundcloud.com*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
-// @noframes
-// @grant        unsafeWindow
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Apple_Music_3
+// @match        https://*music.apple.com/*
+// @match        https://*beta.music.apple.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=music.apple.com
+// @resource     IMPORTED_CSS_1 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.css?v-Apple_Music_2
+// @resource     IMPORTED_CSS_2 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css
+// @resource     IMPORTED_CSS_3 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.css?v-Apple_Music_3
+// @grant        GM_getResourceText
+// @grant        GM_addStyle
 // @run-at       document-end
 // ==/UserScript==
 
 
+/*
+ * Before anythings starts: Reload the page
+ * A tiny delay is needed, otherwise there's constant reloading.
+ */
+
+// Apple Music reload fix for Safari
+// cannot use redirectOnUrlChange() because URL is
+// https://beta.music.apple.com/includes/commerce/fetch-proxy.html?product=music&devToken=…
+var delay = 250,
+    detectUrlChange_val_prev = window.location.href;
+
+setTimeout(function() {
+    setInterval(function() {
+        var detectUrlChange_val_curr = window.location.href;
+        //logVar( "detectUrlChange_val_prev", detectUrlChange_val_prev );
+        //logVar( "detectUrlChange_val_curr", detectUrlChange_val_curr );
+        //logVar( "window.location.href", window.location.href );
+
+        if( hashCode(detectUrlChange_val_prev) != hashCode(detectUrlChange_val_curr) ) {
+            window.location.replace( detectUrlChange_val_curr );
+        }
+    }, delay );
+}, delay );
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Load @ressource files with variables
- * global.js URL needs to be changed manually
+ * Load CSS the hard way (CSP)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var dev = 0,
-    cacheVersion = 11,
-    scriptName = "SoundCloud",
-    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
-    pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
+const my_css_1 = GM_getResourceText("IMPORTED_CSS_1");
+GM_addStyle(my_css_1);
 
-loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+const my_css_2 = GM_getResourceText("IMPORTED_CSS_2");
+GM_addStyle(my_css_2);
+
+const my_css_3 = GM_getResourceText("IMPORTED_CSS_3");
+GM_addStyle(my_css_3);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -42,453 +69,131 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var scAccessToken;
-
-const fast = 200,
-      soundActionFakeButtonClass = 'sc_button-mdb sc-button-secondary sc-button sc-button-medium mdb-item',
-      current_url = location.href;
-
-// url parameters
-var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
-    getHideReposts = getURLParameter("hideReposts") == "true" ? "true" : "false",
-    getHideFav = getURLParameter("hideFav") == "true" ? "true" : "false";
-
-logVar( "getHidePl", getHidePl );
-logVar( "getHideReposts", getHideReposts );
-logVar( "getHideFav",getHideFav );
-
-
-/*
- * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
- */
-redirectOnUrlChange( 20 );
+const apiWhitelisted = false;
+const pageReadyDelay = 1200;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Artwork
+ * Album and playist pages
+ * Track durations are added as cue prefix to sum them uo via makeTracklistFromArr()
+ * But disabled tracks have no durations (e.g. pre-release albums)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
-    log( location.href );
-
-    // Artwork link tzo original
-    var artworkWrapper = $(".listenArtworkWrapper"),
-        artwork_url = $(".sc-artwork", artworkWrapper).html().replace(/.+&quot;(htt.+(?:jpg|png)).+/, "$1");
-    log( artworkWrapper.html() );
-    logVar( "artwork_url", artwork_url );
-    if( typeof artwork_url  !== "undefined" ) {
-        append_artwork( artwork_url );
-    }
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Favorite button
- *
- * TODO:
- * Enable in playlists https://soundcloud.com/resident-advisor
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
-    // is favorited
-    if( jNode.hasClass("sc-button-selected") ) {
-        var title = jNode.closest(".soundList__item").find(".soundTitle__title");
-        log( "Favorite found: " + title.text() );
-
-        // Highlight player title if favorited
-        title.addClass("mdb-darkorange");
-
-        // remve faved player
-        removeFavedPlayer_ifOptedIn( jNode );
-    }
-
-    // mark as processed
-    jNode.addClass("mdb-processed-favorited");
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Links in playlist sets
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// player links and link buttons
-// https://soundcloud.com/resident-advisor/sets/ra-podcast
-waitForKeyElements(".listenDetails__trackList li a.trackItem__trackTitle", playlistSetsCaseOne );
-waitForKeyElements(".systemPlaylistTrackList__list li a.trackItem__trackTitle", playlistSetsCaseOne );
-function playlistSetsCaseOne( jNode ) {
-    var playerUrlFixed = linkRemoveSetParameter( jNode.attr("href") );
-
-    jNode.attr( "href", playerUrlFixed )
-         .attr( "target", "_blank" )
-         .attr( "title", playerUrlFixed+" (opens in a new tab)" );
-}
-
-// Compact playlists
-// https://soundcloud.com/resident-advisor
-waitForKeyElements(".compactTrackList__listWrapper li.compactTrackList__item span.compactTrackListItem__trackTitle", function( jNode ) {
-    var playerUrlFixed = linkRemoveSetParameter( jNode.attr( "data-permalink-path") );
-
-    jNode.after( '<a href="'+playerUrlFixed+'" title="'+playerUrlFixed+' (opens in a new tab)" target="_blank" class="mdb-element mdb-copyLink sc-link-dark sc-link-primary sc-font-light">Link</a>' );
-});
-
-// .copyLink on click open new tab
-waitForKeyElements(".mdb-copyLink", function( jNode ) {
-    jNode.click(function(){
-        var url = $(this).attr("href");
-        window.open( url, "_blank" );
-    });
-});
-
-// button to copy link (no href)
-// hide it (would copy url with in parameter)
-waitForKeyElements(".listenDetails__trackList li a.trackItem__trackTitle", function( jNode ) {
-    jNode.hide();
-});
-waitForKeyElements(".listenDetails__trackList li button.sc-button-copylink", function( jNode ) {
-    jNode.remove(); // hide() would make it flash on playlist pages
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Favorited buttons
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// if favorited before, show hidden soundActions
-waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", function( jNode ) {
-    jNode.css('margin-left','.5rem').show();
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * [X] remove button
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// if favorited before, show hidden soundActions
-waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
-    var removeItem = '<div class="mdb-removeItem hand sc-text-grey" title="Remove the player (this session only)">X</div>';
-    jNode.append( removeItem );
-});
-
-// on click
-// scrolling is needed because it wouldn't load more when all visible are removed
-waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
-    $(".mdb-removeItem").click(function(){
-        log( "click remove" );
-
-        // keep lazy loading active
-        $(".lazyInfo").remove();
-        $(".lazyLoadingList__list, .userStream__list .soundList").after('<div style="text-align:center; margin-bottom:20px" class="lazyInfo">Problems loading more players? Try scrolling up and down.</div>');
-
-        var y = $(window).scrollTop();
-        $("html, body").animate({scrollTop:y + 1}, 0);
-        $(this).closest('.soundList__item').remove();
-        var y = $(window).scrollTop();
-        $("html, body").delay(2).animate({scrollTop:y - 1}, 2);
-
-        if( $(".paging-eof").is(':visible') ) {
-            $('.lazyInfo').remove();
-        }
-
-        // remove
-        $(this).closest(".soundList__item").remove();
-    });
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Hide options
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// stream
-waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
-waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
-waitForKeyElements(".soundList.lazyLoadingList", lazyLoadingList);
-function lazyLoadingList(jNode) {
-    logFunc( "lazyLoadingList" );
-
-    // add checkboxes
-    if( $("#mdb-streamActions").length === 0 ) {
-        jNode.before('<div id="mdb-streamActions" class="sc-text-grey sc-border-light-bottom"></div>');
-
-        var sa = $("#mdb-streamActions"),
-            checkedPl = "checked",
-            checkedFav = "";
-        if( getHidePl == "false" ) var checkedPl = '';
-        if( getHideReposts == "true" ) var checkedReposts = 'checked';
-        if( getHideFav == "true" ) var checkedFav = 'checked';
-
-        sa.append('<span>Hide:</span>');
-        sa.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
-        sa.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
-        sa.append('<label class="pointer"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
-    }
-
-    // reload
-    var windowLocation = window.location,
-        href = $(location).attr('href');
-
-    if( typeof href != "undefined" ) {
-        var url = href.replace(/\?.*$/g,"");
-    }
-
-    if( typeof url != "undefined" ) {
-        $("#hidePl").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav;
-                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav;
-        }});
-        $("#hideReposts").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav;
-        }});
-        $("#hideFav").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false";
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true";
-        }});
-    }
-}
-
-// each playlist
-waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
-    if( getHidePl == "true" ) {
-        log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
-    }
-});
-
-// each repost player
-waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
-    if( getHidePl == "true" ) {
-        log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
-    }
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Player page / features using SC API 
- * like soundAactions buttons and upload date
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * fixDefaultSoundActions
- * Make more space by removing button text for most
- */
-waitForKeyElements(".soundActions", function( jNode ) {
-    logFunc( "fixDefaultSoundActions" );
-    $(".sc-button-like", jNode).text("");
-    $(".sc-button-repost", jNode).text("");
-    $(".sc-button-share", jNode).text("");
-    $(".sc-button-copylink", jNode).text("");
-    $(".sc-button-more", jNode).text("");
-    $(".sc-button-queue", jNode).text("");
-
-    var buyLink = $(".soundActions__purchaseLink", jNode);
-    if( buyLink.length !== 0 ) {
-        var buyLink_href = fixScRedirectUrl( buyLink.attr("href") ),
-            buyLink_text = buyLink.text();
-
-        buyLink.remove();
-        jNode.append( '<button class="'+soundActionFakeButtonClass+'"><a href="'+buyLink_href+'" target="_blank">Link: '+buyLink_text+'</a></button>' );
-    }
-});
-
-/*
- * Call API
- */
-// run all this only once
-var RUN_sc_button_group = true;
-
-waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function( jNode ) {
-    if( RUN_sc_button_group ) {
-        RUN_sc_button_group = false;
-        
-        if( urlPath(2) != "sets" ) {
-
-            logFunc( "Player page / sound action buttons" );
-
-            // API call
-            getScAccessTokenFromApi(function(output){
-                scAccessToken = output;
-                logVar( "scAccessToken", scAccessToken );
-                
-                if( scAccessToken != "null" ) {
-                    // Call API on current page
-                    var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
-                    logVar( "currentTrack_id", currentTrack_id );
-                    var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
-                    //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
-
-                    logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
-
-                    $.ajax({
-                        beforeSend: function(request) {
-                            request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
-                        },
-                        dataType: "json",
-                        url: scApiURl_currentTrack,
-                        success: function( t ) {
-                            
-                            var kind = t.kind,
-                                id = t.id,
-                                title = t.title,
-                                created_at = formatScDate( t.created_at ),
-                                release_date = formatScDate( t.release_date ),
-                                last_modified = formatScDate( t.last_modified ),
-                                dur_ms = t.duration,
-                                downloadable = t.downloadable,
-                                download_url = t.download_url;
-
-                            logVar( "kind", kind );
-                            logVar( "title", title );
-                            logVar( "downloadable", downloadable );
-
-                            if( kind == "track" ) {
-                                // trackHeader
-                                var soundActions = jNode,
-                                    trackHeader = $("#mdb-trackHeader");
-
-                                if( $("h1", trackHeader).length === 0 ) {
-                                    var searchLink = makeMdbSearchLink( title, "detail page", 25 ),
-                                        trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span>'+searchLink+'</h1>';
-
-                                    trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
-                                    trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
-                                    if( release_date != "" ) {
-                                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-releaseDate"><span>Release date:</span> <date id="mdb-trackHeader-date2" class="mdb-selectOnClick hand">'+release_date+'</date></span>';
-                                    }
-                                    if( last_modified != "" ) {
-                                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-lastmodDate"><span>Last modified:</span> <date id="mdb-trackHeader-date3" class="mdb-selectOnClick hand">'+last_modified+'</date></span>';
-                                    }
-                                    trackHeader_content += '</p>';
-
-                                    logVar( "trackHeader_content", trackHeader_content );
-
-                                    trackHeader.append( trackHeader_content );
-
-                                    var dateClass = "highlight mdb-selectOnClick hand";
-                                    if( release_date == "" ) {
-                                        $("#mdb-trackHeader-releaseInfo-createDate date").addClass( dateClass );
-                                    } else {
-                                        $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
-                                    }
-                                }
-
-                                // add toggleTarget
-                                if( $("#mdb-toggle-target").length === 0 ) {
-                                    $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
-                                }
-
-                                // indicate download is available
-                                // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
-                                // therefor rename the dropdown to "DL"
-                                if( downloadable ) {
-                                    $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
-                                }
-
-                                // file details
-                                // TODO: get bytes from download url
-                                if( dur_sec !== null ) {
-                                    if( $("#mdb-fileInfo").length === 0 ) {
-                                        //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
-                                        var bytes = "",
-                                            dur_sec = Math.floor(dur_ms/ 1000),
-                                            durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
-                                            dur = convertHMS( dur_sec );
-
-                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
-
-                                        $("#mdb-toggle-target").append( durToggleWrapper );
-                                    }
-                                }
-
-                                // apiText-toggleButton
-                                //log($("#apiText-toggleButton").length);
-                                if( $("#apiText-toggleButton").length === 0 ) {
-                                    // remove artwork_url
-                                    // add modified artwork url for -original.ext
-                                    var artwork_url = t.artwork_url,
-                                        artwork_url_original_try = artwork_url.replace("-large.", "-original.");
-                                    delete t["artwork_url"];
-
-                                    // move description to end of t array
-                                    var description = t.description;
-                                    delete t["description"];
-                                    t["description"] = description;
-
-                                    // move user to end of t array
-                                    var user = t.user;
-                                    delete t["user"];
-                                    t["user"] = user;
-
-                                    // build new re-ordered t_new array
-                                    // artwork urls on top
-                                    var t_new = { "artwork_url_original (try)" : artwork_url_original_try };
-                                    t_new["artwork_url"] = artwork_url;
-                                    // add remaining t values
-                                    $.each( t, function(key, value) {
-                                        t_new[key] = value;
-                                    });
-
-                                    // prepare apiText for toggle output
-                                    var apiText = textify( JSON.stringify( t_new, null, "\t" ) ),
-                                        apiTextLinkified = linkify( apiText );
-                                    //logVar( "apiText", apiText );
-
-                                    soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
-                                    $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
-                                }
-
-                                // TID submit button
-                                var keywords = normalizeTitleForSearch( t.title ),
-                                    tidLink = makeTidSubmitLink( t.permalink_url, keywords, "soundActions-button" );
-                                soundActions.append( tidLink );
-                            }
-                        },
-                        error: function() {
-                            log( "No track or no API!" );
-                            addApiErrorNote( "unknown error" );
-                        }
+function onPageLoad() {
+    $("#mdb-tl-fakeOutput").remove();
+
+    setTimeout(function() {
+        waitForKeyElements('meta[property="og:type"]', function( jNode ) {
+            var pageType = jNode.attr("content"); // urlPath(2) returnas "commerce" on playlisst?!!
+            logVar( "pageType", pageType );
+
+            if( pageType == "music.album" || pageType == "music.song" ) {
+                var tl = "",
+                    allTracksHaveDurs = true;
+
+                $(".songs-list-row--album:not(.mdb-tl-processed)").each(function() {
+                    $(this).addClass("mdb-tl-processed");
+
+                    // join artist links to array, to then join with " & "
+                    var artistArr = [];
+                    $(".songs-list-row__by-line a", this).each(function() {
+                        artistArr.push( $(this).text().trim().replace(/^NaN/,"") );
                     });
-                } else {
-                    addApiErrorNote( "no access token" );
+
+                    var dur = $("time", this).text().trim().replace(/^NaN/,""),
+                        artist = artistArr.join(" & "),
+                        song = normalizeStreamingServiceTracks( $(".songs-list-row__song-name", this).text().trim() );
+
+                    // if the artist empty, use the general album artist
+                    if( artist == "" ) {
+                        var artistArr = [];
+                        $("main .headings__subtitles a").each(function(){
+                            artistArr.push( $(this).text().trim().replace(/^NaN/,"") );
+                        });
+                        artist = artistArr.join(" & ");
+                        log( "No track artist, using album artist: " + artist );
+                    }
+
+                    if( dur !== "" ) {
+                        tl += "["+dur+"] ";
+                    } else {
+                        allTracksHaveDurs = false;
+                    }
+                    tl += artist  +" - "+ song + "\n";
+                });
+
+                tl = tl.trim();
+
+                if( tl !== "" ) {
+                    var tlTarget = $(".songs-list__header").closest(".section");
+
+                    // build cue from durs?
+                    log( "tl (before building cues via array):\n" + tl );
+
+                    var doCueSum = "track duration";
+                    if( !allTracksHaveDurs ) {
+                        doCueSum = "allTracksHaveDurs-not";
+                    }
+
+                    var tlArr = getTracklistArr( tl, "Apple Music", doCueSum );
+                    logArr( "tlArr", tlArr );
+
+                    var tl_cuesAsDur = makeTracklistFromArr( tlArr, "Apple Music", doCueSum );
+                    log( "tl_cuesAsDur\n" + tl_cuesAsDur );
+
+                    if( !apiWhitelisted ) {
+                        log( "No soup for you! *.music.apple.com doesn't allow external resources like api.php" );
+
+                        var output = "",
+                            rowCount = tl_cuesAsDur.split("\n").length - 1;
+
+                        output += '<table id="mdb-tl-fakeOutput">';
+                        output += '<td id="mdb-noSoup-wrapper"><img src="'+noSoupForYou_base64Url+'" width="270" alt="No soup for you!"></td><td>';
+                        output += '<p class="mdb-highlight">music.apple.com restricts loading external resources like the Tracklist Editor API.<br />Format this to the standard format by pasting into the Tracklist Editor manually.</p>';
+                        output += '<textarea id="mixesdb-TLbox" class="mdb-tlBox mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
+
+                        if( allTracksHaveDurs ) {
+                            var tl_cuesAsDur_controlVersion = makeTracklistFromArr( tlArr, "Apple Music", "track duration control" ),
+                                rowCount = tl_cuesAsDur_controlVersion.split("\n").length - 1;
+                            log( "tl_cuesAsDur_controlVersion\n" + tl_cuesAsDur_controlVersion );
+
+                            output += '<p class="mdb-highlight">[CUE] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
+                            output += '<textarea id="mdb-tl-controlVersion" class="mdb-tlBox" rows="'+rowCount+'" style="display:none">'+tl_cuesAsDur_controlVersion+'</textarea>';
+                            output += '</td></table>';
+                        }
+
+                        tlTarget.before( output );
+                        fixTLbox();
+
+                    } else {
+                        if( tl_cuesAsDur ) {
+                            var res = apiTracklist( tl_cuesAsDurl, "Standard" ),
+                                tlApi = res.text;
+                            logVar( "tlApi:\n" + tlApi );
+
+                            if( tlApi ) {
+                                tlTarget.before(ta); // Migth not work because global.js cannot be loaded(?) > Further testing once api.php can be called
+                                $("#mixesdb-TLbox").val( tlApi );
+                                fixTLbox(res.feedback);
+                            }
+                        }
+                    }
                 }
-            });
-        }
-    }
-});
-
-
-/*
- * Re-order added soundActsions buttons (async)
- */
-// TID submit to the end
-waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", function( jNode ) {
-    jNode.addClass("moved").appendTo( $(".soundActions") );
-});
-
+            } else {
+                log( "No album or playlist page: " + pageType );
+            }
+        });
+    }, pageReadyDelay );
+}
+onPageLoad();
 
 /*
- * trackHeader
+ * Toggle control version tracklist
  */
-
-// Add header from API call
-// Add here instead of after API call for less flashing
-waitForKeyElements(".l-listen-hero", function( jNode ) {
-    var trackHeader = '<div id="mdb-trackHeader"></div>';
-    jNode.before( trackHeader );
+waitForKeyElements("#mdb-toggle-tl-controlVersion", function(jNode) {
+    jNode.click(function() {
+        $("#mdb-tl-controlVersion").toggle();
+    });
 });
