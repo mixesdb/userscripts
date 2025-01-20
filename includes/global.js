@@ -256,9 +256,11 @@ function pad(str, max) {
 }
 
 
-/*
- * Selecting
- */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Selecting text
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // selectText()
 function selectText( e ) {
