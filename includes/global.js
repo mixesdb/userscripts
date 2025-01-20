@@ -181,18 +181,17 @@ function normalizeTitleForSearch( text ) {
 
 // normalizeStreamingServiceTracks
 function normalizeStreamingServiceTracks( text ) {
-
-    // Pointless versions
-    var textOut = text
-        .replace( " (Mixed)", "" )
-    ;
-
 	// [] to ()
 	// https://music.apple.com/de/album/foo/1647160327
 	var textOut = textOut
 		.replace( /\[/g, "(" )
 		.replace( /\]/g, ")" )
 	;
+	
+    // Pointless versions
+    var textOut = text
+        .replace( " (Mixed)", "" )
+    ;
 	
     /*
      * IDs for live mixes, e.g. on Apple Music
