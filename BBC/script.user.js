@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BBC (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.11.2
+// @version      2025.01.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -24,7 +24,6 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 var dev = 0,
     cacheVersion = 1,
     scriptName = "BBC",
@@ -39,7 +38,6 @@ loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion
  * main
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 function mainFX() {
     var ep = $(".prog-layout.programmes-page"),
         ul = $("ul.segments-list__items"),
@@ -86,13 +84,13 @@ function mainFX() {
 
 
               /* Build label */
-              var label = $('.segment__track abbr[property="publisher"] span', this).text()
-                     .trim().replace(/^Unknown$/gi, "");
-
+              var label = $('abbr[title="Record Label"]', this).text().trim().replace(/^Unknown$/gi, "").replace(/\.\s*$/, "");
+              /*
               log("A: " + artist);
               log("T: " + title);
               log("L: " + label);
               log("---------------------------------------------------------------");
+              */
 
               /* Build tracklist */
               if(artist && title)  tl += "# " + artist + " - " + title;
@@ -112,14 +110,13 @@ function mainFX() {
 
   // API
   if( $("#mixesdb-TLbox").length === 0 ) {
-        log( tl );
-        var res = apiTracklist( tl, "standard" ),
-      tlApi = res.text,
-            tlApiFix = tlApi.replace( /\[/g, "(" ).replace( /\]/g, ")" ),
-      feedback = res.feedback;
+      log( "tl before API:\n" + tl );
+      var res = apiTracklist( tl, "standard" ),
+          tlApi = res.text,
+          feedback = res.feedback;
 
-    if( tlApiFix ) {
-      $("#tlEditor").append('<textarea id="mixesdb-TLbox" class="mono" style="width:100%; margin:10px 0 0 0;">'+tlApiFix+'</textarea>');
+    if( tlApi ) {
+      $("#tlEditor").append('<textarea id="mixesdb-TLbox" class="mono" style="width:100%; margin:10px 0 0 0;">'+tlApi+'</textarea>');
       fixTLbox( res.feedback );
     }
   }
@@ -131,7 +128,6 @@ function mainFX() {
  * Run funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 waitForKeyElements("ul.segments-list__items", mainWait);
 function mainWait(jNode) {
     mainFX();
