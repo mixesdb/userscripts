@@ -47,7 +47,7 @@ if( is_safari ) {
         }, detectUrlChange_delay );
     }, detectUrlChange_delay );
 } else {
-    redirectOnUrlChange( 750 );
+    redirectOnUrlChange( 1000 );
 }
 
 
