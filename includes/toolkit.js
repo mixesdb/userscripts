@@ -22,14 +22,31 @@ function getDomain_fromUrlStr( urlString ) {
     }
 }
 
-// makeMixesdbUrl
-function getMixesdbUrl_fromId( pageid ) {
+// getMixesdbPageUrl_fromId
+function getMixesdbPageUrl_fromId( pageid ) {
     return "https://www.mixesdb.com/w/?curid="+pageid;
+}
+
+// makeMdbSearchUrl
+function makeMdbSearchUrl( text ) {
+    var text_normalized = normalizeTitleForSearch( text ),
+        searchUrl = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(text_normalized);
+
+    return searchUrl;
 }
 
 // makeMixesdbLink_fromId
 function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
-    return '<a href="'+getMixesdbUrl_fromId( pageid )+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
+    return '<a href="'+getMixesdbPageUrl_fromId( pageid )+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
+}
+
+// makeTidSubmitLink_text
+function makeTidSubmitLink_text( thisUrl, keywords ) {
+    var tidUrl = makeTidSubmitUrl( thisUrl, keywords );
+
+    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">Submit this to TrackId.net</a>';
+
+    return tidLink;
 }
 
 // normalizePlayerUrl
@@ -41,7 +58,7 @@ function normalizePlayerUrl( playerUrl ) {
     ;
 }
 
- // mixesdbPlayerUsage
+// mixesdbPlayerUsage
 function mixesdbPlayerUsage_keywords( playerUrl ) {
     logFunc( "mixesdbPlayerUsage" );
     logVar( "playerUrl", playerUrl );
@@ -69,6 +86,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * getToolkit
+ * TODO: type == "playerListItem" to ouput only a link icon if player is used
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -83,60 +101,79 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logVar( "domain", domain );
     logVar( "apiQueryUrl", apiQueryUrl );
 
-    // call MixesDB API
+    // output wrapper
+    if( outputType == "detail page" ) {
+        var toolkitWrapper = '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'">';
+        toolkitWrapper += '<legend>Toolkit</legend>';
+        toolkitWrapper += '<ul class="">';
+        toolkitWrapper += '<li class="mdb-toolkit-usageLink" style="display: none">';
+        toolkitWrapper += '</li>';
+        toolkitWrapper += '<li class="mdb-toolkit-noUsageLink" style="display: none">';
+        toolkitWrapper += '</li>';
+        toolkitWrapper += '<li class="mdb-toolkit-tidSubmit" style="display: none">';
+        toolkitWrapper += '</li>';
+        toolkitWrapper += '</ul>';
+        toolkitWrapper += '</fieldset>';
+
+        // add output
+        switch( insertType ) {
+            case "before":
+                wrapper.before( toolkitWrapper );
+                break;
+            case "prepend":
+                wrapper.prepend( toolkitWrapper );
+                break;
+            case "append":
+                wrapper.append( toolkitWrapper );
+                break;
+            case "after":
+                wrapper.after( toolkitWrapper );
+                break;
+        }
+    }
+
+    // call MixesDB API search
+    // append usageLink
     $.ajax({
         url: apiQueryUrl,
         type: 'get',
         dataType: 'json',
         async: false,
         success: function(data) {
-            var search = data["query"]["search"][0],
-                title = search.title,
-                pageid = search.pageid;
+            var searchRes = data["query"]["search"][0];
 
-            //logVar( "data", JSON.stringify(data) );
-            //logVar( "search", JSON.stringify(search) );
-            logVar( "title", title );
-            logVar( "pageid", pageid );
-            logVar( "domain_cssSafe", domain_cssSafe );
+            if( searchRes ) {
+                var title = searchRes.title,
+                    pageid = searchRes.pageid;
 
-            var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title );
+                //logVar( "data", JSON.stringify(data) );
+                //logVar( "search", JSON.stringify(search) );
+                logVar( "title", title );
+                logVar( "pageid", pageid );
+                logVar( "domain_cssSafe", domain_cssSafe );
 
-            var output = '';
-            if( outputType == "detail page" ) {
-                output += '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'">';
-                output += '<legend>Toolkit</legend>';
-                output += '<ul class="mdb-nolist">';
-                output += '<li>This player is used on MixesDB: '+link_playerUsedOn+'</li>';
-                output += '</ul>';
-                output += '</fieldset>';
+                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title );
 
-                // success body class
-                var type_cssSafe = type.replace(/\s/g,"");
-                $("body").addClass( "mdb-"+type_cssSafe+"-success" );
+                if( outputType == "detail page" ) {
+                    var usageLink = 'This player is used on MixesDB: '+link_playerUsedOn+'';
 
-                // MixesDB seearch icons can link to result page
-                waitForKeyElements("#mdb-searchLink-detailPage"), function( jNode ) {
-                    jNode.attr("href", getMixesdbUrl_fromId( pageid ) );
+                    // success body class
+                    var type_cssSafe = type.replace(/\s/g,"");
+                    $("body").addClass( "mdb-"+type_cssSafe+"-success" );
                 }
-            }
 
-            logVar( "ouput", output );
-
-            // add output
-            switch( insertType ) {
-                case "before":
-                    wrapper.before( output );
-                    break;
-                case "prepend":
-                    wrapper.prepend( output );
-                    break;
-                case "append":
-                    wrapper.append( output );
-                    break;
-                case "after":
-                    wrapper.after( output );
-                    break;
+                // append usageLink
+                waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink", function( jNode ) {
+                    if( usageLink ) jNode.append( usageLink ).show();
+                });
+            } else {
+                waitForKeyElements("#mdb-trackHeader-headline span", function( jNode ) {
+                    var text = jNode.text(),
+                        searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( text )+'">Search the title</a>';
+                    waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
+                        if( searchLink ) jNode.append( searchLink ).show();
+                    });
+                });
             }
         }
     });
