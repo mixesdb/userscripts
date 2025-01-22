@@ -14,6 +14,7 @@
     cursor: pointer;
 }
 
+
 /*
  * Highlight color (orange)
  */
@@ -42,10 +43,11 @@
 	margin-block-start: 0;
 	margin-block-end: 0;
 	padding-inline-start: 0;
-}
-.mdb-nolist li {
-	list-style: none;
-	margin: 0;
+	
+	&& li {
+		list-style: none;
+		margin: 0;
+	}
 }
 
 
