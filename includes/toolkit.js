@@ -1,5 +1,14 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Global constants, vars
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+const apiUrlW = "https://www.mixesdb.com/w/api.php";
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * getToolkit helpers
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -103,3 +112,12 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         }
     });
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * End
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+log( "toolkit.js loaded" );
