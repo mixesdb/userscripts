@@ -95,3 +95,47 @@ textarea.mono {
 #tlEditor-feedback code {
 	font-size: 12px !important;
 }
+
+
+/*
+ * Toolkit
+ */
+#mdb-toolkit {
+    margin: 0 0 20px;
+    border: 1px solid #f90;
+    border-radius: 5px;
+    
+    && legend {
+        padding: 0 .33em 0;
+        font-weight: bold;
+        color: #f60;
+    }
+    
+    && ul {
+        margin: 0;
+    }
+}
+
+/* soundcloud.com */
+body.mdb-playerUrl-success #mdb-searchLink-detailPage {
+    filter: grayscale(1);
+}
+
+/* mixcloud.com */
+#mdb-toolkit.mixcloud-com {
+    margin: -25px 0 30px;
+    font-size: .875rem;
+}
+
+/* trackid.net */
+#mdb-toolkit.trackid-net {
+    margin: 10px 0 20px;
+    
+    && legend {
+        color: #f90;
+    }
+    
+    && li a {
+        color: inherit;
+    }
+}
