@@ -171,10 +171,10 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                 });
             } else {
                 waitForKeyElements("#mdb-trackHeader-headline span", function( jNode ) {
-                    var text = jNode.text(),
-                        searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( text )+'">Search the title</a>';
+                    var titleText = jNode.text(),
+                        searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'">Search the title</a>';
                     waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
-                        if( searchLink ) {
+                        if( titleText ) {
                             $("#mdb-toolkit").show();
                             jNode.append( searchLink ).show();
                         }
