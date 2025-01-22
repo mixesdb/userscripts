@@ -164,6 +164,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                 // append usageLink
                 waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink", function( jNode ) {
+                    $("#mdb-toolkit").show();
                     if( usageLink ) jNode.append( usageLink ).show();
                 });
             } else {
@@ -171,6 +172,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     var text = jNode.text(),
                         searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( text )+'">Search the title</a>';
                     waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
+                         $("#mdb-toolkit").show();
                         if( searchLink ) jNode.append( searchLink ).show();
                     });
                 });
