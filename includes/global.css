@@ -113,14 +113,17 @@ textarea.mono {
     
     && ul {
         margin: 0;
+        padding-inline-start: 20px;
     }
 }
 
 /* soundcloud.com */
-body.mdb-playerUrl-success #mdb-searchLink-detailPage {
-    filter: grayscale(1);
+#mdb-toolkit.soundcloud-com {
+    && a:active,
+       a:visited {
+           color: #33689f;
+    }
 }
-
 /* mixcloud.com */
 #mdb-toolkit.mixcloud-com {
     margin: -25px 0 30px;
