@@ -87,7 +87,7 @@ function makeTidSubmitUrl( playerUrl, keywords="" ) {
 
 // getDomain_fromUrlString
 // example.com
-function getDomain_fromUrlString( urlString ) {
+function getDomain_fromUrlStr( urlString ) {
     var urlParts = urlString.split('/'); // Split the URL by '/'
     if( urlParts.length > 2 ) {
         return urlParts[2].replace("www.",""); // The hostname is the third part
