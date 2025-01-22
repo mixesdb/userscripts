@@ -110,8 +110,6 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         toolkitWrapper += '</li>';
         toolkitWrapper += '<li class="mdb-toolkit-noUsageLink" style="display:none">';
         toolkitWrapper += '</li>';
-        toolkitWrapper += '<li class="mdb-toolkit-errorUsage" style="display:none">';
-        toolkitWrapper += '</li>';
         toolkitWrapper += '<li class="mdb-toolkit-tidSubmit" style="display:none">';
         toolkitWrapper += '</li>';
         toolkitWrapper += '</ul>';
@@ -183,11 +181,6 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     });
                 });
             }
-        }, error: function(data) {
-            waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-errorUsage", function( jNode ) {
-                $("#mdb-toolkit").show();
-                jNode.append( "MixesDB APi search failed." ).show();
-            });
         }
     });
 }
