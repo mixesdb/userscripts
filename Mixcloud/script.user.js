@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.6
+// @version      2025.01.22.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -31,7 +31,7 @@ var dev = 0,
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
-//loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
@@ -43,7 +43,7 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 /*
  * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
  */
 redirectOnUrlChange( 1000 );
 
@@ -139,7 +139,7 @@ if( urlPath(2) != "" ) {
         jNode.after( '<span id="mdb-apiLink-wrapper"></span><span id="mdb-durToggle-wrapper"></span><span id="mdb-tidSubmit-wrapper"></span>' );
 
         // add api toggle link
-        var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text" href="javascript:void(o);" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
+        var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
         logVar( "apiUrl", apiUrl );
         $("#mdb-apiLink-wrapper").after( apiButton );
 
@@ -151,7 +151,7 @@ if( urlPath(2) != "" ) {
             var dur_sec = data["audio_length"],
                 durToggleWrapper = getFileDetails_forToggle( dur_sec ),
                 dur = convertHMS( dur_sec ),
-                durToggleLink = '<a id="mdb-durToggleLink" class="mdb-actionLink mdb-mc-text" href="javascript:void(0);">'+dur+'</a>';
+                durToggleLink = '<a id="mdb-durToggleLink" class="mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
 
             // add dur button
             $("#mdb-durToggle-wrapper").append( durToggleLink );
