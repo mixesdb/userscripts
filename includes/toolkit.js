@@ -13,6 +13,25 @@ const apiUrlW = "https://www.mixesdb.com/w/api.php";
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// getDomain_fromUrlStr
+// example.com
+function getDomain_fromUrlStr( urlString ) {
+    var urlParts = urlString.split('/'); // Split the URL by '/'
+    if( urlParts.length > 2 ) {
+        return urlParts[2].replace("www.",""); // The hostname is the third part
+    }
+}
+
+// makeMixesdbUrl
+function getMixesdbUrl_fromId( pageid ) {
+    return "https://www.mixesdb.com/w/?curid="+pageid;
+}
+
+// makeMixesdbLink_fromId
+function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
+    return '<a href="'+getMixesdbUrl_fromId( pageid )+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
+}
+
  // mixesdbPlayerUsage
 function mixesdbPlayerUsage_keywords( playerUrl ) {
     logFunc( "mixesdbPlayerUsage" );
