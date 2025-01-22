@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.14
+// @version      2025.01.22.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_10
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_14
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -27,7 +28,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 11,
+    cacheVersion = 13,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -363,8 +364,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                     trackHeader = $("#mdb-trackHeader");
 
                                 if( $("h1", trackHeader).length === 0 ) {
-                                    var searchLink = makeMdbSearchLink( title, "detail page", 25 ),
-                                        trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span>'+searchLink+'</h1>';
+                                    var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span></h1>';
 
                                     trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
                                     trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
@@ -454,9 +454,14 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                 }
 
                                 // TID submit button
-                                var keywords = normalizeTitleForSearch( t.title ),
-                                    tidLink = makeTidSubmitLink( t.permalink_url, keywords, "soundActions-button" );
-                                soundActions.append( tidLink );
+                                waitForKeyElements("#mdb-toolkit li.mdb-toolkit-tidSubmit", function( jNode ) {
+                                    var keywords = normalizeTitleForSearch( t.title ),
+                                        tidLink_text = makeTidSubmitLink_text( t.permalink_url, keywords );
+                                    if( tidLink_text ) {
+                                        $("#mdb-toolkit").show();
+                                        jNode.append( tidLink_text ).show();
+                                    }
+                                });
                             }
                         },
                         error: function() {
@@ -485,10 +490,21 @@ waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", fu
 /*
  * trackHeader
  */
-
 // Add header from API call
 // Add here instead of after API call for less flashing
 waitForKeyElements(".l-listen-hero", function( jNode ) {
     var trackHeader = '<div id="mdb-trackHeader"></div>';
     jNode.before( trackHeader );
+});
+
+
+/*
+ * Toolkit
+ */
+waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit)", function( jNode ) {
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        jNode.addClass("mdb-processed-toolkit");
+        getToolkit( location.href, "playerUrl", "detail page", jNode, "before" );
+    }
+
 });

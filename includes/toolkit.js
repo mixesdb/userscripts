@@ -44,7 +44,7 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
 function makeTidSubmitLink_text( thisUrl, keywords ) {
     var tidUrl = makeTidSubmitUrl( thisUrl, keywords );
 
-    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">Submit this to TrackId.net</a>';
+    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">Submit this player URL to TrackId.net</a>';
 
     return tidLink;
 }
@@ -109,6 +109,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         toolkitWrapper += '<li class="mdb-toolkit-usageLink" style="display:none">';
         toolkitWrapper += '</li>';
         toolkitWrapper += '<li class="mdb-toolkit-noUsageLink" style="display:none">';
+        toolkitWrapper += '</li>';
+        toolkitWrapper += '<li class="mdb-toolkit-errorUsage" style="display:none">';
         toolkitWrapper += '</li>';
         toolkitWrapper += '<li class="mdb-toolkit-tidSubmit" style="display:none">';
         toolkitWrapper += '</li>';
@@ -181,6 +183,11 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     });
                 });
             }
+        }, error: function(data) {
+            waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-errorUsage", function( jNode ) {
+                $("#mdb-toolkit").show();
+                jNode.append( "MixesDB APi search failed." ).show();
+            });
         }
     });
 }
