@@ -127,6 +127,7 @@ function makeMdbSearchLink( text, target, size ) {
         // id + class
         var className = "",
             idName = "";
+            
         switch (target) {
             case "detail page":
                 idName = "mdb-searchLink-detailPage";
