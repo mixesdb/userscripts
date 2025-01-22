@@ -142,7 +142,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         success: function(data) {
             var searchRes = data["query"]["search"][0];
 
-            if( searchRes ) {
+            if( searchRes.title ) {
                 var title = searchRes.title,
                     pageid = searchRes.pageid;
 
