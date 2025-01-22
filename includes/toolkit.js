@@ -103,14 +103,14 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
     // output wrapper
     if( outputType == "detail page" ) {
-        var toolkitWrapper = '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'">';
+        var toolkitWrapper = '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'" style="display:none">';
         toolkitWrapper += '<legend>Toolkit</legend>';
         toolkitWrapper += '<ul class="">';
-        toolkitWrapper += '<li class="mdb-toolkit-usageLink" style="display: none">';
+        toolkitWrapper += '<li class="mdb-toolkit-usageLink" style="display:none">';
         toolkitWrapper += '</li>';
-        toolkitWrapper += '<li class="mdb-toolkit-noUsageLink" style="display: none">';
+        toolkitWrapper += '<li class="mdb-toolkit-noUsageLink" style="display:none">';
         toolkitWrapper += '</li>';
-        toolkitWrapper += '<li class="mdb-toolkit-tidSubmit" style="display: none">';
+        toolkitWrapper += '<li class="mdb-toolkit-tidSubmit" style="display:none">';
         toolkitWrapper += '</li>';
         toolkitWrapper += '</ul>';
         toolkitWrapper += '</fieldset>';
