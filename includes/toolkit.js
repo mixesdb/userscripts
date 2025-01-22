@@ -32,6 +32,15 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
     return '<a href="'+getMixesdbUrl_fromId( pageid )+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
 }
 
+// normalizePlayerUrl
+function normalizePlayerUrl( playerUrl ) {
+    return playerUrl.trim()
+        .replace( /^(https?:\/\/)(.+)$/, "$2" )
+        .replace( "www.", "" )
+        .replace( /^(.+)\/?$/, "$1" )
+    ;
+}
+
  // mixesdbPlayerUsage
 function mixesdbPlayerUsage_keywords( playerUrl ) {
     logFunc( "mixesdbPlayerUsage" );

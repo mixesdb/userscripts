@@ -206,15 +206,6 @@ function normalizeStreamingServiceTracks( text ) {
     return textOut;
 }
 
-// normalizePlayerUrl
-function normalizePlayerUrl( playerUrl ) {
-    return playerUrl.trim()
-        .replace( /^(https?:\/\/)(.+)$/, "$2" )
-        .replace( "www.", "" )
-        .replace( /^(.+)\/?$/, "$1" )
-    ;
-}
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
