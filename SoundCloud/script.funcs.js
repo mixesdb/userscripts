@@ -41,8 +41,8 @@ waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
             var imageWidth = this.width,
                 imageHeight = this.height,
                 artworkInfo = imageWidth +'&thinsp;x&thinsp;'+ imageHeight +' '+ imageType;
-            logVar( "imageType: ", imageType );
-            logVar( "artworkInfo: ", artworkInfo );
+            logVar( "imageType", imageType );
+            logVar( "artworkInfo", artworkInfo );
 
             $("#mdb-artwork-input-wrapper").append('<div id="mdb-artwork-info"><a href="'+origUrl+'" target="_blank">'+artworkInfo+'</a></div>');
     };
