@@ -176,7 +176,6 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
                         var titleText = jNode.text(),
                             searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'">Search the title</a>';
-
                         if( titleText ) {
                             $("#mdb-toolkit").show();
                             jNode.append( searchLink ).show();
