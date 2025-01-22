@@ -48,9 +48,12 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logFunc( "getToolkit" );
 
     var output = null,
-        //domain = getDomain_fromUrlString( thisUrl ),
+        domain = getDomain_fromUrlStr( thisUrl ),
         domain_cssSafe = location.hostname.replace("www.","").replace(/\./, "-"), /* domain of the current website, not the URL */
         apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl );
+
+    logVar( "domain", domain );
+    logVar( "apiQueryUrl", apiQueryUrl );
 
     // call MixesDB API
     $.ajax({
@@ -59,8 +62,6 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         dataType: 'json',
         async: false,
         success: function(data) {
-            logVar( "apiQueryUrl", apiQueryUrl );
-
             var search = data["query"]["search"][0],
                 title = search.title,
                 pageid = search.pageid;
