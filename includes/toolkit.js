@@ -192,8 +192,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     jNode.append( output ).show();
                 });
             } else {
-                waitForKeyElements("#mdb-trackHeader-headline span", function( jNode ) {
-                    var titleText = jNode.text(),
+                waitForKeyElements("h1.soundTitle__title", function( jNode ) {
+                    var titleText = $("span", jNode).text(),
                         searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
                     waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
                         if( titleText ) {
