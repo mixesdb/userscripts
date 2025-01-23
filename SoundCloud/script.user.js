@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/includes.js?v-SoundCloud_19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_14
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -506,5 +506,4 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         jNode.addClass("mdb-processed-toolkit");
         getToolkit( location.href, "playerUrl", "detail page", jNode, "before" );
     }
-
 });
