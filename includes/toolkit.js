@@ -99,6 +99,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl );
 
     logVar( "domain", domain );
+    //logVar( "domain_cssSafe", domain_cssSafe );
     logVar( "apiQueryUrl", apiQueryUrl );
 
     // output wrapper
@@ -140,23 +141,46 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         dataType: 'json',
         async: false,
         success: function(data) {
-            var searchRes = data["query"]["search"][0];
+            var resultNum = data["query"]["searchinfo"]["totalhits"];
+            
+            logVar( "resultNum", resultNum );
 
-            if( searchRes.title ) {
-                var title = searchRes.title,
-                    pageid = searchRes.pageid;
+            if( resultNum > 0 ) {
+                var resultsArr = data["query"]["search"];
 
                 //logVar( "data", JSON.stringify(data) );
-                //logVar( "search", JSON.stringify(search) );
-                logVar( "title", title );
-                logVar( "pageid", pageid );
-                logVar( "domain_cssSafe", domain_cssSafe );
-
-                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title );
-
+                logVar( "resultsArr", JSON.stringify(resultsArr) );
+                logVar( "resultsArr.length", resultsArr.length );
+                
                 if( outputType == "detail page" ) {
-                    var usageLink = 'This player is used on MixesDB: '+link_playerUsedOn+'';
+                    var i;
+                    var output = 'This player is used on MixesDB: ',
+                        usageLinks = [];
+                    
+                    for( i = 0; i < resultsArr.length; i++ ){                        
+                        var title = resultsArr[i].title,
+                            pageid = resultsArr[i].pageid;
+                        
+                        logVar( "title", title );
+                        logVar( "pageid", pageid );
 
+                        var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title );
+                        
+                        usageLinks.push( link_playerUsedOn );
+                    }
+                    
+                    // add links from array
+                    // make list if multiple links
+                    if( usageLinks.length > 1 ) {
+                        output += '<ul>';
+                        for( i = 0; i < usageLinks.length; i++ ){
+                            output += '<li>' +usageLinks[i]+ '</li>';
+                        }                        
+                        output += '</ul>';
+                    } else {
+                        output += usageLinks[0];
+                    }
+                    
                     // success body class
                     var type_cssSafe = type.replace(/\s/g,"");
                     $("body").addClass( "mdb-"+type_cssSafe+"-success" );
@@ -164,10 +188,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                 // append usageLink
                 waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink", function( jNode ) {
-                    if( usageLink ) {
-                        $("#mdb-toolkit").show();
-                        jNode.append( usageLink ).show();
-                    }
+                    $("#mdb-toolkit").show();
+                    jNode.append( output ).show();
                 });
             } else {
                 waitForKeyElements("#mdb-trackHeader-headline span", function( jNode ) {
