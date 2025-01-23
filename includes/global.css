@@ -114,8 +114,13 @@ textarea.mono {
     && ul {
         margin: 0;
         padding-inline-start: 20px;
+	
+	&& li + li:not(li ul li + li) {
+	    margin-top: .3rem
+	}
     }
 }
+
 
 /* soundcloud.com */
 #mdb-toolkit.soundcloud-com {
