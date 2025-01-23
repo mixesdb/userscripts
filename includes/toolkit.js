@@ -79,7 +79,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 // apiUrl_searchKeywords_fromUrl
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
-    return apiUrlW+'?action=query&list=search&srprop=snippet&format=json&srsearch="'+keywords+'"';
+    return apiUrlW+'?action=query&list=search&srprop=snippet&format=json&srsearch=insource:%22'+keywords+'%22';
 }
 
 
