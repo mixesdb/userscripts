@@ -97,8 +97,39 @@ textarea.mono {
 }
 
 
+/*
+ * Toolkit
+ */
+#mdb-toolkit {
+    margin: 0 0 20px;
+    border: 1px solid #f90;
+    border-radius: 5px;
+    padding: 0;
+    
+    && legend {
+        padding: 0 .1rem;
+        font-weight: bold;
+        color: #f60;
+        margin: 0 0 -.3rem .5rem;
+    }
+    
+    && ul {
+        margin: .5rem 0;
+        padding-inline-start: 20px;
+	
+        && li {
+            margin: .3rem 0;
+        }
+    }
+}
 
-
+/* nested listes */
+#mdb-toolkit li ul {
+    margin: .15rem 0 0 !important;
+}
+#mdb-toolkit li ul li {
+    margin: 0 !important;
+}
 
 /* soundcloud.com */
 #mdb-toolkit.soundcloud-com {
