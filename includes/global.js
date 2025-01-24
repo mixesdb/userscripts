@@ -82,6 +82,7 @@ function getURLParameter(name) {
 
 // makeTidSubmitUrl
 function makeTidSubmitUrl( playerUrl, keywords="" ) {
+	var keyowrds = normalizeTitleForSearch( keywords );
     return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
 }
 
