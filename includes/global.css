@@ -115,7 +115,7 @@ textarea.mono {
     
     && ul {
         margin: .5rem 0;
-        padding-inline-start: 20px;
+        padding-inline-start: 25px;
 	
         && li {
             margin: .3rem 0;
