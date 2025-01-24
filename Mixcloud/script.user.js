@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.22.1
+// @version      2025.01.24.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_3
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -169,14 +170,18 @@ if( urlPath(2) != "" ) {
                 });
             });
 
+            // add TID submit link to toolkit
+            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-tidSubmit", function( jNode ) {
+                var keywords = $('meta[property="og:title"]').attr("content"),
+                    tidLink_text = makeTidSubmitLink_text( data["url"], keywords );
+                if( tidLink_text ) {
+                    $("#mdb-toolkit").show();
+                    jNode.append( tidLink_text ).show();
+                }
+            });
+
 
         }, "json" );
-
-        // add TID submit link
-        var keywords = $('meta[property="og:title"]').attr("content"),
-            tidSubmitUrl = makeTidSubmitUrl( url, keywords ),
-            tidLink = '<a class="mdb-actionLink mdb-tidSubmit" href="'+tidSubmitUrl+'" target="_blank"><img src="'+tidIconUrl+'" alt=TrackId.net Logo" /></a>';
-        $("#mdb-tidSubmit-wrapper").after( tidLink );
     });
 
     // api link on click
@@ -193,3 +198,14 @@ if( urlPath(2) != "" ) {
         });
     });
 }
+
+
+/*
+ * Toolkit
+ */
+waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed-toolkit)', function( jNode ) {
+    var titleText = $("h1").text();
+    getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText );
+
+    jNode.addClass("mdb-processed-toolkit");
+});

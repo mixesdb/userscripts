@@ -42,7 +42,8 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
 
 // makeTidSubmitLink_text
 function makeTidSubmitLink_text( thisUrl, keywords ) {
-    var tidUrl = makeTidSubmitUrl( thisUrl, keywords );
+    var keyowrds = normalizeTitleForSearch( keywords ),
+        tidUrl = makeTidSubmitUrl( thisUrl, keywords );
 
     var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">Submit this player URL to TrackId.net</a>';
 
@@ -192,13 +193,17 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     jNode.append( output ).show();
                 });
             } else {
-                var searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
-                waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
-                    if( titleText ) {
-                        $("#mdb-toolkit").show();
-                        jNode.append( searchLink ).show();
-                    }
-                });
+                if( titleText ) {
+                    var searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
+                    waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
+                        if( titleText ) {
+                            $("#mdb-toolkit").show();
+                            jNode.append( searchLink ).show();
+                        }
+                    });
+                } else {
+                    log( "No search res: No titleText!" );
+                }
             }
         }
     });

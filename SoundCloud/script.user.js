@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.24.2
+// @version      2025.01.24.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_24
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_25
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_14
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -280,7 +280,7 @@ waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Player page / features using SC API 
+ * Player page / features using SC API
  * like soundAactions buttons and upload date
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -317,7 +317,7 @@ var RUN_sc_button_group = true;
 waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function( jNode ) {
     if( RUN_sc_button_group ) {
         RUN_sc_button_group = false;
-        
+
         if( urlPath(2) != "sets" ) {
 
             logFunc( "Player page / sound action buttons" );
@@ -326,7 +326,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
             getScAccessTokenFromApi(function(output){
                 scAccessToken = output;
                 logVar( "scAccessToken", scAccessToken );
-                
+
                 if( scAccessToken != "null" ) {
                     // Call API on current page
                     var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
@@ -343,7 +343,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                         dataType: "json",
                         url: scApiURl_currentTrack,
                         success: function( t ) {
-                            
+
                             var kind = t.kind,
                                 id = t.id,
                                 title = t.title,
@@ -504,6 +504,8 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit)", function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-toolkit");
-        getToolkit( location.href, "playerUrl", "detail page", jNode, "before" );
+        var titleText = $('meta[property="og:title"]').text();
+        getToolkit( location.href, "playerUrl", "detail page", jNode, "before", titleText );
     }
+
 });
