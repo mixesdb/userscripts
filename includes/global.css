@@ -133,9 +133,16 @@ textarea.mono {
 
 /* soundcloud.com */
 #mdb-toolkit.soundcloud-com {
+    && a:not(:visited) {
+        color: #38d !important;
+    }
+    
     && a:active,
        a:visited {
            color: #33689f;
+    }
+    && a:hover {
+        text-decoration: underline !important;
     }
 }
 /* mixcloud.com */

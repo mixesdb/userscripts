@@ -90,7 +90,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText ) {
     logFunc( "getToolkit" );
 
     var output = null,
@@ -192,15 +192,12 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     jNode.append( output ).show();
                 });
             } else {
-                waitForKeyElements("h1.soundTitle__title", function( jNode ) {
-                    var titleText = $("span", jNode).text(),
-                        searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
-                    waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
-                        if( titleText ) {
-                            $("#mdb-toolkit").show();
-                            jNode.append( searchLink ).show();
-                        }
-                    });
+                var searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
+                waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
+                    if( titleText ) {
+                        $("#mdb-toolkit").show();
+                        jNode.append( searchLink ).show();
+                    }
                 });
             }
         }
