@@ -87,12 +87,10 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
     var output = null,
         domain = getDomain_fromUrlStr( thisUrl ),
-        domain_cssSafe = location.hostname.replace("www.","").replace(/\./, "-"), /* domain of the current website, not the URL */
-        apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl );
+        domain_cssSafe = location.hostname.replace("www.","").replace(/\./, "-"); /* domain of the current website, not the URL */
 
     logVar( "domain", domain );
     //logVar( "domain_cssSafe", domain_cssSafe );
-    logVar( "apiQueryUrl", apiQueryUrl );
 
     // output wrapper
     if( outputType == "detail page" ) {
@@ -100,6 +98,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         toolkitWrapper += '<legend>Toolkit</legend>';
         toolkitWrapper += '<ul class="">';
         toolkitWrapper += '<li class="mdb-toolkit-usageLink" style="display:none">';
+        toolkitWrapper += '</li>';
+        toolkitWrapper += '<li class="mdb-toolkit-usageImpossibleLink" style="display:none">';
         toolkitWrapper += '</li>';
         toolkitWrapper += '<li class="mdb-toolkit-noUsageLink" style="display:none">';
         toolkitWrapper += '</li>';
@@ -128,25 +128,53 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     /*
      * Domain exceptions
      */
-    var runAPIcall = true;
+    var runAPIcall = true,
+        searchTitleLink = '<a class="'+linkClass+'" href="'+makeMixesdbSearchUrl( titleText )+'" target="_blank">Search the title</a>'
 
-    // hearthi.at
+    // hearthis.at
     // Player template expects the URL to be like https://hearthis.at/11703627/
-    // only works with search string hearthis.at/11703627
-    if( domain == "hearthis.at" && regExp_numbers.test( thisUrl.split("/")[1] ) ) {
-        // append usage note
-        var usageNote = 'hearthis.at players are emedded with the short URL containing the numeric ID. Please check MixesDB usage on the <a href"'+thisUrl+'">hearthis.at player page</a>';
+    // MixesDB player usage only works with searching the string hearthis.at/11703627
+    // @TODO This would require parsing the long URL https://hearthis.at/andrei-mor/01-cultureshockandgrafix-radio1sessentialmix-sat-01-18-2025-talion/ to extract the short URL https://hearthis.at/11703627/
+    if( domain == "hearthis.at" ) {
+        var path1_isNumeric = regExp_numbers.test( thisUrl.split("/")[1] );
+        logVar( "path1_isNumeric", path1_isNumeric );
 
-        waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink", function( jNode ) {
-            jNode.append( usageNote ).show();
-        });
-    } else {
-        runAPIcall = false;
+        if( !path1_isNumeric ) {
+            log( "hearthis.at URL is not the short URL" );
+
+            // append usage note
+            waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageImpossibleLink", function( jNode ) {
+                var usageNote = 'It\'s not possible to tell if this player is used on MixesDB!';
+                usageNote += '<br />hearthis.at players are emedded with the short URL containing the numeric ID.';
+                usageNote += '<ul>';
+                usageNote += '<li>Check MixesDB usage on the <a class="'+linkClass+'" href="'+thisUrl+'">hearthis.at player page</a> (userscript required).</li>';
+                usageNote += '<li>'+searchTitleLink+'</li>';
+                usageNote += '</ul>';
+
+                $("#mdb-toolkit").show();
+                jNode.append( usageNote ).show();
+            });
+
+            runAPIcall = false;
+        } else {
+            log( "hearthis.at URL is not the short URL" );
+        }
     }
 
-    // call MixesDB API search
-    // append usageLink
+    // YouTube
+    if( domain == "youtube.com" || domain == "youtu.be" ) {
+        log( "domain is YouTube. Changing the search URl to the YT ID only." );
+        thisUrl = getYoutubeIdFromUrl( thisUrl );
+    }
+
+    /*
+     * call MixesDB API search
+     * append usageLink
+     */
     if( runAPIcall ) {
+        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl );
+        logVar( "apiQueryUrl", apiQueryUrl );
+
         $.ajax({
             url: apiQueryUrl,
             type: 'get',
@@ -205,11 +233,12 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     });
                 } else {
                     if( titleText ) {
-                        var searchLink = 'This player is not used on MixesDB yet. <a class="'+linkClass+'" href="'+makeMixesdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
                         waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
                             if( titleText ) {
+                                var searchMessage = 'This player is not used on MixesDB yet. ' + searchTitleLink;
+
                                 $("#mdb-toolkit").show();
-                                jNode.append( searchLink ).show();
+                                jNode.append( searchMessage ).show();
                             }
                         });
                     } else {
