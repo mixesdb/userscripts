@@ -82,7 +82,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText, linkClass="" ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText="", linkClass="" ) {
     logFunc( "getToolkit" );
 
     var output = null,
@@ -128,8 +128,11 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     /*
      * Domain exceptions
      */
-    var runAPIcall = true,
-        searchTitleLink = '<a class="'+linkClass+'" href="'+makeMixesdbSearchUrl( titleText )+'" target="_blank">Search the title</a>'
+    var runAPIcall = true;
+
+    if( titleText != "" ) {
+        var searchTitleLink = '<a class="'+linkClass+'" href="'+makeMixesdbSearchUrl( titleText )+'" target="_blank">Search the title</a>'
+    }
 
     // hearthis.at
     // Player template expects the URL to be like https://hearthis.at/11703627/
@@ -232,14 +235,12 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         jNode.append( output ).show();
                     });
                 } else {
-                    if( titleText ) {
+                    if( searchTitleLink ) {
                         waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
-                            if( titleText ) {
-                                var searchMessage = 'This player is not used on MixesDB yet. ' + searchTitleLink;
+                            var searchMessage = 'This player is not used on MixesDB yet. ' + searchTitleLink;
 
-                                $("#mdb-toolkit").show();
-                                jNode.append( searchMessage ).show();
-                            }
+                            $("#mdb-toolkit").show();
+                            jNode.append( searchMessage ).show();
                         });
                     } else {
                         log( "No search res: No titleText!" );
