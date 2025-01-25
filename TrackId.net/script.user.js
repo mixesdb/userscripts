@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.19.1
+// @version      2025.01.25.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,13 +10,13 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_64
+// @require      https://raw.githubusercontent.com/Subfader/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_70
+// @require      https://raw.githubusercontent.com/Subfader/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_4
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -25,7 +25,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 51,
+    cacheVersion = 52,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -58,7 +58,7 @@ waitForKeyElements(".mdb-element.select", function( jNode ) {
 
 /*
  * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
  */
 redirectOnUrlChange( 20 );
 
@@ -77,6 +77,24 @@ d.ready(function(){
             break;
     }
 });
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Functions
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// normalizeTidTitlesFOrSearch
+function normalizeTidTitlesFOrSearch( titleText ) {
+    return titleText
+        // channel names
+        .replace( /^Andrei Mor - /, "" )
+
+        // misc
+        .replace( "Radio 1's ", "" )
+    ;
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -103,43 +121,32 @@ waitForKeyElements(".dashboard", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/*
- * Embed player
- */
-waitForKeyElements(".request-summary img.artwork", function( jNode ) {
-    var url = jNode.closest("a").attr("href");
-    log("embed url: " + url);
-    if( url != "" ) {
-        funcTidPlayers(jNode, url);
-    }
-});
-
 // funcTidPlayers
-function funcTidPlayers(jNode, url) {
+function funcTidPlayers( jNode, playerUrl, titleText ) {
     logFunc( "funcTidPlayers" );
     log(url);
 
     // get domain
     var a = document.createElement('a');
-    a.href = url;
+    a.href = playerUrl;
     var domain = a.hostname.replace("www.", ""),
         paths = a.pathname;
-    log("> " + domain);
-    log("> " + paths);
+    //log("> " + domain);
+    //log("> " + paths);
 
     // prepare embed code
     // hearthis.at not possible from provided page url
     switch (domain) {
         case "soundcloud.com": // https://soundcloud.com/fingermanedit/fingerman-dj-set-kvs-brussels
-            var embed = '<iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=false&amp;url=' + url + '&amp;auto_play=false&amp;&amp;maxheight=120&amp;buying=false&amp;show_comments=false&amp;color=ff7700&amp;single_active=true&amp;show_reposts=false"></iframe>';
+            var embed = '<iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=false&amp;url=' + playerUrl + '&amp;auto_play=false&amp;&amp;maxheight=120&amp;buying=false&amp;show_comments=false&amp;color=ff7700&amp;single_active=true&amp;show_reposts=false"></iframe>';
             break;
         case "mixcloud.com": // https://www.mixcloud.com/oldschool/sharam-jey-rave-satellite-1995/
             var feedPath = encodeURIComponent(paths),
                 embed = '<iframe width="100%" height="120" src="https://www.mixcloud.com/widget/iframe/?hide_cover=1&feed=' + feedPath + '" frameborder="0" ></iframe>';
             break;
         case "youtube.com": // https://www.youtube.com/watch?v=qUUYWIsfY90
-            var id = youtube_parser(url),
-                embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+            var yt_id = getYoutubeIdFromUrl(url),
+                embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + yt_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
             break;
         case "hearthis.at": // https://hearthis.at/toccoscuro/01-manpower-radio1sessentialmix-sat-09-07-2024-talion/
             var embed = '<div class="mdb-info">Sorry, embedding hearthis.at is not possible atm.</div>';
@@ -150,10 +157,31 @@ function funcTidPlayers(jNode, url) {
     // embed player
     $(".mdb-player-audiostream").remove();
     if( embed ) {
-        jNode.closest(".MuiBox-root").after('<div class="mdb-player-audiostream">' + embed + '</div>');
+        // embedded player output
+        var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-playerurl="'+playerUrl+'">' + embed + '</div>';
+        jNode.closest(".MuiBox-root").after( mdbPlayerAndToolkit );
         jNode.remove();
+
+        // toolkit output
+        waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
+            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link" );
+            jNode.addClass("mdb-processed-toolkit");
+        });
     }
 }
+
+// Embed player
+waitForKeyElements(".request-summary img.artwork", function( jNode ) {
+    var playerUrl = jNode.closest("a").attr("href"),
+        heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
+        titleText = normalizeTidTitlesFOrSearch( heading.text() );
+
+    logVar( "playerUrl", playerUrl );
+
+    if( url != "" ) {
+        funcTidPlayers( jNode, playerUrl, titleText );
+    }
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -184,15 +212,6 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         totalDur_Sec = durToSec(totalDur);
     log(mixTitle);
     logVar( "totalDur", totalDur);
-
-    // link to MixesDB search
-    if ($("#mdbSearchLink").length === 0
-        && urlPath(1) != "musictracks"
-        && mixTitle !== "Tracklist Search" && mixTitle !== "My Requests" && mixTitle !== "My Favourites"
-    ) {
-        var searchLink = makeMdbSearchLink( mixTitle, "detail page", 32 );
-        if (searchLink) heading.append(searchLink);
-    }
 
     // iterate
     var tl = "",
@@ -348,13 +367,13 @@ function funcTidTables(jNode) {
         });
 
         $(".MuiDataGrid-row").each(function () {
-            log("get urls" + $(this).html());
+            //log("get urls" + $(this).html());
+
             var rowId = $(this).attr("data-id"),
                 listItemLink = $(".MuiDataGrid-cell--textLeft[data-colindex=2] a.white-link", this);
 
             if (typeof listItemLink.attr("href") !== "undefined") {
-                var listItemText = listItemLink.text(),
-                    rowUrl = listItemLink.attr("href").replace(/^\//, ""),
+                var rowUrl = listItemLink.attr("href").replace(/^\//, ""),
                     urlSplit = rowUrl.split("/"),
                     urlType = urlSplit[0].replace(/s$/, ""), // musictrack or audiostream
                     urlValue = urlSplit[1];
@@ -381,19 +400,6 @@ function funcTidTables(jNode) {
 
                 if (contOutput && cellContent) thisTr.append('<td class="' + cellClass + '">' + cellContent + '</td>');
             });
-
-            // MixesDB page check
-            if (typeof listItemText !== "undefined") {
-                logVar("listItemText", listItemText);
-
-                var mixTitle = listItemText,
-                    checkAction = "–",
-                    searchLink = makeMdbSearchLink( mixTitle, "list", 26 );
-                if( searchLink ) checkAction = searchLink;
-
-            } else {
-                log( "No listItemText!" );
-            }
         });
 
         // hide grid but keep page navigation
