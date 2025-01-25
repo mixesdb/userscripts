@@ -508,6 +508,6 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         //var titleText = $('meta[property="og:title"]').text();
         var titleText = $("h1.soundTitle__title").text();
 
-        getToolkit( location.href, "playerUrl", "detail page", jNode, "before", titleText, "" );
+        getToolkit( location.href, "playerUrl", "detail page", jNode, "before", titleText, "", "addHistoryLink-not" );
     }
 });
