@@ -1,10 +1,16 @@
 log( "script.funcs.js loaded" );
 
 const apiUrlTools_repeatedFromGlobaJS = 'https://www.mixesdb.com/tools/api/api.php';
+
+// @Deprecated_candidate
 const tidIconUrl_repeatedFromGlobaJS = 'https://www.mixesdb.com/w/images/3/3c/trackid.net.png';
-/*
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Artwork funcs
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // append_artwork()
 function append_artwork( artwork_url ) {
@@ -50,9 +56,11 @@ waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
 });
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Playlist funcs
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // linkRemoveSetParameter
 function linkRemoveSetParameter( url ) {
@@ -61,9 +69,11 @@ function linkRemoveSetParameter( url ) {
 }
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Hiding options funcs
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // removeFavedPlayer_ifOptedIn
 function removeFavedPlayer_ifOptedIn( jNode ) {
@@ -76,9 +86,11 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 }
 
 
-/*
- * API funcs
- */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * API funs
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // getScAccessTokenFromApi
 // Get access_token
@@ -124,9 +136,13 @@ function makeTidSubmitLink( current_url, keywords, type ) {
 }
 
 
-/*
- * formatScDate()
- */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Misc
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// formatScDate
 function formatScDate( date ) {
     if( typeof(date) !== "undefined" ) {
         date = date.replace(/(\d\d\d\d)\/(\d\d)\/(\d\d).+$/g,"$1-$2-$3");
@@ -137,9 +153,7 @@ function formatScDate( date ) {
 }
 
 
-/*
- * fixScRedirectUrl()
- */
+// fixScRedirectUrl
 function fixScRedirectUrl( url ) {
     // https://gate.sc/?url=http%3A%2F%2Fbit.ly%2FHenPod&token=df8575-1-1631362609871
     url = decodeURIComponent( url.replace(/^.+url=(.+)&token.+$/, "$1") );
@@ -147,9 +161,7 @@ function fixScRedirectUrl( url ) {
 }
 
 
-/*
- * toggle click
- */
+// toggle click
 waitForKeyElements(".mdb-toggle", function( jNode ) {
     jNode.click(function(){
         var toggleId = $(this).attr("data-toggleid");

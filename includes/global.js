@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Global constants, vars
+ * Global constants, regExp, vars
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -21,7 +21,7 @@ const noSoupForYouUrl = "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAHG
 // @Deprecated_candidate
 const tidIconUrl = 'https://www.mixesdb.com/w/images/3/3c/trackid.net.png'; /* repeated in SoundCloud/script.funcs.js */
 
-// regex
+// regExp
 const regExp_numbers = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/; // https://stackoverflow.com/questions/1272696
 
 // vars

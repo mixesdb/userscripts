@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Global constants, vars
+ * Global constants, regExp, vars
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
