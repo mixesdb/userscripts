@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.4
+// @version      2025.01.25.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -508,6 +508,11 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         //var titleText = $('meta[property="og:title"]').text();
         var titleText = $("h1.soundTitle__title").text();
 
-        getToolkit( location.href, "playerUrl", "detail page", jNode, "before", titleText, "", "addHistoryLink-not" );
+        // get the player URL
+        // DO NOT use location.href as this includes parameters 
+        // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
+        var playerUrl = location.protocol + '//' + location.host + location.pathname;
+
+        getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", "addHistoryLink-not" );
     }
 });
