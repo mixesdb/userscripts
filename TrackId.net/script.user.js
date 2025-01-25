@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.3
+// @version      2025.01.25.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,12 +11,13 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_71
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.jsX?v-TrackId.net_5
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -25,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 53,
+    cacheVersion = 54,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -164,7 +165,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
 
         // toolkit output
         waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link" );
+            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", "addHistoryLink" );
             jNode.addClass("mdb-processed-toolkit");
         });
     }

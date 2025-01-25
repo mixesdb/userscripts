@@ -146,6 +146,20 @@ textarea.mono {
     }
 }
 
+/* usage */
+#mdb-toolkit .mdb-mixesdbLink-history-wrapper {
+    font-size: 90%;
+    padding-left: .5em;
+    
+    && a {
+        text-decoration: none;
+    }
+        
+    && a:hover {
+        text-decoration: underline !important;
+    }
+}
+
 /* mixcloud.com */
 #mdb-toolkit.mixcloud-com {
     margin: -25px 0 30px;

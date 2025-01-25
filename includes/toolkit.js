@@ -27,8 +27,15 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
-    return '<a href="'+getMixesdbPageUrl_fromId( pageid )+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
+function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHistoryLink=false ) {
+    var mixesdbUrl = getMixesdbPageUrl_fromId( pageid ),
+        output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
+
+    if( addHistoryLink ) {
+        output += '<span class="mdb-mixesdbLink-history-wrapper">(<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink mdb-mixesdbLink-history">history</a>)';
+    }
+
+    return output;
 }
 
 // makeTidSubmitLink_text
@@ -82,7 +89,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText="", linkClass="" ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText="", linkClass="", addHistoryLink=false ) {
     logFunc( "getToolkit" );
 
     var output = null,
@@ -207,7 +214,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                             logVar( "title", title );
                             logVar( "pageid", pageid );
 
-                            var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass );
+                            var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, addHistoryLink );
 
                             usageLinks.push( link_playerUsedOn );
                         }
