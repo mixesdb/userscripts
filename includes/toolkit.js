@@ -42,8 +42,8 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHisto
     return output;
 }
 
-// makeTidSubmitLink_text
-function makeTidSubmitLink_text( thisUrl, keywords ) {
+// makeTidSubmitLink
+function makeTidSubmitLink( thisUrl, keywords ) {
     var keyowrds = normalizeTitleForSearch( keywords ),
         tidUrl = makeTidSubmitUrl( thisUrl, keywords );
 
