@@ -1,14 +1,5 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Global constants, regExp, vars
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-const apiUrlW = "https://www.mixesdb.com/w/api.php";
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
  * getToolkit helpers
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -80,7 +71,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 // apiUrl_searchKeywords_fromUrl
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
-    return apiUrlW+'?action=query&list=search&srprop=snippet&format=json&srsearch=insource:%22'+keywords+'%22';
+    return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=snippet&format=json&srsearch=insource:%22'+keywords+'%22';
 }
 
 
