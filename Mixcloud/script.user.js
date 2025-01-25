@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.1
+// @version      2025.01.25.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -87,20 +87,6 @@ function appendArtworkInfo( artwork_max_url, imgWrapper ) {
         imgWrapper.after( '<div class="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="mdb-selectOnClick" type="text" value="'+artwork_max_url+'" />'+artworkInfo_link+'</div>' );
     };
     img.src = artwork_max_url;
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * MixesDB search link
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-if( urlPath(2) != "" ) {
-    waitForKeyElements('div[data-testid="playerHero"] h1', function( jNode ) {
-        var title = jNode.text(),
-            searchLink = makeMdbSearchLink( title, "detail page", 25 );
-        jNode.append( searchLink );
-    });
 }
 
 

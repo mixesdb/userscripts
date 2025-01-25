@@ -135,38 +135,6 @@ function loadRawCss( urlVar ) {
     });
 }
 
-// makeMdbSearchLink
-// @Deprecated_candidate
-function makeMdbSearchLink( text, target, size ) {
-    logFunc( "searchOnMixesDB" );
-
-    if (text !== "") {
-        logVar( "text", text );
-
-        // id + class
-        var className = "",
-            idName = "";
-            
-        switch (target) {
-            case "detail page":
-                idName = "mdb-searchLink-detailPage";
-                break;
-            case "list":
-                className = "mdb-searchLink-list";
-                break;
-        }
-
-        var text_normalized = normalizeTitleForSearch(text),
-            url = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(text_normalized),
-            linkTitle = 'Search &quot;' + text + '&quot; on MixesDB',
-            searchLink = '<a id="' + idName + '" class="' + className + '" href="' + url + '" title="' + linkTitle + '" target="_blank"><img height="' + size + '" src="' + mdbLogoUrl_64 + '" alt="' + linkTitle + '"/></a>';
-
-        return searchLink;
-
-    } else {
-        log( "No text from from previous function!" );
-    }
-}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
