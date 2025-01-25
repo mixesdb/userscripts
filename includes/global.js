@@ -22,7 +22,7 @@ const noSoupForYouUrl = "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAHG
 const tidIconUrl = 'https://www.mixesdb.com/w/images/3/3c/trackid.net.png'; /* repeated in SoundCloud/script.funcs.js */
 
 // regex
-var regExp_numbers = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/; // https://stackoverflow.com/questions/1272696
+const regExp_numbers = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/; // https://stackoverflow.com/questions/1272696
 
 // vars
 var ta = '<div id="tlEditor"><textarea id="mixesdb-TLbox" class="mdb-tlBox mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
