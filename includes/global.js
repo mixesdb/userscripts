@@ -77,6 +77,7 @@ function logArr( name, arr ) {
 function urlPath(n) {
 	return $(location).attr('href').split('/')[n+2];
 }
+
 var domain = urlPath(0).replace(/.+\.(.+\.[a-z0-9]+)/gi, '$1'),
 	subdomain = urlPath(0);
 
