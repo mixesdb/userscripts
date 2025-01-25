@@ -149,7 +149,7 @@ textarea.mono {
 /* usage */
 #mdb-toolkit .mdb-mixesdbLink-history-wrapper {
     font-size: 90%;
-    padding-left: .5em;
+    padding-left: .33em;
     
     && a {
         text-decoration: none;
