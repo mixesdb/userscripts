@@ -28,9 +28,13 @@ function makeMixesdbSearchUrl( text ) {
 
 // makeMixesdbLink_fromId
 function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHistoryLink=false ) {
+    // normal link
+    // https://www.mixesdb.com/w/?curid=613340
     var mixesdbUrl = getMixesdbPageUrl_fromId( pageid ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
 
+    // history link
+    // https://www.mixesdb.com/w/?curid=613340&action=history
     if( addHistoryLink ) {
         output += '<span class="mdb-mixesdbLink-history-wrapper">(<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink mdb-mixesdbLink-history">history</a>)';
     }
