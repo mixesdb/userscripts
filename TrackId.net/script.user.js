@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.1
+// @version      2025.01.25.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,8 +10,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/Subfader/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_70
-// @require      https://raw.githubusercontent.com/Subfader/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_71
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_5
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -25,7 +25,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 52,
+    cacheVersion = 53,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -141,11 +141,11 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
             var embed = '<iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=false&amp;url=' + playerUrl + '&amp;auto_play=false&amp;&amp;maxheight=120&amp;buying=false&amp;show_comments=false&amp;color=ff7700&amp;single_active=true&amp;show_reposts=false"></iframe>';
             break;
         case "mixcloud.com": // https://www.mixcloud.com/oldschool/sharam-jey-rave-satellite-1995/
-            var feedPath = encodeURIComponent(paths),
+            var feedPath = encodeURIComponent( paths ),
                 embed = '<iframe width="100%" height="120" src="https://www.mixcloud.com/widget/iframe/?hide_cover=1&feed=' + feedPath + '" frameborder="0" ></iframe>';
             break;
-        case "youtube.com": // https://www.youtube.com/watch?v=qUUYWIsfY90
-            var yt_id = getYoutubeIdFromUrl(url),
+        case "youtube.com": // https://www.youtube.com/watch?v=qUUYWIsfY90, https://youtu.be/qUUYWIsfY90
+            var yt_id = getYoutubeIdFromUrl( url ),
                 embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + yt_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
             break;
         case "hearthis.at": // https://hearthis.at/toccoscuro/01-manpower-radio1sessentialmix-sat-09-07-2024-talion/
@@ -479,16 +479,17 @@ function on_submitrequest() {
     }
 
     // if url was passed as parameter
-    var requestUrl = getURLParameter( "requestUrl" ),
-        requestUrl_domain = new URL( requestUrl ).hostname.replace("www.",""),
-        keywords = getURLParameter("keywords");
-
+    var requestUrl = getURLParameter( "requestUrl" );
     logVar( "requestUrl", requestUrl );
-    logVar( "requestUrl_domain", requestUrl_domain );
-    logVar( "keywords", keywords );
 
     // Insert the requestUrl to the submit input
-    if( requestUrl !== "" ) {
+    if( requestUrl && requestUrl !== "" ) {
+        var requestUrl_domain = new URL( requestUrl ).hostname.replace("www.",""),
+            keywords = getURLParameter("keywords");
+
+        logVar( "requestUrl_domain", requestUrl_domain );
+        logVar( "keywords", keywords );
+
         // add URL to input and try to submit
         waitForKeyElements( ".MuiGrid-grid-xs-12 .MuiFormControl-root input[type=text].MuiInputBase-input", function( jNode ) {
             logFunc( "submitRequest_input_wait" );
@@ -520,10 +521,8 @@ function on_submitrequest() {
                 jNode.closest(".MuiGrid-container").after( submitNote );
             }, timeoutDelay);
         });
-    }
 
-    // Add keywords to search input
-    if( keywords !== "" ) {
+        // Add keywords to search input
         waitForKeyElements( "#search-box", function( jNode ) {
             logFunc( "submitRequest_searchInput_wait" );
 
