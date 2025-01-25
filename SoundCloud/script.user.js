@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.24.3
+// @version      2025.01.25.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -505,7 +505,7 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-toolkit");
         var titleText = $('meta[property="og:title"]').text();
-        getToolkit( location.href, "playerUrl", "detail page", jNode, "before", titleText );
+        getToolkit( location.href, "playerUrl", "detail page", jNode, "before", titleText, "" );
     }
 
 });
