@@ -27,7 +27,7 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHistoryLink=false ) {
+function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHistoryLink="addHistoryLink" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var mixesdbUrl = getMixesdbPageUrl_fromId( pageid ),
@@ -35,7 +35,7 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHisto
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
-    if( addHistoryLink ) {
+    if( addHistoryLink == "addHistoryLink" ) {
         output += '<span class="mdb-mixesdbLink-history-wrapper">(<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink mdb-mixesdbLink-history">history</a>)';
     }
 
@@ -93,7 +93,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText="", linkClass="", addHistoryLink=false ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText="", linkClass="", addHistoryLink="addHistoryLink-not" ) {
     logFunc( "getToolkit" );
 
     var output = null,
