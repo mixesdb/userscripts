@@ -91,6 +91,17 @@ function makeTidSubmitUrl( playerUrl, keywords="" ) {
     return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
 }
 
+/*
+ * getYoutubeIdFromUrl
+ * returns 11 character ID
+ * https://stackoverflow.com/questions/3452546
+ */
+function getYoutubeIdFromUrl(url){
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    var match = url.match(regExp);
+    return (match&&match[7].length==11)? match[7] : false;
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
