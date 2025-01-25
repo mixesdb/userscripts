@@ -2,9 +2,6 @@ log( "script.funcs.js loaded" );
 
 const apiUrlTools_repeatedFromGlobaJS = 'https://www.mixesdb.com/tools/api/api.php';
 
-// @Deprecated_candidate
-const tidIconUrl_repeatedFromGlobaJS = 'https://www.mixesdb.com/w/images/3/3c/trackid.net.png';
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -121,18 +118,6 @@ function addApiErrorNote( reason="" ) {
         reasonAdd = ' ('+reason+')';
     }
     $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding'+reasonAdd+'. Please check back later.</p>');
-}
-
-// makeTidSubmitLink
-function makeTidSubmitLink( current_url, keywords, type ) {
-    var tidUrl = makeTidSubmitUrl( current_url, keywords ),
-        className = "";
-
-    if( type == "soundActions-button" ) {
-       className = soundActionFakeButtonClass;
-    }
-    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit '+className+'"><img src="'+tidIconUrl_repeatedFromGlobaJS+'" title="Submit this to TrackId.net" alt="TID"></a>';
-    return tidLink;
 }
 
 

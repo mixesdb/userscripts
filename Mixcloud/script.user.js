@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.1
+// @version      2025.01.25.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_3
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_4
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -92,20 +92,6 @@ function appendArtworkInfo( artwork_max_url, imgWrapper ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * MixesDB search link
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-if( urlPath(2) != "" ) {
-    waitForKeyElements('div[data-testid="playerHero"] h1', function( jNode ) {
-        var title = jNode.text(),
-            searchLink = makeMdbSearchLink( title, "detail page", 25 );
-        jNode.append( searchLink );
-    });
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
  * Original artwork
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -173,7 +159,7 @@ if( urlPath(2) != "" ) {
             // add TID submit link to toolkit
             waitForKeyElements("#mdb-toolkit li.mdb-toolkit-tidSubmit", function( jNode ) {
                 var keywords = $('meta[property="og:title"]').attr("content"),
-                    tidLink_text = makeTidSubmitLink_text( data["url"], keywords );
+                    tidLink_text = makeTidSubmitLink( data["url"], keywords );
                 if( tidLink_text ) {
                     $("#mdb-toolkit").show();
                     jNode.append( tidLink_text ).show();
