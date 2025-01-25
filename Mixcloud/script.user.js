@@ -204,7 +204,7 @@ if( urlPath(2) != "" ) {
  */
 waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed-toolkit)', function( jNode ) {
     var titleText = $("h1").text();
-    getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "" );
+    getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "", "addHistoryLink-not" );
 
     jNode.addClass("mdb-processed-toolkit");
 });
