@@ -27,8 +27,8 @@ function getMixesdbPageUrl_fromId( pageid ) {
     return "https://www.mixesdb.com/w/?curid="+pageid;
 }
 
-// makeMdbSearchUrl
-function makeMdbSearchUrl( text ) {
+// makeMixesdbSearchUrl
+function makeMixesdbSearchUrl( text ) {
     var text_normalized = normalizeTitleForSearch( text ),
         searchUrl = 'https://www.mixesdb.com/w/index.php?title=&search=' + encodeURIComponent(text_normalized);
 
@@ -91,7 +91,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText, linkClass="" ) {
     logFunc( "getToolkit" );
 
     var output = null,
@@ -165,7 +165,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         logVar( "title", title );
                         logVar( "pageid", pageid );
 
-                        var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title );
+                        var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass );
                         
                         usageLinks.push( link_playerUsedOn );
                     }
@@ -194,7 +194,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                 });
             } else {
                 if( titleText ) {
-                    var searchLink = 'This player is not used on MixesDB yet. <a href="'+makeMdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
+                    var searchLink = 'This player is not used on MixesDB yet. <a class="'+linkClass+'" href="'+makeMixesdbSearchUrl( titleText )+'" target="_blank">Search the title</a>';
                     waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
                         if( titleText ) {
                             $("#mdb-toolkit").show();

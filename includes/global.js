@@ -119,6 +119,7 @@ function loadRawCss( urlVar ) {
 }
 
 // makeMdbSearchLink
+// @Deprecated_candidate
 function makeMdbSearchLink( text, target, size ) {
     logFunc( "searchOnMixesDB" );
 
