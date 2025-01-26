@@ -170,7 +170,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                 // append usage note
                 waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageImpossibleLink", function( jNode ) {
                     var usageNote = 'It\'s not possible to tell if this player is used on MixesDB!';
-                    usageNote += '<br />hearthis.at players are emedded with the short URL containing the numeric ID.';
+                    usageNote += '<br />hearthis.at players are embedded with the short URL containing the numeric ID.';
                     usageNote += '<ul>';
                     usageNote += '<li>Check MixesDB usage on the <a class="'+linkClass+'" href="'+thisUrl+'">hearthis.at player page</a> (userscript required).</li>';
                     usageNote += '<li>'+searchTitleLink+'</li>';
