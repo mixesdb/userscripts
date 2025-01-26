@@ -1,3 +1,6 @@
+log( "/SoundCloud/api_funcs.js loaded" );
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * API funs
