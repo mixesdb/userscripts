@@ -136,6 +136,15 @@ function loadRawCss( urlVar ) {
 }
 
 
+// makeCssSafe
+function makeCssSafe( text ) {
+	return text
+	           .replace("1001tracklists.com", "thousandandonetracklists.com")
+	           .replace("www.","")
+	           .replace(/\./, "-")
+           ;
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Normalizing funcs
