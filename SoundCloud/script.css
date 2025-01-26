@@ -83,10 +83,6 @@ a.sc_button-mdb:active {
     margin-right: 7px !important;
 }
 
-.listenArtworkWrapper {
-    display: none;
-}
-
 .fullHero__artwork {
     width: 340px;
     height: 360px;
