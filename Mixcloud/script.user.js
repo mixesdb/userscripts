@@ -185,9 +185,12 @@ if( urlPath(2) != "" ) {
 }
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Toolkit
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed-toolkit)', function( jNode ) {
     var titleText = $("h1").text();
     getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "", "addHistoryLink-not" );
