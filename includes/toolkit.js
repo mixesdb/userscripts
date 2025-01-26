@@ -6,10 +6,21 @@
 
 // getDomain_fromUrlStr
 // example.com
-function getDomain_fromUrlStr( urlString ) {
+function getDomain_fromUrlStr( urlString, mode="" ) {
     var urlParts = urlString.split('/'); // Split the URL by '/'
+
     if( urlParts.length > 2 ) {
-        return urlParts[2].replace("www.",""); // The hostname is the third part
+        var domain_out = urlParts[2].replace("www.",""); // The hostname is the third part
+
+        if( mode == "cssSafe" ) {
+            domain_out = domain_out
+                            .replace("1001tracklists.com", "thousandandonetracklists.com")
+                            .replace("www.","")
+                            .replace(/\./, "-")
+                        ;
+        }
+
+        return domain_out;
     }
 }
 
@@ -45,9 +56,8 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addHisto
 // makeTidSubmitLink
 function makeTidSubmitLink( thisUrl, keywords ) {
     var keyowrds = normalizeTitleForSearch( keywords ),
-        tidUrl = makeTidSubmitUrl( thisUrl, keywords );
-
-    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">Submit this player URL to TrackId.net</a>';
+        tidUrl = makeTidSubmitUrl( thisUrl, keywords ),
+        tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">Submit this player URL to TrackId.net</a>';
 
     return tidLink;
 }
@@ -104,7 +114,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     var addOutput = true,
         output = null,
         domain = getDomain_fromUrlStr( thisUrl ),
-        domain_cssSafe = location.hostname.replace("www.","").replace(/\./, "-"); /* domain of the current website, not the URL */
+        domain_cssSafe = getDomain_fromUrlStr( location.hostname, "cssSafe" ); /* domain of the current website, not the URL */
 
     //logVar( "domain", domain );
     //logVar( "domain_cssSafe", domain_cssSafe );
