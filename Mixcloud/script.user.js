@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_5
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
@@ -185,9 +185,12 @@ if( urlPath(2) != "" ) {
 }
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Toolkit
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed-toolkit)', function( jNode ) {
     var titleText = $("h1").text();
     getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "", "addHistoryLink-not" );

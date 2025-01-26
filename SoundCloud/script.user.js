@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.26.4
+// @version      2025.01.26.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_30
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_1
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @noframes
@@ -314,9 +315,9 @@ waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
         logFunc( "Hiding used players" );
 
         var wrapper = jNode.closest("li.soundList__item"),
-            playerUrl_keywords = mixesdbPlayerUsage_keywords( "soundcloud.com" + jNode.attr("href") );
+            playerUrl = "soundcloud.com" + jNode.attr("href");
 
-        getToolkit( playerUrl_keywords, "hide if used", "lazy loading list", wrapper );
+        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
     }
 });
 
@@ -520,7 +521,6 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
     }
 });
 
-
 /*
  * Re-order added soundActsions buttons (async)
  */
@@ -528,7 +528,6 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
 waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", function( jNode ) {
     jNode.addClass("moved").appendTo( $(".soundActions") );
 });
-
 
 /*
  * trackHeader
@@ -541,9 +540,12 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 });
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Toolkit
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit)", function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-toolkit");
@@ -554,7 +556,7 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         // get the player URL
         // DO NOT use location.href as this includes parameters 
         // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
-        var playerUrl = mixesdbPlayerUsage_keywords( location.protocol + '//' + location.host + location.pathname );
+        var playerUrl = location.protocol + '//' + location.host + location.pathname;
 
         getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", "addHistoryLink-not" );
     }
