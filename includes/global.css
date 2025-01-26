@@ -1,6 +1,9 @@
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Basics
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 .mdb-hide {
 	display: none !important;
 }
@@ -51,9 +54,36 @@
 }
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Tooltip
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+.mdb-tooltip {
+    background-image: linear-gradient(to right, #f60 33%, rgba(255,255,255,0) 0%);
+    background-position: bottom;
+    background-size: 5px 1px;
+    background-repeat: repeat-x;
+    cursor: help;
+}
+
+.mdb-tooltip[data-tooltip]:hover::after {
+    display: block;
+    position: absolute;
+    content: attr(data-tooltip);
+    background: #f60;
+    padding: .25em;
+    transition: display 1s;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Elements
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 .mdb-element {
 	margin: 1rem 0;
 	padding: .25rem .5rem;
@@ -77,9 +107,12 @@ button.mdb-element {
 }
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Tracklist output
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 textarea#mixesdb-TLbox,
 textarea.mdb-tlBox,
 textarea.mono {
@@ -97,9 +130,12 @@ textarea.mono {
 }
 
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Toolkit
- */
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #mdb-toolkit {
     margin: 0 0 20px;
     border: 1px solid #f90;
@@ -108,7 +144,7 @@ textarea.mono {
     
     && legend {
         padding: 0 .1rem;
-        font-weight: bold;
+        font-weight: bold !important;
         color: #f60;
         margin: 0 0 -.3rem .5rem;
     }
@@ -131,6 +167,43 @@ textarea.mono {
     margin: 0 !important;
 }
 
+/* usage */
+#mdb-toolkit .mdb-mixesdbLink-history-wrapper {
+    font-size: 90%;
+    padding-left: .33em;
+    
+    && a {
+        text-decoration: none;
+    }
+        
+    && a:hover {
+        text-decoration: underline !important;
+    }
+}
+
+/* 1001tracklists.com */
+#mdb-toolkit.thousandandonetracklists-com {
+    margin-top: 20px;
+    margin-bottom: 15px;
+    font-family: sans-serif;
+    font-size: 14px;
+    background-color: var(--box-color);
+    
+    && ul {
+        list-style-type: initial;
+    }
+    
+    && a.mdb-mixesdbLink-history {
+        color: #fff !important;
+    }
+}
+
+/* mixcloud.com */
+#mdb-toolkit.mixcloud-com {
+    margin: -25px 0 30px;
+    font-size: .875rem;
+}
+
 /* soundcloud.com */
 #mdb-toolkit.soundcloud-com {
     && a:not(:visited) {
@@ -146,44 +219,19 @@ textarea.mono {
     }
 }
 
-/* usage */
-#mdb-toolkit .mdb-mixesdbLink-history-wrapper {
-    font-size: 90%;
-    padding-left: .33em;
-    
-    && a {
-        text-decoration: none;
-    }
-        
-    && a:hover {
-        text-decoration: underline !important;
-    }
-}
-
-/* mixcloud.com */
-#mdb-toolkit.mixcloud-com {
-    margin: -25px 0 30px;
-    font-size: .875rem;
-}
-
 /* trackid.net */
 #mdb-toolkit.trackid-net {
-    margin: 10px 0 20px;
+    margin: 20px 0;
     
     && legend {
         color: #f90;
     }
+
+    && ul {
+        font-size: 14px !important;
+    }
     
     && li a {
         color: inherit;
-    }
-}
-
-/* trackid.net */
-#mdb-toolkit.trackid-net {
-    margin-top: 20px;
-    
-    && ul {
-        font-size: 14px !important;
     }
 }

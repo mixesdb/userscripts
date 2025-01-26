@@ -135,7 +135,6 @@ function loadRawCss( urlVar ) {
     });
 }
 
-
 // makeCssSafe
 function makeCssSafe( text ) {
 	return text
@@ -144,6 +143,12 @@ function makeCssSafe( text ) {
 	           .replace(/\./, "-")
            ;
 }
+
+// mdbTooltip
+function mdbTooltip( text, tooltip ) {
+    return '<span class="mdb-tooltip" data-tooltip="'+tooltip+'">'+text+'</span>';
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -168,6 +173,8 @@ function normalizeTitleForSearch( text ) {
             .replace(/(\/)/g, " ")
             .replace(/ (on) /g, " ")
             .replace(/RA (\d)/g, "RA.$1")
+            .replace( /^Andrei Mor - /, "" )
+            .replace("Radio 1's", "")
             .trim();
 
         logVar( "textOut", textOut );
