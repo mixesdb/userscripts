@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.26.1
+// @version      2025.01.26.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_71
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_72
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_7
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
@@ -78,24 +78,6 @@ d.ready(function(){
             break;
     }
 });
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Functions
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// normalizeTidTitlesFOrSearch
-function normalizeTidTitlesFOrSearch( titleText ) {
-    return titleText
-        // channel names
-        .replace( /^Andrei Mor - /, "" )
-
-        // misc
-        .replace( "Radio 1's ", "" )
-    ;
-}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -175,7 +157,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
 waitForKeyElements(".request-summary img.artwork", function( jNode ) {
     var playerUrl = jNode.closest("a").attr("href"),
         heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
-        titleText = normalizeTidTitlesFOrSearch( heading.text() );
+        titleText = normalizeTitleForSearch( heading.text() );
 
     logVar( "playerUrl", playerUrl );
 
