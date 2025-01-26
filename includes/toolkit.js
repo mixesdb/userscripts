@@ -93,18 +93,28 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType, titleText="", linkClass="", addHistoryLink="addHistoryLink-not" ) {
-    logFunc( "getToolkit" );
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", addHistoryLink="addHistoryLink-not" ) {
+    // types: "playerUrl", "hide if used"
 
-    var output = null,
+    logFunc( "getToolkit" );
+    logVar( "thisUrl", thisUrl );
+    logVar( "type", type );
+    logVar( "outputType", outputType );
+
+    var addOutput = true,
+        output = null,
         domain = getDomain_fromUrlStr( thisUrl ),
         domain_cssSafe = location.hostname.replace("www.","").replace(/\./, "-"); /* domain of the current website, not the URL */
 
-    logVar( "domain", domain );
+    //logVar( "domain", domain );
     //logVar( "domain_cssSafe", domain_cssSafe );
 
+    if( type == "hide if used" ) {
+        addOutput = false;
+    }
+
     // output wrapper
-    if( outputType == "detail page" ) {
+    if( addOutput ) {
         var toolkitWrapper = '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'" style="display:none">';
         toolkitWrapper += '<legend>Toolkit</legend>';
         toolkitWrapper += '<ul class="">';
@@ -156,18 +166,20 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         if( !path1_isNumeric ) {
             log( "hearthis.at URL is not the short URL" );
 
-            // append usage note
-            waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageImpossibleLink", function( jNode ) {
-                var usageNote = 'It\'s not possible to tell if this player is used on MixesDB!';
-                usageNote += '<br />hearthis.at players are emedded with the short URL containing the numeric ID.';
-                usageNote += '<ul>';
-                usageNote += '<li>Check MixesDB usage on the <a class="'+linkClass+'" href="'+thisUrl+'">hearthis.at player page</a> (userscript required).</li>';
-                usageNote += '<li>'+searchTitleLink+'</li>';
-                usageNote += '</ul>';
+            if( addOutput ) {
+                // append usage note
+                waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageImpossibleLink", function( jNode ) {
+                    var usageNote = 'It\'s not possible to tell if this player is used on MixesDB!';
+                    usageNote += '<br />hearthis.at players are emedded with the short URL containing the numeric ID.';
+                    usageNote += '<ul>';
+                    usageNote += '<li>Check MixesDB usage on the <a class="'+linkClass+'" href="'+thisUrl+'">hearthis.at player page</a> (userscript required).</li>';
+                    usageNote += '<li>'+searchTitleLink+'</li>';
+                    usageNote += '</ul>';
 
-                $("#mdb-toolkit").show();
-                jNode.append( usageNote ).show();
-            });
+                    $("#mdb-toolkit").show();
+                    jNode.append( usageNote ).show();
+                });
+            }
 
             runAPIcall = false;
         } else {
@@ -198,63 +210,88 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                 var resultNum = data["query"]["searchinfo"]["totalhits"];
 
                 logVar( "resultNum", resultNum );
+                logVar( "addOutput", addOutput );
 
                 if( resultNum > 0 ) {
+                    logVar( "Usage", "used (resultNum="+resultNum+") " + thisUrl );
+
                     var resultsArr = data["query"]["search"];
 
                     //logVar( "data", JSON.stringify(data) );
                     logVar( "resultsArr", JSON.stringify(resultsArr) );
                     logVar( "resultsArr.length", resultsArr.length );
 
-                    if( outputType == "detail page" ) {
-                        var i;
-                        var output = 'This player is used on MixesDB: ',
-                            usageLinks = [];
+                    if( addOutput ) {
+                        if( outputType == "detail page" ) {
+                            var i;
+                            var output = 'This player is used on MixesDB: ',
+                                usageLinks = [];
 
-                        for( i = 0; i < resultsArr.length; i++ ){
-                            var title = resultsArr[i].title,
-                                pageid = resultsArr[i].pageid;
+                            for( i = 0; i < resultsArr.length; i++ ){
+                                var title = resultsArr[i].title,
+                                    pageid = resultsArr[i].pageid;
 
-                            logVar( "title", title );
-                            logVar( "pageid", pageid );
+                                logVar( "title", title );
+                                logVar( "pageid", pageid );
 
-                            var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, addHistoryLink );
+                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, addHistoryLink );
 
-                            usageLinks.push( link_playerUsedOn );
-                        }
-
-                        // add links from array
-                        // make list if multiple links
-                        if( usageLinks.length > 1 ) {
-                            output += '<ul>';
-                            for( i = 0; i < usageLinks.length; i++ ){
-                                output += '<li>' +usageLinks[i]+ '</li>';
+                                usageLinks.push( link_playerUsedOn );
                             }
-                            output += '</ul>';
-                        } else {
-                            output += usageLinks[0];
+
+                            // add links from array
+                            // make list if multiple links
+                            if( usageLinks.length > 1 ) {
+                                output += '<ul>';
+                                for( i = 0; i < usageLinks.length; i++ ){
+                                    output += '<li>' +usageLinks[i]+ '</li>';
+                                }
+                                output += '</ul>';
+                            } else {
+                                output += usageLinks[0];
+                            }
+
+                            // success body class
+                            var type_cssSafe = type.replace(/\s/g,"");
+                            $("body").addClass( "mdb-"+type_cssSafe+"-success" );
                         }
 
-                        // success body class
-                        var type_cssSafe = type.replace(/\s/g,"");
-                        $("body").addClass( "mdb-"+type_cssSafe+"-success" );
+                        // append usageLink
+                        waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink", function( jNode ) {
+                            $("#mdb-toolkit").show();
+                            jNode.append( output ).show();
+                        });
+
+                    // !addOutput
+                    } else {
+                        log( "Not adding output" );
+
+                        // remove the wrapper if usage results
+                        if( type == "hide if used" ) {
+                            log( "Removing " + thisUrl );
+                            wrapper.remove();
+                        }
                     }
 
-                    // append usageLink
-                    waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink", function( jNode ) {
-                        $("#mdb-toolkit").show();
-                        jNode.append( output ).show();
-                    });
+                // resultNum <= 0
                 } else {
-                    if( searchTitleLink ) {
-                        waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
-                            var searchMessage = 'This player is not used on MixesDB yet. ' + searchTitleLink;
+                    logVar( "Usage", "NOT used (resultNum="+resultNum+") " + thisUrl );
 
-                            $("#mdb-toolkit").show();
-                            jNode.append( searchMessage ).show();
-                        });
-                    } else {
-                        log( "No search res: No titleText!" );
+                    if( type == "hide if used" ) {
+                        log( "This is not used: " + playerUrl );
+                    }
+
+                    if( addOutput ) {
+                        if( searchTitleLink ) {
+                            waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-noUsageLink", function( jNode ) {
+                                var searchMessage = 'This player is not used on MixesDB yet. ' + searchTitleLink;
+
+                                $("#mdb-toolkit").show();
+                                jNode.append( searchMessage ).show();
+                            });
+                        } else {
+                            log( "No search res: No titleText!" );
+                        }
                     }
                 }
             }
