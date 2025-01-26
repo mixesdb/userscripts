@@ -6,21 +6,10 @@
 
 // getDomain_fromUrlStr
 // example.com
-function getDomain_fromUrlStr( urlString, mode="" ) {
+function getDomain_fromUrlStr( urlString ) {
     var urlParts = urlString.split('/'); // Split the URL by '/'
-
     if( urlParts.length > 2 ) {
-        var domain_out = urlParts[2].replace("www.",""); // The hostname is the third part
-
-        if( mode == "cssSafe" ) {
-            domain_out = domain_out
-                            .replace("1001tracklists.com", "thousandandonetracklists.com")
-                            .replace("www.","")
-                            .replace(/\./, "-")
-                        ;
-        }
-
-        return domain_out;
+        return urlParts[2].replace("www.",""); // The hostname is the third part
     }
 }
 
@@ -113,8 +102,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
     var addOutput = true,
         output = null,
-        domain = getDomain_fromUrlStr( thisUrl ),
-        domain_cssSafe = getDomain_fromUrlStr( location.hostname, "cssSafe" ); /* domain of the current website, not the URL */
+        domain_cssSafe = getDomain_fromUrlStr( thisUrl ),
+        domain_cssSafe = makeCssSafe( location.hostname );/* domain of the current website, not the URL */
 
     //logVar( "domain", domain );
     //logVar( "domain_cssSafe", domain_cssSafe );
