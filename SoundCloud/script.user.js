@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.26.1
+// @version      2025.01.26.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_28
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_14
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -52,11 +52,13 @@ const fast = 200,
 // url parameters
 var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
     getHideReposts = getURLParameter("hideReposts") == "true" ? "true" : "false",
-    getHideFav = getURLParameter("hideFav") == "true" ? "true" : "false";
+    getHideFav = getURLParameter("hideFav") == "true" ? "true" : "false",
+    getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false";
 
 logVar( "getHidePl", getHidePl );
 logVar( "getHideReposts", getHideReposts );
-logVar( "getHideFav",getHideFav );
+logVar( "getHideFav", getHideFav );
+logVar( "getHideUsed", getHideUsed );
 
 
 /*
@@ -106,7 +108,7 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
         // Highlight player title if favorited
         title.addClass("mdb-darkorange");
 
-        // remve faved player
+        // Hiding option: remove faved player
         removeFavedPlayer_ifOptedIn( jNode );
     }
 
@@ -215,10 +217,11 @@ waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// stream
+// lazy loading lists (streams and feed)
 waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".soundList.lazyLoadingList", lazyLoadingList);
+
 function lazyLoadingList(jNode) {
     logFunc( "lazyLoadingList" );
 
@@ -228,15 +231,19 @@ function lazyLoadingList(jNode) {
 
         var sa = $("#mdb-streamActions"),
             checkedPl = "checked",
-            checkedFav = "";
+            checkedReposts = "",
+            checkedFav = "",
+            checkedUsed = "";
         if( getHidePl == "false" ) var checkedPl = '';
         if( getHideReposts == "true" ) var checkedReposts = 'checked';
         if( getHideFav == "true" ) var checkedFav = 'checked';
+        if( getHideUsed == "true" ) var checkedUsed = 'checked';
 
         sa.append('<span>Hide:</span>');
         sa.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
         sa.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
         sa.append('<label class="pointer"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
+        sa.append('<label class="pointer"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
     }
 
     // reload
@@ -249,21 +256,41 @@ function lazyLoadingList(jNode) {
 
     if( typeof url != "undefined" ) {
         $("#hidePl").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav;
-                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav;
+            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
+                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
         }});
         $("#hideReposts").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav;
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
         }});
         $("#hideFav").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false";
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true";
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false&hideUsed="+getHideUsed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true&hideUsed="+getHideUsed;
+        }});
+        $("#hideUsed").change(function(){
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=false";
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=true";
         }});
     }
 }
 
-// each playlist
+// Pass URL parameters for hiding options to user profile tabs
+waitForKeyElements(".userInfoBar__tabs ul", function( jNode ) {
+    $("a.g-tabs-link", jNode).each(function(){
+        var link = $(this),
+            href = link.attr("href"),
+            hidingParams = location.search;
+
+        logVar( "hidingParams", hidingParams );
+
+        if( /.*hidePl.*/.test(hidingParams) ) {
+            var href_hidingParams = href + hidingParams;
+            link.attr( "href", href_hidingParams );
+        }
+    });
+});
+
+// Hiding option: each playlist
 waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
     if( getHidePl == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
@@ -271,11 +298,25 @@ waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
     }
 });
 
-// each repost player
+// Hiding option: each repost player
 waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
     if( getHidePl == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
         jNode.closest(".soundList__item").remove();
+    }
+});
+
+// Hiding option: each fFaved players > on waitForKeyElements fav button
+
+// Hiding option: each used player
+waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
+    if( getHideUsed == "true" ) {
+        logFunc( "Hiding used players" );
+
+        var wrapper = jNode.closest("li.soundList__item"),
+            playerUrl_keywords = mixesdbPlayerUsage_keywords( "soundcloud.com" + jNode.attr("href") );
+
+        getToolkit( playerUrl_keywords, "hide if used", "lazy loading list", wrapper );
     }
 });
 
@@ -513,7 +554,7 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         // get the player URL
         // DO NOT use location.href as this includes parameters 
         // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
-        var playerUrl = location.protocol + '//' + location.host + location.pathname;
+        var playerUrl = mixesdbPlayerUsage_keywords( location.protocol + '//' + location.host + location.pathname );
 
         getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", "addHistoryLink-not" );
     }
