@@ -166,11 +166,15 @@ textarea.mono {
         padding-inline-start: 25px;
     }
 
-    && ul:not(.mdb-nolist) {
+    && ul {
         margin: .5rem 0;
     
         && li {
             margin: .3rem 0;
+            
+            & ul {
+                margin: .33rem 0;
+            }
         }
     }
 }
@@ -197,9 +201,9 @@ textarea.mono {
 }
 
 #mdb-toolkit .mdb-toolkit-usageLink.used {
-    && a.mdb-mixesdbLink:link,
-    && a.mdb-mixesdbLink:active,
-    && a.mdb-mixesdbLink:visited {
+    && a.mdb-mixesdbLink:not(.mdb-mixesdbLink-history):link,
+    && a.mdb-mixesdbLink:not(.mdb-mixesdbLink-history):active,
+    && a.mdb-mixesdbLink:not(.mdb-mixesdbLink-history):visited {
         color: #f90 !important;
     }
 }
