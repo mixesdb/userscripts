@@ -56,7 +56,7 @@ function normalizePlayerUrl( playerUrl ) {
     return playerUrl.trim()
         .replace( /^(https?:\/\/)(.+)$/, "$2" )
         .replace( "www.", "" )
-        .replace( /^(.+)\/?$/, "$1" )
+        .replace( /^(.+)\/$/, "$1" )
     ;
 }
 
@@ -82,6 +82,72 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
     return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=snippet&format=json&srsearch=insource:%22'+keywords+'%22';
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Grab URLs from player iframes
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * getToolkit_fromSCApiTrackUrl
+ * Takes API track URL
+ * Call API to the user/title URL as used on MixesDB
+ * Pass that URL to getToolkit()
+ */
+function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper, insertType, titleText, linkClass, addHistoryLink ) {
+    if( apiTrackUrl ) {
+        getScAccessTokenFromApi(function(output){
+            var scAccessToken = output;
+
+            $.ajax({
+                beforeSend: function(request) {
+                    request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
+                },
+                dataType: "json",
+                url: apiTrackUrl,
+                success: function( data ) {
+                    var playerUrl = data.permalink_url;
+                    if( playerUrl != "" ) {
+                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, addHistoryLink );
+                    }
+                }
+            });
+        });
+    }
+}
+
+/*
+ * getToolkit_fromIframe
+ * Expect various iframes, try to get the URL that is used for embedding on MixesDB
+ * SoundCloud: Usually has track API URL, needs to call API and fire getToolkit from ajax result
+ * Thus all the parameters for getToolkit() must be carried around
+ */
+function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", addHistoryLink="addHistoryLink-not" ) {
+    logFunc( "getplayerUrl_fromIframe" );
+
+    var srcUrl = iframe.attr("src"),
+        playerUrl = "";
+
+    logVar( "srcUrl", srcUrl );
+
+    if( /.+soundcloud.com.+/.test(srcUrl) ) {
+        log( "iframe is SoundCloud" );
+
+        // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
+        var apiTrackUrl = srcUrl.replace( /^(.+˙?url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" );
+
+        logVar( "apiTrackUrl", apiTrackUrl );
+
+        // Do we have a api track URL?
+        if( apiTrackUrl.split("/")[3] == "tracks" && regExp_numbers.test( apiTrackUrl.split("/")[4] ) ) {
+            // call SC API to get user/title URL
+            getToolkit_fromSCApiTrackUrl( apiTrackUrl, type, outputType, wrapper, insertType, titleText, linkClass, addHistoryLink  );
+        }
+
+    }
 }
 
 
