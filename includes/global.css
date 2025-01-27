@@ -53,6 +53,18 @@
 	}
 }
 
+/*
+ * links
+ */
+.mdb-domainIcon {
+    max-height: 1em !important;
+    padding: 0 .5em 0 0;
+}
+a.mdb-tidSubmit img.tidSubmit-icon {
+    max-height: 1.3em !important;
+    padding: 0 5px;
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -146,7 +158,8 @@ textarea.mono {
         padding: 0 .1rem;
         font-weight: bold !important;
         color: #f60;
-        margin: 0 0 -.3rem .5rem;
+        font-size: 15px;
+        margin: 0 0 -.3em .75em;
     }
     
     && ul {
@@ -160,7 +173,7 @@ textarea.mono {
 }
 
 /* nested lists */
-#mdb-toolkit li ul {
+#mdb-toolkit li ul:not(.mdb-nolist) {
     margin: .15rem 0 0 !important;
 }
 #mdb-toolkit li ul li {
@@ -170,7 +183,6 @@ textarea.mono {
 /* usage */
 #mdb-toolkit .mdb-mixesdbLink-history-wrapper {
     font-size: 90%;
-    padding-left: .33em;
     
     && a {
         text-decoration: none;
@@ -181,8 +193,30 @@ textarea.mono {
     }
 }
 
-/* 1001tracklists.com */
+#mdb-toolkit .mdb-toolkit-usageLink.used {
+    && a.mdb-mixesdbLink:link,
+    && a.mdb-mixesdbLink:active,
+    && a.mdb-mixesdbLink:visited {
+        color: #f90 !important;
+    }
+}
 
+/* 1001tracklists.com */
+#mdb-toolkit.thousandandonetracklists-com {
+    margin: 20px 0 15px 0;
+    font-family: sans-serif;
+    font-size: 1.1em;
+    background-color: var(--box-color);
+    padding: 1px 15px 5px 0;
+            
+    && ul {
+        list-style-type: initial;
+    }
+    
+    && a.mdb-mixesdbLink-history {
+        color: #fff !important;
+    }
+}
 
 /* mixcloud.com */
 #mdb-toolkit.mixcloud-com {
