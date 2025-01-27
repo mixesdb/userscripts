@@ -162,7 +162,7 @@ textarea.mono {
         margin: 0 0 -.3em .75em;
     }
     
-    && ul {
+    && ul:not(.mdb-nolist) {
         margin: .5rem 0;
         padding-inline-start: 25px;
 	
