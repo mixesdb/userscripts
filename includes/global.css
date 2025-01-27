@@ -65,7 +65,7 @@
     background-position: bottom;
     background-size: 5px 1px;
     background-repeat: repeat-x;
-    cursor: help;
+    cursor: pointer;
 }
 
 .mdb-tooltip[data-tooltip]:hover::after {
@@ -140,7 +140,7 @@ textarea.mono {
     margin: 0 0 20px;
     border: 1px solid #f90;
     border-radius: 5px;
-    padding: 0;
+    padding: 0 5px 0 0;
     
     && legend {
         padding: 0 .1rem;
@@ -182,21 +182,7 @@ textarea.mono {
 }
 
 /* 1001tracklists.com */
-#mdb-toolkit.thousandandonetracklists-com {
-    margin-top: 20px;
-    margin-bottom: 15px;
-    font-family: sans-serif;
-    font-size: 14px;
-    background-color: var(--box-color);
-    
-    && ul {
-        list-style-type: initial;
-    }
-    
-    && a.mdb-mixesdbLink-history {
-        color: #fff !important;
-    }
-}
+
 
 /* mixcloud.com */
 #mdb-toolkit.mixcloud-com {
