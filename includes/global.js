@@ -49,7 +49,7 @@ function logVar( variable, string ) {
 // logFunc
 function logFunc( functionName ) {
 	var seperator = "####################################";
-	log( "\n"+ seperator +"\n# "+ functionName +"()\n"+ seperator );
+	log( "\n"+ seperator +"\n# "+ functionName +"\n"+ seperator );
 }
 
 // logArr
