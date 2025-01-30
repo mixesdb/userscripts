@@ -208,6 +208,14 @@ textarea.mono {
     }
 }
 
+/* TID submit */
+.mdb-toolkit-playerUrls-item .tidSubmit-icon {
+    opacity: .33;
+}
+.mdb-toolkit-playerUrls-item .tidSubmit-icon:hover {
+    opacity: 1;
+}
+
 /* 1001tracklists.com */
 #mdb-toolkit.thousandandonetracklists-com {
     margin: 20px 0 15px 0;

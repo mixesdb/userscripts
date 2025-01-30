@@ -49,7 +49,7 @@ function logVar( variable, string ) {
 // logFunc
 function logFunc( functionName ) {
 	var seperator = "####################################";
-	log( "\n"+ seperator +"\n# "+ functionName +"()\n"+ seperator );
+	log( "\n"+ seperator +"\n# "+ functionName +"\n"+ seperator );
 }
 
 // logArr
@@ -84,10 +84,69 @@ function getURLParameter(name) {
     return decodeURIComponent((new RegExp('[?|&]'+name+'=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
 }
 
+// getDomain_fromUrlStr
+// example.com
+function getDomain_fromUrlStr( urlString ) {
+    var urlParts = urlString.split('/'); // Split the URL by '/'
+    if( urlParts.length > 2 ) {
+        return urlParts[2].replace("www.",""); // The hostname is the third part
+    }
+}
+
+// normalizePlayerUrl
+// removes https and www prefixes and optional characters at the end like "/"
+function normalizePlayerUrl( playerUrl ) {
+    return playerUrl.trim()
+        .replace( /^(https?:\/\/)(.+)$/, "$2" )
+        .replace( "www.", "" )
+        .replace( /^(.+)\/$/, "$1" )
+    ;
+}
+
+// urlIsTidSubmitCompatible
+function urlIsTidSubmitCompatible( thisUrl ) {
+    var thisUrl_domain = getDomain_fromUrlStr( thisUrl );
+
+    switch( thisUrl_domain ) {
+        case "hearthis.at":
+            return true;
+            break;
+        case "mixcloud.com":
+            return true;
+            break;
+        case "soundcloud.com":
+            return true;
+            break;
+        case "youtube.com":
+            return true;
+            break;
+        case "youtu.be":
+            return true;
+            break;
+        default:
+            return false;
+    }
+}
+
 // makeTidSubmitUrl
 function makeTidSubmitUrl( playerUrl, keywords="" ) {
 	var keyowrds = normalizeTitleForSearch( keywords );
     return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
+}
+
+// makeTidSubmitLink
+function makeTidSubmitLink( thisUrl, keywords, mode="text" ) {
+    var keyowrds = normalizeTitleForSearch( keywords ),
+        tidUrl = makeTidSubmitUrl( thisUrl, keywords ),
+        linkText = "Submit this player URL to TrackId.net";
+
+    if( mode == "link-icon" ) {
+        linkText = '<img class="tidSubmit-icon" src="'+tidIconUrl+'" style="max-height:1.2em;">';
+    }
+
+    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">'+linkText+'</a>';
+
+    return tidLink;
 }
 
 /*
