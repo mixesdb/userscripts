@@ -142,10 +142,10 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addActio
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
     if( addActionLinks == "addActionLinks" ) {
-        output += '<div class="mdb-mixesdbLink-actionLinks-wrapper">';
+        output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
         output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit">edit</a>';
         output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history">history</a>';
-        output += '</div>';
+        output += '</span>';
     }
 
     return output;

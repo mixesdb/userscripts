@@ -209,7 +209,6 @@ textarea.mono {
 
     && .mdb-mixesdbLink-actionLinks-wrapper {
         margin-left: 7px;
-        display: inline-block;
         font-size: 12px !important;
         
         && a {
