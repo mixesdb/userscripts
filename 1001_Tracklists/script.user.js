@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.30.3
+// @version      2025.01.30.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/1001_Tracklists/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_8
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*1001tracklists.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=1001tracklists.com
@@ -18,16 +18,6 @@
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
-
-
-/* TODOs
-
-Special chars in URLs not matched
-https://www.1001tracklists.com/tracklist/4fvbu79/roman-flugel-boiler-room-2014-09-02.html
-> https://www.mixesdb.com/w/index.php?title=2014-09-02_-_Roman_Fl%C3%BCgel_@_Boiler_Room_Berlin&action=edit
-
-
-*/
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -38,7 +28,7 @@ https://www.1001tracklists.com/tracklist/4fvbu79/roman-flugel-boiler-room-2014-0
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 13,
+    cacheVersion = 15,
     scriptName = "1001_Tracklists",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
