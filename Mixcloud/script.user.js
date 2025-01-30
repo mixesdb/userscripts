@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.4
+// @version      2025.01.30.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_7
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -27,7 +27,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 2,
+    cacheVersion = 4,
     scriptName = "Mixcloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -122,9 +122,6 @@ if( urlPath(2) != "" ) {
 
         var apiUrl = url.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
 
-        // create wrappers to ensure prefered order of async created elements
-        jNode.after( '<span id="mdb-apiLink-wrapper"></span><span id="mdb-durToggle-wrapper"></span><span id="mdb-tidSubmit-wrapper"></span>' );
-
         // add api toggle link
         var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
         logVar( "apiUrl", apiUrl );
@@ -157,12 +154,11 @@ if( urlPath(2) != "" ) {
             });
 
             // add TID submit link to toolkit
-            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-tidSubmit", function( jNode ) {
+            waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
                 var keywords = $('meta[property="og:title"]').attr("content"),
-                    tidLink_text = makeTidSubmitLink( data["url"], keywords );
-                if( tidLink_text ) {
-                    $("#mdb-toolkit").show();
-                    jNode.append( tidLink_text ).show();
+                    tidLink = makeTidSubmitLink( data["url"], keywords, "text" );
+                if( tidLink ) {
+                    jNode.append( tidLink );
                 }
             });
 
@@ -185,15 +181,12 @@ if( urlPath(2) != "" ) {
 }
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
+/*
  * Toolkit
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
+ */
 waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed-toolkit)', function( jNode ) {
     var titleText = $("h1").text();
-    getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "", "addHistoryLink-not" );
+    getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "", "addActionLinks-not" );
 
     jNode.addClass("mdb-processed-toolkit");
 });
