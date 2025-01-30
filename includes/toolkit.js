@@ -1,5 +1,13 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Global constants, regExp, vars
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+const visitDomain = location.hostname.replace("www.", "");
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Grab URLs from player iframes
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
