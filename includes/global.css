@@ -201,9 +201,9 @@ textarea.mono {
 }
 
 #mdb-toolkit .mdb-toolkit-usageLink.used {
-    && a.mdb-mixesdbLink:not(.mdb-mixesdbLink-history):link,
-    && a.mdb-mixesdbLink:not(.mdb-mixesdbLink-history):active,
-    && a.mdb-mixesdbLink:not(.mdb-mixesdbLink-history):visited {
+    && a.mdb-mixesdbLink.mixPage:link,
+    && a.mdb-mixesdbLink.mixPage:active,
+    && a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
     }
 
