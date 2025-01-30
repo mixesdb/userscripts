@@ -195,12 +195,6 @@ function makeAvailableLinksListItem( playerUrl, usage="" ) {
         link += makeTidSubmitLink( playerUrl, "", "link-icon" ) ;
     }
 
-    /*
-    if( usage == "unclear" ) {
-        link+= ' (visit the page and check with its userscript)';
-    }
-    */
-
     link += '</li>';
 
     return link;

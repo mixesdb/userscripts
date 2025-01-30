@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.26.7
+// @version      2025.01.30.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_31
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_33
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*soundcloud.com*
@@ -29,7 +29,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 1,
-    cacheVersion = 17,
+    cacheVersion = 19,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -498,12 +498,11 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                 }
 
                                 // Add TID submit link to toolkit
-                                waitForKeyElements("#mdb-toolkit li.mdb-toolkit-tidSubmit", function( jNode ) {
+                                waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
                                     var keywords = normalizeTitleForSearch( t.title ),
-                                        tidLink_text = makeTidSubmitLink( t.permalink_url, keywords );
-                                    if( tidLink_text ) {
-                                        $("#mdb-toolkit").show();
-                                        jNode.append( tidLink_text ).show();
+                                        tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text", "toolkit_li" );
+                                    if( tidLink ) {
+                                        jNode.append( tidLink ).show();
                                     }
                                 });
                             }
@@ -554,10 +553,10 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         var titleText = $("h1.soundTitle__title").text();
 
         // get the player URL
-        // DO NOT use location.href as this includes parameters 
+        // DO NOT use location.href as this includes parameters
         // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
         var playerUrl = location.protocol + '//' + location.host + location.pathname;
 
-        getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", "addHistoryLink-not" );
+        getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", "addActionLinks-not" );
     }
 });

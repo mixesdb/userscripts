@@ -129,7 +129,7 @@ function urlIsTidSubmitCompatible( thisUrl ) {
 }
 
 // makeTidSubmitUrl
-function makeTidSubmitUrl( playerUrl, keywords="" ) {
+function makeTidSubmitUrl( playerUrl, keywords="", toolkit_li="toolkit_li" ) {
 	var keyowrds = normalizeTitleForSearch( keywords );
     return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
 }
@@ -138,13 +138,18 @@ function makeTidSubmitUrl( playerUrl, keywords="" ) {
 function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text" ) {
     var keyowrds = normalizeTitleForSearch( keywords ),
         tidUrl = makeTidSubmitUrl( thisUrl, keywords ),
-        linkText = "Submit this player URL to TrackId.net";
+        text = "Submit this player URL to TrackId.net",
+        linkText = text;
 
     if( linkText_mode == "link-icon" ) {
-        linkText = '<img class="tidSubmit-icon" src="'+favicon_TID+'" alt="Submit this player URL to TrackId.net" style="max-height:1.2em;">';
+        linkText = '<img class="tidSubmit-icon" src="'+favicon_TID+'" alt="'+text+'" style="max-height:1.2em;">';
     }
 
     var tidLink = '<a href="'+tidUrl+'"class="mdb-tidSubmit" target="_blank" >'+linkText+'</a>';
+
+    if( toolkit_li == "toolkit_li" ) {
+        tidLink = '<li class="mdb-toolkit-tidSubmit filled">'+tidLink+'</li>';
+    }
 
     return tidLink;
 }

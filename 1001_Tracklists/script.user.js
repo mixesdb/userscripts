@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.12.2
+// @version      2025.01.30.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,13 +9,25 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/1001_Tracklists/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_16
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_7
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*1001tracklists.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=1001tracklists.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
+
+
+/* TODOs
+
+Special chars in URLs not matched
+https://www.1001tracklists.com/tracklist/4fvbu79/roman-flugel-boiler-room-2014-09-02.html
+> https://www.mixesdb.com/w/index.php?title=2014-09-02_-_Roman_Fl%C3%BCgel_@_Boiler_Room_Berlin&action=edit
+
+
+*/
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -26,7 +38,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 1,
+    cacheVersion = 11,
     scriptName = "1001_Tracklists",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -133,6 +145,58 @@ if( urlPath(1) == "tracklist") {
         }
     });
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Toolkit
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+var playerUrlItems_timeout = 500;
+
+// log playerUrlItems before timeout
+var playerUrlItems = [ $("div.iMediaP iframe").length,
+                       $(".mediaTabItm.hidden li.mediaTab2 a").length
+                     ];
+log_playerUrlItems_len( playerUrlItems, "before timeout ("+playerUrlItems_timeout+")" );
+
+// run after timeout
+setTimeout(function() {
+    // log playerUrlItems after timeout
+    var playerUrlItems = [ $("div.iMediaP iframe").length,
+                           $(".mediaTabItm.hidden li.mediaTab2 a").length
+                         ];
+    log_playerUrlItems_len( playerUrlItems, "after timeout ("+playerUrlItems_timeout+")" );
+
+    var max_toolboxIterations = get_playerUrlItems_len( playerUrlItems );
+
+    // let's go
+    if( max_toolboxIterations > 0 ) {
+        var titleText = $("#pageTitle h1").text(),
+            wrapper = $(".mItems");
+
+        // visible iframes
+        waitForKeyElements("div.iMediaP iframe:not(.mdb-processed-toolkit)", function( jNode ) {
+            var iframe = jNode;
+            iframe.addClass("mdb-processed-toolkit");
+
+            getToolkit_fromIframe( iframe, "playerUrl", "detail page", wrapper, "after", titleText, "", "addActionLinks", max_toolboxIterations );
+        });
+
+        // Tab links without iframe
+        waitForKeyElements(".mediaTabItm.hidden li.mediaTab2 a:not(.mdb-processed-toolkit)", function( jNode ) {
+            jNode.addClass("mdb-processed-toolkit");
+
+            var playerUrl = jNode.attr("href");
+            logVar( "playerUrl pre func", playerUrl );
+
+            if( /.+podcasts\.apple\.com.+/.test(playerUrl) ) {
+                log( "Apple Podcasts" );
+                getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", "addActionLinks", max_toolboxIterations );
+            }
+        });
+    }
+}, playerUrlItems_timeout );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

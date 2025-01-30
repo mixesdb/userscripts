@@ -1,57 +1,22 @@
 // ==UserScript==
-// @name         MixesDB Userscripts Helper (by MixesDB)
+// @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.17.2
-// @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
+// @version      2025.01.30.1
+// @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
-// @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
-// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js
+// @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_10
-// @match        https://www.mixesdb.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_13
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_6
+// @include      http*mixcloud.com*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * User settings
- * You need to set these on each update, but updates happen rarely for this script
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * Apple Music settings
- */
-// Apple Music links: force to open in browser?
-// Keep 0 to use open the Music app
-// Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 0; // default: 0
-
-// Your Apple Music counry code, e.g. "de"
-// All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = ""; // default: ""
-
-/*
- * TrackId.net settings
- */
-// Submit player URLs to the TID request form
-// * On Explorer mix results add an icon to the title bar
-// * On mix page title icons change the TID icon URL
-// Set 0 to disable
-const trackIdnet_addRequestSubmissionIcon = 1; // default: 1
-
-/*
- * Apple Podcasts settings
- */
-// Add search icons for Apple Podcasts to mix page title icons and Explorer mix results
-// Set 0 to disable
-const applePodcasts_addSearchIcons = 1; // default: 1
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -63,295 +28,169 @@ const applePodcasts_addSearchIcons = 1; // default: 1
 
 var dev = 0,
     cacheVersion = 2,
-    scriptName = "MixesDB_Userscripts_Helper",
+    scriptName = "Mixcloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
-//loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Basic functions
+ * Basics
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-// getKeywordsFromTitle
-function getKeywordsFromTitle( titleWrapper ) {
-    return normalizeTitleForSearch( titleWrapper.text() );
+
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 1000 );
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Funcs
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// createToggleApiArea
+function createToggleApiArea( urlVar ) {
+    logFunc( "createToggleApiArea" );
+
+    logVar( "urlVar", urlVar );
+
+    $.get(urlVar, function( data ) {
+        waitForKeyElements('div[data-testid="playerHero"]', function( jNode ) {
+
+            var apiTextLinkified = linkify( data ),
+                toggleArea = '<pre id="toggleApiText" class="mdb-element" style="display:none">'+ apiTextLinkified +'</pre>';
+
+            jNode.next().append( toggleArea );
+            $("#toggleApiText").slideDown();
+        });
+    }, "text" );
 }
 
-// function getKeywordsFromTitle_Customized_AP
-// Customize keywords for more precise results
-function getKeywordsFromTitle_Customized_AP( titleWrapper ) {
-    var title = titleWrapper.text(),
-        keywords = getKeywordsFromTitle( titleWrapper );
+// appendArtworkInfo
+function appendArtworkInfo( artwork_max_url, imgWrapper ) {
+    logFunc( "appendArtworkInfo" );
 
-    if( title.match(/Resident Advisor \(RA\.\d+\)/) ) {
-        keywords = title.replace( /^.+ - (.+) - Resident Advisor \((RA\.\d+)\)/g, "$2 $1");
-    }
+    var img = new Image();
 
-    return keywords;
-}
+    img.onload = function(){
+        var imageWidth = this.width,
+            imageHeight = this.height,
+            artworkInfo = imageWidth +'&thinsp;x&thinsp;'+ imageHeight,
+            artworkInfo_link = '<a href="'+artwork_max_url+'" class="mdb-artwork-img mdb-mc-text-white" target="_blank">'+artworkInfo+'</a>';
 
-// get applePodcastsSearchLink
-function getApplePodcastsSearchLink( className, keywords ) {
-    var applePodcastsSearchUrl = "https://podcasts.apple.com/us/search?term="+encodeURIComponent( keywords );
-
-    // mak eicon link
-    // max-height to avoid flashing original icon size (script.css loads later)
-    var iconLink = '<a class="'+className+' applePodcastsSearch" href="'+applePodcastsSearchUrl+'" title="Search \''+keywords+'\’ in Apple Podcasts" target="_blank"><img src="https://www.mixesdb.com/w/images/a/ad/Apple_Podcasts_logo.svg" style="max-height:18px" alt="Apple Podcasts icon"/></a>';
-
-    return iconLink;
+        imgWrapper.after( '<div class="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="mdb-selectOnClick" type="text" value="'+artwork_max_url+'" />'+artworkInfo_link+'</div>' );
+    };
+    img.src = artwork_max_url;
 }
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * TrackId.net functions
+ * Original artwork
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+if( urlPath(2) != "" ) {
+    waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.processed)', function( jNode ) {
+        jNode.addClass("processed");
 
-// fixRequestPlayerUrl
-function fixRequestPlayerUrl( url ) {
-    return url
-        .replace( "www.youtu.be", "youtu.be" )
-        .replace( "m.soundcloud.com", "soundcloud.com" );
-}
+        var artwork_thumb_url = jNode.attr("src"),
+            artwork_max_url = artwork_thumb_url.replace(/\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/"); /* https://community.metabrainz.org/t/is-there-a-native-optimal-size-for-cover-art-from-mixcloud/640075 */
 
-// tidLinkFromUrl
-function tidLinkFromUrl( requestPlayerUrl, keywords ) {
-    var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
-        domain = new URL( urlFixed ).hostname.replace("www.",""),
-        cont = false;
+        logVar( "artwork_max_url", artwork_max_url );
 
-    //logVar( "domain", domain );
-
-    if( domain == "soundcloud.com" || domain == "mixcloud.com" || domain == "youtube.com" || domain == "youtu.be" || domain == "hearthis.at" ) {
-        cont = true;
-    }
-
-    if( cont ) {
-        var tidUrl = makeTidSubmitUrl( urlFixed, keywords ),
-            tidLogo = '<img class="op05" src="'+favicon_TID+'" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
-            link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
-        return link;
-    } else {
-        log( domain + " cannot be requested on TrackId.net" );
-        return false;
-    }
-}
-
-// triggerVisiblePlayer
-function triggerVisiblePlayer( wrapper ) {
-    var firstPlayerVisible = $(".playerWrapper.on-explorer:visible", wrapper).first(),
-        playerUrl = firstPlayerVisible.attr("data-playerurl"),
-        keywords = getKeywordsFromTitle( $(".explorerTitleLink", wrapper) );
-
-    log( playerUrl );
-    //logVar( "keywords", keywords );
-
-    if( playerUrl && keywords ) {
-        var tidLink = tidLinkFromUrl( playerUrl, keywords );
-        if( tidLink ) {
-            log( "Adding TID link for " + playerUrl );
-            $(".explorerTitle .greylinks", wrapper).append( tidLink );
-            $(".tidSubmit", wrapper).fadeIn( msFadeSlow );
-        } else {
-            log( "Skipped." );
-        }
-    }
+        appendArtworkInfo( artwork_max_url, jNode )
+    });
 }
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Mix page title icons and Explorer title icons fpr
- ** TrackId.net request submission
- ** Apple Podcasts search
+ * Action buttons
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-logFunc( "Quicker Submit Request" );
 
-d.ready(function(){ // needed for mw.config
+// on tracks
+if( urlPath(2) != "" ) {
+    waitForKeyElements('button[aria-label="Add To"]:not(.processed)', function( jNode ) {
+        jNode.addClass("processed");
 
-    // Prepare variables to check if we're on a mix page etc.
-    var actionView =  $("body").hasClass("action-view") ? true : false,
-        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
-        wgTitle = mw.config.get("wgTitle"),
-        wgPageName = mw.config.get("wgPageName");
+        var apiUrl = url.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
 
-    /*
-     * On mix pages
-     * Also allow on page edit (preview)
-     */
-    if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
-        log( "Criteria for mix page matched." );
+        // create wrappers to ensure prefered order of async created elements
+        jNode.after( '<span id="mdb-apiLink-wrapper"></span><span id="mdb-durToggle-wrapper"></span><span id="mdb-tidSubmit-wrapper"></span>' );
 
-        // TrackId.net link icon
-        // On click add request page url for the first visible player
-        if( trackIdnet_addRequestSubmissionIcon ) {
-            $("#pageIconPlayers.trackIdNet").click(function(){ /* false ID (issue#530) */
-                var linkIcon = $("#pageIcons a.trackIdNet");
+        // add api toggle link
+        var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
+        logVar( "apiUrl", apiUrl );
+        $("#mdb-apiLink-wrapper").after( apiButton );
 
-                // Prevent URLs from adding up after 1st click
-                // otherwise the URLs add up and on 2nd click more than 2 tabs open
-                var hrefOrig = linkIcon.attr("data-hreforig");
-                linkIcon.attr("href", hrefOrig);
+        /*
+         * Using API data
+         */
+        $.get(apiUrl, function( data ) {
+            // add dur toggle
+            var dur_sec = data["audio_length"],
+                durToggleWrapper = getFileDetails_forToggle( dur_sec ),
+                dur = convertHMS( dur_sec ),
+                durToggleLink = '<a id="mdb-durToggleLink" class="mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
 
-                // On click
-                var urlSearch = linkIcon.attr("href").replace(/ /g,"%20"),
-                    requestPlayerUrl = $(".playerWrapper:visible[data-playerurl]").first().attr("data-playerurl"), // first visible player
-                    keywords = (new URL(urlSearch)).searchParams.get('keywords');
-                logVar( "urlSearch", urlSearch );
-                logVar( "keywords", keywords );
+            // add dur button
+            $("#mdb-durToggle-wrapper").append( durToggleLink );
 
-                if( requestPlayerUrl ) {
-                    log( "requestPlayerUrl: " + requestPlayerUrl );
+            // append toggle wrapper
+                jNode.addClass("processed-dur");
+                jNode.closest("div").after( '<div id="mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
 
-                    // change pageIcon URL only if supported domains
-                    var tidLink_possible = tidLinkFromUrl( requestPlayerUrl, keywords );
-                    if( tidLink_possible ) {
-                        var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
-                            urlRequest = makeTidSubmitUrl( urlFixed, keywords );
+            // toggle dur
+            waitForKeyElements('#mdb-durToggleLink', function( jNode ) {
+                jNode.click(function(){
+                    log("click");
+                    $("#mdb-fileDetails").toggle();
+                    $("#mdb-fileDetails textarea").select().focus();
+                });
+            });
 
-                        linkIcon.attr("href", urlRequest).attr("data-hreforig", urlSearch);
-
-                        log( "URL changed to: " + multiUrl );
-                    }
-                } else {
-                    log( "No first player URL found" );
+            // add TID submit link to toolkit
+            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-tidSubmit", function( jNode ) {
+                var keywords = $('meta[property="og:title"]').attr("content"),
+                    tidLink_text = makeTidSubmitLink( data["url"], keywords );
+                if( tidLink_text ) {
+                    $("#mdb-toolkit").show();
+                    jNode.append( tidLink_text ).show();
                 }
             });
-        } else {
-            log( "trackIdnet_addRequestSubmissionIcon diabled." );
-        }
-    }
 
-    /*
-     * On mix pages and Category pages
-     */
-    if( ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
-        || wgNamespaceNumber==14
-      ) {
-        // Apple Podcasts search link icon
-        if( applePodcasts_addSearchIcons ) {
-            if( actionView ) {
-                var titleWrapper = $("#firstHeading .mw-page-title-main");
+        }, "json" );
+    });
+
+    // api link on click
+    waitForKeyElements(".mdb-apiLink", function( jNode ) {
+        jNode.click(function(){
+            var apiUrl = jNode.attr("data-apiurl"),
+                apiToggleArea = $("#toggleApiText");
+
+            if( apiToggleArea.length == 0 ) {
+                createToggleApiArea( apiUrl );
             } else {
-                var titleWrapper = $("#firstHeading #firstHeadingTitle");
+                ( apiToggleArea.is(':visible') ) ? apiToggleArea.slideUp() : apiToggleArea.slideDown();
             }
-            
-            if( wgNamespaceNumber==14 ) {
-                var keywords = wgTitle; // on Category
-            } else {
-                var keywords = getKeywordsFromTitle_Customized_AP( titleWrapper );
-            }
-
-            
-            if( keywords ) var applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
-            if( applePodcastsSearchLink ) $("#pageIcons").prepend( applePodcastsSearchLink );
-        } else {
-            log( "applePodcasts_addSearchIcons diabled." );
-        }
-        
-    }
-    
-    /*
-     * On MixesDB:Explorer/Mixes
-     */
-    if(  wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
-        log( "Criteria for MixesDB:Explorer/Mixes matched." );
-
-        // TrackId.net link icon
-        // Initially on each result wrapper
-        if( trackIdnet_addRequestSubmissionIcon ) {
-            $(".explorerResult").each(function(){
-                triggerVisiblePlayer( this );
-            });
-
-            // When a player tab is clicked
-            $(".MultiToggleLinks a").click(function(){
-                var wrapper = this.closest(".explorerResult");
-
-                // Remove possible previous TID link
-                $(".tidSubmit", wrapper).remove();
-
-                // wait until displayed after click
-                setTimeout(function() {
-                    triggerVisiblePlayer( wrapper );
-                }, msWaitToggle );
-            });
-        } else {
-            log( "trackIdnet_addRequestSubmissionIcon diabled." );
-        }
-
-        // Apple Podcasts search link icon
-        if( applePodcasts_addSearchIcons ) {
-            $(".explorerTitle").each(function(){
-                var wrapper = this,
-                    keywords = getKeywordsFromTitle_Customized_AP( $(".explorerTitleLink", wrapper) ),
-                    applePodcastsSearchLink = getApplePodcastsSearchLink( "explorerTitleIcon", keywords );
-
-                if( applePodcastsSearchLink ) $(".greylinks", wrapper).append( applePodcastsSearchLink );
-            });
-        } else {
-            log( "applePodcasts_addSearchIcons diabled." );
-        }
-    }
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Change Apple Music links on tracks
- * Force link to open in browser instead of the Music app
- * Change URL to Apple Music Beta and custom country code
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-waitForKeyElements(".aff-iconlink.AppleMusic:not(.processed-userscript)", waitAppleMusicLinks);
-waitForKeyElements(".aff-details-toprow-iTunesTitle a:not(.processed-userscript)", waitAppleMusicLinks);
-
-function waitAppleMusicLinks(jNode) {
-    jNode.addClass("processed-userscript");
-
-    // https://music.apple.com/us/album/lunch/1739659134?i=1739659140&uo=4&app=music&at=1000l5EX
-    // https://music.apple.com/de/search?at=1000l5EX&term=Floating%20Points%20Fast%20Foward
-    var item_url = jNode.attr("href");
-
-    // force link to open in browser
-    logVar( "appleMusic_linksOpenInBrowser", appleMusic_linksOpenInBrowser );
-    if( appleMusic_linksOpenInBrowser == 1 ) {
-        // remove URL parameter app=music
-        // album links have the app parameter by default, search links do not
-        item_url = item_url.replace( "&app=music", "&app=browser" );
-
-        // switch to beta (necessary to bypass Music app)
-        item_url = item_url.replace( "music.apple.com", "beta.music.apple.com" );
-    }
-
-    // override country code
-    logVar( "appleMusic_countryCode_switch", appleMusic_countryCode_switch );
-
-    if( appleMusic_countryCode_switch != "" ) {
-        item_url = item_url.replace( /music.apple.com\/..\//g, "music.apple.com/"+appleMusic_countryCode_switch+"/" )
-                           .replace( "?at=1000l5EX&term=", "?term=" ) /* HOTFIX issue#509 */
-                           ;
-    }
-
-    // prepare url for switch
-    if( appleMusic_linksOpenInBrowser == 1 || appleMusic_countryCode_switch != "" ) {
-        jNode.attr( 'href', item_url );
-    }
-
-    // ensure link opens in new tab
-    if( appleMusic_linksOpenInBrowser == 1 ) {
-        jNode.click(function(e) {
-            var url_open = item_url;
-            log("click: " + url_open );
-            e.preventDefault();
-            window.open( url_open );
         });
-    }
+    });
 }
+
+
+/*
+ * Toolkit
+ */
+waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed-toolkit)', function( jNode ) {
+    var titleText = $("h1").text();
+    getToolkit( location.href, "playerUrl", "detail page", jNode, "prepend", titleText, "", "addActionLinks" );
+
+    jNode.addClass("mdb-processed-toolkit");
+});

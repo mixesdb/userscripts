@@ -158,7 +158,7 @@ textarea.mono {
         padding: 0 .1rem;
         font-weight: bold !important;
         color: #f60;
-        font-size: 15px;
+        font-size: 13px;
         margin: 0 0 -.3em .75em;
     }
     
@@ -201,12 +201,6 @@ textarea.mono {
 }
 
 #mdb-toolkit .mdb-toolkit-usageLink.used {
-    && a.mdb-mixesdbLink.mixPage:link,
-    && a.mdb-mixesdbLink.mixPage:active,
-    && a.mdb-mixesdbLink.mixPage:visited {
-        color: #f90 !important;
-    }
-
     && .mdb-mixesdbLink-actionLinks-wrapper {
         margin-left: 7px;
         font-size: 12px !important;
@@ -244,9 +238,19 @@ textarea.mono {
     font-size: 1.1em;
     background-color: var(--box-color);
     padding: 1px 15px 5px 0;
+
+    && legend {
+        font-size: 13px;
+    }
             
     && ul {
         list-style-type: initial;
+    }
+
+    && a.mdb-mixesdbLink.mixPage:link,
+    && a.mdb-mixesdbLink.mixPage:active,
+    && a.mdb-mixesdbLink.mixPage:visited {
+        color: #f90 !important;
     }
 }
 
@@ -254,6 +258,10 @@ textarea.mono {
 #mdb-toolkit.mixcloud-com {
     margin: -25px 0 30px;
     font-size: .875rem;
+
+    && li {
+        list-style: disc !important;
+    }
 }
 
 /* soundcloud.com */
