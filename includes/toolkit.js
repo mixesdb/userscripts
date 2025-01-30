@@ -315,10 +315,15 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
             success: function(data) {
                 var resultNum = data["query"]["searchinfo"]["totalhits"],
                     showPlayerUrls = false,
+                    force_unclearResult = false,
                     visitDomain = location.hostname.replace("www.", "");
 
                 if( max_toolboxIterations > 1 || visitDomain == "1001tracklists.com" ) {
                     showPlayerUrls = true;
+                }
+
+                if( max_toolboxIterations == 1 && visitDomain == "trackid.net" ) {
+                    force_unclearResult = true;
                 }
 
                  logVar( "resultNum", resultNum );
@@ -438,7 +443,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                                 $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, unclear ) );
 
-                                if( showPlayerUrls ) {
+                                if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
                                 }
                             });

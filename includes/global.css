@@ -303,4 +303,17 @@ textarea.mono {
             color: #fff;
         }
     }
+    
+    && .mdb-toolkit-playerUrls-item {
+        && a {
+            text-decoration: none;
+        }
+        && a:hover {
+            text-decoration: underline;
+        }
+
+        && .tidSubmit-icon {
+            margin-bottom: -4px;
+        }
+    }
 }
