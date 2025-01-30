@@ -166,22 +166,24 @@ const ytId_rx = /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mb
 
 /* TESTING
 var ytId_testUrls = [
+    "https://www.youtube.com/watch?v=c_EF-aqiThA",
     "https://youtu.be/afK00BvvtaM",
     "https://youtu.be/vfK00BvvtaM?si=ro2ppYwwOjch9Eew",
     "https://www.youtube-nocookie.com/embed/vfK00BvvtaM?start=0&origin=https%3A%2F%2Fwww.1001tracklists.com&playsinline=1&enablejsapi=1&widgetid=2"
 ];
 
 
-var i, r;
+var i, match;
 for (i = 0; i < ytId_testUrls.length; ++i) {
-    r = ytId_testUrls[i].match(rx);
-    console.log(r[1]);
+    match = ytId_testUrls[i].match(  ytId_rx );
+    console.log( match[1] );
 }
 */
 
 function getYoutubeIdFromUrl(url){
-    var match = url.match(ytId_rx);
-    return (match&&match[1].length==11)? match[1] : false;
+    var match = url.match( ytId_rx );
+
+    return ( match&&match[1].length == 11 ) ? match[1] : false;
 }
 
 
