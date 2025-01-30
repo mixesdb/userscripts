@@ -173,10 +173,10 @@ var ytId_testUrls = [
 ];
 
 
-var i, r;
+var i, match;
 for (i = 0; i < ytId_testUrls.length; ++i) {
-    r = ytId_testUrls[i].match(  ytId_rx );
-    console.log(r[1]);
+    match = ytId_testUrls[i].match(  ytId_rx );
+    console.log( match[1] );
 }
 */
 
