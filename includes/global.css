@@ -287,6 +287,7 @@ textarea.mono {
     
     && legend {
         color: #f90;
+        font-size: 15px !important;
     }
 
     && ul {
@@ -295,5 +296,11 @@ textarea.mono {
     
     && li a {
         color: inherit;
+    }
+    
+    && .mdb-mixesdbLink-actionLinks-wrapper {
+        && a {
+            color: #fff;
+        }
     }
 }
