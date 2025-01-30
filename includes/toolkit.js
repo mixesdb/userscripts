@@ -192,7 +192,7 @@ function makeAvailableLinksListItem( playerUrl, usage="" ) {
     link += '<a href="'+playerUrl+'">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
 
     if( urlIsTidSubmitCompatible( playerUrl ) ) {
-        link += makeTidSubmitLink( playerUrl, "", "link-icon" ) ;
+        link += makeTidSubmitLink( playerUrl, "", "link-icon", "toolkit_li-not" ) ;
     }
 
     link += '</li>';
@@ -472,7 +472,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         li_noUsage.remove();
                     }
 
-                    // remove extra usage items
+                    // remove extra usage list items
                     $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.used:not(:first)").remove();
                     $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused:not(:first)").remove();
 
@@ -502,7 +502,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     });
 
                     /*
-                     * reorder
+                     * reordering list items
                      */
                     $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
                         $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")

@@ -145,13 +145,14 @@ function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text", toolkit_
         linkText = '<img class="tidSubmit-icon" src="'+favicon_TID+'" alt="'+text+'" style="max-height:1.2em;">';
     }
 
-    var tidLink = '<a href="'+tidUrl+'"class="mdb-tidSubmit" target="_blank" >'+linkText+'</a>';
+    var tidLink = '<a href="'+tidUrl+'"class="mdb-tidSubmit" target="_blank" >'+linkText+'</a>',
+        tidLinkOut = tidLink;
 
-    if( toolkit_li ) {
-        tidLink = '<li class="mdb-toolkit-tidSubmit filled">'+tidLink+'</li>';
+    if( toolkit_li == "toolkit_li" ) {
+        tidLinkOut = '<li class="mdb-toolkit-tidSubmit filled">'+tidLink+'</li>';
     }
 
-    return tidLink;
+    return tidLinkOut;
 }
 
 /*
