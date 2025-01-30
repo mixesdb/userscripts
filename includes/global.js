@@ -135,16 +135,16 @@ function makeTidSubmitUrl( playerUrl, keywords="" ) {
 }
 
 // makeTidSubmitLink
-function makeTidSubmitLink( thisUrl, keywords, mode="text" ) {
+function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text" ) {
     var keyowrds = normalizeTitleForSearch( keywords ),
         tidUrl = makeTidSubmitUrl( thisUrl, keywords ),
         linkText = "Submit this player URL to TrackId.net";
 
-    if( mode == "link-icon" ) {
-        linkText = '<img class="tidSubmit-icon" src="'+tidIconUrl+'" style="max-height:1.2em;">';
+    if( linkText_mode == "link-icon" ) {
+        linkText = '<img class="tidSubmit-icon" src="'+tidIconUrl+'" alt="Submit this player URL to TrackId.net" style="max-height:1.2em;">';
     }
 
-    var tidLink = '<a href="'+tidUrl+'" target="_blank" class="mdb-tidSubmit">'+linkText+'</a>';
+    var tidLink = '<a href="'+tidUrl+'"class="mdb-tidSubmit" target="_blank" >'+linkText+'</a>';
 
     return tidLink;
 }
