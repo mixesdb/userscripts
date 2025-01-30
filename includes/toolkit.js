@@ -137,14 +137,14 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addActio
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var mixesdbUrl = makeMixesdbPageUrl_fromId( pageid ),
-        output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink '+className+'">'+title+'</a>';
+        output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
     if( addActionLinks == "addActionLinks" ) {
         output += '<div class="mdb-mixesdbLink-actionLinks-wrapper">';
-        output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink mdb-mixesdbLink-edit">edit</a>';
-        output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink mdb-mixesdbLink-history">history</a>';
+        output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit">edit</a>';
+        output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history">history</a>';
         output += '</div>';
     }
 
