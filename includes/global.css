@@ -212,6 +212,18 @@ textarea.mono {
     }
 }
 
+/*
+ * Domain rules
+ */
+#mdb-toolkit.thousandandonetracklists-com,
+#mdb-toolkit.trackid-net {
+    && a.mdb-mixesdbLink.mixPage:link,
+    && a.mdb-mixesdbLink.mixPage:active,
+    && a.mdb-mixesdbLink.mixPage:visited {
+        color: #f90 !important;
+    }
+}
+
 /* TID submit */
 .mdb-toolkit-playerUrls-item .tidSubmit-icon {
     opacity: .33;
