@@ -133,7 +133,7 @@ function tidLinkFromUrl( requestPlayerUrl, keywords ) {
 
     if( cont ) {
         var tidUrl = makeTidSubmitUrl( urlFixed, keywords ),
-            tidLogo = '<img class="op05" src="'+tidIconUrl+'" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
+            tidLogo = '<img class="op05" src="'+favicon_TID+'" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
             link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
         return link;
     } else {
