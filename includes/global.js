@@ -158,8 +158,10 @@ function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text", toolkit_
 /*
  * getYoutubeIdFromUrl
  * returns 11 character ID
- * Most rx fail on IDs starting with v
+ * Most regExp fail on IDs starting with v
  */
+
+// https://gist.github.com/afeld/1254889
 const ytId_rx = /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 
 /* TESTING
@@ -181,8 +183,6 @@ function getYoutubeIdFromUrl(url){
     var match = url.match(ytId_rx);
     return (match&&match[1].length==11)? match[1] : false;
 }
-
-//console.log( getYoutubeIdFromUrl("https://www.youtube-nocookie.com/embed/vfK00BvvtaM?start=0&origin=https%3A%2F%2Fwww.1001tracklists.com&playsinline=1&enablejsapi=1&widgetid=2") );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
