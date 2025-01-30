@@ -191,7 +191,7 @@ function makeAvailableLinksListItem( playerUrl, usage="" ) {
     link += '<a href="'+playerUrl+'">'+domainIcon+'</a>';
     link += '<a href="'+playerUrl+'">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
 
-    if( urlIsTidSubmitCompatible( playerUrl ) ) {
+    if( visitDomain != "trackid.net" && urlIsTidSubmitCompatible( playerUrl ) ) {
         link += makeTidSubmitLink( playerUrl, "", "link-icon", "toolkit_li-not" ) ;
     }
 
@@ -315,8 +315,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
             success: function(data) {
                 var resultNum = data["query"]["searchinfo"]["totalhits"],
                     showPlayerUrls = false,
-                    force_unclearResult = false,
-                    visitDomain = location.hostname.replace("www.", "");
+                    force_unclearResult = false;
 
                 if( max_toolboxIterations > 1 || visitDomain == "1001tracklists.com" ) {
                     showPlayerUrls = true;
