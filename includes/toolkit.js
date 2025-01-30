@@ -511,6 +511,9 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
                         $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
                     );
+                    $("#mdb-toolkit > ul li.mdb-toolkit-usageLink.filled").prependTo(
+                        $("#mdb-toolkit > ul")
+                    );
 
                     // remove duplicate list items
                     // if followed directly after the previous
