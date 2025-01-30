@@ -158,13 +158,31 @@ function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text", toolkit_
 /*
  * getYoutubeIdFromUrl
  * returns 11 character ID
- * https://stackoverflow.com/questions/3452546
+ * Most rx fail on IDs starting with v
  */
-function getYoutubeIdFromUrl(url){
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    var match = url.match(regExp);
-    return (match&&match[7].length==11)? match[7] : false;
+const ytId_rx = /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+/* TESTING
+var ytId_testUrls = [
+    "https://youtu.be/afK00BvvtaM",
+    "https://youtu.be/vfK00BvvtaM?si=ro2ppYwwOjch9Eew",
+    "https://www.youtube-nocookie.com/embed/vfK00BvvtaM?start=0&origin=https%3A%2F%2Fwww.1001tracklists.com&playsinline=1&enablejsapi=1&widgetid=2"
+];
+
+
+var i, r;
+for (i = 0; i < ytId_testUrls.length; ++i) {
+    r = ytId_testUrls[i].match(rx);
+    console.log(r[1]);
 }
+*/
+
+function getYoutubeIdFromUrl(url){
+    var match = url.match(ytId_rx);
+    return (match&&match[1].length==11)? match[1] : false;
+}
+
+//console.log( getYoutubeIdFromUrl("https://www.youtube-nocookie.com/embed/vfK00BvvtaM?start=0&origin=https%3A%2F%2Fwww.1001tracklists.com&playsinline=1&enablejsapi=1&widgetid=2") );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
