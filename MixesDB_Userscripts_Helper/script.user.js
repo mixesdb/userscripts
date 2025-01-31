@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.30.2
+// @version      2025.01.31.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -67,6 +67,7 @@ var dev = 0,
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
+//loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
@@ -132,7 +133,7 @@ function tidLinkFromUrl( requestPlayerUrl, keywords ) {
 
     if( cont ) {
         var tidUrl = makeTidSubmitUrl( urlFixed, keywords ),
-            tidLogo = '<img class="op05" src="'+tidIconUrl+'" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
+            tidLogo = '<img class="op05" src="'+favicon_TID+'" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
             link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
         return link;
     } else {
