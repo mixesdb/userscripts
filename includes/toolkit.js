@@ -168,7 +168,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
         playerUrl_normalized = normalizePlayerUrl( playerUrl ),
         keywords = playerUrl_normalized;
 
-    //logVar( "playerUrl_normalized", playerUrl_normalized );
+    logVar( "playerUrl_normalized", playerUrl_normalized );
 
     // domain-specific keywords
     // TODO YouTube: search the ID only
@@ -285,7 +285,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls used">Used players:<ul class="mdb-nolist"></ul></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls unused">Unused players:<ul class="mdb-nolist"></ul></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls unclear">';
-        toolkitOutput_li += mdbTooltip( "Unclear if players are used", "Visit the page if a userscript with toolkit exists for that website." );
+        toolkitOutput_li += mdbTooltip( "Unclear if players are used", "To find out visit the page if a userscript with toolkit exists for that website." );
         toolkitOutput_li += ':<ul class="mdb-nolist"></ul>';
         toolkitOutput_li += '</li>';
 
