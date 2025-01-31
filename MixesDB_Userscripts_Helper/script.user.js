@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.30.1
+// @version      2025.01.30.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -31,11 +31,11 @@
 // Apple Music links: force to open in browser?
 // Keep 0 to use open the Music app
 // Set 1 to open as normal browser tab on beta.music.apple.com (recommended)
-const appleMusic_linksOpenInBrowser = 0; // default: 0
+const appleMusic_linksOpenInBrowser = 1; // default: 0
 
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
-const appleMusic_countryCode_switch = ""; // default: ""
+const appleMusic_countryCode_switch = "de"; // default: ""
 
 /*
  * TrackId.net settings
@@ -318,6 +318,7 @@ function waitAppleMusicLinks(jNode) {
 
     // https://music.apple.com/us/album/lunch/1739659134?i=1739659140&uo=4&app=music&at=1000l5EX
     // https://music.apple.com/de/search?at=1000l5EX&term=Floating%20Points%20Fast%20Foward
+    // https://music.apple.com/search?term=Plant%2043%20Emerald%20Shift
     var item_url = jNode.attr("href");
 
     // force link to open in browser
@@ -336,7 +337,7 @@ function waitAppleMusicLinks(jNode) {
 
     if( appleMusic_countryCode_switch != "" ) {
         item_url = item_url.replace( /music.apple.com\/..\//g, "music.apple.com/"+appleMusic_countryCode_switch+"/" )
-                           .replace( "?at=1000l5EX&term=", "?term=" ) /* HOTFIX issue#509 */
+                           .replace( "apple.com/search", "apple.com/"+appleMusic_countryCode_switch+"/search" )
                            ;
     }
 
