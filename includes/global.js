@@ -305,6 +305,7 @@ function normalizeStreamingServiceTracks( text ) {
     textOut = textOut
         .replace( /ID\d+( \(from.+\))?/g, "ID" )
         .replace( "ID / ID", "ID" ) // fix for above
+        .replace( /\s+/g, " " )
     ;
 
     return textOut;
