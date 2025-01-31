@@ -168,7 +168,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
         playerUrl_normalized = normalizePlayerUrl( playerUrl ),
         keywords = playerUrl_normalized;
 
-    //logVar( "playerUrl_normalized", playerUrl_normalized );
+    logVar( "playerUrl_normalized", playerUrl_normalized );
 
     // domain-specific keywords
     // TODO YouTube: search the ID only

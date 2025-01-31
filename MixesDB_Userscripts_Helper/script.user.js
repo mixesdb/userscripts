@@ -67,7 +67,6 @@ var dev = 0,
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
-//loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
 
 
