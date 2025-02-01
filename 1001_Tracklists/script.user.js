@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=1001tracklists.com
 // @noframes
@@ -142,6 +142,7 @@ if( urlPath(1) == "tracklist") {
  * Toolkit
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var playerUrlItems_timeout = 500;
 
 // log playerUrlItems before timeout
