@@ -155,7 +155,7 @@ textarea.mono {
     padding: 0 5px 0 0;
     
     && legend {
-        padding: 0 .1rem;
+        padding: 0 4px 0 3px !important;
         font-weight: bold !important;
         color: #f60;
         font-size: 13px;
@@ -176,6 +176,10 @@ textarea.mono {
                 margin: .33rem 0;
             }
         }
+    }
+
+    && a:hover {
+        text-decoration: underline !important;
     }
 }
 
@@ -212,26 +216,21 @@ textarea.mono {
     }
 }
 
-/*
- * Domain rules
- */
-#mdb-toolkit.thousandandonetracklists-com,
-#mdb-toolkit.trackid-net {
-    && a.mdb-mixesdbLink.mixPage:link,
-    && a.mdb-mixesdbLink.mixPage:active,
-    && a.mdb-mixesdbLink.mixPage:visited {
-        color: #f90 !important;
+/* playerUrls items */
+.mdb-toolkit-playerUrls-item {
+    && .tidSubmit-icon {
+        opacity: .33;
+        margin-bottom: 4px;
+    }
+
+    && .tidSubmit-icon:hover {
+        opacity: 1;
     }
 }
 
-/* TID submit */
-.mdb-toolkit-playerUrls-item .tidSubmit-icon {
-    opacity: .33;
-    margin-bottom: 4px;
-}
-.mdb-toolkit-playerUrls-item .tidSubmit-icon:hover {
-    opacity: 1;
-}
+/*
+ * Domain specific rules
+ */
 
 /* 1001tracklists.com */
 #mdb-toolkit.thousandandonetracklists-com {
@@ -253,6 +252,22 @@ textarea.mono {
     && a.mdb-mixesdbLink.mixPage:active,
     && a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
+    }
+}
+
+/* hearthis.at */
+#mdb-toolkit.hearthis-at {
+    background-color: #222;
+    
+    && a {
+        color: #7bf;
+        font: sans-serif;
+    }
+    
+    && legend {
+        border: 0;
+        width: inherit;
+        font-size: 15px !important;
     }
 }
 
@@ -315,6 +330,68 @@ textarea.mono {
 
         && .tidSubmit-icon {
             margin-bottom: -4px;
+        }
+    }
+}
+
+/* 
+ * multiple domains
+ */
+#mdb-toolkit.thousandandonetracklists-com,
+#mdb-toolkit.trackid-net {
+    && a.mdb-mixesdbLink.mixPage:link,
+    && a.mdb-mixesdbLink.mixPage:active,
+    && a.mdb-mixesdbLink.mixPage:visited {
+        color: #f90 !important;
+    }
+}
+
+#mdb-toolkit.thousandandonetracklists-com,
+#mdb-toolkit.hearthis-at,
+#mdb-toolkit.trackid-net {
+    && .mdb-mixesdbLink-actionLinks-wrapper {
+        && a:not(:visited) {
+            color: #fff;
+        }
+        && a:visited {
+            color: #ccc;
+        }
+    }
+}
+
+#mdb-toolkit.soundcloud-com,
+#mdb-toolkit.mixcloud-com {
+    && .mdb-mixesdbLink-actionLinks-wrapper {
+        && a {
+            font-size: 85% !important;
+            border: 1px solid #ccc !important;
+            background-color: rgba(100, 100, 100, 0.15) !important;
+        }
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * OS lightmode fixes
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+@media (prefers-color-scheme: light) {
+    
+    /* hearthis.at */
+    body.hearthis-at {
+        && .content-layer-content {
+            background: inherit;
+            color: #fff;
+        }
+        
+        && #mdb-toolkit.hearthis-at {
+            background-color: transparent !important;
+            
+            && a {
+                color: #7cf;
+            }
         }
     }
 }
