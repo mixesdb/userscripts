@@ -3,6 +3,7 @@
  * Global constants, regExp, vars
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 const visitDomain = location.hostname.replace("www.", "");
 
 
@@ -141,7 +142,7 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addActionLinks="addActionLinks" ) {
+function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var mixesdbUrl = makeMixesdbPageUrl_fromId( pageid ),
@@ -149,12 +150,10 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", addActio
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
-    if( addActionLinks == "addActionLinks" ) {
-        output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
-        output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit">edit</a>';
-        output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history">history</a>';
-        output += '</span>';
-    }
+    output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
+    output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit">edit</a>';
+    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history">history</a>';
+    output += '</span>';
 
     return output;
 }
@@ -233,8 +232,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     var addOutput = true,
         output = null,
         thisUrl_forApi = thisUrl,
-        domain = getDomain_fromUrlStr( thisUrl ),
-        domain_cssSafe = makeCssSafe( location.hostname );/* domain of the current website, not the URL */
+        playerUrl_possibleUsageVariants = 1,
+        domain = getDomain_fromUrlStr( thisUrl );
 
     logVar( "thisUrl", thisUrl );
     logVar( "domain", domain );
@@ -293,7 +292,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     }
 
     /*
-     * Domain exceptions
+     * playerURL domain exceptions
      */
     var runAPIcall = true;
 
@@ -305,6 +304,14 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     if( domain == "youtube.com" || domain == "youtu.be" ) {
         log( "domain is YouTube. Changing the search URl to the YT ID only." );
         thisUrl_forApi = "https://youtu.be/" + getYoutubeIdFromUrl( thisUrl );
+    }
+
+    /*
+     * visitDomain exceptions
+     */
+
+    if( visitDomain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
+        playerUrl_possibleUsageVariants = 2;
     }
 
     /*
@@ -333,7 +340,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     force_unclearResult = true;
                 }
 
-                 logVar( "resultNum", resultNum );
+                logVar( "resultNum", resultNum );
                 logVar( "addOutput", addOutput );
 
                 if( resultNum > 0 ) {
@@ -460,10 +467,23 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
             }
         }).done(function(data) {
             /*
+             * fill the tidSubmit li with text link
+             * on player sites like SC, MC
+             */
+            if( visitDomain == "hearthis.at" ) {
+                var tidLink = makeTidSubmitLink( thisUrl_forApi, titleText, "text" ),
+                    li_tidSubmit = $("li.mdb-toolkit-tidSubmit");
+
+                if( tidLink && $("a", li_tidSubmit).length == 0 ) {
+                    li_tidSubmit.append( tidLink ).addClass("filled");
+                }
+            }
+
+            /*
              * cleanup
              * last ieration recognition
              */
-            var cleanup = 1; // disable to debug
+            var cleanup = 1; // disable to debug toolkit output
 
             if( cleanup == 1 ) {
                 var lastIteration = ( toolboxIteration == max_toolboxIterations );
@@ -479,9 +499,16 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     // remove usage.unused if usage
                     // "This player is not used on MixesDB yet"
                     var li_usage_len = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.used.filled").length,
-                        li_noUsage = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused");
+                        li_noUsage_all = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused"),
+                        li_noUsage_len = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused.filled").length,
+                        li_unclear = $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled"),
+                        li_playerUrls_all = $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls");
+
+                    logVar( "li_usage_len", li_usage_len );
+                    logVar( "li_noUsage_len", li_noUsage_len );
+
                     if( li_usage_len > 0 ) {
-                        li_noUsage.remove();
+                        li_noUsage_all.remove();
                     }
 
                     // remove extra usage list items
@@ -532,6 +559,25 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     $("#mdb-toolkit > ul li.mdb-toolkit-usageLink.filled").prependTo(
                         $("#mdb-toolkit > ul")
                     );
+
+                    /*
+                     * 2 playerUrl_possibleUsageVariants
+                     * On hearthis.at itself the sort and the long URL are searched
+                     * These results are possible:
+                     * 1 used, 1 unused listed
+                     * 2 unused hearthis.at playerURLs > 2 unclear listed
+                     */
+                    if( playerUrl_possibleUsageVariants == 2 ) {
+                        // if usageLink.unused, remove li_unclear
+                        if( li_noUsage_len > 0 ) {
+                            li_unclear.remove();
+                        }
+
+                        // if usageLink.used, remove li_used and li_unused
+                        if( li_usage_len > 0 ) {
+                            li_playerUrls_all.remove();
+                        }
+                    }
 
                     // remove duplicate list items
                     // if followed directly after the previous
