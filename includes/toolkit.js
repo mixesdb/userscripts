@@ -10,7 +10,7 @@
  * Call API to the user/title URL as used on MixesDB
  * Pass that URL to getToolkit()
  */
-function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper, insertType, titleText, linkClass, addActionLinks, max_toolboxIterations ) {
+function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations ) {
     if( apiTrackUrl ) {
         getScAccessTokenFromApi(function(output){
             var scAccessToken = output;
@@ -24,7 +24,7 @@ function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper
                 success: function( data ) {
                     var playerUrl = data.permalink_url;
                     if( playerUrl != "" ) {
-                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, addActionLinks, max_toolboxIterations );
+                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
                     }
                 }
             });
@@ -38,7 +38,7 @@ function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper
  * SoundCloud: Usually has track API URL, needs to call API and fire getToolkit from ajax result
  * Thus all the parameters for getToolkit() must be carried around
  */
-function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", addActionLinks="addActionLinks-not", max_toolboxIterations=1 ) {
+function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
     logFunc( "getplayerUrl_fromIframe" );
 
     var srcUrl = iframe.attr("src"),
@@ -57,7 +57,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         // Do we have a api track URL?
         if( apiTrackUrl.split("/")[3] == "tracks" && regExp_numbers.test( apiTrackUrl.split("/")[4] ) ) {
             // call SC API to get user/title URL
-            getToolkit_fromSCApiTrackUrl( apiTrackUrl, type, outputType, wrapper, insertType, titleText, linkClass, addActionLinks, max_toolboxIterations  );
+            getToolkit_fromSCApiTrackUrl( apiTrackUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations  );
         }
     }
 
@@ -68,7 +68,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         console.log( "hearthis.at URL type? " + playerUrl );
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", "addActionLinks", max_toolboxIterations );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
         }
     }
 
@@ -79,7 +79,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         logVar( "playerUrl", playerUrl );
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", "addActionLinks", max_toolboxIterations );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
         }
     }
 
@@ -89,7 +89,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = "https://youtu.be/" + getYoutubeIdFromUrl( srcUrl ) ;
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", "addActionLinks", max_toolboxIterations );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
         }
     }
 }
@@ -208,7 +208,7 @@ function makeAvailableLinksListItem( playerUrl, usage="" ) {
 
 var toolboxIteration = 0; // count iterations for multiple iframes
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", addActionLinks="addActionLinks-not", max_toolboxIterations=1 ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
     logFunc( "getToolkit" );
     // types: "playerUrl", "hide if used"
 
@@ -358,7 +358,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                                 logVar( "title", title );
                                 logVar( "pageid", pageid );
 
-                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, addActionLinks );
+                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass );
 
                                 usageLinks.push( link_playerUsedOn );
                             }
