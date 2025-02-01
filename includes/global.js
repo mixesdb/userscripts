@@ -188,7 +188,7 @@ for (i = 0; i < ytId_testUrls.length; ++i) {
 function getYoutubeIdFromUrl(url){
     var match = url.match( ytId_rx );
 
-    return ( match&&match[1].length == 11 ) ? match[1] : false;
+    return ( match && match[1].length == 11 ) ? match[1] : false;
 }
 
 
