@@ -9,6 +9,7 @@ const d = $(document);
 const url = $(location).attr('href');
 const apiUrlTools = 'https://www.mixesdb.com/tools/api/api.php'; /* repeated in SoundCloud/script.funcs.js */
 const domain_cssSafe = makeCssSafe( location.hostname );
+const visitDomain = location.hostname.replace("www.", "");
 const debugFilter = '[MixesDB userscript]';
 const TLbox = '<div class="Mixeswiki_WebTracklistsToCopy MixesDB_WebTracklistsToCopy" style="color:#f60; font-family:monospace,sans-serif; font-size:12px; margin-top:8px"></div><hr style="color:#ddd; margin-top:8px" /><p style="margin-top:8px; color:#f60; font-weight:bold">You still need to fix this in the <a href="https://www.mixesdb.com/tools/tracklist_editor/">Tracklist Editor</a></p>';
 const msFadeSlow = 800;
