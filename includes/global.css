@@ -370,6 +370,19 @@ textarea.mono {
     }
 }
 
+/* 
+ * tidSubmit icon on dark websites
+ * hearthis.at: has the text link, not the icon
+ * TrackId.net: No submit link needed
+ */
+#mdb-toolkit.thousandandonetracklists-com {
+    .mdb-toolkit-playerUrls-item {
+        && .tidSubmit-icon:not(:hover) {
+            opacity: .66;
+        }
+    }
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
