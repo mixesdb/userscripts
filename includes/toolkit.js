@@ -1,17 +1,5 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Basics
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// toolkitUrls_totalTimeout
-// fires additionally after playerUrlItems_timeout
-// must be at least SoundCloud API response time
-const toolkitUrls_totalTimeout = 750;
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
  * Grab URLs from player iframes
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -689,12 +677,19 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 .add( linkThis.closest("li.solvedUrlVariants") )
                                 .attr( "data-mdbvariant", urlThis_variant );
 
-                            // unused variant link > get actual url > delete used li with this url as variant attr
-                            waitForKeyElements('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants a[data-varianttype="preferred"]', function( jNode ) {
-                                var variantUrl = jNode.attr("href");
-                                logVar("variantUrl", variantUrl );
+                            // Remove unused variant link
+                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants a.mdb-actualPlayerLink.processed", function( jNode ) { // wait for unused
+                                $("#mdb-toolkit li.mdb-toolkit-playerUrls-item.used.filled.solvedUrlVariants a.mdb-actualPlayerLink.processed").each(function(){ // each used
+                                    var variantUrl = $(this).attr("href");
+                                    $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants[data-mdbvariant="'+variantUrl+'"]').remove(); // remove unused
+                                });
+                            });
 
-                                $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants[data-mdbvariant="'+variantUrl+'"]').remove();
+                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants", function( jNode ) { // wait for unused
+                                // unused duplicated solvedUrlVariants
+                                    log("Unused duplicates");
+                                    var variantUrl = $('a[data-varianttype="preferred"]', jNode).attr("href");
+                                    $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants.unused[data-mdbvariant="'+variantUrl+'"]').remove();
                             });
                         }
                     });
@@ -720,14 +715,14 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         else
                             seen[txt] = true;
                     });
-                }, toolkitUrls_totalTimeout  );
+                }, toolkitUrls_totalTimeout );
             } // if cleanup
 
             /*
              * Showdown
              */
             var waiter = $("#mdb-toolkit_waiter"),
-                toolkit_ul = $( "#mdb-toolkit ul");
+                toolkit_ul = $("#mdb-toolkit ul");
 
             if( max_toolboxIterations > 1 ) {
                 waiter.slideDown( toolkitUrls_totalTimeout + 250 );
