@@ -199,6 +199,64 @@ function getYoutubeIdFromUrl(url){
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Embed funcs
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Embed hearthis.at
+ */
+// embed_hearthis_fromId
+function embed_hearthis_fromId( playerUrl, hearthisId, wrapper, insertType="append" ) {
+    var embed = '<div class="mdb-player-audiostream" data-playerurl="'+playerUrl+'">';
+
+    embed += '<iframe scrolling="no" width="100%" height="150" id="hearthis_at_track_'+hearthisId+'" src="https://app.hearthis.at/embed/'+hearthisId+'/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=" frameborder="0" allowtransparency allow="autoplay"></iframe>';
+    embed += '</div>';
+
+    // add output
+    switch( insertType ) {
+        case "before":
+            wrapper.before( embed );
+            break;
+        case "prepend":
+            wrapper.prepend( embed );
+            break;
+        case "append":
+            wrapper.append( embed );
+            break;
+        case "after":
+            wrapper.after( embed );
+            break;
+    }
+}
+
+// embed_hearthis_fromAnyUrl
+function embed_hearthis_fromAnyUrl( playerUrl, wrapper, insertType="append" ) {
+    var playerUrl_firstPath = playerUrl.split("/")[3];
+
+    // https://hearthis.at/11715760/
+    if( regExp_numbers.test( playerUrl_firstPath ) ) {
+        embed_hearthis_fromId( playerUrl, playerUrl.split("/")[3], wrapper, insertType );
+
+    } else {
+        // https://hearthis.at/andrei-mor/01-djgigola-radio1sessentialmix-sat-01-25-2025-talion/Submit this player URL to TrackId.net
+        $.ajax({
+            url: playerUrl,
+            success: function() {
+                var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m ),
+                    hearthisId = matches_id[1];
+
+                if( regExp_numbers.test( hearthisId ) ) {
+                    embed_hearthis_fromId( playerUrl, hearthisId, wrapper, insertType );
+                }
+            }
+        });
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Array funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
