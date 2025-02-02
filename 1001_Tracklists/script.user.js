@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.01.3
+// @version      2025.02.02.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/1001_Tracklists/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_20
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=1001tracklists.com
@@ -90,7 +90,7 @@ function thousandoneTl() {
             }
         });
 
-        log( tl );
+        //log( tl );
 
         // fixes
         var tl = tl.replace('&thinsp;', ' ')
@@ -166,7 +166,9 @@ setTimeout(function() {
         var titleText = $("#pageTitle h1").text(),
             wrapper = $(".mItems");
 
-        // visible iframes
+        /*
+         * Visible and hidden iframes
+         */
         waitForKeyElements("div.iMediaP iframe:not(.mdb-processed-toolkit)", function( jNode ) {
             var iframe = jNode;
             iframe.addClass("mdb-processed-toolkit");
@@ -174,13 +176,16 @@ setTimeout(function() {
             getToolkit_fromIframe( iframe, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
         });
 
-        // Tab links without iframe
+        /*
+         * Tab links without iframe
+         */
         waitForKeyElements(".mediaTabItm.hidden li.mediaTab2 a:not(.mdb-processed-toolkit)", function( jNode ) {
             jNode.addClass("mdb-processed-toolkit");
 
             var playerUrl = jNode.attr("href");
             logVar( "playerUrl pre func", playerUrl );
 
+            // podcasts.apple.com
             if( /.+podcasts\.apple\.com.+/.test(playerUrl) ) {
                 log( "Apple Podcasts" );
                 getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
