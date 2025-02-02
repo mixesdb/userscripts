@@ -1,5 +1,17 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Basics
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// toolkitUrls_totalTimeout
+// fires additionally after playerUrlItems_timeout
+// must be at least SoundCloud API response time
+const toolkitUrls_totalTimeout = 750;
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Grab URLs from player iframes
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -11,6 +23,8 @@
  * Pass that URL to getToolkit()
  */
 function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations ) {
+    logFunc( "getToolkit_fromSCApiTrackUrl" );
+
     if( apiTrackUrl ) {
         getScAccessTokenFromApi(function(output){
             var scAccessToken = output;
@@ -65,10 +79,9 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
     // https://hearthis.at/embed/11715760/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=allowtransparency&partner=35
     if( /.+hearthis\.at.+/.test(srcUrl) ) {
         playerUrl = srcUrl.replace( /^(http.+hearthis\.at)(\/embed\/)(\d+)(\/.+)$/, "$1/$3/" );
-        console.log( "hearthis.at URL type? " + playerUrl );
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
+            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
         }
     }
 
@@ -100,6 +113,21 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
  * getToolkit helpers
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// remove_mdbVariant_fromUrlStr
+function remove_mdbVariant_fromUrlStr( thisUrl ) {
+    return thisUrl.replace( /^(.+)(\?mdb-variant=.+&mdb-variantType=.+)$/, "$1" );
+}
+
+// get_mdbVariant_fromUrlStr
+function get_mdbVariant_fromUrlStr( thisUrl ) {
+    return thisUrl.replace( /^(.+\?mdb-variant=)(.+)(&mdb-variantType=.+)$/, "$2" );
+}
+
+// get_mdbVariantType_fromUrlStr
+function get_mdbVariantType_fromUrlStr( thisUrl ) {
+    return thisUrl.replace( /^(.+&mdb-variantType=)(.+)$/, "$2" );
+}
 
 // get_playerUrlItems_len
 function get_playerUrlItems_len( playerUrlItems ) {
@@ -142,8 +170,8 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
-    output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit">edit</a>';
-    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history">history</a>';
+    output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">edit</a>';
+    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">history</a>';
     output += '</span>';
 
     return output;
@@ -180,17 +208,18 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 }
 
 // makeAvailableLinksListItem
-function makeAvailableLinksListItem( playerUrl, usage="" ) {
-    var playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
-        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled">';
+function makeAvailableLinksListItem( playerUrl, usage="", class_solvedUrlVariants ) {
+    var playerUrl_clean = remove_mdbVariant_fromUrlStr( playerUrl ),
+        playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
+        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
-    link += '<a href="'+playerUrl+'">'+domainIcon+'</a>';
-    link += '<a href="'+playerUrl+'">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
+    link += '<a href="'+playerUrl_clean+'" class="mdb-domainIconLink">'+domainIcon+'</a>';
+    link += '<a href="'+playerUrl+'" class="mdb-actualPlayerLink">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
 
     if( visitDomain != "trackid.net" && urlIsTidSubmitCompatible( playerUrl ) ) {
-        link += makeTidSubmitLink( playerUrl, "", "link-icon", "toolkit_li-not" ) ;
+        link += makeTidSubmitLink( playerUrl_clean, "", "link-icon", "toolkit_li-not" ) ;
     }
 
     link += '</li>';
@@ -198,17 +227,63 @@ function makeAvailableLinksListItem( playerUrl, usage="" ) {
     return link;
 }
 
+/*
+ * getToolkit
+ * Gating URLs before running actual func
+ * E.g. URL variants: take 1 url, create 2nd variant, send each to getToolkit_func
+ */
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
+    logFunc( "getToolkit" );
+
+    var urlDomain = getDomain_fromUrlStr( thisUrl );
+
+    logVar( "thisUrl", thisUrl );
+    logVar( "urlDomain", urlDomain );
+
+    if( urlDomain == "hearthis.at" ) {
+
+        // Important! Increase the max iterations for the new variant(s)!
+        max_toolboxIterations += 1;
+        log( "max_toolboxIterations increased to: " + max_toolboxIterations );
+
+        $.ajax({
+            url: thisUrl,
+            success: function() {
+
+                if( urlDomain == "hearthis.at" ) {
+                    log( "hearthis.at ok" );
+
+                    var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m ),
+                        hearthisUrl_short = "https://hearthis.at/" + matches_id[1] + "/";
+
+                    var matches_urlLong = arguments[0].match( /(?:^.+<meta property="og:url" content=")(.+)(".+$)/m ),
+                        hearthisUrl_long = matches_urlLong[1];
+
+                    logVar( "hearthisUrl_short", hearthisUrl_short );
+                    logVar( "hearthisUrl_long", hearthisUrl_long );
+
+                    // pass a variant parameter for cleanup
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+                }
+            }
+        });
+    } else {
+        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+    }
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * getToolkit
+ * getToolkit_run
  * TODO: type == "playerListItem" to ouput only a link icon if player is used
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var toolboxIteration = 0; // count iterations for multiple iframes
 
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
+function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
     logFunc( "getToolkit" );
     // types: "playerUrl", "hide if used"
 
@@ -229,6 +304,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logVar( "thisUrl", thisUrl );
     logVar( "domain", domain );
     //logVar( "domain_cssSafe", domain_cssSafe );
+    logVar( "thisUrl_forApi", thisUrl_forApi );
 
     if( type == "hide if used" ) {
         addOutput = false;
@@ -243,9 +319,10 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     // allow multiple iterations to add list items
     if( addOutput ) {
         if( toolboxIteration == 1 ) {
-            toolkitOutput += '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'"style="display:none">';
+            toolkitOutput += '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'">';
             toolkitOutput += '<legend>Toolkit</legend>';
-            toolkitOutput += '<ul>';
+            toolkitOutput += '<div id="mdb-toolkit_waiter" style="display:none"></div>';
+            toolkitOutput += '<ul style="display:none">';
         }
 
         if( toolboxIteration == 1 ) {
@@ -300,17 +377,29 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     /*
      * visitDomain exceptions
      */
-
     if( visitDomain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
         playerUrl_possibleUsageVariants = 2;
     }
+
+    /*
+     * classname for solced url variants
+     */
+    var class_solvedUrlVariants = "";
+    if( domain == "hearthis.at" ) {
+        class_solvedUrlVariants = "solvedUrlVariants";
+    }
+
+    /*
+     * Final apiURl prepartion
+     */
+    thisUrl_forApi = remove_mdbVariant_fromUrlStr( thisUrl_forApi );
 
     /*
      * call MixesDB API search
      * append usageLink
      */
     if( runAPIcall ) {
-        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl );
+        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl_forApi );
         logVar( "apiQueryUrl", apiQueryUrl );
 
         $.ajax({
@@ -390,7 +479,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, "used" ) );
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, "used", class_solvedUrlVariants ) );
 
                             if( showPlayerUrls ) {
                                 jNode.addClass("filled");
@@ -429,10 +518,10 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         }
 
                         // available links unused
-                        // if domain of variable URLs add unused player URl to unclear list
-                        if( domain != "hearthis.at" ) {
+                        // if domain of variable URLs add unused player URL to unclear list
+                        if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, "unused" ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, "unused", class_solvedUrlVariants ) );
 
                                 if( showPlayerUrls ) {
                                     jNode.addClass("filled");
@@ -442,11 +531,11 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear:last", function( jNode ) {
                                 var unclear = "";
 
-                                if( domain == "hearthis.at" ) {
+                                if( domain == "no-case-yet.com" ) {
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, unclear ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, unclear, class_solvedUrlVariants ) );
 
                                 if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
@@ -477,18 +566,10 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
             var cleanup = 1; // disable to debug toolkit output
 
             if( cleanup == 1 ) {
-                var lastIteration = ( toolboxIteration == max_toolboxIterations );
-                log( "Last iteration? "+lastIteration+"! toolboxIteration: "+toolboxIteration+" / max_toolboxIterations: "+max_toolboxIterations );
-                if( toolboxIteration > max_toolboxIterations ) {
-                    log( "toolboxIteration > max_toolboxIterations!!!! I guess toolkit links are also not cleaned up (duplicates)? You should increase playerUrlItems_timeout ("+playerUrlItems_timeout +")!!!!" );
-                }
-
                 // if all list items are added
-                if( lastIteration ) {
+                setTimeout(function() {
                     logFunc( "Toolkit cleanup" );
 
-                    // remove usage.unused if usage
-                    // "This player is not used on MixesDB yet"
                     var li_usage_len = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.used.filled").length,
                         li_noUsage_all = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused"),
                         li_noUsage_len = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused.filled").length,
@@ -498,6 +579,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     logVar( "li_usage_len", li_usage_len );
                     logVar( "li_noUsage_len", li_noUsage_len );
 
+                    // remove usage.unused if usage
                     if( li_usage_len > 0 ) {
                         li_noUsage_all.remove();
                     }
@@ -553,7 +635,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                     /*
                      * 2 playerUrl_possibleUsageVariants
-                     * On hearthis.at itself the sort and the long URL are searched
+                     * On no-case-yet.com itself 2 URL types are used (and searched)
                      * These results are possible:
                      * 1 used, 1 unused listed
                      * 2 unused hearthis.at playerURLs > 2 unclear listed
@@ -570,8 +652,66 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         }
                     }
 
-                    // remove duplicate list items
-                    // if followed directly after the previous
+                    /*
+                     * Solved URL variants
+                     * @TODO urlThis_variantType is not used yet. moving the preferred before the unpreferred somewhat failed.
+                     */
+                    $("#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants a.mdb-actualPlayerLink:not(.processed)").each(function(){
+                        var linkThis = $(this),
+                            urlThis = linkThis.attr("href");
+
+                        if( urlThis ) {
+                            var urlThis_clean = remove_mdbVariant_fromUrlStr( urlThis ),
+                                urlThis_variant = get_mdbVariant_fromUrlStr( urlThis ),
+                                urlThis_variantType = get_mdbVariantType_fromUrlStr( urlThis ),
+                                linkVariant = '<a href="'+urlThis_variant+'" class="mdb-variantLink processed" data-varianttype="'+urlThis_variantType+'">'+urlThis_variant+'</a>';
+
+                            logVar( "urlThis", urlThis );
+                            logVar( "urlThis_clean", urlThis_clean );
+                            logVar( "urlThis_variant", urlThis_variant );
+                            logVar( "urlThis_variantType", urlThis_variantType );
+
+                            // switch urlThis_variantType
+                            if( urlThis_variantType == "preferred" ) {
+                                urlThis_variantType = "not-preferred";
+                            } else {
+                                urlThis_variantType = "preferred";
+                            }
+
+                            linkThis
+                                .attr( "href", urlThis_clean )
+                                .attr( "data-varianttype", urlThis_variantType )
+                                .addClass("processed")
+                                .text( urlThis_clean )
+                                .after( " = " + linkVariant );
+
+                            linkThis
+                                .add( linkThis.closest("li.solvedUrlVariants") )
+                                .attr( "data-mdbvariant", urlThis_variant );
+
+                            // unused variant link > get actual url > delete used li with this url as variant attr
+                            waitForKeyElements('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants a[data-varianttype="preferred"]', function( jNode ) {
+                                var variantUrl = jNode.attr("href");
+                                logVar("variantUrl", variantUrl );
+
+                                $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants[data-mdbvariant="'+variantUrl+'"]').remove();
+                            });
+                        }
+                    });
+
+                    /*
+                     * Remove empty list items
+                     */
+                    $(".mdb-toolkit-playerUrls.filled").each(function(){
+                        if( $("ul > li", this).length == 0 ) {
+                            $(this).remove();
+                        }
+                    });
+
+                    /*
+                     * remove duplicate list items
+                     * if followed directly after the previous
+                     */
                     var seen = {};
                     $( "#mdb-toolkit > ul > li ul li" ).each(function() {
                         var txt = $(this).text();
@@ -580,12 +720,28 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         else
                             seen[txt] = true;
                     });
-                }
+                }, toolkitUrls_totalTimeout  );
             } // if cleanup
 
-            $( "#mdb-toolkit ul > li:not(.filled)").remove();
-            $( "#mdb-toolkit .filled").show();
-            $( "#mdb-toolkit").show();
+            /*
+             * Showdown
+             */
+            var waiter = $("#mdb-toolkit_waiter"),
+                toolkit_ul = $( "#mdb-toolkit ul");
+
+            if( max_toolboxIterations > 1 ) {
+                waiter.slideDown( toolkitUrls_totalTimeout + 250 );
+
+                setTimeout(function() {
+                    waiter.remove();
+                    toolkit_ul.fadeIn( 125 );
+                }, toolkitUrls_totalTimeout );
+            } else {
+                toolkit_ul.show();
+            }
+
+            $("> li:not(.filled)", toolkit_ul).remove();
+            $("#mdb-toolkit .filled").show();
         }); // ajax done
     }
 }
