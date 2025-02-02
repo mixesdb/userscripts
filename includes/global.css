@@ -302,7 +302,7 @@ textarea.mono {
 
 /* trackid.net */
 #mdb-toolkit.trackid-net {
-    margin: 20px 0 0;
+    margin: 20px 0 10px;
     
     && legend {
         color: #f90;
