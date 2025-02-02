@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.02.2
+// @version      2025.02.02.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,8 +10,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_77
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_78
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_16
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -132,19 +132,22 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
                 embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + yt_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
             break;
         case "hearthis.at": // https://hearthis.at/toccoscuro/01-manpower-radio1sessentialmix-sat-09-07-2024-talion/
-            var embed = '<div class="mdb-info">Sorry, embedding hearthis.at is not possible atm.</div>';
-            break;
+            var embed = "",
+                wrapper = jNode.closest(".MuiBox-root");
+            embed_hearthis_fromAnyUrl( playerUrl, wrapper, "after" );
     }
     //log( embed );
 
     // embed player
     $(".mdb-player-audiostream").remove();
-    if( embed ) {
+    if( embed != "" ) {
         // embedded player output
         var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-playerurl="'+playerUrl+'">' + embed + '</div>';
         jNode.closest(".MuiBox-root").after( mdbPlayerAndToolkit );
         jNode.remove();
+    }
 
+    if( playerUrl ) {
         // toolkit output
         waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
             getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1 );
@@ -290,7 +293,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     // API
     tl = tl.trim();
 
-    log("tl before API:\n" + tl);
+    //log("tl before API:\n" + tl);
 
     if (tl !== "") {
 
