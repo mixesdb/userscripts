@@ -161,6 +161,10 @@ textarea.mono {
         font-size: 13px;
         margin: 0 0 -.3em .75em;
     }
+
+    && #mdb-toolkit_waiter {
+        height: 90px;
+    }
     
     && ul:not(.mdb-nolist) {
         padding-inline-start: 25px;
@@ -298,7 +302,7 @@ textarea.mono {
 
 /* trackid.net */
 #mdb-toolkit.trackid-net {
-    margin: 20px 0;
+    margin: 20px 0 0;
     
     && legend {
         color: #f90;
