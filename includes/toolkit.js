@@ -528,7 +528,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         }
                     }
 
-                // resultNum <= 0
+                // resultNum = 0
                 } else {
                     logVar( "Usage", "NOT used (resultNum="+resultNum+") " + thisUrl );
 
