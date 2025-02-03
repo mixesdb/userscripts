@@ -193,6 +193,7 @@ textarea.mono {
 }
 #mdb-toolkit li ul li {
     margin: 0 !important;
+    list-style: none !important;
 }
 
 /* usage */
@@ -247,15 +248,30 @@ textarea.mono {
     && legend {
         font-size: 13px;
     }
-            
-    && ul {
-        list-style-type: initial;
-    }
 
     && a.mdb-mixesdbLink.mixPage:link,
     && a.mdb-mixesdbLink.mixPage:active,
     && a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
+    }
+}
+
+/* groove.de */
+#mdb-toolkit.groove-de {
+    && > ul > li  ul  li * {
+        display: inline !important;
+        
+        && .mdb-domainIcon {
+            opacity: 1;
+        }
+    }
+    
+    && .tidSubmit-icon:not(:hover) {
+        opacity: .33 !important;
+    }
+    
+    && .tidSubmit-icon:hover {
+        opacity: 1 !important;
     }
 }
 
@@ -279,10 +295,6 @@ textarea.mono {
 #mdb-toolkit.mixcloud-com {
     margin: -25px 0 30px;
     font-size: .875rem;
-
-    && li {
-        list-style: disc !important;
-    }
 }
 
 /* soundcloud.com */
@@ -298,6 +310,11 @@ textarea.mono {
     && a:hover {
         text-decoration: underline !important;
     }
+}
+
+/* toxicfamily.de */
+#mdb-toolkit.toxicfamily-de {
+    margin: -10px 0 40px;
 }
 
 /* trackid.net */
@@ -338,8 +355,25 @@ textarea.mono {
     }
 }
 
+/* wearesoundspace.com */
+#mdb-toolkit.wearesoundspace-com {
+    && > ul > li {
+        margin: .15rem 0 !important;
+    }
+    && li {
+        line-height: 1 !important;
+    }
+}
+
+/*
+             Slim wrapper */
+#mdb-toolkit.ra-co {
+    && .mdb-toolkit-usageLink-intro {
+        display: block;
+    }
+}
 /* 
- * multiple domains
+ * Dark websites
  */
 #mdb-toolkit.thousandandonetracklists-com,
 #mdb-toolkit.trackid-net {
@@ -363,14 +397,11 @@ textarea.mono {
     }
 }
 
-#mdb-toolkit.soundcloud-com,
-#mdb-toolkit.mixcloud-com {
-    && .mdb-mixesdbLink-actionLinks-wrapper {
-        && a {
-            font-size: 85% !important;
-            border: 1px solid #ccc !important;
-            background-color: rgba(100, 100, 100, 0.15) !important;
-        }
+#mdb-toolkit.thousandandonetracklists-com,
+#mdb-toolkit.mixcloud-com,
+#mdb-toolkit.ra-co {
+    && > ul > li {
+        list-style: disc !important;
     }
 }
 
@@ -383,6 +414,65 @@ textarea.mono {
     .mdb-toolkit-playerUrls-item {
         && .tidSubmit-icon:not(:hover) {
             opacity: .66;
+        }
+    }
+}
+
+/* light / white websites */
+#mdb-toolkit.groove-de,
+#mdb-toolkit.ra-co,
+#mdb-toolkit.wearesoundspace-com {
+    && .tidSubmit-icon {
+        margin-bottom: -3px !important;
+    }
+}
+
+#mdb-toolkit.groove-de,
+#mdb-toolkit.ra-co,
+#mdb-toolkit.toxicfamily-de,
+#mdb-toolkit.wearesoundspace-com {
+    font-family: sans-serif;
+    font-size: 14px;
+    background-color: #fcfcfc;
+
+    && legend {
+        font-size: 14px;
+    }
+    
+    && a.mdb-mixesdbLink.mixPage  {
+        background-color: inherit !important;
+    }
+    
+    && a.mdb-mixesdbLink.mixPage:link,
+    && a.mdb-mixesdbLink.mixPage:active,
+    && a.mdb-mixesdbLink.mixPage:visited {
+        color: #f60 !important;
+    }
+    
+    && ul  {
+        line-height: 1.33em;
+    }
+}
+
+#mdb-toolkit.groove-de,
+#mdb-toolkit.mixcloud-com,
+#mdb-toolkit.ra-co,
+#mdb-toolkit.soundcloud-com,
+#mdb-toolkit.toxicfamily-de,
+#mdb-toolkit.wearesoundspace-com {
+    && .mdb-mixesdbLink-actionLinks-wrapper {
+        && a,
+        && a:visited {
+            color: #555;
+            font-size: 85% !important;
+            padding: 0 4px 0 4px !important;
+            line-height: 1 !important;
+            border: 1px solid #ccc !important;
+            background-color: rgba(100, 100, 100, 0.15) !important;
+        }
+        
+        && a:hover {
+            text-decoration: none !important;
         }
     }
 }
