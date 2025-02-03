@@ -5,15 +5,15 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * getToolkit_fromSCApiTrackUrl
+ * getToolkit_fromSCscUrl_api
  * Takes API track URL
  * Call API to the user/title URL as used on MixesDB
  * Pass that URL to getToolkit()
  */
-function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations ) {
-    logFunc( "getToolkit_fromSCApiTrackUrl" );
+function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations ) {
+    logFunc( "getToolkit_fromSCscUrl_api" );
 
-    if( apiTrackUrl ) {
+    if( scUrl_api ) {
         getScAccessTokenFromApi(function(output){
             var scAccessToken = output;
 
@@ -22,7 +22,7 @@ function getToolkit_fromSCApiTrackUrl( apiTrackUrl="", type, outputType, wrapper
                     request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
                 },
                 dataType: "json",
-                url: apiTrackUrl,
+                url: scUrl_api,
                 success: function( data ) {
                     var playerUrl = data.permalink_url;
                     if( playerUrl != "" ) {
@@ -52,20 +52,41 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
     if( /.+soundcloud\.com.+/.test(srcUrl) ) {
         log( "iframe is SoundCloud" );
 
-        // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
-        var apiTrackUrl = srcUrl.replace( /^(.+˙?url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" );
-        logVar( "apiTrackUrl", apiTrackUrl );
+        // api.soundcloud.com or soundcloud.com/[key]
+        if( /.+api\.soundcloud\.com.+/.test(srcUrl) ) {
+            // https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/2007972247&show_artwork=true&color=%23ff5500&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true
+            // https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2020102693%3Fsecret_token%3Ds-vhhWvBuKaYu&color=%23ebebeb&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true
+            // https://w.soundcloud.com/player/?visual=true&url=https:%2F%2Fapi.soundcloud.com%2Ftracks%2F1680484035&show_artwork=true&maxheight=1000&maxwidth=708
 
-        // Do we have a api track URL?
-        if( apiTrackUrl.split("/")[3] == "tracks" && regExp_numbers.test( apiTrackUrl.split("/")[4] ) ) {
-            // call SC API to get user/title URL
-            getToolkit_fromSCApiTrackUrl( apiTrackUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations  );
+            // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
+            var scUrl_api = decodeURIComponent( srcUrl )
+                                .replace( /^(.+(?:\?|&)url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
+                            ;
+            logVar( "scUrl_api", scUrl_api );
+
+            // Sanity check: if URL conatins track ID
+            if( scUrl_api.split("/")[3] == "tracks" && regExp_numbers.test( scUrl_api.split("/")[4] ) ) {
+                // call SC API to get user/title URL
+                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+            }
+
+        } else {
+            // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra970-upsammy/&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
+
+            var scUrl_key = srcUrl.replace( /^(.+\?url=)(https:\/\/(?:www\.)?soundcloud\.com\/.+\/.+\/)(.+)$/, "$2" );
+            logVar( "scUrl_key", scUrl_key );
+
+            // Sanity check: if no path behind soundcloud.com/[key]
+            if( scUrl_key.split("/")[4] != "" && scUrl_key.split("/")[5] == "" ) {
+                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+            }
         }
     }
 
     // hearthis.at
-    // https://hearthis.at/embed/11715760/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=allowtransparency&partner=35
     if( /.+hearthis\.at.+/.test(srcUrl) ) {
+        // https://hearthis.at/embed/11715760/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=allowtransparency&partner=35
+
         playerUrl = srcUrl.replace( /^(http.+hearthis\.at)(\/embed\/)(\d+)(\/.+)$/, "$1/$3/" );
 
         if( playerUrl ) {
@@ -74,23 +95,32 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
     }
 
     // Mixcloud
-    // https://www.mixcloud.com/widget/iframe/?feed=https%3A%2F%2Fwww.mixcloud.com%2Fbeenoisetv%2Fa-cup-of-thea-episode-221-with-serena-thunderbolt%2F&amp;hide_cover=1
     if( /.+mixcloud\.com.+/.test(srcUrl) ) {
-        playerUrl = decodeURIComponent( srcUrl.replace( /^(.+\?feed=)(https.+)(&hide.+)$/, "$2" ) );
-        logVar( "playerUrl", playerUrl );
+        // https://www.mixcloud.com/widget/iframe/?feed=https%3A%2F%2Fwww.mixcloud.com%2Fbeenoisetv%2Fa-cup-of-thea-episode-221-with-serena-thunderbolt%2F&amp;hide_cover=1
+        // https://player-widget.mixcloud.com/widget/iframe/?hide_cover=1&feed=%2FGroove_Mag%2Fgroove-podcast-447-albert-van-abbe%2F
 
-        if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
+        var mcUrl = decodeURIComponent( srcUrl )
+                        .replace( /^(.+(?:\?|&)feed=)(.+)(&hide.+|\/)$/, "$2" )
+                    ;
+        logVar( "mcUrl", mcUrl );
+
+        if( !mcUrl.match(/^https:\/\/(www.\.)?mixcloud\.com/) ) { // '/Groove_Mag/groove-podcast-447-albert-van-abbe'
+            mcUrl = "https://www.mixcloud.com" + mcUrl;
+        }
+
+        if( mcUrl ) {
+            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations );
         }
     }
 
     // YouTube
-    // https://www.youtube-nocookie.com/embed/iis0YFkPcn0?start=0&amp;origin=https%3A%2F%2Fwww.1001tracklists.com&amp;playsinline=1&amp;enablejsapi=1&amp;widgetid=1
     if(  /.+youtube(-nocookie)?\.com.+/.test(srcUrl) || /.+youtu\.be.+/.test(srcUrl) ) {
+        // https://www.youtube-nocookie.com/embed/iis0YFkPcn0?start=0&amp;origin=https%3A%2F%2Fwww.1001tracklists.com&amp;playsinline=1&amp;enablejsapi=1&amp;widgetid=1
+
         playerUrl = "https://youtu.be/" + getYoutubeIdFromUrl( srcUrl ) ;
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "", max_toolboxIterations );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations );
         }
     }
 }
@@ -158,8 +188,8 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
-    output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">edit</a>';
-    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">history</a>';
+    output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
+    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST</a>';
     output += '</span>';
 
     return output;
@@ -196,7 +226,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 }
 
 // makeAvailableLinksListItem
-function makeAvailableLinksListItem( playerUrl, usage="", class_solvedUrlVariants ) {
+function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants ) {
     var playerUrl_clean = remove_mdbVariant_fromUrlStr( playerUrl ),
         playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
         link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
@@ -207,7 +237,7 @@ function makeAvailableLinksListItem( playerUrl, usage="", class_solvedUrlVariant
     link += '<a href="'+playerUrl+'" class="mdb-actualPlayerLink">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
 
     if( visitDomain != "trackid.net" && urlIsTidSubmitCompatible( playerUrl ) ) {
-        link += makeTidSubmitLink( playerUrl_clean, "", "link-icon", "toolkit_li-not" ) ;
+        link += makeTidSubmitLink( playerUrl_clean, titleText, "link-icon", "toolkit_li-not" ) ;
     }
 
     link += '</li>';
@@ -237,7 +267,6 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
         $.ajax({
             url: thisUrl,
             success: function() {
-
                 if( urlDomain == "hearthis.at" ) {
                     log( "hearthis.at ok" );
 
@@ -272,7 +301,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 var toolboxIteration = 0; // count iterations for multiple iframes
 
 function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
-    logFunc( "getToolkit" );
+    logFunc( "getToolkit_run" );
     // types: "playerUrl", "hide if used"
 
     toolboxIteration = toolboxIteration + 1;
@@ -282,6 +311,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     logVar( "thisUrl", thisUrl );
     logVar( "type", type );
     logVar( "outputType", outputType );
+    logVar( "titleText", titleText );
 
     var addOutput = true,
         output = null,
@@ -296,6 +326,11 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
     if( type == "hide if used" ) {
         addOutput = false;
+    }
+
+    // userscript Player Checker inserts before first fitting iframe
+    if( wrapper == "iframe.mdb-processed-toolkit:first" ) {
+        wrapper = $("iframe.mdb-processed-toolkit:first");
     }
 
     // output wrapper
@@ -400,7 +435,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     showPlayerUrls = false,
                     force_unclearResult = false;
 
-                if( max_toolboxIterations > 1 || visitDomain == "1001tracklists.com" ) {
+                if( max_toolboxIterations > 1
+                   || visitDomain == "1001tracklists.com"
+                   || visitDomain == "groove.de"
+                   || visitDomain == "ra.co"
+                   || visitDomain == "wearesoundspace.com"
+                   || visitDomain == "toxicfamily.de"
+                  ) {
                     showPlayerUrls = true;
                 }
 
@@ -423,10 +464,12 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     if( addOutput ) {
                         if( outputType == "detail page" ) {
                             var i;
-                            var output = 'This player is used on MixesDB: ',
+                            var output = '<span class="mdb-toolkit-usageLink-intro">This player is used on MixesDB: </span>',
                                 usageLinks = [];
 
-                            if( showPlayerUrls ) output = 'This mix is on MixesDB: ';
+                            if( showPlayerUrls ) {
+                                output = '<span class="mdb-toolkit-usageLink-intro">This mix is on MixesDB: </span>';
+                            }
 
                             for( i = 0; i < resultsArr.length; i++ ){
                                 var title = resultsArr[i].title,
@@ -467,7 +510,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, "used", class_solvedUrlVariants ) );
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants ) );
 
                             if( showPlayerUrls ) {
                                 jNode.addClass("filled");
@@ -496,7 +539,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     if( addOutput ) {
                         if( searchTitleLink ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused:last", function( jNode ) {
-                                var searchMessage = 'This player is not used on MixesDB yet. ' + searchTitleLink;
+                                var searchMessage = 'This player is';
+
+                                if( max_toolboxIterations > 1 ) {
+                                    searchMessage = 'These players are';
+                                }
+
+                                searchMessage += ' not used on MixesDB yet. ' + searchTitleLink;
 
                                 $("#mdb-toolkit").addClass("filled");
                                 jNode.append( searchMessage ).addClass("filled");
@@ -509,7 +558,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         // if domain of variable URLs add unused player URL to unclear list
                         if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, "unused", class_solvedUrlVariants ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants ) );
 
                                 if( showPlayerUrls ) {
                                     jNode.addClass("filled");
@@ -523,7 +572,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, unclear, class_solvedUrlVariants ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants ) );
 
                                 if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
