@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.03.2
+// @version      2025.02.03.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-Player_Checker_1
 // @include      http*groove.de/*/*/*/*podcast*
 // @include      http*ra.co/podcast/*
-// @include      http*wearesoundspace.com/*mix*
+// @include      http*wearesoundspace.com/*
 // @include      http*toxicfamily.de/*/*/*/*
 // @noframes
 // @grant        unsafeWindow
@@ -35,6 +35,7 @@ https://ra.co/podcast/970
 https://de.ra.co/podcast/970
 https://www.toxicfamily.de/2024/09/26/tofa-nightshift-vom-25-09-2024-mit-grille-in-the-mix/
 https://wearesoundspace.com/mix386-luca-olivotto/
+https://wearesoundspace.com/in-focus-008-break-3000-dirt-crew-recordings/
 */
 
 
