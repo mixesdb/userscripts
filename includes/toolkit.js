@@ -104,7 +104,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
                     ;
         logVar( "mcUrl", mcUrl );
 
-        if( !mcUrl.match(/^https:\/\/(www.\.)?mixcloud\.com/) ) { // '/Groove_Mag/groove-podcast-447-albert-van-abbe'
+        if( !mcUrl.match(/^https:\/\/(www\.)?mixcloud\.com/) ) { // '/Groove_Mag/groove-podcast-447-albert-van-abbe'
             mcUrl = "https://www.mixcloud.com" + mcUrl;
         }
 
