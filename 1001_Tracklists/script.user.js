@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.1
+// @version      2025.02.12.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-1001_Tracklists_22
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_16
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-1001_Tracklists_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=1001tracklists.com
@@ -193,6 +193,22 @@ setTimeout(function() {
         });
     }
 }, playerUrlItems_timeout );
+
+/*
+ * Compare page creation date to MixesDB last edit date
+ * only on positive usage results
+ */
+waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
+    var pageCreationTimestamp = $('time[itemprop="datePublished"]').text()
+                                    .trim()
+                                    // 2023-11-04 07:17:24
+                                    .replace(/(\d{4}-\d{2}-\d{2}) (\d+:\d+:\d+)$/, "$1T$2Z" )
+                                ;
+    
+    var lastEditTimestamp = jNode.attr("data-lastedittimestamp"); // 2025-01-28T20:26:13Z
+    
+    pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp );
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
