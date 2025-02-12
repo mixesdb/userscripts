@@ -274,7 +274,8 @@ function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
         console.log( "lastEditTimestamp_newDate_getTime: " + lastEditTimestamp_newDate_getTime );
 
         if( pageCreationTimestamp_newDate_getTime >= lastEditTimestamp_newDate_getTime ) {
-            $("#mdb-toolkit > ul").append('<li id="mdb-pageCreatedAfterLastPageEdit">'+mdbTooltip( "This page was created after the MixesDB page was last edited.", "It is likely that you can enrich the MixesDB tracklist with this page's tracklist." )+'</li>');
+            $("#mdb-pageCreatedAfterLastPageEdit").remove();
+            $("#mdb-toolkit > ul").append('<li id="mdb-pageCreatedAfterLastPageEdit" class="filled">'+mdbTooltip( "This page was created after the MixesDB page was last edited.", "It is likely that you can enrich the MixesDB tracklist with this page's tracklist." )+'</li>');
         } else {
             console.log( "This page was created before the last MixesDB page edit." );
         }
@@ -801,6 +802,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         else
                             seen[txt] = true;
                     });
+                    
                 }, toolkitUrls_totalTimeout );
             } // if cleanup
 
