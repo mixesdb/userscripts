@@ -179,17 +179,30 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageid, title="MixesDB", className="" ) {
+function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEditDate="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var mixesdbUrl = makeMixesdbPageUrl_fromId( pageid ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
+    
+    if( lastEditDate != "" ) {
+        var localDate_long = convertUTCDateToLocalDate( new Date(lastEditDate) ),
+            localDate_ago = $.timeago( lastEditDate ).replace( /^about /i, "" );
+
+        console.log( "localDate_long: " + localDate_long );
+        console.log( "localDate_ago: " + localDate_ago );
+    }
+
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
     output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
-    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST</a>';
+    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST';
+    if( localDate_ago && localDate_long ) {
+        output += ' <span class="mdb-mixesdbLink lastEdit">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
+    }
+    output += '</a>';
     output += '</span>';
 
     return output;
@@ -222,7 +235,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=snippet&format=json&srsearch=insource:%22'+keywords+'%22';
+    return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22'+keywords+'%22';
 }
 
 // makeAvailableLinksListItem
@@ -473,12 +486,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                             for( i = 0; i < resultsArr.length; i++ ){
                                 var title = resultsArr[i].title,
-                                    pageid = resultsArr[i].pageid;
+                                    pageid = resultsArr[i].pageid,
+                                    lastEditDate = resultsArr[i].timestamp;
 
                                 logVar( "title", title );
                                 logVar( "pageid", pageid );
 
-                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass );
+                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, lastEditDate);
 
                                 usageLinks.push( link_playerUsedOn );
                             }
