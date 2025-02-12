@@ -257,6 +257,30 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
     return link;
 }
 
+// pageCreated_vs_lastEdit
+// takes UTC timestamps
+function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
+    if( pageCreationTimestamp && lastEditTimestamp ) {
+        logVar( "pageCreationTimestamp", pageCreationTimestamp );
+        logVar( "lastEditTimestamp", lastEditTimestamp );
+        
+        var pageCreationTimestamp_newDate = new Date( pageCreationTimestamp );
+        var lastEditTimestamp_newDate = new Date( lastEditTimestamp );
+        
+        var pageCreationTimestamp_newDate_getTime = new Date(pageCreationTimestamp_newDate).getTime();
+        var lastEditTimestamp_newDate_getTime = new Date(lastEditTimestamp_newDate).getTime();
+        
+        console.log( "pageCreationTimestamp_newDate_getTime: " + pageCreationTimestamp_newDate_getTime );
+        console.log( "lastEditTimestamp_newDate_getTime: " + lastEditTimestamp_newDate_getTime );
+
+        if( pageCreationTimestamp_newDate_getTime <= lastEditTimestamp_newDate_getTime ) {
+            $("#mdb-toolkit ul").append('<li id="mdb-pageCreatedAfterLastPageEdit">'+mdbTooltip( "The MixesDB page was last edited before this page was created.", "It is likely that you can enrich the MixesDB tracklist with this page's tracklist." )+'</li>');
+        } else {
+            console.log( "This page was created before the last MixesDB page edit." );
+        }
+    }
+}
+
 /*
  * getToolkit
  * Gating URLs before running actual func
