@@ -179,20 +179,19 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEditDate="" ) {
+function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEditTimestamp="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var mixesdbUrl = makeMixesdbPageUrl_fromId( pageid ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
     
-    if( lastEditDate != "" ) {
-        var localDate_long = convertUTCDateToLocalDate( new Date(lastEditDate) ),
-            localDate_ago = $.timeago( lastEditDate ).replace( /^about /i, "" );
+    if( lastEditTimestampe != "" ) {
+        var localDate_long = convertUTCDateToLocalDate( new Date(lastEditTimestamp) ),
+            localDate_ago = $.timeago( lastEditTimestamp ).replace( /^about /i, "" );
 
         console.log( "localDate_long: " + localDate_long );
         console.log( "localDate_ago: " + localDate_ago );
     }
-
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
@@ -200,7 +199,7 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEdit
     output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
     output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST';
     if( localDate_ago && localDate_long ) {
-        output += ' <span class="mdb-mixesdbLink lastEdit">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
+        output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
     output += '</span>';
@@ -487,12 +486,12 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             for( i = 0; i < resultsArr.length; i++ ){
                                 var title = resultsArr[i].title,
                                     pageid = resultsArr[i].pageid,
-                                    lastEditDate = resultsArr[i].timestamp;
+                                    lastEditTimestamp = resultsArr[i].timestamp;
 
                                 logVar( "title", title );
                                 logVar( "pageid", pageid );
 
-                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, lastEditDate);
+                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, lastEditTimestamp );
 
                                 usageLinks.push( link_playerUsedOn );
                             }
