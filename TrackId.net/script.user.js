@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.3
+// @version      2025.02.12.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_79
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_25
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_29
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -179,8 +179,21 @@ waitForKeyElements(".request-summary img.artwork", function( jNode ) {
  */
 waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
     var pageCreationTimestamp = $(".audio-stream-box > div > div > .MuiBox-root:nth-of-type(5) div + div p.MuiTypography-body1").text()
-                                    .replace(/(\d+)\.(\d)\.(\d+), (\d+:\d+:\d+)$/, "$3-0$2-$1T$4Z" )
-                                    .replace(/(\d+)\.(\d\d)\.(\d+), (\d+:\d+:\d+)$/, "$3-$2-$1T$4Z" ); // 18.1.2025, 10:43:21
+                                    .trim()
+                                    // d/M/yyyy
+                                    // 1/3/2025, 9:54:50 AM
+                                    .replace(/ (AM|PM)$/i, "" )
+                                    .replace(/(\d+)\/(\d+)\/(\d+), (\d+:\d+:\d+)$/, "$3-$1-$2T$4Z" )
+    
+                                    // m+d.M.yyyy
+                                    // 21.1.2025, 13:05:04
+                                    .replace(/(\d+)\.(\d+)\.(\d+), (\d+:\d+:\d+)$/, "$3-$2-$1T$4Z" ) // 18.1.2025, 10:43:21
+    
+                                    // pad M-d
+                                    // 2025-1-3T9:54:50Z
+                                    .replace(/(\d{4})-(\d)-/, "$1-0$2-" )
+                                    .replace(/(\d{4})-(\d{2})-(\d)T/, "$1-$2-0$3T" )
+                                ;
     
     var lastEditTimestamp = jNode.attr("data-lastedittimestamp"); // 2025-01-28T20:26:13Z
     
