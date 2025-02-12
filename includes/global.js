@@ -1025,6 +1025,7 @@ function convertUTCDateToLocalDate(date) {
   document.createElement("abbr");
   document.createElement("time");
 }));
+/* END Timeago */
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
