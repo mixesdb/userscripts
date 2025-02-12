@@ -273,8 +273,8 @@ function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
         console.log( "pageCreationTimestamp_newDate_getTime: " + pageCreationTimestamp_newDate_getTime );
         console.log( "lastEditTimestamp_newDate_getTime: " + lastEditTimestamp_newDate_getTime );
 
-        if( pageCreationTimestamp_newDate_getTime <= lastEditTimestamp_newDate_getTime ) {
-            $("#mdb-toolkit ul").append('<li id="mdb-pageCreatedAfterLastPageEdit">'+mdbTooltip( "The MixesDB page was last edited before this page was created.", "It is likely that you can enrich the MixesDB tracklist with this page's tracklist." )+'</li>');
+        if( pageCreationTimestamp_newDate_getTime >= lastEditTimestamp_newDate_getTime ) {
+            $("#mdb-toolkit ul").append('<li id="mdb-pageCreatedAfterLastPageEdit">'+mdbTooltip( "This page was created after the MixesDB page was last edited.", "It is likely that you can enrich the MixesDB tracklist with this page's tracklist." )+'</li>');
         } else {
             console.log( "This page was created before the last MixesDB page edit." );
         }
