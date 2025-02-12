@@ -185,7 +185,7 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEdit
     var mixesdbUrl = makeMixesdbPageUrl_fromId( pageid ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
     
-    if( lastEditTimestampe != "" ) {
+    if( lastEditTimestamp != "" ) {
         var localDate_long = convertUTCDateToLocalDate( new Date(lastEditTimestamp) ),
             localDate_ago = $.timeago( lastEditTimestamp ).replace( /^about /i, "" );
 
