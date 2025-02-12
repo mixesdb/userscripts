@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hearthis.at (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.1
+// @version      2025.02.12.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -67,6 +67,6 @@ if( urlPath(2) && toolkitTarget.length == 1 && pageUrl != "" && pageId != "" ) {
 
     var pageUrl_short = 'https://hearthis.at/'+pageId+'/';
 
-    getToolkit( pageUrl, "playerUrl", "detail page", toolkitTarget, "after", titleText, "", 2 );
+    // Handles both URL variants
     getToolkit( pageUrl_short, "playerUrl", "detail page", toolkitTarget, "after", titleText, "", 2 );
 }
