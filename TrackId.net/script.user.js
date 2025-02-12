@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.1
+// @version      2025.02.12.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_79
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_24
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -104,6 +104,10 @@ waitForKeyElements(".dashboard", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+
+/*
+ * Players
+ */
 // funcTidPlayers
 function funcTidPlayers( jNode, playerUrl, titleText ) {
     logFunc( "funcTidPlayers" );
@@ -156,7 +160,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     }
 }
 
-// Embed player
+// embed player
 waitForKeyElements(".request-summary img.artwork", function( jNode ) {
     var playerUrl = jNode.closest("a").attr("href"),
         heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
@@ -167,6 +171,20 @@ waitForKeyElements(".request-summary img.artwork", function( jNode ) {
     if( url != "" ) {
         funcTidPlayers( jNode, playerUrl, titleText );
     }
+});
+
+/*
+ * Compare page creation date to MixesDB last edit date
+ * only on positive usage results 
+ */
+waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
+    var pageCreationTimestamp = $(".audio-stream-box > div > div > .MuiBox-root:nth-of-type(5) div + div p.MuiTypography-body1").text()
+                                    .replace(/(\d+)\.(\d)\.(\d+), (\d+:\d+:\d+)$/, "$3-0$2-$1T$4Z" )
+                                    .replace(/(\d+)\.(\d\d)\.(\d+), (\d+:\d+:\d+)$/, "$3-$2-$1T$4Z" ); // 18.1.2025, 10:43:21
+    
+    var lastEditTimestamp = jNode.attr("data-lastedittimestamp"); // 2025-01-28T20:26:13Z
+    
+    pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp );
 });
 
 
