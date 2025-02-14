@@ -44,10 +44,15 @@ div[contenteditable="plaintext-only"] {
 /*
  * Tables
  */
-.mdb-tid-table td.AudioStreamType img {
-	padding-top: 5px;
-	max-height: 2em;
+.mdb-tid-table td.AudioStreamType {
+	width: 34px;
+
+	&& img {
+		padding-top: 5px;
+		max-height: 2em;
+	}
 }
+
 
 /*
  * Page navigation

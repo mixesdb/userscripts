@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.5
+// @version      2025.02.14.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 62,
+    cacheVersion = 63,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -351,19 +351,27 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.processed)", function( jNode ) {
     jNode.addClass("processed");
     setTimeout(function () {
-        funcTidTables(jNode.closest(".MuiDataGrid-main"));
+        funcTidTables( jNode.closest(".MuiDataGrid-main") );
     }, timeoutDelay);
 });
 $(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on("change", function() {
     jNode.addClass("processed");
     setTimeout(function () {
-        funcTidTables($(this).closest(".MuiDataGrid-main"));
+        funcTidTables( $(this).closest(".MuiDataGrid-main") );
     }, timeoutDelay);
 });
 
 // funcTidTables
 function funcTidTables(jNode) {
     logFunc( "funcTidTables" );
+
+    // currently not on search until toggle tables button is used
+    // https://discord.com/channels/1258107262833262603/1261652394799005858/1339762410822701090
+    if( /audiostreams\?keywords.+/g.test( urlPath(1) )  ) {
+        log( "Skipping replacing table" );
+        return false;
+    }
+
     $(".mdb-tid-table").remove();
 
     var audiostreams = [],
