@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.14.1
+// @version      2025.02.21.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -104,7 +104,6 @@ waitForKeyElements(".dashboard", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
 /*
  * Players
  */
@@ -147,7 +146,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     if( embed != "" ) {
         // embedded player output
         var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-playerurl="'+playerUrl+'">' + embed + '</div>';
-        jNode.closest(".MuiBox-root").after( mdbPlayerAndToolkit );
+        jNode.closest(".audio-stream-box").append( mdbPlayerAndToolkit );
         jNode.remove();
     }
 
