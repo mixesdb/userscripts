@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.1
+// @version      2025.02.28.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -28,8 +28,8 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var dev = 1,
-    cacheVersion = 22,
+var dev = 0,
+    cacheVersion = 24,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -228,7 +228,7 @@ function lazyLoadingList(jNode) {
 
     // add checkboxes
     if( $("#mdb-streamActions").length === 0 ) {
-        jNode.before('<div id="mdb-streamActions" class="sc-text-grey sc-border-light-bottom"></div>');
+        jNode.before('<div id="mdb-streamActions" class="sc-text-grey"></div>');
 
         var sa = $("#mdb-streamActions"),
             checkedPl = "checked",
@@ -240,7 +240,7 @@ function lazyLoadingList(jNode) {
         if( getHideFav == "true" ) var checkedFav = 'checked';
         if( getHideUsed == "true" ) var checkedUsed = 'checked';
 
-        sa.append('<span>Hide:</span>');
+        sa.append('<span class="mdb-darkorange">Hide:</span>');
         sa.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
         sa.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
         sa.append('<label class="pointer" title="Hide player that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
