@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.12.1
+// @version      2025.02.28.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -27,7 +27,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 7,
+    cacheVersion = 8,
     scriptName = "Mixcloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -47,6 +47,7 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
  * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
  */
 redirectOnUrlChange( 1000 );
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -92,9 +93,80 @@ function appendArtworkInfo( artwork_max_url, imgWrapper ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Original artwork
+ * User pages
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Filter options
+ * @DRY
+ */
+logVar( "urlPath(2)", urlPath(2) );
+
+if( urlPath(2).replace(/\?.+$/,"") == "" ) { // https://www.mixcloud.com/Groove_Mag/?hideUsed=true
+    // vars
+    var getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false",
+        checkedUsed = "";
+    
+    if( getHideUsed == "true" ) checkedUsed = 'checked';
+    
+    // append filter section and param handling
+    waitForKeyElements('main > section > div > ul', function( jNode ) {
+        var userPageTabs = jNode,
+            userPageTabs_firstText = $("li:first-of-type a span", userPageTabs).text();
+        
+        // is really user page?
+        if( userPageTabs_firstText == "Shows" ) {
+            var filterOptions = '<div id="mdb-streamActions" class="mdb-element">';
+            filterOptions += '<span class="mdb-darkorange">Hide:</span>';
+            filterOptions += '<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>';
+            filterOptions += '</div>';
+            
+            userPageTabs.before( filterOptions );
+            
+            // reload
+            var windowLocation = window.location,
+                href = $(location).attr('href');
+
+            if( typeof href != "undefined" ) {
+                var url = href.replace(/\?.*$/g,"");
+            }
+
+            if( typeof url != "undefined" ) {
+                $("#hideUsed").change(function(){
+                    if(!this.checked) {
+                        windowLocation.href = url + "?hideUsed=false";
+                    } else {
+                        windowLocation.href = url + "?hideUsed=true";
+                    }
+                });
+            }
+        }
+    });
+}
+
+// Hiding option: each used player
+waitForKeyElements('button[data-testid="audiocard-play-button"]', function( jNode ) {
+    if( getHideUsed == "true" ) {
+        logFunc( "Hiding used players" );
+
+        var wrapper = jNode.parent("div").parent("div").parent("div").parent("div").parent("div"),
+            playerUrl = 'https://www.mixcloud.com' + $("a", wrapper).attr("href");
+        
+        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
+    }
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Player pages
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Original artwork
+ */
 if( urlPath(2) != "" ) {
     waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.processed)', function( jNode ) {
         jNode.addClass("processed");
@@ -109,13 +181,9 @@ if( urlPath(2) != "" ) {
 }
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
+/*
  * Action buttons
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// on tracks
+ */
 if( urlPath(2) != "" ) {
     waitForKeyElements('button[aria-label="Add To"]:not(.processed)', function( jNode ) {
         jNode.addClass("processed");

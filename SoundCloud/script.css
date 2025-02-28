@@ -166,37 +166,6 @@ a.sc_button-mdb:active {
     margin-bottom: 20px;
 }
 
-#mdb-streamActions {
-    font-weight: 400 !important;
-    margin-top: -5px;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-}
-
-#mdb-streamActions h3 {
-    display: inline;
-}
-
-#mdb-streamActions h3+h3 {
-    margin-left: 15px;
-}
-
-.stream__list #mdb-streamActions h3 {
-    color: #333
-}
-
-#mdb-streamActions * {
-    font-size: 1rem !important;
-}
-#mdb-streamActions span,
-#mdb-streamActions label {
-    padding-right: 1rem;
-}
-
-#mdb-streamActions label input {
-    margin: 0 6px 6px 0;
-}
-
 .fullListenHero {
     width: 100% !important;
 }
