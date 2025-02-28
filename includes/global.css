@@ -17,6 +17,10 @@
     cursor: pointer;
 }
 
+.mono {
+    font-size: 12px !important;
+    font-family: Consolas, monospace !important;
+}
 
 /*
  * Highlight color (orange)
@@ -128,8 +132,6 @@ button.mdb-element {
 textarea#mixesdb-TLbox,
 textarea.mdb-tlBox,
 textarea.mono {
-    font-size: 12px !important;
-    font-family: Consolas, monospace !important;
     color: #111 !important;
 }
 #tlEditor-feedback-rows {
