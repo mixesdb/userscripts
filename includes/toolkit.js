@@ -247,6 +247,8 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
 
     link += '<a href="'+playerUrl_clean+'" class="mdb-domainIconLink">'+domainIcon+'</a>';
     link += '<a href="'+playerUrl+'" class="mdb-actualPlayerLink">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
+    
+    log( "urlIsTidSubmitCompatible( playerUrl ): " + urlIsTidSubmitCompatible( playerUrl ) )
 
     if( visitDomain != "trackid.net" && urlIsTidSubmitCompatible( playerUrl ) ) {
         link += makeTidSubmitLink( playerUrl_clean, titleText, "link-icon", "toolkit_li-not" ) ;
@@ -625,7 +627,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
              * fill the tidSubmit li with text link
              * on player sites like SC, MC
              */
-            if( visitDomain == "hearthis.at" ) {
+            if( visitDomain == "hearthis.at" || visitDomain == "youtube.com" ) {
                 var tidLink = makeTidSubmitLink( thisUrl_forApi, titleText, "text" ),
                     li_tidSubmit = $("li.mdb-toolkit-tidSubmit");
 
