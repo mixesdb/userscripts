@@ -41,6 +41,45 @@ div[contenteditable="plaintext-only"] {
 	text-decoration: none;
 }
 
+/* Slim menu */
+.MuiList-padding {
+    padding: 0;
+    
+    && .MuiListItemIcon-root {
+        display: none;
+    }
+
+    && .MuiSvgIcon-fontSizeMedium {
+        margin: -10px 0;
+    }
+    
+    && .MuiListItemButton-gutters {
+        padding: 5px 0;
+        
+        && .MuiListItemText-secondary {
+            padding: 5px 10px;
+        }
+    }
+    
+    && span {
+        font-size: 13px;
+    }
+}
+
+.MuiDivider-root.MuiDivider-fullWidth {
+    margin: 10px 00;
+}
+    
+.mdb-menu-hl {
+    margin-top: -10px !important;
+}
+
+.mdb-menu-hl,
+.mdb-menu {
+    text-align: center;
+}
+
+
 /*
  * Tables
  */
