@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.28.4
+// @version      2025.02.28.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -136,8 +136,8 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
             break;
         case "hearthis.at": // https://hearthis.at/toccoscuro/01-manpower-radio1sessentialmix-sat-09-07-2024-talion/
             var embed = "",
-                wrapper = jNode.closest(".MuiBox-root");
-            embed_hearthis_fromAnyUrl( playerUrl, wrapper, "after" );
+                wrapper = jNode.closest(".audio-stream-box");
+            embed_hearthis_fromAnyUrl( playerUrl, wrapper, "append" );
     }
     //log( embed );
 
