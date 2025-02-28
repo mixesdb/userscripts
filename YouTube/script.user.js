@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.02.28.1
+// @version      2025.02.28.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,8 +25,9 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 var dev = 0,
-    cacheVersion = 3,
+    cacheVersion = 4,
     scriptName = "YouTube",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -64,7 +65,7 @@ if( ytId ) {
             wrapper = jNode;
         
         // Embed URL for copy-paste
-        var embedUrl = '<input class="mdb-element mdb-selectOnClick mono" type="text" value="'+playerUrl+'" size="28" />';
+        var embedUrl = '<input id="mdb-ytEmbedUrl" class="mdb-element mdb-selectOnClick mono" type="text" value="'+playerUrl+'" size="28" />';
         
         wrapper.after( embedUrl );
         
