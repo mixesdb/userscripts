@@ -367,18 +367,50 @@ textarea.mono {
     }
 }
 
-/*
-             Slim wrapper */
+/* youtube.com */
+#mdb-toolkit.youtube-com {
+    margin: 25px 0 5px;
+    background-color: var(--yt-spec-badge-chip-background);
+    color: #fff;
+    padding-top: 5px;
+    padding-bottom: 10px;
+    font-size: 1.4rem;
+    
+    && legend {
+        font-size: 1.6rem;
+    }
+    
+    && li + li {
+        margin-top: 10px !important;
+    }
+    
+    && .mdb-toolkit-usageLink,
+    && .mdb-toolkit-tidSubmit {
+        && a:hover {
+            cursor: pointer;
+        }
+        && a:not(:visited) {
+            color: #fff;
+        }
+        && a:visited {
+            color: #ccc;
+        }
+    }
+}
+
+/* Slim wrapper */
 #mdb-toolkit.ra-co {
     && .mdb-toolkit-usageLink-intro {
         display: block;
     }
 }
+
 /* 
  * Dark websites
  */
 #mdb-toolkit.thousandandonetracklists-com,
-#mdb-toolkit.trackid-net {
+#mdb-toolkit.trackid-net,
+#mdb-toolkit.youtube-com {
     && a.mdb-mixesdbLink.mixPage:link,
     && a.mdb-mixesdbLink.mixPage:active,
     && a.mdb-mixesdbLink.mixPage:visited {
@@ -388,7 +420,8 @@ textarea.mono {
 
 #mdb-toolkit.thousandandonetracklists-com,
 #mdb-toolkit.hearthis-at,
-#mdb-toolkit.trackid-net {
+#mdb-toolkit.trackid-net,
+#mdb-toolkit.youtube-com {
     && .mdb-mixesdbLink-actionLinks-wrapper {
         && a:not(:visited) {
             color: #fff;
