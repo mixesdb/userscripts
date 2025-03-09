@@ -12,7 +12,7 @@ function append_artwork( artwork_url ) {
     logFunc( "append_artwork" );
 
     // also change for upload form [?]
-    var thumbURL = artwork_url.replace(/-(t\d\d\d?x\d\d\d?|crop|large|badge|small|tiny|mini|original)/g, "-t500x500"),
+    var thumbURL = artwork_url.replace(/-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-t500x500"),
         artworkURL = thumbURL,
         origUrl = thumbURL.replace("-t500x500", "-original");
 
