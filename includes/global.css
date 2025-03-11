@@ -272,6 +272,14 @@ textarea.mono {
     }
 }
 
+/* embed URL */
+.mdb-toolkit-embedUrl input {
+    margin: -1px 0 -1px .33rem;
+    padding: 1px 2px;
+    width: auto;
+    font-family: inherit;
+}
+
 /*
  * Domain specific rules
  */
