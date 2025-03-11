@@ -324,6 +324,7 @@ textarea.mono {
 
 /* hearthis.at */
 #mdb-toolkit.hearthis-at {
+    margin: 0 20px 25px 20px;
     background-color: #222;
     
     && a {
