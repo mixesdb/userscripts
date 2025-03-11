@@ -1,5 +1,6 @@
 .mdb-thumbImgLink-wrapper {
 	margin-top: 20px;
+	padding-left: 0;
 	
 	&& img {
 		max-height: 90px;
