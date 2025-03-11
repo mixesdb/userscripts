@@ -26,7 +26,7 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
                 success: function( data ) {
                     var playerUrl = data.permalink_url;
                     if( playerUrl != "" ) {
-                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
                     }
                 }
             });
@@ -67,7 +67,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // Sanity check: if URL conatins track ID
             if( scUrl_api.split("/")[3] == "tracks" && regExp_numbers.test( scUrl_api.split("/")[4] ) ) {
                 // call SC API to get user/title URL
-                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
             }
 
         } else {
@@ -78,7 +78,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 
             // Sanity check: if no path behind soundcloud.com/[key]
             if( scUrl_key.split("/")[4] != "" && scUrl_key.split("/")[5] == "" ) {
-                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
             }
         }
     }
@@ -90,7 +90,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = srcUrl.replace( /^(http.+hearthis\.at)(\/embed\/)(\d+)(\/.+)$/, "$1/$3/" );
 
         if( playerUrl ) {
-            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
         }
     }
 
@@ -109,7 +109,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         }
 
         if( mcUrl ) {
-            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations );
+            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "" );
         }
     }
 
@@ -120,7 +120,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = "https://youtu.be/" + getYoutubeIdFromUrl( srcUrl ) ;
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "" );
         }
     }
 }
