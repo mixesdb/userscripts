@@ -276,8 +276,8 @@ textarea.mono {
 .mdb-toolkit-embedUrl input {
     margin: -1px 0 -1px;
     padding: 1px 2px;
+    line-height: 1em;
     width: auto;
-    font-family: inherit;
 }
 
 /*
@@ -462,12 +462,6 @@ textarea.mono {
     && a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
     }
-
-    && input[type="text"] {
-        border: 0;
-        background-color: #555;
-        color: #ccc;
-    }
 }
 
 #mdb-toolkit.thousandandonetracklists-com,
@@ -481,6 +475,13 @@ textarea.mono {
         && a:visited {
             color: #ccc;
         }
+    }
+
+    /* inputs like embed URL */
+    && input[type="text"] {
+        border: 0;
+        background-color: #555;
+        color: #ccc;
     }
 }
 
