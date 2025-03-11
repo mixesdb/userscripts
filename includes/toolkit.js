@@ -424,7 +424,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         // embedUrl
         if( embedUrl ) {
             var embedUrl_len = embedUrl.length;
-            toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-embedUrl filled">Embed URL:';
+            toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-embedUrl filled">Embed URL: ';
             toolkitOutput_li += '<input class="mdb-element inline mdb-selectOnClick mono" type="text" value="'+embedUrl+'" size="'+embedUrl_len+'" />';
             toolkitOutput_li += '</li>';
         }
