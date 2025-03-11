@@ -1,0 +1,8 @@
+.mdb-thumbImgLink-wrapper {
+	margin-top: 20px;
+	
+	&& img {
+		max-height: 90px;
+		border: 1px solid lightskyblue;
+	}
+}

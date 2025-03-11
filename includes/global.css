@@ -274,7 +274,7 @@ textarea.mono {
 
 /* embed URL */
 .mdb-toolkit-embedUrl input {
-    margin: -1px 0 -1px .33rem;
+    margin: -1px 0 -1px;
     padding: 1px 2px;
     width: auto;
     font-family: inherit;
@@ -460,6 +460,12 @@ textarea.mono {
     && a.mdb-mixesdbLink.mixPage:active,
     && a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
+    }
+
+    && input[type="text"] {
+        border: 0;
+        background-color: #555;
+        color: #ccc;
     }
 }
 
