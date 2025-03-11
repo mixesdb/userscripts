@@ -289,7 +289,7 @@ function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
  * Gating URLs before running actual func
  * E.g. URL variants: take 1 url, create 2nd variant, send each to getToolkit_func
  */
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="" ) {
     logFunc( "getToolkit" );
 
     var urlDomain = getDomain_fromUrlStr( thisUrl );
@@ -317,6 +317,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                     logVar( "hearthisUrl_short", hearthisUrl_short );
                     logVar( "hearthisUrl_long", hearthisUrl_long );
+                    
+                    embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
                     getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
@@ -325,7 +327,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
             }
         });
     } else {
-        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations );
+        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
     }
 }
 
@@ -339,7 +341,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
 var toolboxIteration = 0; // count iterations for multiple iframes
 
-function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
+function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="" ) {
     logFunc( "getToolkit_run" );
     // types: "playerUrl", "hide if used"
 
@@ -408,7 +410,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             }
         }
 
-        var toolkitOutput_li = '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-usageLink used"></li>';
+        var toolkitOutput_li = '';
+        toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-usageLink used"></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-usageLink unused"></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-tidSubmit"></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls used">Used players:<ul class="mdb-nolist"></ul></li>';
@@ -417,6 +420,14 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         toolkitOutput_li += mdbTooltip( "Unclear if players are used", "To find out visit the page if a userscript with toolkit exists for that website." );
         toolkitOutput_li += ':<ul class="mdb-nolist"></ul>';
         toolkitOutput_li += '</li>';
+        
+        // embedUrl
+        if( embedUrl ) {
+            var embedUrl_len = embedUrl.length;
+            toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-embedUrl filled">Embed URL:';
+            toolkitOutput_li += '<input class="mdb-element inline mdb-selectOnClick mono" type="text" value="'+embedUrl+'" size="'+embedUrl_len+'" />';
+            toolkitOutput_li += '</li>';
+        }
 
         $("#mdb-toolkit > ul").append( toolkitOutput_li );
     }
@@ -685,7 +696,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     // remove empty list items
                     $("#mdb-toolkit > ul > li").each(function(){ // For each element
                         var li_text = $(this).text().trim();
-                        if( li_text == '' || li_text == 'Used players:' || li_text == "Unused players:"  || li_text == "Unclear if players are used:" ) {
+                        if( li_text == "" || li_text == "Used players:" || li_text == "Unused players:"  || li_text == "Unclear if players are used:" ) {
                             $(this).remove(); // if it is empty, it removes it
                         }
                     });
@@ -704,6 +715,10 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     );
                     $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore( // again
                         $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
+                    );
+                    // embed URL to bottom
+                    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled").appendTo(
+                        $("#mdb-toolkit > ul")
                     );
                     // last reorder: usage li always to top
                     $("#mdb-toolkit > ul li.mdb-toolkit-usageLink.filled").prependTo(
