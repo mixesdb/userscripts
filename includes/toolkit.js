@@ -321,8 +321,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
-                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, hearthisUrl_short );
-                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, hearthisUrl_short );
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
                 }
             }
         });
@@ -692,6 +692,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first > ul")
                         );
                     });
+
+                    // remove multiple embed URL
+                    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled + li.mdb-toolkit-embedUrl.filled").remove();
 
                     // remove empty list items
                     $("#mdb-toolkit > ul > li").each(function(){ // For each element
