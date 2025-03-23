@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.23.1
+// @version      2025.03.23.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_24
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_25
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_40
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
@@ -63,8 +63,8 @@ logVar( "getHideUsed", getHideUsed );
 
 // On set pages show only some filter options and hide list items, not players
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
-const isSetPage = ( urlPath(2) == "sets" ) ? true : false;
-logVar( "isSetPage", isSetPage );
+const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false;
+logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
 
 
 /*
@@ -167,6 +167,20 @@ waitForKeyElements(".mdb-copyLink", function( jNode ) {
         var url = $(this).attr("href");
         window.open( url, "_blank" );
     });
+
+    // Hiding option: each used player in li.compactTrackList__item
+    /* TOO EXPENSIVE ON https://soundcloud.com/resident-advisor/sets
+    if( getHideUsed == "true" ) {
+        logFunc( "Hiding used players in li.compactTrackListItem" );
+
+        var wrapper = jNode.closest("li.compactTrackList__item"),
+            playerUrl = "soundcloud.com" + jNode.attr("href");
+
+        logVar( "li.compactTrackList__item playerUrl", playerUrl );
+
+        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
+    }
+    */
 });
 
 // button to copy link (no href)
@@ -254,18 +268,25 @@ function lazyLoadingList(jNode) {
             checkedReposts = "",
             checkedFav = "",
             checkedUsed = "";
-        if( getHidePl == "false" ) var checkedPl = '';
-        if( getHideReposts == "true" ) var checkedReposts = 'checked';
-        if( getHideFav == "true" ) var checkedFav = 'checked';
-        if( getHideUsed == "true" ) var checkedUsed = 'checked';
+        if( getHidePl == "false" ) checkedPl = '';
+        if( getHideReposts == "true" ) checkedReposts = 'checked';
+        if( getHideFav == "true" ) checkedFav = 'checked';
+        if( getHideUsed == "true" ) checkedUsed = 'checked';
 
+        // Display filter options per tab type
         sa.append('<span class="mdb-darkorange">Hide:</span>');
         if( !isSetPage ) {
             sa.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
             sa.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
             sa.append('<label class="pointer" title="Hide player that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
         }
-        sa.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
+        // Not on Playlists tab, e.g. https://soundcloud.com/resident-advisor/sets
+        // but allow on playlist page, e.g. https://soundcloud.com/resident-advisor/sets/ra-podcast
+        if( !isSetPage || isSetPage && typeof( urlPath(3) ) != "undefined" ) {
+             sa.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
+        } else {
+            sa.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
+        }
     }
 
     // reload
@@ -333,15 +354,17 @@ waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
 // Hiding option: each used player in li.soundList__item
 waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
     if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players" );
+        logFunc( "Hiding used players in li.soundList__item" );
 
-       var wrapper = jNode.closest("li.soundList__item"),
-           playerUrl = "soundcloud.com" + jNode.attr("href");
+        var wrapper = jNode.closest("li.soundList__item"),
+            playerUrl = "soundcloud.com" + jNode.attr("href");
+
+        logVar( "li.soundList__itemplayerUrl", playerUrl );
 
         getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
     }
-
 });
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
