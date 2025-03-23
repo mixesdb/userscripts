@@ -720,6 +720,30 @@ function makeTracklistFromArr( tlArr, from="", cues="" ) {
     return tl;
 }
 
+/*  
+ * removeDuplicateBracketedText
+ * Input  "[0:59:03] Sebo K - Spirits (feat. Max Moya) [Drum Version] (Drum Version)"
+ * Input  "[0:59:03] Sebo K - Spirits (feat. Max Moya) (Drum Version) [Drum Version]"
+ * Result "[0:59:03] Sebo K - Spirits (feat. Max Moya) (Drum Version)"
+ * E.g. https://trackid.net/audiostreams/groove-podcast-451-marie-lung
+ */
+function removeDuplicateBracketedText( text ) {
+    logFunc( "removeDuplicateBracketedText" );
+    logVar( "text", text );
+
+    let unique = new Set();
+    let result = text.replace(/([\(\[])(.*?)([\)\]])/g, (match, open, content, close) => {
+        let normalizedContent = content.trim();
+        if (unique.has(normalizedContent)) {
+            return ''; // Remove duplicate entries
+        }
+        unique.add(normalizedContent);
+        return `(${normalizedContent})`; // Prefer round brackets
+    });
+
+    return result.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
