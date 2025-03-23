@@ -88,7 +88,13 @@ $("body").addClass( domain_cssSafe );
 
 // urlPath
 function urlPath(n) {
-	return $(location).attr('href').split('/')[n+2];
+    return $(location).attr('href').split('/')[n+2];
+}
+
+// urlPath_noParams
+function urlPath_noParams(n) {
+    return $(location).attr('href').split('/')[n+2]
+            .replace( /\?.+$/, "" );
 }
 
 var domain = urlPath(0).replace(/.+\.(.+\.[a-z0-9]+)/gi, '$1'),
