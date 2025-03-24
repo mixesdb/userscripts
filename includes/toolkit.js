@@ -179,10 +179,10 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEditTimestamp="" ) {
+function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEditTimestamp="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
-    var mixesdbUrl = makeMixesdbPageUrl_fromId( pageid ),
+    var mixesdbUrl = makeMixesdbPageUrl_fromId( pageId ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
     
     if( lastEditTimestamp != "" ) {
@@ -192,6 +192,8 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEdit
         console.log( "localDate_long: " + localDate_long );
         console.log( "localDate_ago: " + localDate_ago );
     }
+    
+    var tidPlayerUrl = $("img.artwork").closest("a").attr("href");
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
@@ -202,7 +204,7 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEdit
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
-    output += '<span id="mdbTrackidCheck-wrapper" style="display:none"><input id="mdbTrackidCheck" type="checkbox"><label for="mdbTrackidCheck">Tracklist is integrated</label></span>';
+    output += '<span id="mdbTrackidCheck-wrapper" style="display:none"><input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+pageId+'"><label for="mdbTrackidCheck">'+mdbTooltip("TID tracklist is integrated", "Mark this TrackId.net tracklist as integrated into the tracklist of the linked MixesDB page.")+'</label></span>';
     output += '</span>';
 
     return output;
