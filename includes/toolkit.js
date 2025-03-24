@@ -202,7 +202,7 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEdit
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
-    output += '<span id="mdbTrackidCheck-wrapper" style="display:none"><input id="mdbTrackidCheck" type="checkbox"><label for="mdbTrackidCheck">Tracklist is intergrated</label></span>';
+    output += '<span id="mdbTrackidCheck-wrapper" style="display:none"><input id="mdbTrackidCheck" type="checkbox"><label for="mdbTrackidCheck">Tracklist is integrated</label></span>';
     output += '</span>';
 
     return output;
