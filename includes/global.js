@@ -729,8 +729,8 @@ function makeTracklistFromArr( tlArr, from="", cues="" ) {
  * E.g. https://trackid.net/audiostreams/groove-podcast-451-marie-lung
  */
 function removeDuplicateBracketedText( text ) {
-    logFunc( "removeDuplicateBracketedText" );
-    logVar( "text", text );
+    //logFunc( "removeDuplicateBracketedText" );
+    //logVar( "text", text );
 
     let unique = new Set();
     let result = text.replace(/([\(\[])(.*?)([\)\]])/g, (match, open, content, close) => {
