@@ -204,7 +204,7 @@ function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEdit
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
-    output += '<span id="mdbTrackidCheck-wrapper" style="display: none";><input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+pageId+'"><label for="mdbTrackidCheck">TID tracklist is integrated</label> '+mdbTooltip("*", "Mark this TrackId.net tracklist as integrated into the tracklist of the linked MixesDB page.")+'</span>';
+    output += '<span id="mdbTrackidCheck-wrapper" style="display: none";><input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+pageId+'"><label for="mdbTrackidCheck">TID tracklist is integrated</label>'+mdbTooltip("(?)", "Mark this TrackId.net tracklist as integrated into the tracklist of the linked MixesDB page.")+'</span>';
     output += '</span>';
 
     return output;
