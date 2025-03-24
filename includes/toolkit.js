@@ -198,11 +198,11 @@ function makeMixesdbLink_fromId( pageid, title="MixesDB", className="", lastEdit
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
     output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
     output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST';
-    output += '<input id="mdbTrackid_check" type="checkbox" style="display:none"><label for="mdbTrackid_check">Tracklist is intergrated</label>';
     if( localDate_ago && localDate_long ) {
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
+    output += '<input id="mdbTrackid_check" type="checkbox" style="display:none"><label for="mdbTrackid_check">Tracklist is intergrated</label>';
     output += '</span>';
 
     return output;
