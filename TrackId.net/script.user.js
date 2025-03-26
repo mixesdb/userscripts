@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.23.2
+// @version      2025.03.26.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,8 +10,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_82
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_30
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_87
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_39
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 65,
+    cacheVersion = 70,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -48,6 +48,147 @@ var timeoutDelay = 600,
 // select elements
 waitForKeyElements(".mdb-element.select", function( jNode ) {
     jNode.select().focus();
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * mdbTrackidCheck
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * checkTidIntegration
+ * save action: the mix page reference takes params page_id, dbKey, title
+ */
+function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page" ) {
+    logFunc( "checkTidIntegration" );
+    logVar( "action", action );
+    logVar( "playerUrl", playerUrl );
+
+    if( playerUrl && playerUrl != "" && typeof(playerUrl) !== "undefined" && playerUrl != "undefined" ) {
+        var input = $("input", wrapper);
+
+        var apiQueryUrl_check = apiUrl_mw;
+        apiQueryUrl_check += "?action=mixesdbtrackid";
+        apiQueryUrl_check += "&format=json";
+        apiQueryUrl_check += "&url=" + playerUrl;
+
+        var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + mdbPageId;
+
+        if( target == "table" ) {
+            var waiter = $("waiter", wrapper);
+        }
+        // by action
+        switch( action ) {
+                // check
+            case "check":
+                logVar( "apiQueryUrl_check", apiQueryUrl_check );
+
+                $.ajax({
+                    url: apiQueryUrl_check,
+                    type: 'get', /* GET on checking */
+                    dataType: 'json',
+                    async: false,
+                    success: function(data) {
+                        // avoid undefined error
+                        if( data.error && data.error.code == "notfound" ) {
+                            if( target == "audiostream page" ) {
+                                wrapper.html('Marking this as integrated is not possible yet.').show();
+                            }
+                            if( target == "table" ) {
+                                waiter.remove();
+                                wrapper.append( "&ndash;" );
+                            }
+                        } else {
+                            var checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
+                                checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
+
+                            if( checked_pageId == mdbPageId ) {
+                                log( "Saved as integrated (mdbPageId: " +mdbPageId+ ")" );
+                                input.attr("checked", "checked").attr("disabled", "disabled");
+                                wrapper.addClass("integrated").show();
+                            } else {
+                                if( target == "audiostream page" ) {
+                                    log( "Not saved as integrated (mdbPageId: " +mdbPageId+ ")" );
+                                    input.removeAttr("checked").prop('checked', false);
+                                    wrapper.show();
+                                }
+                                if( target == "table" ) {
+                                    waiter.remove();
+
+                                    if( checked_pageId ) {
+                                        log( "Checked and page found: ("+checked_pageId+")" );
+                                        var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
+                                        wrapper.append( checkedLink );
+                                    } else {
+                                        wrapper.append( "-" );
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                break;
+
+                // save
+            case "save":
+                //logVar( "apiQueryUrl_save", apiQueryUrl_save );
+
+                // confirm, disable input
+                $.ajax({
+                    url: apiQueryUrl_save,
+                    type: 'post', /* POST on saving */
+                    dataType: 'json',
+                    async: false,
+                    success: function(data) {
+                        checkTidIntegration( playerUrl, mdbPageId, "check", wrapper );
+                    }
+                });
+                break;
+        }
+    }
+
+}
+
+/*
+ * mdbTrackidCheck-wrapper
+ */
+waitForKeyElements("#mdbTrackidCheck-wrapper", function( jNode ) {
+    // vars
+    var input_mdbTrackidCheck = $("input#mdbTrackidCheck", jNode),
+        input_checked = input_mdbTrackidCheck.attr("checked"),
+        tidPlayerUrl = input_mdbTrackidCheck.attr("data-tidplayerurl"),
+        mdbPageId = input_mdbTrackidCheck.attr("data-mdbpageid");
+
+    logVar( "input_checked", input_checked );
+    logVar( "tidPlayerUrl", tidPlayerUrl );
+    logVar( "mdbPageId", mdbPageId );
+
+    // on load, check
+    checkTidIntegration( tidPlayerUrl, mdbPageId, "check", jNode, "audiostream page" );
+
+    // on click, save
+    input_mdbTrackidCheck.on( "click", function() {
+        logFunc( "mdbTrackidCheck on click" );
+
+        // mark as checked
+        if( input_checked != "checked" && tidPlayerUrl && mdbPageId ) {
+            checkTidIntegration( tidPlayerUrl, mdbPageId, "save", jNode, "audiostream page" );
+        }
+    });
+});
+
+/*
+ * tables
+ */
+waitForKeyElements("td.mdbTrackidCheck", function( jNode ) {
+    var playerUrl = jNode.attr("data-playerurl");
+
+    if( playerUrl != "undefined" ) {
+        checkTidIntegration( playerUrl, null, "check", jNode , "table" );
+    }
 });
 
 
@@ -147,7 +288,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
         // embedded player output
         var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-playerurl="'+playerUrl+'">' + embed + '</div>';
         jNode.closest(".audio-stream-box").append( mdbPlayerAndToolkit );
-        jNode.remove();
+        jNode.hide();
     }
 
     if( playerUrl ) {
@@ -174,7 +315,7 @@ waitForKeyElements(".request-summary img.artwork", function( jNode ) {
 
 /*
  * Compare page creation date to MixesDB last edit date
- * only on positive usage results 
+ * only on positive usage results
  */
 waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
     var pageCreationTimestamp = $(".audio-stream-box > div > div > .MuiBox-root:nth-of-type(5) div + div p.MuiTypography-body1").text()
@@ -183,19 +324,19 @@ waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
                                     // 1/3/2025, 9:54:50 AM
                                     .replace(/ (AM|PM)$/i, "" )
                                     .replace(/(\d+)\/(\d+)\/(\d+), (\d+:\d+:\d+)$/, "$3-$1-$2T$4Z" )
-    
+
                                     // m+d.M.yyyy
                                     // 21.1.2025, 13:05:04
                                     .replace(/(\d+)\.(\d+)\.(\d+), (\d+:\d+:\d+)$/, "$3-$2-$1T$4Z" ) // 18.1.2025, 10:43:21
-    
+
                                     // pad M-d
                                     // 2025-1-3T9:54:50Z
                                     .replace(/(\d{4})-(\d)-/, "$1-0$2-" )
                                     .replace(/(\d{4})-(\d{2})-(\d)T/, "$1-$2-0$3T" )
                                 ;
-    
+
     var lastEditTimestamp = jNode.attr("data-lastedittimestamp"); // 2025-01-28T20:26:13Z
-    
+
     pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp );
 });
 
@@ -254,8 +395,8 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
         title = removeDuplicateBracketedText( title );
 
-        logVar( "artist", artist );
-        logVar( "title", title );
+        //logVar( "artist", artist );
+        //logVar( "title", title );
 
         // remove label when its actually the artist repeated
         if (label == artist) {
@@ -326,7 +467,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     // API
     tl = tl.trim();
 
-    log("tl before API:\n" + tl);
+    //log("tl before API:\n" + tl);
 
     if (tl !== "") {
 
@@ -367,13 +508,6 @@ $(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on
 function funcTidTables(jNode) {
     logFunc( "funcTidTables" );
 
-    // currently not on search until toggle tables button is used
-    // https://discord.com/channels/1258107262833262603/1261652394799005858/1339762410822701090
-    if( /audiostreams\?keywords.+/g.test( urlPath(1) )  ) {
-        log( "Skipping replacing table" );
-        return false;
-    }
-
     $(".mdb-tid-table").remove();
 
     var audiostreams = [],
@@ -390,8 +524,12 @@ function funcTidTables(jNode) {
             var text = $(this).text().replace(/ /g, ""),
                 textId = $(this).attr("data-field");
             if (textId == "#") textId = "Index";
-            if (textId) tbody.append('<th id="' + textId + '">' + text + '</th>');
+            if (textId) {
+                tbody.append('<th id="' + textId + '">' + text + '</th>');
+            }
         });
+
+        tbody.append('<th id="mdbTrackidCheck">MixesDB<br />integration</th>');
 
         $(".MuiDataGrid-row").each(function () {
             //log("get urls" + $(this).html());
@@ -425,8 +563,14 @@ function funcTidTables(jNode) {
                     playWrapper = $(this).closest('div.MuiDataGrid-row');
                 cellContent = $(this).html();
 
-                if (contOutput && cellContent) thisTr.append('<td class="' + cellClass + '">' + cellContent + '</td>');
+                if (contOutput && cellContent) {
+                    thisTr.append('<td class="' + cellClass + '">' + cellContent + '</td>');
+                }
             });
+
+            // mdbTrackidCheck
+            var thisPlayerUrl = $(".AudioStreamType", thisTr).find("a").attr("href");
+            thisTr.append('<td class="mdbTrackidCheck" data-playerurl="' + thisPlayerUrl + '"><waiter>…</waiter></td>');
         });
 
         // hide grid but keep page navigation
@@ -435,26 +579,29 @@ function funcTidTables(jNode) {
         // on audio pages hide the play button doesn't work in the copied tracklist table
         // but it is needed to generate the formatted tracklist textarea
         // so we hide the table and add the youtube search icon to the existing grid.
-        if (urlPath(1) == "audiostreams") {
+        if( urlPath(1) == "audiostreams" ) {
             $(".mdb-tid-table").fadeOut(300); // needs to be visible shortly for tracklist textarea generation
             grid.show();
 
             // add youtube search icon to grid
+            // @TODO: What did I mena here?
         } else {
-            grid.addClass('mdb-hide');
+            // @TODO: Only show if opted in by new cookie option
+            if( !/audiostreams\?keywords.+/g.test( urlPath(1) )  ) {
+                grid.addClass('mdb-hide');
+            }
         }
 
         // remove empty th
         //if( !addPlay ) $(".mdb-tid-table tbody th:first-of-type").remove();
     }
 
-    log("audiostreams: " + audiostreams);
-    log("> length: " + audiostreams.length);
+    //log("audiostreams: " + audiostreams);
+    //log("> length: " + audiostreams.length);
     if (audiostreams.length > 0) {
-        log("about to run trackidnet_checked_check_batch");
-
         var list = audiostreams.join(", "),
             res = trackidnet_checked("trackidnet_checked_check_batch", list);
+
         if (res !== null) {
             $.each(res, function () {
                 var audiostream = $(this)[0].audiostream,
@@ -530,9 +677,11 @@ function on_submitrequest() {
                 case "youtube.com":
                     var submitNote = note_YouTube;
                     break;
+
                 case "youtu.be":
                     var submitNote = note_YouTube;
                     break;
+
                 default:
                     var submitNote = note_standard;
             }
