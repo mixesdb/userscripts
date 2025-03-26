@@ -93,13 +93,21 @@ table.mdb-tid-table {
         border-top: 1px solid #333;
         border-bottom: 1px solid #333;
     }
-    
+
     & td.AudioStreamType {
-		width: 34px;
+		width: 40px !important;
 
 		&& img {
+            min-width: 25px !important;
+            height: auto !important;
 			padding-top: 5px;
 			max-height: 2em;
+		}
+	}
+
+	td.channel {
+		& img {
+			min-width: 40px;
 		}
 	}
 
@@ -111,6 +119,7 @@ table.mdb-tid-table {
     & img.mdb-checked-icon {
         width: 20px !important;
         height: auto;
+        vertical-align: middle;
     }
 }
 
