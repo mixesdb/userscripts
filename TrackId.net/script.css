@@ -178,23 +178,3 @@ table.mdb-tid-table {
 #mdb-replacedSearch .replaced-search-input {
 	width: calc( 100% - 75px - .5rem ); /* .5rem = .mdb-element padding */
 }
-
-/*
- * mdbTrackidCheck
- */
-.mdb-mixesdbLink.history {
-   margin-right: 5px;
-}
-
-#mdbTrackidCheck-wrapper {
-    white-space: nowrap;
-    
-    & input {
-        padding-top: 3px;
-    }
-    
-    &.integrated label {
-        color: lightgreen !important;
-    }
-    
-}
