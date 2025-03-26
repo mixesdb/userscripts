@@ -93,6 +93,7 @@ table.mdb-tid-table {
         border-top: 1px solid #333;
         border-bottom: 1px solid #333;
     }
+    
     & td.AudioStreamType {
 		width: 34px;
 
