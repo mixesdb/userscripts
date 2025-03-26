@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.31.2
+// @version      2025.03.26.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -191,8 +191,8 @@ d.ready(function(){ // needed for mw.config
         // TrackId.net link icon
         // On click add request page url for the first visible player
         if( trackIdnet_addRequestSubmissionIcon ) {
-            $("#pageIconPlayers.trackIdNet").click(function(){ /* false ID (issue#530) */
-                var linkIcon = $("#pageIcons a.trackIdNet");
+            $("#pageIconTrackId").click(function(){ /* false ID (issue#530) */
+                var linkIcon = $("#pageIconTrackId");
 
                 // Prevent URLs from adding up after 1st click
                 // otherwise the URLs add up and on 2nd click more than 2 tabs open
