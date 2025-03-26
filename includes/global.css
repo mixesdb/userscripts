@@ -238,11 +238,6 @@ textarea.mono {
     & a:hover {
         text-decoration: underline !important;
     }
-
-    & #mdbTrackidCheck-wrapper img.mdb-checked-icon {
-        width: 13px;
-        margin: 1px 5px -1px 5px;
-    }
 }
 
 /* nested lists */
@@ -469,6 +464,33 @@ textarea.mono {
         display: block;
     }
 }
+
+
+/*
+ * mdbTrackidCheck
+ */
+.mdb-mixesdbLink.history {
+   margin-right: 5px;
+}
+
+#mdbTrackidCheck-wrapper img.mdb-checked-icon {
+    width: 13px;
+    margin: 1px 5px -1px 5px;
+}
+
+#mdbTrackidCheck-wrapper {
+    white-space: nowrap;
+    
+    & input {
+        padding-top: 3px;
+    }
+    
+    &.integrated label {
+        color: #b3ff51 !important;
+    }
+    
+}
+
 
 /* 
  * Dark websites
