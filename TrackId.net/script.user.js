@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.26.2
+// @version      2025.03.26.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 71,
+    cacheVersion = 72,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -76,12 +76,14 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
 
         var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + mdbPageId;
 
+        // waiter
         if( target == "table" ) {
             var waiter = $("waiter", wrapper);
         }
+
         // by action
         switch( action ) {
-                // check
+            // check
             case "check":
                 logVar( "apiQueryUrl_check", apiQueryUrl_check );
 
@@ -100,14 +102,16 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                 waiter.remove();
                                 wrapper.append( "&ndash;" );
                             }
+                        // if no error
                         } else {
                             var checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
                                 checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
 
                             if( checked_pageId == mdbPageId ) {
                                 log( "Saved as integrated (mdbPageId: " +mdbPageId+ ")" );
-                                input.attr("checked", "checked").attr("disabled", "disabled");
+                                input.replaceWith(checkIcon);
                                 wrapper.addClass("integrated").show();
+
                             } else {
                                 if( target == "audiostream page" ) {
                                     log( "Not saved as integrated (mdbPageId: " +mdbPageId+ ")" );
@@ -122,7 +126,7 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                         var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
                                         wrapper.append( checkedLink );
                                     } else {
-                                        wrapper.append( "-" );
+                                        wrapper.append( "&ndash;" );
 
                                     }
                                 }
@@ -132,7 +136,7 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                 });
                 break;
 
-                // save
+            // save
             case "save":
                 //logVar( "apiQueryUrl_save", apiQueryUrl_save );
 
