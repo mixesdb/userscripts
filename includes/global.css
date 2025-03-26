@@ -50,7 +50,7 @@
     margin-block-end: 0;
     padding-inline-start: 0;
     
-    && li {
+    & li {
         list-style: none;
         margin: 0;
     }
@@ -170,26 +170,26 @@ textarea.mono {
     margin-bottom: 20px;
     border-bottom: 1px solid #f2f2f2;
 
-    && h3 {
+    & h3 {
         display: inline;
     }
 
-    && h3+h3 {
+    & h3+h3 {
         margin-left: 15px;
     }
 
-    && * {
+    & * {
         font-size: 1rem !important;
         font-weight: 700;
         color: #777;
     }
 
-    && span,
-    && label {
+    & span,
+    & label {
         padding-right: 1rem;
     }
 
-    && label input {
+    & label input {
         margin: 0 6px 6px 0;
     }
 }
@@ -207,7 +207,7 @@ textarea.mono {
     border-radius: 5px;
     padding: 0 5px 0 0;
     
-    && legend {
+    & legend {
         padding: 0 4px 0 3px !important;
         font-weight: bold !important;
         color: #f60;
@@ -215,18 +215,18 @@ textarea.mono {
         margin: 0 0 -.3em .75em;
     }
 
-    && #mdb-toolkit_waiter {
+    & #mdb-toolkit_waiter {
         height: 90px;
     }
     
-    && ul:not(.mdb-nolist) {
+    & ul:not(.mdb-nolist) {
         padding-inline-start: 25px;
     }
 
-    && ul {
+    & ul {
         margin: .5rem 0;
     
-        && li {
+        & li {
             margin: .3rem 0;
             
             & ul {
@@ -235,8 +235,13 @@ textarea.mono {
         }
     }
 
-    && a:hover {
+    & a:hover {
         text-decoration: underline !important;
+    }
+
+    & #mdbTrackidCheck-wrapper img.mdb-checked-icon {
+        width: 13px;
+        margin: 1px 5px -1px 5px;
     }
 }
 
@@ -251,11 +256,11 @@ textarea.mono {
 
 /* usage */
 #mdb-toolkit .mdb-toolkit-usageLink.used {
-    && .mdb-mixesdbLink-actionLinks-wrapper {
+    & .mdb-mixesdbLink-actionLinks-wrapper {
         margin-left: 7px;
         font-size: 12px !important;
 
-        && a {
+        & a {
             text-decoration: none;
             border: 1px solid #555;
             border-radius: 2px;
@@ -264,11 +269,11 @@ textarea.mono {
             opacity: .62;
         }
         
-        && a + a {
+        & a + a {
             margin-left: 5px
         }
         
-        && a:hover {
+        & a:hover {
             opacity: 1;
         }
     }
@@ -276,12 +281,12 @@ textarea.mono {
 
 /* playerUrls items */
 .mdb-toolkit-playerUrls-item {
-    && .tidSubmit-icon {
+    & .tidSubmit-icon {
         opacity: .33;
         margin-bottom: 4px;
     }
 
-    && .tidSubmit-icon:hover {
+    & .tidSubmit-icon:hover {
         opacity: 1;
     }
 }
@@ -306,32 +311,32 @@ textarea.mono {
     background-color: var(--box-color);
     padding: 1px 15px 5px 0;
 
-    && legend {
+    & legend {
         font-size: 13px;
     }
 
-    && a.mdb-mixesdbLink.mixPage:link,
-    && a.mdb-mixesdbLink.mixPage:active,
-    && a.mdb-mixesdbLink.mixPage:visited {
+    & a.mdb-mixesdbLink.mixPage:link,
+    & a.mdb-mixesdbLink.mixPage:active,
+    & a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
     }
 }
 
 /* groove.de */
 #mdb-toolkit.groove-de {
-    && > ul > li  ul  li * {
+    & > ul > li  ul  li * {
         display: inline !important;
         
-        && .mdb-domainIcon {
+        & .mdb-domainIcon {
             opacity: 1;
         }
     }
     
-    && .tidSubmit-icon:not(:hover) {
+    & .tidSubmit-icon:not(:hover) {
         opacity: .33 !important;
     }
     
-    && .tidSubmit-icon:hover {
+    & .tidSubmit-icon:hover {
         opacity: 1 !important;
     }
 }
@@ -341,12 +346,12 @@ textarea.mono {
     margin: 0 20px 25px 20px;
     background-color: #222;
     
-    && a {
+    & a {
         color: #7bf;
         font: sans-serif;
     }
     
-    && legend {
+    & legend {
         border: 0;
         width: inherit;
         font-size: 15px !important;
@@ -361,15 +366,15 @@ textarea.mono {
 
 /* soundcloud.com */
 #mdb-toolkit.soundcloud-com {
-    && a:not(:visited) {
+    & a:not(:visited) {
         color: #38d !important;
     }
     
-    && a:active,
+    & a:active,
        a:visited {
            color: #33689f;
     }
-    && a:hover {
+    & a:hover {
         text-decoration: underline !important;
     }
 }
@@ -383,35 +388,35 @@ textarea.mono {
 #mdb-toolkit.trackid-net {
     margin: 20px 0 10px;
     
-    && legend {
+    & legend {
         color: #f90;
         font-size: 15px !important;
     }
 
-    && ul {
+    & ul {
         font-size: 14px !important;
     }
     
-    && li a {
+    & li a {
         color: inherit;
     }
     
-    && .mdb-mixesdbLink-actionLinks-wrapper {
-        && a {
+    & .mdb-mixesdbLink-actionLinks-wrapper {
+        & a {
             color: #fff;
         }
     }
     
-    && .mdb-toolkit-playerUrls-item {
-        && a {
+    & .mdb-toolkit-playerUrls-item {
+        & a {
             color: var(--main-light);
             text-decoration: none;
         }
-        && a:hover {
+        & a:hover {
             text-decoration: underline;
         }
 
-        && .tidSubmit-icon {
+        & .tidSubmit-icon {
             margin-bottom: -4px;
         }
     }
@@ -419,10 +424,10 @@ textarea.mono {
 
 /* wearesoundspace.com */
 #mdb-toolkit.wearesoundspace-com {
-    && > ul > li {
+    & > ul > li {
         margin: .15rem 0 !important;
     }
-    && li {
+    & li {
         line-height: 1 !important;
     }
 }
@@ -436,23 +441,23 @@ textarea.mono {
     padding-bottom: 10px;
     font-size: 1.4rem;
     
-    && legend {
+    & legend {
         font-size: 1.6rem;
     }
     
-    && li + li {
+    & li + li {
         margin-top: 10px !important;
     }
     
-    && .mdb-toolkit-usageLink,
-    && .mdb-toolkit-tidSubmit {
-        && a:hover {
+    & .mdb-toolkit-usageLink,
+    & .mdb-toolkit-tidSubmit {
+        & a:hover {
             cursor: pointer;
         }
-        && a:not(:visited) {
+        & a:not(:visited) {
             color: #fff;
         }
-        && a:visited {
+        & a:visited {
             color: #ccc;
         }
     }
@@ -460,7 +465,7 @@ textarea.mono {
 
 /* Slim wrapper */
 #mdb-toolkit.ra-co {
-    && .mdb-toolkit-usageLink-intro {
+    & .mdb-toolkit-usageLink-intro {
         display: block;
     }
 }
@@ -471,9 +476,9 @@ textarea.mono {
 #mdb-toolkit.thousandandonetracklists-com,
 #mdb-toolkit.trackid-net,
 #mdb-toolkit.youtube-com {
-    && a.mdb-mixesdbLink.mixPage:link,
-    && a.mdb-mixesdbLink.mixPage:active,
-    && a.mdb-mixesdbLink.mixPage:visited {
+    & a.mdb-mixesdbLink.mixPage:link,
+    & a.mdb-mixesdbLink.mixPage:active,
+    & a.mdb-mixesdbLink.mixPage:visited {
         color: #f90 !important;
     }
 }
@@ -482,17 +487,17 @@ textarea.mono {
 #mdb-toolkit.hearthis-at,
 #mdb-toolkit.trackid-net,
 #mdb-toolkit.youtube-com {
-    && .mdb-mixesdbLink-actionLinks-wrapper {
-        && a:not(:visited) {
+    & .mdb-mixesdbLink-actionLinks-wrapper {
+        & a:not(:visited) {
             color: #fff;
         }
-        && a:visited {
+        & a:visited {
             color: #ccc;
         }
     }
 
     /* inputs like embed URL */
-    && input[type="text"] {
+    & input[type="text"] {
         border: 0;
         background-color: #555;
         color: #ccc;
@@ -502,7 +507,7 @@ textarea.mono {
 #mdb-toolkit.thousandandonetracklists-com,
 #mdb-toolkit.mixcloud-com,
 #mdb-toolkit.ra-co {
-    && > ul > li {
+    & > ul > li {
         list-style: disc !important;
     }
 }
@@ -514,7 +519,7 @@ textarea.mono {
  */
 #mdb-toolkit.thousandandonetracklists-com {
     .mdb-toolkit-playerUrls-item {
-        && .tidSubmit-icon:not(:hover) {
+        & .tidSubmit-icon:not(:hover) {
             opacity: .66;
         }
     }
@@ -524,7 +529,7 @@ textarea.mono {
 #mdb-toolkit.groove-de,
 #mdb-toolkit.ra-co,
 #mdb-toolkit.wearesoundspace-com {
-    && .tidSubmit-icon {
+    & .tidSubmit-icon {
         margin-bottom: -3px !important;
     }
 }
@@ -537,21 +542,21 @@ textarea.mono {
     font-size: 14px;
     background-color: #fcfcfc;
 
-    && legend {
+    & legend {
         font-size: 14px;
     }
     
-    && a.mdb-mixesdbLink.mixPage  {
+    & a.mdb-mixesdbLink.mixPage  {
         background-color: inherit !important;
     }
     
-    && a.mdb-mixesdbLink.mixPage:link,
-    && a.mdb-mixesdbLink.mixPage:active,
-    && a.mdb-mixesdbLink.mixPage:visited {
+    & a.mdb-mixesdbLink.mixPage:link,
+    & a.mdb-mixesdbLink.mixPage:active,
+    & a.mdb-mixesdbLink.mixPage:visited {
         color: #f60 !important;
     }
     
-    && ul  {
+    & ul  {
         line-height: 1.33em;
     }
 }
@@ -562,9 +567,9 @@ textarea.mono {
 #mdb-toolkit.soundcloud-com,
 #mdb-toolkit.toxicfamily-de,
 #mdb-toolkit.wearesoundspace-com {
-    && .mdb-mixesdbLink-actionLinks-wrapper {
-        && a,
-        && a:visited {
+    & .mdb-mixesdbLink-actionLinks-wrapper {
+        & a,
+        & a:visited {
             color: #555;
             font-size: 85% !important;
             padding: 0 4px 0 4px !important;
@@ -573,7 +578,7 @@ textarea.mono {
             background-color: rgba(100, 100, 100, 0.15) !important;
         }
         
-        && a:hover {
+        & a:hover {
             text-decoration: none !important;
         }
     }
@@ -590,15 +595,15 @@ textarea.mono {
     
     /* hearthis.at */
     body.hearthis-at {
-        && .content-layer-content {
+        & .content-layer-content {
             background: inherit;
             color: #fff;
         }
         
-        && #mdb-toolkit.hearthis-at {
+        & #mdb-toolkit.hearthis-at {
             background-color: transparent !important;
             
-            && a {
+            & a {
                 color: #7cf;
             }
         }

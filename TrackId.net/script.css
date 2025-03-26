@@ -46,23 +46,23 @@ div[contenteditable="plaintext-only"] {
     padding: 0;
     margin: 0;
     
-    && .MuiListItemIcon-root {
+    & .MuiListItemIcon-root {
         display: none;
     }
 
-    && .MuiSvgIcon-fontSizeMedium {
+    & .MuiSvgIcon-fontSizeMedium {
         margin: -10px 0;
     }
     
-    && .MuiListItemButton-gutters {
+    & .MuiListItemButton-gutters {
         padding: 5px 0;
         
-        && .MuiListItemText-secondary {
+        & .MuiListItemText-secondary {
             padding: 5px 10px;
         }
     }
     
-    && span {
+    & span {
         font-size: 13px;
     }
 }
@@ -97,7 +97,7 @@ table.mdb-tid-table {
     & td.AudioStreamType {
 		width: 40px !important;
 
-		&& img {
+		& img {
             min-width: 25px !important;
             height: auto !important;
 			padding-top: 5px;
@@ -198,4 +198,3 @@ table.mdb-tid-table {
     }
     
 }
-
