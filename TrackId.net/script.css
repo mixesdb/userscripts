@@ -84,13 +84,33 @@ div[contenteditable="plaintext-only"] {
 /*
  * Tables
  */
-.mdb-tid-table td.AudioStreamType {
-	width: 34px;
 
-	&& img {
-		padding-top: 5px;
-		max-height: 2em;
+table.mdb-tid-table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    & tr {
+        border-top: 1px solid #333;
+        border-bottom: 1px solid #333;
+    }
+    $ td.AudioStreamType {
+		width: 34px;
+
+		&& img {
+			padding-top: 5px;
+			max-height: 2em;
+		}
 	}
+
+    & td.channel,
+    & td.mdbTrackidCheck {
+        text-align: center;
+    }
+    
+    & img.mdb-checked-icon {
+        width: 20px !important;
+        height: auto;
+    }
 }
 
 
