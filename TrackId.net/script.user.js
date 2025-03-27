@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.27.4
+// @version      2025.03.27.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 75,
+    cacheVersion = 76,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -91,7 +91,7 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                     url: apiQueryUrl_check,
                     type: 'get', /* GET on checking */
                     dataType: 'json',
-                    async: false,
+                    async: true,
                     success: function(data) {
                         // avoid undefined error
                         if( data.error && data.error.code == "notfound" ) {
