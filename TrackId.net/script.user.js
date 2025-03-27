@@ -119,11 +119,16 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                 }
 
                             } else {
+                                // audiostream page
                                 if( target == "audiostream page" ) {
                                     log( "Not saved as integrated (mdbPageId: " +mdbPageId+ ")" );
+
                                     input.removeAttr("checked").prop('checked', false);
+
                                     wrapper.show();
                                 }
+
+                                // tables
                                 if( target == "table" ) {
                                     waiter.remove();
 
@@ -133,7 +138,9 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
 
                                         if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
                                             log( "Checked and page found: ("+checked_pageId+")" );
+
                                             var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
+
                                             wrapper.append( checkedLink );
                                         }else {
                                             wrapper.append( "&ndash;" );
