@@ -109,7 +109,11 @@ table.mdb-tid-table {
 		}
 	}
 
-	td.channel {
+	& td.status {
+	    border-radius: 0;
+	}
+
+	& td.channel {
 		& img {
 			min-width: 40px;
 		}
