@@ -291,7 +291,7 @@ textarea.mono {
     margin: -1px 0 -1px;
     padding: 1px 2px;
     line-height: 1em;
-    width: auto;
+    width: calc( 100% - 7em );
 }
 
 /*
@@ -475,7 +475,7 @@ textarea.mono {
 
 #mdbTrackidCheck-wrapper img.mdb-checked-icon {
     width: 13px;
-    margin: 1px 5px -1px 5px;
+    margin: 1px 4px -1px 5px;
 }
 
 #mdbTrackidCheck-wrapper {
