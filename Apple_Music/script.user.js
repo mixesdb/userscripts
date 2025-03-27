@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.01.25.1
+// @version      2025.03.28.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -158,8 +158,8 @@ setTimeout(function() {
                     output += '<textarea id="mixesdb-TLbox" class="mdb-tlBox mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
 
                     if( allTracksHaveDurs ) {
-                        var tl_cuesAsDur_controlVersion = makeTracklistFromArr( tlArr, "Apple Music", "track duration control" ),
-                            rowCount = tl_cuesAsDur_controlVersion.split("\n").length - 1;
+                        var tl_cuesAsDur_controlVersion = makeTracklistFromArr( tlArr, "Apple Music", "track duration control" ).replace(/\n$/,""),
+                            rowCount = tl_cuesAsDur_controlVersion.split("\n").length;
                         log( "tl_cuesAsDur_controlVersion\n" + tl_cuesAsDur_controlVersion );
 
                         output += '<p class="mdb-highlight">[CUE] minutes are calculated by adding up the track durations. <button id="mdb-toggle-tl-controlVersion"><span>Control version</span></button></p>';
