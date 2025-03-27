@@ -94,6 +94,10 @@ table.mdb-tid-table {
         border-bottom: 1px solid #333;
     }
 
+    & tr:hover {
+	    background-color: #272727; 
+	}
+
     & td.AudioStreamType {
 		width: 40px !important;
 
