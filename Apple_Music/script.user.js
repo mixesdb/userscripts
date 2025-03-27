@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Apple Music (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.28.1
+// @version      2025.03.28.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -153,7 +153,7 @@ setTimeout(function() {
                         rowCount = tl_cuesAsDur.split("\n").length - 1;
 
                     output += '<table id="mdb-tl-fakeOutput">';
-                    output += '<td id="mdb-noSoup-wrapper"><img src="'+noSoupForYouUrl+'" width="270" alt="No soup for you!"></td><td>';
+                    output += '<td>';
                     output += '<p class="mdb-highlight">music.apple.com restricts loading external resources like the Tracklist Editor API.<br />Format this to the standard format by pasting into the Tracklist Editor manually.</p>';
                     output += '<textarea id="mixesdb-TLbox" class="mdb-tlBox mono mdb-selectOnClick" rows="'+rowCount+'">'+tl_cuesAsDur+'</textarea>';
 
