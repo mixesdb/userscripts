@@ -291,7 +291,7 @@ textarea.mono {
     margin: -1px 0 -1px;
     padding: 1px 2px;
     line-height: 1em;
-    width: calc( 100% - 7em );
+    max-width: calc( 100% - 7em );
 }
 
 /*
