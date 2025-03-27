@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.23.3
+// @version      2025.03.27.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -21,6 +21,9 @@
 // ==/UserScript==
 
 
+
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
@@ -29,7 +32,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 26,
+    cacheVersion = 27,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -71,7 +74,7 @@ logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
  * Before anythings starts: Reload the page
  * A tiny delay is needed, otherwise there's constant reloading.
  */
-redirectOnUrlChange( 20 );
+redirectOnUrlChange( 50 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
