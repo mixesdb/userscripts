@@ -142,7 +142,7 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                             var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
 
                                             wrapper.append( checkedLink );
-                                        }else {
+                                        } else {
                                             wrapper.append( "&ndash;" );
                                         }
                                     } else {
