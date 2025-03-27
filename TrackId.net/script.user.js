@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.26.4
+// @version      2025.03.27.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -108,9 +108,15 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                 checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
 
                             if( checked_pageId == mdbPageId ) {
-                                log( "Saved as integrated (mdbPageId: " +mdbPageId+ ")" );
-                                input.replaceWith(checkIcon);
-                                wrapper.addClass("integrated").show();
+                                var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+
+                                if( lastCheckedAgainstMixesDB != null ) {
+                                    log( "Saved as integrated (mdbPageId: " +mdbPageId+ ")" );
+                                    input.replaceWith(checkIcon);
+                                    wrapper.addClass("integrated").show();
+                                } else {
+                                    wrapper.show();
+                                }
 
                             } else {
                                 if( target == "audiostream page" ) {
@@ -122,12 +128,18 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                     waiter.remove();
 
                                     if( checked_pageId ) {
-                                        log( "Checked and page found: ("+checked_pageId+")" );
-                                        var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
-                                        wrapper.append( checkedLink );
+                                        var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+                                        logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+
+                                        if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
+                                            log( "Checked and page found: ("+checked_pageId+")" );
+                                            var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
+                                            wrapper.append( checkedLink );
+                                        }else {
+                                            wrapper.append( "&ndash;" );
+                                        }
                                     } else {
                                         wrapper.append( "&ndash;" );
-
                                     }
                                 }
                             }
