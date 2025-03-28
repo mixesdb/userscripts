@@ -179,10 +179,11 @@ function makeMixesdbSearchUrl( text ) {
 }
 
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEditTimestamp="" ) {
+function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEditTimestamp="", from="", visitDomain="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
-    var mixesdbUrl = makeMixesdbPageUrl_fromId( pageId ),
+    var editSummary = "",
+        mixesdbUrl = makeMixesdbPageUrl_fromId( pageId ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
     
     if( lastEditTimestamp != "" ) {
@@ -192,13 +193,15 @@ function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEdit
         console.log( "localDate_long: " + localDate_long );
         console.log( "localDate_ago: " + localDate_ago );
     }
+
+    if( visitDomain == "trackid.net" ) editSummary = "Tracklist enrichment via TrackId.net " + window.location.href;
     
     var tidPlayerUrl = $("img.artwork").closest("a").attr("href");
 
     // history link
     // https://www.mixesdb.com/w/?curid=613340&action=history
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
-    output += '<a href="'+mixesdbUrl+'&action=edit" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
+    output += '<a href="'+mixesdbUrl+'&action=edit&from='+from+'&fromSite='+visitDomain+'&summary='+editSummary+'" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
     output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST';
     if( localDate_ago && localDate_long ) {
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
@@ -237,6 +240,8 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
+    // Do not search with quotes, otherwise special characters in player URLs are not found
+    // https://www.mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan/
     return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
 }
 
@@ -532,7 +537,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 logVar( "title", title );
                                 logVar( "pageid", pageid );
 
-                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, lastEditTimestamp );
+                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, lastEditTimestamp, "toolkit", visitDomain );
 
                                 usageLinks.push( link_playerUsedOn );
                             }
