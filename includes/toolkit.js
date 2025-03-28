@@ -237,6 +237,8 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
+    // Do not search with quotes, otherwise special characters in player URLs are not found
+    // https://www.mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan/
     return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
 }
 
