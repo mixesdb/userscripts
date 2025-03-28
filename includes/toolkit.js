@@ -237,7 +237,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22'+keywords+'%22';
+    return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
 }
 
 // makeAvailableLinksListItem
