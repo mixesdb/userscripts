@@ -178,14 +178,25 @@ function makeMixesdbSearchUrl( text ) {
     return searchUrl;
 }
 
+// make_mdbTrackidCheck_input
+function make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, target="detail page" ) {
+    var output = '<input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+mdbPageId+'">';
+
+    if( target == "detail page" ) {
+        output += '<label for="mdbTrackidCheck">TID tracklist is integrated</label>&nbsp;'+mdbTooltip("(?)", "Mark this TrackId.net tracklist as integrated to the tracklist of the linked MixesDB page.");
+    }
+
+    return output;
+}
+
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEditTimestamp="", from="", visitDomain="" ) {
+function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastEditTimestamp="", from="", visitDomain="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var editSummary = "",
-        mixesdbUrl = makeMixesdbPageUrl_fromId( pageId ),
+        mixesdbUrl = makeMixesdbPageUrl_fromId( mdbPageId ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
-    
+
     if( lastEditTimestamp != "" ) {
         var localDate_long = convertUTCDateToLocalDate( new Date(lastEditTimestamp) ),
             localDate_ago = $.timeago( lastEditTimestamp ).replace( /^about /i, "" );
@@ -195,7 +206,7 @@ function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEdit
     }
 
     if( visitDomain == "trackid.net" ) editSummary = "Tracklist enrichment via TrackId.net " + window.location.href;
-    
+
     var tidPlayerUrl = $("img.artwork").closest("a").attr("href");
 
     // history link
@@ -207,7 +218,10 @@ function makeMixesdbLink_fromId( pageId, title="MixesDB", className="", lastEdit
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
-    output += '<span id="mdbTrackidCheck-wrapper" style="display: none";><input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+pageId+'"><label for="mdbTrackidCheck">TID tracklist is integrated</label>&nbsp;'+mdbTooltip("(?)", "Mark this TrackId.net tracklist as integrated to the tracklist of the linked MixesDB page.")+'</span>';
+    output += '<span id="mdbTrackidCheck-wrapper" style="display: none";>';
+
+    output += make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "detail page" );
+
     output += '</span>';
 
     return output;
@@ -255,7 +269,7 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
 
     link += '<a href="'+playerUrl_clean+'" class="mdb-domainIconLink">'+domainIcon+'</a>';
     link += '<a href="'+playerUrl+'" class="mdb-actualPlayerLink">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
-    
+
     log( "urlIsTidSubmitCompatible( playerUrl ): " + urlIsTidSubmitCompatible( playerUrl ) )
 
     if( visitDomain != "trackid.net" && urlIsTidSubmitCompatible( playerUrl ) ) {
@@ -273,13 +287,13 @@ function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
     if( pageCreationTimestamp && lastEditTimestamp ) {
         logVar( "pageCreationTimestamp", pageCreationTimestamp );
         logVar( "lastEditTimestamp", lastEditTimestamp );
-        
+
         var pageCreationTimestamp_newDate = new Date( pageCreationTimestamp );
         var lastEditTimestamp_newDate = new Date( lastEditTimestamp );
-        
+
         var pageCreationTimestamp_newDate_getTime = new Date(pageCreationTimestamp_newDate).getTime();
         var lastEditTimestamp_newDate_getTime = new Date(lastEditTimestamp_newDate).getTime();
-        
+
         console.log( "pageCreationTimestamp_newDate_getTime: " + pageCreationTimestamp_newDate_getTime );
         console.log( "lastEditTimestamp_newDate_getTime: " + lastEditTimestamp_newDate_getTime );
 
@@ -325,7 +339,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                     logVar( "hearthisUrl_short", hearthisUrl_short );
                     logVar( "hearthisUrl_long", hearthisUrl_long );
-                    
+
                     embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
@@ -428,7 +442,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         toolkitOutput_li += mdbTooltip( "Unclear if players are used", "To find out visit the page if a userscript with toolkit exists for that website." );
         toolkitOutput_li += ':<ul class="mdb-nolist"></ul>';
         toolkitOutput_li += '</li>';
-        
+
         // embedUrl
         if( embedUrl && visitDomain != "trackid.net" ) {
             var embedUrl_len = embedUrl.length;
@@ -531,13 +545,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                             for( i = 0; i < resultsArr.length; i++ ){
                                 var title = resultsArr[i].title,
-                                    pageid = resultsArr[i].pageid,
+                                    mdbPageId = resultsArr[i].pageid,
                                     lastEditTimestamp = resultsArr[i].timestamp;
 
                                 logVar( "title", title );
-                                logVar( "pageid", pageid );
+                                logVar( "mdbPageId", mdbPageId );
 
-                                var link_playerUsedOn = makeMixesdbLink_fromId( pageid, title, linkClass, lastEditTimestamp, "toolkit", visitDomain );
+                                var link_playerUsedOn = makeMixesdbLink_fromId( mdbPageId, title, linkClass, lastEditTimestamp, "toolkit", visitDomain );
 
                                 usageLinks.push( link_playerUsedOn );
                             }
@@ -830,7 +844,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         else
                             seen[txt] = true;
                     });
-                    
+
                 }, toolkitUrls_totalTimeout );
             } // if cleanup
 

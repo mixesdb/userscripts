@@ -70,10 +70,6 @@ div[contenteditable="plaintext-only"] {
 .MuiDivider-root.MuiDivider-fullWidth {
     margin: 10px 00;
 }
-    
-.mdb-menu-hl {
-    margin-top: -10px !important;
-}
 
 .mdb-menu-hl,
 .mdb-menu {
@@ -113,7 +109,16 @@ table.mdb-tid-table {
 	    border-radius: 0;
 	}
 
+	& td.title {
+	    & .white-link {
+	        white-space: inherit !important;
+	    }
+	}
+
 	& td.channel {
+	    padding-left: 10px;
+	    padding-right: 10px;
+
 		& img {
 			min-width: 40px;
 		}
@@ -129,6 +134,17 @@ table.mdb-tid-table {
         height: auto;
         vertical-align: middle;
     }
+
+    & td.mdbTrackidCheck {
+    	& input {
+		    -ms-transform: scale(1.4); /* IE */
+		    -moz-transform: scale(1.4); /* FF */
+		    -webkit-transform: scale(1.4); /* Safari and Chrome */
+		    -o-transform: scale(1.4); /* Opera */
+		    transform: scale(1.4);
+		    margin-left: -1px; /* align with checked icon */
+		}
+	}
 }
 
 
