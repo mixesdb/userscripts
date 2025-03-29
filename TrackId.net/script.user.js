@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.29.1
+// @version      2025.03.29.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_87
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_44
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_46
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 77,
+    cacheVersion = 79,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -65,10 +65,9 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
     logFunc( "checkTidIntegration" );
     logVar( "action", action );
     logVar( "tidPlayerUrl", tidPlayerUrl );
+    logVar( "wrapper", wrapper.html() );
 
     if( tidPlayerUrl && tidPlayerUrl != "" && typeof(tidPlayerUrl) !== "undefined" && tidPlayerUrl != "undefined" ) {
-        var input = $("input", wrapper);
-
         var apiQueryUrl_check = apiUrl_mw;
         apiQueryUrl_check += "?action=mixesdbtrackid";
         apiQueryUrl_check += "&format=json";
@@ -112,7 +111,9 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
 
                                 if( lastCheckedAgainstMixesDB != null ) {
                                     log( "Saved as integrated (mdbPageId: " +mdbPageId+ ")" );
-                                    input.replaceWith(checkIcon);
+
+                                    $("input", wrapper).replaceWith(checkIcon);
+
                                     wrapper.addClass("integrated").show();
                                 } else {
                                     wrapper.show();
@@ -123,7 +124,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                 if( target == "audiostream page" ) {
                                     log( "Not saved as integrated (mdbPageId: " +mdbPageId+ ")" );
 
-                                    if( input ) input.removeAttr("checked").prop('checked', false);
+                                    $("input", wrapper).removeAttr("checked").prop('checked', false);
 
                                     wrapper.show();
                                 }
@@ -172,13 +173,13 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                         mdbPageId = resultsArr[0].pageid;
 
                                                     if( mdbPageId ) {
-                                                        var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
+                                                        var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
                                                         wrapper.append( input );
                                                     } else {
                                                         wrapper.append( "&ndash;" );
                                                     }
                                                 } else {
-                                                    log( "resultNum not 1: " + resultNum );
+                                                    log( "resultNum != 1: " + resultNum );
                                                     wrapper.append( "&ndash;" );
                                                 }
                                             }
@@ -202,13 +203,12 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                     dataType: 'json',
                     async: true,
                     success: function(data) {
-                        checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper );
+                        checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper, target );
                     }
                 });
                 break;
         }
     }
-
 }
 
 /*
@@ -216,7 +216,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
  */
 waitForKeyElements("#mdbTrackidCheck-wrapper", function( jNode ) {
     // vars
-    var input_mdbTrackidCheck = $("input#mdbTrackidCheck", jNode),
+    var input_mdbTrackidCheck = $("input.mdbTrackidCheck", jNode),
         input_checked = input_mdbTrackidCheck.attr("checked"),
         tidPlayerUrl = input_mdbTrackidCheck.attr("data-tidplayerurl"),
         mdbPageId = input_mdbTrackidCheck.attr("data-mdbpageid");
@@ -242,12 +242,27 @@ waitForKeyElements("#mdbTrackidCheck-wrapper", function( jNode ) {
 /*
  * tables
  */
-waitForKeyElements("td.mdbTrackidCheck", function( jNode ) {
-    var playerUrl = jNode.attr("data-playerurl");
+waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck", function( jNode ) {
+    var playerUrl = jNode.attr("data-tidplayerurl");
 
     if( playerUrl != "undefined" ) {
         checkTidIntegration( playerUrl, null, "check", jNode , "table" );
     }
+});
+
+waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck input[type=checkbox]", function( jNode ) {
+    var wrapper = jNode.closest("td.mdbTrackidCheck"),
+        tidPlayerUrl = jNode.attr("data-tidplayerurl"),
+        mdbPageId = jNode.attr("data-mdbpageid");
+
+    jNode.on( "click", function() {
+        logVar( "tidPlayerUrl", tidPlayerUrl );
+        logVar( "mdbPageId", mdbPageId );
+
+        if( tidPlayerUrl != "undefined" && mdbPageId != "undefined" ) {
+            checkTidIntegration( tidPlayerUrl, mdbPageId, "save", wrapper, "table" );
+        }
+    });
 });
 
 
@@ -345,7 +360,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     $(".mdb-player-audiostream").remove();
     if( embed != "" ) {
         // embedded player output
-        var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-playerurl="'+playerUrl+'">' + embed + '</div>';
+        var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-tidplayerurl="'+playerUrl+'">' + embed + '</div>';
         jNode.closest(".audio-stream-box").append( mdbPlayerAndToolkit );
         jNode.hide();
     }
@@ -580,7 +595,7 @@ function funcTidTables(jNode) {
         var tbody = $(".mdb-tid-table tbody");
 
         $(".MuiDataGrid-columnHeader", grid).each(function () {
-            var text = $(this).text().replace(/ /g, ""),
+            var text = $(this).text().replace(/ /g, "").replace("CreatedOn", "Created on").replace("RequestedOn", "Requested on").replace("RequestedBy", "Requested by"),
                 textId = $(this).attr("data-field");
             if (textId == "#") textId = "Index";
             if (textId) {
@@ -588,7 +603,7 @@ function funcTidTables(jNode) {
             }
         });
 
-        tbody.append('<th id="mdbTrackidCheck">MixesDB<br />integration</th>');
+        tbody.append('<th class="mdbTrackidCheck">MixesDB<br />integration</th>');
 
         $(".MuiDataGrid-row").each(function () {
             //log("get urls" + $(this).html());
@@ -629,7 +644,7 @@ function funcTidTables(jNode) {
 
             // mdbTrackidCheck
             var thisPlayerUrl = $(".AudioStreamType", thisTr).find("a").attr("href");
-            thisTr.append('<td class="mdbTrackidCheck" data-playerurl="' + thisPlayerUrl + '"><waiter>…</waiter></td>');
+            thisTr.append('<td class="mdbTrackidCheck" data-tidplayerurl="' + thisPlayerUrl + '"><waiter>…</waiter></td>');
         });
 
         // hide grid but keep page navigation

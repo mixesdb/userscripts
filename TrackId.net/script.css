@@ -142,7 +142,7 @@ table.mdb-tid-table {
 		    -webkit-transform: scale(1.4); /* Safari and Chrome */
 		    -o-transform: scale(1.4); /* Opera */
 		    transform: scale(1.4);
-		    margin-left: -1px; /* align with checked icon */
+		    margin-left: 1px; /* align with checked icon */
 		}
 	}
 }
