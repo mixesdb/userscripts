@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.29.3
+// @version      2025.03.29.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -145,12 +145,18 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             wrapper.append( checkedLink );
                                         } else {
                                             // Add checkbox in tables for certain users
-
                                             var currentUsername = $(".user-name").text();
 
                                             if( currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
-                                                var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
-                                                wrapper.append( input );
+                                                var status_td = wrapper.prev("td.status"),
+                                                    status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
+
+                                                logVar( "status", status );
+
+                                                if( status == "Tracklist ready" ) {
+                                                    var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
+                                                    wrapper.append( input );
+                                                }
                                             } else {
                                                 wrapper.append( "&ndash;" );
                                             }
@@ -169,12 +175,23 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             success: function(data) {
                                                 var resultNum = data["query"]["searchinfo"]["totalhits"];
                                                 if( resultNum == 1 ) {
+                                                    // @TODO DRY
                                                     var resultsArr = data["query"]["search"],
-                                                        mdbPageId = resultsArr[0].pageid;
+                                                        mdbPageId = resultsArr[0].pageid,
+                                                        currentUsername = $(".user-name").text();
 
-                                                    if( mdbPageId ) {
-                                                        var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
-                                                        wrapper.append( input );
+                                                    if( mdbPageId && currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
+                                                        var status_td = wrapper.prev("td.status"),
+                                                            status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
+
+                                                        logVar( "status", status );
+
+                                                        if( status == "Tracklist ready" ) {
+                                                            var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
+                                                            wrapper.append( input );
+                                                        } else {
+                                                            wrapper.append( "&ndash;" );
+                                                        }
                                                     } else {
                                                         wrapper.append( "&ndash;" );
                                                     }
