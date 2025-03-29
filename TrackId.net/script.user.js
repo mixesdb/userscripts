@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.29.4
+// @version      2025.03.29.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -99,7 +99,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                             }
                             if( target == "table" ) {
                                 waiter.remove();
-                                wrapper.append( "&ndash;" );
+                                wrapper.append( '<span class="tooltip-title" title="TrackId.net page not found (recently created?)">&ndash;</span>' );
                             }
                         // if no error
                         } else {
@@ -190,14 +190,20 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                             var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
                                                             wrapper.append( input );
                                                         } else {
-                                                            wrapper.append( "&ndash;" );
+                                                            wrapper.append( '<span class="tooltip-title" title="Status is not ready">&ndash;</span>' );
                                                         }
                                                     } else {
                                                         wrapper.append( "&ndash;" );
                                                     }
                                                 } else {
                                                     log( "resultNum != 1: " + resultNum );
-                                                    wrapper.append( "&ndash;" );
+
+                                                    if( resultNum == 0 ) {
+                                                        wrapper.append( '<span class="tooltip-title" title="No MixesDB mix page found using this player">&ndash;</span>' );
+                                                    }
+                                                    if( resultNum > 1 ) {
+                                                        wrapper.append( '<span class="tooltip-title" title="Bug: Too many results">&ndash;</span>' );
+                                                    }
                                                 }
                                             }
                                         }); // end ajax
