@@ -180,7 +180,7 @@ function makeMixesdbSearchUrl( text ) {
 
 // make_mdbTrackidCheck_input
 function make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, target="detail page" ) {
-    var output = '<input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+mdbPageId+'">';
+    var output = '<input class="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+mdbPageId+'">';
 
     if( target == "detail page" ) {
         output += '<label for="mdbTrackidCheck">TID tracklist is integrated</label>&nbsp;'+mdbTooltip("(?)", "Mark this TrackId.net tracklist as integrated to the tracklist of the linked MixesDB page.");
@@ -205,7 +205,7 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
         console.log( "localDate_ago: " + localDate_ago );
     }
 
-    if( visitDomain == "trackid.net" ) editSummary = "Tracklist enrichment via TrackId.net " + window.location.href;
+    if( visitDomain == "trackid.net" ) editSummary = "TrackId.net tracklist integration of " + window.location.href;
 
     var tidPlayerUrl = $("img.artwork").closest("a").attr("href");
 
@@ -218,7 +218,7 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
     output += '</a>';
-    output += '<span id="mdbTrackidCheck-wrapper" style="display: none";>';
+    output += '<span id="mdbTrackidCheck-wrapper" style="display: none;">';
 
     output += make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "detail page" );
 
