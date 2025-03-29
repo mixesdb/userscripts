@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.28.2
+// @version      2025.03.29.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_87
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_43
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_44
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 76,
+    cacheVersion = 77,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -61,18 +61,18 @@ waitForKeyElements(".mdb-element.select", function( jNode ) {
  * checkTidIntegration
  * save action: the mix page reference takes params page_id, dbKey, title
  */
-function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page" ) {
+function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page" ) {
     logFunc( "checkTidIntegration" );
     logVar( "action", action );
-    logVar( "playerUrl", playerUrl );
+    logVar( "tidPlayerUrl", tidPlayerUrl );
 
-    if( playerUrl && playerUrl != "" && typeof(playerUrl) !== "undefined" && playerUrl != "undefined" ) {
+    if( tidPlayerUrl && tidPlayerUrl != "" && typeof(tidPlayerUrl) !== "undefined" && tidPlayerUrl != "undefined" ) {
         var input = $("input", wrapper);
 
         var apiQueryUrl_check = apiUrl_mw;
         apiQueryUrl_check += "?action=mixesdbtrackid";
         apiQueryUrl_check += "&format=json";
-        apiQueryUrl_check += "&url=" + playerUrl;
+        apiQueryUrl_check += "&url=" + tidPlayerUrl;
 
         var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + mdbPageId;
 
@@ -123,7 +123,7 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                                 if( target == "audiostream page" ) {
                                     log( "Not saved as integrated (mdbPageId: " +mdbPageId+ ")" );
 
-                                    input.removeAttr("checked").prop('checked', false);
+                                    if( input ) input.removeAttr("checked").prop('checked', false);
 
                                     wrapper.show();
                                 }
@@ -143,10 +143,46 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
 
                                             wrapper.append( checkedLink );
                                         } else {
-                                            wrapper.append( "&ndash;" );
+                                            // Add checkbox in tables for certain users
+
+                                            var currentUsername = $(".user-name").text();
+
+                                            if( currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
+                                                var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
+                                                wrapper.append( input );
+                                            } else {
+                                                wrapper.append( "&ndash;" );
+                                            }
                                         }
                                     } else {
-                                        wrapper.append( "&ndash;" );
+                                        log( "No checked_pageId! Run searchKeywords API for player URL to get the mdbPageId" );
+
+                                        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( tidPlayerUrl );
+                                        logVar( "apiQueryUrl", apiQueryUrl );
+
+                                        $.ajax({
+                                            url: apiQueryUrl,
+                                            type: 'get',
+                                            dataType: 'json',
+                                            async: false,
+                                            success: function(data) {
+                                                var resultNum = data["query"]["searchinfo"]["totalhits"];
+                                                if( resultNum == 1 ) {
+                                                    var resultsArr = data["query"]["search"],
+                                                        mdbPageId = resultsArr[0].pageid;
+
+                                                    if( mdbPageId ) {
+                                                        var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
+                                                        wrapper.append( input );
+                                                    } else {
+                                                        wrapper.append( "&ndash;" );
+                                                    }
+                                                } else {
+                                                    log( "resultNum not 1: " + resultNum );
+                                                    wrapper.append( "&ndash;" );
+                                                }
+                                            }
+                                        }); // end ajax
                                     }
                                 }
                             }
@@ -166,7 +202,7 @@ function checkTidIntegration( playerUrl="", mdbPageId="", action="", wrapper="",
                     dataType: 'json',
                     async: true,
                     success: function(data) {
-                        checkTidIntegration( playerUrl, mdbPageId, "check", wrapper );
+                        checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper );
                     }
                 });
                 break;
