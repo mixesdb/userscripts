@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.29.5
+// @version      2025.03.30.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -527,19 +527,32 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
         // gaps
         // add "..." row if gap is too laarge
-        if (!$(this).is(':last-child')) {
+        if( !$(this).is(':last-child') ) {
             // not last track
             gapSec = startTimeNext_Sec - endTime_Sec;
-            //log( "> endTime: " + endTime );
-            //log( "> next startTime: " + startTimeNext );
-            //log( "> gapSec: " + gapSec );
+            log( "-------------------------------" );
+            log( "> startTime: " + startTime );
+            log( "> startTime_Sec: " + startTime_Sec );
+            log( "> endTime: " + endTime );
+            log( "> next startTime: " + startTimeNext );
+            log( "> gapSec: " + gapSec );
 
-            if (gapSec > 30) {
-                tl += "\n[" + endTime + "] ?";
-                if (gapSec > 180) {
-                    tl += "\n...";
+            // TID end times sometimes before start time
+            // https://trackid.net/audiostreams/b5096745-56ad-4d4d-af61-8d16e32e0521
+            // don't create next "[dur] ?" tracks then
+            if( endTime_Sec < startTime_Sec ) {
+                log( "Negative gapSec! " + endTime_Sec + " / " + startTime_Sec );
+                tl += "\n...";
+
+            } else {
+                if( gapSec > 30 ) {
+                    tl += "\n[" + endTime + "] ?";
+                    if (gapSec > 180) {
+                        tl += "\n...";
+                    }
                 }
             }
+
             tl += "\n";
 
         } else {
