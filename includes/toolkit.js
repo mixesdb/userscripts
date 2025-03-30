@@ -252,7 +252,7 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
 
 // containsSpecialCharacters
 function containsSpecialCharacters( text ) {
-    var regex = /^[a-zA-Z0-9-_\/]+$/;
+    var regex = /^[a-zA-Z0-9-_\/.]+$/;
     return !regex.test( text );
 }
 
@@ -260,13 +260,13 @@ function containsSpecialCharacters( text ) {
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    // Do not search with quotes, otherwise special characters in player URLs are not found
-    
+    // Quotes are needed to avoid false results
+    // but with quotes special characters in URLs are not found…    
     if( containsSpecialCharacters(thisUrl) ) {
         // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan
         return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
     } else {
-        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22soundcloud.com/claptone/clapcast-499%22
+        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22soundcloud.com/claptone/clapcast-499
         return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:"'+keywords+'"';
     }
 }
