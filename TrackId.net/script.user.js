@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.30.3
+// @version      2025.03.30.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 79,
+    cacheVersion = 80,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -163,7 +163,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             // Add checkbox in tables for certain users
                                             var currentUsername = $(".user-name").text();
 
-                                            if( currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
+                                            if( currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
                                                 var status_td = wrapper.prev("td.status"),
                                                     status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
@@ -196,7 +196,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                         mdbPageId = resultsArr[0].pageid,
                                                         currentUsername = $(".user-name").text();
 
-                                                    if( mdbPageId && currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
+                                                    if( mdbPageId && currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
                                                         var status_td = wrapper.prev("td.status"),
                                                             status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 

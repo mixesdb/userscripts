@@ -157,7 +157,7 @@ table.mdb-tid-table {
 .MuiTablePagination-toolbar,
 .MuiTablePagination-toolbar > p,
 .MuiTablePagination-toolbar > div {
-	display: inline !important;
+	/* display: inline !important; */ /* AVOID FLASHING */
 	position: inherit !important;
 	padding-left: 0;
 }
