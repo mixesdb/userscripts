@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.30.1
+// @version      2025.03.30.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -110,10 +110,17 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                 var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
 
                                 if( lastCheckedAgainstMixesDB != null ) {
-                                    log( "Saved as integrated (mdbPageId: " +mdbPageId+ ")" );
-
+                                    log( "Is marked as integrated (mdbPageId: " +mdbPageId+ ")" );
                                     $("input", wrapper).replaceWith(checkIcon);
 
+                                    // rpelace (?) tooltip with time ago info
+                                    var checked_ago = $.timeago( lastCheckedAgainstMixesDB ).replace( /^about /i, "" ),
+                                        checked_ago_text = "(" + mdbTooltip(checked_ago, lastCheckedAgainstMixesDB) + ")";
+                                    logVar( "checked_ago", checked_ago );
+
+                                    if( checked_ago ) $("label", wrapper).next("span.mdb-tooltip").replaceWith( checked_ago_text );
+
+                                    // show
                                     wrapper.addClass("integrated").show();
                                 } else {
                                     wrapper.show();
@@ -529,19 +536,19 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         // add "..." row if gap is too laarge
         if( !$(this).is(':last-child') ) {
             // not last track
-            gapSec = startTimeNext_Sec - endTime_Sec;
-            log( "-------------------------------" );
-            log( "> startTime: " + startTime );
-            log( "> startTime_Sec: " + startTime_Sec );
-            log( "> endTime: " + endTime );
-            log( "> next startTime: " + startTimeNext );
-            log( "> gapSec: " + gapSec );
+            var gapSec = startTimeNext_Sec - endTime_Sec;
+            //log( "-------------------------------" );
+            //log( "> startTime: " + startTime );
+            //log( "> startTime_Sec: " + startTime_Sec );
+            //log( "> endTime: " + endTime );
+            //log( "> next startTime: " + startTimeNext );
+            //log( "> gapSec: " + gapSec );
 
             // TID end times sometimes before start time
             // https://trackid.net/audiostreams/b5096745-56ad-4d4d-af61-8d16e32e0521
             // don't create next "[dur] ?" tracks then
             if( endTime_Sec < startTime_Sec ) {
-                log( "Negative gapSec! " + endTime_Sec + " / " + startTime_Sec );
+                log( "Negative gapSec!" );
                 tl += "\n...";
 
             } else {
