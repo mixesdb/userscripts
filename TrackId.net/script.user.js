@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.30.2
+// @version      2025.03.30.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -113,14 +113,23 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                     log( "Is marked as integrated (mdbPageId: " +mdbPageId+ ")" );
                                     $("input", wrapper).replaceWith(checkIcon);
 
-                                    // rpelace (?) tooltip with time ago info
-                                    var checked_ago = $.timeago( lastCheckedAgainstMixesDB ).replace( /^about /i, "" ),
+                                    /*
+                                     * replace (?) tooltip with time ago info
+                                     */
+                                    var timestamp_ago = lastCheckedAgainstMixesDB;
+
+                                    // convert "2025-03-30 12:01:56" to "2025-03-30T12:01:56Z"
+                                    if( /^.+ .+$/.test( timestamp_ago ) ) {
+                                        timestamp_ago = timestamp_ago.replace( " ", "T" ) +  "Z";
+                                    }
+
+                                    var checked_ago = $.timeago( timestamp_ago ).replace( /^about /i, "" ),
                                         checked_ago_text = "(" + mdbTooltip(checked_ago, lastCheckedAgainstMixesDB) + ")";
                                     logVar( "checked_ago", checked_ago );
 
                                     if( checked_ago ) $("label", wrapper).next("span.mdb-tooltip").replaceWith( checked_ago_text );
 
-                                    // show
+                                    /* show */
                                     wrapper.addClass("integrated").show();
                                 } else {
                                     wrapper.show();
