@@ -93,8 +93,13 @@ function urlPath(n) {
 
 // urlPath_noParams
 function urlPath_noParams(n) {
-    return $(location).attr('href').split('/')[n+2]
-            .replace( /\?.+$/, "" );
+    var output = "";
+
+    if( urlPath(n) ) {
+        output = urlPath(n).replace( /\?.+$/, "" );
+    }
+
+    return output;
 }
 
 var domain = urlPath(0).replace(/.+\.(.+\.[a-z0-9]+)/gi, '$1'),
