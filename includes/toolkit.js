@@ -250,9 +250,10 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
     return keywords;
 }
 
+// containsSpecialCharacters
 function containsSpecialCharacters( text ) {
     var regex = /^[a-zA-Z0-9-_\/]+$/;
-    return !regex.test(slug);
+    return !regex.test( text );
 }
 
 // apiUrl_searchKeywords_fromUrl
