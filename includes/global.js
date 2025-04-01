@@ -132,28 +132,17 @@ function normalizePlayerUrl( playerUrl ) {
 }
 
 // urlIsTidSubmitCompatible
-function urlIsTidSubmitCompatible( thisUrl ) {
-    var thisUrl_domain = getDomain_fromUrlStr( thisUrl );
+function urlIsTidSubmitCompatible( input ) {
+    const compatibleDomains = ["soundcloud.com", "mixesdb.com", "hearthis.at", "youtube.com"];
 
-    switch( thisUrl_domain ) {
-        case "hearthis.at":
-            return true;
-            break;
-        case "mixcloud.com":
-            return true;
-            break;
-        case "soundcloud.com":
-            return true;
-            break;
-        case "youtube.com":
-            return true;
-            break;
-        case "youtu.be":
-            return true;
-            break;
-        default:
-            return false;
+    try {
+        const url = new URL(input);
+        input = url.hostname; // Extract domain from URL
+    } catch (e) {
+        // Input is not a URL, assume it's a domain
     }
+
+    return compatibleDomains.includes(input.toLowerCase());
 }
 
 // makeTidSubmitUrl
@@ -208,25 +197,6 @@ function getYoutubeIdFromUrl(url){
     var match = url.match( ytId_rx );
 
     return ( match && match[1].length == 11 ) ? match[1] : false;
-}
-
-/*
- * isTidCompatible
- * console.log(visitDomain_isTidCompatible("soundcloud.com")); // true
- * console.log(visitDomain_isTidCompatible("https://www.youtube.com/watch?v=dQw4w9WgXcQ")); // true
- * console.log(visitDomain_isTidCompatible("example.com")); // false
- */
-function isTidCompatible(input) {
-    const compatibleDomains = ["soundcloud.com", "mixesdb.com", "hearthis.at", "youtube.com"];
-
-    try {
-        const url = new URL(input);
-        input = url.hostname; // Extract domain from URL
-    } catch (e) {
-        // Input is not a URL, assume it's a domain
-    }
-
-    return compatibleDomains.includes(input.toLowerCase());
 }
 
 
