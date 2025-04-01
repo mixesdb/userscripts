@@ -1,5 +1,29 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Funcs that cannot live in global.js
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * changeYoutubeUrlVariant - cannot live in global.js!
+ */
+function changeYoutubeUrlVariant(url, variant = "youtube.com") {
+    let videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+
+    if (!videoIdMatch) return null; // Return null if no valid YouTube ID found
+
+    let videoId = videoIdMatch[1];
+
+    if (variant === "youtu.be") {
+        return 'https://youtu.be/'+videoId;
+    } else {
+        return 'https://www.youtube.com/watch?v='+videoId;
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Grab URLs from player iframes
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
