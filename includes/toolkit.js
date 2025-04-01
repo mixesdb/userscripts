@@ -262,7 +262,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
     // Quotes are needed to avoid false results
-    // but with quotes special characters in URLs are not found…    
+    // but with quotes special characters in URLs are not found…
     if( containsSpecialCharacters(keywords) ) {
         // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan
         return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
@@ -670,20 +670,16 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             }
         }).done(function(data) {
             /*
-             * fill the tidSubmit li with text link
-             * on player sites like SC, MC
+             * add TID link
              */
-            if( visitDomain == "hearthis.at" || visitDomain == "youtube.com" ) {
-                var tidLink = makeTidSubmitLink( thisUrl_forApi, titleText, "text" ),
-                    li_tidSubmit = $("li.mdb-toolkit-tidLink");
-
-                if( tidLink && $("a", li_tidSubmit).length == 0 ) {
-                    li_tidSubmit.append( tidLink ).addClass("filled");
-                }
+            if( urlIsTidSubmitCompatible( location.href ) ) {
+                toolkit_addTidLink( thisUrl_forApi, titleText );
+            } else {
+                log( "Not TID compatible: " + location.href );
             }
 
             /*
-             * cleanup
+             * Cleanup
              * last ieration recognition
              */
             var cleanup = 1; // disable to debug toolkit output
@@ -890,7 +886,7 @@ function reorderToolkitItems() {
 }
 
 
-/* 
+/*
  * toolkit_tidLastCheckedText
  */
 function toolkit_tidLastCheckedText( timestamp ) {
@@ -934,7 +930,7 @@ function toolkit_addTidLink( playerUrl, title ) {
                 if( ( data.error && data.error.code == "notfound" )  ) {
                     // no result
                     var keywords = normalizeTitleForSearch( title ),
-                        tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text" );
+                        tidLink = makeTidSubmitLink( playerUrl, keywords, "text" );
                     if( tidLink ) {
                         jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
                     }
