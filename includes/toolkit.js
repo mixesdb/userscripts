@@ -911,7 +911,12 @@ function toolkit_tidLastCheckedText( timestamp ) {
  * also check MixesDB integration
  */
 function toolkit_addTidLink( playerUrl, title ) {
-    // Add TID link to toolkit
+    // convert YouTbe URLs to watch variant since TID stores them as such
+    if( getDomain_fromUrlStr(playerUrl) == "youtu.be" ) {
+        playerUrl = changeYoutubeUrlVariant( playerUrl, "youtube.com")
+    }
+
+    // Wait for toolkit
     waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
         var apiQueryUrl_check = apiUrl_mw;
         apiQueryUrl_check += "?action=mixesdbtrackid";
