@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_25
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit__.js?v-Mixcloud_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_189
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -27,7 +27,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 11,
+    cacheVersion = 12,
     scriptName = "Mixcloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";

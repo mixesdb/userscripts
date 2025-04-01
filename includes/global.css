@@ -228,6 +228,7 @@ textarea.mono {
     
         & li {
             margin: .3rem 0;
+            line-height: 1.4em;
             
             & ul {
                 margin: .33rem 0;
@@ -350,6 +351,10 @@ textarea.mono {
         border: 0;
         width: inherit;
         font-size: 15px !important;
+    }
+
+    & li img.mdb-checked-icon {
+        padding-bottom: 3px;
     }
 }
 
@@ -492,24 +497,29 @@ textarea.mono {
         width: 13px;
         margin: 1px 4px -1px 5px;
     }
-    
 }
 
 
 /*
  * Bright websites
  */
-body.soundcloud-com,
-body.mixcloud-com {
+#mdb-toolkit.soundcloud-com,
+#mdb-toolkit.mixcloud-com {
+    & #mdbTrackidCheck-wrapper {
+        color: #75b224 !important;
+    }
+}
+
+/* 
+ * Dark websites
+ */
+#mdb-toolkit.hearthis-at,
+#mdb-toolkit.youtube-com {
     & #mdbTrackidCheck-wrapper {
         color: #8cc73f !important;
     }
 }
 
-
-/* 
- * Dark websites
- */
 #mdb-toolkit.thousandandonetracklists-com,
 #mdb-toolkit.trackid-net,
 #mdb-toolkit.youtube-com {
