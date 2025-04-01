@@ -1,31 +1,22 @@
 // ==UserScript==
-// @name         SoundCloud (by MixesDB)
+// @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.01.1
+// @version      2025.03.30.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
-// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_28
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_41
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_17
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
-// @include      http*soundcloud.com*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_88
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_52
+// @include      http*trackid.net*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
-// @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
-
-
-/*
- * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
- */
-redirectOnUrlChange( 50 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -34,10 +25,9 @@ redirectOnUrlChange( 50 );
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 var dev = 0,
-    cacheVersion = 27,
-    scriptName = "SoundCloud",
+    cacheVersion = 81,
+    scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
 
@@ -51,597 +41,797 @@ loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var scAccessToken;
+var timeoutDelay = 600,
+    ta = '<div id="tlEditor"><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>',
+    checkIcon = '<img class="mdb-checked-icon" src="data:image/png;base64,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" alt="Checked">';
 
-const fast = 200,
-      soundActionFakeButtonClass = 'sc_button-mdb sc-button-secondary sc-button sc-button-medium mdb-item',
-      current_url = location.href;
-
-// url parameters
-var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
-    getHideReposts = getURLParameter("hideReposts") == "true" ? "true" : "false",
-    getHideFav = getURLParameter("hideFav") == "true" ? "true" : "false",
-    getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false";
-
-logVar( "getHidePl", getHidePl );
-logVar( "getHideReposts", getHideReposts );
-logVar( "getHideFav", getHideFav );
-logVar( "getHideUsed", getHideUsed );
-
-// On set pages show only some filter options and hide list items, not players
-// https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
-const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false;
-logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Artwork
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
-    if( urlPath(2) && urlPath(2) != "sets" ) {
-        //log( location.href );
-
-        // Artwork link tzo original
-        var artworkWrapper = $(".listenArtworkWrapper"),
-            artwork_url = $(".sc-artwork", artworkWrapper).html().replace(/.+&quot;(htt.+(?:jpg|png)).+/, "$1");
-        log( artworkWrapper.html() );
-        logVar( "artwork_url", artwork_url );
-        if( typeof artwork_url  !== "undefined" ) {
-            append_artwork( artwork_url );
-        }
-    }
+// select elements
+waitForKeyElements(".mdb-element.select", function( jNode ) {
+    jNode.select().focus();
 });
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Favorite button
- *
- * TODO:
- * Enable in playlists https://soundcloud.com/resident-advisor
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// soundList__item
-waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
-    // is favorited
-    if( jNode.hasClass("sc-button-selected") ) {
-        var title = jNode.closest(".soundList__item").find(".soundTitle__title");
-        log( "Favorite found: " + title.text() );
-
-        // Highlight player title if favorited
-        title.addClass("mdb-darkorange");
-
-        // Hiding option: remove faved player
-        removeFavedPlayer_ifOptedIn( jNode );
-    }
-
-    // mark as processed
-    jNode.addClass("mdb-processed-favorited");
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Links in playlist sets
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// player links and link buttons
-// https://soundcloud.com/resident-advisor/sets/ra-podcast
-waitForKeyElements(".listenDetails__trackList li a.trackItem__trackTitle", playlistSetsCaseOne );
-waitForKeyElements(".systemPlaylistTrackList__list li a.trackItem__trackTitle", playlistSetsCaseOne );
-function playlistSetsCaseOne( jNode ) {
-    var playerUrlFixed = linkRemoveSetParameter( jNode.attr("href") );
-
-    jNode.attr( "href", playerUrlFixed )
-         .attr( "target", "_blank" )
-         .attr( "title", playerUrlFixed+" (opens in a new tab)" );
-
-    // Hiding option: each used player in li.trackList__item
-    if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players in sets" );
-
-        var wrapper = jNode.closest("li.trackList__item"),
-            playerUrl = "soundcloud.com" + jNode.attr("href");
-        //logVar( "trackList__item playerUrl", playerUrl );
-
-        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
-    }
-}
-
-// Compact playlists
-// https://soundcloud.com/resident-advisor
-waitForKeyElements(".compactTrackList__listWrapper li.compactTrackList__item span.compactTrackListItem__trackTitle", function( jNode ) {
-    var playerUrlFixed = linkRemoveSetParameter( jNode.attr( "data-permalink-path") );
-
-    jNode.after( '<a href="'+playerUrlFixed+'" title="'+playerUrlFixed+' (opens in a new tab)" target="_blank" class="mdb-element mdb-copyLink sc-link-dark sc-link-primary sc-font-light">Link</a>' );
-});
-
-// .copyLink on click open new tab
-waitForKeyElements(".mdb-copyLink", function( jNode ) {
-    jNode.click(function(){
-        var url = $(this).attr("href");
-        window.open( url, "_blank" );
-    });
-
-    // Hiding option: each used player in li.compactTrackList__item
-    /* TOO EXPENSIVE ON https://soundcloud.com/resident-advisor/sets
-    if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players in li.compactTrackListItem" );
-
-        var wrapper = jNode.closest("li.compactTrackList__item"),
-            playerUrl = "soundcloud.com" + jNode.attr("href");
-
-        logVar( "li.compactTrackList__item playerUrl", playerUrl );
-
-        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
-    }
-    */
-});
-
-// button to copy link (no href)
-// hide it (would copy url with in parameter)
-waitForKeyElements(".listenDetails__trackList li a.trackItem__trackTitle", function( jNode ) {
-    jNode.hide();
-});
-waitForKeyElements(".listenDetails__trackList li button.sc-button-copylink", function( jNode ) {
-    jNode.remove(); // hide() would make it flash on playlist pages
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Favorited buttons
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// if favorited before, show hidden soundActions
-waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", function( jNode ) {
-    jNode.css('margin-left','.5rem').show();
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * [X] remove button
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// if favorited before, show hidden soundActions
-waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
-    var removeItem = '<div class="mdb-removeItem hand sc-text-grey" title="Remove the player (this session only)">X</div>';
-    jNode.append( removeItem );
-});
-
-// on click
-// scrolling is needed because it wouldn't load more when all visible are removed
-waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
-    $(".mdb-removeItem").click(function(){
-        log( "click remove" );
-
-        // keep lazy loading active
-        $(".lazyInfo").remove();
-        $(".lazyLoadingList__list, .userStream__list .soundList").after('<div style="text-align:center; margin-bottom:20px" class="lazyInfo">Problems loading more players? Try scrolling up and down.</div>');
-
-        var y = $(window).scrollTop();
-        $("html, body").animate({scrollTop:y + 1}, 0);
-        $(this).closest('.soundList__item').remove();
-        var y = $(window).scrollTop();
-        $("html, body").delay(2).animate({scrollTop:y - 1}, 2);
-
-        if( $(".paging-eof").is(':visible') ) {
-            $('.lazyInfo').remove();
-        }
-
-        // remove
-        $(this).closest(".soundList__item").remove();
-    });
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Hide options
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// lazy loading lists (streams and feed)
-waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
-waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
-waitForKeyElements(".soundList.lazyLoadingList", lazyLoadingList);
-waitForKeyElements(".trackList.lazyLoadingList", lazyLoadingList);
-
-function lazyLoadingList(jNode) {
-    logFunc( "lazyLoadingList" );
-
-    // add checkboxes
-    if( $("#mdb-streamActions").length === 0 ) {
-        jNode.before('<div id="mdb-streamActions" class="sc-text-grey"></div>');
-
-        // vars
-        var sa = $("#mdb-streamActions"),
-            checkedPl = "checked",
-            checkedReposts = "",
-            checkedFav = "",
-            checkedUsed = "";
-        if( getHidePl == "false" ) checkedPl = '';
-        if( getHideReposts == "true" ) checkedReposts = 'checked';
-        if( getHideFav == "true" ) checkedFav = 'checked';
-        if( getHideUsed == "true" ) checkedUsed = 'checked';
-
-        // Display filter options per tab type
-        sa.append('<span class="mdb-darkorange">Hide:</span>');
-        if( !isSetPage ) {
-            sa.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
-            sa.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
-            sa.append('<label class="pointer" title="Hide player that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
-        }
-        // Not on Playlists tab, e.g. https://soundcloud.com/resident-advisor/sets
-        // but allow on playlist page, e.g. https://soundcloud.com/resident-advisor/sets/ra-podcast
-        if( !isSetPage || isSetPage && typeof( urlPath(3) ) != "undefined" ) {
-             sa.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
-        } else {
-            sa.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
-        }
-    }
-
-    // reload
-    var windowLocation = window.location,
-        href = $(location).attr('href');
-
-    if( typeof href != "undefined" ) {
-        var url = href.replace(/\?.*$/g,"");
-    }
-
-    if( typeof url != "undefined" ) {
-        $("#hidePl").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
-                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
-        }});
-        $("#hideReposts").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
-        }});
-        $("#hideFav").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false&hideUsed="+getHideUsed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true&hideUsed="+getHideUsed;
-        }});
-        $("#hideUsed").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=false";
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=true";
-        }});
-    }
-}
-
-// Pass URL parameters for hiding options to user profile tabs
-waitForKeyElements(".userInfoBar__tabs ul", function( jNode ) {
-    $("a.g-tabs-link", jNode).each(function(){
-        var link = $(this),
-            href = link.attr("href"),
-            hidingParams = location.search;
-
-        logVar( "hidingParams", hidingParams );
-
-        if( /.*hidePl.*/.test(hidingParams) ) {
-            var href_hidingParams = href + hidingParams;
-            link.attr( "href", href_hidingParams );
-        }
-    });
-});
-
-// Hiding option: each playlist
-waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
-    if( getHidePl == "true" ) {
-        log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
-    }
-});
-
-// Hiding option: each repost player
-waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
-    if( getHidePl == "true" ) {
-        log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
-    }
-});
-
-// Hiding option: each fFaved players > on waitForKeyElements fav button
-
-// Hiding option: each used player in li.soundList__item
-waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
-    if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players in li.soundList__item" );
-
-        var wrapper = jNode.closest("li.soundList__item"),
-            playerUrl = "soundcloud.com" + jNode.attr("href");
-
-        logVar( "li.soundList__itemplayerUrl", playerUrl );
-
-        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
-    }
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Player page / features using SC API
- * like soundAactions buttons and upload date
+ * mdbTrackidCheck
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * fixDefaultSoundActions
- * Make more space by removing button text for most
+ * checkTidIntegration
+ * save action: the mix page reference takes params page_id, dbKey, title
  */
-waitForKeyElements(".soundActions", function( jNode ) {
-    logFunc( "fixDefaultSoundActions" );
-    $(".sc-button-like", jNode).text("");
-    $(".sc-button-repost", jNode).text("");
-    $(".sc-button-share", jNode).text("");
-    $(".sc-button-copylink", jNode).text("");
-    $(".sc-button-more", jNode).text("");
-    $(".sc-button-queue", jNode).text("");
+function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page" ) {
+    logFunc( "checkTidIntegration" );
+    logVar( "action", action );
+    logVar( "tidPlayerUrl", tidPlayerUrl );
+    logVar( "wrapper", wrapper.html() );
 
-    var buyLink = $(".soundActions__purchaseLink", jNode);
-    if( buyLink.length !== 0 ) {
-        var buyLink_href = fixScRedirectUrl( buyLink.attr("href") ),
-            buyLink_text = buyLink.text();
+    if( tidPlayerUrl && tidPlayerUrl != "" && typeof(tidPlayerUrl) !== "undefined" && tidPlayerUrl != "undefined" ) {
+        var apiQueryUrl_check = apiUrl_mw;
+        apiQueryUrl_check += "?action=mixesdbtrackid";
+        apiQueryUrl_check += "&format=json";
+        apiQueryUrl_check += "&url=" + tidPlayerUrl;
 
-        buyLink.remove();
-        jNode.append( '<button class="'+soundActionFakeButtonClass+'"><a href="'+buyLink_href+'" target="_blank">Link: '+buyLink_text+'</a></button>' );
-    }
-});
+        var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + mdbPageId;
 
-/*
- * Call API
- */
-// run all this only once
-var RUN_sc_button_group = true;
+        // waiter
+        if( target == "table" ) {
+            var waiter = $("waiter", wrapper);
+        }
 
-waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function( jNode ) {
-    if( RUN_sc_button_group ) {
-        RUN_sc_button_group = false;
+        // by action
+        switch( action ) {
+            // check
+            case "check":
+                logVar( "apiQueryUrl_check", apiQueryUrl_check );
 
-        if( urlPath(2) != "sets" ) {
+                $.ajax({
+                    url: apiQueryUrl_check,
+                    type: 'get', /* GET on checking */
+                    dataType: 'json',
+                    async: true,
+                    success: function(data) {
+                        // avoid undefined error
+                        if( data.error && data.error.code == "notfound" ) {
+                            if( target == "audiostream page" ) {
+                                wrapper.html('Marking this as integrated is not possible yet.').show();
+                            }
+                            if( target == "table" ) {
+                                waiter.remove();
+                                wrapper.append( '<span class="tooltip-title" title="TrackId.net page not found (recently created?)">&ndash;</span>' );
+                            }
+                        // if no error
+                        } else {
+                            var checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
+                                checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
 
-            logFunc( "Player page / sound action buttons" );
+                            if( checked_pageId == mdbPageId ) {
+                                var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
 
-            // API call
-            getScAccessTokenFromApi(function(output){
-                scAccessToken = output;
-                logVar( "scAccessToken", scAccessToken );
+                                if( lastCheckedAgainstMixesDB != null ) {
+                                    log( "Is marked as integrated (mdbPageId: " +mdbPageId+ ")" );
+                                    $("input", wrapper).replaceWith(checkIcon);
 
-                if( scAccessToken != "null" ) {
-                    // Call API on current page
-                    var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
-                    logVar( "currentTrack_id", currentTrack_id );
-                    var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
-                    //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
+                                    var checked_ago_text = toolkit_tidLastCheckedText( timestamp_ago );
 
-                    logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
+                                    if( checked_ago_text ) $("label", wrapper).next("span.mdb-tooltip").replaceWith( checked_ago_text );
 
-                    $.ajax({
-                        beforeSend: function(request) {
-                            request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
-                        },
-                        dataType: "json",
-                        url: scApiURl_currentTrack,
-                        success: function( t ) {
-
-                            var kind = t.kind,
-                                id = t.id,
-                                title = t.title,
-                                created_at = formatScDate( t.created_at ),
-                                release_date = formatScDate( t.release_date ),
-                                last_modified = formatScDate( t.last_modified ),
-                                dur_ms = t.duration,
-                                downloadable = t.downloadable,
-                                download_url = t.download_url;
-
-                            logVar( "kind", kind );
-                            logVar( "title", title );
-                            logVar( "downloadable", downloadable );
-
-                            if( kind == "track" ) {
-                                // trackHeader
-                                var soundActions = jNode,
-                                    trackHeader = $("#mdb-trackHeader");
-
-                                if( $("h1", trackHeader).length === 0 ) {
-                                    var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span></h1>';
-
-                                    trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
-                                    trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
-                                    if( release_date != "" ) {
-                                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-releaseDate"><span>Release date:</span> <date id="mdb-trackHeader-date2" class="mdb-selectOnClick hand">'+release_date+'</date></span>';
-                                    }
-                                    if( last_modified != "" ) {
-                                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-lastmodDate"><span>Last modified:</span> <date id="mdb-trackHeader-date3" class="mdb-selectOnClick hand">'+last_modified+'</date></span>';
-                                    }
-                                    trackHeader_content += '</p>';
-
-                                    logVar( "trackHeader_content", trackHeader_content );
-
-                                    trackHeader.append( trackHeader_content );
-
-                                    var dateClass = "highlight mdb-selectOnClick hand";
-                                    if( release_date == "" ) {
-                                        $("#mdb-trackHeader-releaseInfo-createDate date").addClass( dateClass );
-                                    } else {
-                                        $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
-                                    }
+                                    /* show */
+                                    wrapper.addClass("integrated").show();
+                                } else {
+                                    wrapper.show();
                                 }
 
-                                // add toggleTarget
-                                if( $("#mdb-toggle-target").length === 0 ) {
-                                    $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
+                            } else {
+                                // audiostream page
+                                if( target == "audiostream page" ) {
+                                    log( "Not saved as integrated (mdbPageId: " +mdbPageId+ ")" );
+
+                                    $("input", wrapper).removeAttr("checked").prop('checked', false);
+
+                                    wrapper.show();
                                 }
 
-                                // indicate download is available
-                                // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
-                                // therefor rename the dropdown to "DL"
-                                if( downloadable ) {
-                                    $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
-                                }
+                                // tables
+                                if( target == "table" ) {
+                                    waiter.remove();
 
-                                // file details
-                                // TODO: get bytes from download url
-                                if( dur_sec !== null ) {
-                                    if( $("#mdb-fileInfo").length === 0 ) {
-                                        //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
-                                        var bytes = "",
-                                            dur_sec = Math.floor(dur_ms/ 1000),
-                                            durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
-                                            dur = convertHMS( dur_sec );
+                                    if( checked_pageId ) {
+                                        var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+                                        logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
-                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                        if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
+                                            log( "Checked and page found: ("+checked_pageId+")" );
 
-                                        $("#mdb-toggle-target").append( durToggleWrapper );
-                                    }
-                                }
+                                            var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
 
-                                // apiText-toggleButton
-                                //log($("#apiText-toggleButton").length);
-                                if( $("#apiText-toggleButton").length === 0 ) {
-                                    // remove artwork_url
-                                    // add modified artwork url for -original.ext
-                                    var artwork_url = t.artwork_url,
-                                        artwork_url_original_try = artwork_url.replace("-large.", "-original.");
-                                    delete t["artwork_url"];
+                                            wrapper.append( checkedLink );
+                                        } else {
+                                            // Add checkbox in tables for certain users
+                                            var currentUsername = $(".user-name").text();
 
-                                    // move description to end of t array
-                                    var description = t.description;
-                                    delete t["description"];
-                                    t["description"] = description;
+                                            if( currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
+                                                var status_td = wrapper.prev("td.status"),
+                                                    status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
-                                    // move user to end of t array
-                                    var user = t.user;
-                                    delete t["user"];
-                                    t["user"] = user;
+                                                logVar( "status", status );
 
-                                    // build new re-ordered t_new array
-                                    // artwork urls on top
-                                    var t_new = { "artwork_url_original (try)" : artwork_url_original_try };
-                                    t_new["artwork_url"] = artwork_url;
-                                    // add remaining t values
-                                    $.each( t, function(key, value) {
-                                        t_new[key] = value;
-                                    });
-
-                                    // prepare apiText for toggle output
-                                    var apiText = textify( JSON.stringify( t_new, null, "\t" ) ),
-                                        apiTextLinkified = linkify( apiText );
-                                    //logVar( "apiText", apiText );
-
-                                    soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
-                                    $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
-                                }
-
-                                // Add TID link to toolkit
-                                waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {                                    
-                                    var apiQueryUrl_check = apiUrl_mw;
-                                    apiQueryUrl_check += "?action=mixesdbtrackid";
-                                    apiQueryUrl_check += "&format=json";
-                                    apiQueryUrl_check += "&url=" + t.permalink_url;
-                                    
-                                    logVar( "apiQueryUrl_check", apiQueryUrl_check );
-                                    
-                                    $.ajax({
-                                        url: apiQueryUrl_check,
-                                        type: 'get', /* GET on checking */
-                                        dataType: 'json',
-                                        async: true,
-                                        success: function(data) {
-                                            // avoid undefined error
-                                            if( ( data.error && data.error.code == "notfound" )  ) {
-                                                // no result
-                                                var keywords = normalizeTitleForSearch( t.title ),
-                                                    tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text" );
-                                                if( tidLink ) {
-                                                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
+                                                if( status == "Tracklist ready" ) {
+                                                    var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
+                                                    wrapper.append( input );
                                                 }
-                                                // if no error
                                             } else {
-                                                var li_tidLink_out = "",
-                                                    trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
-                                                    lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+                                                wrapper.append( "&ndash;" );
+                                            }
+                                        }
+                                    } else {
+                                        log( "No checked_pageId! Run searchKeywords API for player URL to get the mdbPageId" );
 
-                                                logVar( "trackidurl", trackidurl );
-                                                logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
-                                                
-                                                if( trackidurl ) {
-                                                   li_tidLink_out += '<a href="'+trackidurl+'">This player exists on TrackId.net</a>';
-                                                }
-                                                
-                                                if( lastCheckedAgainstMixesDB ) {
-                                                    li_tidLink_out += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
-                                                }
-                                                
-                                                if( li_tidLink_out != "" ) {
-                                                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+li_tidLink_out+'</li>' ).show();
+                                        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( tidPlayerUrl );
+                                        logVar( "apiQueryUrl", apiQueryUrl );
+
+                                        $.ajax({
+                                            url: apiQueryUrl,
+                                            type: 'get',
+                                            dataType: 'json',
+                                            async: false,
+                                            success: function(data) {
+                                                var resultNum = data["query"]["searchinfo"]["totalhits"];
+                                                if( resultNum == 1 ) {
+                                                    // @TODO DRY
+                                                    var resultsArr = data["query"]["search"],
+                                                        mdbPageId = resultsArr[0].pageid,
+                                                        currentUsername = $(".user-name").text();
+
+                                                    if( mdbPageId && currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
+                                                        var status_td = wrapper.prev("td.status"),
+                                                            status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
+
+                                                        logVar( "status", status );
+
+                                                        if( status == "Tracklist ready" ) {
+                                                            var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
+                                                            wrapper.append( input );
+                                                        } else {
+                                                            wrapper.append( '<span class="tooltip-title" title="Status is not ready">&ndash;</span>' );
+                                                        }
+                                                    } else {
+                                                        wrapper.append( "&ndash;" );
+                                                    }
+                                                } else {
+                                                    log( "resultNum != 1: " + resultNum );
+
+                                                    if( resultNum == 0 ) {
+                                                        wrapper.append( '<span class="tooltip-title" title="No MixesDB mix page found using this player">&ndash;</span>' );
+                                                    }
+                                                    if( resultNum > 1 ) {
+                                                        wrapper.append( '<span class="tooltip-title" title="Bug: Too many results">&ndash;</span>' );
+                                                    }
                                                 }
                                             }
-                                            
-                                            reorderToolkitItems();
-                                        }
-                                    }); // END ajax
-                                }); // END wait "#mdb-toolkit > ul"
+                                        }); // end ajax
+                                    }
+                                }
                             }
-                        },
-                        error: function() {
-                            log( "No track or no API!" );
-                            addApiErrorNote( "unknown error" );
                         }
-                    });
-                } else {
-                    addApiErrorNote( "no access token" );
-                }
-            });
+                    }
+                });
+                break;
+
+            // save
+            case "save":
+                //logVar( "apiQueryUrl_save", apiQueryUrl_save );
+
+                // confirm, disable input
+                $.ajax({
+                    url: apiQueryUrl_save,
+                    type: 'post', /* POST on saving */
+                    dataType: 'json',
+                    async: true,
+                    success: function(data) {
+                        checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper, target );
+                    }
+                });
+                break;
         }
+    }
+}
+
+/*
+ * mdbTrackidCheck-wrapper
+ */
+waitForKeyElements("#mdbTrackidCheck-wrapper", function( jNode ) {
+    // vars
+    var input_mdbTrackidCheck = $("input.mdbTrackidCheck", jNode),
+        input_checked = input_mdbTrackidCheck.attr("checked"),
+        tidPlayerUrl = input_mdbTrackidCheck.attr("data-tidplayerurl"),
+        mdbPageId = input_mdbTrackidCheck.attr("data-mdbpageid");
+
+    logVar( "input_checked", input_checked );
+    logVar( "tidPlayerUrl", tidPlayerUrl );
+    logVar( "mdbPageId", mdbPageId );
+
+    // on load, check
+    checkTidIntegration( tidPlayerUrl, mdbPageId, "check", jNode, "audiostream page" );
+
+    // on click, save
+    input_mdbTrackidCheck.on( "click", function() {
+        logFunc( "mdbTrackidCheck on click" );
+
+        // mark as checked
+        if( input_checked != "checked" && tidPlayerUrl && mdbPageId ) {
+            checkTidIntegration( tidPlayerUrl, mdbPageId, "save", jNode, "audiostream page" );
+        }
+    });
+});
+
+/*
+ * tables
+ */
+waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck", function( jNode ) {
+    var playerUrl = jNode.attr("data-tidplayerurl");
+
+    if( playerUrl != "undefined" ) {
+        checkTidIntegration( playerUrl, null, "check", jNode , "table" );
     }
 });
 
-/*
- * Re-order added soundActsions buttons (async)
- */
-// TID submit to the end
-waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", function( jNode ) {
-    jNode.addClass("moved").appendTo( $(".soundActions") );
-});
+waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck input[type=checkbox]", function( jNode ) {
+    var wrapper = jNode.closest("td.mdbTrackidCheck"),
+        tidPlayerUrl = jNode.attr("data-tidplayerurl"),
+        mdbPageId = jNode.attr("data-mdbpageid");
 
-/*
- * trackHeader
- */
-// Add header from API call
-// Add here instead of after API call for less flashing
-waitForKeyElements(".l-listen-hero", function( jNode ) {
-    var trackHeader = '<div id="mdb-trackHeader"></div>';
-    jNode.before( trackHeader );
+    jNode.on( "click", function() {
+        logVar( "tidPlayerUrl", tidPlayerUrl );
+        logVar( "mdbPageId", mdbPageId );
+
+        if( tidPlayerUrl != "undefined" && mdbPageId != "undefined" ) {
+            checkTidIntegration( tidPlayerUrl, mdbPageId, "save", wrapper, "table" );
+        }
+    });
 });
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Toolkit
+ * Initialize feature functions per url path
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit)", function( jNode ) {
-    if( urlPath(2) && urlPath(2) != "sets" ) {
-        jNode.addClass("mdb-processed-toolkit");
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 20 );
 
-        //var titleText = $('meta[property="og:title"]').text();
-        var titleText = $("h1.soundTitle__title").text();
+/*
+ * grab url path and fire functions
+ */
+d.ready(function(){
+    var contentWrapper = $(".MuiGrid-grid-xs-12"),
+        path1 = window.location.pathname.replace(/^\//, "");
 
-        // get the player URL
-        // DO NOT use location.href as this includes parameters
-        // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
-        var playerUrl = location.protocol + '//' + location.host + location.pathname;
+    logVar( "path1", path1 );
 
-        getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", 1, playerUrl );
+    switch( path1 ) {
+        case "submiturl":
+            on_submitrequest();
+            break;
     }
 });
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Menu
+ * minimal changes only
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+waitForKeyElements(".dashboard", function( jNode ) {
+    var mdbMenu = '<h3 class="mdb-menu-hl">Requests</h3>';
+    mdbMenu += '<ul class="mdb-menu mdb-nolist">';
+    mdbMenu += '<li><a href="/submiturl?from=menu">Submit</a></li>'
+    mdbMenu += '<li><a href="/myrequests?from=menu">My requests</a></li>'
+    mdbMenu += '</ul>'
+
+    jNode.append( mdbMenu );
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * On audiostream pages
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Players
+ */
+// funcTidPlayers
+function funcTidPlayers( jNode, playerUrl, titleText ) {
+    logFunc( "funcTidPlayers" );
+    log(url);
+
+    // get domain
+    var a = document.createElement('a');
+    a.href = playerUrl;
+    var domain = a.hostname.replace("www.", ""),
+        paths = a.pathname;
+    //log("> " + domain);
+    //log("> " + paths);
+
+    // prepare embed code
+    // hearthis.at not possible from provided page url
+    switch (domain) {
+        case "soundcloud.com": // https://soundcloud.com/fingermanedit/fingerman-dj-set-kvs-brussels
+            var embed = '<iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=false&amp;url=' + playerUrl + '&amp;auto_play=false&amp;&amp;maxheight=120&amp;buying=false&amp;show_comments=false&amp;color=ff7700&amp;single_active=true&amp;show_reposts=false"></iframe>';
+            break;
+        case "mixcloud.com": // https://www.mixcloud.com/oldschool/sharam-jey-rave-satellite-1995/
+            var feedPath = encodeURIComponent( paths ),
+                embed = '<iframe width="100%" height="120" src="https://www.mixcloud.com/widget/iframe/?hide_cover=1&feed=' + feedPath + '" frameborder="0" ></iframe>';
+            break;
+        case "youtube.com": // https://www.youtube.com/watch?v=qUUYWIsfY90, https://youtu.be/qUUYWIsfY90
+            var yt_id = getYoutubeIdFromUrl( playerUrl ),
+                embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + yt_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+            break;
+        case "hearthis.at": // https://hearthis.at/toccoscuro/01-manpower-radio1sessentialmix-sat-09-07-2024-talion/
+            var embed = "",
+                wrapper = jNode.closest(".audio-stream-box");
+            embed_hearthis_fromAnyUrl( playerUrl, wrapper, "append" );
+    }
+    //log( embed );
+
+    // embed player
+    $(".mdb-player-audiostream").remove();
+    if( embed != "" ) {
+        // embedded player output
+        var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-tidplayerurl="'+playerUrl+'">' + embed + '</div>';
+        jNode.closest(".audio-stream-box").append( mdbPlayerAndToolkit );
+        jNode.hide();
+    }
+
+    if( playerUrl ) {
+        // toolkit output
+        waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
+            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1 );
+            jNode.addClass("mdb-processed-toolkit");
+        });
+    }
+}
+
+// embed player
+waitForKeyElements(".request-summary img.artwork", function( jNode ) {
+    var playerUrl = jNode.closest("a").attr("href"),
+        heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
+        titleText = normalizeTitleForSearch( heading.text() );
+
+    logVar( "playerUrl", playerUrl );
+
+    if( url != "" ) {
+        funcTidPlayers( jNode, playerUrl, titleText );
+    }
+});
+
+/*
+ * Compare page creation date to MixesDB last edit date
+ * only on positive usage results
+ */
+waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
+    var pageCreationTimestamp = $(".audio-stream-box > div > div > .MuiBox-root:nth-of-type(5) div + div p.MuiTypography-body1").text()
+                                    .trim()
+                                    // d/M/yyyy
+                                    // 1/3/2025, 9:54:50 AM
+                                    .replace(/ (AM|PM)$/i, "" )
+                                    .replace(/(\d+)\/(\d+)\/(\d+), (\d+:\d+:\d+)$/, "$3-$1-$2T$4Z" )
+
+                                    // m+d.M.yyyy
+                                    // 21.1.2025, 13:05:04
+                                    .replace(/(\d+)\.(\d+)\.(\d+), (\d+:\d+:\d+)$/, "$3-$2-$1T$4Z" ) // 18.1.2025, 10:43:21
+
+                                    // pad M-d
+                                    // 2025-1-3T9:54:50Z
+                                    .replace(/(\d{4})-(\d)-/, "$1-0$2-" )
+                                    .replace(/(\d{4})-(\d{2})-(\d)T/, "$1-$2-0$3T" )
+                                ;
+
+    var lastEditTimestamp = jNode.attr("data-lastedittimestamp"); // 2025-01-28T20:26:13Z
+
+    pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp );
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Tables
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Tracklist table
+ * via table .mdb-tid-table
+ */
+// waitForKeyElements
+waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode ) {
+    logFunc( "funcTidTracklist" );
+
+    var tlWrapper = jNode;
+
+    tlWrapper.addClass("tlEditor-processed");
+
+    // hide banner
+    $(".MuiAlert-root.MuiAlert-standardInfo").hide();
+    $(".MuiGrid-container.request-summary").css("margin-top", "0");
+
+    var heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
+        mixTitle = heading.text(),
+        totalDur = $("p.MuiTypography-body1:contains('Duration')").closest("div").next(".MuiGrid-item").text(),
+        totalDur_Sec = durToSec(totalDur);
+    log(mixTitle);
+    logVar( "totalDur", totalDur);
+
+    // iterate
+    var tl = "",
+        li = $("tr", tlWrapper),
+        i = 1;
+
+    logVar("li.length", li.length);
+
+    li.each(function () {
+        var thisTrack = "",
+            artist = $(".artist", this).text(),
+            title = $(".title", this).text().replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)"),
+            label = $(".label", this).text(),
+            startTime = $(".startTime", this).text(),
+            startTime_Sec = durToSec(startTime),
+            endTime = $(".endTime", this).text(),
+            endTime_Sec = durToSec(endTime),
+            previousTrack = $(".MuiDataGrid-row:eq(" + (i - 2) + ")"), // eq starts at 0
+            endTimePrevious = $(".MuiDataGrid-cell[data-field='endTime']", previousTrack).text(),
+            endTimePrevious_Sec = durToSec(endTimePrevious),
+            nextTrack = $(".MuiDataGrid-row:eq(" + (i) + ")"), // eq starts at 0
+            startTimeNext = $(".MuiDataGrid-cell[data-field='startTime']", nextTrack).text(),
+            startTimeNext_Sec = durToSec(startTimeNext);
+
+        title = removeDuplicateBracketedText( title );
+
+        //logVar( "artist", artist );
+        //logVar( "title", title );
+
+        // remove label when its actually the artist repeated
+        if (label == artist) {
+            label = "";
+        }
+
+        // dur
+        if (startTime !== "") {
+            // first track is gap?
+            if (i == 1) {
+                // start tl with gap when first dur is larger than 120(?)
+                if (startTime_Sec > 120) {
+                    tl += '[0:00:00] ?\n...\n';
+                }
+            }
+            thisTrack += '[' + startTime + '] ';
+        }
+
+        // artist - title
+        if (artist && title !== "") {
+            thisTrack += artist + ' - ' + title;
+        }
+
+        // label
+        if (label !== "") {
+            thisTrack += ' [' + label + ']';
+        }
+
+        tl += thisTrack;
+        //logVar( "thisTrack", thisTrack );
+
+        // gaps
+        // add "..." row if gap is too laarge
+        if( !$(this).is(':last-child') ) {
+            // not last track
+            var gapSec = startTimeNext_Sec - endTime_Sec;
+            //log( "-------------------------------" );
+            //log( "> startTime: " + startTime );
+            //log( "> startTime_Sec: " + startTime_Sec );
+            //log( "> endTime: " + endTime );
+            //log( "> next startTime: " + startTimeNext );
+            //log( "> gapSec: " + gapSec );
+
+            // TID end times sometimes before start time
+            // https://trackid.net/audiostreams/b5096745-56ad-4d4d-af61-8d16e32e0521
+            // don't create next "[dur] ?" tracks then
+            if( endTime_Sec < startTime_Sec ) {
+                log( "Negative gapSec!" );
+                tl += "\n...";
+
+            } else {
+                if( gapSec > 30 ) {
+                    tl += "\n[" + endTime + "] ?";
+                    if (gapSec > 180) {
+                        tl += "\n...";
+                    }
+                }
+            }
+
+            tl += "\n";
+
+        } else {
+            // last track
+            //log( "> last track" );
+            //log( "> lastTrack_gap: " + lastTrack_gap );
+            var lastTrack_gap = totalDur_Sec - endTime_Sec;
+            //log( "> lastTrack_gap: " + lastTrack_gap );
+
+            // is the last track close to end or possible gap?
+            if (lastTrack_gap > 70) {
+                tl += "\n[" + endTime + "] ?";
+            }
+            if (lastTrack_gap > 240) {
+                tl += "\n...";
+            }
+        }
+
+        i++;
+    });
+
+    // API
+    tl = tl.trim();
+
+    log("tl before API:\n" + tl);
+
+    if (tl !== "") {
+
+        var res = apiTracklist( tl, "trackidNet" ),
+            tlApi = res.text;
+        log( "tlApi:\n" + tlApi );
+
+        if (tlApi) {
+            tlWrapper.before(ta);
+            $("#mixesdb-TLbox").val(tlApi);
+            fixTLbox(res.feedback);
+        }
+    } else {
+        log("tl empty");
+    }
+});
+
+
+/*
+ * Fix ugly grid layout to proper tables
+ */
+
+// waitForKeyElements
+waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.processed)", function( jNode ) {
+    jNode.addClass("processed");
+    setTimeout(function () {
+        funcTidTables( jNode.closest(".MuiDataGrid-main") );
+    }, timeoutDelay);
+});
+$(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on("change", function() {
+    jNode.addClass("processed");
+    setTimeout(function () {
+        funcTidTables( $(this).closest(".MuiDataGrid-main") );
+    }, timeoutDelay);
+});
+
+// funcTidTables
+function funcTidTables(jNode) {
+    logFunc( "funcTidTables" );
+
+    $(".mdb-tid-table").remove();
+
+    var audiostreams = [],
+        heading = $(".MuiGrid-grid-xs-12 p.MuiTypography-body1"),
+        grid = $(".data-grid", jNode).add(".MuiDataGrid-root");
+
+    if (grid.length == 1 && grid.is(":visible")) {
+        var tableClass = heading.text().replace(/ /g, ""),
+            path = location.pathname.replace(/^\//, "");
+        grid.before('<table class="mdb-tid-table ' + tableClass + ' ' + path + '"><tbody></tbody></table>');
+        var tbody = $(".mdb-tid-table tbody");
+
+        $(".MuiDataGrid-columnHeader", grid).each(function () {
+            var text = $(this).text().replace(/ /g, "").replace("CreatedOn", "Created on").replace("RequestedOn", "Requested on").replace("RequestedBy", "Requested by"),
+                textId = $(this).attr("data-field");
+            if (textId == "#") textId = "Index";
+            if (textId) {
+                tbody.append('<th id="' + textId + '">' + text + '</th>');
+            }
+        });
+
+        tbody.append('<th class="mdbTrackidCheck">MixesDB<br />integration</th>');
+
+        $(".MuiDataGrid-row").each(function () {
+            //log("get urls" + $(this).html());
+
+            var rowId = $(this).attr("data-id"),
+                listItemLink = $(".MuiDataGrid-cell--textLeft[data-colindex=2] a.white-link", this);
+
+            if (typeof listItemLink.attr("href") !== "undefined") {
+                var rowUrl = listItemLink.attr("href").replace(/^\//, ""),
+                    urlSplit = rowUrl.split("/"),
+                    urlType = urlSplit[0].replace(/s$/, ""), // musictrack or audiostream
+                    urlValue = urlSplit[1];
+            }
+
+            if (urlValue) {
+                switch (urlType) {
+                    case "audiostream":
+                        audiostreams.push(urlValue);
+                        break;
+                }
+            }
+
+            // each gridd cell
+            tbody.append('<tr id="' + rowId + '" data-' + urlType + '="' + urlValue + '"></tr>');
+            var thisTr = $("tr#" + rowId + "");
+
+            $(".MuiDataGrid-cell", this).each(function () {
+                var cellClass = $(this).attr("data-field"),
+                    cellContent = $(this).html(),
+                    contOutput = true,
+                    playWrapper = $(this).closest('div.MuiDataGrid-row');
+                cellContent = $(this).html();
+
+                if (contOutput && cellContent) {
+                    thisTr.append('<td class="' + cellClass + '">' + cellContent + '</td>');
+                }
+            });
+
+            // mdbTrackidCheck
+            var thisPlayerUrl = $(".AudioStreamType", thisTr).find("a").attr("href");
+            thisTr.append('<td class="mdbTrackidCheck" data-tidplayerurl="' + thisPlayerUrl + '"><waiter>…</waiter></td>');
+        });
+
+        // hide grid but keep page navigation
+        $(".MuiTablePagination-toolbar").insertAfter($(".mdb-tid-table"));
+
+        // on audio pages hide the play button doesn't work in the copied tracklist table
+        // but it is needed to generate the formatted tracklist textarea
+        // so we hide the table and add the youtube search icon to the existing grid.
+        if( urlPath(1) == "audiostreams" ) {
+            $(".mdb-tid-table").fadeOut(300); // needs to be visible shortly for tracklist textarea generation
+            grid.show();
+
+            // add youtube search icon to grid
+            // @TODO: What did I mena here?
+        } else {
+            // @TODO: Only show if opted in by new cookie option
+            if( !/audiostreams\?keywords.+/g.test( urlPath(1) )  ) {
+                grid.addClass('mdb-hide');
+            }
+        }
+
+        // remove empty th
+        //if( !addPlay ) $(".mdb-tid-table tbody th:first-of-type").remove();
+    }
+
+    //log("audiostreams: " + audiostreams);
+    //log("> length: " + audiostreams.length);
+    if (audiostreams.length > 0) {
+        var list = audiostreams.join(", "),
+            res = trackidnet_checked("trackidnet_checked_check_batch", list);
+
+        if (res !== null) {
+            $.each(res, function () {
+                var audiostream = $(this)[0].audiostream,
+                    timestamp = $(this)[0].timestamp;
+                log(audiostream);
+
+                $("tr[data-audiostream='" + audiostream + "'] td.mixesdbPageCheck-status").html(checkIcon);
+            });
+            $(".mixesdbPageCheck-status-no").show();
+        }
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Submit request URLs
+ * https://trackid.net/submitrequest
+ * https://trackid.net/submitrequest?url=https://soundcloud.com/djrog/latin-vibes&keywords=foo%20bar
+ * Passing URL pramater requires the userscript "MixesDB Userscripts Helper (by MixesDB)"
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+function on_submitrequest() {
+    logFunc( "on_submitrequest" );
+
+    // submitted URL, page preview pops up
+    // if exists, take user directly there without confirmation
+    // Test URL page exists: https://soundcloud.com/resident-advisor/ra944-tsvi
+    // Test URL page does not exist: https://soundcloud.com/djrog/latin-vibes
+    // buggy if this part comes after the requestUrl part
+    waitForKeyElements( ".audio-stream-box", submitrequest_pagePreview_wait);
+
+    function submitrequest_pagePreview_wait(jNode) {
+        log( "submitrequest_pagePreview_wait()" );
+        // if page exists or not: Does the next element contains the "VIEW TRACKLIST" button?
+        var firstButton = jNode.next(".MuiGrid-container").find("button:first"),
+            firstButton_text = firstButton.text().toLowerCase(); // "view tracklist"
+        logVar( "firstButton text", firstButton_text )
+
+        if( firstButton_text == "view tracklist" ) {
+            // page exists, send user directly there
+            // existing page might still be processing!
+            firstButton.trigger("click"); // We cannot catch that URL
+        } else {
+            // page does not exist
+            // stay cos user might want to use the option "Notify me when ready"
+        }
+    }
+
+    // if url was passed as parameter
+    var requestUrl = getURLParameter( "requestUrl" );
+    logVar( "requestUrl", requestUrl );
+
+    // Insert the requestUrl to the submit input
+    if( requestUrl && requestUrl !== "" ) {
+        var requestUrl_domain = new URL( requestUrl ).hostname.replace("www.",""),
+            keywords = getURLParameter("keywords");
+
+        logVar( "requestUrl_domain", requestUrl_domain );
+        logVar( "keywords", keywords );
+
+        // add URL to input and try to submit
+        waitForKeyElements( ".MuiGrid-grid-xs-12 .MuiFormControl-root input[type=text].MuiInputBase-input", function( jNode ) {
+            logFunc( "submitRequest_input_wait" );
+
+            // Submit notice cos we cannot just trigger a click on the the "VALIDATE" button
+            // For YouTube URLs it doesn't allow a blank after the URL...
+            var note_standard = create_note( "Press the SPACEBAR and ENTER to validate" ),
+                note_YouTube  = create_note( "Press the SPACEBAR, BACKSPACE and ENTER" );
+
+            switch( requestUrl_domain ) {
+                case "youtube.com":
+                    var submitNote = note_YouTube;
+                    break;
+
+                case "youtu.be":
+                    var submitNote = note_YouTube;
+                    break;
+
+                default:
+                    var submitNote = note_standard;
+            }
+
+            var input = create_input( requestUrl );
+            jNode.closest(".MuiGrid-container").before( input );
+            //var e = jQuery.Event( "keydown", { keyCode: 32 } );
+
+            jNode.select();
+            setTimeout(function () {
+                jNode.val( requestUrl );
+                //jNode.trigger( e );
+                jNode.closest(".MuiGrid-container").after( submitNote );
+            }, timeoutDelay);
+        });
+
+        // Add keywords to search input
+        waitForKeyElements( "#search-box", function( jNode ) {
+            logFunc( "submitRequest_searchInput_wait" );
+
+            var newSearch = '<form id="mdb-replacedSearch" action="https://trackid.net/audiostreams" method="GET">';
+                newSearch += create_button( "Search", "replaced-search-button inline", "submit" );
+                newSearch += "&nbsp;&nbsp;";
+                newSearch += create_input( keywords, "replaced-search-input inline", "keywords" );
+                newSearch += '</form>';
+
+            jNode.closest(".header-mid.MuiBox-root").replaceWith( newSearch );
+        });
+
+        // Click button "View Tracklist" when it appeas
+        waitForKeyElements( "button.MuiButton-root", function( jNode ) {
+            var buttonText = jNode.text();
+
+            if( buttonText == "View Tracklist" || buttonText == "Submit" ) {
+                jNode.click();
+            }
+        });
+    }
+}

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.30.3
+// @version      2025.04.01.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_27
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_40
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_28
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*soundcloud.com*
@@ -541,14 +541,55 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group", function(
                                     $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
                                 }
 
-                                // Add TID submit link to toolkit
-                                waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
-                                    var keywords = normalizeTitleForSearch( t.title ),
-                                        tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text", "toolkit_li" );
-                                    if( tidLink ) {
-                                        jNode.append( tidLink ).show();
-                                    }
-                                });
+                                // Add TID link to toolkit
+                                waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {                                    
+                                    var apiQueryUrl_check = apiUrl_mw;
+                                    apiQueryUrl_check += "?action=mixesdbtrackid";
+                                    apiQueryUrl_check += "&format=json";
+                                    apiQueryUrl_check += "&url=" + t.permalink_url;
+                                    
+                                    logVar( "apiQueryUrl_check", apiQueryUrl_check );
+                                    
+                                    $.ajax({
+                                        url: apiQueryUrl_check,
+                                        type: 'get', /* GET on checking */
+                                        dataType: 'json',
+                                        async: true,
+                                        success: function(data) {
+                                            // avoid undefined error
+                                            if( ( data.error && data.error.code == "notfound" )  ) {
+                                                // no result
+                                                var keywords = normalizeTitleForSearch( t.title ),
+                                                    tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text" );
+                                                if( tidLink ) {
+                                                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
+                                                }
+                                                // if no error
+                                            } else {
+                                                var li_tidLink_out = "",
+                                                    trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                                                    lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+
+                                                logVar( "trackidurl", trackidurl );
+                                                logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+                                                
+                                                if( trackidurl ) {
+                                                   li_tidLink_out += '<a href="'+trackidurl+'">This player exists on TrackId.net</a>';
+                                                }
+                                                
+                                                if( lastCheckedAgainstMixesDB ) {
+                                                    li_tidLink_out += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+                                                }
+                                                
+                                                if( li_tidLink_out != "" ) {
+                                                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+li_tidLink_out+'</li>' ).show();
+                                                }
+                                            }
+                                            
+                                            reorderToolkitItems();
+                                        }
+                                    }); // END ajax
+                                }); // END wait "#mdb-toolkit > ul"
                             }
                         },
                         error: function() {
