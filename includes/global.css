@@ -445,7 +445,7 @@ textarea.mono {
     }
     
     & .mdb-toolkit-usageLink,
-    & .mdb-toolkit-tidSubmit {
+    & .mdb-toolkit-tidLink {
         & a:hover {
             cursor: pointer;
         }

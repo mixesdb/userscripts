@@ -161,7 +161,7 @@ function makeTidSubmitUrl( playerUrl, keywords="" ) {
 }
 
 // makeTidSubmitLink
-function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text", toolkit_li="toolkit_li" ) {
+function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text" ) {
     var keyowrds = normalizeTitleForSearch( keywords ),
         tidUrl = makeTidSubmitUrl( thisUrl, keywords ),
         text = "Submit this player URL to TrackId.net",
@@ -173,10 +173,6 @@ function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text", toolkit_
 
     var tidLink = '<a href="'+tidUrl+'"class="mdb-tidSubmit" target="_blank" >'+linkText+'</a>',
         tidLinkOut = tidLink;
-
-    if( toolkit_li == "toolkit_li" ) {
-        tidLinkOut = '<li class="mdb-toolkit-tidSubmit filled">'+tidLink+'</li>';
-    }
 
     return tidLinkOut;
 }
