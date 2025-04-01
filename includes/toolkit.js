@@ -286,7 +286,7 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
     log( "urlIsTidSubmitCompatible( playerUrl ): " + urlIsTidSubmitCompatible( playerUrl ) )
 
     if( visitDomain != "trackid.net" && urlIsTidSubmitCompatible( playerUrl ) ) {
-        link += makeTidSubmitLink( playerUrl_clean, titleText, "link-icon", "toolkit_li-not" ) ;
+        link += makeTidSubmitLink( playerUrl_clean, titleText, "link-icon" ) ;
     }
 
     link += '</li>';
@@ -448,7 +448,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         var toolkitOutput_li = '';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-usageLink used"></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-usageLink unused"></li>';
-        toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-tidSubmit"></li>';
+        toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-tidLink"></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls used">Used players:<ul class="mdb-nolist"></ul></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls unused">Unused players:<ul class="mdb-nolist"></ul></li>';
         toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-playerUrls unclear">';
@@ -490,7 +490,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     }
 
     /*
-     * classname for solced url variants
+     * classname for solved url variants
      */
     var class_solvedUrlVariants = "";
     if( domain == "hearthis.at" ) {
@@ -675,7 +675,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
              */
             if( visitDomain == "hearthis.at" || visitDomain == "youtube.com" ) {
                 var tidLink = makeTidSubmitLink( thisUrl_forApi, titleText, "text" ),
-                    li_tidSubmit = $("li.mdb-toolkit-tidSubmit");
+                    li_tidSubmit = $("li.mdb-toolkit-tidLink");
 
                 if( tidLink && $("a", li_tidSubmit).length == 0 ) {
                     li_tidSubmit.append( tidLink ).addClass("filled");
@@ -739,29 +739,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         }
                     });
 
-                    /*
-                     * reordering list items
-                     */
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
-                        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
-                    );
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first").insertBefore(
-                        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
-                    );
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
-                        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
-                    );
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore( // again
-                        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
-                    );
-                    // embed URL to bottom
-                    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled").appendTo(
-                        $("#mdb-toolkit > ul")
-                    );
-                    // last reorder: usage li always to top
-                    $("#mdb-toolkit > ul li.mdb-toolkit-usageLink.filled").prependTo(
-                        $("#mdb-toolkit > ul")
-                    );
+                    reorderToolkitItems();
 
                     /*
                      * 2 playerUrl_possibleUsageVariants
@@ -882,6 +860,53 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             $("#mdb-toolkit .filled").show();
         }); // ajax done
     }
+}
+
+
+/*
+ * reorderToolkitItem
+ */
+function reorderToolkitItems() {
+    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
+        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
+    );
+    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first").insertBefore(
+        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
+    );
+    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
+        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
+    );
+    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore( // again
+        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
+    );
+    // embed URL to bottom
+    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled").appendTo(
+        $("#mdb-toolkit > ul")
+    );
+    // last reorder: usage li always to top
+    $("#mdb-toolkit > ul li.mdb-toolkit-usageLink.filled").prependTo(
+        $("#mdb-toolkit > ul")
+    );
+}
+
+
+/* 
+ * toolkit_tidLastCheckedText
+ */
+
+function toolkit_tidLastCheckedText( timestamp ) {
+    // replace (?) tooltip with time ago info
+    // convert "2025-03-30 12:01:56" to "2025-03-30T12:01:56Z"
+    if( /^.+ .+$/.test(timestamp) ) {
+        var timestamp_ago = timestamp.replace(" ", "T") + "Z";
+    }
+
+    var checked_ago = $.timeago(timestamp_ago)?.replace(/^about /i, ""),
+        checked_ago_text = checked_ago ? "(" + mdbTooltip(checked_ago, timestamp) + ")" : "";
+
+    logVar("checked_ago", checked_ago);
+
+    return checked_ago_text || "";
 }
 
 
