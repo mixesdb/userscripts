@@ -473,9 +473,8 @@ textarea.mono {
    margin-right: 5px;
 }
 
-#mdbTrackidCheck-wrapper img.mdb-checked-icon {
-    width: 13px;
-    margin: 1px 4px -1px 5px;
+#mdbTrackidCheck-wrapper * {
+    display: inline !important;
 }
 
 #mdbTrackidCheck-wrapper {
@@ -488,7 +487,23 @@ textarea.mono {
     &.integrated label {
         color: #b3ff51 !important;
     }
+
+    & img.mdb-checked-icon {
+        width: 13px;
+        margin: 1px 4px -1px 5px;
+    }
     
+}
+
+
+/*
+ * Bright websites
+ */
+body.soundcloud-com,
+body.mixcloud-com {
+    & #mdbTrackidCheck-wrapper {
+        color: #8cc73f !important;
+    }
 }
 
 
