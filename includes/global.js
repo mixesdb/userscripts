@@ -39,6 +39,7 @@ const visitDomain = location.hostname
 const domain_cssSafe = makeCssSafe( visitDomain );
 logVar( "visitDomain / domain_cssSafe", visitDomain + " / " + domain_cssSafe );
 
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Log functions
@@ -209,6 +210,25 @@ function getYoutubeIdFromUrl(url){
     return ( match && match[1].length == 11 ) ? match[1] : false;
 }
 
+/*
+ * isTidCompatible
+ * console.log(visitDomain_isTidCompatible("soundcloud.com")); // true
+ * console.log(visitDomain_isTidCompatible("https://www.youtube.com/watch?v=dQw4w9WgXcQ")); // true
+ * console.log(visitDomain_isTidCompatible("example.com")); // false
+ */
+function isTidCompatible(input) {
+    const compatibleDomains = ["soundcloud.com", "mixesdb.com", "hearthis.at", "youtube.com"];
+
+    try {
+        const url = new URL(input);
+        input = url.hostname; // Extract domain from URL
+    } catch (e) {
+        // Input is not a URL, assume it's a domain
+    }
+
+    return compatibleDomains.includes(input.toLowerCase());
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -252,7 +272,7 @@ function embed_hearthis_fromAnyUrl( playerUrl, wrapper, insertType="append" ) {
         embed_hearthis_fromId( playerUrl, playerUrl.split("/")[3], wrapper, insertType );
 
     } else {
-        // https://hearthis.at/andrei-mor/01-djgigola-radio1sessentialmix-sat-01-25-2025-talion/Submit this player URL to TrackId.net
+        // https://hearthis.at/andrei-mor/01-djgigola-radio1sessentialmix-sat-01-25-2025-talion/
         $.ajax({
             url: playerUrl,
             success: function() {

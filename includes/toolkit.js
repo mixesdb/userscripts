@@ -914,7 +914,7 @@ function toolkit_tidLastCheckedText( timestamp ) {
  * adds TID link or submit link according to page existance
  * also check MixesDB integration
  */
-function toolkit_addTidLink( playerUrl ) {
+function toolkit_addTidLink( playerUrl, title ) {
     // Add TID link to toolkit
     waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
         var apiQueryUrl_check = apiUrl_mw;
@@ -933,7 +933,7 @@ function toolkit_addTidLink( playerUrl ) {
                 // avoid undefined error
                 if( ( data.error && data.error.code == "notfound" )  ) {
                     // no result
-                    var keywords = normalizeTitleForSearch( t.title ),
+                    var keywords = normalizeTitleForSearch( title ),
                         tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text" );
                     if( tidLink ) {
                         jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
