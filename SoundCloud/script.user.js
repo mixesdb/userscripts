@@ -36,7 +36,7 @@ redirectOnUrlChange( 50 );
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 28,
+    cacheVersion = 29,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
