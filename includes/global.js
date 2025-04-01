@@ -132,17 +132,28 @@ function normalizePlayerUrl( playerUrl ) {
 }
 
 // urlIsTidSubmitCompatible
-function urlIsTidSubmitCompatible( input ) {
-    const compatibleDomains = ["soundcloud.com", "mixesdb.com", "hearthis.at", "youtube.com"];
+function urlIsTidSubmitCompatible( thisUrl ) {
+    var thisUrl_domain = getDomain_fromUrlStr( thisUrl ).replace("www.", "");
 
-    try {
-        const url = new URL(input);
-        input = url.hostname; // Extract domain from URL
-    } catch (e) {
-        // Input is not a URL, assume it's a domain
+    switch( thisUrl_domain ) {
+        case "hearthis.at":
+            return true;
+            break;
+        case "mixcloud.com":
+            return true;
+            break;
+        case "soundcloud.com":
+            return true;
+            break;
+        case "youtube.com":
+            return true;
+            break;
+        case "youtu.be":
+            return true;
+            break;
+        default:
+            return false;
     }
-
-    return compatibleDomains.includes(input.toLowerCase());
 }
 
 // makeTidSubmitUrl
