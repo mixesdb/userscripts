@@ -893,7 +893,6 @@ function reorderToolkitItems() {
 /* 
  * toolkit_tidLastCheckedText
  */
-
 function toolkit_tidLastCheckedText( timestamp ) {
     // replace (?) tooltip with time ago info
     // convert "2025-03-30 12:01:56" to "2025-03-30T12:01:56Z"
@@ -907,6 +906,67 @@ function toolkit_tidLastCheckedText( timestamp ) {
     logVar("checked_ago", checked_ago);
 
     return checked_ago_text || "";
+}
+
+
+/*
+ * toolkit_addTidLink
+ * adds TID link or submit link according to page existance
+ * also check MixesDB integration
+ */
+function toolkit_addTidLink( playerUrl ) {
+    // Add TID link to toolkit
+    waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
+        var apiQueryUrl_check = apiUrl_mw;
+        apiQueryUrl_check += "?action=mixesdbtrackid";
+        apiQueryUrl_check += "&format=json";
+        apiQueryUrl_check += "&url=" + playerUrl;
+
+        logVar( "apiQueryUrl_check", apiQueryUrl_check );
+
+        $.ajax({
+            url: apiQueryUrl_check,
+            type: 'get', /* GET on checking */
+            dataType: 'json',
+            async: true,
+            success: function(data) {
+                // avoid undefined error
+                if( ( data.error && data.error.code == "notfound" )  ) {
+                    // no result
+                    var keywords = normalizeTitleForSearch( t.title ),
+                        tidLink = makeTidSubmitLink( t.permalink_url, keywords, "text" );
+                    if( tidLink ) {
+                        jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
+                    }
+                    // if no error
+                } else {
+                    var li_tidLink_out = "",
+                        trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                        lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+
+                    logVar( "trackidurl", trackidurl );
+                    logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+
+                    if( trackidurl ) {
+                        li_tidLink_out += '<a href="'+trackidurl+'">This player exists on TrackId.net</a>';
+                    }
+
+                    if( lastCheckedAgainstMixesDB ) {
+                        li_tidLink_out += ' <span id="mdbTrackidCheck-wrapper" class="integrated">'+checkIcon+'integrated</span>';
+                        li_tidLink_out += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+                    } else {
+                        li_tidLink_out += ' (not integrated yet)';
+                    }
+
+                    if( li_tidLink_out != "" ) {
+                        jNode.append( '<li class="mdb-toolkit-tidLink filled">'+li_tidLink_out+'</li>' ).show();
+                    }
+                }
+
+                reorderToolkitItems();
+            }
+        }); // END ajax
+    }); // END wait "#mdb-toolkit > ul"
 }
 
 
