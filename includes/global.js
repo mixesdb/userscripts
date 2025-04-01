@@ -133,26 +133,33 @@ function normalizePlayerUrl( playerUrl ) {
 
 // urlIsTidSubmitCompatible
 function urlIsTidSubmitCompatible( thisUrl ) {
-    var thisUrl_domain = getDomain_fromUrlStr( thisUrl ).replace("www.", "");
+    logFunc( "urlIsTidSubmitCompatible" );
+    logVar( "thisUrl", thisUrl );
 
-    switch( thisUrl_domain ) {
-        case "hearthis.at":
-            return true;
-            break;
-        case "mixcloud.com":
-            return true;
-            break;
-        case "soundcloud.com":
-            return true;
-            break;
-        case "youtube.com":
-            return true;
-            break;
-        case "youtu.be":
-            return true;
-            break;
-        default:
-            return false;
+    if( thisUrl ) {
+        var thisUrl_domain = getDomain_fromUrlStr( thisUrl ).replace("www.", "");
+
+        switch( thisUrl_domain ) {
+            case "hearthis.at":
+                return true;
+                break;
+            case "mixcloud.com":
+                return true;
+                break;
+            case "soundcloud.com":
+                return true;
+                break;
+            case "youtube.com":
+                return true;
+                break;
+            case "youtu.be":
+                return true;
+                break;
+            default:
+                return false;
+        }
+    } else {
+        return false;
     }
 }
 
