@@ -1,8 +1,11 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Funcs that cannot live in global.js
+ * Vars and funcs that cannot live in global.js
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// regExp
+//const regExp_numbers = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/; // https://stackoverflow.com/questions/1272696
 
 /*
  * changeYoutubeUrlVariant - cannot live in global.js!
@@ -283,11 +286,14 @@ function containsSpecialCharacters( text ) {
 
 // apiUrl_searchKeywords_fromUrl
 function apiUrl_searchKeywords_fromUrl( thisUrl ) {
+    logFunc( "apiUrl_searchKeywords_fromUrl", apiUrl_searchKeywords_fromUrl );
+    logVar( "thisUrl", thisUrl );
+
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
     // Quotes are needed to avoid false results
     // but with quotes special characters in URLs are not found…
-    if( containsSpecialCharacters(keywords) ) {
+    if( containsSpecialCharacters(keywords) || isHearthisIdUrl(thisUrl) ) {
         // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan
         return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
     } else {
