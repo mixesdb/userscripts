@@ -264,14 +264,6 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
         keywords = playerUrl_normalized;
 
     logVar( "playerUrl_normalized", playerUrl_normalized );
-
-    // domain-specific keywords
-    // TODO YouTube: search the ID only
-    var possYoutubeID = getYoutubeIdFromUrl( playerUrl );
-    if( possYoutubeID.length == 11 ) {
-       keywords = possYoutubeID;
-    }
-
     logVar( "keywords", keywords );
 
     return keywords;
