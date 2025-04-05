@@ -291,15 +291,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    // Quotes are needed to avoid false results
-    // but with quotes special characters in URLs are not found…
-    if( containsSpecialCharacters(keywords) || isHearthisIdUrl(thisUrl) ) {
-        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan
-        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
-    } else {
-        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22soundcloud.com/claptone/clapcast-499%22
-        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:"'+keywords+'"';
-    }
+    return 'https://www.mixesdb.com/w/api.php?action=mixesdb_player_search&format=json&url='+keywords;
 }
 
 // makeAvailableLinksListItem
@@ -546,7 +538,23 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             dataType: 'json',
             async: false,
             success: function(data) {
-                var resultNum = data["query"]["searchinfo"]["totalhits"],
+                /*
+                  {
+                    "mixesdb_player_search": [
+                      {
+                        "page_id": "468683",
+                        "pageid": "468683",
+                        "title": "2016-04-30 - Tony Humphries @ Cielo, NYC",
+                        "dbKey": "2016-04-30_-_Tony_Humphries_@_Cielo,_NYC",
+                        "url": "https://www.mixesdb.com/w/2016-04-30_-_Tony_Humphries_@_Cielo,_NYC",
+                        "timestamp": "2025-04-02T07:48:28Z"
+                      }
+                    ]
+                  }
+                */
+
+                var resultsArr = data["mixesdb_player_search"],
+                    resultNum = resultsArr.length,
                     showPlayerUrls = false,
                     force_unclearResult = false;
 
@@ -570,11 +578,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                 if( resultNum > 0 ) {
                     logVar( "Usage", "used (resultNum="+resultNum+") " + thisUrl );
 
-                    var resultsArr = data["query"]["search"];
-
                     //logVar( "data", JSON.stringify(data) );
                     logVar( "resultsArr", JSON.stringify(resultsArr) );
-                    logVar( "resultsArr.length", resultsArr.length );
 
                     if( addOutput ) {
                         if( outputType == "detail page" ) {
