@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.06.7
+// @version      2025.04.06.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -132,15 +132,21 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                     wrapper.show();
                                 }
 
+                                // Add checkbox in tables for certain users
+                                var currentUsername = $(".user-name").text(),
+                                    allowUserTableMarking = ["Schrute_Inc.", "Komapatient"].includes(currentUsername);
+
+                                var dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
+                                    notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>';
+
                                 // tables
                                 if( target == "table" ) {
                                     waiter.remove();
 
-                                    var allowUserTableMarking = ["Schrute_Inc._disabled", "Komapatient"].includes(currentUsername),
-                                        notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>';
 
                                     if( checked_pageId ) {
                                         var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+
                                         logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                                         if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
@@ -150,21 +156,20 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
 
                                             wrapper.append( checkedLink );
                                         } else {
-                                            // Add checkbox in tables for certain users
-                                            var currentUsername = $(".user-name").text();
+                                            var status_td = wrapper.prev("td.status"),
+                                                status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
-                                            if( allowUserTableMarking ) {
-                                                var status_td = wrapper.prev("td.status"),
-                                                    status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
+                                            logVar( "status", status );
 
-                                                logVar( "status", status );
-
-                                                if( status == "Tracklist ready" ) {
+                                            if( status == "Tracklist ready" ) {
+                                                if( allowUserTableMarking ) {
                                                     var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
                                                     wrapper.append( input );
+                                                } else {
+                                                    wrapper.append( notYetIntegratedText );
                                                 }
                                             } else {
-                                                wrapper.append( notYetIntegratedText );
+                                                wrapper.append( dashText );
                                             }
                                         }
                                     } else {
@@ -183,20 +188,23 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                 if( resultNum == 1 ) {
                                                     // @TODO DRY
                                                     var resultsArr = data["query"]["search"],
-                                                        mdbPageId = resultsArr[0].pageid,
-                                                        currentUsername = $(".user-name").text();
+                                                        mdbPageId = resultsArr[0].pageid;
 
-                                                    if( mdbPageId && allowUserTableMarking ) {
+                                                    if( mdbPageId ) {
                                                         var status_td = wrapper.prev("td.status"),
                                                             status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
                                                         logVar( "status", status );
 
                                                         if( status == "Tracklist ready" ) {
-                                                            var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
-                                                            wrapper.append( input );
+                                                            if( allowUserTableMarking ) {
+                                                                var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
+                                                                wrapper.append( input );
+                                                            } else {
+                                                                wrapper.append( notYetIntegratedText );
+                                                            }
                                                         } else {
-                                                            wrapper.append( '<span class="tooltip-title" title="Status is not ready">&ndash;</span>' );
+                                                            wrapper.append( dashText );
                                                         }
                                                     } else {
                                                         wrapper.append( notYetIntegratedText );
