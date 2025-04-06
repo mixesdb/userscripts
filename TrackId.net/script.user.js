@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.06.3
+// @version      2025.04.06.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 var dev = 0,
-    cacheVersion = 82,
+    cacheVersion = 83,
     scriptName = "TrackId.net",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -150,7 +150,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             // Add checkbox in tables for certain users
                                             var currentUsername = $(".user-name").text();
 
-                                            if( currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
+                                            if( currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
                                                 var status_td = wrapper.prev("td.status"),
                                                     status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
@@ -183,7 +183,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                         mdbPageId = resultsArr[0].pageid,
                                                         currentUsername = $(".user-name").text();
 
-                                                    if( mdbPageId && currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
+                                                    if( mdbPageId && currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
                                                         var status_td = wrapper.prev("td.status"),
                                                             status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
@@ -196,16 +196,16 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                             wrapper.append( '<span class="tooltip-title" title="Status is not ready">&ndash;</span>' );
                                                         }
                                                     } else {
-                                                        wrapper.append( "&ndash;" );
+                                                        wrapper.append( "not yet" );
                                                     }
                                                 } else {
                                                     log( "resultNum != 1: " + resultNum );
 
                                                     if( resultNum == 0 ) {
-                                                        wrapper.append( '<span class="tooltip-title" title="No MixesDB mix page found using this player">&ndash;</span>' );
+                                                        wrapper.append( '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>' );
                                                     }
                                                     if( resultNum > 1 ) {
-                                                        wrapper.append( '<span class="tooltip-title" title="Bug: Too many results">&ndash;</span>' );
+                                                        wrapper.append( '<span class="tooltip-title small" title="Bug: Too many results">multiple pages using this</span>' );
                                                     }
                                                 }
                                             }

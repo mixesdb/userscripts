@@ -144,6 +144,11 @@ table.mdb-tid-table {
 		    transform: scale(1.4);
 		    margin-left: 1px; /* align with checked icon */
 		}
+
+		& .small {
+		    font-size: 12px;
+		    line-height: 1em !important;
+		}
 	}
 }
 
