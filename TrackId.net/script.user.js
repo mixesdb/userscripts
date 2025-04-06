@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.06.5
+// @version      2025.04.06.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -136,6 +136,8 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                 if( target == "table" ) {
                                     waiter.remove();
 
+                                    var notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>';
+
                                     if( checked_pageId ) {
                                         var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
                                         logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
@@ -161,7 +163,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                     wrapper.append( input );
                                                 }
                                             } else {
-                                                wrapper.append( "not yet" );
+                                                wrapper.append( notYetIntegratedText );
                                             }
                                         }
                                     } else {
@@ -196,7 +198,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                                             wrapper.append( '<span class="tooltip-title" title="Status is not ready">&ndash;</span>' );
                                                         }
                                                     } else {
-                                                        wrapper.append( "not yet" );
+                                                        wrapper.append( notYetIntegratedText );
                                                     }
                                                 } else {
                                                     log( "resultNum != 1: " + resultNum );
