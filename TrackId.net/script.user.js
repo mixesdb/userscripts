@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.05.2
+// @version      2025.04.06.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_93
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_58
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_59
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -150,7 +150,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             // Add checkbox in tables for certain users
                                             var currentUsername = $(".user-name").text();
 
-                                            if( currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
+                                            if( currentUsername == "Schrute_Inc." || currentUsername == "Komapatient" ) {
                                                 var status_td = wrapper.prev("td.status"),
                                                     status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
 
@@ -176,11 +176,11 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             dataType: 'json',
                                             async: false,
                                             success: function(data) {
-                                                var resultNum = data["query"]["searchinfo"]["totalhits"];
+                                                var resultsArr = data["mixesdb_player_search"],
+                                                    resultNum = resultsArr.length;
                                                 if( resultNum == 1 ) {
                                                     // @TODO DRY
-                                                    var resultsArr = data["query"]["search"],
-                                                        mdbPageId = resultsArr[0].pageid,
+                                                    var mdbPageId = resultsArr[0].pageid,
                                                         currentUsername = $(".user-name").text();
 
                                                     if( mdbPageId && currentUsername == "Schrute_Inc._disabled" || currentUsername == "Komapatient" ) {
