@@ -264,6 +264,14 @@ function mixesdbPlayerUsage_keywords( playerUrl ) {
         keywords = playerUrl_normalized;
 
     logVar( "playerUrl_normalized", playerUrl_normalized );
+
+    // domain-specific keywords
+    // TODO YouTube: search the ID only
+    var possYoutubeID = getYoutubeIdFromUrl( playerUrl );
+    if( possYoutubeID.length == 11 ) {
+       keywords = possYoutubeID;
+    }
+
     logVar( "keywords", keywords );
 
     return keywords;
@@ -283,7 +291,15 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    return 'https://www.mixesdb.com/w/api.php?action=mixesdb_player_search&format=json&url='+keywords;
+    // Quotes are needed to avoid false results
+    // but with quotes special characters in URLs are not found…
+    if( containsSpecialCharacters(keywords) || isHearthisIdUrl(thisUrl) ) {
+        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan
+        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
+    } else {
+        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22soundcloud.com/claptone/clapcast-499%22
+        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:"'+keywords+'"';
+    }
 }
 
 // makeAvailableLinksListItem
@@ -369,7 +385,9 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
                     embedUrl = hearthisUrl_short;
 
+                    // pass a variant parameter for cleanup
                     getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
                 }
             }
         });
@@ -528,23 +546,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             dataType: 'json',
             async: false,
             success: function(data) {
-                /*
-                  {
-                    "mixesdb_player_search": [
-                      {
-                        "page_id": "468683",
-                        "pageid": "468683",
-                        "title": "2016-04-30 - Tony Humphries @ Cielo, NYC",
-                        "dbKey": "2016-04-30_-_Tony_Humphries_@_Cielo,_NYC",
-                        "url": "https://www.mixesdb.com/w/2016-04-30_-_Tony_Humphries_@_Cielo,_NYC",
-                        "timestamp": "2025-04-02T07:48:28Z"
-                      }
-                    ]
-                  }
-                */
-
-                var resultsArr = data["mixesdb_player_search"],
-                    resultNum = resultsArr.length,
+                var resultNum = data["query"]["searchinfo"]["totalhits"],
                     showPlayerUrls = false,
                     force_unclearResult = false;
 
@@ -568,8 +570,11 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                 if( resultNum > 0 ) {
                     logVar( "Usage", "used (resultNum="+resultNum+") " + thisUrl );
 
+                    var resultsArr = data["query"]["search"];
+
                     //logVar( "data", JSON.stringify(data) );
                     logVar( "resultsArr", JSON.stringify(resultsArr) );
+                    logVar( "resultsArr.length", resultsArr.length );
 
                     if( addOutput ) {
                         if( outputType == "detail page" ) {
