@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.06.1
+// @version      2025.04.06.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -174,7 +174,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                             url: apiQueryUrl,
                                             type: 'get',
                                             dataType: 'json',
-                                            async: false,
+                                            async: true,
                                             success: function(data) {
                                                 var resultsArr = data["mixesdb_player_search"],
                                                     resultNum = resultsArr.length;
