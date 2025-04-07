@@ -52,6 +52,35 @@ waitForKeyElements(".mdb-element.select", function( jNode ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Initialize feature functions per url path
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 50 );
+
+/*
+ * grab url path and fire functions
+ */
+d.ready(function(){
+    var contentWrapper = $(".MuiGrid-grid-xs-12"),
+        path1 = window.location.pathname.replace(/^\//, "");
+
+    logVar( "path1", path1 );
+
+    switch( path1 ) {
+        case "submiturl":
+            on_submitrequest();
+            break;
+    }
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * mdbTrackidCheck
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -300,35 +329,6 @@ waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck input[type=checkbox]", fun
             checkTidIntegration( tidPlayerUrl, mdbPageId, "save", wrapper, "table" );
         }
     });
-});
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Initialize feature functions per url path
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
- */
-redirectOnUrlChange( 20 );
-
-/*
- * grab url path and fire functions
- */
-d.ready(function(){
-    var contentWrapper = $(".MuiGrid-grid-xs-12"),
-        path1 = window.location.pathname.replace(/^\//, "");
-
-    logVar( "path1", path1 );
-
-    switch( path1 ) {
-        case "submiturl":
-            on_submitrequest();
-            break;
-    }
 });
 
 
