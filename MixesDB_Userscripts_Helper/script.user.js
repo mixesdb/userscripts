@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.03.30.1
+// @version      2025.04.09.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -188,8 +188,10 @@ d.ready(function(){ // needed for mw.config
     if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
         log( "Criteria for mix page matched." );
 
-        // TrackId.net link icon
-        // On click add request page url for the first visible player
+        /*
+         * TrackId.net link icon to page icons
+         * On click add request page url for the first visible player
+         */
         if( trackIdnet_addRequestSubmissionIcon ) {
             $("#pageIconTrackId").click(function(){ /* false ID (issue#530) */
                 var linkIcon = $("#pageIconTrackId");
@@ -226,6 +228,21 @@ d.ready(function(){ // needed for mw.config
         } else {
             log( "trackIdnet_addRequestSubmissionIcon diabled." );
         }
+
+        /*
+         * TrackId.net submit link under each player
+         */
+        $(".playerWrapper[data-playersite]").each(function(){
+            var playerTidCompatible = $(this).attr("data-tidcompatibleplayersite"),
+                playerUrl = $(this).attr("data-playerurl"),
+                keywords = getKeywordsFromTitle( $("h1#firstHeading") );
+
+            if( playerTidCompatible == "true" ) {
+                var tidLink = '<div class="tidSubmitLink fa">'+ makeTidSubmitLink( playerUrl, keywords, "link-icon" ) +'</div>';
+
+                $(this).append( tidLink );
+            }
+        });
     }
 
     /*

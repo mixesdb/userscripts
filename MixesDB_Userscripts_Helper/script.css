@@ -39,3 +39,19 @@
 	width: auto;
 	padding-left: 5px;
 }
+
+/* playerWrapper TID links */
+.playerWrapper .tidSubmitLink {
+    float: right;
+    height: 16px;
+    margin-top: -19px;
+    
+    & img {
+        margin-top: 16px;
+        opacity: 0.5;
+    }
+    
+    & img:hover {
+        opacity: 1 !important;
+    }
+}
