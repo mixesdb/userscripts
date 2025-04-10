@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.10.1
+// @version      2025.04.10.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -63,7 +63,7 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 5,
+    cacheVersion = 6,
     scriptName = "MixesDB_Userscripts_Helper",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -183,10 +183,12 @@ d.ready(function(){ // needed for mw.config
         wgPageName = mw.config.get("wgPageName");
 
     /*
-     * On mix pages
+     * On mix pages and MixesDB:Explorer/Mixes
      * Also allow on page edit (preview)
      */
-    if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
+    if(    ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
+        || ( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" )
+      ) {
         log( "Criteria for mix page matched." );
 
         /*
