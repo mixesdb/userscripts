@@ -39,3 +39,19 @@
 	width: auto;
 	padding-left: 5px;
 }
+
+/* playerWrapper TID links */
+.playerWrapper .tidLink {
+    float: right;
+    height: 10px;
+    margin-top: -10px;
+    padding-top: 5px;
+    margin-bottom: -5px;
+    
+    & .mdb-checked-icon {
+        height: 12px;
+        width: auto !important;
+        padding-left: 3px;
+        padding-right: 4px;
+    }
+}
