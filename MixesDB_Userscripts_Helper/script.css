@@ -42,8 +42,7 @@
 
 /* playerWrapper TID links */
 .playerWrapper .tidLink {
-    float: right;
-    padding-top: 5px;
+    text-align: right;
     
     & .mdb-checked-icon {
         height: 12px;
@@ -54,6 +53,7 @@
 }
 
 body.ns-0 .playerWrapper .tidLink {
+    padding-top: 5px;
     height: 10px;
     margin-top: -10px;
     margin-bottom: -5px;
@@ -61,11 +61,7 @@ body.ns-0 .playerWrapper .tidLink {
 
 body.rootpage-MixesDB_Explorer {
     & .playerWrapper .tidLink {
-        margin-top: -9px;
+        margin-top: -4px;
         margin-bottom: 3px;
-    }
-    
-    & .ExplorerTracklist {
-        clear: both;
     }
 }
