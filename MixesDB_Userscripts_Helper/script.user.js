@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.10.3
+// @version      2025.04.10.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -186,7 +186,8 @@ d.ready(function(){ // needed for mw.config
      * On mix pages and MixesDB:Explorer/Mixes
      * Also allow on page edit (preview)
      */
-    if(    ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
+    if( trackIdnet_addLinks
+        && ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
         || ( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" )
       ) {
         log( "Criteria for mix page matched." );
@@ -283,29 +284,6 @@ d.ready(function(){ // needed for mw.config
      */
     if( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
         log( "Criteria for MixesDB:Explorer/Mixes matched." );
-
-        // TrackId.net link icon
-        // Initially on each result wrapper
-        if( trackIdnet_addRequestSubmissionIcon ) {
-            $(".explorerResult").each(function(){
-                triggerVisiblePlayer( this );
-            });
-
-            // When a player tab is clicked
-            $(".MultiToggleLinks a").click(function(){
-                var wrapper = this.closest(".explorerResult");
-
-                // Remove possible previous TID link
-                $(".tidSubmit", wrapper).remove();
-
-                // wait until displayed after click
-                setTimeout(function() {
-                    triggerVisiblePlayer( wrapper );
-                }, msWaitToggle );
-            });
-        } else {
-            log( "trackIdnet_addRequestSubmissionIcon diabled." );
-        }
 
         // Apple Podcasts search link icon
         if( applePodcasts_addSearchIcons ) {
