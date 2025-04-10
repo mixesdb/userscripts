@@ -10,6 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-MixesDB_Userscripts_Helper_1
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -42,9 +43,9 @@ const appleMusic_countryCode_switch = "de"; // default: ""
  */
 // Submit player URLs to the TID request form
 // * On Explorer mix results add an icon to the title bar
-// * On mix page title icons change the TID icon URL
+// * On mix pages add TID links to every player ("Exists" or "Submit")
 // Set 0 to disable
-const trackIdnet_addRequestSubmissionIcon = 1; // default: 1
+const trackIdnet_addLinks = 1; // default: 1
 
 /*
  * Apple Podcasts settings
@@ -62,7 +63,7 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 3,
+    cacheVersion = 4,
     scriptName = "MixesDB_Userscripts_Helper",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -189,58 +190,60 @@ d.ready(function(){ // needed for mw.config
         log( "Criteria for mix page matched." );
 
         /*
-         * TrackId.net link icon to page icons
-         * On click add request page url for the first visible player
-         */
-        if( trackIdnet_addRequestSubmissionIcon ) {
-            $("#pageIconTrackId").click(function(){ /* false ID (issue#530) */
-                var linkIcon = $("#pageIconTrackId");
-
-                // Prevent URLs from adding up after 1st click
-                // otherwise the URLs add up and on 2nd click more than 2 tabs open
-                var hrefOrig = linkIcon.attr("data-hreforig");
-                linkIcon.attr("href", hrefOrig);
-
-                // On click
-                var urlSearch = linkIcon.attr("href").replace(/ /g,"%20"),
-                    requestPlayerUrl = $(".playerWrapper:visible[data-playerurl]").first().attr("data-playerurl"), // first visible player
-                    keywords = (new URL(urlSearch)).searchParams.get('keywords');
-                logVar( "urlSearch", urlSearch );
-                logVar( "keywords", keywords );
-
-                if( requestPlayerUrl ) {
-                    log( "requestPlayerUrl: " + requestPlayerUrl );
-
-                    // change pageIcon URL only if supported domains
-                    var tidLink_possible = tidLinkFromUrl( requestPlayerUrl, keywords );
-                    if( tidLink_possible ) {
-                        var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
-                            urlRequest = makeTidSubmitUrl( urlFixed, keywords );
-
-                        linkIcon.attr("href", urlRequest).attr("data-hreforig", urlSearch);
-
-                        log( "URL changed" );
-                    }
-                } else {
-                    log( "No first player URL found" );
-                }
-            });
-        } else {
-            log( "trackIdnet_addRequestSubmissionIcon diabled." );
-        }
-
-        /*
          * TrackId.net submit link under each player
          */
         $(".playerWrapper[data-playersite]").each(function(){
-            var playerTidCompatible = $(this).attr("data-tidcompatibleplayersite"),
-                playerUrl = $(this).attr("data-playerurl"),
+            var playerWrapper = $(this),
+                playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
+                playerUrl = playerWrapper.attr("data-playerurl"),
                 keywords = getKeywordsFromTitle( $("h1#firstHeading") );
 
             if( playerTidCompatible == "true" ) {
-                var tidLink = '<div class="tidSubmitLink fa">'+ makeTidSubmitLink( playerUrl, keywords, "link-icon" ) +'</div>';
 
-                $(this).append( tidLink );
+                // check usage
+                var apiQueryUrl_check = apiUrl_mw;
+                apiQueryUrl_check += "?action=mixesdbtrackid";
+                apiQueryUrl_check += "&format=json";
+                apiQueryUrl_check += "&url=" + playerUrl;
+
+                logVar( "apiQueryUrl_check", apiQueryUrl_check );
+
+                $.ajax({
+                    url: apiQueryUrl_check,
+                    type: 'get', /* GET on checking */
+                    dataType: 'json',
+                    async: true,
+                    success: function(data) {
+                        // avoid undefined error
+                        if( ( data.error && data.error.code == "notfound" )  ) {
+                            // no result
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'">Submit to TrackId.net</a>';
+                            playerWrapper.append( '<div class="tidLink">'+tidLink_submit+'</div>' );
+                        } else {
+                            var tidLink = "",
+                                trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                                lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+
+                            logVar( "trackidurl", trackidurl );
+                            logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+
+                            if( trackidurl ) {
+                                tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
+
+                                if( lastCheckedAgainstMixesDB ) {
+                                    tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated">'+checkIcon+'integrated</span>';
+                                    tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+                                } else {
+                                    tidLink += ' (not integrated yet)';
+                                }
+                            }
+
+                            if( tidLink != "" ) {
+                                playerWrapper.append( '<div class="tidLink grey">'+tidLink+'</div>' );
+                            }
+                        }
+                    }
+                }); // END ajax
             }
         });
     }
@@ -258,26 +261,25 @@ d.ready(function(){ // needed for mw.config
             } else {
                 var titleWrapper = $("#firstHeading #firstHeadingTitle");
             }
-            
+
             if( wgNamespaceNumber==14 ) {
                 var keywords = wgTitle; // on Category
             } else {
                 var keywords = getKeywordsFromTitle_Customized_AP( titleWrapper );
             }
 
-            
             if( keywords ) var applePodcastsSearchLink = getApplePodcastsSearchLink( "pageIcon", keywords );
             if( applePodcastsSearchLink ) $("#pageIcons").prepend( applePodcastsSearchLink );
         } else {
             log( "applePodcasts_addSearchIcons diabled." );
         }
-        
+
     }
-    
+
     /*
      * On MixesDB:Explorer/Mixes
      */
-    if(  wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
+    if( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
         log( "Criteria for MixesDB:Explorer/Mixes matched." );
 
         // TrackId.net link icon

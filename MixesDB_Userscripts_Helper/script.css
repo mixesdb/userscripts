@@ -41,17 +41,17 @@
 }
 
 /* playerWrapper TID links */
-.playerWrapper .tidSubmitLink {
+.playerWrapper .tidLink {
     float: right;
-    height: 16px;
-    margin-top: -19px;
+    height: 10px;
+    margin-top: -10px;
+    padding-top: 5px;
+    margin-bottom: -5px;
     
-    & img {
-        margin-top: 16px;
-        opacity: 0.5;
-    }
-    
-    & img:hover {
-        opacity: 1 !important;
+    & .mdb-checked-icon {
+        height: 12px;
+        width: auto !important;
+        padding-left: 3px;
+        padding-right: 4px;
     }
 }
