@@ -219,7 +219,7 @@ textarea.mono {
         height: 90px;
     }
     
-    & ul:not(.mdb-nolist) {
+    & ul:not(.mdb-nolist):not(.nested) {
         padding-inline-start: 25px;
     }
 
