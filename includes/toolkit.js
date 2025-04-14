@@ -604,9 +604,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             // add links from array
                             // make list if multiple links
                             if( usageLinks.length > 1 ) {
-                                output += '<ul>';
+                                output += '<ul class="nested filled">';
                                 for( i = 0; i < usageLinks.length; i++ ){
-                                    output += '<li>' +usageLinks[i]+ '</li>';
+                                    output += '<li class="filled">' +usageLinks[i]+ '</li>';
                                 }
                                 output += '</ul>';
                             } else {
