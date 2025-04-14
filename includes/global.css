@@ -232,6 +232,11 @@ textarea.mono {
             
             & ul {
                 margin: .33rem 0;
+                padding-inline-start: 1em;
+                
+                & li {
+                    list-style: circle !important;
+                }
             }
         }
     }
