@@ -232,7 +232,7 @@ textarea.mono {
             
             & ul {
                 margin: .33rem 0;
-                padding-inline-start: 1em;
+                padding-inline-start: 1em !important;
                 
                 & li {
                     list-style: circle !important;
