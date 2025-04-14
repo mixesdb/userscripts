@@ -234,7 +234,7 @@ d.ready(function(){ // needed for mw.config
                                 tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
 
                                 if( lastCheckedAgainstMixesDB ) {
-                                    tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated">'+checkIcon+'integrated</span>';
+                                    tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
                                     tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
                                 } else {
                                     tidLink += ' (not integrated yet)';
