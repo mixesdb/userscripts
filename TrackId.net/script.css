@@ -76,11 +76,9 @@ div[contenteditable="plaintext-only"] {
     text-align: center;
 }
 
-
 /*
  * Tables
  */
-
 table.mdb-tid-table {
     width: 100%;
     border-collapse: collapse;
@@ -93,6 +91,15 @@ table.mdb-tid-table {
     & tr:hover {
 	    background-color: #272727; 
 	}
+	
+    & th {
+        padding: 0 5px;
+    }
+	
+    & th,
+    & td:not(.title) {
+        text-align: center;
+    }
 
     & td.AudioStreamType {
 		width: 40px !important;
@@ -110,6 +117,9 @@ table.mdb-tid-table {
 	}
 
 	& td.title {
+        min-width: 200px;
+        padding-left: 10px;
+		
 	    & .white-link {
 	        white-space: inherit !important;
 	    }
@@ -152,6 +162,22 @@ table.mdb-tid-table {
 	}
 }
 
+/* hide unimportant columns on slim view */
+@media (max-width: 1200px) {
+    table.mdb-tid-table {
+        & th#createdOn, td.createdOn,
+        & th#addedBy, td.addedBy {
+            display: none;
+        }
+    }
+}
+@media (max-width: 1600px) {
+    table.mdb-tid-table {
+        & th#channel, td.channel {
+            display: none;
+        }
+    }
+}
 
 /*
  * Page navigation
