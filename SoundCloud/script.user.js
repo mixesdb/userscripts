@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.06.1
+// @version      2025.04.16.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -36,7 +36,7 @@ redirectOnUrlChange( 50 );
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var dev = 0,
-    cacheVersion = 29,
+    cacheVersion = 30,
     scriptName = "SoundCloud",
     repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
     pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
@@ -379,12 +379,6 @@ waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
  */
 waitForKeyElements(".soundActions", function( jNode ) {
     logFunc( "fixDefaultSoundActions" );
-    $(".sc-button-like", jNode).text("");
-    $(".sc-button-repost", jNode).text("");
-    $(".sc-button-share", jNode).text("");
-    $(".sc-button-copylink", jNode).text("");
-    $(".sc-button-more", jNode).text("");
-    $(".sc-button-queue", jNode).text("");
 
     var buyLink = $(".soundActions__purchaseLink", jNode);
     if( buyLink.length !== 0 ) {
