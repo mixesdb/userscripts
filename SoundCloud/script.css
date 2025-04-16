@@ -89,8 +89,14 @@ a.sc_button-mdb:active {
 }
 
 .fullHero__artwork * {
-    width: 340px;
-    height: 340px;
+    width: 320px;
+    height: 320px;
+}
+
+#mdb-artwork-input-wrapper {
+    background-color: rgba(20,20,20, .5);
+    height: 1.6em;
+    line-height: 1.4em;
 }
 
 #mdb-artwork-input,
@@ -103,28 +109,37 @@ a.sc_button-mdb:active {
 #mdb-artwork-input,
 #mdb-artwork-info a {
     color: #fff;
-    opacity: .5;
+    opacity: .75;
 }
 
-#mdb-artwork-info a {
-    text-decoration: underline;
+#mdb-artwork-info {
+    padding-right: 5px;
+    
+    & a {
+        text-decoration: underline;
+    }
+    
+    & img {
+        width: 320px;
+    }
 }
 
 #mdb-artwork-input {
     overflow: hidden;
-    width: calc(100% - 110px);
+    width: calc(100% - 115px);
     padding-left: 3px;
     padding-right: 3px;
+    
+    &::selection {
+        background-color: #fc0 !important;
+        color: #fff;
+        opacity: 1;
+    }
 }
 
 #mdb-artwork-info {
     width: 110px;
     text-align: right;
-}
-
-.mdb-artwork-input.selected {
-    background-color: #fc0;
-    color: #fff;
 }
 
 .userStream h3 {
@@ -168,6 +183,11 @@ a.sc_button-mdb:active {
 
 .fullListenHero {
     width: 100% !important;
+}
+
+
+#mdb-streamActions {
+    margin-left: var(--spacing-2x);
 }
 
 .soundActions button {

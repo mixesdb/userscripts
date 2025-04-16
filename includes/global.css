@@ -371,6 +371,9 @@ textarea.mono {
 
 /* soundcloud.com */
 #mdb-toolkit.soundcloud-com {
+    .mdb-toolkit-embedUrl input {
+        width: calc( 100% - 8em );
+    }
     & a:not(:visited) {
         color: #38d !important;
     }
