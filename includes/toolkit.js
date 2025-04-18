@@ -298,7 +298,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
         return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
     } else {
         // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22soundcloud.com/claptone/clapcast-499%22
-        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%20'+keywords+'%20';
+        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22'+keywords+'%22';
     }
 }
 
