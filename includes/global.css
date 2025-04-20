@@ -156,6 +156,18 @@ textarea.mono {
     font-size: 12px !important;
 }
 
+#tlEditor-feedback-topInfo {
+    & button {
+        border: 1px solid #ccc !important;
+        color: #777;
+        
+        &:hover,
+        &:active{
+            color: #111;
+        }
+    }
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
