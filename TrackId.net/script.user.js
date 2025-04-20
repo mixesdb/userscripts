@@ -588,21 +588,30 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
     // API
     tl = tl.trim();
-    //log("tl before API:\n" + tl);
+    log("tl before API:\n" + tl);
 
     if (tl !== "") {
 
         var res = apiTracklist( tl, "trackidNet" ),
             tlApi = res.text;
-        //log( "tlApi:\n" + tlApi );
+        log( "tlApi:\n" + tlApi );
 
-        if (tlApi) {
-            tlWrapper.before(ta);
-            $("#mixesdb-TLbox").val(tlApi);
-            fixTLbox(res.feedback);
+        if( tlApi ) {
+            var tl_arr = make_tlArr( tlApi ),
+                tl_arr_fixedCues = tidMarkFalseCues( tl_arr ),
+                tl_fixedCues = arr_toTlText( tl_arr_fixedCues );
 
-            // fix CSS
-            $("#tlEditor").parent().parent().css("display","block");
+            var res_fixedCues = apiTracklist( tl_fixedCues, "trackidNet" ),
+                tlApi_fixedCues = res_fixedCues.text;
+
+            if( tlApi_fixedCues ) {
+                tlWrapper.before( ta );
+                $("#mixesdb-TLbox").val( tlApi_fixedCues );
+                fixTLbox( res.feedback );
+
+                // fix CSS
+                $("#tlEditor").parent().parent().css("display","block");
+            }
         }
     } else {
         log("tl empty");
