@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.18.1
+// @version      2025.04.20.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-MixesDB_Userscripts_Helper_2
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
@@ -62,14 +62,11 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var dev = 0,
-    cacheVersion = 7,
-    scriptName = "MixesDB_Userscripts_Helper",
-    repo = ( dev == 1 ) ? "Subfader" : "mixesdb",
-    pathRaw = "https://raw.githubusercontent.com/" + repo + "/userscripts/refs/heads/main/";
+var cacheVersion = 7,
+    scriptName = "MixesDB_Userscripts_Helper";
 
-//loadRawCss( pathRaw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( pathRaw + scriptName + "/script.css?v-" + cacheVersion );
+//loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
