@@ -767,6 +767,161 @@ function removeDuplicateBracketedText( text ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Tracklist array functions
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * make_tlArr
+ */
+function make_tlArr( tl ) {
+    var lines = tl.split('\n');
+    var result = [];
+
+    lines.forEach(function (line) {
+        line = line.trim();
+
+        // Skip empty lines
+        if (line === '') return;
+
+        // Handle "..." as gap
+        if (line === "...") {
+            result.push({ type: "gap" });
+            return;
+        }
+
+        var row = { type: "track" };
+
+        // Optional cue [00] at the start
+        var cueMatch = line.match(/^\[(\d+)\]/);
+        if (cueMatch) {
+            row.cue = cueMatch[1];
+            line = line.replace(/^\[\d+\]\s*/, '');
+        }
+
+        // Remove leading "#" or similar
+        line = line.replace(/^#\s*/, '');
+
+        // Optional label at the end
+        var labelMatch = line.match(/\[(.*?)\]$/);
+        if (labelMatch) {
+            row.label = labelMatch[1];
+            line = line.replace(/\s*\[.*?\]$/, '');
+        }
+
+        row.trackText = line.trim();
+
+        result.push(row);
+    });
+
+    log( JSON.stringify(result) );
+
+    return result;
+}
+
+/*
+ * addCueDiffs
+ */
+function addCueDiffs(tl_arr) {
+    var previousCue = null;
+
+    $.each(tl_arr, function(index, item) {
+        if (item.type === "track") {
+            var currentCue = parseInt(item.cue);
+            var diff;
+            if (previousCue !== null) {
+                var previousItem = tl_arr[index - 1];
+                if (previousItem && previousItem.type !== "gap") {
+                    diff = currentCue - parseInt(previousCue);
+                    if (!isNaN(diff)) {
+                        item["cue-diff-prev"] = String(diff);
+                    }
+                }
+            }
+            previousCue = item.cue;
+        }
+    });
+
+    return tl_arr;
+}
+
+/*
+ * tidFixFalseCues
+ */
+function tidMarkFalseCues(tl_arr, minGap = 3) {
+  // Step 1: Mark tracks as "false" if they are placeholders ("?") and their cue gap is too small
+  for (let i = 0; i < tl_arr.length; i++) {
+    const currentItem = tl_arr[i];
+    const nextItem = tl_arr[i + 1];
+
+    // Check for placeholder track
+    if (currentItem.type === "track" && currentItem.trackText === "?") {
+      const cueDiffPrev = parseInt(currentItem["cue-diff-prev"]);
+      const cueDiffNext = nextItem && nextItem["cue-diff-prev"] ? parseInt(nextItem["cue-diff-prev"]) : null;
+
+      // If gap to previous or next item is smaller than minGap, mark as false
+      if ((cueDiffPrev < minGap) || (cueDiffNext !== null && cueDiffNext < minGap)) {
+        currentItem.type = "track (false)";
+      }
+    }
+  }
+
+  // Step 2: Calculate the new cue difference to the last valid track
+  let lastValidCue = null;
+
+  for (let i = 0; i < tl_arr.length; i++) {
+    const item = tl_arr[i];
+
+    // Only consider valid tracks
+    if (item.type === "track") {
+      const currentCue = parseInt(item.cue);
+
+      // If there's a previous valid cue, calculate and store the difference
+      if (lastValidCue !== null && !isNaN(currentCue)) {
+        item["cue-afterCueFix"] = currentCue - lastValidCue;
+      }
+
+      // Update the last valid cue
+      lastValidCue = currentCue;
+    }
+  }
+
+  return tl_arr;
+}
+
+/*
+ * arr_toTlText
+ */
+function arr_toTlText( tl_arr ) {
+  return tl_arr.map(item => {
+    // Ignore "track (false)" items
+    if (item.type === "track (false)") {
+      return null;
+    }
+
+    if (item.type && item.type.startsWith("track")) {
+      let line = "";
+
+      if (item.cue) {
+        line += `[${item.cue}] `;
+      }
+
+      line += item.trackText || "";
+
+      if (item.label) {
+        line += ` [${item.label}]`;
+      }
+
+      return line;
+    } else if (item.type === "gap") {
+      return "...";
+    }
+  }).filter(line => line !== null).join("\n"); // Filter out null-values
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * API related funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

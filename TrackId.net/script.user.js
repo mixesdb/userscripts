@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.2
+// @version      2025.04.20.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_95
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_97
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_64
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 87,
+var cacheVersion = 88,
     scriptName = "TrackId.net";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -39,7 +39,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var timeoutDelay = 600,
-    tid_maxGap = 3,
+    tid_minGap = 3,
     ta = '<div id="tlEditor"><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
 
 // select elements
@@ -108,7 +108,7 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
 
         // by action
         switch( action ) {
-            // check
+       sys       // check
             case "check":
                 logVar( "apiQueryUrl_check", apiQueryUrl_check );
 
@@ -490,7 +490,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         var thisTrack = "",
             artist = $(".artist", this).text(),
             title = $(".title", this).text().replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)"),
-            label = $(".label", this).text(),
+            label = $(".label", this).text().replace(/[\[\]]/g,""),
             startTime = $(".startTime", this).text(),
             startTime_Sec = durToSec(startTime),
             endTime = $(".endTime", this).text(),
@@ -588,18 +588,42 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
     // API
     tl = tl.trim();
-    //log("tl before API:\n" + tl);
+    log("tl before API:\n" + tl);
 
     if (tl !== "") {
 
         var res = apiTracklist( tl, "trackidNet" ),
             tlApi = res.text;
-        //log( "tlApi:\n" + tlApi );
+        log( "tlApi:\n" + tlApi );
 
-        if (tlApi) {
-            tlWrapper.before(ta);
-            $("#mixesdb-TLbox").val(tlApi);
-            fixTLbox(res.feedback);
+        if( tlApi ) {
+            var tl_arr = make_tlArr( tlApi ),
+                tl_arr_fixedCues = tidMarkFalseCues( addCueDiffs( tl_arr ) ),
+                tl_fixedCues = arr_toTlText( tl_arr_fixedCues );
+
+            log( "tl_fixedCues:\n" + tl_fixedCues );
+
+            var res_fixedCues = apiTracklist( tl_fixedCues, "trackidNet" ),
+                tlApi_fixedCues = res_fixedCues.text;
+
+            if( tlApi_fixedCues ) {
+                tlWrapper.before( ta );
+
+                $("#mixesdb-TLbox").addClass("mixesdb-TLbox")
+                    .val( tlApi_fixedCues )
+                    .attr( "data-tlcandidate", tlApi );
+
+                fixTLbox( res.feedback );
+            }
+
+            if( tlApi.split("\n").length != tlApi_fixedCues.split("\n").length ) {
+                var info_cuesRemoved = '<li class="info_cuesRemoved">Possibly false <code>"?"</code> tracks have been removed due to short cue differences.';
+                info_cuesRemoved += ' <button id="toggleTlCandidate" class="hand">Toggle</button>';
+                //info_cuesRemoved += '&nbsp; <span id="select_tidminGap_wrapper" style="display:none">Max gap: <select id="select_tidminGap"><option>1</option><option>2</option><option selected="selected">3</option></select> minutes</span>';
+                info_cuesRemoved += '</li>';
+
+                $("#tlEditor-feedback-topInfo").prepend( info_cuesRemoved );
+            }
 
             // fix CSS
             $("#tlEditor").parent().parent().css("display","block");
@@ -607,6 +631,35 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     } else {
         log("tl empty");
     }
+});
+
+
+// toggleTlCandidate
+waitForKeyElements("#toggleTlCandidate", function( jNode ) {
+    jNode.click(function() {
+        logFunc( "toggleTlCandidate" );
+
+        var ta = $("textarea.mixesdb-TLbox"),
+            ta_rows = ta.attr("rows"),
+            tl_orig = ta.val(),
+            tl_candidate = ta.attr("data-tlcandidate");
+
+        logVar( "tl_orig", tl_orig );
+        logVar( "tl_candidate", tl_candidate );
+
+        if( tl_candidate ) {
+            var tl_candidate_rows = tl_candidate.split("\n").length;
+
+            ta.val( tl_candidate )
+                .attr( "data-tlcandidate", tl_orig );
+
+            //$("#select_tidminGap_wrapper").show();
+
+            if( ta_rows < tl_candidate_rows ) {
+                ta.attr( "rows", tl_candidate_rows );
+            }
+        }
+    });
 });
 
 
