@@ -369,24 +369,6 @@ textarea.mono {
     font-size: .875rem;
 }
 
-/* soundcloud.com */
-#mdb-toolkit.soundcloud-com {
-    .mdb-toolkit-embedUrl input {
-        width: calc( 100% - 8em );
-    }
-    & a:not(:visited) {
-        color: #38d !important;
-    }
-    
-    & a:active,
-       a:visited {
-           color: #33689f;
-    }
-    & a:hover {
-        text-decoration: underline !important;
-    }
-}
-
 /* toxicfamily.de */
 #mdb-toolkit.toxicfamily-de {
     margin: -10px 0 40px;
@@ -511,7 +493,6 @@ textarea.mono {
 /*
  * Bright websites
  */
-#mdb-toolkit.soundcloud-com,
 #mdb-toolkit.mixcloud-com {
     & #mdbTrackidCheck-wrapper {
         color: #75b224 !important;
@@ -522,6 +503,7 @@ textarea.mono {
  * Dark websites
  */
 #mdb-toolkit.hearthis-at,
+#mdb-toolkit.soundcloud-com,
 #mdb-toolkit.youtube-com {
     & #mdbTrackidCheck-wrapper {
         color: #8cc73f !important;
@@ -529,6 +511,7 @@ textarea.mono {
 }
 
 #mdb-toolkit.thousandandonetracklists-com,
+#mdb-toolkit.soundcloud-com,
 #mdb-toolkit.trackid-net,
 #mdb-toolkit.youtube-com {
     & a.mdb-mixesdbLink.mixPage:link,
@@ -540,6 +523,7 @@ textarea.mono {
 
 #mdb-toolkit.thousandandonetracklists-com,
 #mdb-toolkit.hearthis-at,
+#mdb-toolkit.soundcloud-com,
 #mdb-toolkit.trackid-net,
 #mdb-toolkit.youtube-com {
     & .mdb-mixesdbLink-actionLinks-wrapper {
@@ -554,7 +538,7 @@ textarea.mono {
     /* inputs like embed URL */
     & input[type="text"] {
         border: 0;
-        background-color: #555;
+        background-color: #333;
         color: #ccc;
     }
 }
@@ -619,7 +603,6 @@ textarea.mono {
 #mdb-toolkit.groove-de,
 #mdb-toolkit.mixcloud-com,
 #mdb-toolkit.ra-co,
-#mdb-toolkit.soundcloud-com,
 #mdb-toolkit.toxicfamily-de,
 #mdb-toolkit.wearesoundspace-com {
     & .mdb-mixesdbLink-actionLinks-wrapper {
