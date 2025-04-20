@@ -425,7 +425,7 @@ textarea.mono {
 /* youtube.com */
 #mdb-toolkit.youtube-com {
     margin: 25px 0 5px;
-    background-color: var(--yt-spec-badge-chip-background);
+    background-color: #222;
     color: #fff;
     padding-top: 5px;
     padding-bottom: 10px;
