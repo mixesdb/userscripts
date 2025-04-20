@@ -490,7 +490,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         var thisTrack = "",
             artist = $(".artist", this).text(),
             title = $(".title", this).text().replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)"),
-            label = $(".label", this).text(),
+            label = $(".label", this).text().replace(/[\[\]]/g,""),
             startTime = $(".startTime", this).text(),
             startTime_Sec = durToSec(startTime),
             endTime = $(".endTime", this).text(),
