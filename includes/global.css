@@ -476,7 +476,9 @@ textarea.mono {
     white-space: nowrap;
     
     & input {
-        padding-top: 3px;
+        padding: 0;
+        margin: 0 5px 2px 0;
+        vertical-align: middle;
     }
     
     &.integrated label {
