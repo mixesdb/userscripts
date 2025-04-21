@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.1
+// @version      2025.04.21.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -217,7 +217,7 @@ d.ready(function(){ // needed for mw.config
                         // avoid undefined error
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
-                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'">Submit to TrackId.net</a>';
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
                             playerWrapper.append( '<div class="tidLink">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
