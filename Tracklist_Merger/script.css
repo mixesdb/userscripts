@@ -1,0 +1,27 @@
+#tracklistMerger-wrapper {
+    margin-left: -5px;
+    
+    & tr {
+        margin-bottom: 10px;
+        
+        & td {
+            padding: 0 5px;
+            
+            & textarea {
+                background: #fcfcfc;
+                /* avoid scrollbar when exact rows attr (Chrome tested) */
+                padding-top: 0 !important;
+            }
+        }
+    
+        
+        &.buttons td {
+            padding-top: 10px;
+
+            & button {
+                font-size: 20px;
+                margin: 0;
+            }
+        }
+    }
+}
