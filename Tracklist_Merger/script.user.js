@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.4
+// @version      2025.04.23.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,11 +11,14 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Merger_Beta_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jsdiff/7.0.0/diff.min.js
 // @match        https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger*
+// @include      http*trackid.net/audiostreams/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -29,9 +32,30 @@ const tid_minGap = 3;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ *
+ *
  * Funcs (to be moved)
  *
+ *
+ *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * clear_textareas
+ */
+function clear_textareas() {
+    $("#tracklistMerger-wrapper textarea").val("");
+    $("#tracklistMerger-wrapper #diffContainer td").remove();
+}
+
+/*
+ * adjust_textareaRows
+ */
+function adjust_textareaRows( textarea ) {
+    var rows = textarea.val().trim().split(/\r\n|\r|\n/).length;
+
+    textarea.attr("rows", rows);
+}
 
 /* removePointlessVersionsForMatching */
 function removePointlessVersionsForMatching( t ) {
@@ -58,6 +82,13 @@ function normalizeTrackTitlesForMatching( text ) {
 
     return text;
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Merge functions
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
  * isTextSimilar
@@ -225,15 +256,139 @@ function mergeTracklists(original_arr, candidate_arr) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Merge
+ * Diff functions
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+(function($){
+    'use strict';
+
+    // 1) HTML‑escape helper
+    function escapeHtml(str) {
+        return str.replace(/[&<>"']/g, m=>{
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+        });
+    }
+
+    // 2) Our diff engine: word‑level with char‑level fallback for modifications
+    function diffText(oldStr, newStr) {
+        const parts = Diff.diffWords(oldStr, newStr, { ignoreCase: true });
+        let out = [];
+
+        for (let i = 0; i < parts.length; i++) {
+            const p = parts[i];
+
+            // a removed+added pair → character‑level diff
+            if (p.removed && parts[i+1]?.added) {
+                const chars = Diff.diffChars(p.value, parts[i+1].value, { ignoreCase: true });
+                chars.forEach(c => {
+                    const esc = escapeHtml(c.value);
+                    if      (c.added)   out.push(`<span class="diff-added">${esc}</span>`);
+                    else if (c.removed) out.push(`<span class="diff-removed">${esc}</span>`);
+                    else                out.push(esc);
+                });
+                i++;  // skip the added part
+            }
+            else if (p.added) {
+                out.push(`<span class="diff-added">${escapeHtml(p.value)}</span>`);
+            }
+            else if (p.removed) {
+                out.push(`<span class="diff-removed">${escapeHtml(p.value)}</span>`);
+            }
+            else {
+                out.push( escapeHtml(p.value) );
+            }
+        }
+
+        return out.join('');
+    }
+
+    // 3) jQuery plugin to render the three outputs
+    $.fn.showTracklistDiffs = function({ text1, text2, text3 }) {
+        const t1 = text1.trim().split("\n"),
+              t2 = text2.trim().split("\n"),
+              t3 = text3.trim().split("\n"),
+              $container = this.empty();
+
+        // build the three HTML fragments
+        // — Original
+        const origHtml = [
+            `<strong>Original</strong>`,
+            `<pre>${ escapeHtml(text1) }</pre>`
+        ].join("");
+
+        // — Text2 vs Text1
+        let diff2 = `<strong>Merge result</strong><pre>`;
+        for (let i = 0; i < Math.max(t1.length, t2.length); i++) {
+            diff2 += diffText(t1[i]||"", t2[i]||"") + "\n";
+        }
+        diff2 += `</pre>`;
+
+        // — Text3 vs Text2
+        // build lookup for text2 by [ID]
+        const map2 = {};
+        t2.forEach(line => {
+            const m = line.match(/^\s*#?\s*\[(\d+)\]\s*(.*)$/);
+            if (m) map2[m[1]] = m[2];
+        });
+
+        let diff3 = `<strong>Candidate</strong><pre>`;
+        for (let raw3 of t3) {
+            const trimmed = raw3.trim();
+            if (trimmed === "...") {
+                diff3 += escapeHtml(raw3) + "\n";
+                continue;
+            }
+            const m3 = raw3.match(/^\[(\d+)\]\s*(.*)$/);
+            if (m3) {
+                const id = m3[1],
+                      b3 = m3[2],
+                      b2 = map2[id] || "";
+
+                if (b3.trim() === "?") {
+                    diff3 += `<span class="diff-context">[${id}]</span> ${ escapeHtml(b3) }\n`;
+                } else {
+                    diff3 += `<span class="diff-context">[${id}]</span> ${ diffText(b2, b3) }\n`;
+                }
+            } else {
+                diff3 += escapeHtml(raw3) + "\n";
+            }
+        }
+        diff3 += `</pre>`;
+
+        // now wrap all three fragments into a single row of td's
+        const $tableCells = $(`<td>${ origHtml }</td>
+            <td>${ diff2 }</td>
+            <td>${ diff3 }</td>`);
+
+        $container.append($tableCells);
+        return this;
+    };
+})(jQuery);
+
+/*
+ * run_diff
+ */
+function run_diff() {
+    var text1 = $("#tl_original").val(),
+        text2 = $("#merge_result_tle").val(),
+        text3 = $("#tl_candidate").val();
+    if( text1 && text2 && text3 ) {
+        $('#diffContainer').showTracklistDiffs({ text1, text2, text3 });
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Run everything
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
  * run_merge
  */
-function run_merge() {
+function run_merge( showDebug=false ) {
     var tl_original = $("#tl_original").val(),
         tl_candidate = $("#tl_candidate").val(),
         tl_original_arr  = addCueDiffs( make_tlArr( tl_original  ) ),
@@ -256,14 +411,16 @@ function run_merge() {
     if( tl_merged_tle ) {
         log( "\n" + tl_merged_tle );
         $("#merge_result_tle").val( tl_merged_tle );
+
+        // run diff
+        run_diff();
     }
 
     /*
      * fix tl textarea heights
      */
     $("textarea.fixRows").each(function(){
-        var rows = this.value.trim().split(/\r\n|\r|\n/).length;
-        $(this).attr("rows", rows);
+        adjust_textareaRows( $(this) );
     });
     // but adjust candidate height if smaller than original
     var rows_original = $("#tl_original").attr("rows"),
@@ -271,20 +428,71 @@ function run_merge() {
     if( rows_original > rows_candidate ) {
         $("#tl_candidate").attr("rows", rows_original );
     }
+
+    if( showDebug ) {
+        $("tr.debug").show()
+    }
 }
 
-$(document).ready(function () {
-    run_merge();
 
-    $("#merge").click(function(){
+/*
+ * On MixesDB
+ */
+if( domain == "mixesdb.com" ) {
+    $(document).ready(function () {
+        /*
+         * init run for saved tracklists
+         */
         run_merge();
-    });
 
-    $("#clear").click(function(){
-        $("textarea").val("");
-    });
+        /*
+         * on button clicks
+         */
+        $("#merge").click(function(){
+            run_merge( true );
+        });
 
-    $("#debug").click(function(){
-        $("tr.debug").fadeIn(800);
+        $("#clear").click(function(){
+            clear_textareas();
+        });
+
+        $("#diff").click(function(){
+            run_diff();
+        });
+
+        $("#debug").click(function(){
+            run_merge( true );
+        });
+
+        /*
+         * if url paramater
+         */
+        var tl_candidate = getURLParameter( "tl_candidate" );
+        if( tl_candidate && tl_candidate != "" ) {
+            clear_textareas();
+
+            logVar( "tl_candidate URL param", tl_candidate );
+
+            $("#tl_candidate").val( tl_candidate );
+
+            adjust_textareaRows( $("#tl_candidate") );
+        }
     });
-});
+}
+
+
+/*
+ * On TID
+ */
+if( domain == "trackid.net" ) {
+    // create merge link under tracklists
+    waitForKeyElements("ul#tlEditor-feedback-topInfo", function( jNode ) {
+        var tl_candidate = $("textarea.mixesdb-TLbox").val();
+
+        if( tl_candidate ) {
+            var mergeLink = '<a href="https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger?tl_candidate='+encodeURIComponent( tl_candidate )+'" target="_blank">Open in Tracklist Merger</a>';
+
+            jNode.prepend( '<li id="mergeLink">'+mergeLink+'</li>' );
+        }
+    });
+}
