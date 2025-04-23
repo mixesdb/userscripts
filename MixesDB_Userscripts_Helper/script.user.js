@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.23.1
+// @version      2025.04.23.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -196,24 +196,8 @@ d.ready(function(){ // needed for mw.config
             var playerWrapper = $(this),
                 playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
                 playerUrl = playerWrapper.attr("data-playerurl"),
-                playerSite = playerWrapper.attr("data-playersite"),
-                showOnlyClass = "",
+                playerSite = makeCssSafe( playerWrapper.attr("data-playersite") ),
                 keywords = "";
-
-            switch( playerSite ) {
-                case "hearthis.at":
-                    showOnlyClass = "playerHT";
-                    break;
-                case "Mixcloud":
-                    showOnlyClass = "playerMC";
-                    break;
-                case "SoundCloud":
-                    showOnlyClass = "playerSC";
-                    break;
-                case "YouTube":
-                    showOnlyClass = "playerVideo";
-                    break;
-            }
 
             // if mix page
             if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
@@ -247,7 +231,7 @@ d.ready(function(){ // needed for mw.config
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
                             var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
-                            playerWrapper.append( '<div class="tidLink '+playerSite+' '+showOnlyClass+'">'+tidLink_submit+'</div>' );
+                            playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
                                 trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
@@ -268,7 +252,7 @@ d.ready(function(){ // needed for mw.config
                             }
 
                             if( tidLink != "" ) {
-                                playerWrapper.append( '<div class="tidLink '+playerSite+' '+showOnlyClass+' grey">'+tidLink+'</div>' );
+                                playerWrapper.append( '<div class="tidLink '+playerSite+' grey">'+tidLink+'</div>' );
                             }
                         }
                     }
