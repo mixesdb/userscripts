@@ -792,24 +792,29 @@ function make_tlArr( tl ) {
 
         var row = { type: "track" };
 
+        // Remove leading "#" or similar
+        line = line.replace(/^#\s+/, '')
+                   .replace(/^\[\d*\?+\]\s*/, '');
+
         // Optional cue [00] at the start
         var cueMatch = line.match(/^\[(\d+)\]/);
         if (cueMatch) {
             row.cue = cueMatch[1];
-            line = line.replace(/^\[\d+\]\s*/, '');
+            line = line.replace(/^\[(\d|\?)+\]\s*/, '');
         }
 
-        // Remove leading "#" or similar
-        line = line.replace(/^#\s*/, '');
-
-        // Optional label at the end
+        // Add trackText
+        // but remove optional label at the end
         var labelMatch = line.match(/\[(.*?)\]$/);
         if (labelMatch) {
-            row.label = labelMatch[1];
             line = line.replace(/\s*\[.*?\]$/, '');
         }
-
         row.trackText = line.trim();
+
+        // Add label
+        if (labelMatch) {
+            row.label = labelMatch[1];
+        }
 
         result.push(row);
     });
