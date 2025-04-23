@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.23.1
+// @version      2025.04.23.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -28,7 +28,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 const tid_minGap = 3;
-
+const similarityThreshold = 0.8;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -113,7 +113,7 @@ function normalizeTrackTitlesForMatching( text ) {
   ); // → false
 
   // you can also adjust tolerance (e.g., 80% similarity)
-  $.isTextSimilar( "Hieroglyphic Being - The Fourth Dimensions", "Hieroglyphic Being - The Fourth Dimension", 0.95 ) ); // true
+  $.isTextSimilar( "Hieroglyphic Being - The Fourth Dimensions", "Hieroglyphic Being - The Fourth Dimension", 0.95 ); // true
  */
 (function($) {
   // Compute edit (Levenshtein) distance between two strings
@@ -181,8 +181,6 @@ function normalizeTrackTitlesForMatching( text ) {
  * mergeTracklists
  */
 function mergeTracklists(original_arr, candidate_arr) {
-    const similarityThreshold = 0.9;
-
     // 1) Keep only real tracks in original, and drop "track (false)" in candidate
     original_arr = original_arr.filter(item => item.type === "track");
     candidate_arr = candidate_arr.filter(item => item.type !== "track (false)");
@@ -317,12 +315,21 @@ function mergeTracklists(original_arr, candidate_arr) {
             `<pre>${ escapeHtml(text1) }</pre>`
         ].join("");
 
-        // — Text2 vs Text1
+        // — Merge result (Text2 vs Text1), now ignoring "..." in either text1 or text2
         let diff2 = `<strong>Merge result</strong><pre>`;
         for (let i = 0; i < Math.max(t1.length, t2.length); i++) {
-            diff2 += diffText(t1[i]||"", t2[i]||"") + "\n";
+            const line1 = t1[i] || "";
+            const line2 = t2[i] || "";
+
+            // if either side is "..." → context only, no diff
+            if (line1.trim() === "..." || line2.trim() === "...") {
+                diff2 += escapeHtml(line2) + "\n";
+            } else {
+                diff2 += diffText(line1, line2) + "\n";
+            }
         }
         diff2 += `</pre>`;
+
 
         // — Text3 vs Text2
         // build lookup for text2 by [ID]
@@ -440,17 +447,6 @@ function run_merge( showDebug=false ) {
  */
 if( domain == "mixesdb.com" ) {
     $(document).ready(function () {
-        /*
-         * init run for saved tracklists
-         */
-        run_merge();
-
-        /*
-         * on button clicks
-         */
-        $("#merge").click(function(){
-            run_merge( true );
-        });
 
         $("#clear").click(function(){
             clear_textareas();
@@ -460,22 +456,38 @@ if( domain == "mixesdb.com" ) {
             run_diff();
         });
 
-        $("#debug").click(function(){
-            run_merge( true );
-        });
-
         /*
          * if url paramater
          */
+        var tl_original = getURLParameter( "tl_original" );
+        if( tl_original && tl_original != "" ) {
+            clear_textareas();
+
+            logVar( "tl_original URL param", tl_original );
+
+            $("#tl_original").val( tl_original );
+
+            adjust_textareaRows( $("#tl_original") );
+        }
+
         var tl_candidate = getURLParameter( "tl_candidate" );
         if( tl_candidate && tl_candidate != "" ) {
-            clear_textareas();
 
             logVar( "tl_candidate URL param", tl_candidate );
 
             $("#tl_candidate").val( tl_candidate );
 
             adjust_textareaRows( $("#tl_candidate") );
+        }
+
+        /*
+         * init run for saved tracklists
+         */
+        if( getURLParameter( "do" ) == "merge" &&
+            tl_original &&
+            tl_candidate
+          ) {
+            run_merge( true );
         }
     });
 }
