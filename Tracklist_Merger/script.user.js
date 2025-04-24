@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.24.2
+// @version      2025.04.24.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -317,7 +317,7 @@ function mergeTracklists(original_arr, candidate_arr) {
         ].join("");
 
         // — Merge result (Text2 vs Text1), now ignoring "..." in either text1 or text2
-        let diff2 = `<strong>Merge result</strong><pre>`;
+        let diff2 = `<strong>Merge result</strong (vs Original)><pre>`;
         for (let i = 0; i < Math.max(t1.length, t2.length); i++) {
             const line1 = t1[i] || "";
             const line2 = t2[i] || "";
@@ -340,7 +340,7 @@ function mergeTracklists(original_arr, candidate_arr) {
             if (m) map2[m[1]] = m[2];
         });
 
-        let diff3 = `<strong>Candidate</strong><pre>`;
+        let diff3 = `<strong>Candidate</strong> (vs Merge result)<pre>`;
         for (let raw3 of t3) {
             const trimmed = raw3.trim();
             if (trimmed === "...") {
