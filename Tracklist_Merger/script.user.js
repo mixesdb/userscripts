@@ -317,7 +317,7 @@ function mergeTracklists(original_arr, candidate_arr) {
         ].join("");
 
         // — Merge result (Text2 vs Text1), now ignoring "..." in either text1 or text2
-        let diff2 = `<strong>Merge result</strong (vs Original)><pre>`;
+        let diff2 = `<strong>Merge result</strong> (vs Original)<pre>`;
         for (let i = 0; i < Math.max(t1.length, t2.length); i++) {
             const line1 = t1[i] || "";
             const line2 = t2[i] || "";
