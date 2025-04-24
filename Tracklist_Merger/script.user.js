@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.24.7
+// @version      2025.04.24.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -291,7 +291,7 @@ function mergeTracklists(original_arr, candidate_arr) {
       var lines3 = text3.split('\n');
       return this.each(function() {
         var $container = $(this).empty();
-        var $row = $('<tr id="#diffContainer">');
+        var $row = $('<tr id="diffContainer">');
 
         // Column 1: Original
         $row.append($('<td>').append($('<pre>').text(text1)));
