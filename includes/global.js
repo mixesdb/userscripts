@@ -797,10 +797,10 @@ function make_tlArr( tl ) {
                    .replace(/^\[\d*\?+\:]\s*/, '');
 
         // Optional cue [00] at the start
-        var cueMatch = line.match(/^\[(\d+:*\d*)\]/);
+        var cueMatch = line.match(/^\[(\d+:*\d*:*\d*)\]/);
         if (cueMatch) {
             row.cue = cueMatch[1];
-            line = line.replace(/^\[(\d:*\d*|\?)+\]\s*/, '');
+            line = line.replace(/^\[(\d+:*\d*:*\d*|\?)+\]\s*/, '');
         }
 
         // Add trackText
