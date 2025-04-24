@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.24.3
+// @version      2025.04.24.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,15 +11,13 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Merger_Beta_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jsdiff/7.0.0/diff.min.js
+// @require      https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js
 // @match        https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger*
 // @include      http*trackid.net/audiostreams/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
-
-
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -30,6 +28,7 @@
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -58,9 +57,11 @@ function adjust_textareaRows( textarea ) {
     textarea.attr("rows", rows);
 }
 
-/* removePointlessVersionsForMatching */
+/*
+ * removePointlessVersionsForMatching
+ */
 function removePointlessVersionsForMatching( t ) {
-    return t.replace( / \((Extended|Main|Original|Remaaster(ed)?( \d{4})?|Vocal)\)/gmi, "" );
+    return t.replace( / \((Vocal|Main)\)/gmi, "" );
 }
 
 /*
@@ -83,7 +84,6 @@ function normalizeTrackTitlesForMatching( text ) {
 
     return text;
 }
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -256,123 +256,92 @@ function mergeTracklists(original_arr, candidate_arr) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Diff functions
+ * ChatGPT 4o-mini-high v2
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-(function($){
-    'use strict';
-
-    // 1) HTML‑escape helper
-    function escapeHtml(str) {
-        return str.replace(/[&<>"']/g, m=>{
-            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
-        });
+ (function($) {
+    function escapeHTML(s) { return $('<div>').text(s).html(); }
+    function wrapSpan(val, cls) {
+      var lead = val.match(/^\s*/)[0];
+      var trail = val.match(/\s*$/)[0];
+      var core = val.slice(lead.length, val.length - trail.length);
+      return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
-
-    // 2) Our diff engine: word‑level with char‑level fallback for modifications
-    function diffText(oldStr, newStr) {
-        const parts = Diff.diffWords(oldStr, newStr, { ignoreCase: true });
-        let out = [];
-
-        for (let i = 0; i < parts.length; i++) {
-            const p = parts[i];
-
-            // a removed+added pair → character‑level diff
-            if (p.removed && parts[i+1]?.added) {
-                const chars = Diff.diffChars(p.value, parts[i+1].value, { ignoreCase: true });
-                chars.forEach(c => {
-                    const esc = escapeHtml(c.value);
-                    if      (c.added)   out.push(`<span class="diff-added">${esc}</span>`);
-                    else if (c.removed) out.push(`<span class="diff-removed">${esc}</span>`);
-                    else                out.push(esc);
-                });
-                i++;  // skip the added part
-            }
-            else if (p.added) {
-                out.push(`<span class="diff-added">${escapeHtml(p.value)}</span>`);
-            }
-            else if (p.removed) {
-                out.push(`<span class="diff-removed">${escapeHtml(p.value)}</span>`);
-            }
-            else {
-                out.push( escapeHtml(p.value) );
-            }
-        }
-
-        return out.join('');
+    function charDiffGreen(orig, mod) {
+      return Diff.diffChars(orig, mod).map(function(p) {
+        if (p.added)   return wrapSpan(p.value, 'diff-added');
+        if (p.removed) return '';
+        return escapeHTML(p.value);
+      }).join('');
     }
+    function charDiffRed(orig, mod) {
+      return Diff.diffChars(orig, mod).map(function(p) {
+        if (p.added)   return wrapSpan(p.value, 'diff-removed');
+        if (p.removed) return '';
+        return escapeHTML(p.value);
+      }).join('');
+    }
+    $.fn.showTracklistDiffs = function(opts) {
+      var text1 = opts.text1 || '';
+      var text2 = opts.text2 || '';
+      var text3 = opts.text3 || '';
+      var lines1 = text1.split('\n');
+      var lines2 = text2.split('\n');
+      var lines3 = text3.split('\n');
+      return this.each(function() {
+        var $container = $(this).empty();
+        var $row = $('<tr id="#diffContainer">');
 
-    // 3) jQuery plugin to render the three outputs
-    $.fn.showTracklistDiffs = function({ text1, text2, text3 }) {
-        const t1 = text1.trim().split("\n"),
-              t2 = text2.trim().split("\n"),
-              t3 = text3.trim().split("\n"),
-              $container = this.empty();
+        // Column 1: Original
+        $row.append($('<td>').append($('<pre>').text(text1)));
 
-        // build the three HTML fragments
-        // — Original
-        const origHtml = [
-            `<strong>Original</strong>`,
-            `<pre>${ escapeHtml(text1) }</pre>`
-        ].join("");
+        // Column 2: Merged vs Original (green additions)
+        var html2 = lines2.map(function(line, i) {
+          var core2 = line.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
+          var orig = lines1[i] || '';
+          var core1 = orig.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
+          if (core2 === '?' || core2 === '...') {
+            return escapeHTML(line);
+          }
+          if (core1 === core2) {
+            return escapeHTML(line);
+          }
+          return charDiffGreen(orig, line);
+        }).join('\n');
+        $row.append($('<td>').append($('<pre>').html(html2)));
 
-        // — Merge result (Text2 vs Text1), now ignoring "..." in either text1 or text2
-        let diff2 = `<strong>Merge result</strong> (vs Original)<pre>`;
-        for (let i = 0; i < Math.max(t1.length, t2.length); i++) {
-            const line1 = t1[i] || "";
-            const line2 = t2[i] || "";
-
-            // if either side is "..." → context only, no diff
-            if (line1.trim() === "..." || line2.trim() === "...") {
-                diff2 += escapeHtml(line2) + "\n";
-            } else {
-                diff2 += diffText(line1, line2) + "\n";
+        // Column 3: Candidate vs Merged (red extras, normalized matching)
+        var html3 = lines3.map(function(line) {
+          var coreRaw = line.replace(/^#?\s*\[.*?\]\s*/, '').trim();
+          if (coreRaw === '?' || coreRaw === '...') {
+            return escapeHTML(line);
+          }
+          var cue = line.match(/^(\s*\[.*?\]\s*)/);
+          var prefix = cue ? cue[1] : '';
+          var core = coreRaw;
+          var normCore = normalizeTrackTitlesForMatching(core);
+          var origCore = '';
+          for (var j = 0; j < lines2.length; j++) {
+            var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
+            if ($.isTextSimilar(normalizeTrackTitlesForMatching(cand), normCore)) {
+              origCore = cand;
+              break;
             }
-        }
-        diff2 += `</pre>`;
+          }
+          if (normalizeTrackTitlesForMatching(origCore) === normCore) {
+            return escapeHTML(line);
+          }
+          return escapeHTML(prefix) + charDiffRed(origCore, core);
+        }).join('\n');
 
+        $row.append($('<td>').append($('<pre>').html(html3)));
 
-        // — Text3 vs Text2
-        // build lookup for text2 by [ID]
-        const map2 = {};
-        t2.forEach(line => {
-            const m = line.match(/^\s*#?\s*\[(\d+)\]\s*(.*)$/);
-            if (m) map2[m[1]] = m[2];
-        });
-
-        let diff3 = `<strong>Candidate</strong> (vs Merge result)<pre>`;
-        for (let raw3 of t3) {
-            const trimmed = raw3.trim();
-            if (trimmed === "...") {
-                diff3 += escapeHtml(raw3) + "\n";
-                continue;
-            }
-            const m3 = raw3.match(/^\[(\d+)\]\s*(.*)$/);
-            if (m3) {
-                const id = m3[1],
-                      b3 = m3[2],
-                      b2 = map2[id] || "";
-
-                if (b3.trim() === "?") {
-                    diff3 += `<span class="diff-context">[${id}]</span> ${ escapeHtml(b3) }\n`;
-                } else {
-                    diff3 += `<span class="diff-context">[${id}]</span> ${ diffText(b2, b3) }\n`;
-                }
-            } else {
-                diff3 += escapeHtml(raw3) + "\n";
-            }
-        }
-        diff3 += `</pre>`;
-
-        // now wrap all three fragments into a single row of td's
-        const $tableCells = $(`<td>${ origHtml }</td>
-            <td>${ diff2 }</td>
-            <td>${ diff3 }</td>`);
-
-        $container.append($tableCells);
-        return this;
+        $container.replaceWith($row);
+      });
     };
-})(jQuery);
+  })(jQuery);
+
 
 /*
  * run_diff
@@ -389,7 +358,11 @@ function run_diff() {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ *
+ *
  * Run everything
+ *
+ *
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
