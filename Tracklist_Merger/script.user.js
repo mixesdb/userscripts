@@ -60,7 +60,7 @@ function adjust_textareaRows( textarea ) {
 
 /* removePointlessVersionsForMatching */
 function removePointlessVersionsForMatching( t ) {
-    return t.replace( / \((Vocal|Main)\)/gmi, "" );
+    return t.replace( / \((Extended|Main|Original|Remaaster(ed)?( \d{4})?|Vocal)\)/gmi, "" );
 }
 
 /*
