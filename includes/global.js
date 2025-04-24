@@ -794,13 +794,13 @@ function make_tlArr( tl ) {
 
         // Remove leading "#" or similar
         line = line.replace(/^#\s+/, '')
-                   .replace(/^\[\d*\?+\]\s*/, '');
+                   .replace(/^\[\d*\?+\:]\s*/, '');
 
         // Optional cue [00] at the start
-        var cueMatch = line.match(/^\[(\d+)\]/);
+        var cueMatch = line.match(/^\[(\d+:*\d*)\]/);
         if (cueMatch) {
             row.cue = cueMatch[1];
-            line = line.replace(/^\[(\d|\?)+\]\s*/, '');
+            line = line.replace(/^\[(\d:*\d*|\?)+\]\s*/, '');
         }
 
         // Add trackText
