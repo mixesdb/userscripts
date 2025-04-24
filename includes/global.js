@@ -793,11 +793,11 @@ function make_tlArr( tl ) {
         var row = { type: "track" };
 
         // Remove leading "#" or similar
-        line = line.replace(/^#\s+/, '')
-                   .replace(/^\[\d*\?+\:]\s*/, '');
+        line = line.replace(/^#\s*/, '')
+                   .replace(/^\[[\d*\?*\:*]\]+\s*/, '');
 
         // Optional cue [00] at the start
-        var cueMatch = line.match(/^\[(\d+:*\d*:*\d*)\]/);
+        var cueMatch = line.match(/^\[(\d*:*\d*:*\d*\?*)\]/);
         if (cueMatch) {
             row.cue = cueMatch[1];
             line = line.replace(/^\[(\d+:*\d*:*\d*|\?)+\]\s*/, '');
