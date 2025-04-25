@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.24.8
+// @version      2025.04.25.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -182,33 +182,37 @@ function normalizeTrackTitlesForMatching( text ) {
  * mergeTracklists
  */
 function mergeTracklists(original_arr, candidate_arr) {
-    // 1) Keep only real tracks in original, and drop "track (false)" in candidate
-    original_arr = original_arr.filter(item => item.type === "track");
+    // Strip out false-tracks from the candidate list, but keep everything in the original (including gaps)
     candidate_arr = candidate_arr.filter(item => item.type !== "track (false)");
 
-    // 2) Build exact lookup + a list for fuzzy matching
-    const originalMap = {};     // normalizedTitle -> index
-    const fuzzyList = [];       // [{ norm, index }]
+    // Build exact lookup + fuzzy list for all original track items
+    const originalMap = {}; // normalizedTitle → index in original_arr
+    const fuzzyList   = []; // [{ norm, index }]
     original_arr.forEach((item, index) => {
-        const norm = normalizeTrackTitlesForMatching(item.trackText);
-        originalMap[norm] = index;
-        fuzzyList.push({ norm, index });
+        if (item.type === "track") {
+            const norm = normalizeTrackTitlesForMatching(item.trackText);
+            originalMap[norm] = index;
+            fuzzyList.push({ norm, index });
+        }
     });
 
-    // 3) Walk through candidates
+    // Walk through candidate tracks
     for (let i = 0; i < candidate_arr.length; i++) {
         const cand = candidate_arr[i];
         if (cand.type !== "track" || !cand.trackText || cand.trackText === "?") {
             continue;
         }
 
-        // Normalize candidate title
-        const candNorm = normalizeTrackTitlesForMatching(cand.trackText);
+        // Remember the candidate’s own name & label
+        const candidateName  = cand.trackText;
+        const candidateLabel = cand.label;
 
-        // 3a) Try exact lookup first
+        const candNorm = normalizeTrackTitlesForMatching(candidateName);
+
+        // 1) Try exact match by normalized title
         let matchIndex = originalMap[candNorm];
 
-        // 3b) If no exact match, try fuzzy
+        // 2) Fallback to fuzzy matching
         if (matchIndex === undefined) {
             for (const entry of fuzzyList) {
                 if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
@@ -218,20 +222,30 @@ function mergeTracklists(original_arr, candidate_arr) {
             }
         }
 
-        if (matchIndex !== undefined) {
-            // 4) Overwrite candidate’s trackText with the exact original
-            cand.trackText = original_arr[matchIndex].trackText;
+        // 3) Fallback: same cue + unknown trackText
+        if (matchIndex === undefined && cand.cue) {
+            matchIndex = original_arr.findIndex(item =>
+                                                item.type === "track" &&
+                                                item.trackText === "?" &&
+                                                item.cue === cand.cue
+                                               );
+        }
 
-            // 5) Now merge using your original logic
+        // Only proceed if we got a real slot
+        if (typeof matchIndex === "number" && matchIndex >= 0) {
             const orig = original_arr[matchIndex];
-            if (cand.cue && !orig.cue) {
-                orig.cue = cand.cue;
-            }
-            if (cand.label && !orig.label) {
-                orig.label = cand.label;
-            }
 
-            // 6) Handle a following '?' track-cue patch
+            // --- NEW: if the original was unknown, adopt the candidate’s name ---
+            if (orig.trackText === "?") {
+                orig.trackText = candidateName;
+            }
+            // otherwise, leave the existing original spelling in place
+
+            // Merge in missing cue or label
+            if (cand.cue && !orig.cue)         orig.cue   = cand.cue;
+            if (candidateLabel && !orig.label) orig.label = candidateLabel;
+
+            // Existing “? plus cue” hack
             const nextCand = candidate_arr[i + 1];
             if (
                 nextCand &&
@@ -249,7 +263,7 @@ function mergeTracklists(original_arr, candidate_arr) {
         }
     }
 
-    return original_arr;
+    return original_arr; // = merged
 }
 
 
