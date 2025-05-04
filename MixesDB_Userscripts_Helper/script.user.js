@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.23.2
+// @version      2025.05.04.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-MixesDB_Userscripts_Helper_2
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
@@ -106,64 +106,6 @@ function getApplePodcastsSearchLink( className, keywords ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * TrackId.net functions
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// fixRequestPlayerUrl
-function fixRequestPlayerUrl( url ) {
-    return url
-        .replace( "www.youtu.be", "youtu.be" )
-        .replace( "m.soundcloud.com", "soundcloud.com" );
-}
-
-// tidLinkFromUrl
-function tidLinkFromUrl( requestPlayerUrl, keywords ) {
-    var urlFixed = fixRequestPlayerUrl( requestPlayerUrl ),
-        domain = new URL( urlFixed ).hostname.replace("www.",""),
-        cont = false;
-
-    //logVar( "domain", domain );
-
-    if( domain == "soundcloud.com" || domain == "mixcloud.com" || domain == "youtube.com" || domain == "youtu.be" || domain == "hearthis.at" ) {
-        cont = true;
-    }
-
-    if( cont ) {
-        var tidUrl = makeTidSubmitUrl( urlFixed, keywords ),
-            tidLogo = '<img class="op05" src="'+favicon_TID+'" alt="TrackId.net Logo" style="max-height:20px">', // max-height to avoid flashing original icon size (script.css loads later)
-            link = '<a class="explorerTitleIcon tidSubmit" href="'+tidUrl+'" title="Submit '+urlFixed+' on TrackId.net" target="_blank" style="display:none">'+tidLogo+'</a>';
-        return link;
-    } else {
-        log( domain + " cannot be requested on TrackId.net" );
-        return false;
-    }
-}
-
-// triggerVisiblePlayer
-function triggerVisiblePlayer( wrapper ) {
-    var firstPlayerVisible = $('.playerWrapper.on-explorer:visible[data-tidcompatibleplayersite="true"]', wrapper).first(),
-        playerUrl = firstPlayerVisible.attr("data-playerurl"),
-        keywords = getKeywordsFromTitle( $(".explorerTitleLink", wrapper) );
-
-    log( playerUrl );
-    //logVar( "keywords", keywords );
-
-    if( playerUrl && keywords ) {
-        var tidLink = tidLinkFromUrl( playerUrl, keywords );
-        if( tidLink ) {
-            log( "Adding TID link for " + playerUrl );
-            $(".explorerTitle .greylinks", wrapper).append( tidLink );
-            $(".tidSubmit", wrapper).fadeIn( msFadeSlow );
-        } else {
-            log( "Skipped." );
-        }
-    }
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
  * Mix page title icons and Explorer title icons fpr
  ** TrackId.net request submission
  ** Apple Podcasts search
@@ -195,7 +137,7 @@ d.ready(function(){ // needed for mw.config
         $(".playerWrapper[data-playersite]").each(function(){
             var playerWrapper = $(this),
                 playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
-                playerUrl = playerWrapper.attr("data-playerurl"),
+                playerUrl = removeParametersFromUrl( playerWrapper.attr("data-playerurl") ),
                 playerSite = makeCssSafe( playerWrapper.attr("data-playersite") ),
                 keywords = "";
 
@@ -257,6 +199,8 @@ d.ready(function(){ // needed for mw.config
                         }
                     }
                 }); // END ajax
+            } else {
+                log( "NOT playerTidCompatible: " + playerUrl );
             }
         });
     }
