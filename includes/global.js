@@ -123,6 +123,13 @@ function getDomain_fromUrlStr( urlString ) {
     }
 }
 
+// removeParametersFromUrl
+// https://soundcloud.com/maki_was_here/potatohead-april-27-2025-pm06?in=maki_was_here/sets/mixes%2526si=a737087405ee490995461959173c4f21%2526utm_source=clipboard%2526utm_medium=text%2526utm_campaign=social_sharing
+// returns: https://soundcloud.com/maki_was_here/potatohead-april-27-2025-pm06
+function removeParametersFromUrl( url ) {
+    return url.split('?')[0];
+}
+
 // normalizePlayerUrl
 // removes https and www prefixes and optional characters at the end like "/"
 function normalizePlayerUrl( playerUrl ) {
