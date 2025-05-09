@@ -126,7 +126,7 @@ a.sc_button-mdb:active {
 
 #mdb-artwork-input {
     overflow: hidden;
-    width: calc(100% - 115px);
+    width: calc( 100% - 113px - 3px - 3px );
     padding-left: 3px;
     padding-right: 3px;
     
@@ -138,7 +138,7 @@ a.sc_button-mdb:active {
 }
 
 #mdb-artwork-info {
-    width: 110px;
+    width: 113px;
     text-align: right;
 }
 
