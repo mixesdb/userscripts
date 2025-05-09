@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.4
+// @version      2025.05.09.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -489,7 +489,10 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     li.each(function () {
         var thisTrack = "",
             artist = $(".artist", this).text(),
-            title = $(".title", this).text().replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)"),
+            title = $(".title", this).text().trim()
+                      .replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)")
+                      .replace(/^\((.+)\)$/g, "$1") // avoid "[000] Inland [Systemscan]" https://trackid.net/audiostreams/shed-josey-rebelle-sven-von-thulen-txl-berlin-recordings-chapter-7-arte-concert
+                      ,
             label = $(".label", this).text().replace(/[\[\]]/g,""),
             startTime = $(".startTime", this).text(),
             startTime_Sec = durToSec(startTime),
@@ -667,19 +670,25 @@ waitForKeyElements("#toggleTlCandidate", function( jNode ) {
  * Fix ugly grid layout to proper tables
  */
 
+var skipReplacingTables = false;
+if( urlPath_noParams(1) == "submiturl" ) {
+    skipReplacingTables = true;
+}
 // waitForKeyElements
-waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.processed)", function( jNode ) {
-    jNode.addClass("processed");
-    setTimeout(function () {
-        funcTidTables( jNode.closest(".MuiDataGrid-main") );
-    }, timeoutDelay);
-});
-$(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on("change", function() {
-    jNode.addClass("processed");
-    setTimeout(function () {
-        funcTidTables( $(this).closest(".MuiDataGrid-main") );
-    }, timeoutDelay);
-});
+if( !skipReplacingTables ) {
+    waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.processed)", function( jNode ) {
+        jNode.addClass("processed");
+        setTimeout(function () {
+            funcTidTables( jNode.closest(".MuiDataGrid-main") );
+        }, timeoutDelay);
+    });
+    $(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on("change", function() {
+        jNode.addClass("processed");
+        setTimeout(function () {
+            funcTidTables( $(this).closest(".MuiDataGrid-main") );
+        }, timeoutDelay);
+    });
+}
 
 // funcTidTables
 function funcTidTables(jNode) {
