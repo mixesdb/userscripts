@@ -782,6 +782,8 @@ function removeDuplicateBracketedText( text ) {
  * make_tlArr
  */
 function make_tlArr( tl ) {
+    tl = tl.replace(/''/g, ""); // ''Hitam - ? [Unreleased]'' > Hitam - ? [Unreleased]
+    
     var lines = tl.split('\n');
     var result = [];
 
