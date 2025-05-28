@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.05.09.1
+// @version      2025.05.28.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -488,12 +488,19 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
     li.each(function () {
         var thisTrack = "",
-            artist = $(".artist", this).text(),
-            title = $(".title", this).text().trim()
+            artist = $(".artist", this).text()
+                       .replace(/\s*\n\s*/g, ' ') // https://trackid.net/audiostreams/nature-one-2024-opening-gayphoriastage
+                       .replace(/([A-Z0-9]),([A-Z0-9])/i, "$1, $2") // https://trackid.net/audiostreams/calvo-at-nature-one-2o17-we-call-it-home
+                       ,
+            title = $(".title", this).text().replace(/\s*\n\s*/g, ' ').trim()
                       .replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)")
                       .replace(/^\((.+)\)$/g, "$1") // avoid "[000] Inland [Systemscan]" https://trackid.net/audiostreams/shed-josey-rebelle-sven-von-thulen-txl-berlin-recordings-chapter-7-arte-concert
                       ,
-            label = $(".label", this).text().replace(/[\[\]]/g,""),
+            label = $(".label", this).text()
+                      .replace(/\s*\n\s*/g, ' ')
+                      .replace("Records (Distribution)", "Records")
+                      .replace(/[\[\]]/g,"")
+                      ,
             startTime = $(".startTime", this).text(),
             startTime_Sec = durToSec(startTime),
             endTime = $(".endTime", this).text(),
@@ -594,7 +601,6 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     log("tl before API:\n" + tl);
 
     if (tl !== "") {
-
         var res = apiTracklist( tl, "trackidNet" ),
             tlApi = res.text;
         log( "tlApi:\n" + tlApi );
