@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.05.28.1
+// @version      2025.05.28.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -532,6 +532,15 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                 }
             }
             thisTrack += '[' + startTime + '] ';
+        }
+
+        // catch title (feat. artist2) and add to artist
+        // should actually be catched by TLE (issue#525)
+        var match = title.match(/\s*\(feat\. [^)]+\)/i);
+        if (match) {
+            var featPart = match[0].trim(); // e.g., "(feat. Foo)"
+            title = title.replace(match[0], '').trim();
+            artist += ' ' + featPart;
         }
 
         // artist - title
