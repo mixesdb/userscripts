@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.05.28.2
+// @version      2025.06.02.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,6 +17,7 @@
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -46,6 +47,28 @@ var timeoutDelay = 600,
 waitForKeyElements(".mdb-element.select", function( jNode ) {
     jNode.select().focus();
 });
+
+
+/*
+ * removeMajorLabels
+ * Once completed, move the logic to TLE
+ */
+String.prototype.removeMajorLabels = function() {
+    logFunc( "removeMajorLabels" );
+
+    var text = this.toString()
+                   .replace( /(^|, )BMG( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Capitol( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Columbia( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )EMI( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Island Records( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Polydor( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Sony( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )(UMC|Universal Music)( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
+                   ;
+    return text;
+};
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -500,6 +523,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                       .replace(/\s*\n\s*/g, ' ')
                       .replace("Records (Distribution)", "Records")
                       .replace(/[\[\]]/g,"")
+                      .removeMajorLabels()
                       ,
             startTime = $(".startTime", this).text(),
             startTime_Sec = durToSec(startTime),
@@ -612,7 +636,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     if (tl !== "") {
         var res = apiTracklist( tl, "trackidNet" ),
             tlApi = res.text;
-        log( "tlApi:\n" + tlApi );
+        log( 'tlApi ("trackidNet"):\n' + tlApi );
 
         if( tlApi ) {
             var tl_arr = make_tlArr( tlApi ),
