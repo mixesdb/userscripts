@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.05.04.1
+// @version      2025.06.02.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -137,9 +137,19 @@ d.ready(function(){ // needed for mw.config
         $(".playerWrapper[data-playersite]").each(function(){
             var playerWrapper = $(this),
                 playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
-                playerUrl = removeParametersFromUrl( playerWrapper.attr("data-playerurl") ),
+                playerUrl = playerWrapper.attr("data-playerurl"),
                 playerSite = makeCssSafe( playerWrapper.attr("data-playersite") ),
                 keywords = "";
+
+            logVar( "playerSite", playerSite );
+            logVar( "playerUrl", playerUrl );
+
+            // Remove URL paramteres from e.g. SoundCloud and Mixcloud
+            if( playerSite != "YouTube" ) {
+                playerUrl = removeParametersFromUrl( playerWrapper.attr("data-playerurl") );
+            } else {
+                playerUrl = playerUrl.replace( "www.youtu.be", "youtu.be" );
+            }
 
             // if mix page
             if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
