@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.06.02.1
+// @version      2025.06.03.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,7 +17,6 @@
 // @noframes
 // @run-at       document-end
 // ==/UserScript==
-
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -57,14 +56,17 @@ String.prototype.removeMajorLabels = function() {
     logFunc( "removeMajorLabels" );
 
     var text = this.toString()
-                   .replace( /(^|, )BMG( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )(A )?BMG( [^\]]+)?$/gi, '' )
+                   .replace( /Bonzai Classics/gi, 'Bonzai' )
                    .replace( /(^|, )Capitol( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Columbia( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )EMI( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Island Records( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Metrophon( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Polydor( [^\]]+)?$/gi, '' )
-                   .replace( /(^|, )Sony( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )(A )?Sony( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )(UMC|Universal Music)( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Ultra, LLC( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
                    ;
     return text;
