@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.06.04.4
+// @version      2025.06.04.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -49,11 +49,10 @@ waitForKeyElements(".mdb-element.select", function( jNode ) {
 
 
 /*
- * removeMajorLabels
- * Once completed, move the logic to TLE
+ * fixTidLabelnames
  */
-String.prototype.removeMajorLabels = function() {
-    logFunc( "removeMajorLabels" );
+String.prototype.fixTidLabelnames = function() {
+    logFunc( "fixTidLabelnames" );
 
     var text = this.toString()
                    .replace( /\d+$/gi, '' ) // label == numbers only https://trackid.net/audiostreams/dj-koze-live-mayday-2003westfalenhalle-dortmund
@@ -61,8 +60,18 @@ String.prototype.removeMajorLabels = function() {
                    // remove legal corporate entities
                    .replace( /(^|, )(.+) S\.?r\.?l\.?$/gi, '$1$2' ) // Expanded Music Srl
                    .replace( /(^|, )(.+) GmbH$/gi, '$1$2' ) // Foo GmbH
+                   ;
+    return text;
+};
 
-                   // remove major labels
+/*
+ * removeMajorLabels
+ * Once completed, move the logic to TLE
+ */
+String.prototype.removeMajorLabels = function() {
+    logFunc( "removeMajorLabels" );
+
+    var text = this.toString()
                    .replace( /(^|, )(A )?BMG( [^\]]+)?$/gi, '' )
                    .replace( /Bonzai Classics/gi, 'Bonzai' )
                    .replace( /(^|, )Capitol( [^\]]+)?$/gi, '' )
@@ -536,6 +545,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/\s*\n\s*/g, ' ')
                        .replace("Records (Distribution)", "Records")
                        .replace(/[\[\]]/g,"")
+                       .fixTidLabelnames()
                        .removeMajorLabels()
                        ,
             startTime = $(".startTime", this).text(),
