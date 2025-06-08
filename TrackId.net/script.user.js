@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.06.08.7
+// @version      2025.06.08.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -80,17 +80,19 @@ String.prototype.removeMajorLabels = function() {
                    .replace( /(^|, )Columbia( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )EMI( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Epic( [^\]]+)?$/gi, '' )
-                   .replace( /(^|, )Island Records( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )High Fashion Music( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Island (Mercury|Records)( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Metrophon( [^\]]+)?$/gi, '' )
-                   .replace( /(^|, )Onelove Catalog( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )PLG UK( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Polydor( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )(A )?Sony( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )The Vault( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )(UMC|Universal Music)( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Ultra, LLC( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )UNI\/MOTOWN( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
                    .replace( /(?:^|, )WM Germany(?: - )([^\]]+)?$/gi, '$1' )
+                   .replace( /(^|, )(Clarence Avant|Onelove) Catalog( [^\]]+)?$/gi, '' ) // different Catalogs
                    ;
     return text;
 };
