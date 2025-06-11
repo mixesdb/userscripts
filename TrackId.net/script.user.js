@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.06.11.4
+// @version      2025.06.11.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -88,7 +88,7 @@ String.prototype.removeMajorLabels = function() {
                    .replace( /(^|, )Polydor( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )(A )?Sony( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )The Vault( [^\]]+)?$/gi, '' )
-                   .replace( /(^|, )(UMC|Universal Music)( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )(UMC|Universal Music|Universal-Island)( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Ultra, LLC( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )UNI\/MOTOWN( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
@@ -558,7 +558,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/^(.+)-\d{4,5}$/g, "$1") // numbers as suffix, e.g. "Track Title-24070" https://trackid.net/audiostreams/alex-kvitta-sonderspur-pod-011281213
                        .replace(/^(.+) - (.+)$/g, "$1 ($2)") // "Track Title - Some Version" https://trackid.net/audiostreams/dj-hell-mayday-1999-soundtropolis
                        .replace(/(.+) \((\d+ )?Remaster(ed|ing)?( \d+)?\)$/g, "$1") // "Track Title - (Remaster)" etc
-                       .replace(/(.+) \((\d+ )?([A-Za-z]+ )?(\s*Remaster(ed|ing|;)?)+\)$/gi, "$1") // "Track Title - (2013 Japan Remaster; Remastered)"
+                       .replace(/(.+) \((\d+ )?([A-Za-z]+ )?(\s*Re-?master(ed|ing|;)?)(\s*(Mix|Version|Edition))?\)$/gi, "$1") // "Track Title - (2013 Japan Remaster; Remastered)"
         ,
             label  = $(".label", this).text()
                        .replace(/\s*\n\s*/g, ' ')
