@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.06.08.9
+// @version      2025.06.11.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -71,6 +71,7 @@ String.prototype.fixTidLabelnames = function() {
  */
 String.prototype.removeMajorLabels = function() {
     logFunc( "removeMajorLabels" );
+    logVar( "text", text );
 
     var text = this.toString()
                    .replace( /(^|, )Atlantic( [^\]]+)?$/gi, '' )
@@ -92,7 +93,11 @@ String.prototype.removeMajorLabels = function() {
                    .replace( /(^|, )UNI\/MOTOWN( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
                    .replace( /(?:^|, )WM Germany(?: - )([^\]]+)?$/gi, '$1' )
-                   .replace( /(^|, )(Clarence Avant|Onelove) Catalog( [^\]]+)?$/gi, '' ) // different Catalogs
+                   // re-issues
+                   .replace( /(^|, )(Azuli|Verve) (Back Catalog|Reissues)( [^\]]+)?$/gi, '$1$2' )
+                   // different Catalogs
+                   .replace( /(^|, )(Clarence Avant|Onelove|PIAS) (Recordings )?Catalog(ue)?( [^\]]+)?$/gi, '' )
+                   .replace( /(^|, )Recordings Catalogue( [^\]]+)?$/gi, '' ) // yes, "Recordings Catalogue"! https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-summer-beats-20090119
                    ;
     return text;
 };
@@ -537,12 +542,17 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     logVar("li.length", li.length);
 
     li.each(function () {
-        var thisTrack = "",
-            artist = $(".artist", this).text()
+        var thisTrack = "";
+        var thisTitle = $(".title", this).text().replace(/\s*\n\s*/g, ' ').trim();
+
+        logVar( "title before replacing", thisTitle );
+
+        var artist = $(".artist", this).text()
                        .replace(/\s*\n\s*/g, ' ') // https://trackid.net/audiostreams/nature-one-2024-opening-gayphoriastage
                        .replace(/([A-Z0-9]),([A-Z0-9])/i, "$1, $2") // https://trackid.net/audiostreams/calvo-at-nature-one-2o17-we-call-it-home
                        ,
-            title  = $(".title", this).text().replace(/\s*\n\s*/g, ' ').trim()
+            title  = thisTitle
+                       .replace(/ \(\d+ - Remaster\)$/, "") // All Night (I Can Do It Right) (2016 - Remaster) https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-20090216-mix-2 | Run before below stuff
                        .replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)")
                        .replace(/^\((.+)\)$/g, "$1") // avoid "[000] Inland [Systemscan]" https://trackid.net/audiostreams/shed-josey-rebelle-sven-von-thulen-txl-berlin-recordings-chapter-7-arte-concert
                        .replace(/^(.+)-\d{4,5}$/g, "$1") // numbers as suffix, e.g. "Track Title-24070" https://trackid.net/audiostreams/alex-kvitta-sonderspur-pod-011281213
