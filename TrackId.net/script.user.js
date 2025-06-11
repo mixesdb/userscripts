@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.06.11.3
+// @version      2025.06.11.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -91,9 +91,10 @@ String.prototype.removeMajorLabels = function() {
                    .replace( /(^|, )(UMC|Universal Music)( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Ultra, LLC( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )UNI\/MOTOWN( [^\]]+)?$/gi, '' )
-                   .replace( /(^|, )Verve Reissues( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
                    .replace( /(?:^|, )WM Germany(?: - )([^\]]+)?$/gi, '$1' )
+                   // re-issues
+                   .replace( /(^|, )(Azuli|Verve) (Back Catalog|Reissues)( [^\]]+)?$/gi, '$1$2' )
                    // different Catalogs
                    .replace( /(^|, )(Clarence Avant|Onelove|PIAS) (Recordings )?Catalog(ue)?( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Recordings Catalogue( [^\]]+)?$/gi, '' ) // yes, "Recordings Catalogue"! https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-summer-beats-20090119
