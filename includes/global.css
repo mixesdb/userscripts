@@ -256,6 +256,10 @@ textarea.mono {
     & a:hover {
         text-decoration: underline !important;
     }
+
+    & a.mdb-actualPlayerLink {
+        word-break: break-all;
+    }
 }
 
 /* nested lists */
