@@ -41,7 +41,7 @@ function extractUrlFromUrlParameter( fullUrl ) {
     logFunc( "extractUrlFromUrlParameter" );
     logVar( "fullUrl", fullUrl );
     
-    const match = fullUrl.match(/[?&]url=([^&]+)/);
+    var match = fullUrl.match(/[?&]url=([^&]+)/);
     return match ? decodeURIComponent(match[1]) : fullUrl;
 }
 
