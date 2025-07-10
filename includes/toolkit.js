@@ -46,8 +46,8 @@ function extractUrlFromUrlParameter( fullUrl ) {
 }
 
 // ensureTrailingSlash
-function ensureTrailingSlash(scUrl_api) {
-    return scUrl_api.endsWith('/') ? scUrl_api : scUrl_api + '/';
+function ensureTrailingSlash( url ) {
+    return url.endsWith('/') ? url : url + '/';
 }
 
 /*
@@ -105,13 +105,10 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // https://w.soundcloud.com/player/?visual=true&url=https:%2F%2Fapi.soundcloud.com%2Ftracks%2F1680484035&show_artwork=true&maxheight=1000&maxwidth=708
 
             // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
-            var scUrl_api = decodeURIComponent( srcUrl )
-                                .replace( /^(.+(?:\?|&)url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
-                            ;
-
-            // make sure the URL ends on "/"
-            var scUrl_api = ensureTrailingSlash( scUrl_api );
-
+            var scUrl_api = ensureTrailingSlash(
+                                decodeURIComponent( srcUrl )
+                                    .replace( /^(.+(?:\?|&)url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
+                            );
             logVar( "scUrl_api", scUrl_api );
 
             // Sanity check: if URL conatins track ID
@@ -124,11 +121,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra970-upsammy/&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra996-ron-trent&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             
-            var scUrl_key = extractUrlFromUrlParameter( srcUrl );
-
-            // make sure the URL ends on "/"
-            var scUrl_api = ensureTrailingSlash( scUrl_api );
-            
+            var scUrl_key = ensureTrailingSlash( extractUrlFromUrlParameter( srcUrl ) );
             logVar( "scUrl_key", scUrl_key );
 
             // Sanity check: if no path behind soundcloud.com/[key]
