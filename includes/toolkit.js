@@ -47,7 +47,7 @@ function extractUrlFromUrlParameter( fullUrl ) {
 
 // ensureTrailingSlash
 function ensureTrailingSlash( url ) {
-    return url.endsWith('/') ? url : url + '/';
+    return url.replace(/\/?$/, '/');
 }
 
 /*
