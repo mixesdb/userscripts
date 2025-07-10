@@ -31,6 +31,21 @@ function changeYoutubeUrlVariant(url, variant = "youtube.com") {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+
+/*
+ * extractUrlFromUrlParameter()
+ * "https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra996-ron-trent&color=1a1a1a" returns "https://soundcloud.com/resident-advisor/ra996-ron-trent"
+ * "https://soundcloud.com/resident-advisor/ra996-ron-trent" returns unchanged
+ */
+function extractUrlFromUrlParameter( fullUrl ) {
+    logFunc( "extractUrlFromUrlParameter" );
+    logVar( "fullUrl", fullUrl );
+    
+    const match = fullUrl.match(/[?&]url=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : fullUrl;
+}
+
+
 /*
  * getToolkit_fromSCscUrl_api
  * Takes API track URL
@@ -99,8 +114,9 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 
         } else {
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra970-upsammy/&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
-
-            var scUrl_key = srcUrl.replace( /^(.+\?url=)(https:\/\/(?:www\.)?soundcloud\.com\/.+\/.+\/)(.+)$/, "$2" );
+            // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra996-ron-trent&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
+            
+            var scUrl_key = extractUrlFromUrlParameter( srcUrl );
             logVar( "scUrl_key", scUrl_key );
 
             // Sanity check: if no path behind soundcloud.com/[key]
