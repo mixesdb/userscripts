@@ -50,15 +50,15 @@
 /*
  * Toogle dur
  */
-#mdb-durToggle-wrapper-parent {
+.mdb-durToggle-wrapper-parent {
 	margin: 0 auto;
 	text-align: center;
 }
-#mdb-fileDetails textarea {
+.mdb-fileDetails textarea {
 	min-width: 18.5em;
 }
 pre#toggleApiText,
-#mdb-fileDetails textarea {
+.mdb-fileDetails textarea {
 	font-size: 12px !important;
 	font-family: Consolas, monospace;
 }

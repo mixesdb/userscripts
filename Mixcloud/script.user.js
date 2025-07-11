@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.1
+// @version      2025.07.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 12,
+var cacheVersion = 13,
     scriptName = "Mixcloud";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -188,12 +188,12 @@ if( urlPath(2) != "" ) {
         var apiUrl = url.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
 
         // create wrappers to ensure prefered order of async created elements
-        jNode.after( '<span id="mdb-apiLink-wrapper"></span><span id="mdb-durToggle-wrapper"></span><span id="mdb-tidSubmit-wrapper"></span>' );
+        jNode.after( '<span class="mdb-apiLink-wrapper"></span><span class="mdb-durToggle-wrapper"></span><span class="mdb-tidSubmit-wrapper"></span>' );
 
         // add api toggle link
         var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
         logVar( "apiUrl", apiUrl );
-        $("#mdb-apiLink-wrapper").after( apiButton );
+        $(".mdb-apiLink-wrapper").after( apiButton );
 
         /*
          * Using API data
@@ -203,17 +203,17 @@ if( urlPath(2) != "" ) {
             var dur_sec = data["audio_length"],
                 durToggleWrapper = getFileDetails_forToggle( dur_sec ),
                 dur = convertHMS( dur_sec ),
-                durToggleLink = '<a id="mdb-durToggleLink" class="mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
+                durToggleLink = '<a class="mdb-durToggleLink mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
 
             // add dur button
-            $("#mdb-durToggle-wrapper").append( durToggleLink );
+            $(".mdb-durToggle-wrapper:not(.processed)").append( durToggleLink ).addClass("processed");
 
             // append toggle wrapper
-                jNode.addClass("processed-dur");
-                jNode.closest("div").after( '<div id="mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
+            jNode.addClass("processed-dur");
+            jNode.closest("div").after( '<div class="mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
 
             // toggle dur
-            waitForKeyElements('#mdb-durToggleLink', function( jNode ) {
+            waitForKeyElements('.mdb-durToggleLink', function( jNode ) {
                 jNode.click(function(){
                     log("click");
                     $("#mdb-fileDetails").toggle();
