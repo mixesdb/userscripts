@@ -21,9 +21,41 @@
 .mdb-actionLink {
 	color: white;
 }
-.mdb-actionLink {
-	font-size: 16px;
+
+.mdb-actionLink { /* copy from website CSS */
+    display: flex;
+    cursor: pointer;
+    line-height: 1;
+    font-weight: 500;
+    max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transition: transform 300ms ease-out, background-color 300ms ease-out;
+    place-items: center;
+    -webkit-box-align: center;
+    -webkit-box-pack: center;
+    justify-content: center;
+    position: relative;
+    color: var(--color-text-tertiary);
+    background-color: transparent;
+    border-radius: var(--border-radius-s);
+    border: 1px solid var(--color-surface-subtle);
+    height: 48px;
+    max-height: 48px;
+    min-height: 48px;
+    padding: 16px;
+    text-transform: none;
+    font-size: 13px;
+    overflow: hidden;
+    width: auto;
+    
+    &:hover {
+        background-color: var(--color-surface-subtle);
+        color: var(--color-surface-primary);
+        border: 1px solid var(--color-core-subtle);
+    }
 }
+
 .mdb-tidSubmit img {
 	max-height: 30px;
 }
@@ -53,12 +85,14 @@
 .mdb-durToggle-wrapper-parent {
 	margin: 0 auto;
 	text-align: center;
-}
-.mdb-fileDetails textarea {
-	min-width: 18.5em;
-}
-pre#toggleApiText,
-.mdb-fileDetails textarea {
-	font-size: 12px !important;
-	font-family: Consolas, monospace;
+
+	& #mdb-fileDetails textarea {
+		min-width: 18.5em;
+	}
+
+	& pre#toggleApiText,
+	#mdb-fileDetails textarea {
+		font-size: 12px !important;
+		font-family: Consolas, monospace;
+	}
 }
