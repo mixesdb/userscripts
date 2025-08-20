@@ -559,7 +559,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             dataType: 'json',
             async: false,
             success: function(data) {
-                var resultNum = data["query"]["searchinfo"]["totalhits"],
+                var resultsArr = data["mixesdb_player_search"],
+                    resultNum = resultsArr.length,
                     showPlayerUrls = false,
                     force_unclearResult = false;
 
@@ -582,8 +583,6 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                 if( resultNum > 0 ) {
                     logVar( "Usage", "used (resultNum="+resultNum+") " + thisUrl );
-
-                    var resultsArr = data["query"]["search"];
 
                     //logVar( "data", JSON.stringify(data) );
                     logVar( "resultsArr", JSON.stringify(resultsArr) );
