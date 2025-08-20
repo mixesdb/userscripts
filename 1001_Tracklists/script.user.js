@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.1
+// @version      2025.08.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -62,7 +62,8 @@ function thousandoneTl() {
                     label = $("div[itemprop='tracks'] .trackLabel",this)
                                 .map(function(){ return $(this).text().trim(); })
                                 .get()
-                                .join(" / "),
+                                .join(" / ").toLowerCase()
+                                .replace( /(.+) \(.+\)/, "$1" ),
                     dur = $("div[data-mode='hours']",this).text().trim();
 
                 if( dur != "" ) track = "["+dur+"] ";
@@ -90,7 +91,7 @@ function thousandoneTl() {
             }
         });
 
-        //log( tl );
+        log( tl );
 
         // fixes
         var tl = tl.replace('&thinsp;', ' ')
