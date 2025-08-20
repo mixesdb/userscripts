@@ -904,6 +904,30 @@ function tidMarkFalseCues(tl_arr, minGap = 3) {
 }
 
 /*
+ * removeAdjacentDuplicateTracks
+ * Remove tracks that directly repeat the previous track
+ */
+function removeAdjacentDuplicateTracks(tl_arr) {
+  let previousKey = null;
+  const result = [];
+
+  tl_arr.forEach(item => {
+    if (item.type === "track") {
+      const key = `${item.trackText}||${item.label || ""}`;
+      if (key !== previousKey) {
+        result.push(item);
+        previousKey = key;
+      }
+    } else {
+      previousKey = null;
+      result.push(item);
+    }
+  });
+
+  return result;
+}
+
+/*
  * arr_toTlText
  */
 function arr_toTlText( tl_arr ) {
