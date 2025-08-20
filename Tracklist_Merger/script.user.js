@@ -75,8 +75,8 @@ function normalizeTrackTitlesForMatching( text ) {
     text = normalizeStreamingServiceTracks( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
     text = removePointlessVersionsForMatching( text );
+    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
 
-    // sort artists joined by "&"/"and"/"feat." so order doesn't matter
     var parts = text.split(" - ");
     if (parts.length > 1) {
         var artists = parts.shift();
