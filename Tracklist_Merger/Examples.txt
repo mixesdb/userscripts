@@ -1,6 +1,73 @@
 == Example ==
 
-Input:
+Original:
+
+
+Candidate:
+
+
+Expected result:
+
+
+
+== Example ==
+
+Original:
+# Broken English Club - A Shallow Lake
+# Groof - Information Disorder
+# Aztekan - Autonomy
+# Oliver Ho - Our Secret Religion
+# Heliosphere - Pleiades
+# Surgeon - Soul Fire
+# BR!NK - Keiner
+# CFL - Equation Box
+# Lidvall - Crack
+# Liza Aikin & Monolog - Anemone
+# Broken English Club - Death Cult
+# Kronos Device - The Men From Planet X
+# Broken English Club - Non Place
+# Broken English Club - Lost Gods
+# Broken English Club - Sink
+
+Candidate:
+[00] Broken English Club - A Shallow Lake [Dekmantel]
+[04] Groof - Information Disorder
+...
+[09] Aztekan - Autonomy [Peer]
+...
+[18] Heliosphere - Pleiades (Vxlr Remix) [Evilgroove]
+[21] Surgeon - Soul Fire
+[27] ?
+...
+[39] Liza Aikin & Monolog - Anemone [Void+1]
+[41] Broken English Club - Death Cult [Dekmantel]
+[45] Kronos Device - The Men From Planet X [No Static]
+[50] Broken English Club - Non Place [Dekmantel]
+[53] Broken English Club - Lost Gods [Dekmantel]
+[57] ?
+...
+
+Expected result:
+# [00] Broken English Club - A Shallow Lake [Dekmantel]
+# [04] Groof - Information Disorder
+# [09] Aztekan - Autonomy [Peer]
+# [??] Oliver Ho - Our Secret Religion
+# [18] Heliosphere - Pleiades (Vxlr Remix) [Evilgroove]
+# [21] Surgeon - Soul Fire
+# [27] BR!NK - Keiner
+# [??] CFL - Equation Box
+# [??] Lidvall - Crack
+# [39] Liza Aikin & Monolog - Anemone [Void+1]
+# [41] Broken English Club - Death Cult [Dekmantel]
+# [45] Kronos Device - The Men From Planet X [No Static]
+# [50] Broken English Club - Non Place [Dekmantel]
+# [53] Broken English Club - Lost Gods [Dekmantel]
+# [57] Broken English Club - Sink
+
+
+== Example ==
+
+Original:
 # Smear - Agitator
 # Surgeon - Compliance Momentum
 # Point B - Creepy Steeple
