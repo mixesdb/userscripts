@@ -93,3 +93,55 @@ Candidate:
 ...
 
 Expected result:
+# [000] Smear - Agitator
+# [004] Surgeon - Compliance Momentum [Dynamic Tension]
+# [005] Point B - Creepy Steeple [Bankai]
+# [008] ''Gerkin Jerks - ? (Speedy J Edit)''
+# [0??] AFX - Men 1 [Loop]
+# [0??] Shed - Wedged Chicken (Martyn's 131 Remix)
+# [0??] Smear - Lito
+# [017] Robert Babicz - Prism [Audiomatique]
+# [020] Smear - Perameter
+# [02?] Oliver Ho - Meta 8
+# [024] Grovskopa - Sex & Violins (Surgeon Remix) [Token]
+# [027] British Murder Boys - Bonus Beats
+# [0??] Marlinspike - Bongo Rocka
+# [0??] PWOG - Maenad [KK]
+# [0??] Forward Strategy Group - Applied Generics Side B [Forward Strategy]
+# [0??] Stanislav - Red Day [Unreleased]
+# [0??] VA - No. 8 [FatCat]
+# [0??] Martyn - Vancouver [3024]
+# [0??] Ancient Methods - 2.3 [Ancient Methods]
+# [047] Go Hiyama - Geometrical (Surgeon Remix) [Audio Assault]
+# [0??] Artwork - Red
+# [0??] 2 Men On Wax - O-Zone [Relief]
+# [053] Aaron Spectre - Say More Fire [Rag & Bone]
+# [056] Martyn - Broken [Revolve:R]
+# [0??] Phase - Morodem (Ben Sims Remix 2) [Token]
+# [061] Speedy J & George Issakidis - Sculpture [Electric Deluxe]
+# [0??] Joey Beltram - The Next [Trax]
+# [0??] Scuba - Ruptured (Surgeon Remix) [Hotflush]
+# [0??] Nate Williams - Club Patrol [Sex Trax]
+# [0??] Ritzi Lee - Utility [Subsist]
+# [0??] Bjorn Svin - Eat Like Hawks [Unreleased]
+# [080] Vex'd - Pop Pop [Subtext]
+# [08?] Concrete Cookie With Laura Cetilia + Marc Thomas - A Dry Red Shard (Mashup)
+# [08?] John Heckle - Loop
+# [086] DJ Bone - Tru Warriors (Ritual Mix) [Subject Detroit]
+# [0??] DJ Hell - Hot On The Heels Of Love (Dave Clarke Remix) [Disco B]
+# [0??] Helicopterface - Positive Collide (Mashup)
+# [093] Whitehouse - Killing Hurts Give You The Secrets [Susan Lawly]
+# [096] Surgeon - Intro Version II [Tresor]
+# [???] Exium - Seleccion Natural 2 (Oscar Mulero Remix) [Nheoma]
+# [???] Baby Ford - Normal (Helston Flora Remix By AFX) [Rephlex]
+# [???] Hiroaki Iizuka - Lowbit
+# [104] Acen - Life And Crimes Of A Ruffneck [Kniteforce]
+# [108] Dead Sound - Bad Thoughts [Data-Trace]
+# [111] Luka Baumann - Emergence Nine (Go Hiyama Remix)
+# [114] Collabs Feat. Speedy J & Chris Liebing - Maggie [EDLX.002aa]
+# [119] Scorn - The Palomar [OHM Resistance]
+# [???] Scuba - Twitch (Jamie Vex'd Remix)
+# [???] Surgeon - Klonk Part 2
+# [???] Millsart - Step To Enchantment [Stringent]
+# [???] Meat Beat Manifesto - Mindstream (Aphex Twin Remix)
+# [???] Aphex Twin - Cock / Ver10 (Surgeon Remake)
