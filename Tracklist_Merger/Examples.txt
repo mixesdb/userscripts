@@ -1,0 +1,95 @@
+== Example ==
+
+Input:
+# Smear - Agitator
+# Surgeon - Compliance Momentum
+# Point B - Creepy Steeple
+# Gerkin Jerks - ? (Speedy J Edit)
+# AFX - Men 1 [Loop]
+# Shed - Wedged Chicken (Martyn's 131 Remix)
+# Smear - Lito
+# Robert Babicz - Prism
+# Smear - Perameter
+# Oliver Ho - Meta 8
+# Grovskopa - Sex & Violins (Surgeon Remix) [Token]
+# British Murder Boys - Bonus Beats
+# Marlinspike - Bongo Rocka
+# PWOG - Maenad [KK]
+# Forward Strategy Group - Applied Generics Side B [Forward Strategy]
+# Stanislav - Red Day [Unreleased]
+# VA - No. 8 [FatCat]
+# Martyn - Vancouver [3024]
+# Ancient Methods - 2.3 [Ancient Methods]
+# Go Hiyama - Geometrical (Surgeon Remix) [Audio Assault]
+# Artwork - Red
+# 2 Men On Wax - O-Zone [Relief]
+# Aaron Spectre - Say More Fire [Rag & Bone]
+# Martyn - Broken [Revolve:R]
+# Phase - Morodem (Ben Sims Remix 2) [Token]
+# Speedy J + George Issakidis - Sculpture [Electric Deluxe]
+# Joey Beltram - The Next [Trax]
+# Scuba - Ruptured (Surgeon Remix) [Hotflush]
+# Nate Williams - Club Patrol [Sex Trax]
+# Ritzi Lee - Utility [Subsist]
+# Bjorn Svin - Eat Like Hawks [Unreleased]
+# Vex'd - Pop Pop [Subtext]
+# Concrete Cookie With Laura Cetilia + Marc Thomas - A Dry Red Shard (Mashup)
+# John Heckle - Loop
+# DJ Bone - Tru Warriors (Ritual Mix) [Subject Detroit]
+# DJ Hell - Hot On The Heels Of Love (Dave Clarke Remix) [Disco B]
+# Helicopterface - Positive Collide (Mashup)
+# Whitehouse - Killing Hurts Give You The Secrets [Susan Lawly]
+# Surgeon - Intro Version II [Tresor]
+# Exium - Seleccion Natural 2 (Oscar Mulero Remix) [Nheoma]
+# Baby Ford - Normal (Helston Flora Remix By AFX) [Rephlex]
+# Hiroaki Iizuka - Lowbit
+# Acen - Life And Crimes Of A Ruffneck
+# Dead Sound - Bad Thoughts
+# Luka Baumann - Emergence Nine (Go Hiyama Remix)
+# Collabs Feat. Speedy J & Chris Liebing - Maggie [EDLX.002aa]
+# Scorn - The Palomar
+# Scuba - Twitch (Jamie Vex'd Remix)
+# Surgeon - Klonk Part 2
+# Millsart - Step To Enchantment [Stringent]
+# Meat Beat Manifesto - Mindstream (Aphex Twin Remix)
+# Aphex Twin - Cock / Ver10 (Surgeon Remake)
+
+Candidate:
+[000] ?
+...
+[004] Surgeon - Compliance Momentum [Dynamic Tension]
+[005] Point B - Creepy Steeple [Bankai]
+[008] ?
+...
+[017] Robert Babicz - Prism [Audiomatique]
+[020] ?
+...
+[024] Grovskopa - Sex And Violins (Surgeon Remix) [Token]
+[027] ?
+...
+[047] Go Hiyama - Geometrical (Surgeon Remix) [Audio Assault]
+...
+[053] Aaron Spectre - Say More Fire [Rag & Bone]
+[056] ?
+...
+[061] George Issakidis & Speedy J - Sculpture [Electric Deluxe]
+...
+[071] Nate Williams - Club Patrol (Roy's Maximum Deathwish Mix) [R-Time]
+[074] ?
+...
+[080] Vex'd - Pop Pop [Planet Mu]
+...
+[086] DJ Bone - Tru Warriors (Ritual Mix) [Subject Detroit]
+...
+[093] Whitehouse - Killing Hurts Give You The Secrets [Susan Lawly]
+[096] ?
+...
+[104] Acen - Life And Times Of A Ruffneck [Kniteforce]
+[108] Dead Sound - Bad Thoughts [Data-Trace]
+[111] ?
+...
+[114] Collabs & Speedy J & Chris Liebing - Maggie [Electric Deluxe]
+[119] Scorn - The Palomar [OHM Resistance]
+...
+
+Expected result:
