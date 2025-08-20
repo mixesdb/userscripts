@@ -334,16 +334,19 @@ function mergeTracklists(original_arr, candidate_arr) {
           var cue = line.match(/^(\s*\[.*?\]\s*)/);
           var prefix = cue ? cue[1] : '';
           var core = coreRaw;
-          var normCore = normalizeTrackTitlesForMatching(core);
+          // strip trailing label for matching
+          var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
+          var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
           var origCore = '';
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
-            if ($.isTextSimilar(normalizeTrackTitlesForMatching(cand), normCore)) {
+            var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
+            if ($.isTextSimilar(normalizeTrackTitlesForMatching(candNoLabel), normCore)) {
               origCore = cand;
               break;
             }
           }
-          if (normalizeTrackTitlesForMatching(origCore) === normCore) {
+          if (normalizeTrackTitlesForMatching(origCore.replace(/\s*\[[^\]]+\]\s*$/, '')) === normCore) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
