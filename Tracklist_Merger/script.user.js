@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.20.4
+// @version      2025.08.20.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -61,7 +61,9 @@ function adjust_textareaRows( textarea ) {
  * removePointlessVersionsForMatching
  */
 function removePointlessVersionsForMatching( t ) {
-    return t.replace( / \((Vocal|Main|Radio|Album|Single)\s?(Version|Edit|Mix)?\)/gmi, "" );
+    return t
+        .replace( / \((Vocal|Main|Radio|Album|Single)\s?(Version|Edit|Mix)?\)/gmi, "" )
+        .replace( /\s*\(([^)]*\b(?:mix|remix|edit|version|dub)\b[^)]*)\)/gmi, "" );
 }
 
 /*
@@ -73,8 +75,8 @@ function removePointlessVersionsForMatching( t ) {
 function normalizeTrackTitlesForMatching( text ) {
     text = text.trim();
     text = normalizeStreamingServiceTracks( text );
-    text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
     text = removePointlessVersionsForMatching( text );
+    text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
     text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
 
     var parts = text.split(" - ");
