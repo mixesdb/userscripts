@@ -59,7 +59,10 @@ function thousandoneTl() {
             if( $(this).attr("data-trno") != "" ) {
                 var track = "",
                     song = $("div .trackValue",this).text().trim(),
-                    label = $("div[itemprop='tracks'] .trackLabel",this).text().trim().toLowerCase(),
+                    label = $("div[itemprop='tracks'] .trackLabel",this)
+                                .map(function(){ return $(this).text().trim(); })
+                                .get()
+                                .join(" / "),
                     dur = $("div[data-mode='hours']",this).text().trim();
 
                 if( dur != "" ) track = "["+dur+"] ";
