@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.20.1
+// @version      2025.08.20.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -76,7 +76,20 @@ function normalizeTrackTitlesForMatching( text ) {
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
     text = removePointlessVersionsForMatching( text );
 
-    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?|&) .+ - (.+)$/, "$1 - $2" );
+    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
+
+    // sort artists joined by "&" or "and" so order doesn't matter
+    var parts = text.split(" - ");
+    if (parts.length > 1) {
+        var artists = parts.shift();
+        var title = parts.join(" - ");
+        var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
+        if (artistsArr.length > 1) {
+            artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
+            artists = artistsArr.join(" & ");
+        }
+        text = artists + " - " + title;
+    }
 
     text = text.toLowerCase();
 
