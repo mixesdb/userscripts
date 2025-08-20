@@ -1,0 +1,98 @@
+== Example ==
+
+Input:
+# Intro MJ
+# Romanthony - Everybody Dancing / Soundhack [Double Hammer]
+# Stakker - Humanoid (Feadz 2007 Mix)
+# Ravey - Think
+# Todd Terry - In The Name Of Love [Unrealeased]
+# Armand Van Helden - Touch Your Toes / The Unknown D.J.
+# DJ Slip - X-Men
+# Bobmo - Coming Out On Eurogirls [Arcade Mode - Institubes]
+# Blapps Posse - Bus It (It's Time To Get B'zy)
+# TC Crew - Once Bitten
+# Steve Silk Hurley Feat. J. Principle - Cold World
+# Nu Shooz - Point Of No Return
+# Twin Hype - For Those Who Like To Groove (Club Bonus) 
+# 808 State - Flow Coma (Aphex Twin Remix)
+# 2 In A Room - Wiggle It (Club Mix)
+# 808 State - Cubik
+# Adam Kesher - Modern Times (Goon & Koyote Remix) [Disque Primeur]
+# ''Fast Eddie Feat. Funky J - Big Ol' Booty (ID Remix)''
+# Drexciya III - Aquatic Bata Particles [Submerge]
+# Gemini - For The Crazy [Relief]
+# Robot Man - Do Da Doo (Remix)
+# Soundhack - Soundhack #2
+# J.M. Silk - All In Vain [Jack Trax]
+# U.P.I - She's A Freak [Natural]
+# Modeselektor - Sucker Pin [BPitch Control]
+# Cajmere - House Werk [Relief]
+# Julian "Jumpin" Perez - Jack Me till I Scream
+# Goon & Koyote - Untitled
+# DJ Funk - Knock Knock 
+# Thomas Bangalter - Spinal Beats 
+# Juiceboxxx and Dre Skull - Center Stage 
+# Chaka Khan - I Feel For You
+# The Unknown DJ - 808 Beats
+# Vanity 6 - Nasty Girl
+# Outro MJ
+
+Candidate:
+[00] Michael Jackson - Black Or White (Album Version)
+[03] Nu Shooz - Point Of No Return
+...
+[07] Todd Terry - In The Name Of Love [InHouse]
+[08] 2 In A Room - Wiggle It (Radio Mix)
+[10] 808 State - Cübik
+[12] The Blapps Posse - Bus' It (1991 Remix) [Blapps!]
+[15] Drexciya - Aquatic Bata Particles
+[16] Gemini - For The Crazy II [Anotherday]
+[20] J.M. Silk & Sampson Butch Moore & Steve Silk Hurley - All In Vain (Steve Silk Hurley House Mix) [S&S]
+[22] U.P.I. - She's A Freak
+[24] Modeselektor - Suckerpin [BPitch Control]
+...
+[30] Gemini - For The Crazy II [Anotherday]
+[34] J.M. Silk & Sampson Butch Moore & Steve Silk Hurley - All In Vain (Steve Silk Hurley House Mix) [S&S]
+[37] Chaka Khan - I Feel For You (Single Version)
+[39] The Unknown DJ - 808 Beats [Street Dance]
+[41] Michael Jackson - Can't Let Her Get Away
+[43] Péloquin-Sauvageau - Monsieur L'Indien
+[50] Toure Kunda - Casamance
+[55] Michael Jackson - Can't Let Her Get Away
+
+Expected result:
+# [00] Intro MJ
+# [0?] Romanthony - Everybody Dancing / Soundhack [Double Hammer]
+# [0?] Stakker - Humanoid (Feadz 2007 Mix)
+# [0?] Ravey - Think
+# [07] Todd Terry - In The Name Of Love [Unrealeased]
+# [0?] Armand Van Helden - Touch Your Toes / The Unknown D.J.
+# [0?] DJ Slip - X-Men
+# [0?] Bobmo - Coming Out On Eurogirls [Arcade Mode - Institubes]
+# [0?] Blapps Posse - Bus It [It's Time To Get B'zy]
+# [0?] TC Crew - Once Bitten
+# [0?] Steve Silk Hurley Feat. J. Principle - Cold World
+# [03] Nu Shooz - Point Of No Return
+# [0?] Twin Hype - For Those Who Like To Groove [Club Bonus]
+# [0?] 808 State - Flow Coma (Aphex Twin Remix)
+# [0?] 2 In A Room - Wiggle It (Club Mix)
+# [10] 808 State - Cubik
+# [1?] Adam Kesher - Modern Times (Goon & Koyote Remix) [Disque Primeur]
+# [1?] ''Fast Eddie Feat. Funky J - Big Ol' Booty (ID Remix)''
+# [15] Drexciya III - Aquatic Bata Particles [Submerge]
+# [16] Gemini - For The Crazy [Relief]
+# [??] Robot Man - Do Da Doo (Remix)
+# [??] Soundhack - Soundhack #2
+# [??] J.M. Silk - All In Vain [Jack Trax]
+# [22] U.P.I - She's A Freak [Natural]
+# [24] Modeselektor - Sucker Pin [BPitch Control]
+# [??] Cajmere - House Werk [Relief]
+# [??] Julian 'Jumpin' Perez - Jack Me Till I Scream
+# [??] ''Goon & Koyote - Untitled''
+# [??] DJ Funk - Knock Knock
+# [??] Thomas Bangalter - Spinal Beats
+# [??] Juiceboxxx And Dre Skull - Center Stage
+# [37] Chaka Khan - I Feel For You
+# [39] The Unknown DJ - 808 Beats [Street Dance]
+# [??] Vanity 6 - Nasty Girl
+# [??] Outro MJ
