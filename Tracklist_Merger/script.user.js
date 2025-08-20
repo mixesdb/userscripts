@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.20.1
+// @version      2025.08.20.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -75,8 +75,20 @@ function normalizeTrackTitlesForMatching( text ) {
     text = normalizeStreamingServiceTracks( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
     text = removePointlessVersionsForMatching( text );
+    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
 
-    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?|&) .+ - (.+)$/, "$1 - $2" );
+    var parts = text.split(" - ");
+    if (parts.length > 1) {
+        var artists = parts.shift();
+        var title = parts.join(" - ");
+        artists = artists.replace(/\s*(?:Ft|Feat\.?|Featuring)\s+/gi, " & ");
+        var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
+        if (artistsArr.length > 1) {
+            artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
+            artists = artistsArr.join(" & ");
+        }
+        text = artists + " - " + title;
+    }
 
     text = text.toLowerCase();
 
@@ -241,8 +253,9 @@ function mergeTracklists(original_arr, candidate_arr) {
             }
             // otherwise, leave the existing original spelling in place
 
-            // Merge in missing cue or label
+            // Merge in missing cue, label or duration
             if (cand.cue && !orig.cue)         orig.cue   = cand.cue;
+            if (cand.dur && !orig.dur)         orig.dur   = cand.dur;
             if (candidateLabel && !orig.label) orig.label = candidateLabel;
 
             // Existing “? plus cue” hack
@@ -270,7 +283,6 @@ function mergeTracklists(original_arr, candidate_arr) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Diff functions
- * ChatGPT 4o-mini-high v2
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -346,7 +358,7 @@ function mergeTracklists(original_arr, candidate_arr) {
               break;
             }
           }
-          if (normalizeTrackTitlesForMatching(origCore.replace(/\s*\[[^\]]+\]\s*$/, '')) === normCore) {
+          if (origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);

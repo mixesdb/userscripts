@@ -312,15 +312,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    // Quotes are needed to avoid false results
-    // but with quotes special characters in URLs are not found…
-    if( containsSpecialCharacters(keywords) || isHearthisIdUrl(thisUrl) ) {
-        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:mixcloud.com/ElectronicBunker/sov-podcast-001-sub%CA%9Eutan
-        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:'+keywords;
-    } else {
-        // https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22soundcloud.com/claptone/clapcast-499%22
-        return 'https://www.mixesdb.com/w/api.php?action=query&list=search&srprop=timestamp&format=json&srsearch=insource:%22'+keywords+'%22';
-    }
+    return 'https://www.mixesdb.com/w/api.php?action=mixesdb_player_search&format=json&url='+keywords;
 }
 
 // makeAvailableLinksListItem
