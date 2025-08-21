@@ -1,6 +1,90 @@
 == Example ==
 
 Original:
+# [00] Neel - The Vancori Complex [Spazio Disponibile]
+# [07] Neel - Riflesso [Spazio Disponibile]
+# [??] Yrsen & Gannein - 01 [Unreleased]
+# [13] DJ Dextro - Eon [Suara]
+# [15] Bidoben - Sans Soleil [Clergy]
+# [19] Sciahri - One Letter [Sublunar]
+# [22] Havik - Mutation [Syncopated]
+# [26] Jeremy P Caulfield - Night Hammer [Self Released]
+# [30] Mython - Wachtabletten [DifferentSound]
+# [32] Hemka - Repeat [Float]
+# [35] Sons Of Hidden - Wrapped Skin [Unreleased]
+# [??] Falling Echoes - Sharp [Molecular]
+# [42] Maccari - Flames (Hemka Remix) [Devotion]
+# [45] ANNĒ - Floating Waves [Mutual Rytm]
+# [??] Umek aka Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
+# [??] ''Linear System - ? [Unreleased]''
+# [??] Sons Of Hidden - Macondo [Unreleased]
+# [58] Linear System - Bottom Left [Room Trax]
+
+Candidate:
+[00] Neel - The Vancori Complex [Spazio Disponibile]
+[07] Neel - Riflesso [Spazio Disponibile]
+...
+[13] DJ Dextro - Eon
+[15] Bidoben - Sans Soleil [Clergy]
+[19] Sciahri - One Letter [Sublunar]
+[22] Havik - Mutation
+[26] Jeremy P Caulfield - Night Hammer [Dumb Unit]
+[30] Mython - Wachtabletten
+[32] Hemka - Repeat [Float]
+[35] ?
+...
+[42] Maccari - Flames (Hemka Remix) [Devotion]
+[45] ANNĒ - Floating Waves [Mutual Rytm]
+[49] Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
+...
+[58] Linear System - Bottom Left [Room Trax]
+
+Result:
+[00] Neel - The Vancori Complex [Spazio Disponibile]
+[07] Neel - Riflesso [Spazio Disponibile]
+[??] Yrsen & Gannein - 01 [Unreleased]
+[13] DJ Dextro - Eon [Suara]
+[15] Bidoben - Sans Soleil [Clergy]
+[19] Sciahri - One Letter [Sublunar]
+[22] Havik - Mutation [Syncopated]
+[26] Jeremy P Caulfield - Night Hammer [Self Released]
+[30] Mython - Wachtabletten [DifferentSound]
+[32] Hemka - Repeat [Float]
+[35] Sons Of Hidden - Wrapped Skin [Unreleased]
+[??] Falling Echoes - Sharp [Molecular]
+[42] Maccari - Flames (Hemka Remix) [Devotion]
+[45] ANNĒ - Floating Waves [Mutual Rytm]
+[4?] Umek aka Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
+[4?] ''Linear System - ? [Unreleased]''
+[4?] Sons Of Hidden - Macondo [Unreleased]
+[49] Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
+...
+[58] Linear System - Bottom Left [Room Trax]
+
+Expected result:
+[00] Neel - The Vancori Complex [Spazio Disponibile]
+[07] Neel - Riflesso [Spazio Disponibile]
+[??] Yrsen & Gannein - 01 [Unreleased]
+[13] DJ Dextro - Eon [Suara]
+[15] Bidoben - Sans Soleil [Clergy]
+[19] Sciahri - One Letter [Sublunar]
+[22] Havik - Mutation [Syncopated]
+[26] Jeremy P Caulfield - Night Hammer [Self Released]
+[30] Mython - Wachtabletten [DifferentSound]
+[32] Hemka - Repeat [Float]
+[35] Sons Of Hidden - Wrapped Skin [Unreleased]
+[??] Falling Echoes - Sharp [Molecular]
+[42] Maccari - Flames (Hemka Remix) [Devotion]
+[45] ANNĒ - Floating Waves [Mutual Rytm]
+[49] Umek aka Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
+[??] ''Linear System - ? [Unreleased]''
+[??] Sons Of Hidden - Macondo [Unreleased]
+[58] Linear System - Bottom Left [Room Trax]
+
+
+== Example ==
+
+Original:
 [000] Drexciya - Quantum Hydrodynamics [Tresor]
 ...
 [040] Dold - Untitled 29 [Unterwegs]
