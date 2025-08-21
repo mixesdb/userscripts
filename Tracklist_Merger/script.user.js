@@ -65,6 +65,7 @@ function adjust_textareaRows( textarea ) {
 // normalizeTrackTitlesForMatching
 function normalizeTrackTitlesForMatching( text ) {
     text = text.trim();
+    text = text.replace(/\s*\[[^\]]+\]\s*$/, '');
     text = normalizeStreamingServiceTracks( text );
     text = removePointlessVersions( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
@@ -88,6 +89,46 @@ function normalizeTrackTitlesForMatching( text ) {
     logVar( "normalizeTrackTitlesForMatching", text );
 
     return text;
+}
+
+/*
+ * getTrackMatchNorms
+ * Return normalized variants for all artist combinations
+ */
+function getTrackMatchNorms( text ) {
+    text = text.trim().replace(/\s*\[[^\]]+\]\s*$/, '');
+
+    var parts = text.split(" - ");
+    if (parts.length < 2) {
+        return [ normalizeTrackTitlesForMatching( text ) ];
+    }
+
+    var artists = parts.shift().replace(/\s*(?:Ft|Feat\.?|Featuring)\s+/gi, " & ");
+    var title = parts.join(" - ");
+    var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i).map(a => a.trim()).filter(Boolean);
+    artistsArr = [...new Set(artistsArr)];
+
+    var combos = [];
+
+    function combine(start, combo) {
+        if (combo.length) {
+            var artistStr = combo.slice().sort((a,b) => a.localeCompare(b)).join(" & ");
+            combos.push( normalizeTrackTitlesForMatching( artistStr + " - " + title ) );
+        }
+        for (var i = start; i < artistsArr.length; i++) {
+            combo.push( artistsArr[i] );
+            combine( i + 1, combo );
+            combo.pop();
+        }
+    }
+
+    combine(0, []);
+
+    if (!combos.length) {
+        combos.push( normalizeTrackTitlesForMatching( text ) );
+    }
+
+    return [...new Set(combos)];
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -195,9 +236,11 @@ function mergeTracklists(original_arr, candidate_arr) {
     const fuzzyList   = []; // [{ norm, index }]
     original_arr.forEach((item, index) => {
         if (item.type === "track") {
-            const norm = normalizeTrackTitlesForMatching(item.trackText);
-            originalMap[norm] = index;
-            fuzzyList.push({ norm, index });
+            const norms = getTrackMatchNorms(item.trackText);
+            norms.forEach(norm => {
+                originalMap[norm] = index;
+                fuzzyList.push({ norm, index });
+            });
         }
     });
 
@@ -212,17 +255,25 @@ function mergeTracklists(original_arr, candidate_arr) {
         const candidateName  = cand.trackText;
         const candidateLabel = cand.label;
 
-        const candNorm = normalizeTrackTitlesForMatching(candidateName);
+        const candNorms = getTrackMatchNorms(candidateName);
 
         // 1) Try exact match by normalized title
-        let matchIndex = originalMap[candNorm];
+        let matchIndex;
+        for (const candNorm of candNorms) {
+            if (originalMap.hasOwnProperty(candNorm)) {
+                matchIndex = originalMap[candNorm];
+                break;
+            }
+        }
 
         // 2) Fallback to fuzzy matching
         if (matchIndex === undefined) {
-            for (const entry of fuzzyList) {
-                if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
-                    matchIndex = entry.index;
-                    break;
+            outer: for (const candNorm of candNorms) {
+                for (const entry of fuzzyList) {
+                    if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
+                        matchIndex = entry.index;
+                        break outer;
+                    }
                 }
             }
         }
