@@ -232,77 +232,75 @@ function mergeTracklists(original_arr, candidate_arr) {
     candidate_arr = candidate_arr.filter(item => item.type !== "track (false)");
 
     // Build exact lookup + fuzzy list for all original track items
-    const originalMap = {}; // normalizedTitle → index in original_arr
-    const fuzzyList   = []; // [{ norm, index }]
-    original_arr.forEach((item, index) => {
+    const originalMap = {}; // normalizedTitle → original item
+    const fuzzyList   = []; // [{ norm, item }]
+    original_arr.forEach(item => {
         if (item.type === "track") {
             const norms = getTrackMatchNorms(item.trackText);
             norms.forEach(norm => {
-                originalMap[norm] = index;
-                fuzzyList.push({ norm, index });
+                originalMap[norm] = item;
+                fuzzyList.push({ norm, item });
             });
         }
     });
 
+    const unmatched = [];
+
     // Walk through candidate tracks
     for (let i = 0; i < candidate_arr.length; i++) {
         const cand = candidate_arr[i];
-        if (cand.type !== "track" || !cand.trackText || cand.trackText === "?") {
+        if (cand.type !== "track" || !cand.trackText) {
             continue;
         }
 
-        // Remember the candidate’s own name & label
         const candidateName  = cand.trackText;
         const candidateLabel = cand.label;
+        const isUnknown      = candidateName === "?";
 
-        const candNorms = getTrackMatchNorms(candidateName);
+        let origItem;
 
-        // 1) Try exact match by normalized title
-        let matchIndex;
-        for (const candNorm of candNorms) {
-            if (originalMap.hasOwnProperty(candNorm)) {
-                matchIndex = originalMap[candNorm];
-                break;
+        if (!isUnknown) {
+            const candNorms = getTrackMatchNorms(candidateName);
+
+            // 1) Try exact match by normalized title
+            for (const candNorm of candNorms) {
+                if (originalMap.hasOwnProperty(candNorm)) {
+                    origItem = originalMap[candNorm];
+                    break;
+                }
             }
-        }
 
-        // 2) Fallback to fuzzy matching
-        if (matchIndex === undefined) {
-            outer: for (const candNorm of candNorms) {
-                for (const entry of fuzzyList) {
-                    if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
-                        matchIndex = entry.index;
-                        break outer;
+            // 2) Fallback to fuzzy matching
+            if (!origItem) {
+                outer: for (const candNorm of candNorms) {
+                    for (const entry of fuzzyList) {
+                        if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
+                            origItem = entry.item;
+                            break outer;
+                        }
                     }
                 }
             }
         }
 
         // 3) Fallback: same cue + unknown trackText
-        if (matchIndex === undefined && cand.cue) {
-            matchIndex = original_arr.findIndex(item =>
-                                                item.type === "track" &&
-                                                item.trackText === "?" &&
-                                                item.cue === cand.cue
-                                               );
+        if (!origItem && cand.cue) {
+            origItem = original_arr.find(item =>
+                item.type === "track" &&
+                item.trackText === "?" &&
+                item.cue === cand.cue
+            );
         }
 
-        // Only proceed if we got a real slot
-        if (typeof matchIndex === "number" && matchIndex >= 0) {
-            const orig = original_arr[matchIndex];
-
-            // --- NEW: if the original was unknown, adopt the candidate’s name ---
-            if (orig.trackText === "?") {
-                orig.trackText = candidateName;
+        if (origItem) {
+            if (origItem.trackText === "?") {
+                origItem.trackText = candidateName;
             }
-            // otherwise, leave the existing original spelling in place
 
-            // Merge in missing cue, label or duration
-            if (cand.cue && !orig.cue)         orig.cue   = cand.cue;
-            if (cand.dur && !orig.dur)         orig.dur   = cand.dur;
-            if (candidateLabel && !orig.label) orig.label = candidateLabel;
+            if (cand.cue && !origItem.cue)         origItem.cue   = cand.cue;
+            if (cand.dur && !origItem.dur)         origItem.dur   = cand.dur;
+            if (candidateLabel && !origItem.label) origItem.label = candidateLabel;
 
-            // Existing “? plus cue” hack
             const nextCand = candidate_arr[i + 1];
             if (
                 nextCand &&
@@ -310,15 +308,53 @@ function mergeTracklists(original_arr, candidate_arr) {
                 nextCand.trackText === "?" &&
                 nextCand.cue
             ) {
-                for (let j = matchIndex + 1; j < original_arr.length; j++) {
+                const origIndex = original_arr.indexOf(origItem);
+                for (let j = origIndex + 1; j < original_arr.length; j++) {
                     if (!original_arr[j].cue) {
                         original_arr[j].cue = nextCand.cue;
                         break;
                     }
                 }
             }
+        } else {
+            unmatched.push({ cand, index: i, isUnknown });
         }
     }
+
+    // Insert unmatched tracks (including gaps around them)
+    unmatched.forEach(({ cand, index, isUnknown }) => {
+        const cueNum = parseInt(cand.cue);
+        if (
+            isUnknown &&
+            original_arr.some(item => item.type === "track" && parseInt(item.cue) === cueNum)
+        ) {
+            return; // skip duplicate unknown track at same cue
+        }
+
+        let insertIndex = original_arr.findIndex(
+            item => item.type === "track" && parseInt(item.cue) > cueNum
+        );
+        if (insertIndex === -1) insertIndex = original_arr.length;
+
+        const hasPrevGap = index > 0 && candidate_arr[index - 1].type === "gap";
+        const hasNextGap = index < candidate_arr.length - 1 && candidate_arr[index + 1].type === "gap";
+
+        const gapBefore = insertIndex > 0 && original_arr[insertIndex - 1].type === "gap";
+        if (gapBefore && !hasPrevGap) {
+            insertIndex--; // reuse existing gap slot
+        }
+
+        if (hasPrevGap && (insertIndex === 0 || original_arr[insertIndex - 1].type !== "gap")) {
+            original_arr.splice(insertIndex, 0, { type: "gap" });
+            insertIndex++;
+        }
+
+        original_arr.splice(insertIndex, 0, cand);
+
+        if (hasNextGap && (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")) {
+            original_arr.splice(insertIndex + 1, 0, { type: "gap" });
+        }
+    });
 
     return original_arr; // = merged
 }
