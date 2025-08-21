@@ -1,6 +1,81 @@
 == Example ==
 
 Original:
+# [00:00] Deep Woods Intro
+# [01:04] Tim Engelhardt - Love Triangle
+# [06:33] TH;EN, Jonas Saalbach - Around Us
+# [12:18] Amëriko Nunez - Darkwave
+# [16:59] ZAC - Paradox
+# [22:26] Qrion Feat. Pinkpirate - Lean Into Light (Dosem Extended Mix)
+# [26:50] Victor Garde - Regression
+# [31:47] Pretty Pink - Unconditional (Extended Mix)
+# [36:40] Christian Nielsen - Losing My Mind
+# [40:55] Einmusik, Lexer - Crush (Extended)
+# [46:18] AYU - Overdrive (Extended Mix)
+# [51:55] Pretty Pink & Einmusik - Midnight (Extended Mix)
+# [57:36] Pretty Pink - Backstage
+
+Candidate:
+[00] ?
+...
+[03] Tim Engelhardt - Love Triangle [Habitat]
+[06] ?
+...
+[10] TH;EN & Jonas Saalbach - Around Us
+...
+[18] ZAC & Gaitha - PARADOX [ERRORR]
+[22] ?
+...
+[27] Victor Garde - Regression (Extended Mix) [DEEP WOODS]
+[32] Pretty Pink - Unconditional (Extended Mix) [DEEP WOODS]
+[37] ?
+...
+[43] Einmusik & Lexer - Crush
+[46] AYU - Overdrive (Extended Mix) [DEEP WOODS]
+[52] ?
+
+Result:
+[00:00] Deep Woods Intro
+[01:04] Tim Engelhardt - Love Triangle [Habitat]
+[06:33] TH;EN, Jonas Saalbach - Around Us
+...
+[10] TH;EN & Jonas Saalbach - Around Us
+...
+[12:18] Amëriko Nunez - Darkwave
+[16:59] ZAC - Paradox [ERRORR]
+[22:26] Qrion Feat. Pinkpirate - Lean Into Light (Dosem Extended Mix)
+[26:50] Victor Garde - Regression [DEEP WOODS]
+[31:47] Pretty Pink - Unconditional (Extended Mix) [DEEP WOODS]
+[36:40] Christian Nielsen - Losing My Mind
+[37] ?
+...
+[40:55] Einmusik, Lexer - Crush (Extended)
+...
+[43] Einmusik & Lexer - Crush
+[46:18] AYU - Overdrive (Extended Mix) [DEEP WOODS]
+[51:55] Pretty Pink & Einmusik - Midnight (Extended Mix)
+[52] ?
+[57:36] Pretty Pink - Backstage
+
+Expected result:
+# [00:00] Deep Woods Intro
+# [01:04] Tim Engelhardt - Love Trianglee [Habitat]
+# [06:33] TH;EN, Jonas Saalbach - Around Us
+# [12:18] Amëriko Nunez - Darkwave
+# [16:59] ZAC - Paradox [ERRORR]
+# [22:26] Qrion Feat. Pinkpirate - Lean Into Light (Dosem Extended Mix)
+# [26:50] Victor Garde - Regression [DEEP WOODS]
+# [31:47] Pretty Pink - Unconditional (Extended Mix) [DEEP WOODS]
+# [36:40] Christian Nielsen - Losing My Mind
+# [40:55] Einmusik, Lexer - Crush (Extended)
+# [46:18] AYU - Overdrive (Extended Mix) [DEEP WOODS]
+# [51:55] Pretty Pink & Einmusik - Midnight (Extended Mix)
+# [57:36] Pretty Pink - Backstage
+
+
+== Example ==
+
+Original:
 # [00] Neel - The Vancori Complex [Spazio Disponibile]
 # [07] Neel - Riflesso [Spazio Disponibile]
 # [??] Yrsen & Gannein - 01 [Unreleased]
