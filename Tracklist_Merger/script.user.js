@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.21.1
+// @version      2025.08.21.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -389,12 +389,25 @@ function run_diff() {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
+ * normalizeCueDigits
+ * Ensure cues like "[00]" become three digits ("[000]")
+ */
+function normalizeCueDigits(tl_arr) {
+    tl_arr.forEach(function(item) {
+        if (item.cue && /^\d{1,2}$/.test(item.cue)) {
+            item.cue = ("000" + item.cue).slice(-3);
+        }
+    });
+    return tl_arr;
+}
+
+/*
  * run_merge
  */
 function run_merge( showDebug=false ) {
     var tl_original = $("#tl_original").val(),
         tl_candidate = $("#tl_candidate").val(),
-        tl_original_arr  = addCueDiffs( make_tlArr( tl_original  ) ),
+        tl_original_arr  = addCueDiffs( normalizeCueDigits( make_tlArr( tl_original  ) ) ),
         tl_candidate_arr = addCueDiffs( make_tlArr( tl_candidate ) );
 
     $("#tl_original_arr").val(  "var tl_original_arr = "  + JSON.stringify( tl_original_arr, null, 2 )  + ";" );
