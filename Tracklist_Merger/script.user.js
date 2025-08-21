@@ -269,8 +269,10 @@ function mergeTracklists(original_arr, candidate_arr) {
     candidate_arr = candidate_arr.filter(item => item.type !== "track (false)");
 
     // Build exact lookup + fuzzy list for all original track items
-    const originalMap = {}; // normalizedTitle → original item
-    const fuzzyList   = []; // [{ norm, item }]
+    const originalMap   = {}; // normalizedTitle → original item
+    const fuzzyList     = []; // [{ norm, item }]
+    const originalHasGaps = original_arr.some(item => item.type === "gap" || item.trackText === "?");
+
     original_arr.forEach(item => {
         if (item.type === "track") {
             const norms = getTrackMatchNorms(item.trackText);
@@ -362,10 +364,12 @@ function mergeTracklists(original_arr, candidate_arr) {
     unmatched.forEach(({ cand, index, isUnknown }) => {
         const cueNum = parseInt(cand.cue);
         if (
-            isUnknown &&
-            original_arr.some(item => item.type === "track" && parseInt(item.cue) === cueNum)
+            isUnknown && (
+                !originalHasGaps ||
+                original_arr.some(item => item.type === "track" && parseInt(item.cue) === cueNum)
+            )
         ) {
-            return; // skip duplicate unknown track at same cue
+            return; // skip unknowns when original has no gaps or duplicate unknown at same cue
         }
 
         let insertIndex = original_arr.findIndex(
@@ -381,14 +385,22 @@ function mergeTracklists(original_arr, candidate_arr) {
             insertIndex--; // reuse existing gap slot
         }
 
-        if (hasPrevGap && (insertIndex === 0 || original_arr[insertIndex - 1].type !== "gap")) {
+        if (
+            originalHasGaps &&
+            hasPrevGap &&
+            (insertIndex === 0 || original_arr[insertIndex - 1].type !== "gap")
+        ) {
             original_arr.splice(insertIndex, 0, { type: "gap" });
             insertIndex++;
         }
 
         original_arr.splice(insertIndex, 0, cand);
 
-        if (hasNextGap && (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")) {
+        if (
+            originalHasGaps &&
+            hasNextGap &&
+            (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")
+        ) {
             original_arr.splice(insertIndex + 1, 0, { type: "gap" });
         }
     });
@@ -564,8 +576,49 @@ function run_merge( showDebug=false ) {
     $("#tl_candidate_arr").val( "var tl_candidate_arr = " + JSON.stringify( tl_candidate_arr, null, 2 ) + ";" );
 
     // Merge
-    var tl_merged_arr = mergeTracklists( tl_original_arr, tl_candidate_arr ),
-        tl_merged = arr_toTlText( tl_merged_arr );
+    var tl_merged_arr = mergeTracklists( tl_original_arr, tl_candidate_arr );
+
+    // When cue formats differ ("MM:SS" vs "MM"), unify the result
+    var originalHasColon  = tl_original_arr.some(item => item.cue && item.cue.includes(':')),
+        candidateHasColon = tl_candidate_arr.some(item => item.cue && item.cue.includes(':'));
+
+    if( originalHasColon !== candidateHasColon ) {
+        var origTrackCount   = tl_original_arr.filter(item => item.type === "track").length,
+            mergedTrackCount = tl_merged_arr.filter(item => item.type === "track").length,
+            pad2 = n => String(n).padStart(2, '0');
+
+        if( mergedTrackCount > origTrackCount ) {
+            // New tracks added → convert all cues to minutes (rounded)
+            tl_merged_arr.forEach(function(item){
+                if( item.type === "track" && item.cue ) {
+                    if( item.cue.includes(':') ) {
+                        item.cue = pad2( Math.round( durToSec_MS( item.cue ) / 60 ) );
+                    } else {
+                        item.cue = pad2( item.cue );
+                    }
+                }
+            });
+        } else if( originalHasColon ) {
+            // No new tracks → keep original format
+            tl_merged_arr.forEach(function(item){
+                if( item.type === "track" && item.cue && !item.cue.includes(':') ) {
+                    item.cue = pad2( item.cue ) + ':00';
+                }
+            });
+        } else {
+            tl_merged_arr.forEach(function(item){
+                if( item.type === "track" && item.cue ) {
+                    if( item.cue.includes(':') ) {
+                        item.cue = pad2( Math.round( durToSec_MS( item.cue ) / 60 ) );
+                    } else {
+                        item.cue = pad2( item.cue );
+                    }
+                }
+            });
+        }
+    }
+
+    var tl_merged = arr_toTlText( tl_merged_arr );
 
     $("#merge_result").val( tl_merged );
     $("#merge_result_arr").val( JSON.stringify( tl_merged_arr, null, 2 ) );
