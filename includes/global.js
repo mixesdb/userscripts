@@ -747,6 +747,15 @@ function makeTracklistFromArr( tlArr, from="", cues="" ) {
     return tl;
 }
 
+/*
+ * removePointlessVersions
+ */
+function removePointlessVersions( t ) {
+    return t
+        .replace( / \((Vocal|Main|Radio|Album|Single)\s?(Version|Edit|Mix)?\)/gmi, "" )
+        .replace( /\s*\(([^)]*\b(?:mix|remix|edit|version|dub)\b[^)]*)\)/gmi, "" );
+}
+
 /*  
  * removeDuplicateBracketedText
  * Input  "[0:59:03] Sebo K - Spirits (feat. Max Moya) [Drum Version] (Drum Version)"
