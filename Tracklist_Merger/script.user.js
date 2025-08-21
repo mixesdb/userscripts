@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.21.1
+// @version      2025.08.21.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -389,13 +389,48 @@ function run_diff() {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
+ * normalizeCueDigits
+ * Pad cues like "[00]" to three digits ("[000]")
+ */
+function normalizeCueDigits(tl_arr) {
+    tl_arr.forEach(function(item) {
+        if (item.cue && /^\d{1,2}$/.test(item.cue)) {
+            item.cue = ("000" + item.cue).slice(-3);
+        }
+    });
+    return tl_arr;
+}
+
+/*
+ * usesThreeDigitCues
+ * Return true if any cue under 100 is written with three digits
+ */
+function usesThreeDigitCues(tl_arr) {
+    return tl_arr.some(function(item) {
+        return item.cue && /^\d{3}$/.test(item.cue) && parseInt(item.cue, 10) < 100;
+    });
+}
+
+/*
  * run_merge
  */
 function run_merge( showDebug=false ) {
     var tl_original = $("#tl_original").val(),
         tl_candidate = $("#tl_candidate").val(),
-        tl_original_arr  = addCueDiffs( make_tlArr( tl_original  ) ),
-        tl_candidate_arr = addCueDiffs( make_tlArr( tl_candidate ) );
+        tl_original_arr  = make_tlArr( tl_original ),
+        tl_candidate_arr = make_tlArr( tl_candidate );
+
+    // If only one list uses three-digit cues, pad the other
+    var originalHas3  = usesThreeDigitCues( tl_original_arr ),
+        candidateHas3 = usesThreeDigitCues( tl_candidate_arr );
+    if( originalHas3 && !candidateHas3 ) {
+        normalizeCueDigits( tl_candidate_arr );
+    } else if( candidateHas3 && !originalHas3 ) {
+        normalizeCueDigits( tl_original_arr );
+    }
+
+    tl_original_arr  = addCueDiffs( tl_original_arr );
+    tl_candidate_arr = addCueDiffs( tl_candidate_arr );
 
     $("#tl_original_arr").val(  "var tl_original_arr = "  + JSON.stringify( tl_original_arr, null, 2 )  + ";" );
     $("#tl_candidate_arr").val( "var tl_candidate_arr = " + JSON.stringify( tl_candidate_arr, null, 2 ) + ";" );
