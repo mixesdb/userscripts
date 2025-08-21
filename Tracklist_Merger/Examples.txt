@@ -1,13 +1,56 @@
 == Example ==
 
 Original:
-
+[000] Drexciya - Quantum Hydrodynamics [Tresor]
+...
+[040] Dold - Untitled 29 [Unterwegs]
+...
 
 Candidate:
-
+[000] ?
+...
+[010] Rubberneck - Pot [Konsequent]
+...
+[022] Surgeon - Patience, Pt.3 [Dynamic Tension]
+[027] Steve Bicknell - How Can We Know? Track 3 [S-B-Productions]
+...
+[037] Robert Hood - One Touch [M-Plant]
+[040] Dold - Untitled 29 [Unterwegs]
+[043] ?
+...
+[072] Jeroen Search - IC [Basic Beat]
+...
+[078] DJ Skull - Cum-Up [Chiwax]
+[080] Da Sampla - With A Piece Of Ice
+[086] ?
+...
+[093] Adam Beyer - Analyser [Drumcode]
+[097] James Ruskin - If
+...
+[117] Orlando Voorn - Diligent [Submerge]
 
 Expected result:
-
+[000] Drexciya - Quantum Hydrodynamics [Tresor]
+...
+[010] Rubberneck - Pot [Konsequent]
+...
+[022] Surgeon - Patience, Pt.3 [Dynamic Tension]
+[027] Steve Bicknell - How Can We Know? Track 3 [S-B-Productions]
+...
+[037] Robert Hood - One Touch [M-Plant]
+[040] Dold - Untitled 29 [Unterwegs]
+[043] ?
+...
+[072] Jeroen Search - IC [Basic Beat]
+...
+[078] DJ Skull - Cum-Up [Chiwax]
+[080] Da Sampla - With A Piece Of Ice
+[086] ?
+...
+[093] Adam Beyer - Analyser [Drumcode]
+[097] James Ruskin - If
+...
+[117] Orlando Voorn - Diligent [Submerge]
 
 
 == Example ==
