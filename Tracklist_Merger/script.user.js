@@ -50,11 +50,48 @@ function clear_textareas() {
 
 /*
  * adjust_textareaRows
+ *
+ * Ensure that all textareas in the same table row share the height of
+ * the largest textarea. This avoids having differently sized textareas
+ * when pasting content into only one of them.
  */
 function adjust_textareaRows( textarea ) {
-    var rows = textarea.val().trim().split(/\r\n|\r|\n/).length;
+    var tr = textarea.closest('tr'),
+        textareas = tr.find('textarea'),
+        maxRows = 1;
 
-    textarea.attr("rows", rows);
+    textareas.each(function(){
+        var rows = $(this).val().trim().split(/\r\n|\r|\n/).length;
+        if( rows > maxRows ) {
+            maxRows = rows;
+        }
+    });
+
+    textareas.attr('rows', maxRows);
+}
+
+/*
+ * adjust_preHeights
+ *
+ * Ensure that all <pre> elements in the same table row share the height of
+ * the tallest <pre>. This keeps the diff view columns aligned regardless of
+ * content length.
+ */
+function adjust_preHeights( pre ) {
+    var tr = pre.closest('tr'),
+        pres = tr.find('pre'),
+        maxHeight = 0;
+
+    pres.css('height', '');
+
+    pres.each(function(){
+        var h = this.scrollHeight;
+        if( h > maxHeight ) {
+            maxHeight = h;
+        }
+    });
+
+    pres.height( maxHeight );
 }
 
 /*
@@ -461,6 +498,10 @@ function run_diff() {
         text3 = $("#tl_candidate").val();
     if( text1 && text2 && text3 ) {
         $('#diffContainer').showTracklistDiffs({ text1, text2, text3 });
+        var pre = $('#diffContainer pre').first();
+        if( pre.length ) {
+            adjust_preHeights( pre );
+        }
     }
 }
 
