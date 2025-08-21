@@ -112,7 +112,7 @@ function normalizeTrackTitlesForMatching( text ) {
     if (parts.length > 1) {
         var artists = parts.shift();
         var title = parts.join(" - ");
-        artists = artists.replace(/\s*(?:Ft|Feat\.?|Featuring)\s+/gi, " & ");
+        artists = artists.replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ");
         var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
         if (artistsArr.length > 1) {
             artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
@@ -140,9 +140,9 @@ function getTrackMatchNorms( text ) {
         return [ normalizeTrackTitlesForMatching( text ) ];
     }
 
-    var artists = parts.shift().replace(/\s*(?:Ft|Feat\.?|Featuring)\s+/gi, " & ");
+    var artists = parts.shift().replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ");
     var title = parts.join(" - ");
-    var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i).map(a => a.trim()).filter(Boolean);
+    var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
     artistsArr = [...new Set(artistsArr)];
 
     var combos = [];
@@ -334,7 +334,7 @@ function mergeTracklists(original_arr, candidate_arr) {
                 origItem.trackText = candidateName;
             }
 
-            if (cand.cue && !origItem.cue)         origItem.cue   = cand.cue;
+            if (cand.cue && (!origItem.cue || String(origItem.cue).includes('?'))) origItem.cue = cand.cue;
             if (cand.dur && !origItem.dur)         origItem.dur   = cand.dur;
             if (candidateLabel && !origItem.label) origItem.label = candidateLabel;
 
