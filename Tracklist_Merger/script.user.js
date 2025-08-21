@@ -50,11 +50,24 @@ function clear_textareas() {
 
 /*
  * adjust_textareaRows
+ *
+ * Ensure that all textareas in the same table row share the height of
+ * the largest textarea. This avoids having differently sized textareas
+ * when pasting content into only one of them.
  */
 function adjust_textareaRows( textarea ) {
-    var rows = textarea.val().trim().split(/\r\n|\r|\n/).length;
+    var tr = textarea.closest('tr'),
+        textareas = tr.find('textarea'),
+        maxRows = 1;
 
-    textarea.attr("rows", rows);
+    textareas.each(function(){
+        var rows = $(this).val().trim().split(/\r\n|\r|\n/).length;
+        if( rows > maxRows ) {
+            maxRows = rows;
+        }
+    });
+
+    textareas.attr('rows', maxRows);
 }
 
 /*
