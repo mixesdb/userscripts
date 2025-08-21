@@ -112,7 +112,9 @@ function normalizeTrackTitlesForMatching( text ) {
     if (parts.length > 1) {
         var artists = parts.shift();
         var title = parts.join(" - ");
-        artists = artists.replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ");
+        artists = artists
+            .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+            .replace(/\s*,\s*/g, " & ");
         var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
         if (artistsArr.length > 1) {
             artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
@@ -140,7 +142,9 @@ function getTrackMatchNorms( text ) {
         return [ normalizeTrackTitlesForMatching( text ) ];
     }
 
-    var artists = parts.shift().replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ");
+    var artists = parts.shift()
+        .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+        .replace(/\s*,\s*/g, " & ");
     var title = parts.join(" - ");
     var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
     artistsArr = [...new Set(artistsArr)];
@@ -479,15 +483,18 @@ function mergeTracklists(original_arr, candidate_arr) {
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
           var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
           var origCore = '';
+          var origNorm = '';
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            if ($.isTextSimilar(normalizeTrackTitlesForMatching(candNoLabel), normCore)) {
+            var candNorm = normalizeTrackTitlesForMatching(candNoLabel);
+            if ($.isTextSimilar(candNorm, normCore)) {
               origCore = cand;
+              origNorm = candNorm;
               break;
             }
           }
-          if (origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
+          if (origNorm === normCore) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
