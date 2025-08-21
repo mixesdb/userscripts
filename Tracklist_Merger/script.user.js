@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.21.1
+// @version      2025.08.21.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -65,6 +65,7 @@ function adjust_textareaRows( textarea ) {
 // normalizeTrackTitlesForMatching
 function normalizeTrackTitlesForMatching( text ) {
     text = text.trim();
+    text = text.replace(/\s*\[[^\]]+\]\s*$/, '');
     text = normalizeStreamingServiceTracks( text );
     text = removePointlessVersions( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
@@ -88,6 +89,46 @@ function normalizeTrackTitlesForMatching( text ) {
     logVar( "normalizeTrackTitlesForMatching", text );
 
     return text;
+}
+
+/*
+ * getTrackMatchNorms
+ * Return normalized variants for all artist combinations
+ */
+function getTrackMatchNorms( text ) {
+    text = text.trim().replace(/\s*\[[^\]]+\]\s*$/, '');
+
+    var parts = text.split(" - ");
+    if (parts.length < 2) {
+        return [ normalizeTrackTitlesForMatching( text ) ];
+    }
+
+    var artists = parts.shift().replace(/\s*(?:Ft|Feat\.?|Featuring)\s+/gi, " & ");
+    var title = parts.join(" - ");
+    var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i).map(a => a.trim()).filter(Boolean);
+    artistsArr = [...new Set(artistsArr)];
+
+    var combos = [];
+
+    function combine(start, combo) {
+        if (combo.length) {
+            var artistStr = combo.slice().sort((a,b) => a.localeCompare(b)).join(" & ");
+            combos.push( normalizeTrackTitlesForMatching( artistStr + " - " + title ) );
+        }
+        for (var i = start; i < artistsArr.length; i++) {
+            combo.push( artistsArr[i] );
+            combine( i + 1, combo );
+            combo.pop();
+        }
+    }
+
+    combine(0, []);
+
+    if (!combos.length) {
+        combos.push( normalizeTrackTitlesForMatching( text ) );
+    }
+
+    return [...new Set(combos)];
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -191,67 +232,75 @@ function mergeTracklists(original_arr, candidate_arr) {
     candidate_arr = candidate_arr.filter(item => item.type !== "track (false)");
 
     // Build exact lookup + fuzzy list for all original track items
-    const originalMap = {}; // normalizedTitle → index in original_arr
-    const fuzzyList   = []; // [{ norm, index }]
-    original_arr.forEach((item, index) => {
+    const originalMap = {}; // normalizedTitle → original item
+    const fuzzyList   = []; // [{ norm, item }]
+    original_arr.forEach(item => {
         if (item.type === "track") {
-            const norm = normalizeTrackTitlesForMatching(item.trackText);
-            originalMap[norm] = index;
-            fuzzyList.push({ norm, index });
+            const norms = getTrackMatchNorms(item.trackText);
+            norms.forEach(norm => {
+                originalMap[norm] = item;
+                fuzzyList.push({ norm, item });
+            });
         }
     });
+
+    const unmatched = [];
 
     // Walk through candidate tracks
     for (let i = 0; i < candidate_arr.length; i++) {
         const cand = candidate_arr[i];
-        if (cand.type !== "track" || !cand.trackText || cand.trackText === "?") {
+        if (cand.type !== "track" || !cand.trackText) {
             continue;
         }
 
-        // Remember the candidate’s own name & label
         const candidateName  = cand.trackText;
         const candidateLabel = cand.label;
+        const isUnknown      = candidateName === "?";
 
-        const candNorm = normalizeTrackTitlesForMatching(candidateName);
+        let origItem;
 
-        // 1) Try exact match by normalized title
-        let matchIndex = originalMap[candNorm];
+        if (!isUnknown) {
+            const candNorms = getTrackMatchNorms(candidateName);
 
-        // 2) Fallback to fuzzy matching
-        if (matchIndex === undefined) {
-            for (const entry of fuzzyList) {
-                if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
-                    matchIndex = entry.index;
+            // 1) Try exact match by normalized title
+            for (const candNorm of candNorms) {
+                if (originalMap.hasOwnProperty(candNorm)) {
+                    origItem = originalMap[candNorm];
                     break;
+                }
+            }
+
+            // 2) Fallback to fuzzy matching
+            if (!origItem) {
+                outer: for (const candNorm of candNorms) {
+                    for (const entry of fuzzyList) {
+                        if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
+                            origItem = entry.item;
+                            break outer;
+                        }
+                    }
                 }
             }
         }
 
         // 3) Fallback: same cue + unknown trackText
-        if (matchIndex === undefined && cand.cue) {
-            matchIndex = original_arr.findIndex(item =>
-                                                item.type === "track" &&
-                                                item.trackText === "?" &&
-                                                item.cue === cand.cue
-                                               );
+        if (!origItem && cand.cue) {
+            origItem = original_arr.find(item =>
+                item.type === "track" &&
+                item.trackText === "?" &&
+                item.cue === cand.cue
+            );
         }
 
-        // Only proceed if we got a real slot
-        if (typeof matchIndex === "number" && matchIndex >= 0) {
-            const orig = original_arr[matchIndex];
-
-            // --- NEW: if the original was unknown, adopt the candidate’s name ---
-            if (orig.trackText === "?") {
-                orig.trackText = candidateName;
+        if (origItem) {
+            if (origItem.trackText === "?") {
+                origItem.trackText = candidateName;
             }
-            // otherwise, leave the existing original spelling in place
 
-            // Merge in missing cue, label or duration
-            if (cand.cue && !orig.cue)         orig.cue   = cand.cue;
-            if (cand.dur && !orig.dur)         orig.dur   = cand.dur;
-            if (candidateLabel && !orig.label) orig.label = candidateLabel;
+            if (cand.cue && !origItem.cue)         origItem.cue   = cand.cue;
+            if (cand.dur && !origItem.dur)         origItem.dur   = cand.dur;
+            if (candidateLabel && !origItem.label) origItem.label = candidateLabel;
 
-            // Existing “? plus cue” hack
             const nextCand = candidate_arr[i + 1];
             if (
                 nextCand &&
@@ -259,15 +308,53 @@ function mergeTracklists(original_arr, candidate_arr) {
                 nextCand.trackText === "?" &&
                 nextCand.cue
             ) {
-                for (let j = matchIndex + 1; j < original_arr.length; j++) {
+                const origIndex = original_arr.indexOf(origItem);
+                for (let j = origIndex + 1; j < original_arr.length; j++) {
                     if (!original_arr[j].cue) {
                         original_arr[j].cue = nextCand.cue;
                         break;
                     }
                 }
             }
+        } else {
+            unmatched.push({ cand, index: i, isUnknown });
         }
     }
+
+    // Insert unmatched tracks (including gaps around them)
+    unmatched.forEach(({ cand, index, isUnknown }) => {
+        const cueNum = parseInt(cand.cue);
+        if (
+            isUnknown &&
+            original_arr.some(item => item.type === "track" && parseInt(item.cue) === cueNum)
+        ) {
+            return; // skip duplicate unknown track at same cue
+        }
+
+        let insertIndex = original_arr.findIndex(
+            item => item.type === "track" && parseInt(item.cue) > cueNum
+        );
+        if (insertIndex === -1) insertIndex = original_arr.length;
+
+        const hasPrevGap = index > 0 && candidate_arr[index - 1].type === "gap";
+        const hasNextGap = index < candidate_arr.length - 1 && candidate_arr[index + 1].type === "gap";
+
+        const gapBefore = insertIndex > 0 && original_arr[insertIndex - 1].type === "gap";
+        if (gapBefore && !hasPrevGap) {
+            insertIndex--; // reuse existing gap slot
+        }
+
+        if (hasPrevGap && (insertIndex === 0 || original_arr[insertIndex - 1].type !== "gap")) {
+            original_arr.splice(insertIndex, 0, { type: "gap" });
+            insertIndex++;
+        }
+
+        original_arr.splice(insertIndex, 0, cand);
+
+        if (hasNextGap && (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")) {
+            original_arr.splice(insertIndex + 1, 0, { type: "gap" });
+        }
+    });
 
     return original_arr; // = merged
 }
@@ -389,13 +476,48 @@ function run_diff() {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
+ * normalizeCueDigits
+ * Pad cues like "[00]" to three digits ("[000]")
+ */
+function normalizeCueDigits(tl_arr) {
+    tl_arr.forEach(function(item) {
+        if (item.cue && /^\d{1,2}$/.test(item.cue)) {
+            item.cue = ("000" + item.cue).slice(-3);
+        }
+    });
+    return tl_arr;
+}
+
+/*
+ * usesThreeDigitCues
+ * Return true if any cue under 100 is written with three digits
+ */
+function usesThreeDigitCues(tl_arr) {
+    return tl_arr.some(function(item) {
+        return item.cue && /^\d{3}$/.test(item.cue) && parseInt(item.cue, 10) < 100;
+    });
+}
+
+/*
  * run_merge
  */
 function run_merge( showDebug=false ) {
     var tl_original = $("#tl_original").val(),
         tl_candidate = $("#tl_candidate").val(),
-        tl_original_arr  = addCueDiffs( make_tlArr( tl_original  ) ),
-        tl_candidate_arr = addCueDiffs( make_tlArr( tl_candidate ) );
+        tl_original_arr  = make_tlArr( tl_original ),
+        tl_candidate_arr = make_tlArr( tl_candidate );
+
+    // If only one list uses three-digit cues, pad the other
+    var originalHas3  = usesThreeDigitCues( tl_original_arr ),
+        candidateHas3 = usesThreeDigitCues( tl_candidate_arr );
+    if( originalHas3 && !candidateHas3 ) {
+        normalizeCueDigits( tl_candidate_arr );
+    } else if( candidateHas3 && !originalHas3 ) {
+        normalizeCueDigits( tl_original_arr );
+    }
+
+    tl_original_arr  = addCueDiffs( tl_original_arr );
+    tl_candidate_arr = addCueDiffs( tl_candidate_arr );
 
     $("#tl_original_arr").val(  "var tl_original_arr = "  + JSON.stringify( tl_original_arr, null, 2 )  + ";" );
     $("#tl_candidate_arr").val( "var tl_candidate_arr = " + JSON.stringify( tl_candidate_arr, null, 2 ) + ";" );
