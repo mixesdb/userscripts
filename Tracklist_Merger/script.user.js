@@ -564,8 +564,49 @@ function run_merge( showDebug=false ) {
     $("#tl_candidate_arr").val( "var tl_candidate_arr = " + JSON.stringify( tl_candidate_arr, null, 2 ) + ";" );
 
     // Merge
-    var tl_merged_arr = mergeTracklists( tl_original_arr, tl_candidate_arr ),
-        tl_merged = arr_toTlText( tl_merged_arr );
+    var tl_merged_arr = mergeTracklists( tl_original_arr, tl_candidate_arr );
+
+    // When cue formats differ ("MM:SS" vs "MM"), unify the result
+    var originalHasColon  = tl_original_arr.some(item => item.cue && item.cue.includes(':')),
+        candidateHasColon = tl_candidate_arr.some(item => item.cue && item.cue.includes(':'));
+
+    if( originalHasColon !== candidateHasColon ) {
+        var origTrackCount   = tl_original_arr.filter(item => item.type === "track").length,
+            mergedTrackCount = tl_merged_arr.filter(item => item.type === "track").length,
+            pad2 = n => String(n).padStart(2, '0');
+
+        if( mergedTrackCount > origTrackCount ) {
+            // New tracks added → convert all cues to minutes (rounded)
+            tl_merged_arr.forEach(function(item){
+                if( item.type === "track" && item.cue ) {
+                    if( item.cue.includes(':') ) {
+                        item.cue = pad2( Math.round( durToSec_MS( item.cue ) / 60 ) );
+                    } else {
+                        item.cue = pad2( item.cue );
+                    }
+                }
+            });
+        } else if( originalHasColon ) {
+            // No new tracks → keep original format
+            tl_merged_arr.forEach(function(item){
+                if( item.type === "track" && item.cue && !item.cue.includes(':') ) {
+                    item.cue = pad2( item.cue ) + ':00';
+                }
+            });
+        } else {
+            tl_merged_arr.forEach(function(item){
+                if( item.type === "track" && item.cue ) {
+                    if( item.cue.includes(':') ) {
+                        item.cue = pad2( Math.round( durToSec_MS( item.cue ) / 60 ) );
+                    } else {
+                        item.cue = pad2( item.cue );
+                    }
+                }
+            });
+        }
+    }
+
+    var tl_merged = arr_toTlText( tl_merged_arr );
 
     $("#merge_result").val( tl_merged );
     $("#merge_result_arr").val( JSON.stringify( tl_merged_arr, null, 2 ) );
