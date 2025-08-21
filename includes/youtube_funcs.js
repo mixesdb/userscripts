@@ -12,7 +12,7 @@ function escapeRegExp(string) {
 // removeVersionWords
 function removeVersionWords( t ) {
     return t
-            .replace( / (Original( Mix)?( Remastered)?|remix(?: \d+)?|rmx|rx|mixx?|version|vocal|Encore|Edit(?:!ion)?|Re-?Edit|Re-?work|Re-?Touch|Re-?model|Re-?Rub|Re-?vision|Re-?construction|Re-?make|Bemix|ori?gi?nal|orig|remaster(ed)?|process(?:ed)?|reshaped?|reconstruct.{,3}|(?:Re)?definition(?:!\sRec)|Perspective|interpretation|Translation|redo|re-?beef|re-?ruff|re-?prise|ReTop|Instr(?:\.)?umental(?: Version)?|acc?app?(?:ella)?|Dub Mix|Dub[a-z]{,6}mental|M[au]sh(?: )?Up)/gmi, " " )
+            .replace( / (Original( Mix)?( Remastered)?|remix(?: \d+)?|rmx|rx|mixx?|version|vocal|Encore|Extended|Edit(?:!ion)?|Re-?Edit|Re-?work|Re-?Touch|Re-?model|Re-?Rub|Re-?vision|Re-?construction|Re-?make|Bemix|ori?gi?nal|orig|remaster(ed)?|process(?:ed)?|reshaped?|reconstruct.{,3}|(?:Re)?definition(?:!\sRec)|Perspective|interpretation|Translation|redo|re-?beef|re-?ruff|re-?prise|ReTop|Instr(?:\.)?umental(?: Version)?|acc?app?(?:ella)?|Dub Mix|Dub[a-z]{,6}mental|M[au]sh(?: )?Up)/gmi, " " )
             .trim();
 }
 
