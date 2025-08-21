@@ -269,8 +269,10 @@ function mergeTracklists(original_arr, candidate_arr) {
     candidate_arr = candidate_arr.filter(item => item.type !== "track (false)");
 
     // Build exact lookup + fuzzy list for all original track items
-    const originalMap = {}; // normalizedTitle → original item
-    const fuzzyList   = []; // [{ norm, item }]
+    const originalMap   = {}; // normalizedTitle → original item
+    const fuzzyList     = []; // [{ norm, item }]
+    const originalHasGaps = original_arr.some(item => item.type === "gap" || item.trackText === "?");
+
     original_arr.forEach(item => {
         if (item.type === "track") {
             const norms = getTrackMatchNorms(item.trackText);
@@ -362,10 +364,12 @@ function mergeTracklists(original_arr, candidate_arr) {
     unmatched.forEach(({ cand, index, isUnknown }) => {
         const cueNum = parseInt(cand.cue);
         if (
-            isUnknown &&
-            original_arr.some(item => item.type === "track" && parseInt(item.cue) === cueNum)
+            isUnknown && (
+                !originalHasGaps ||
+                original_arr.some(item => item.type === "track" && parseInt(item.cue) === cueNum)
+            )
         ) {
-            return; // skip duplicate unknown track at same cue
+            return; // skip unknowns when original has no gaps or duplicate unknown at same cue
         }
 
         let insertIndex = original_arr.findIndex(
@@ -381,14 +385,22 @@ function mergeTracklists(original_arr, candidate_arr) {
             insertIndex--; // reuse existing gap slot
         }
 
-        if (hasPrevGap && (insertIndex === 0 || original_arr[insertIndex - 1].type !== "gap")) {
+        if (
+            originalHasGaps &&
+            hasPrevGap &&
+            (insertIndex === 0 || original_arr[insertIndex - 1].type !== "gap")
+        ) {
             original_arr.splice(insertIndex, 0, { type: "gap" });
             insertIndex++;
         }
 
         original_arr.splice(insertIndex, 0, cand);
 
-        if (hasNextGap && (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")) {
+        if (
+            originalHasGaps &&
+            hasNextGap &&
+            (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")
+        ) {
             original_arr.splice(insertIndex + 1, 0, { type: "gap" });
         }
     });
