@@ -71,6 +71,30 @@ function adjust_textareaRows( textarea ) {
 }
 
 /*
+ * adjust_preHeights
+ *
+ * Ensure that all <pre> elements in the same table row share the height of
+ * the tallest <pre>. This keeps the diff view columns aligned regardless of
+ * content length.
+ */
+function adjust_preHeights( pre ) {
+    var tr = pre.closest('tr'),
+        pres = tr.find('pre'),
+        maxHeight = 0;
+
+    pres.css('height', '');
+
+    pres.each(function(){
+        var h = this.scrollHeight;
+        if( h > maxHeight ) {
+            maxHeight = h;
+        }
+    });
+
+    pres.height( maxHeight );
+}
+
+/*
  * normalize track titles for matching
  * copied from Common.js
  */
@@ -474,6 +498,10 @@ function run_diff() {
         text3 = $("#tl_candidate").val();
     if( text1 && text2 && text3 ) {
         $('#diffContainer').showTracklistDiffs({ text1, text2, text3 });
+        var pre = $('#diffContainer pre').first();
+        if( pre.length ) {
+            adjust_preHeights( pre );
+        }
     }
 }
 
