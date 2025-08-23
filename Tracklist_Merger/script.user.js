@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.5
+// @version      2025.08.23.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,6 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Merger_Beta_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js
 // @match        https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger*
 // @include      http*trackid.net/audiostreams/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
@@ -555,7 +554,27 @@ function mergeTracklists(original_arr, candidate_arr) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
- (function($) {
+function calcSimilarity(a, b) {
+  var m = a.length, n = b.length;
+  var dp = Array(m + 1);
+  for (var i = 0; i <= m; i++) {
+    dp[i] = Array(n + 1).fill(0);
+  }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      var cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  var maxLen = Math.max(m, n);
+  return maxLen === 0 ? 1 : (maxLen - dp[m][n]) / maxLen;
+}
+
+(function($) {
     function escapeHTML(s) { return $('<div>').text(s).html(); }
     function wrapSpan(val, cls) {
       var lead = val.match(/^\s*/)[0];
@@ -563,21 +582,42 @@ function mergeTracklists(original_arr, candidate_arr) {
       var core = val.slice(lead.length, val.length - trail.length);
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
-    function charDiffGreen(orig, mod) {
-      return Diff.diffWords(orig, mod).map(function(p) {
-        if (p.added)   return wrapSpan(p.value, 'diff-added');
-        if (p.removed) return '';
-        return escapeHTML(p.value);
-      }).join('');
+    function diffCharsLCS(orig, mod, cls) {
+      var oLen = orig.length, mLen = mod.length;
+      var dp = Array(oLen + 1);
+      for (var i = 0; i <= oLen; i++) {
+        dp[i] = Array(mLen + 1).fill(0);
+      }
+      for (var i = 1; i <= oLen; i++) {
+        for (var j = 1; j <= mLen; j++) {
+          dp[i][j] = orig[i - 1] === mod[j - 1]
+            ? dp[i - 1][j - 1] + 1
+            : Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+      }
+      var i = oLen, j = mLen, added = '', out = '';
+      while (i > 0 && j > 0) {
+        if (orig[i - 1] === mod[j - 1]) {
+          if (added) { out = wrapSpan(added, cls) + out; added = ''; }
+          out = escapeHTML(mod[j - 1]) + out;
+          i--; j--;
+        } else if (dp[i][j - 1] >= dp[i - 1][j]) {
+          added = mod[j - 1] + added;
+          j--;
+        } else {
+          i--;
+        }
+      }
+      while (j > 0) {
+        added = mod[j - 1] + added;
+        j--;
+      }
+      if (added) { out = wrapSpan(added, cls) + out; }
+      return out;
     }
-    function charDiffRed(orig, mod) {
-      return Diff.diffWords(orig, mod).map(function(p) {
-        if (p.added)   return wrapSpan(p.value, 'diff-removed');
-        if (p.removed) return '';
-        return escapeHTML(p.value);
-      }).join('');
-    }
-      $.fn.showTracklistDiffs = function(opts) {
+    function charDiffGreen(orig, mod) { return diffCharsLCS(orig, mod, 'diff-added'); }
+    function charDiffRed(orig, mod) { return diffCharsLCS(orig, mod, 'diff-removed'); }
+    $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
@@ -627,19 +667,18 @@ function mergeTracklists(original_arr, candidate_arr) {
           // strip trailing label for matching
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
           var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
-          var origCore = '';
-          var origNorm = '';
+          var bestCore = '', bestScore = 0;
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var candNorm = normalizeTrackTitlesForMatching(candNoLabel);
-            if ($.isTextSimilar(candNorm, normCore)) {
-              origCore = cand;
-              origNorm = candNorm;
-              break;
+            var score = calcSimilarity(normalizeTrackTitlesForMatching(candNoLabel), normCore);
+            if (score > bestScore) {
+              bestScore = score;
+              bestCore = cand;
             }
           }
-          if (origNorm === normCore) {
+          var origCore = bestCore;
+          if (origCore && origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
