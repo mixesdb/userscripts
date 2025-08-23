@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 3,
+var cacheVersion = 4,
     scriptName = "Tracklist_Merger";
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
@@ -739,6 +739,7 @@ function calcSimilarity(a, b) {
             return escapeHTML(line);
           }
           var bestIdx = -1, bestScore = 0;
+
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
