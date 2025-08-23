@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.5
+// @version      2025.08.23.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Merger_Beta_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js
+// @require      https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js
 // @match        https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger*
 // @include      http*trackid.net/audiostreams/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
@@ -28,6 +28,7 @@
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
+const diffSimilarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -555,7 +556,27 @@ function mergeTracklists(original_arr, candidate_arr) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
- (function($) {
+function calcSimilarity(a, b) {
+  var m = a.length, n = b.length;
+  var dp = Array(m + 1);
+  for (var i = 0; i <= m; i++) {
+    dp[i] = Array(n + 1).fill(0);
+  }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      var cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  var maxLen = Math.max(m, n);
+  return maxLen === 0 ? 1 : (maxLen - dp[m][n]) / maxLen;
+}
+
+(function($) {
     function escapeHTML(s) { return $('<div>').text(s).html(); }
     function wrapSpan(val, cls) {
       var lead = val.match(/^\s*/)[0];
@@ -564,20 +585,21 @@ function mergeTracklists(original_arr, candidate_arr) {
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
     function charDiffGreen(orig, mod) {
-      return Diff.diffWords(orig, mod).map(function(p) {
+      return Diff.diffChars(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-added');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
     function charDiffRed(orig, mod) {
-      return Diff.diffWords(orig, mod).map(function(p) {
+      return Diff.diffChars(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-removed');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
-      $.fn.showTracklistDiffs = function(opts) {
+    $.fn.showTracklistDiffs = function(opts) {
+
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
@@ -627,19 +649,18 @@ function mergeTracklists(original_arr, candidate_arr) {
           // strip trailing label for matching
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
           var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
-          var origCore = '';
-          var origNorm = '';
+          var bestCore = '', bestScore = 0;
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var candNorm = normalizeTrackTitlesForMatching(candNoLabel);
-            if ($.isTextSimilar(candNorm, normCore)) {
-              origCore = cand;
-              origNorm = candNorm;
-              break;
+            var score = calcSimilarity(normalizeTrackTitlesForMatching(candNoLabel), normCore);
+            if (score > bestScore) {
+              bestScore = score;
+              bestCore = cand;
             }
           }
-          if (origNorm === normCore) {
+          var origCore = bestCore;
+          if (origCore && origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
@@ -677,8 +698,10 @@ function run_diff() {
         if( pre.length ) {
             adjust_preHeights( pre );
         }
-        adjust_columnWidths();
+    } else {
+        $("#diffContainer td").remove();
     }
+    adjust_columnWidths();
 }
 
 
@@ -867,8 +890,8 @@ if( domain == "mixesdb.com" ) {
             run_merge( true );
         }
 
-        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', adjust_columnWidths);
-        adjust_columnWidths();
+        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', run_diff);
+        run_diff();
     });
 }
 
