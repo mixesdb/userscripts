@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.20
+// @version      2025.08.23.21
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -716,6 +716,13 @@ function calcSimilarity(a, b) {
         $row.append($('<td>').append($('<pre>').html(html2)));
 
         // Column 3: Candidate vs Merged (red extras, normalized matching)
+        var lines2Raw = lines2.map(function(l) {
+          return l.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
+        });
+        var lines2NormBase = lines2.map(function(l) {
+          var base = l.replace(/^#?\s*\[.*?\]\s*/, '').trim().replace(/\s*\[[^\]]+\]\s*$/, '');
+          return normalizeTrackTitlesForMatching(base);
+        });
         var html3 = lines3.map(function(line) {
           var coreRaw = line.replace(/^#?\s*\[.*?\]\s*/, '').trim();
           if (coreRaw === '?' || coreRaw === '...') {
@@ -724,27 +731,29 @@ function calcSimilarity(a, b) {
           var cue = line.match(/^(\s*\[.*?\]\s*)/);
           var prefix = cue ? cue[1] : '';
           var core = coreRaw;
-          // strip trailing label for matching
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
-          // check for exact match (case-insensitive) including label
-          var matchExact = lines2.find(function(l) {
-            return l.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase() === core.trim().toLowerCase();
-          });
-          if (matchExact) {
+          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
+          // check for exact match: raw or normalized base
+          if (lines2Raw.indexOf(core.trim().toLowerCase()) !== -1 ||
+              lines2NormBase.indexOf(coreNormBase) !== -1) {
             return escapeHTML(line);
           }
-          var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
-          var bestCore = '', bestScore = 0;
+          var bestIdx = -1, bestScore = 0;
+
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var score = calcSimilarity(normalizeTrackTitlesForMatching(candNoLabel), normCore);
+            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
+            var score = calcSimilarity(candNormBase, coreNormBase);
             if (score > bestScore) {
               bestScore = score;
-              bestCore = cand;
+              bestIdx = j;
             }
           }
-          var origCore = bestCore;
+          var origCore = bestIdx >= 0 ? lines2[bestIdx].replace(/^#?\s*\[.*?\]\s*/, '').trim() : '';
+          if (!origCore || bestScore < similarityThreshold) {
+            return escapeHTML(prefix) + charDiffRed('', core);
+          }
           // if labels differ entirely, highlight whole label
           var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
           var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
