@@ -1,6 +1,42 @@
 == Example ==
 
 Original:
+# Vakula - Thaw Of The Silent Peak
+# Jonn Serrie - The Observation Deck
+# Ariel Kalma - Flute Meditation
+# Vakula - Stellar Echoes
+# Steve Roach - The Ancients' Way
+# Vakula - True Self
+# Jonn Serrie - Along The Way
+# Vakula - Ananta Nada
+
+Candidate:
+[00] ?
+...
+[15] Jonn Serrie - The Observation Deck [Valley Entertainment]
+[21] Ariel Kalma - Flute Meditation
+[32] Vakula - Stellar Echoes [Intrinsic Space]
+[38] Steve Roach - The Ancients' Way (Live In Tucson 2018) [Timeroom Editions]
+[48] ?
+...
+[57] Jonn Serrie - Along The Way [Valley Entertainment]
+[61] ?
+...
+
+Expected result:
+# [00] Vakula - Thaw Of The Silent Peak
+# [15] Jonn Serrie - The Observation Deck [Valley Entertainment]
+# [21] Ariel Kalma - Flute Meditation
+# [32] Vakula - Stellar Echoes [Intrinsic Space]
+# [38] Steve Roach - The Ancients' Way (Live In Tucson 2018) [Timeroom Editions]
+# [??] Vakula - True Self
+# [57] Jonn Serrie - Along The Way [Valley Entertainment]
+# [61] Vakula - Ananta Nada
+
+
+== Example ==
+
+Original:
 ;Part 1
 # Simon Doty & My Friend - Real Talk (Extended Mix) [Anjunadeep]
 # Low Steppa & Capri - Got The Funk (Extended) [Defected]
