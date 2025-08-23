@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.21
+// @version      2025.08.23.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -708,18 +708,61 @@ function calcSimilarity(a, b) {
         // Column 1: Original
         $row.append($('<td>').append($('<pre>').text(text1)));
 
-        // Column 2: Merged vs Original (green additions)
-        var html2 = lines2.map(function(line, i) {
-          var core2 = line.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
-          var orig = lines1[i] || '';
-          var core1 = orig.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
-          if (core2 === '?' || core2 === '...') {
+        // Column 2: Merged vs Original (green additions, normalized matching)
+        var lines1Raw = lines1.map(function(l) {
+          return l.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
+        });
+        var lines1NormBase = lines1.map(function(l) {
+          var base = l.replace(/^#?\s*\[.*?\]\s*/, '').trim().replace(/\s*\[[^\]]+\]\s*$/, '');
+          return normalizeTrackTitlesForMatching(base);
+        });
+        var html2 = lines2.map(function(line) {
+          var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
+          var prefix = cueMatch ? cueMatch[1] : '';
+          var core = line.slice(prefix.length);
+          var coreTrim = core.trim();
+          if (coreTrim === '?' || coreTrim === '...') {
             return escapeHTML(line);
           }
-          if (core1 === core2) {
+          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
+          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
+          // check for exact match: raw or normalized base
+          if (lines1Raw.indexOf(coreTrim.toLowerCase()) !== -1 ||
+              lines1NormBase.indexOf(coreNormBase) !== -1) {
             return escapeHTML(line);
           }
-          return charDiffGreen(orig, line);
+          var bestIdx = -1, bestScore = 0;
+          for (var j = 0; j < lines1.length; j++) {
+            var cand = lines1[j].replace(/^#?\s*\[.*?\]\s*/, '');
+            var candTrim = cand.trim();
+            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
+            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
+            var score = calcSimilarity(candNormBase, coreNormBase);
+            if (score > bestScore) {
+              bestScore = score;
+              bestIdx = j;
+            }
+          }
+          var origCore = bestIdx >= 0 ? lines1[bestIdx].replace(/^#?\s*\[.*?\]\s*/, '') : '';
+          var origCoreTrim = origCore.trim();
+          if (!origCore || bestScore < similarityThreshold) {
+            return escapeHTML(prefix) + charDiffGreen('', core);
+          }
+          // if labels differ entirely, highlight whole label
+          var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
+          var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
+          if (coreLabel) {
+            var label = coreLabel[1];
+            if (!origLabel || origLabel[1].toLowerCase() !== label.toLowerCase()) {
+              var coreBase = core.replace(coreLabel[1], '');
+              var origBase = origCore ? origCore.replace(origLabel ? origLabel[1] : '', '') : '';
+              return escapeHTML(prefix) + charDiffGreen(origBase, coreBase) + wrapSpan(label, 'diff-added');
+            }
+          }
+          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase()) {
+            return escapeHTML(line);
+          }
+          return escapeHTML(prefix) + charDiffGreen(origCore, core);
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html2)));
 
@@ -732,25 +775,25 @@ function calcSimilarity(a, b) {
           return normalizeTrackTitlesForMatching(base);
         });
         var html3 = lines3.map(function(line) {
-          var coreRaw = line.replace(/^#?\s*\[.*?\]\s*/, '').trim();
-          if (coreRaw === '?' || coreRaw === '...') {
+          var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
+          var prefix = cueMatch ? cueMatch[1] : '';
+          var core = line.slice(prefix.length);
+          var coreTrim = core.trim();
+          if (coreTrim === '?' || coreTrim === '...') {
             return escapeHTML(line);
           }
-          var cue = line.match(/^(\s*\[.*?\]\s*)/);
-          var prefix = cue ? cue[1] : '';
-          var core = coreRaw;
-          var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
+          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
           var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
           // check for exact match: raw or normalized base
-          if (lines2Raw.indexOf(core.trim().toLowerCase()) !== -1 ||
+          if (lines2Raw.indexOf(coreTrim.toLowerCase()) !== -1 ||
               lines2NormBase.indexOf(coreNormBase) !== -1) {
             return escapeHTML(line);
           }
           var bestIdx = -1, bestScore = 0;
-
           for (var j = 0; j < lines2.length; j++) {
-            var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
-            var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
+            var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '');
+            var candTrim = cand.trim();
+            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
             var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
             var score = calcSimilarity(candNormBase, coreNormBase);
             if (score > bestScore) {
@@ -758,7 +801,8 @@ function calcSimilarity(a, b) {
               bestIdx = j;
             }
           }
-          var origCore = bestIdx >= 0 ? lines2[bestIdx].replace(/^#?\s*\[.*?\]\s*/, '').trim() : '';
+          var origCore = bestIdx >= 0 ? lines2[bestIdx].replace(/^#?\s*\[.*?\]\s*/, '') : '';
+          var origCoreTrim = origCore.trim();
           if (!origCore || bestScore < similarityThreshold) {
             return escapeHTML(prefix) + charDiffRed('', core);
           }
@@ -773,7 +817,7 @@ function calcSimilarity(a, b) {
               return escapeHTML(prefix) + charDiffRed(origBase, coreBase) + wrapSpan(label, 'diff-removed');
             }
           }
-          if (origCore && origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
+          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase()) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
