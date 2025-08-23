@@ -31,8 +31,7 @@ var cacheVersion = 4,
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
-// Allow looser matching so minor title differences are still compared
-const similarityThreshold = 0.6;
+const similarityThreshold = 0.8;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
