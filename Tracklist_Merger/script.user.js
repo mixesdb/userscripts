@@ -718,8 +718,10 @@ function run_diff() {
         if( pre.length ) {
             adjust_preHeights( pre );
         }
-        adjust_columnWidths();
+    } else {
+        $("#diffContainer td").remove();
     }
+    adjust_columnWidths();
 }
 
 
@@ -908,8 +910,8 @@ if( domain == "mixesdb.com" ) {
             run_merge( true );
         }
 
-        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', adjust_columnWidths);
-        adjust_columnWidths();
+        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', run_diff);
+        run_diff();
     });
 }
 
