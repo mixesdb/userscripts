@@ -36,5 +36,7 @@
 
     & #diffContainer td.identical-msg {
         text-align: center;
+        text-style: italic;
+        color: #ccc;
     }
 }
