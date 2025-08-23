@@ -46,6 +46,7 @@ const similarityThreshold = 0.8;
 function clear_textareas() {
     $("#tracklistMerger-wrapper textarea").val("");
     $("#tracklistMerger-wrapper #diffContainer td").remove();
+    adjust_columnWidths();
 }
 
 /*
@@ -101,6 +102,62 @@ function adjust_preHeights( pre ) {
     });
 
     pres.height( Math.ceil( maxLines * lineHeight ) );
+}
+
+/*
+ * adjust_columnWidths
+ *
+ * Calculate the maximum line length for each column across both the
+ * textarea inputs and the diff <pre> elements. Columns with shorter
+ * content get a smaller width so that space is distributed according to
+ * the actual text length. The resulting widths are applied to the
+ * corresponding columns of both the Inputs and Diff tables.
+ */
+function adjust_columnWidths() {
+    var selectors = ['#tl_original', '#merge_result_tle', '#tl_candidate'],
+        maxLens = [0, 0, 0];
+
+    // Determine longest line per column from textareas
+    selectors.forEach(function(sel, idx){
+        var el = $(sel);
+        if( el.length ) {
+            el.val().split(/\r\n|\r|\n/).forEach(function(line){
+                if( line.length > maxLens[idx] ) {
+                    maxLens[idx] = line.length;
+                }
+            });
+        }
+
+        var pre = $('#diffContainer td').eq(idx).find('pre');
+        if( pre.length ) {
+            pre.text().split(/\r\n|\r|\n/).forEach(function(line){
+                if( line.length > maxLens[idx] ) {
+                    maxLens[idx] = line.length;
+                }
+            });
+        }
+    });
+
+    var total = maxLens.reduce(function(a, b){ return a + b; }, 0);
+
+    var tables = [ $(selectors[0]).closest('table'), $('#diffContainer').closest('table') ];
+
+    if( total === 0 ) {
+        tables.forEach(function(t){ t.find('td').css('width', ''); });
+        return;
+    }
+
+    var widths = maxLens.map(function(len){ return len / total * 100; });
+
+    tables.forEach(function($table){
+        $table.find('tr').each(function(){
+            $(this).children('td').each(function(i){
+                if( widths[i] !== undefined ) {
+                    $(this).css('width', widths[i] + '%');
+                }
+            });
+        });
+    });
 }
 
 /*
@@ -583,6 +640,7 @@ function run_diff() {
         if( pre.length ) {
             adjust_preHeights( pre );
         }
+        adjust_columnWidths();
     }
 }
 
@@ -771,6 +829,9 @@ if( domain == "mixesdb.com" ) {
           ) {
             run_merge( true );
         }
+
+        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', adjust_columnWidths);
+        adjust_columnWidths();
     });
 }
 
