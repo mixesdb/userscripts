@@ -773,24 +773,43 @@ function removePointlessVersions( t ) {
 
 /*  
  * removeDuplicateBracketedText
- * Input  "[0:59:03] Sebo K - Spirits (feat. Max Moya) [Drum Version] (Drum Version)"
- * Input  "[0:59:03] Sebo K - Spirits (feat. Max Moya) (Drum Version) [Drum Version]"
- * Result "[0:59:03] Sebo K - Spirits (feat. Max Moya) (Drum Version)"
- * E.g. https://trackid.net/audiostreams/groove-podcast-451-marie-lung
+ * "Spirits (feat. Max Moya) [Drum Version] (Drum Version)" => "Spirits (feat. Max Moya) (Drum Version)" E.g. https://trackid.net/audiostreams/groove-podcast-451-marie-lung
+ * "Spirits (feat. Max Moya) (Drum Version) [Drum Version]" => "Spirits (feat. Max Moya) (Drum Version)"
+ * "Spirits (feat. Max Moya) [Drum Version] [Drum Version]" => "Spirits (feat. Max Moya) (Drum Version)"
+ * "Spirits (feat. Max Moya) (Drum Version) (Drum Version)" => "Spirits (feat. Max Moya) (Drum Version)"
+ * "Silver Ball (Ø [Phase] Remix)" => "Silver Ball (Ø [Phase] Remix)"
  */
 function removeDuplicateBracketedText( text ) {
     //logFunc( "removeDuplicateBracketedText" );
     //logVar( "text", text );
 
-    let unique = new Set();
-    let result = text.replace(/([\(\[])(.*?)([\)\]])/g, (match, open, content, close) => {
-        let normalizedContent = content.trim();
-        if (unique.has(normalizedContent)) {
-            return ''; // Remove duplicate entries
+    let regex = /([\(\[])([^()\[\]]*)([\)\]])/g;
+    let matches = [];
+    let match;
+    while ( ( match = regex.exec( text ) ) !== null ) {
+        matches.push( match );
+    }
+
+    let counts = {};
+    for ( let m of matches ) {
+        let content = m[ 2 ].trim();
+        counts[ content ] = ( counts[ content ] || 0 ) + 1;
+    }
+
+    let result = text;
+    let seen = new Set();
+    for ( let i = matches.length - 1; i >= 0; i-- ) {
+        let m = matches[ i ];
+        let content = m[ 2 ].trim();
+        if ( seen.has( content ) ) {
+            result = result.slice( 0, m.index ) + result.slice( m.index + m[ 0 ].length );
+        } else {
+            seen.add( content );
+            if ( counts[ content ] > 1 && m[ 1 ] !== '(' ) {
+                result = result.slice( 0, m.index ) + '(' + content + ')' + result.slice( m.index + m[ 0 ].length );
+            }
         }
-        unique.add(normalizedContent);
-        return `(${normalizedContent})`; // Prefer round brackets
-    });
+    }
 
     return result.replace(/\s+/g, ' ').trim(); // Remove extra spaces
 }
