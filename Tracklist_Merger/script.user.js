@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.21.4
+// @version      2025.08.21.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -102,7 +102,8 @@ function adjust_preHeights( pre ) {
 // normalizeTrackTitlesForMatching
 function normalizeTrackTitlesForMatching( text ) {
     text = text.trim();
-    text = text.replace(/\s*\[[^\]]+\]\s*$/, '');
+    // remove bracketed descriptors anywhere in the string (e.g. labels, roles)
+    text = text.replace(/\s*\[[^\]]+\]\s*/g, ' ');
     text = normalizeStreamingServiceTracks( text );
     text = removePointlessVersions( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
@@ -123,7 +124,7 @@ function normalizeTrackTitlesForMatching( text ) {
         text = artists + " - " + title;
     }
 
-    text = text.toLowerCase();
+    text = text.toLowerCase().replace(/\s{2,}/g, ' ').trim();
 
     logVar( "normalizeTrackTitlesForMatching", text );
 
@@ -135,7 +136,7 @@ function normalizeTrackTitlesForMatching( text ) {
  * Return normalized variants for all artist combinations
  */
 function getTrackMatchNorms( text ) {
-    text = text.trim().replace(/\s*\[[^\]]+\]\s*$/, '');
+    text = text.trim().replace(/\s*\[[^\]]+\]\s*/g, ' ');
 
     var parts = text.split(" - ");
     if (parts.length < 2) {
