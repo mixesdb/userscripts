@@ -790,7 +790,7 @@ function calcSimilarity(a, b) {
           var origCore = bestIdx >= 0 ? extractPrefix(lines2[bestIdx]).core : '';
           var origCoreTrim = origCore.trim();
           if (!origCore || bestScore < similarityThreshold) {
-            return escapeHTML(prefix) + charDiffRed('', core);
+            return wrapSpan(prefix + core, 'diff-removed');
           }
           // if labels differ entirely, highlight whole label
           var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
