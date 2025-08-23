@@ -28,6 +28,7 @@
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
+const diffSimilarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -632,6 +633,7 @@ function mergeTracklists(original_arr, candidate_arr) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
             if ($.isTextSimilar(normalizeTrackTitlesForMatching(candNoLabel), normCore)) {
+
               origCore = cand;
               break;
             }
