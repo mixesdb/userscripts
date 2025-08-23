@@ -32,7 +32,6 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
-const diffSimilarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -671,10 +670,19 @@ function calcSimilarity(a, b) {
       }).join('');
     }
     function charDiffRed(orig, mod) {
-      return Diff.diffWords(orig, mod, { ignoreCase: true }).map(function(p) {
-        if (p.added)   return wrapSpan(p.value, 'diff-removed');
-        if (p.removed) return '';
-        return escapeHTML(p.value);
+      var origSet = new Set(
+        orig
+          .toLowerCase()
+          .split(/\s+/)
+          .map(function(w){ return w.replace(/[^\w']+/g, ''); })
+          .filter(Boolean)
+      );
+      return mod.split(/(\s+)/).map(function(tok){
+        var stripped = tok.toLowerCase().replace(/[^\w']+/g, '');
+        if (!stripped || origSet.has(stripped)) {
+          return escapeHTML(tok);
+        }
+        return wrapSpan(tok, 'diff-removed');
       }).join('');
     }
     $.fn.showTracklistDiffs = function(opts) {
