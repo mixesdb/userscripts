@@ -726,6 +726,13 @@ function calcSimilarity(a, b) {
           var core = coreRaw;
           // strip trailing label for matching
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
+          // check for exact match (case-insensitive) including label
+          var matchExact = lines2.find(function(l) {
+            return l.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase() === core.trim().toLowerCase();
+          });
+          if (matchExact) {
+            return escapeHTML(line);
+          }
           var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
           var bestCore = '', bestScore = 0;
           for (var j = 0; j < lines2.length; j++) {
@@ -738,6 +745,17 @@ function calcSimilarity(a, b) {
             }
           }
           var origCore = bestCore;
+          // if labels differ entirely, highlight whole label
+          var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
+          var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
+          if (coreLabel) {
+            var label = coreLabel[1];
+            if (!origLabel || origLabel[1].toLowerCase() !== label.toLowerCase()) {
+              var coreBase = core.replace(coreLabel[1], '');
+              var origBase = origCore ? origCore.replace(origLabel ? origLabel[1] : '', '') : '';
+              return escapeHTML(prefix) + charDiffRed(origBase, coreBase) + wrapSpan(label, 'diff-removed');
+            }
+          }
           if (origCore && origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
             return escapeHTML(line);
           }
