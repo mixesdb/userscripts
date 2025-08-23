@@ -107,6 +107,7 @@ function normalizeTrackTitlesForMatching( text ) {
     text = normalizeStreamingServiceTracks( text );
     text = removePointlessVersions( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
+    text = text.replace(/\s+[x×]\s+/gi, " & ");
     text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
 
     var parts = text.split(" - ");
@@ -115,12 +116,28 @@ function normalizeTrackTitlesForMatching( text ) {
         var title = parts.join(" - ");
         artists = artists
             .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
-            .replace(/\s*,\s*/g, " & ");
+            .replace(/\s*,\s*/g, " & ")
+            .replace(/\s+[x×]\s+/gi, " & ");
         var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
         if (artistsArr.length > 1) {
             artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
             artists = artistsArr.join(" & ");
         }
+        var normArtists = artists.toLowerCase();
+
+        title = title.replace(/\(([^)]+)\)/g, function(match, p1) {
+            var normP1 = p1
+                .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+                .replace(/\s*,\s*/g, " & ")
+                .replace(/\s+[x×]\s+/gi, " & ")
+                .toLowerCase().replace(/\s{2,}/g, ' ').trim();
+            var normP1Arr = normP1.split(/\s*(?:&|\band\b|\baka\b)\s*/i)
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b));
+            var normP1Sorted = normP1Arr.join(" & ");
+            return normP1Sorted === normArtists ? '' : match;
+        }).replace(/\s{2,}/g, ' ').trim();
+
         text = artists + " - " + title;
     }
 
@@ -139,6 +156,7 @@ function getTrackMatchNorms( text ) {
     text = text.trim().replace(/\s*\[[^\]]+\]\s*/g, ' ');
     text = removePointlessVersions( text );
     text = removeVersionWords( text );
+    text = text.replace(/\s+[x×]\s+/gi, " & ");
     text = text.trim();
 
     var parts = text.split(" - ");
@@ -148,7 +166,8 @@ function getTrackMatchNorms( text ) {
 
     var artists = parts.shift()
         .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
-        .replace(/\s*,\s*/g, " & ");
+        .replace(/\s*,\s*/g, " & ")
+        .replace(/\s+[x×]\s+/gi, " & ");
     var title = parts.join(" - ");
     var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
     artistsArr = [...new Set(artistsArr)];
