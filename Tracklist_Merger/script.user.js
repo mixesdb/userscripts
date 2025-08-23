@@ -274,6 +274,14 @@ function init_columnDividerEvents(){
         });
         e.preventDefault();
     });
+
+    // Recalculate divider positions on window resize
+    $(window).on('resize.tmDivider', function(){
+        var widths = manualWidths || currentWidths;
+        if( widths ) {
+            update_columnDividers(widths);
+        }
+    });
 }
 
 /*
