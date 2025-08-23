@@ -6,7 +6,7 @@
         position: absolute;
         width: 5px;
         cursor: col-resize;
-        background: #fff;
+        background: transparent;
         z-index: 10;
     }
 
