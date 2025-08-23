@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.11
+// @version      2025.08.23.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Merger_Beta_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js
+// @require      https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js
 // @match        https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger*
 // @include      http*trackid.net/audiostreams/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
@@ -28,7 +28,6 @@
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
-const diffSimilarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -47,155 +46,24 @@ const diffSimilarityThreshold = 0.5;
 function clear_textareas() {
     $("#tracklistMerger-wrapper textarea").val("");
     $("#tracklistMerger-wrapper #diffContainer td").remove();
-    adjust_columnWidths();
 }
 
 /*
  * adjust_textareaRows
- *
- * Ensure that all textareas in the same table row share the height of
- * the largest textarea. This avoids having differently sized textareas
- * when pasting content into only one of them.
  */
 function adjust_textareaRows( textarea ) {
-    var tr = textarea.closest('tr'),
-        textareas = tr.find('textarea'),
-        maxRows = 1;
+    var rows = textarea.val().trim().split(/\r\n|\r|\n/).length;
 
-    textareas.each(function(){
-        var rows = $(this).val().trim().split(/\r\n|\r|\n/).length;
-        if( rows > maxRows ) {
-            maxRows = rows;
-        }
-    });
-
-    textareas.attr('rows', maxRows);
+    textarea.attr("rows", rows);
 }
 
 /*
- * adjust_preHeights
- *
- * Ensure that all <pre> elements in the same table row share the height of
- * the tallest <pre>. This keeps the diff view columns aligned regardless of
- * content length.
+ * removePointlessVersionsForMatching
  */
-function adjust_preHeights( pre ) {
-    var tr = pre.closest('tr'),
-        pres = tr.find('pre'),
-        maxLines = 1,
-        lineHeight = parseFloat( pres.css('line-height') ) * 1.1;
-
-    if( isNaN( lineHeight ) ) {
-        lineHeight = parseFloat( pres.css('font-size') ) * 1.2;
-    }
-
-    pres.css('height', '' );
-
-    pres.each(function(){
-        var text = $(this).text(),
-            lines = text.split(/\r\n|\r|\n/).length;
-        if( text.endsWith('\n') ) {
-            lines--;
-        }
-        if( lines > maxLines ) {
-            maxLines = lines;
-        }
-    });
-
-    pres.height( Math.ceil( maxLines * lineHeight ) );
-}
-
-/*
- * adjust_columnWidths
- *
- * Calculate the maximum line length for each column across both the
- * textarea inputs and the diff <pre> elements. Columns with shorter
- * content get a smaller width so that space is distributed according to
- * the actual text length. The resulting widths are applied to the
- * corresponding columns of both the Inputs and Diff tables.
- */
-function adjust_columnWidths() {
-    var selectors = ['#tl_original', '#merge_result_tle', '#tl_candidate'],
-        maxLens = [0, 0, 0];
-
-    // Determine longest line per column from textareas and diff <pre>s
-    selectors.forEach(function(sel, idx){
-        var el = $(sel);
-        if( el.length ) {
-            el.val().split(/\r\n|\r|\n/).forEach(function(line){
-                if( line.length > maxLens[idx] ) {
-                    maxLens[idx] = line.length;
-                }
-            });
-        }
-
-        var pre = $('#diffContainer td').eq(idx).find('pre');
-        if( pre.length ) {
-            pre.text().split(/\r\n|\r|\n/).forEach(function(line){
-                if( line.length > maxLens[idx] ) {
-                    maxLens[idx] = line.length;
-                }
-            });
-        }
-    });
-
-    var total = maxLens.reduce(function(a, b){ return a + b; }, 0);
-
-    var tables = [ $(selectors[0]).closest('table')[0], $('#diffContainer').closest('table')[0] ]
-        .filter(Boolean)
-        .reduce(function(arr, t){ if( arr.indexOf(t) === -1 ) { arr.push(t); } return arr; }, [])
-        .map(function(t){ return $(t); });
-
-    if( total === 0 ) {
-        tables.forEach(function($t){
-            $t.children('colgroup').remove();
-            $t.find('td').css('width', '');
-        });
-
-        return;
-    }
-
-    var MIN_WIDTH = 22, // percentage
-        emptyCount = 0,
-        nonEmptyTotal = 0;
-
-    maxLens.forEach(function(len){
-        if( len === 0 ) {
-            emptyCount++;
-        } else {
-            nonEmptyTotal += len;
-        }
-    });
-
-    var remaining = 100 - MIN_WIDTH * emptyCount;
-
-    var widths = maxLens.map(function(len){
-        return len === 0 ? MIN_WIDTH : remaining * len / nonEmptyTotal;
-    });
-
-    tables.forEach(function($table){
-        var $colgroup = $table.children('colgroup');
-        if( !$colgroup.length ) {
-            $colgroup = $('<colgroup></colgroup>').prependTo($table);
-        }
-
-        var $cols = $colgroup.children('col');
-        widths.forEach(function(_, idx){
-            if( !$cols.eq(idx).length ) {
-                $colgroup.append('<col>');
-            }
-        });
-
-        $colgroup.children('col').each(function(i){
-            if( widths[i] !== undefined ) {
-                $(this).css('width', widths[i] + '%');
-            }
-        });
-
-        $table.css('table-layout', 'fixed');
-        $table.find('td').css('width', '');
-
-    });
+function removePointlessVersionsForMatching( t ) {
+    return t
+        .replace( / \((Vocal|Main|Radio|Album|Single)\s?(Version|Edit|Mix)?\)/gmi, "" )
+        .replace( /\s*\(([^)]*\b(?:mix|remix|edit|version|dub)\b[^)]*)\)/gmi, "" );
 }
 
 /*
@@ -206,46 +74,25 @@ function adjust_columnWidths() {
 // normalizeTrackTitlesForMatching
 function normalizeTrackTitlesForMatching( text ) {
     text = text.trim();
-    // remove bracketed descriptors anywhere in the string (e.g. labels, roles)
-    text = text.replace(/\s*\[[^\]]+\]\s*/g, ' ');
     text = normalizeStreamingServiceTracks( text );
-    text = removePointlessVersions( text );
+    text = removePointlessVersionsForMatching( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
-    text = text.replace(/\s+[x×]\s+/gi, " & ");
-    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?|Pres\.?|Presents) .+ - (.+)$/, "$1 - $2" );
+    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
 
     var parts = text.split(" - ");
     if (parts.length > 1) {
         var artists = parts.shift();
         var title = parts.join(" - ");
-        artists = artists
-            .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
-            .replace(/\s*,\s*/g, " & ")
-            .replace(/\s+[x×]\s+/gi, " & ");
+        artists = artists.replace(/\s*(?:Ft|Feat\.?|Featuring)\s+/gi, " & ");
         var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
         if (artistsArr.length > 1) {
             artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
             artists = artistsArr.join(" & ");
         }
-        var normArtists = artists.toLowerCase();
-
-        title = title.replace(/\(([^)]+)\)/g, function(match, p1) {
-            var normP1 = p1
-                .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
-                .replace(/\s*,\s*/g, " & ")
-                .replace(/\s+[x×]\s+/gi, " & ")
-                .toLowerCase().replace(/\s{2,}/g, ' ').trim();
-            var normP1Arr = normP1.split(/\s*(?:&|\band\b|\baka\b)\s*/i)
-                .filter(Boolean)
-                .sort((a, b) => a.localeCompare(b));
-            var normP1Sorted = normP1Arr.join(" & ");
-            return normP1Sorted === normArtists ? '' : match;
-        }).replace(/\s{2,}/g, ' ').trim();
-
         text = artists + " - " + title;
     }
 
-    text = text.toLowerCase().replace(/\s{2,}/g, ' ').trim();
+    text = text.toLowerCase();
 
     logVar( "normalizeTrackTitlesForMatching", text );
 
@@ -261,7 +108,7 @@ function getTrackMatchNorms( text ) {
 
     function buildCombos( str ) {
         str = str.trim().replace(/\s*\[[^\]]+\]\s*/g, ' ');
-        str = removePointlessVersions( str );
+        str = removePointlessVersionsForMatching( str );
         str = removeVersionWords( str );
         str = str.replace(/\s+[x×]\s+/gi, " & ");
         str = str.trim();
@@ -556,26 +403,6 @@ function mergeTracklists(original_arr, candidate_arr) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function calcSimilarity(a, b) {
-  var m = a.length, n = b.length;
-  var dp = Array(m + 1);
-  for (var i = 0; i <= m; i++) {
-    dp[i] = Array(n + 1).fill(0);
-  }
-  for (var i = 1; i <= m; i++) {
-    for (var j = 1; j <= n; j++) {
-      var cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
-      );
-    }
-  }
-  var maxLen = Math.max(m, n);
-  return maxLen === 0 ? 1 : (maxLen - dp[m][n]) / maxLen;
-}
-
 (function($) {
     function escapeHTML(s) { return $('<div>').text(s).html(); }
     function wrapSpan(val, cls) {
@@ -603,14 +430,6 @@ function calcSimilarity(a, b) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
-
-      // Ensure each column string ends with a newline so that the
-      // corresponding <pre> elements have matching heights. Without this the
-      // Candidate column could appear one row shorter when its input lacked a
-      // trailing line break.
-      if (text1.slice(-1) !== '\n') { text1 += '\n'; }
-      if (text2.slice(-1) !== '\n') { text2 += '\n'; }
-      if (text3.slice(-1) !== '\n') { text3 += '\n'; }
 
       var lines1 = text1.split('\n');
       var lines2 = text2.split('\n');
@@ -649,35 +468,22 @@ function calcSimilarity(a, b) {
           // strip trailing label for matching
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
           var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
-          var bestCore = '', bestScore = 0;
+          var origCore = '';
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var score = calcSimilarity(normalizeTrackTitlesForMatching(candNoLabel), normCore);
-            if (score > bestScore) {
-              bestScore = score;
-              bestCore = cand;
+            if ($.isTextSimilar(normalizeTrackTitlesForMatching(candNoLabel), normCore)) {
+              origCore = cand;
+              break;
             }
           }
-          var origCore = bestCore;
-          if (origCore && origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
+          if (origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
         }).join('\n');
 
         $row.append($('<td>').append($('<pre>').html(html3)));
-
-        // Ensure each <pre> ends with a newline so that height calculations
-        // include the final line. Without this, some browsers may measure the
-        // scrollHeight one line too short, causing the Candidate column to crop
-        // its last row.
-        $row.find('pre').each(function() {
-          var $pre = $(this);
-          if (!$pre.text().endsWith('\n')) {
-            $pre.append('\n');
-          }
-        });
 
         $container.replaceWith($row);
       });
@@ -694,14 +500,9 @@ function run_diff() {
         text3 = $("#tl_candidate").val();
     if( text1 && text2 && text3 ) {
         $('#diffContainer').showTracklistDiffs({ text1, text2, text3 });
-        var pre = $('#diffContainer pre').first();
-        if( pre.length ) {
-            adjust_preHeights( pre );
-        }
     } else {
         $("#diffContainer td").remove();
     }
-    adjust_columnWidths();
 }
 
 
