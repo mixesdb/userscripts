@@ -85,29 +85,6 @@ Candidate:
 [46] AYU - Overdrive (Extended Mix) [DEEP WOODS]
 [52] ?
 
-Result:
-[00:00] Deep Woods Intro
-[01:04] Tim Engelhardt - Love Triangle [Habitat]
-[06:33] TH;EN, Jonas Saalbach - Around Us
-...
-[10] TH;EN & Jonas Saalbach - Around Us
-...
-[12:18] Amëriko Nunez - Darkwave
-[16:59] ZAC - Paradox [ERRORR]
-[22:26] Qrion Feat. Pinkpirate - Lean Into Light (Dosem Extended Mix)
-[26:50] Victor Garde - Regression [DEEP WOODS]
-[31:47] Pretty Pink - Unconditional (Extended Mix) [DEEP WOODS]
-[36:40] Christian Nielsen - Losing My Mind
-[37] ?
-...
-[40:55] Einmusik, Lexer - Crush (Extended)
-...
-[43] Einmusik & Lexer - Crush
-[46:18] AYU - Overdrive (Extended Mix) [DEEP WOODS]
-[51:55] Pretty Pink & Einmusik - Midnight (Extended Mix)
-[52] ?
-[57:36] Pretty Pink - Backstage
-
 Expected result:
 # [00:00] Deep Woods Intro
 # [01:04] Tim Engelhardt - Love Trianglee [Habitat]
@@ -161,28 +138,6 @@ Candidate:
 ...
 [42] Maccari - Flames (Hemka Remix) [Devotion]
 [45] ANNĒ - Floating Waves [Mutual Rytm]
-[49] Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
-...
-[58] Linear System - Bottom Left [Room Trax]
-
-Result:
-[00] Neel - The Vancori Complex [Spazio Disponibile]
-[07] Neel - Riflesso [Spazio Disponibile]
-[??] Yrsen & Gannein - 01 [Unreleased]
-[13] DJ Dextro - Eon [Suara]
-[15] Bidoben - Sans Soleil [Clergy]
-[19] Sciahri - One Letter [Sublunar]
-[22] Havik - Mutation [Syncopated]
-[26] Jeremy P Caulfield - Night Hammer [Self Released]
-[30] Mython - Wachtabletten [DifferentSound]
-[32] Hemka - Repeat [Float]
-[35] Sons Of Hidden - Wrapped Skin [Unreleased]
-[??] Falling Echoes - Sharp [Molecular]
-[42] Maccari - Flames (Hemka Remix) [Devotion]
-[45] ANNĒ - Floating Waves [Mutual Rytm]
-[4?] Umek aka Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
-[4?] ''Linear System - ? [Unreleased]''
-[4?] Sons Of Hidden - Macondo [Unreleased]
 [49] Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
 ...
 [58] Linear System - Bottom Left [Room Trax]
