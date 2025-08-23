@@ -212,14 +212,14 @@ function normalizeTrackTitlesForMatching( text ) {
     text = removePointlessVersions( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
     text = text.replace(/\s+[x×]\s+/gi, " & ");
-    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
+    text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?|Pres\.?|Presents) .+ - (.+)$/, "$1 - $2" );
 
     var parts = text.split(" - ");
     if (parts.length > 1) {
         var artists = parts.shift();
         var title = parts.join(" - ");
         artists = artists
-            .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+            .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
             .replace(/\s*,\s*/g, " & ")
             .replace(/\s+[x×]\s+/gi, " & ");
         var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
@@ -231,7 +231,7 @@ function normalizeTrackTitlesForMatching( text ) {
 
         title = title.replace(/\(([^)]+)\)/g, function(match, p1) {
             var normP1 = p1
-                .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+                .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
                 .replace(/\s*,\s*/g, " & ")
                 .replace(/\s+[x×]\s+/gi, " & ")
                 .toLowerCase().replace(/\s{2,}/g, ' ').trim();
@@ -273,7 +273,7 @@ function getTrackMatchNorms( text ) {
         }
 
         var artists = parts.shift()
-            .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+            .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
             .replace(/\s*,\s*/g, " & ")
             .replace(/\s+[x×]\s+/gi, " & ");
         var title = parts.join(" - ");
