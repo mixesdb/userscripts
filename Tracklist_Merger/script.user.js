@@ -105,6 +105,43 @@ function adjust_preHeights( pre ) {
     pres.height( Math.ceil( maxLines * lineHeight ) );
 }
 
+// Store current and manually adjusted column widths
+var manualWidths = null,
+    currentWidths = null;
+
+function apply_columnWidths(widths) {
+    var selectors = ['#tl_original', '#merge_result_tle', '#tl_candidate'];
+    var tables = [ $(selectors[0]).closest('table')[0], $('#diffContainer').closest('table')[0] ]
+        .filter(Boolean)
+        .reduce(function(arr, t){ if( arr.indexOf(t) === -1 ) { arr.push(t); } return arr; }, [])
+        .map(function(t){ return $(t); });
+
+    tables.forEach(function($table){
+        var $colgroup = $table.children('colgroup');
+        if( !$colgroup.length ) {
+            $colgroup = $('<colgroup></colgroup>').prependTo($table);
+        }
+
+        var $cols = $colgroup.children('col');
+        widths.forEach(function(_, idx){
+            if( !$cols.eq(idx).length ) {
+                $colgroup.append('<col>');
+            }
+        });
+
+        $colgroup.children('col').each(function(i){
+            if( widths[i] !== undefined ) {
+                $(this).css('width', widths[i] + '%');
+            }
+        });
+
+        $table.css('table-layout', 'fixed');
+        $table.find('td').css('width', '');
+    });
+
+    currentWidths = widths;
+}
+
 /*
  * adjust_columnWidths
  *
@@ -117,6 +154,12 @@ function adjust_preHeights( pre ) {
 function adjust_columnWidths() {
     var selectors = ['#tl_original', '#merge_result_tle', '#tl_candidate'],
         maxLens = [0, 0, 0];
+
+    if( Array.isArray(manualWidths) ) {
+        apply_columnWidths(manualWidths);
+        update_columnDividers(manualWidths);
+        return;
+    }
 
     // Determine longest line per column from textareas and diff <pre>s
     selectors.forEach(function(sel, idx){
@@ -173,28 +216,51 @@ function adjust_columnWidths() {
         return len === 0 ? MIN_WIDTH : remaining * len / nonEmptyTotal;
     });
 
-    tables.forEach(function($table){
-        var $colgroup = $table.children('colgroup');
-        if( !$colgroup.length ) {
-            $colgroup = $('<colgroup></colgroup>').prependTo($table);
+    apply_columnWidths(widths);
+    update_columnDividers(widths);
+}
+
+function update_columnDividers(widths){
+    var $wrapper = $("#tracklistMerger-wrapper");
+    if( !$wrapper.length ) { return; }
+
+    var ids = ['tm-divider-1','tm-divider-2'];
+    ids.forEach(function(id, i){
+        var $div = $wrapper.find('#'+id);
+        if( !$div.length ) {
+            $div = $('<div class="column-divider" id="'+id+'"></div>').appendTo($wrapper);
+            $div.data('index', i);
         }
+    });
 
-        var $cols = $colgroup.children('col');
-        widths.forEach(function(_, idx){
-            if( !$cols.eq(idx).length ) {
-                $colgroup.append('<col>');
-            }
+    var totalWidth = $wrapper.width();
+    $wrapper.find('#'+ids[0]).css('left', (widths[0]/100*totalWidth) + 'px');
+    $wrapper.find('#'+ids[1]).css('left', ((widths[0]+widths[1])/100*totalWidth) + 'px');
+}
+
+function init_columnDividerEvents(){
+    var $wrapper = $("#tracklistMerger-wrapper");
+    $wrapper.on('mousedown', '.column-divider', function(e){
+        var idx = $(this).data('index');
+        var startX = e.pageX;
+        var start = (manualWidths || currentWidths || [33,34,33]).slice();
+        var totalWidth = $wrapper.width();
+        $(document).on('mousemove.tmResize', function(ev){
+            var delta = (ev.pageX - startX) / totalWidth * 100;
+            var newWidths = start.slice();
+            newWidths[idx] += delta;
+            newWidths[idx+1] -= delta;
+            var MIN = 5;
+            if( newWidths[idx] < MIN ) { newWidths[idx] = MIN; newWidths[idx+1] = start[idx]+start[idx+1]-MIN; }
+            if( newWidths[idx+1] < MIN ) { newWidths[idx+1] = MIN; newWidths[idx] = start[idx]+start[idx+1]-MIN; }
+            manualWidths = newWidths;
+            apply_columnWidths(newWidths);
+            update_columnDividers(newWidths);
         });
-
-        $colgroup.children('col').each(function(i){
-            if( widths[i] !== undefined ) {
-                $(this).css('width', widths[i] + '%');
-            }
+        $(document).on('mouseup.tmResize', function(){
+            $(document).off('.tmResize');
         });
-
-        $table.css('table-layout', 'fixed');
-        $table.find('td').css('width', '');
-
+        e.preventDefault();
     });
 }
 
@@ -846,6 +912,7 @@ function run_merge( showDebug=false ) {
  */
 if( domain == "mixesdb.com" ) {
     $(document).ready(function () {
+        init_columnDividerEvents();
 
         $("#clear").click(function(){
             clear_textareas();
