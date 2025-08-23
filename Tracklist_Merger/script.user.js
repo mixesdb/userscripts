@@ -154,7 +154,23 @@ function adjust_columnWidths() {
         return;
     }
 
-    var widths = maxLens.map(function(len){ return len / total * 100; });
+    var MIN_WIDTH = 15, // percentage
+        emptyCount = 0,
+        nonEmptyTotal = 0;
+
+    maxLens.forEach(function(len){
+        if( len === 0 ) {
+            emptyCount++;
+        } else {
+            nonEmptyTotal += len;
+        }
+    });
+
+    var remaining = 100 - MIN_WIDTH * emptyCount;
+
+    var widths = maxLens.map(function(len){
+        return len === 0 ? MIN_WIDTH : remaining * len / nonEmptyTotal;
+    });
 
     tables.forEach(function($table){
         var $colgroup = $table.children('colgroup');
