@@ -249,6 +249,7 @@ function update_columnDividers(widths){
     var top = $startRow.position().top;
     var height = $endRow.position().top + $endRow.outerHeight() - top;
     $wrapper.find('.column-divider').css({ top: top + 'px', height: height + 'px' });
+
 }
 
 function init_columnDividerEvents(){
