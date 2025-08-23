@@ -27,6 +27,7 @@
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
+const diffSimilarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -618,6 +619,7 @@ function calcSimilarity(a, b) {
     function charDiffGreen(orig, mod) { return diffCharsLCS(orig, mod, 'diff-added'); }
     function charDiffRed(orig, mod) { return diffCharsLCS(orig, mod, 'diff-removed'); }
     $.fn.showTracklistDiffs = function(opts) {
+
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
