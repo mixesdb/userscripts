@@ -615,6 +615,49 @@ function calcSimilarity(a, b) {
       var lines1 = text1.split('\n');
       var lines2 = text2.split('\n');
       var lines3 = text3.split('\n');
+
+      function normalizeLine(line) {
+        return line.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
+      }
+
+      function buildDiffHtml(baseLines, newLines, diffFn, addedCls) {
+        var diff = Diff.diffArrays(baseLines.map(normalizeLine), newLines.map(normalizeLine));
+        var iBase = 0, iNew = 0, out = [];
+        diff.forEach(function(part, idx) {
+          if (part.added) {
+            var prev = diff[idx - 1];
+            if (prev && prev.removed) {
+              var len = Math.max(prev.value.length, part.value.length);
+              for (var k = 0; k < len; k++) {
+                var bLine = baseLines[iBase + k] || '';
+                var nLine = newLines[iNew + k] || '';
+                if (nLine) {
+                  if (bLine) {
+                    out.push(diffFn(bLine, nLine));
+                  } else {
+                    out.push(wrapSpan(nLine, addedCls));
+                  }
+                }
+              }
+              iBase += prev.value.length;
+              iNew += part.value.length;
+            } else {
+              part.value.forEach(function() {
+                out.push(wrapSpan(newLines[iNew++], addedCls));
+              });
+            }
+          } else if (part.removed) {
+            iBase += part.value.length;
+          } else {
+            part.value.forEach(function() {
+              out.push(escapeHTML(newLines[iNew++]));
+              iBase++;
+            });
+          }
+        });
+        return out.join('\n');
+      }
+
       return this.each(function() {
         var $container = $(this).empty();
         var $row = $('<tr id="diffContainer">');
@@ -623,49 +666,11 @@ function calcSimilarity(a, b) {
         $row.append($('<td>').append($('<pre>').text(text1)));
 
         // Column 2: Merged vs Original (green additions)
-        var html2 = lines2.map(function(line, i) {
-          var core2 = line.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
-          var orig = lines1[i] || '';
-          var core1 = orig.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
-          if (core2 === '?' || core2 === '...') {
-            return escapeHTML(line);
-          }
-          if (core1 === core2) {
-            return escapeHTML(line);
-          }
-          return charDiffGreen(orig, line);
-        }).join('\n');
+        var html2 = buildDiffHtml(lines1, lines2, charDiffGreen, 'diff-added');
         $row.append($('<td>').append($('<pre>').html(html2)));
 
-        // Column 3: Candidate vs Merged (red extras, normalized matching)
-        var html3 = lines3.map(function(line) {
-          var coreRaw = line.replace(/^#?\s*\[.*?\]\s*/, '').trim();
-          if (coreRaw === '?' || coreRaw === '...') {
-            return escapeHTML(line);
-          }
-          var cue = line.match(/^(\s*\[.*?\]\s*)/);
-          var prefix = cue ? cue[1] : '';
-          var core = coreRaw;
-          // strip trailing label for matching
-          var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
-          var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
-          var bestCore = '', bestScore = 0;
-          for (var j = 0; j < lines2.length; j++) {
-            var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
-            var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var score = calcSimilarity(normalizeTrackTitlesForMatching(candNoLabel), normCore);
-            if (score > bestScore) {
-              bestScore = score;
-              bestCore = cand;
-            }
-          }
-          var origCore = bestCore;
-          if (origCore && origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
-            return escapeHTML(line);
-          }
-          return escapeHTML(prefix) + charDiffRed(origCore, core);
-        }).join('\n');
-
+        // Column 3: Candidate vs Merged (red extras)
+        var html3 = buildDiffHtml(lines2, lines3, charDiffRed, 'diff-removed');
         $row.append($('<td>').append($('<pre>').html(html3)));
 
         // Ensure each <pre> ends with a newline so that height calculations
