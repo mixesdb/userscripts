@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.24
+// @version      2025.08.23.25
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -670,6 +670,16 @@ function calcSimilarity(a, b) {
       var core = val.slice(lead.length, val.length - trail.length);
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
+    function extractPrefix(line) {
+      var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
+      var prefix = cueMatch ? cueMatch[1] : '';
+      var core = line.slice(prefix.length);
+      if (core.startsWith('# ')) {
+        prefix += '# ';
+        core = core.slice(2);
+      }
+      return { prefix: prefix, core: core };
+    }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-added');
@@ -710,9 +720,9 @@ function calcSimilarity(a, b) {
 
         // Column 2: Merged vs Original (green additions, normalized matching)
         var html2 = lines2.map(function(line) {
-          var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
-          var prefix = cueMatch ? cueMatch[1] : '';
-          var core = line.slice(prefix.length);
+          var parts = extractPrefix(line);
+          var prefix = parts.prefix;
+          var core = parts.core;
           var coreTrim = core.trim();
           if (coreTrim === '?' || coreTrim === '...') {
             return escapeHTML(line);
@@ -721,7 +731,7 @@ function calcSimilarity(a, b) {
           var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
           var bestIdx = -1, bestScore = 0;
           for (var j = 0; j < lines1.length; j++) {
-            var cand = lines1[j].replace(/^#?\s*\[.*?\]\s*/, '');
+            var cand = extractPrefix(lines1[j]).core;
             var candTrim = cand.trim();
             var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
             var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
@@ -731,7 +741,7 @@ function calcSimilarity(a, b) {
               bestIdx = j;
             }
           }
-          var origCore = bestIdx >= 0 ? lines1[bestIdx].replace(/^#?\s*\[.*?\]\s*/, '') : '';
+          var origCore = bestIdx >= 0 ? extractPrefix(lines1[bestIdx]).core : '';
           var origCoreTrim = origCore.trim();
           if (!origCore || bestScore < similarityThreshold) {
             return escapeHTML(prefix) + charDiffGreen('', core);
@@ -756,9 +766,9 @@ function calcSimilarity(a, b) {
 
         // Column 3: Candidate vs Merged (red extras, normalized matching)
         var html3 = lines3.map(function(line) {
-          var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
-          var prefix = cueMatch ? cueMatch[1] : '';
-          var core = line.slice(prefix.length);
+          var parts = extractPrefix(line);
+          var prefix = parts.prefix;
+          var core = parts.core;
           var coreTrim = core.trim();
           if (coreTrim === '?' || coreTrim === '...') {
             return escapeHTML(line);
@@ -767,7 +777,7 @@ function calcSimilarity(a, b) {
           var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
           var bestIdx = -1, bestScore = 0;
           for (var j = 0; j < lines2.length; j++) {
-            var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '');
+            var cand = extractPrefix(lines2[j]).core;
             var candTrim = cand.trim();
             var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
             var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
@@ -777,7 +787,7 @@ function calcSimilarity(a, b) {
               bestIdx = j;
             }
           }
-          var origCore = bestIdx >= 0 ? lines2[bestIdx].replace(/^#?\s*\[.*?\]\s*/, '') : '';
+          var origCore = bestIdx >= 0 ? extractPrefix(lines2[bestIdx]).core : '';
           var origCoreTrim = origCore.trim();
           if (!origCore || bestScore < similarityThreshold) {
             return escapeHTML(prefix) + charDiffRed('', core);
