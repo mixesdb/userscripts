@@ -1,6 +1,57 @@
 == Example ==
 
 Original:
+# Delta Vaults - Colors Of Life (Extended Mix)
+# Röyksopp - Running To The Sea (Anamē Remix)
+# Lexer - The Edge Of Everything (Extended Mix)
+# Bar Shaked, Mai Yani - Take It All Out (Avoure Remix)
+# Rinzen & Oscar Rodriguez - Finale (Extended Mix)
+# VOYA - Echoes Of Us (Extended Mix)
+# Paul Conrad - Moonlit (Extended Mix)
+# Dorothy - Take My Hand (Extended Mix)
+# MaXure - Better Than This (Extended Mix)
+# Nora En Pure - Space (Extended Mix)
+# Arodes & PÆDE - Radiance (Extended Mix)
+# Mölly, Hessian & Afnan Prince - Dawn (Extended Mix)
+# Garlington - Remorse (Extended Mix)
+
+Candidate:
+[02] Delta Vaults - Colors Of Life [Purified]
+[05] Röyksopp - Running To The Sea [Dog Triumph]
+[11] ?
+...
+[16] Bar Shaked - Take It All Out [Magnetic Magazine]
+[20] Rinzen & Oscar Rodriguez [DR] - Finale [This Never Happened]
+[24] ?
+...
+[29] Paul Conrad - Moonlit
+[34] ?
+...
+[38] MaXure - Better Than This [Enormous Vision]
+[43] Nora En Pure - Space [Kontor]
+[48] Arodes & PÆDE - Radiance [Unreleased]
+[52] ?
+...
+
+Expected result:
+# [02] Delta Vaults - Colors Of Life (Extended Mix) [Purified]
+# [05] Röyksopp - Running To The Sea (Anamē Remix) [Dog Triumph]
+# [11] Lexer - The Edge Of Everything (Extended Mix)
+# [16] Bar Shaked & Mai Yani - Take It All Out (Avoure Remix) [Magnetic Magazine]
+# [20] Rinzen & Oscar Rodriguez - Finale (Extended Mix)
+# [24] VOYA - Echoes Of Us (Extended Mix)
+# [29] Paul Conrad - Moonlit (Extended Mix)
+# [34] Dorothy - Take My Hand (Extended Mix)
+# [38] MaXure - Better Than This (Extended Mix) [Enormous Vision]
+# [43] Nora En Pure - Space (Extended Mix) [Kontor]
+# [48] Arodes & PÆDE - Radiance (Extended Mix) [Unreleased]
+# [52] Mölly, Hessian & Afnan Prince - Dawn (Extended Mix)
+# [5?] Garlington - Remorse (Extended Mix)
+
+
+== Example ==
+
+Original:
 # [00:00] Deep Woods Intro
 # [01:04] Tim Engelhardt - Love Triangle
 # [06:33] TH;EN, Jonas Saalbach - Around Us
