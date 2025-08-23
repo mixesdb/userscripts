@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.1
+// @version      2025.08.23.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -80,18 +80,27 @@ function adjust_textareaRows( textarea ) {
 function adjust_preHeights( pre ) {
     var tr = pre.closest('tr'),
         pres = tr.find('pre'),
-        maxHeight = 0;
+        maxLines = 1,
+        lineHeight = parseFloat( pres.css('line-height') );
 
-    pres.css('height', '');
+    if( isNaN( lineHeight ) ) {
+        lineHeight = parseFloat( pres.css('font-size') ) * 1.2;
+    }
+
+    pres.css('height', '' );
 
     pres.each(function(){
-        var h = this.scrollHeight;
-        if( h > maxHeight ) {
-            maxHeight = h;
+        var text = $(this).text(),
+            lines = text.split(/\r\n|\r|\n/).length;
+        if( text.endsWith('\n') ) {
+            lines--;
+        }
+        if( lines > maxLines ) {
+            maxLines = lines;
         }
     });
 
-    pres.height( maxHeight );
+    pres.height( Math.ceil( maxLines * lineHeight ) );
 }
 
 /*
@@ -474,10 +483,19 @@ function mergeTracklists(original_arr, candidate_arr) {
         return escapeHTML(p.value);
       }).join('');
     }
-    $.fn.showTracklistDiffs = function(opts) {
+      $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
+
+      // Ensure each column string ends with a newline so that the
+      // corresponding <pre> elements have matching heights. Without this the
+      // Candidate column could appear one row shorter when its input lacked a
+      // trailing line break.
+      if (text1.slice(-1) !== '\n') { text1 += '\n'; }
+      if (text2.slice(-1) !== '\n') { text2 += '\n'; }
+      if (text3.slice(-1) !== '\n') { text3 += '\n'; }
+
       var lines1 = text1.split('\n');
       var lines2 = text2.split('\n');
       var lines3 = text3.split('\n');
@@ -534,6 +552,17 @@ function mergeTracklists(original_arr, candidate_arr) {
         }).join('\n');
 
         $row.append($('<td>').append($('<pre>').html(html3)));
+
+        // Ensure each <pre> ends with a newline so that height calculations
+        // include the final line. Without this, some browsers may measure the
+        // scrollHeight one line too short, causing the Candidate column to crop
+        // its last row.
+        $row.find('pre').each(function() {
+          var $pre = $(this);
+          if (!$pre.text().endsWith('\n')) {
+            $pre.append('\n');
+          }
+        });
 
         $container.replaceWith($row);
       });
