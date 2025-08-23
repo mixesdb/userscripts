@@ -748,6 +748,22 @@ function makeTracklistFromArr( tlArr, from="", cues="" ) {
 }
 
 /*
+ * stripCountryCodes
+ * Matches: optional surrounding spaces + [( or [] + 2 or 3 uppercase letters + )] or ] + optional trailing spaces
+ * Example matches: " (US) ", "[DE]", " (FR)", " [BE] "
+ * https://trackid.net/audiostreams/purified-469
+ * https://trackid.net/audiostreams/transmissions-606-with-francesco-parente
+ */
+const CC_BRACKETS = /\s*[\(\[]\s*[A-Z]{2,3}\s*[\)\]]\s*/g;
+function stripCountryCodes(str) {
+    return (str || '')
+        .replace(CC_BRACKETS, ' ')        // replace bracket entry with a single space
+        .replace(/\s{2,}/g, ' ')          // collapse multiple spaces into one
+        .replace(/\s+([,.;:!?])/g, '$1')  // no space before punctuation marks
+        .trim();
+}
+
+/*
  * removePointlessVersions
  */
 function removePointlessVersions( t ) {

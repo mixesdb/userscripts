@@ -1,6 +1,213 @@
 == Example ==
 
 Original:
+# Vakula - Thaw Of The Silent Peak
+# Jonn Serrie - The Observation Deck
+# Ariel Kalma - Flute Meditation
+# Vakula - Stellar Echoes
+# Steve Roach - The Ancients' Way
+# Vakula - True Self
+# Jonn Serrie - Along The Way
+# Vakula - Ananta Nada
+
+Candidate:
+[00] ?
+...
+[15] Jonn Serrie - The Observation Deck [Valley Entertainment]
+[21] Ariel Kalma - Flute Meditation
+[32] Vakula - Stellar Echoes [Intrinsic Space]
+[38] Steve Roach - The Ancients' Way (Live In Tucson 2018) [Timeroom Editions]
+[48] ?
+...
+[57] Jonn Serrie - Along The Way [Valley Entertainment]
+[61] ?
+...
+
+Expected result:
+# [00] Vakula - Thaw Of The Silent Peak
+# [15] Jonn Serrie - The Observation Deck [Valley Entertainment]
+# [21] Ariel Kalma - Flute Meditation
+# [32] Vakula - Stellar Echoes [Intrinsic Space]
+# [38] Steve Roach - The Ancients' Way (Live In Tucson 2018) [Timeroom Editions]
+# [??] Vakula - True Self
+# [57] Jonn Serrie - Along The Way [Valley Entertainment]
+# [61] Vakula - Ananta Nada
+
+
+== Example ==
+
+Original:
+;Part 1
+# Simon Doty & My Friend - Real Talk (Extended Mix) [Anjunadeep]
+# Low Steppa & Capri - Got The Funk (Extended) [Defected]
+# Kiko & Olivier Giacomotto - Bounce [Diynamic]
+# Tiger Stripes - Pump (Extended Mix) [Snatch!]
+# Adam Beyer, Chris Avantgarde - Desolate Lands [Drumcode]
+# Ferry Corsten - Lose Myself (Extended Mix) [Flashover]
+# Floorplan - Eternal Life [M-Plant]
+
+;Part 2
+# Pablo Say - I Listen To The Disco [Vassnova]
+# Aitor Ronda - All The Way Back [Elevate]
+# Max Walder, Nicolas Clays - Bless You [Unity]
+# Khabiar - Ok, I'm Here [BEK]
+# Umek, Polyvinyl - The Road [1605 GROOVESECTOR]
+# Gary Beck - Hopper [Mutual Rytm]
+# Mik&Ale - Read My Lips [JAM]
+# Push - Microgravity (Extended Mix) [Filth On Acid]
+# Olly James - Synergy (Extended Mix) [HILOMATIK]
+# '''Rewind 2…1999:''' Steve Morley - Reincarnations (DJ JamX & De Leon's Dumonde Remix) [Neo]
+
+Candidate:
+[00] My Friend & Simon Doty - Real Talk [Anjunadeep]
+[05] Low Steppa & Capri - Got The Funk [Defected]
+...
+[10] Kiko & Olivier Giacomotto - Bounce [Diynamic]
+[14] Tiger Stripes - Pump [Snatch!]
+[16] Adam Beyer & Chris Avantgarde - Desolate Lands [Drumcode]
+[21] ?
+...
+[26] Floorplan - Eternal Life [M-Plant]
+[29] Pablo Say - I Listen To The Disco [VASSNOVA]
+[32] Aitor Ronda - All The Way Back [Elevate]
+[34] Max Walder & Nicolas Clays - Bless You [Unity]
+[39] Umek & Polyvinyl - The Road [1605 GROOVESECTOR]
+[42] Gary Beck - Hopper [Mutual Rytm]
+[44] Mik&Ale - Read My Lips [JAM]
+[47] Push - Microgravity [Filth On Acid]
+[51] Olly James - Synergy [HILOMATIK]
+...
+
+Expected result:
+;Part 1
+# [00] Simon Doty & My Friend - Real Talk (Extended Mix) [Anjunadeep]
+# [05] Low Steppa & Capri - Got The Funk (Extended) [Defected]
+# [10] Kiko & Olivier Giacomotto - Bounce [Diynamic]
+# [14] Tiger Stripes - Pump (Extended Mix) [Snatch!]
+# [16] Adam Beyer, Chris Avantgarde - Desolate Lands [Drumcode]
+# [21] Ferry Corsten - Lose Myself (Extended Mix) [Flashover]
+# [26] Floorplan - Eternal Life [M-Plant]
+
+;Part 2
+# [29] Pablo Say - I Listen To The Disco [Vassnova]
+# [32] Aitor Ronda - All The Way Back [Elevate]
+# [34] Max Walder, Nicolas Clays - Bless You [Unity]
+# [3?] Khabiar - Ok, I'm Here [BEK]
+# [39] Umek, Polyvinyl - The Road [1605 GROOVESECTOR]
+# [42] Gary Beck - Hopper [Mutual Rytm]
+# [44] Mik&Ale - Read My Lips [JAM]
+# [47] Push - Microgravity (Extended Mix) [Filth On Acid]
+# [51] Olly James - Synergy (Extended Mix) [HILOMATIK]
+# [??] '''Rewind 2…1999:''' Steve Morley - Reincarnations (DJ JamX & De Leon's Dumonde Remix) [Neo]
+
+== Example ==
+
+Original:
+# TH;EN & Gioli & Assia - Give You My Love (Extended Mix)
+# Mindtone - Emerge (Extended Mix)
+# Against All Ødds - Out Of Control (Extended Mix)
+# Dan Sushi - Nostalgia (Extended Mix)
+# Dee Ocean - Ocean Eyes (Extended Mix)
+# New Mode - Horizon (Extended Mix)
+# Carlos Pires - Sometimes
+# Marten Lou X Foals - Late Night (Marten Lou Extended Remix)
+# Deviu & Jordan Arts - Shadows (Extended Mix)
+# Passenger 10 - Dare To Dream (Extended Mix)
+# Eli & Fur - Make Believe (Extended Mix)
+# ZODIAC - Horizon (Extended Mix)
+# KEVSKI - Before We Die (Extended Mix)
+# Maga & Emanuel Satie - Save Your Soul
+
+Candidate:
+[00] TH;EN & Giolì & Assia - Give You My Love [Resurrection]
+[05] Mindtone - Emerge [Enormous Vision]
+[10] Against All Ødds - Out Of Control [RESURRECTION]
+[16] Dan Sushi - Nostalgia [Purified]
+[20] Dee Ocean - Ocean Eyes [Enormous Chills]
+[23] Newmode - Horizon [Enormous Moments]
+[27] ?
+...
+[31] Marten Lou & Foals - Late Night (Marten Lou X Foals) [Marten Schmidt]
+[36] ?
+...
+[41] Passenger 10 - Dare To Dream [Kontor]
+[45] ?
+...
+[51] ZODIAC - Horizon [PIAS Électronique]
+[55] Kevski - Before We Die [Sekora]
+...
+
+Expected result:
+# [00] TH;EN & Gioli & Assia - Give You My Love (Extended Mix) [Resurrection]
+# [05] Mindtone - Emerge (Extended Mix) [Enormous Vision]
+# [10] Against All Ødds - Out Of Control (Extended Mix) [RESURRECTION]
+# [16] Dan Sushi - Nostalgia (Extended Mix) [Purified]
+# [20] Dee Ocean - Ocean Eyes (Extended Mix) [Enormous Chills]
+# [23] New Mode - Horizon (Extended Mix) [Enormous Moments]
+# [27] Carlos Pires - Sometimes
+# [31] Marten Lou X Foals - Late Night (Marten Lou Extended Remix)
+# [3?] Deviu & Jordan Arts - Shadows (Extended Mix)
+# [41] Passenger 10 - Dare To Dream (Extended Mix) [Kontor]
+# [45] Eli & Fur - Make Believe (Extended Mix)
+# [51] ZODIAC - Horizon (Extended Mix) [PIAS Électronique]
+# [55] KEVSKI - Before We Die (Extended Mix) [Sekora]
+# [??] Maga & Emanuel Satie - Save Your Soul
+
+
+== Example ==
+
+Original:
+# Delta Vaults - Colors Of Life (Extended Mix)
+# Röyksopp - Running To The Sea (Anamē Remix)
+# Lexer - The Edge Of Everything (Extended Mix)
+# Bar Shaked, Mai Yani - Take It All Out (Avoure Remix)
+# Rinzen & Oscar Rodriguez - Finale (Extended Mix)
+# VOYA - Echoes Of Us (Extended Mix)
+# Paul Conrad - Moonlit (Extended Mix)
+# Dorothy - Take My Hand (Extended Mix)
+# MaXure - Better Than This (Extended Mix)
+# Nora En Pure - Space (Extended Mix)
+# Arodes & PÆDE - Radiance (Extended Mix)
+# Mölly, Hessian & Afnan Prince - Dawn (Extended Mix)
+# Garlington - Remorse (Extended Mix)
+
+Candidate:
+[02] Delta Vaults - Colors Of Life [Purified]
+[05] Röyksopp - Running To The Sea [Dog Triumph]
+[11] ?
+...
+[16] Bar Shaked - Take It All Out [Magnetic Magazine]
+[20] Rinzen & Oscar Rodriguez - Finale [This Never Happened]
+[24] ?
+...
+[29] Paul Conrad - Moonlit
+[34] ?
+...
+[38] MaXure - Better Than This [Enormous Vision]
+[43] Nora En Pure - Space [Kontor]
+[48] Arodes & PÆDE - Radiance [Unreleased]
+[52] ?
+...
+
+Expected result:
+# [02] Delta Vaults - Colors Of Life (Extended Mix) [Purified]
+# [05] Röyksopp - Running To The Sea (Anamē Remix) [Dog Triumph]
+# [11] Lexer - The Edge Of Everything (Extended Mix)
+# [16] Bar Shaked, Mai Yani - Take It All Out (Avoure Remix) [Magnetic Magazine]
+# [20] Rinzen & Oscar Rodriguez - Finale (Extended Mix)
+# [24] VOYA - Echoes Of Us (Extended Mix)
+# [29] Paul Conrad - Moonlit (Extended Mix)
+# [34] Dorothy - Take My Hand (Extended Mix)
+# [38] MaXure - Better Than This (Extended Mix) [Enormous Vision]
+# [43] Nora En Pure - Space (Extended Mix) [Kontor]
+# [48] Arodes & PÆDE - Radiance (Extended Mix) [Unreleased]
+# [52] Mölly, Hessian & Afnan Prince - Dawn (Extended Mix)
+# [5?] Garlington - Remorse (Extended Mix)
+
+
+== Example ==
+
+Original:
 # [00:00] Deep Woods Intro
 # [01:04] Tim Engelhardt - Love Triangle
 # [06:33] TH;EN, Jonas Saalbach - Around Us
@@ -33,29 +240,6 @@ Candidate:
 [43] Einmusik & Lexer - Crush
 [46] AYU - Overdrive (Extended Mix) [DEEP WOODS]
 [52] ?
-
-Result:
-[00:00] Deep Woods Intro
-[01:04] Tim Engelhardt - Love Triangle [Habitat]
-[06:33] TH;EN, Jonas Saalbach - Around Us
-...
-[10] TH;EN & Jonas Saalbach - Around Us
-...
-[12:18] Amëriko Nunez - Darkwave
-[16:59] ZAC - Paradox [ERRORR]
-[22:26] Qrion Feat. Pinkpirate - Lean Into Light (Dosem Extended Mix)
-[26:50] Victor Garde - Regression [DEEP WOODS]
-[31:47] Pretty Pink - Unconditional (Extended Mix) [DEEP WOODS]
-[36:40] Christian Nielsen - Losing My Mind
-[37] ?
-...
-[40:55] Einmusik, Lexer - Crush (Extended)
-...
-[43] Einmusik & Lexer - Crush
-[46:18] AYU - Overdrive (Extended Mix) [DEEP WOODS]
-[51:55] Pretty Pink & Einmusik - Midnight (Extended Mix)
-[52] ?
-[57:36] Pretty Pink - Backstage
 
 Expected result:
 # [00:00] Deep Woods Intro
@@ -110,28 +294,6 @@ Candidate:
 ...
 [42] Maccari - Flames (Hemka Remix) [Devotion]
 [45] ANNĒ - Floating Waves [Mutual Rytm]
-[49] Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
-...
-[58] Linear System - Bottom Left [Room Trax]
-
-Result:
-[00] Neel - The Vancori Complex [Spazio Disponibile]
-[07] Neel - Riflesso [Spazio Disponibile]
-[??] Yrsen & Gannein - 01 [Unreleased]
-[13] DJ Dextro - Eon [Suara]
-[15] Bidoben - Sans Soleil [Clergy]
-[19] Sciahri - One Letter [Sublunar]
-[22] Havik - Mutation [Syncopated]
-[26] Jeremy P Caulfield - Night Hammer [Self Released]
-[30] Mython - Wachtabletten [DifferentSound]
-[32] Hemka - Repeat [Float]
-[35] Sons Of Hidden - Wrapped Skin [Unreleased]
-[??] Falling Echoes - Sharp [Molecular]
-[42] Maccari - Flames (Hemka Remix) [Devotion]
-[45] ANNĒ - Floating Waves [Mutual Rytm]
-[4?] Umek aka Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
-[4?] ''Linear System - ? [Unreleased]''
-[4?] Sons Of Hidden - Macondo [Unreleased]
 [49] Polyvinyl - Endgame In Mind (Chlär Remix) [Suara]
 ...
 [58] Linear System - Bottom Left [Room Trax]

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.21.4
+// @version      2025.08.23.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -46,6 +46,7 @@ const similarityThreshold = 0.8;
 function clear_textareas() {
     $("#tracklistMerger-wrapper textarea").val("");
     $("#tracklistMerger-wrapper #diffContainer td").remove();
+    adjust_columnWidths();
 }
 
 /*
@@ -80,18 +81,104 @@ function adjust_textareaRows( textarea ) {
 function adjust_preHeights( pre ) {
     var tr = pre.closest('tr'),
         pres = tr.find('pre'),
-        maxHeight = 0;
+        maxLines = 1,
+        lineHeight = parseFloat( pres.css('line-height') ) * 1.1;
 
-    pres.css('height', '');
+    if( isNaN( lineHeight ) ) {
+        lineHeight = parseFloat( pres.css('font-size') ) * 1.2;
+    }
+
+    pres.css('height', '' );
 
     pres.each(function(){
-        var h = this.scrollHeight;
-        if( h > maxHeight ) {
-            maxHeight = h;
+        var text = $(this).text(),
+            lines = text.split(/\r\n|\r|\n/).length;
+        if( text.endsWith('\n') ) {
+            lines--;
+        }
+        if( lines > maxLines ) {
+            maxLines = lines;
         }
     });
 
-    pres.height( maxHeight );
+    pres.height( Math.ceil( maxLines * lineHeight ) );
+}
+
+/*
+ * adjust_columnWidths
+ *
+ * Calculate the maximum line length for each column across both the
+ * textarea inputs and the diff <pre> elements. Columns with shorter
+ * content get a smaller width so that space is distributed according to
+ * the actual text length. The resulting widths are applied to the
+ * corresponding columns of both the Inputs and Diff tables.
+ */
+function adjust_columnWidths() {
+    var selectors = ['#tl_original', '#merge_result_tle', '#tl_candidate'],
+        maxLens = [0, 0, 0];
+
+    // Determine longest line per column from textareas and diff <pre>s
+    selectors.forEach(function(sel, idx){
+        var el = $(sel);
+        if( el.length ) {
+            el.val().split(/\r\n|\r|\n/).forEach(function(line){
+                if( line.length > maxLens[idx] ) {
+                    maxLens[idx] = line.length;
+                }
+            });
+        }
+
+        var pre = $('#diffContainer td').eq(idx).find('pre');
+        if( pre.length ) {
+            pre.text().split(/\r\n|\r|\n/).forEach(function(line){
+                if( line.length > maxLens[idx] ) {
+                    maxLens[idx] = line.length;
+                }
+            });
+        }
+    });
+
+    var total = maxLens.reduce(function(a, b){ return a + b; }, 0);
+
+    var tables = [ $(selectors[0]).closest('table')[0], $('#diffContainer').closest('table')[0] ]
+        .filter(Boolean)
+        .reduce(function(arr, t){ if( arr.indexOf(t) === -1 ) { arr.push(t); } return arr; }, [])
+        .map(function(t){ return $(t); });
+
+    if( total === 0 ) {
+        tables.forEach(function($t){
+            $t.children('colgroup').remove();
+            $t.find('td').css('width', '');
+        });
+
+        return;
+    }
+
+    var widths = maxLens.map(function(len){ return len / total * 100; });
+
+    tables.forEach(function($table){
+        var $colgroup = $table.children('colgroup');
+        if( !$colgroup.length ) {
+            $colgroup = $('<colgroup></colgroup>').prependTo($table);
+        }
+
+        var $cols = $colgroup.children('col');
+        widths.forEach(function(_, idx){
+            if( !$cols.eq(idx).length ) {
+                $colgroup.append('<col>');
+            }
+        });
+
+        $colgroup.children('col').each(function(i){
+            if( widths[i] !== undefined ) {
+                $(this).css('width', widths[i] + '%');
+            }
+        });
+
+        $table.css('table-layout', 'fixed');
+        $table.find('td').css('width', '');
+
+    });
 }
 
 /*
@@ -102,10 +189,12 @@ function adjust_preHeights( pre ) {
 // normalizeTrackTitlesForMatching
 function normalizeTrackTitlesForMatching( text ) {
     text = text.trim();
-    text = text.replace(/\s*\[[^\]]+\]\s*$/, '');
+    // remove bracketed descriptors anywhere in the string (e.g. labels, roles)
+    text = text.replace(/\s*\[[^\]]+\]\s*/g, ' ');
     text = normalizeStreamingServiceTracks( text );
     text = removePointlessVersions( text );
     text = removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
+    text = text.replace(/\s+[x×]\s+/gi, " & ");
     text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?) .+ - (.+)$/, "$1 - $2" );
 
     var parts = text.split(" - ");
@@ -114,16 +203,32 @@ function normalizeTrackTitlesForMatching( text ) {
         var title = parts.join(" - ");
         artists = artists
             .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
-            .replace(/\s*,\s*/g, " & ");
+            .replace(/\s*,\s*/g, " & ")
+            .replace(/\s+[x×]\s+/gi, " & ");
         var artistsArr = artists.split(/\s*(?:&|\band\b)\s*/i);
         if (artistsArr.length > 1) {
             artistsArr = artistsArr.map(a => a.trim()).sort((a, b) => a.localeCompare(b));
             artists = artistsArr.join(" & ");
         }
+        var normArtists = artists.toLowerCase();
+
+        title = title.replace(/\(([^)]+)\)/g, function(match, p1) {
+            var normP1 = p1
+                .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+                .replace(/\s*,\s*/g, " & ")
+                .replace(/\s+[x×]\s+/gi, " & ")
+                .toLowerCase().replace(/\s{2,}/g, ' ').trim();
+            var normP1Arr = normP1.split(/\s*(?:&|\band\b|\baka\b)\s*/i)
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b));
+            var normP1Sorted = normP1Arr.join(" & ");
+            return normP1Sorted === normArtists ? '' : match;
+        }).replace(/\s{2,}/g, ' ').trim();
+
         text = artists + " - " + title;
     }
 
-    text = text.toLowerCase();
+    text = text.toLowerCase().replace(/\s{2,}/g, ' ').trim();
 
     logVar( "normalizeTrackTitlesForMatching", text );
 
@@ -135,41 +240,56 @@ function normalizeTrackTitlesForMatching( text ) {
  * Return normalized variants for all artist combinations
  */
 function getTrackMatchNorms( text ) {
-    text = text.trim().replace(/\s*\[[^\]]+\]\s*$/, '');
+    const combosSet = new Set();
 
-    var parts = text.split(" - ");
-    if (parts.length < 2) {
-        return [ normalizeTrackTitlesForMatching( text ) ];
-    }
+    function buildCombos( str ) {
+        str = str.trim().replace(/\s*\[[^\]]+\]\s*/g, ' ');
+        str = removePointlessVersions( str );
+        str = removeVersionWords( str );
+        str = str.replace(/\s+[x×]\s+/gi, " & ");
+        str = str.trim();
 
-    var artists = parts.shift()
-        .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
-        .replace(/\s*,\s*/g, " & ");
-    var title = parts.join(" - ");
-    var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
-    artistsArr = [...new Set(artistsArr)];
-
-    var combos = [];
-
-    function combine(start, combo) {
-        if (combo.length) {
-            var artistStr = combo.slice().sort((a,b) => a.localeCompare(b)).join(" & ");
-            combos.push( normalizeTrackTitlesForMatching( artistStr + " - " + title ) );
+        var parts = str.split(" - ");
+        if (parts.length < 2) {
+            combosSet.add( normalizeTrackTitlesForMatching( str ) );
+            return;
         }
-        for (var i = start; i < artistsArr.length; i++) {
-            combo.push( artistsArr[i] );
-            combine( i + 1, combo );
-            combo.pop();
+
+        var artists = parts.shift()
+            .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+            .replace(/\s*,\s*/g, " & ")
+            .replace(/\s+[x×]\s+/gi, " & ");
+        var title = parts.join(" - ");
+        var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
+        artistsArr = [...new Set(artistsArr)];
+
+        function combine(start, combo) {
+            if (combo.length) {
+                var artistStr = combo.slice().sort((a,b) => a.localeCompare(b)).join(" & ");
+                combosSet.add( normalizeTrackTitlesForMatching( artistStr + " - " + title ) );
+            }
+            for (var i = start; i < artistsArr.length; i++) {
+                combo.push( artistsArr[i] );
+                combine( i + 1, combo );
+                combo.pop();
+            }
+        }
+
+        combine(0, []);
+
+        if (!artistsArr.length) {
+            combosSet.add( normalizeTrackTitlesForMatching( str ) );
         }
     }
 
-    combine(0, []);
+    buildCombos( text );
 
-    if (!combos.length) {
-        combos.push( normalizeTrackTitlesForMatching( text ) );
+    var textNoParens = text.replace(/\s*\([^\)]*\)\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    if ( textNoParens && textNoParens !== text ) {
+        buildCombos( textNoParens );
     }
 
-    return [...new Set(combos)];
+    return [...combosSet];
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -428,23 +548,32 @@ function mergeTracklists(original_arr, candidate_arr) {
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
     function charDiffGreen(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
+      return Diff.diffWords(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-added');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
     function charDiffRed(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
+      return Diff.diffWords(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-removed');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
-    $.fn.showTracklistDiffs = function(opts) {
+      $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
+
+      // Ensure each column string ends with a newline so that the
+      // corresponding <pre> elements have matching heights. Without this the
+      // Candidate column could appear one row shorter when its input lacked a
+      // trailing line break.
+      if (text1.slice(-1) !== '\n') { text1 += '\n'; }
+      if (text2.slice(-1) !== '\n') { text2 += '\n'; }
+      if (text3.slice(-1) !== '\n') { text3 += '\n'; }
+
       var lines1 = text1.split('\n');
       var lines2 = text2.split('\n');
       var lines3 = text3.split('\n');
@@ -502,6 +631,17 @@ function mergeTracklists(original_arr, candidate_arr) {
 
         $row.append($('<td>').append($('<pre>').html(html3)));
 
+        // Ensure each <pre> ends with a newline so that height calculations
+        // include the final line. Without this, some browsers may measure the
+        // scrollHeight one line too short, causing the Candidate column to crop
+        // its last row.
+        $row.find('pre').each(function() {
+          var $pre = $(this);
+          if (!$pre.text().endsWith('\n')) {
+            $pre.append('\n');
+          }
+        });
+
         $container.replaceWith($row);
       });
     };
@@ -521,6 +661,7 @@ function run_diff() {
         if( pre.length ) {
             adjust_preHeights( pre );
         }
+        adjust_columnWidths();
     }
 }
 
@@ -709,6 +850,9 @@ if( domain == "mixesdb.com" ) {
           ) {
             run_merge( true );
         }
+
+        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', adjust_columnWidths);
+        adjust_columnWidths();
     });
 }
 
