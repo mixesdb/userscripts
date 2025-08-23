@@ -46,7 +46,6 @@ const similarityThreshold = 0.8;
 function clear_textareas() {
     $("#tracklistMerger-wrapper textarea").val("");
     $("#tracklistMerger-wrapper #diffContainer td").remove();
-    $("#diff-copy-row").hide();
     adjust_columnWidths();
 }
 
@@ -679,7 +678,6 @@ function run_diff() {
             adjust_preHeights( pre );
         }
         adjust_columnWidths();
-        $("#diff-copy-row").show();
     }
 }
 
@@ -825,23 +823,6 @@ function run_merge( showDebug=false ) {
  */
 if( domain == "mixesdb.com" ) {
     $(document).ready(function () {
-
-        // add copy button for diff merged column
-        $('<tr id="diff-copy-row" class="buttons">'
-            + '<td></td>'
-            + '<td style="text-align:center;"><button id="copyDiff">Copy</button></td>'
-            + '<td></td>'
-            + '</tr>').insertAfter('#diffContainer').hide();
-
-        $('#copyDiff').on('click', function(){
-            var text = $('#diffContainer td').eq(1).find('pre').text();
-            if (!text) return;
-            navigator.clipboard.writeText(text).catch(function(){
-                var $temp = $('<textarea>').val(text).appendTo('body').select();
-                document.execCommand('copy');
-                $temp.remove();
-            });
-        });
 
         $("#clear").click(function(){
             clear_textareas();
