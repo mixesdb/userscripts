@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.3
+// @version      2025.08.23.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -81,7 +81,7 @@ function adjust_preHeights( pre ) {
     var tr = pre.closest('tr'),
         pres = tr.find('pre'),
         maxLines = 1,
-        lineHeight = parseFloat( pres.css('line-height') );
+        lineHeight = parseFloat( pres.css('line-height') ) * 1.1;
 
     if( isNaN( lineHeight ) ) {
         lineHeight = parseFloat( pres.css('font-size') ) * 1.2;
