@@ -432,14 +432,14 @@ function mergeTracklists(original_arr, candidate_arr) {
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
     function charDiffGreen(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
+      return Diff.diffWords(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-added');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
     function charDiffRed(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
+      return Diff.diffWords(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-removed');
         if (p.removed) return '';
         return escapeHTML(p.value);
