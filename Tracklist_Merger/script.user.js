@@ -150,6 +150,7 @@ function adjust_columnWidths() {
             $t.children('colgroup').remove();
             $t.find('td').css('width', '');
         });
+
         return;
     }
 
@@ -176,6 +177,7 @@ function adjust_columnWidths() {
 
         $table.css('table-layout', 'fixed');
         $table.find('td').css('width', '');
+
     });
 }
 
