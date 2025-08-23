@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.16
+// @version      2025.08.23.17
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -671,7 +671,7 @@ function calcSimilarity(a, b) {
       }).join('');
     }
     function charDiffRed(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
+      return Diff.diffWords(orig, mod, { ignoreCase: true }).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-removed');
         if (p.removed) return '';
         return escapeHTML(p.value);
