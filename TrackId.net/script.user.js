@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.1
+// @version      2025.08.23.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -559,6 +559,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             title  = thisTitle
                        .replace(/ \(\d+ - Remaster\)$/, "") // Foo (Nutt Mix - Remastered 2021)
                        .replace(/^(.+) \((.+) - (?:\d+ )?Remaster(?:ed|ing)?(?: \d+)?\)/g, "$1 ($2)") // All Night (I Can Do It Right) (2016 - Remaster) https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-20090216-mix-2 | Run before below stuff
+                       .replace(/^(.+) \(Remaster(ed|ing|is[ée])?( En)? '?\d{2,4}\)/gi, "$1") // (Remasterisé En 2002)
                        .replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)")
                        .replace(/^\((.+)\)$/g, "$1") // avoid "[000] Inland [Systemscan]" https://trackid.net/audiostreams/shed-josey-rebelle-sven-von-thulen-txl-berlin-recordings-chapter-7-arte-concert
                        .replace(/^(.+)-\d{4,5}$/g, "$1") // numbers as suffix, e.g. "Track Title-24070" https://trackid.net/audiostreams/alex-kvitta-sonderspur-pod-011281213
