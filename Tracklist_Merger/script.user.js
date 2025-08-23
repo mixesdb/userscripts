@@ -26,6 +26,10 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+var cacheVersion = 1,
+    scriptName = "Tracklist_Merger";
+loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
 const diffSimilarityThreshold = 0.5;

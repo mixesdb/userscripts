@@ -8,7 +8,9 @@
         bottom: 0;
         width: 5px;
         cursor: col-resize;
-        background: #ddd;
+        background: #bbb;
+        z-index: 10;
+
     }
 
     & tr {
