@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.6
+// @version      2025.08.23.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -571,13 +571,13 @@ function mergeTracklists(original_arr, candidate_arr) {
         return escapeHTML(p.value);
       }).join('');
     }
-    function charDiffRed(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
-        if (p.added)   return wrapSpan(p.value, 'diff-removed');
-        if (p.removed) return '';
-        return escapeHTML(p.value);
-      }).join('');
-    }
+      function charDiffRed(orig, mod) {
+        return Diff.diffChars(orig, mod).map(function(p) {
+          if (p.added)   return wrapSpan(p.value, 'diff-removed');
+          if (p.removed) return '';
+          return escapeHTML(p.value);
+        }).join('');
+      }
       $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
@@ -629,18 +629,16 @@ function mergeTracklists(original_arr, candidate_arr) {
           var coreNoLabel = core.replace(/\s*\[[^\]]+\]\s*$/, '');
           var normCore = normalizeTrackTitlesForMatching(coreNoLabel);
           var origCore = '';
-          var origNorm = '';
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var candNorm = normalizeTrackTitlesForMatching(candNoLabel);
-            if ($.isTextSimilar(candNorm, normCore, diffSimilarityThreshold)) {
+            if ($.isTextSimilar(normalizeTrackTitlesForMatching(candNoLabel), normCore)) {
+
               origCore = cand;
-              origNorm = candNorm;
               break;
             }
           }
-          if (origNorm === normCore) {
+          if (origCore.trim().toLowerCase() === core.trim().toLowerCase()) {
             return escapeHTML(line);
           }
           return escapeHTML(prefix) + charDiffRed(origCore, core);
