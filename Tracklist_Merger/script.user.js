@@ -31,6 +31,7 @@ var cacheVersion = 4,
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
+// Threshold for fuzzy matching when merging track titles
 const similarityThreshold = 0.8;
 
 
@@ -743,7 +744,7 @@ function calcSimilarity(a, b) {
           }
           var origCore = bestIdx >= 0 ? extractPrefix(lines1[bestIdx]).core : '';
           var origCoreTrim = origCore.trim();
-          if (!origCore || bestScore < similarityThreshold) {
+          if (!origCore) {
             return escapeHTML(prefix) + charDiffGreen('', core);
           }
           // if labels differ entirely, highlight whole label
@@ -789,8 +790,8 @@ function calcSimilarity(a, b) {
           }
           var origCore = bestIdx >= 0 ? extractPrefix(lines2[bestIdx]).core : '';
           var origCoreTrim = origCore.trim();
-          if (!origCore || bestScore < similarityThreshold) {
-            return escapeHTML(prefix) + charDiffRed('', core);
+          if (!origCore) {
+            return wrapSpan(prefix + core, 'diff-removed');
           }
           // if labels differ entirely, highlight whole label
           var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
