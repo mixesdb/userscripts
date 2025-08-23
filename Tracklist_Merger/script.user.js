@@ -153,46 +153,56 @@ function normalizeTrackTitlesForMatching( text ) {
  * Return normalized variants for all artist combinations
  */
 function getTrackMatchNorms( text ) {
-    text = text.trim().replace(/\s*\[[^\]]+\]\s*/g, ' ');
-    text = removePointlessVersions( text );
-    text = removeVersionWords( text );
-    text = text.replace(/\s+[x×]\s+/gi, " & ");
-    text = text.trim();
+    const combosSet = new Set();
 
-    var parts = text.split(" - ");
-    if (parts.length < 2) {
-        return [ normalizeTrackTitlesForMatching( text ) ];
-    }
+    function buildCombos( str ) {
+        str = str.trim().replace(/\s*\[[^\]]+\]\s*/g, ' ');
+        str = removePointlessVersions( str );
+        str = removeVersionWords( str );
+        str = str.replace(/\s+[x×]\s+/gi, " & ");
+        str = str.trim();
 
-    var artists = parts.shift()
-        .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
-        .replace(/\s*,\s*/g, " & ")
-        .replace(/\s+[x×]\s+/gi, " & ");
-    var title = parts.join(" - ");
-    var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
-    artistsArr = [...new Set(artistsArr)];
-
-    var combos = [];
-
-    function combine(start, combo) {
-        if (combo.length) {
-            var artistStr = combo.slice().sort((a,b) => a.localeCompare(b)).join(" & ");
-            combos.push( normalizeTrackTitlesForMatching( artistStr + " - " + title ) );
+        var parts = str.split(" - ");
+        if (parts.length < 2) {
+            combosSet.add( normalizeTrackTitlesForMatching( str ) );
+            return;
         }
-        for (var i = start; i < artistsArr.length; i++) {
-            combo.push( artistsArr[i] );
-            combine( i + 1, combo );
-            combo.pop();
+
+        var artists = parts.shift()
+            .replace(/\s*(?:Ft|Feat\.?|Featuring|\baka\b)\s+/gi, " & ")
+            .replace(/\s*,\s*/g, " & ")
+            .replace(/\s+[x×]\s+/gi, " & ");
+        var title = parts.join(" - ");
+        var artistsArr = artists.split(/\s*(?:&|\band\b|\baka\b)\s*/i).map(a => a.trim()).filter(Boolean);
+        artistsArr = [...new Set(artistsArr)];
+
+        function combine(start, combo) {
+            if (combo.length) {
+                var artistStr = combo.slice().sort((a,b) => a.localeCompare(b)).join(" & ");
+                combosSet.add( normalizeTrackTitlesForMatching( artistStr + " - " + title ) );
+            }
+            for (var i = start; i < artistsArr.length; i++) {
+                combo.push( artistsArr[i] );
+                combine( i + 1, combo );
+                combo.pop();
+            }
+        }
+
+        combine(0, []);
+
+        if (!artistsArr.length) {
+            combosSet.add( normalizeTrackTitlesForMatching( str ) );
         }
     }
 
-    combine(0, []);
+    buildCombos( text );
 
-    if (!combos.length) {
-        combos.push( normalizeTrackTitlesForMatching( text ) );
+    var textNoParens = text.replace(/\s*\([^\)]*\)\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    if ( textNoParens && textNoParens !== text ) {
+        buildCombos( textNoParens );
     }
 
-    return [...new Set(combos)];
+    return [...combosSet];
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
