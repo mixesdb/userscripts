@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.5
+// @version      2025.08.23.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -28,6 +28,7 @@
 
 const tid_minGap = 3;
 const similarityThreshold = 0.8;
+const diffSimilarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -564,14 +565,14 @@ function mergeTracklists(original_arr, candidate_arr) {
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
     function charDiffGreen(orig, mod) {
-      return Diff.diffWords(orig, mod).map(function(p) {
+      return Diff.diffChars(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-added');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
     function charDiffRed(orig, mod) {
-      return Diff.diffWords(orig, mod).map(function(p) {
+      return Diff.diffChars(orig, mod).map(function(p) {
         if (p.added)   return wrapSpan(p.value, 'diff-removed');
         if (p.removed) return '';
         return escapeHTML(p.value);
@@ -633,7 +634,7 @@ function mergeTracklists(original_arr, candidate_arr) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '').trim();
             var candNoLabel = cand.replace(/\s*\[[^\]]+\]\s*$/, '');
             var candNorm = normalizeTrackTitlesForMatching(candNoLabel);
-            if ($.isTextSimilar(candNorm, normCore)) {
+            if ($.isTextSimilar(candNorm, normCore, diffSimilarityThreshold)) {
               origCore = cand;
               origNorm = candNorm;
               break;
