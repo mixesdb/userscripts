@@ -1,6 +1,59 @@
 == Example ==
 
 Original:
+# TH;EN & Gioli & Assia - Give You My Love (Extended Mix)
+# Mindtone - Emerge (Extended Mix)
+# Against All Ødds - Out Of Control (Extended Mix)
+# Dan Sushi - Nostalgia (Extended Mix)
+# Dee Ocean - Ocean Eyes (Extended Mix)
+# New Mode - Horizon (Extended Mix)
+# Carlos Pires - Sometimes
+# Marten Lou X Foals - Late Night (Marten Lou Extended Remix)
+# Deviu & Jordan Arts - Shadows (Extended Mix)
+# Passenger 10 - Dare To Dream (Extended Mix)
+# Eli & Fur - Make Believe (Extended Mix)
+# ZODIAC - Horizon (Extended Mix)
+# KEVSKI - Before We Die (Extended Mix)
+# Maga & Emanuel Satie - Save Your Soul
+
+Candidate:
+[00] TH;EN & Giolì & Assia - Give You My Love [Resurrection]
+[05] Mindtone - Emerge [Enormous Vision]
+[10] Against All Ødds - Out Of Control [RESURRECTION]
+[16] Dan Sushi - Nostalgia [Purified]
+[20] Dee Ocean - Ocean Eyes [Enormous Chills]
+[23] Newmode - Horizon [Enormous Moments]
+[27] ?
+...
+[31] Marten Lou & Foals - Late Night (Marten Lou X Foals) [Marten Schmidt]
+[36] ?
+...
+[41] Passenger 10 - Dare To Dream [Kontor]
+[45] ?
+...
+[51] ZODIAC - Horizon [PIAS Électronique]
+[55] Kevski - Before We Die [Sekora]
+...
+
+Expected result:
+# [00] TH;EN & Gioli & Assia - Give You My Love (Extended Mix) [Resurrection]
+# [05] Mindtone - Emerge (Extended Mix) [Enormous Vision]
+# [10] Against All Ødds - Out Of Control (Extended Mix) [RESURRECTION]
+# [16] Dan Sushi - Nostalgia (Extended Mix) [Purified]
+# [20] Dee Ocean - Ocean Eyes (Extended Mix) [Enormous Chills]
+# [23] New Mode - Horizon (Extended Mix) [Enormous Moments]
+# [27] Carlos Pires - Sometimes
+# [31] Marten Lou X Foals - Late Night (Marten Lou Extended Remix)
+# [3?] Deviu & Jordan Arts - Shadows (Extended Mix)
+# [41] Passenger 10 - Dare To Dream (Extended Mix) [Kontor]
+# [45] Eli & Fur - Make Believe (Extended Mix)
+# [51] ZODIAC - Horizon (Extended Mix) [PIAS Électronique]
+# [55] KEVSKI - Before We Die (Extended Mix) [Sekora]
+# [??] Maga & Emanuel Satie - Save Your Soul
+
+== Example ==
+
+Original:
 # Delta Vaults - Colors Of Life (Extended Mix)
 # Röyksopp - Running To The Sea (Anamē Remix)
 # Lexer - The Edge Of Everything (Extended Mix)
