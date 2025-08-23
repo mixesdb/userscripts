@@ -474,10 +474,19 @@ function mergeTracklists(original_arr, candidate_arr) {
         return escapeHTML(p.value);
       }).join('');
     }
-    $.fn.showTracklistDiffs = function(opts) {
+      $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
+
+      // Ensure each column string ends with a newline so that the
+      // corresponding <pre> elements have matching heights. Without this the
+      // Candidate column could appear one row shorter when its input lacked a
+      // trailing line break.
+      if (text1.slice(-1) !== '\n') { text1 += '\n'; }
+      if (text2.slice(-1) !== '\n') { text2 += '\n'; }
+      if (text3.slice(-1) !== '\n') { text3 += '\n'; }
+
       var lines1 = text1.split('\n');
       var lines2 = text2.split('\n');
       var lines3 = text3.split('\n');
