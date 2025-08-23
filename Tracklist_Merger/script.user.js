@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.15
+// @version      2025.08.23.16
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 1,
+var cacheVersion = 2,
     scriptName = "Tracklist_Merger";
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
@@ -240,6 +240,15 @@ function update_columnDividers(widths){
     var totalWidth = $wrapper.width();
     $wrapper.find('#'+ids[0]).css('left', (widths[0]/100*totalWidth) + 'px');
     $wrapper.find('#'+ids[1]).css('left', ((widths[0]+widths[1])/100*totalWidth) + 'px');
+
+    var $textareas = $wrapper.find('textarea');
+    if( !$textareas.length ) { return; }
+    var $startRow = $textareas.first().closest('tr');
+    var $pres = $wrapper.find('#diffContainer pre');
+    var $endRow = $pres.length ? $pres.last().closest('tr') : $textareas.last().closest('tr');
+    var top = $startRow.position().top;
+    var height = $endRow.position().top + $endRow.outerHeight() - top;
+    $wrapper.find('.column-divider').css({ top: top + 'px', height: height + 'px' });
 }
 
 function init_columnDividerEvents(){

@@ -4,13 +4,10 @@
 
     & .column-divider {
         position: absolute;
-        top: 0;
-        bottom: 0;
         width: 5px;
         cursor: col-resize;
-        background: #bbb;
+        background: #fff;
         z-index: 10;
-
     }
 
     & tr {
