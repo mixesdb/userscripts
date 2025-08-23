@@ -1,6 +1,72 @@
 == Example ==
 
 Original:
+;Part 1
+# Simon Doty & My Friend - Real Talk (Extended Mix) [Anjunadeep]
+# Low Steppa & Capri - Got The Funk (Extended) [Defected]
+# Kiko & Olivier Giacomotto - Bounce [Diynamic]
+# Tiger Stripes - Pump (Extended Mix) [Snatch!]
+# Adam Beyer, Chris Avantgarde - Desolate Lands [Drumcode]
+# Ferry Corsten - Lose Myself (Extended Mix) [Flashover]
+# Floorplan - Eternal Life [M-Plant]
+
+;Part 2
+# Pablo Say - I Listen To The Disco [Vassnova]
+# Aitor Ronda - All The Way Back [Elevate]
+# Max Walder, Nicolas Clays - Bless You [Unity]
+# Khabiar - Ok, I'm Here [BEK]
+# Umek, Polyvinyl - The Road [1605 GROOVESECTOR]
+# Gary Beck - Hopper [Mutual Rytm]
+# Mik&Ale - Read My Lips [JAM]
+# Push - Microgravity (Extended Mix) [Filth On Acid]
+# Olly James - Synergy (Extended Mix) [HILOMATIK]
+# '''Rewind 2…1999:''' Steve Morley - Reincarnations (DJ JamX & De Leon's Dumonde Remix) [Neo]
+
+Candidate:
+[00] My Friend & Simon Doty - Real Talk [Anjunadeep]
+[05] Low Steppa & Capri - Got The Funk [Defected]
+...
+[10] Kiko & Olivier Giacomotto - Bounce [Diynamic]
+[14] Tiger Stripes - Pump [Snatch!]
+[16] Adam Beyer & Chris Avantgarde - Desolate Lands [Drumcode]
+[21] ?
+...
+[26] Floorplan - Eternal Life [M-Plant]
+[29] Pablo Say - I Listen To The Disco [VASSNOVA]
+[32] Aitor Ronda - All The Way Back [Elevate]
+[34] Max Walder & Nicolas Clays - Bless You [Unity]
+[39] Umek & Polyvinyl - The Road [1605 GROOVESECTOR]
+[42] Gary Beck - Hopper [Mutual Rytm]
+[44] Mik&Ale - Read My Lips [JAM]
+[47] Push - Microgravity [Filth On Acid]
+[51] Olly James - Synergy [HILOMATIK]
+...
+
+Expected result:
+;Part 1
+# [00] Simon Doty & My Friend - Real Talk (Extended Mix) [Anjunadeep]
+# [05] Low Steppa & Capri - Got The Funk (Extended) [Defected]
+# [10] Kiko & Olivier Giacomotto - Bounce [Diynamic]
+# [14] Tiger Stripes - Pump (Extended Mix) [Snatch!]
+# [16] Adam Beyer, Chris Avantgarde - Desolate Lands [Drumcode]
+# [21] Ferry Corsten - Lose Myself (Extended Mix) [Flashover]
+# [26] Floorplan - Eternal Life [M-Plant]
+
+;Part 2
+# [29] Pablo Say - I Listen To The Disco [Vassnova]
+# [32] Aitor Ronda - All The Way Back [Elevate]
+# [34] Max Walder, Nicolas Clays - Bless You [Unity]
+# [3?] Khabiar - Ok, I'm Here [BEK]
+# [39] Umek, Polyvinyl - The Road [1605 GROOVESECTOR]
+# [42] Gary Beck - Hopper [Mutual Rytm]
+# [44] Mik&Ale - Read My Lips [JAM]
+# [47] Push - Microgravity (Extended Mix) [Filth On Acid]
+# [51] Olly James - Synergy (Extended Mix) [HILOMATIK]
+# [??] '''Rewind 2…1999:''' Steve Morley - Reincarnations (DJ JamX & De Leon's Dumonde Remix) [Neo]
+
+== Example ==
+
+Original:
 # TH;EN & Gioli & Assia - Give You My Love (Extended Mix)
 # Mindtone - Emerge (Extended Mix)
 # Against All Ødds - Out Of Control (Extended Mix)
@@ -50,6 +116,7 @@ Expected result:
 # [51] ZODIAC - Horizon (Extended Mix) [PIAS Électronique]
 # [55] KEVSKI - Before We Die (Extended Mix) [Sekora]
 # [??] Maga & Emanuel Satie - Save Your Soul
+
 
 == Example ==
 
