@@ -768,8 +768,7 @@ function stripCountryCodes(str) {
  */
 function removePointlessVersions( t ) {
     return t
-        .replace( / \((Vocal|Main|Radio|Album|Single)\s?(Version|Edit|Mix)?\)/gmi, "" )
-        .replace( /\s*\(([^)]*\b(?:mix|remix|edit|version|dub|part|extended)\b[^)]*)\)/gmi, "" );
+        .replace( / \((Vocal|Main|Radio|Album|Single)\s?(Version|Edit|Mix)?\)/gmi, "" );
 }
 
 /*  
