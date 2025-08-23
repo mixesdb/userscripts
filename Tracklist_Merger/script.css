@@ -1,6 +1,15 @@
 #tracklistMerger-wrapper {
     margin-left: -5px;
-    
+    position: relative;
+
+    & .column-divider {
+        position: absolute;
+        width: 5px;
+        cursor: col-resize;
+        background: #bbb;
+        z-index: 10;
+    }
+
     & tr {
         margin-bottom: 10px;
         
