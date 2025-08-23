@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.23.23
+// @version      2025.08.23.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -709,13 +709,6 @@ function calcSimilarity(a, b) {
         $row.append($('<td>').append($('<pre>').text(text1)));
 
         // Column 2: Merged vs Original (green additions, normalized matching)
-        var lines1Raw = lines1.map(function(l) {
-          return l.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
-        });
-        var lines1NormBase = lines1.map(function(l) {
-          var base = l.replace(/^#?\s*\[.*?\]\s*/, '').trim().replace(/\s*\[[^\]]+\]\s*$/, '');
-          return normalizeTrackTitlesForMatching(base);
-        });
         var html2 = lines2.map(function(line) {
           var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
           var prefix = cueMatch ? cueMatch[1] : '';
@@ -726,11 +719,6 @@ function calcSimilarity(a, b) {
           }
           var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
           var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
-          // check for exact match: raw or normalized base
-          if (lines1Raw.indexOf(coreTrim.toLowerCase()) !== -1 ||
-              lines1NormBase.indexOf(coreNormBase) !== -1) {
-            return escapeHTML(line);
-          }
           var bestIdx = -1, bestScore = 0;
           for (var j = 0; j < lines1.length; j++) {
             var cand = lines1[j].replace(/^#?\s*\[.*?\]\s*/, '');
@@ -767,13 +755,6 @@ function calcSimilarity(a, b) {
         $row.append($('<td>').append($('<pre>').html(html2)));
 
         // Column 3: Candidate vs Merged (red extras, normalized matching)
-        var lines2Raw = lines2.map(function(l) {
-          return l.replace(/^#?\s*\[.*?\]\s*/, '').trim().toLowerCase();
-        });
-        var lines2NormBase = lines2.map(function(l) {
-          var base = l.replace(/^#?\s*\[.*?\]\s*/, '').trim().replace(/\s*\[[^\]]+\]\s*$/, '');
-          return normalizeTrackTitlesForMatching(base);
-        });
         var html3 = lines3.map(function(line) {
           var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
           var prefix = cueMatch ? cueMatch[1] : '';
@@ -784,11 +765,6 @@ function calcSimilarity(a, b) {
           }
           var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
           var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
-          // check for exact match: raw or normalized base
-          if (lines2Raw.indexOf(coreTrim.toLowerCase()) !== -1 ||
-              lines2NormBase.indexOf(coreNormBase) !== -1) {
-            return escapeHTML(line);
-          }
           var bestIdx = -1, bestScore = 0;
           for (var j = 0; j < lines2.length; j++) {
             var cand = lines2[j].replace(/^#?\s*\[.*?\]\s*/, '');
