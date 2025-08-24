@@ -32,7 +32,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
 // Threshold for fuzzy matching when merging track titles
-const similarityThreshold = 0.8;
+const similarityThreshold = 0.5;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -699,28 +699,41 @@ function calcSimilarity(a, b) {
         return escapeHTML(p.value);
       }).join('');
     }
-    function wordDiff(orig, mod, cls, charDiffFn) {
+    function wordDiff(orig, mod, cls, charDiffFn, markNextOnRemove) {
       var parts = Diff.diffWordsWithSpace(orig, mod);
       var res = '';
+      var highlightNext = false;
+
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
         if (p.added) {
           var prev = parts[i - 1];
-          if (prev && prev.removed && !/\s/.test(prev.value) && !/\s/.test(p.value)) {
+          if (prev && prev.removed && /\S/.test(prev.value) && /\S/.test(p.value)) {
             res += charDiffFn(prev.value, p.value);
           } else {
             res += wrapSpan(p.value, cls);
           }
+          highlightNext = false;
         } else if (p.removed) {
+          if (markNextOnRemove && /\S/.test(p.value)) {
+            highlightNext = true;
+          }
           continue;
         } else {
-          res += escapeHTML(p.value);
+          if (highlightNext && /\S/.test(p.value)) {
+            res += wrapSpan(p.value, cls);
+            highlightNext = false;
+          } else {
+            res += escapeHTML(p.value);
+          }
+
         }
       }
       return res;
     }
-    function wordDiffGreen(orig, mod) { return wordDiff(orig, mod, 'diff-added', charDiffGreen); }
-    function wordDiffRed(orig, mod) { return wordDiff(orig, mod, 'diff-removed', charDiffRed); }
+    function wordDiffGreen(orig, mod) { return wordDiff(orig, mod, 'diff-added', charDiffGreen, false); }
+    function wordDiffRed(orig, mod) { return wordDiff(orig, mod, 'diff-removed', charDiffRed, true); }
+
     $.fn.showTracklistDiffs = function(opts) {
 
       var text1 = opts.text1 || '';
