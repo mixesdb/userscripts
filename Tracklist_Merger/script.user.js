@@ -742,8 +742,37 @@ function calcSimilarity(a, b) {
         var $container = $(this).empty();
         var $row = $('<tr id="diffContainer">');
 
-        // Column 1: Original
-        $row.append($('<td>').append($('<pre>').text(text1)));
+        // Column 1: Original vs Merged (red removals, whole-track highlighting)
+        var html1 = lines1.map(function(line) {
+          if (line.trim() === '') { return ''; }
+          var parts = extractPrefix(line);
+          var prefix = parts.prefix;
+          var core = parts.core;
+          var coreTrim = core.trim();
+          if (coreTrim === '?' || coreTrim === '...') {
+            return escapeHTML(line);
+          }
+          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
+          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
+          var bestScore = 0;
+          for (var j = 0; j < lines2.length; j++) {
+            var cand = extractPrefix(lines2[j]).core;
+            var candTrim = cand.trim();
+            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
+            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
+            var score = calcSimilarity(candNormBase, coreNormBase);
+            if (score > bestScore) {
+              bestScore = score;
+            }
+          }
+          if (bestScore < similarityThreshold) {
+            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
+            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
+            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-removed');
+          }
+          return escapeHTML(line);
+        }).join('\n');
+        $row.append($('<td>').append($('<pre>').html(html1)));
 
         // Column 2: Merged vs Original (green additions, normalized matching)
         var html2 = lines2.map(function(line) {
