@@ -672,14 +672,18 @@ function calcSimilarity(a, b) {
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
     function extractPrefix(line) {
-      var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
-      var prefix = cueMatch ? cueMatch[1] : '';
-      var core = line.slice(prefix.length);
-      if (core.startsWith('# ')) {
+      var prefix = '';
+      var rest = line;
+      if (rest.startsWith('# ')) {
         prefix += '# ';
-        core = core.slice(2);
+        rest = rest.slice(2);
       }
-      return { prefix: prefix, core: core };
+      var cueMatch = rest.match(/^(\s*\[.*?\]\s*)/);
+      if (cueMatch) {
+        prefix += cueMatch[1];
+        rest = rest.slice(cueMatch[1].length);
+      }
+      return { prefix: prefix, core: rest };
     }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
