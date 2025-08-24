@@ -367,38 +367,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logVar( "thisUrl", thisUrl );
     logVar( "urlDomain", urlDomain );
 
-    if( urlDomain == "hearthis.at" ) {
-
-        // Important! Increase the max iterations for the new variant(s)!
-        max_toolboxIterations += 1;
-        log( "max_toolboxIterations increased to: " + max_toolboxIterations );
-
-        $.ajax({
-            url: thisUrl,
-            success: function() {
-                if( urlDomain == "hearthis.at" ) {
-                    log( "hearthis.at ok" );
-
-                    var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m ),
-                        hearthisUrl_short = "https://hearthis.at/" + matches_id[1] + "/";
-
-                    var matches_urlLong = arguments[0].match( /(?:^.+<meta property="og:url" content=")(.+)(".+$)/m ),
-                        hearthisUrl_long = matches_urlLong[1];
-
-                    logVar( "hearthisUrl_short", hearthisUrl_short );
-                    logVar( "hearthisUrl_long", hearthisUrl_long );
-
-                    embedUrl = hearthisUrl_short;
-
-                    // pass a variant parameter for cleanup
-                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
-                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
-                }
-            }
-        });
-    } else {
-        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
-    }
+    getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
 }
 
 
@@ -427,7 +396,6 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     var addOutput = true,
         output = null,
         thisUrl_forApi = thisUrl,
-        playerUrl_possibleUsageVariants = 1,
         domain = getDomain_fromUrlStr( thisUrl );
 
     logVar( "thisUrl", thisUrl );
@@ -515,21 +483,6 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     if( domain == "youtube.com" || domain == "youtu.be" ) {
         log( "domain is YouTube. Changing the search URl to the YT ID only." );
         thisUrl_forApi = "https://youtu.be/" + getYoutubeIdFromUrl( thisUrl );
-    }
-
-    /*
-     * visitDomain exceptions
-     */
-    if( visitDomain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
-        playerUrl_possibleUsageVariants = 2;
-    }
-
-    /*
-     * classname for solved url variants
-     */
-    var class_solvedUrlVariants = "";
-    if( domain == "hearthis.at" ) {
-        class_solvedUrlVariants = "solvedUrlVariants";
     }
 
     /*
@@ -770,25 +723,6 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     });
 
                     reorderToolkitItems();
-
-                    /*
-                     * 2 playerUrl_possibleUsageVariants
-                     * On no-case-yet.com itself 2 URL types are used (and searched)
-                     * These results are possible:
-                     * 1 used, 1 unused listed
-                     * 2 unused hearthis.at playerURLs > 2 unclear listed
-                     */
-                    if( playerUrl_possibleUsageVariants == 2 ) {
-                        // if usageLink.unused, remove li_unclear
-                        if( li_noUsage_len > 0 ) {
-                            li_unclear.remove();
-                        }
-
-                        // if usageLink.used, remove li_used and li_unused
-                        if( li_usage_len > 0 ) {
-                            li_playerUrls_all.remove();
-                        }
-                    }
 
                     /*
                      * Solved URL variants
