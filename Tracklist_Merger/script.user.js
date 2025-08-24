@@ -703,6 +703,7 @@ function calcSimilarity(a, b) {
       var parts = Diff.diffWordsWithSpace(orig, mod);
       var res = '';
       var highlightNext = false;
+
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
         if (p.added) {
@@ -725,12 +726,14 @@ function calcSimilarity(a, b) {
           } else {
             res += escapeHTML(p.value);
           }
+
         }
       }
       return res;
     }
     function wordDiffGreen(orig, mod) { return wordDiff(orig, mod, 'diff-added', charDiffGreen, false); }
     function wordDiffRed(orig, mod) { return wordDiff(orig, mod, 'diff-removed', charDiffRed, true); }
+
     $.fn.showTracklistDiffs = function(opts) {
 
       var text1 = opts.text1 || '';
