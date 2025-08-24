@@ -672,14 +672,18 @@ function calcSimilarity(a, b) {
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
     function extractPrefix(line) {
-      var cueMatch = line.match(/^(\s*\[.*?\]\s*)/);
-      var prefix = cueMatch ? cueMatch[1] : '';
-      var core = line.slice(prefix.length);
-      if (core.startsWith('# ')) {
+      var prefix = '';
+      var rest = line;
+      if (rest.startsWith('# ')) {
         prefix += '# ';
-        core = core.slice(2);
+        rest = rest.slice(2);
       }
-      return { prefix: prefix, core: core };
+      var cueMatch = rest.match(/^(\s*\[.*?\]\s*)/);
+      if (cueMatch) {
+        prefix += cueMatch[1];
+        rest = rest.slice(cueMatch[1].length);
+      }
+      return { prefix: prefix, core: rest };
     }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
@@ -695,6 +699,28 @@ function calcSimilarity(a, b) {
         return escapeHTML(p.value);
       }).join('');
     }
+    function wordDiff(orig, mod, cls, charDiffFn) {
+      var parts = Diff.diffWordsWithSpace(orig, mod);
+      var res = '';
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        if (p.added) {
+          var prev = parts[i - 1];
+          if (prev && prev.removed && !/\s/.test(prev.value) && !/\s/.test(p.value)) {
+            res += charDiffFn(prev.value, p.value);
+          } else {
+            res += wrapSpan(p.value, cls);
+          }
+        } else if (p.removed) {
+          continue;
+        } else {
+          res += escapeHTML(p.value);
+        }
+      }
+      return res;
+    }
+    function wordDiffGreen(orig, mod) { return wordDiff(orig, mod, 'diff-added', charDiffGreen); }
+    function wordDiffRed(orig, mod) { return wordDiff(orig, mod, 'diff-removed', charDiffRed); }
     $.fn.showTracklistDiffs = function(opts) {
 
       var text1 = opts.text1 || '';
@@ -716,8 +742,37 @@ function calcSimilarity(a, b) {
         var $container = $(this).empty();
         var $row = $('<tr id="diffContainer">');
 
-        // Column 1: Original
-        $row.append($('<td>').append($('<pre>').text(text1)));
+        // Column 1: Original vs Merged (red removals, whole-track highlighting)
+        var html1 = lines1.map(function(line) {
+          if (line.trim() === '') { return ''; }
+          var parts = extractPrefix(line);
+          var prefix = parts.prefix;
+          var core = parts.core;
+          var coreTrim = core.trim();
+          if (coreTrim === '?' || coreTrim === '...') {
+            return escapeHTML(line);
+          }
+          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
+          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
+          var bestScore = 0;
+          for (var j = 0; j < lines2.length; j++) {
+            var cand = extractPrefix(lines2[j]).core;
+            var candTrim = cand.trim();
+            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
+            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
+            var score = calcSimilarity(candNormBase, coreNormBase);
+            if (score > bestScore) {
+              bestScore = score;
+            }
+          }
+          if (bestScore < similarityThreshold) {
+            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
+            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
+            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-removed');
+          }
+          return escapeHTML(line);
+        }).join('\n');
+        $row.append($('<td>').append($('<pre>').html(html1)));
 
         // Column 2: Merged vs Original (green additions, normalized matching)
         var html2 = lines2.map(function(line) {
@@ -742,26 +797,40 @@ function calcSimilarity(a, b) {
               bestIdx = j;
             }
           }
-          var origCore = bestIdx >= 0 ? extractPrefix(lines1[bestIdx]).core : '';
+          var origParts = bestIdx >= 0 ? extractPrefix(lines1[bestIdx]) : { prefix: '', core: '' };
+          var origPrefix = origParts.prefix;
+          var origCore = origParts.core;
           var origCoreTrim = origCore.trim();
           if (!origCore) {
-            return escapeHTML(prefix) + charDiffGreen('', core);
+            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
+            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
+            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-added');
           }
-          // if labels differ entirely, highlight whole label
+          var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
+          var origPrefixNoHash = origPrefix.startsWith('# ') ? origPrefix.slice(2) : origPrefix;
+          var prefixHtml = escapeHTML(prefix.startsWith('# ') ? '# ' : '') + wordDiffGreen(origPrefixNoHash, prefixNoHash);
           var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
           var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
+          var coreBase = core;
+          var origBase = origCore;
+          var labelHtml = '';
           if (coreLabel) {
             var label = coreLabel[1];
-            if (!origLabel || origLabel[1].toLowerCase() !== label.toLowerCase()) {
-              var coreBase = core.replace(coreLabel[1], '');
-              var origBase = origCore ? origCore.replace(origLabel ? origLabel[1] : '', '') : '';
-              return escapeHTML(prefix) + charDiffGreen(origBase, coreBase) + wrapSpan(label, 'diff-added');
+            coreBase = core.replace(coreLabel[1], '');
+            var origLabelText = origLabel ? origLabel[1] : '';
+            origBase = origCore.replace(origLabelText, '');
+            if (!origLabelText) {
+              labelHtml = wordDiffGreen('', label);
+            } else if (origLabelText.toLowerCase() === label.toLowerCase()) {
+              labelHtml = escapeHTML(label);
+            } else {
+              labelHtml = wordDiffGreen(origLabelText, label);
             }
           }
-          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase()) {
+          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase() && origPrefixNoHash === prefixNoHash) {
             return escapeHTML(line);
           }
-          return escapeHTML(prefix) + charDiffGreen(origCore, core);
+          return prefixHtml + wordDiffGreen(origBase, coreBase) + labelHtml;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html2)));
 
@@ -788,26 +857,40 @@ function calcSimilarity(a, b) {
               bestIdx = j;
             }
           }
-          var origCore = bestIdx >= 0 ? extractPrefix(lines2[bestIdx]).core : '';
+          var origParts = bestIdx >= 0 ? extractPrefix(lines2[bestIdx]) : { prefix: '', core: '' };
+          var origPrefix = origParts.prefix;
+          var origCore = origParts.core;
           var origCoreTrim = origCore.trim();
           if (!origCore) {
-            return wrapSpan(prefix + core, 'diff-removed');
+            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
+            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
+            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-removed');
           }
-          // if labels differ entirely, highlight whole label
+          var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
+          var origPrefixNoHash = origPrefix.startsWith('# ') ? origPrefix.slice(2) : origPrefix;
+          var prefixHtml = escapeHTML(prefix.startsWith('# ') ? '# ' : '') + wordDiffRed(origPrefixNoHash, prefixNoHash);
           var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
           var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
+          var coreBase = core;
+          var origBase = origCore;
+          var labelHtml = '';
           if (coreLabel) {
             var label = coreLabel[1];
-            if (!origLabel || origLabel[1].toLowerCase() !== label.toLowerCase()) {
-              var coreBase = core.replace(coreLabel[1], '');
-              var origBase = origCore ? origCore.replace(origLabel ? origLabel[1] : '', '') : '';
-              return escapeHTML(prefix) + charDiffRed(origBase, coreBase) + wrapSpan(label, 'diff-removed');
+            coreBase = core.replace(coreLabel[1], '');
+            var origLabelText = origLabel ? origLabel[1] : '';
+            origBase = origCore.replace(origLabelText, '');
+            if (!origLabelText) {
+              labelHtml = wordDiffRed('', label);
+            } else if (origLabelText.toLowerCase() === label.toLowerCase()) {
+              labelHtml = escapeHTML(label);
+            } else {
+              labelHtml = wordDiffRed(origLabelText, label);
             }
           }
-          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase()) {
+          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase() && origPrefixNoHash === prefixNoHash) {
             return escapeHTML(line);
           }
-          return escapeHTML(prefix) + charDiffRed(origCore, core);
+          return prefixHtml + wordDiffRed(origBase, coreBase) + labelHtml;
         }).join('\n');
 
         $row.append($('<td>').append($('<pre>').html(html3)));
