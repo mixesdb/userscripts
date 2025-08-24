@@ -689,7 +689,6 @@ function calcSimilarity(a, b) {
         rest = rest.slice(0, rest.length - labelMatch[0].length);
       }
       return { hash: hash, cue: cue, text: rest, label: label };
-
     }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
@@ -705,42 +704,49 @@ function calcSimilarity(a, b) {
         return escapeHTML(p.value);
       }).join('');
     }
-    function wordDiff(orig, mod, cls, charDiffFn, markNextOnRemove) {
-      var parts = Diff.diffWordsWithSpace(orig, mod);
-      var res = '', highlightNext = false;
+    function wordDiffGreen(base, other) {
+      var parts = Diff.diffWordsWithSpace(other, base);
+      var res = '';
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
         if (p.added) {
           var prev = parts[i - 1];
           if (prev && prev.removed && /\S/.test(prev.value) && /\S/.test(p.value)) {
-            res += charDiffFn(prev.value, p.value);
+            res += charDiffGreen(prev.value, p.value);
           } else {
-            res += wrapSpan(p.value, cls);
+            res += wrapSpan(p.value, 'diff-added');
           }
-          highlightNext = false;
-        } else if (p.removed) {
-          if (markNextOnRemove && /\S/.test(p.value)) { highlightNext = true; }
-          continue;
-        } else {
-          if (highlightNext && /\S/.test(p.value)) {
-            res += wrapSpan(p.value, cls);
-            highlightNext = false;
-          } else {
-            res += escapeHTML(p.value);
-          }
+        } else if (!p.removed) {
+          res += escapeHTML(p.value);
         }
       }
       return res;
     }
-    function wordDiffGreen(orig, mod) { return wordDiff(orig, mod, 'diff-added', charDiffGreen, false); }
-    function wordDiffRed(orig, mod) { return wordDiff(orig, mod, 'diff-removed', charDiffRed, true); }
+    function wordDiffRed(base, other) {
+      var parts = Diff.diffWordsWithSpace(base, other);
+      var res = '';
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        if (p.removed) {
+          var next = parts[i + 1];
+          if (next && next.added && /\S/.test(p.value) && /\S/.test(next.value)) {
+            res += charDiffRed(p.value, next.value);
+            i++;
+          } else {
+            res += wrapSpan(p.value, 'diff-removed');
+          }
+        } else if (!p.added) {
+          res += escapeHTML(p.value);
+        }
+      }
+      return res;
+    }
     function fullHighlight(line, cls) {
       var p = splitTrackLine(line);
       var res = escapeHTML(p.hash);
       if (p.cue)   res += wrapSpan(p.cue, cls);
       res += wrapSpan(p.text, cls);
       if (p.label) res += wrapSpan(p.label, cls);
-
       return res;
     }
     function findBestMatch(line, lines) {
@@ -772,7 +778,6 @@ function calcSimilarity(a, b) {
         // Column 1: Original vs Merged
         var html1 = lines1.map(function(line) {
           if (line === '') { return ''; }
-
           var p1 = splitTrackLine(line);
           if (p1.text === '?' || p1.text === '...') { return escapeHTML(line); }
           var match = findBestMatch(line, lines2);
@@ -784,7 +789,6 @@ function calcSimilarity(a, b) {
           var cueHtml = wordDiffRed(p1.cue, p2.cue); if (cueHtml) res += cueHtml;
           res += wordDiffRed(p1.text, p2.text);
           var labelHtml = wordDiffRed(p1.label, p2.label); if (labelHtml) res += labelHtml;
-
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html1)));
@@ -792,7 +796,6 @@ function calcSimilarity(a, b) {
         // Column 2: Merged vs Original
         var html2 = lines2.map(function(line) {
           if (line === '') { return ''; }
-
           var p2 = splitTrackLine(line);
           if (p2.text === '?' || p2.text === '...') { return escapeHTML(line); }
           var match = findBestMatch(line, lines1);
@@ -801,10 +804,9 @@ function calcSimilarity(a, b) {
           }
           var p1 = splitTrackLine(lines1[match.idx]);
           var res = escapeHTML(p2.hash);
-          var cueHtml = wordDiffGreen(p1.cue, p2.cue); if (cueHtml) res += cueHtml;
-          res += wordDiffGreen(p1.text, p2.text);
-          var labelHtml = wordDiffGreen(p1.label, p2.label); if (labelHtml) res += labelHtml;
-
+          var cueHtml = wordDiffGreen(p2.cue, p1.cue); if (cueHtml) res += cueHtml;
+          res += wordDiffGreen(p2.text, p1.text);
+          var labelHtml = wordDiffGreen(p2.label, p1.label); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html2)));
@@ -820,9 +822,9 @@ function calcSimilarity(a, b) {
           }
           var p2 = splitTrackLine(lines2[match.idx]);
           var res = escapeHTML(p3.hash);
-          var cueHtml = wordDiffRed(p2.cue, p3.cue); if (cueHtml) res += cueHtml;
-          res += wordDiffRed(p2.text, p3.text);
-          var labelHtml = wordDiffRed(p2.label, p3.label); if (labelHtml) res += labelHtml;
+          var cueHtml = wordDiffRed(p3.cue, p2.cue); if (cueHtml) res += cueHtml;
+          res += wordDiffRed(p3.text, p2.text);
+          var labelHtml = wordDiffRed(p3.label, p2.label); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html3)));
