@@ -308,10 +308,10 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 }
 
 // makeAvailableLinksListItem
-function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants ) {
+function makeAvailableLinksListItem( playerUrl, titleText="", usage="" ) {
     var playerUrl_clean = remove_mdbVariant_fromUrlStr( playerUrl ),
         playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
-        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
+        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled>';
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
@@ -583,7 +583,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants ) );
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used" ) );
 
                             if( showPlayerUrls ) {
                                 jNode.addClass("filled");
@@ -631,7 +631,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         // if domain of variable URLs add unused player URL to unclear list
                         if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused" ) );
 
                                 if( showPlayerUrls ) {
                                     jNode.addClass("filled");
@@ -645,7 +645,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear ) );
 
                                 if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
