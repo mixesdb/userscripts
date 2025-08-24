@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.24.1
+// @version      2025.08.24.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -32,7 +32,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
 // Threshold for fuzzy matching when merging track titles
-const similarityThreshold = 0.5;
+const similarityThreshold = 0.8;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -730,16 +730,21 @@ function calcSimilarity(a, b) {
     }
     function findBestMatch(line, lines) {
       var base = splitTrackLine(line);
-      var baseNorm = normalizeTrackTitlesForMatching(base.text);
+      var baseNorms = getTrackMatchNorms(base.text);
       var bestIdx = -1, bestScore = 0;
       for (var i = 0; i < lines.length; i++) {
         var other = splitTrackLine(lines[i]);
-        var otherNorm = normalizeTrackTitlesForMatching(other.text);
-        var score = calcSimilarity(otherNorm, baseNorm);
-        if (score > bestScore) { bestScore = score; bestIdx = i; }
+        var otherNorms = getTrackMatchNorms(other.text);
+        for (var b = 0; b < baseNorms.length; b++) {
+          for (var o = 0; o < otherNorms.length; o++) {
+            var score = calcSimilarity(otherNorms[o], baseNorms[b]);
+            if (score > bestScore) { bestScore = score; bestIdx = i; }
+          }
+        }
       }
       return { idx: bestIdx, score: bestScore };
     }
+  
     $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
