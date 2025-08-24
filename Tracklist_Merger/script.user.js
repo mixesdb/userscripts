@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.24.2
+// @version      2025.08.24.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -690,34 +690,46 @@ function calcSimilarity(a, b) {
       }
       return { hash: hash, cue: cue, text: rest, label: label };
     }
-    function wordDiffGreen(base, other) {
-      var parts = Diff.diffWordsWithSpace(other, base);
+    function charDiff(segBase, segOther, cls) {
+      var parts = Diff.diffChars(segOther, segBase);
       var res = '';
-      var buf = '';
       parts.forEach(function(p) {
         if (p.added) {
-          buf += p.value;
-        } else {
-          if (buf) { res += highlightWords(buf, 'diff-added'); buf = ''; }
-          if (!p.removed) { res += escapeHTML(p.value); }
+          res += highlightWords(p.value, cls);
+        } else if (!p.removed) {
+          res += escapeHTML(p.value);
         }
       });
-      if (buf) { res += highlightWords(buf, 'diff-added'); }
       return res;
     }
-    function wordDiffRed(base, other) {
-      var parts = Diff.diffWordsWithSpace(base, other);
+    function wordDiff(base, other, cls) {
+      var parts = Diff.diffWordsWithSpace(other, base);
       var res = '';
-      var buf = '';
-      parts.forEach(function(p) {
-        if (p.removed) {
-          buf += p.value;
-        } else {
-          if (buf) { res += highlightWords(buf, 'diff-removed'); buf = ''; }
-          if (!p.added) { res += escapeHTML(p.value); }
+      for (var i = 0; i < parts.length; ) {
+        var p = parts[i];
+        var next = parts[i + 1];
+
+        // Handle swapped order: added followed by removed
+        if (p.added && next && next.removed && !/\s/.test(p.value) && !/\s/.test(next.value)) {
+          res += charDiff(p.value, next.value, cls);
+          i += 2;
+          continue;
         }
-      });
-      if (buf) { res += highlightWords(buf, 'diff-removed'); }
+
+        // Handle original order: removed followed by added
+        if (p.removed && next && next.added && !/\s/.test(p.value) && !/\s/.test(next.value)) {
+          res += charDiff(next.value, p.value, cls);
+          i += 2;
+          continue;
+        }
+
+        if (p.added) {
+          res += highlightWords(p.value, cls);
+        } else if (!p.removed) {
+          res += escapeHTML(p.value);
+        }
+        i++;
+      }
       return res;
     }
     function fullHighlight(line, cls) {
@@ -744,7 +756,6 @@ function calcSimilarity(a, b) {
       }
       return { idx: bestIdx, score: bestScore };
     }
-  
     $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
@@ -770,9 +781,9 @@ function calcSimilarity(a, b) {
           }
           var p2 = splitTrackLine(lines2[match.idx]);
           var res = escapeHTML(p1.hash);
-          var cueHtml = wordDiffRed(p1.cue, p2.cue); if (cueHtml) res += cueHtml;
-          res += wordDiffRed(p1.text, p2.text);
-          var labelHtml = wordDiffRed(p1.label, p2.label); if (labelHtml) res += labelHtml;
+          var cueHtml = wordDiff(p1.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
+          res += wordDiff(p1.text, p2.text, 'diff-removed');
+          var labelHtml = wordDiff(p1.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html1)));
@@ -788,9 +799,9 @@ function calcSimilarity(a, b) {
           }
           var p1 = splitTrackLine(lines1[match.idx]);
           var res = escapeHTML(p2.hash);
-          var cueHtml = wordDiffGreen(p2.cue, p1.cue); if (cueHtml) res += cueHtml;
-          res += wordDiffGreen(p2.text, p1.text);
-          var labelHtml = wordDiffGreen(p2.label, p1.label); if (labelHtml) res += labelHtml;
+          var cueHtml = wordDiff(p2.cue, p1.cue, 'diff-added'); if (cueHtml) res += cueHtml;
+          res += wordDiff(p2.text, p1.text, 'diff-added');
+          var labelHtml = wordDiff(p2.label, p1.label, 'diff-added'); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html2)));
@@ -806,9 +817,9 @@ function calcSimilarity(a, b) {
           }
           var p2 = splitTrackLine(lines2[match.idx]);
           var res = escapeHTML(p3.hash);
-          var cueHtml = wordDiffRed(p3.cue, p2.cue); if (cueHtml) res += cueHtml;
-          res += wordDiffRed(p3.text, p2.text);
-          var labelHtml = wordDiffRed(p3.label, p2.label); if (labelHtml) res += labelHtml;
+          var cueHtml = wordDiff(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
+          res += wordDiff(p3.text, p2.text, 'diff-removed');
+          var labelHtml = wordDiff(p3.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html3)));
