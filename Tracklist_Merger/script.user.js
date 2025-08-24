@@ -667,12 +667,10 @@ function calcSimilarity(a, b) {
 (function($) {
     function escapeHTML(s) { return $('<div>').text(s).html(); }
     function highlightWords(val, cls) {
-      return val.split(/(\s+)/).map(function(part) {
-        if (!part) return '';
-        return /^\s+$/.test(part)
-          ? escapeHTML(part)
-          : '<span class="' + cls + '">' + escapeHTML(part) + '</span>';
-      }).join('');
+      if (!val) return '';
+      if (/^\s+$/.test(val)) return escapeHTML(val);
+      var m = val.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      return escapeHTML(m[1]) + '<span class="' + cls + '">' + escapeHTML(m[2]) + '</span>' + escapeHTML(m[3]);
     }
     function splitTrackLine(line) {
       var hash = '', cue = '', label = '', rest = line;
@@ -692,55 +690,34 @@ function calcSimilarity(a, b) {
       }
       return { hash: hash, cue: cue, text: rest, label: label };
     }
-    function charDiffGreen(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
-        if (p.added)   return highlightWords(p.value, 'diff-added');
-        if (p.removed) return '';
-        return escapeHTML(p.value);
-      }).join('');
-    }
-    function charDiffRed(orig, mod) {
-      return Diff.diffChars(orig, mod).map(function(p) {
-        if (p.removed) return highlightWords(p.value, 'diff-removed');
-        if (p.added)   return '';
-        return escapeHTML(p.value);
-      }).join('');
-    }
     function wordDiffGreen(base, other) {
       var parts = Diff.diffWordsWithSpace(other, base);
       var res = '';
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
+      var buf = '';
+      parts.forEach(function(p) {
         if (p.added) {
-          var prev = parts[i - 1];
-          if (prev && prev.removed && /\S/.test(prev.value) && /\S/.test(p.value)) {
-            res += charDiffGreen(prev.value, p.value);
-          } else {
-            res += highlightWords(p.value, 'diff-added');
-          }
-        } else if (!p.removed) {
-          res += escapeHTML(p.value);
+          buf += p.value;
+        } else {
+          if (buf) { res += highlightWords(buf, 'diff-added'); buf = ''; }
+          if (!p.removed) { res += escapeHTML(p.value); }
         }
-      }
+      });
+      if (buf) { res += highlightWords(buf, 'diff-added'); }
       return res;
     }
     function wordDiffRed(base, other) {
       var parts = Diff.diffWordsWithSpace(base, other);
       var res = '';
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
+      var buf = '';
+      parts.forEach(function(p) {
         if (p.removed) {
-          var next = parts[i + 1];
-          if (next && next.added && /\S/.test(p.value) && /\S/.test(next.value)) {
-            res += charDiffRed(p.value, next.value);
-            i++;
-          } else {
-            res += highlightWords(p.value, 'diff-removed');
-          }
-        } else if (!p.added) {
-          res += escapeHTML(p.value);
+          buf += p.value;
+        } else {
+          if (buf) { res += highlightWords(buf, 'diff-removed'); buf = ''; }
+          if (!p.added) { res += escapeHTML(p.value); }
         }
-      }
+      });
+      if (buf) { res += highlightWords(buf, 'diff-removed'); }
       return res;
     }
     function fullHighlight(line, cls) {
