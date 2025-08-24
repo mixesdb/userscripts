@@ -666,11 +666,13 @@ function calcSimilarity(a, b) {
 // New diff logic
 (function($) {
     function escapeHTML(s) { return $('<div>').text(s).html(); }
-    function wrapSpan(val, cls) {
-      var lead = val.match(/^\s*/)[0];
-      var trail = val.match(/\s*$/)[0];
-      var core = val.slice(lead.length, val.length - trail.length);
-      return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
+    function highlightWords(val, cls) {
+      return val.split(/(\s+)/).map(function(part) {
+        if (!part) return '';
+        return /^\s+$/.test(part)
+          ? escapeHTML(part)
+          : '<span class="' + cls + '">' + escapeHTML(part) + '</span>';
+      }).join('');
     }
     function splitTrackLine(line) {
       var hash = '', cue = '', label = '', rest = line;
@@ -692,14 +694,14 @@ function calcSimilarity(a, b) {
     }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
-        if (p.added)   return wrapSpan(p.value, 'diff-added');
+        if (p.added)   return highlightWords(p.value, 'diff-added');
         if (p.removed) return '';
         return escapeHTML(p.value);
       }).join('');
     }
     function charDiffRed(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
-        if (p.removed) return wrapSpan(p.value, 'diff-removed');
+        if (p.removed) return highlightWords(p.value, 'diff-removed');
         if (p.added)   return '';
         return escapeHTML(p.value);
       }).join('');
@@ -714,7 +716,7 @@ function calcSimilarity(a, b) {
           if (prev && prev.removed && /\S/.test(prev.value) && /\S/.test(p.value)) {
             res += charDiffGreen(prev.value, p.value);
           } else {
-            res += wrapSpan(p.value, 'diff-added');
+            res += highlightWords(p.value, 'diff-added');
           }
         } else if (!p.removed) {
           res += escapeHTML(p.value);
@@ -733,7 +735,7 @@ function calcSimilarity(a, b) {
             res += charDiffRed(p.value, next.value);
             i++;
           } else {
-            res += wrapSpan(p.value, 'diff-removed');
+            res += highlightWords(p.value, 'diff-removed');
           }
         } else if (!p.added) {
           res += escapeHTML(p.value);
@@ -744,9 +746,9 @@ function calcSimilarity(a, b) {
     function fullHighlight(line, cls) {
       var p = splitTrackLine(line);
       var res = escapeHTML(p.hash);
-      if (p.cue)   res += wrapSpan(p.cue, cls);
-      res += wrapSpan(p.text, cls);
-      if (p.label) res += wrapSpan(p.label, cls);
+      if (p.cue)   res += highlightWords(p.cue, cls);
+      res += highlightWords(p.text, cls);
+      if (p.label) res += highlightWords(p.label, cls);
       return res;
     }
     function findBestMatch(line, lines) {
