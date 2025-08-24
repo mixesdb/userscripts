@@ -680,15 +680,16 @@ function calcSimilarity(a, b) {
       }
       var cueMatch = rest.match(/^(\s*\[[^\]]+\]\s*)/);
       if (cueMatch) {
-        cue = cueMatch[1].trim();
-        rest = rest.slice(cueMatch[1].length);
+        cue = cueMatch[0];
+        rest = rest.slice(cueMatch[0].length);
       }
       var labelMatch = rest.match(/(\s*\[[^\]]+\]\s*)$/);
       if (labelMatch) {
-        label = labelMatch[1].trim();
-        rest = rest.slice(0, rest.length - labelMatch[1].length);
+        label = labelMatch[0];
+        rest = rest.slice(0, rest.length - labelMatch[0].length);
       }
-      return { hash: hash, cue: cue, text: rest.trim(), label: label };
+      return { hash: hash, cue: cue, text: rest, label: label };
+
     }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
@@ -736,9 +737,10 @@ function calcSimilarity(a, b) {
     function fullHighlight(line, cls) {
       var p = splitTrackLine(line);
       var res = escapeHTML(p.hash);
-      if (p.cue)   res += wrapSpan(p.cue, cls) + ' ';
+      if (p.cue)   res += wrapSpan(p.cue, cls);
       res += wrapSpan(p.text, cls);
-      if (p.label) res += ' ' + wrapSpan(p.label, cls);
+      if (p.label) res += wrapSpan(p.label, cls);
+
       return res;
     }
     function findBestMatch(line, lines) {
@@ -769,7 +771,8 @@ function calcSimilarity(a, b) {
 
         // Column 1: Original vs Merged
         var html1 = lines1.map(function(line) {
-          if (line.trim() === '') { return ''; }
+          if (line === '') { return ''; }
+
           var p1 = splitTrackLine(line);
           if (p1.text === '?' || p1.text === '...') { return escapeHTML(line); }
           var match = findBestMatch(line, lines2);
@@ -778,16 +781,18 @@ function calcSimilarity(a, b) {
           }
           var p2 = splitTrackLine(lines2[match.idx]);
           var res = escapeHTML(p1.hash);
-          var cueHtml = wordDiffRed(p1.cue, p2.cue); if (cueHtml) res += cueHtml + ' ';
+          var cueHtml = wordDiffRed(p1.cue, p2.cue); if (cueHtml) res += cueHtml;
           res += wordDiffRed(p1.text, p2.text);
-          var labelHtml = wordDiffRed(p1.label, p2.label); if (labelHtml) res += ' ' + labelHtml;
+          var labelHtml = wordDiffRed(p1.label, p2.label); if (labelHtml) res += labelHtml;
+
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html1)));
 
         // Column 2: Merged vs Original
         var html2 = lines2.map(function(line) {
-          if (line.trim() === '') { return ''; }
+          if (line === '') { return ''; }
+
           var p2 = splitTrackLine(line);
           if (p2.text === '?' || p2.text === '...') { return escapeHTML(line); }
           var match = findBestMatch(line, lines1);
@@ -796,16 +801,17 @@ function calcSimilarity(a, b) {
           }
           var p1 = splitTrackLine(lines1[match.idx]);
           var res = escapeHTML(p2.hash);
-          var cueHtml = wordDiffGreen(p1.cue, p2.cue); if (cueHtml) res += cueHtml + ' ';
+          var cueHtml = wordDiffGreen(p1.cue, p2.cue); if (cueHtml) res += cueHtml;
           res += wordDiffGreen(p1.text, p2.text);
-          var labelHtml = wordDiffGreen(p1.label, p2.label); if (labelHtml) res += ' ' + labelHtml;
+          var labelHtml = wordDiffGreen(p1.label, p2.label); if (labelHtml) res += labelHtml;
+
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html2)));
 
         // Column 3: Candidate vs Merged
         var html3 = lines3.map(function(line) {
-          if (line.trim() === '') { return ''; }
+          if (line === '') { return ''; }
           var p3 = splitTrackLine(line);
           if (p3.text === '?' || p3.text === '...') { return escapeHTML(line); }
           var match = findBestMatch(line, lines2);
@@ -814,9 +820,9 @@ function calcSimilarity(a, b) {
           }
           var p2 = splitTrackLine(lines2[match.idx]);
           var res = escapeHTML(p3.hash);
-          var cueHtml = wordDiffRed(p2.cue, p3.cue); if (cueHtml) res += cueHtml + ' ';
+          var cueHtml = wordDiffRed(p2.cue, p3.cue); if (cueHtml) res += cueHtml;
           res += wordDiffRed(p2.text, p3.text);
-          var labelHtml = wordDiffRed(p2.label, p3.label); if (labelHtml) res += ' ' + labelHtml;
+          var labelHtml = wordDiffRed(p2.label, p3.label); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html3)));
