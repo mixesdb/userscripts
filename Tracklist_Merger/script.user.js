@@ -663,6 +663,7 @@ function calcSimilarity(a, b) {
   return maxLen === 0 ? 1 : (maxLen - dp[m][n]) / maxLen;
 }
 
+// New diff logic
 (function($) {
     function escapeHTML(s) { return $('<div>').text(s).html(); }
     function wrapSpan(val, cls) {
@@ -671,19 +672,23 @@ function calcSimilarity(a, b) {
       var core = val.slice(lead.length, val.length - trail.length);
       return lead + (core ? '<span class="' + cls + '">' + escapeHTML(core) + '</span>' : '') + trail;
     }
-    function extractPrefix(line) {
-      var prefix = '';
-      var rest = line;
+    function splitTrackLine(line) {
+      var hash = '', cue = '', label = '', rest = line;
       if (rest.startsWith('# ')) {
-        prefix += '# ';
+        hash = '# ';
         rest = rest.slice(2);
       }
-      var cueMatch = rest.match(/^(\s*\[.*?\]\s*)/);
+      var cueMatch = rest.match(/^(\s*\[[^\]]+\]\s*)/);
       if (cueMatch) {
-        prefix += cueMatch[1];
+        cue = cueMatch[1].trim();
         rest = rest.slice(cueMatch[1].length);
       }
-      return { prefix: prefix, core: rest };
+      var labelMatch = rest.match(/(\s*\[[^\]]+\]\s*)$/);
+      if (labelMatch) {
+        label = labelMatch[1].trim();
+        rest = rest.slice(0, rest.length - labelMatch[1].length);
+      }
+      return { hash: hash, cue: cue, text: rest.trim(), label: label };
     }
     function charDiffGreen(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
@@ -694,16 +699,14 @@ function calcSimilarity(a, b) {
     }
     function charDiffRed(orig, mod) {
       return Diff.diffChars(orig, mod).map(function(p) {
-        if (p.added)   return wrapSpan(p.value, 'diff-removed');
-        if (p.removed) return '';
+        if (p.removed) return wrapSpan(p.value, 'diff-removed');
+        if (p.added)   return '';
         return escapeHTML(p.value);
       }).join('');
     }
     function wordDiff(orig, mod, cls, charDiffFn, markNextOnRemove) {
       var parts = Diff.diffWordsWithSpace(orig, mod);
-      var res = '';
-      var highlightNext = false;
-
+      var res = '', highlightNext = false;
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
         if (p.added) {
@@ -715,9 +718,7 @@ function calcSimilarity(a, b) {
           }
           highlightNext = false;
         } else if (p.removed) {
-          if (markNextOnRemove && /\S/.test(p.value)) {
-            highlightNext = true;
-          }
+          if (markNextOnRemove && /\S/.test(p.value)) { highlightNext = true; }
           continue;
         } else {
           if (highlightNext && /\S/.test(p.value)) {
@@ -726,28 +727,39 @@ function calcSimilarity(a, b) {
           } else {
             res += escapeHTML(p.value);
           }
-
         }
       }
       return res;
     }
     function wordDiffGreen(orig, mod) { return wordDiff(orig, mod, 'diff-added', charDiffGreen, false); }
     function wordDiffRed(orig, mod) { return wordDiff(orig, mod, 'diff-removed', charDiffRed, true); }
-
+    function fullHighlight(line, cls) {
+      var p = splitTrackLine(line);
+      var res = escapeHTML(p.hash);
+      if (p.cue)   res += wrapSpan(p.cue, cls) + ' ';
+      res += wrapSpan(p.text, cls);
+      if (p.label) res += ' ' + wrapSpan(p.label, cls);
+      return res;
+    }
+    function findBestMatch(line, lines) {
+      var base = splitTrackLine(line);
+      var baseNorm = normalizeTrackTitlesForMatching(base.text);
+      var bestIdx = -1, bestScore = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var other = splitTrackLine(lines[i]);
+        var otherNorm = normalizeTrackTitlesForMatching(other.text);
+        var score = calcSimilarity(otherNorm, baseNorm);
+        if (score > bestScore) { bestScore = score; bestIdx = i; }
+      }
+      return { idx: bestIdx, score: bestScore };
+    }
     $.fn.showTracklistDiffs = function(opts) {
-
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
-
-      // Ensure each column string ends with a newline so that the
-      // corresponding <pre> elements have matching heights. Without this the
-      // Candidate column could appear one row shorter when its input lacked a
-      // trailing line break.
       if (text1.slice(-1) !== '\n') { text1 += '\n'; }
       if (text2.slice(-1) !== '\n') { text2 += '\n'; }
       if (text3.slice(-1) !== '\n') { text3 += '\n'; }
-
       var lines1 = text1.split('\n');
       var lines2 = text2.split('\n');
       var lines3 = text3.split('\n');
@@ -755,168 +767,63 @@ function calcSimilarity(a, b) {
         var $container = $(this).empty();
         var $row = $('<tr id="diffContainer">');
 
-        // Column 1: Original vs Merged (red removals, whole-track highlighting)
+        // Column 1: Original vs Merged
         var html1 = lines1.map(function(line) {
           if (line.trim() === '') { return ''; }
-          var parts = extractPrefix(line);
-          var prefix = parts.prefix;
-          var core = parts.core;
-          var coreTrim = core.trim();
-          if (coreTrim === '?' || coreTrim === '...') {
-            return escapeHTML(line);
+          var p1 = splitTrackLine(line);
+          if (p1.text === '?' || p1.text === '...') { return escapeHTML(line); }
+          var match = findBestMatch(line, lines2);
+          if (match.score === 0 || match.idx === -1) {
+            return fullHighlight(line, 'diff-removed');
           }
-          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
-          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
-          var bestScore = 0;
-          for (var j = 0; j < lines2.length; j++) {
-            var cand = extractPrefix(lines2[j]).core;
-            var candTrim = cand.trim();
-            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
-            var score = calcSimilarity(candNormBase, coreNormBase);
-            if (score > bestScore) {
-              bestScore = score;
-            }
-          }
-          if (bestScore < similarityThreshold) {
-            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
-            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
-            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-removed');
-          }
-          return escapeHTML(line);
+          var p2 = splitTrackLine(lines2[match.idx]);
+          var res = escapeHTML(p1.hash);
+          var cueHtml = wordDiffRed(p1.cue, p2.cue); if (cueHtml) res += cueHtml + ' ';
+          res += wordDiffRed(p1.text, p2.text);
+          var labelHtml = wordDiffRed(p1.label, p2.label); if (labelHtml) res += ' ' + labelHtml;
+          return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html1)));
 
-        // Column 2: Merged vs Original (green additions, normalized matching)
+        // Column 2: Merged vs Original
         var html2 = lines2.map(function(line) {
-          var parts = extractPrefix(line);
-          var prefix = parts.prefix;
-          var core = parts.core;
-          var coreTrim = core.trim();
-          if (coreTrim === '?' || coreTrim === '...') {
-            return escapeHTML(line);
+          if (line.trim() === '') { return ''; }
+          var p2 = splitTrackLine(line);
+          if (p2.text === '?' || p2.text === '...') { return escapeHTML(line); }
+          var match = findBestMatch(line, lines1);
+          if (match.score === 0 || match.idx === -1) {
+            return fullHighlight(line, 'diff-added');
           }
-          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
-          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
-          var bestIdx = -1, bestScore = 0;
-          for (var j = 0; j < lines1.length; j++) {
-            var cand = extractPrefix(lines1[j]).core;
-            var candTrim = cand.trim();
-            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
-            var score = calcSimilarity(candNormBase, coreNormBase);
-            if (score > bestScore) {
-              bestScore = score;
-              bestIdx = j;
-            }
-          }
-          var origParts = bestIdx >= 0 ? extractPrefix(lines1[bestIdx]) : { prefix: '', core: '' };
-          var origPrefix = origParts.prefix;
-          var origCore = origParts.core;
-          var origCoreTrim = origCore.trim();
-          if (!origCore) {
-            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
-            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
-            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-added');
-          }
-          var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
-          var origPrefixNoHash = origPrefix.startsWith('# ') ? origPrefix.slice(2) : origPrefix;
-          var prefixHtml = escapeHTML(prefix.startsWith('# ') ? '# ' : '') + wordDiffGreen(origPrefixNoHash, prefixNoHash);
-          var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
-          var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
-          var coreBase = core;
-          var origBase = origCore;
-          var labelHtml = '';
-          if (coreLabel) {
-            var label = coreLabel[1];
-            coreBase = core.replace(coreLabel[1], '');
-            var origLabelText = origLabel ? origLabel[1] : '';
-            origBase = origCore.replace(origLabelText, '');
-            if (!origLabelText) {
-              labelHtml = wordDiffGreen('', label);
-            } else if (origLabelText.toLowerCase() === label.toLowerCase()) {
-              labelHtml = escapeHTML(label);
-            } else {
-              labelHtml = wordDiffGreen(origLabelText, label);
-            }
-          }
-          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase() && origPrefixNoHash === prefixNoHash) {
-            return escapeHTML(line);
-          }
-          return prefixHtml + wordDiffGreen(origBase, coreBase) + labelHtml;
+          var p1 = splitTrackLine(lines1[match.idx]);
+          var res = escapeHTML(p2.hash);
+          var cueHtml = wordDiffGreen(p1.cue, p2.cue); if (cueHtml) res += cueHtml + ' ';
+          res += wordDiffGreen(p1.text, p2.text);
+          var labelHtml = wordDiffGreen(p1.label, p2.label); if (labelHtml) res += ' ' + labelHtml;
+          return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html2)));
 
-        // Column 3: Candidate vs Merged (red extras, normalized matching)
+        // Column 3: Candidate vs Merged
         var html3 = lines3.map(function(line) {
-          var parts = extractPrefix(line);
-          var prefix = parts.prefix;
-          var core = parts.core;
-          var coreTrim = core.trim();
-          if (coreTrim === '?' || coreTrim === '...') {
-            return escapeHTML(line);
+          if (line.trim() === '') { return ''; }
+          var p3 = splitTrackLine(line);
+          if (p3.text === '?' || p3.text === '...') { return escapeHTML(line); }
+          var match = findBestMatch(line, lines2);
+          if (match.score === 0 || match.idx === -1) {
+            return fullHighlight(line, 'diff-removed');
           }
-          var coreNoLabel = coreTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
-          var coreNormBase = normalizeTrackTitlesForMatching(coreNoLabel);
-          var bestIdx = -1, bestScore = 0;
-          for (var j = 0; j < lines2.length; j++) {
-            var cand = extractPrefix(lines2[j]).core;
-            var candTrim = cand.trim();
-            var candNoLabel = candTrim.replace(/\s*\[[^\]]+\]\s*$/, '');
-            var candNormBase = normalizeTrackTitlesForMatching(candNoLabel);
-            var score = calcSimilarity(candNormBase, coreNormBase);
-            if (score > bestScore) {
-              bestScore = score;
-              bestIdx = j;
-            }
-          }
-          var origParts = bestIdx >= 0 ? extractPrefix(lines2[bestIdx]) : { prefix: '', core: '' };
-          var origPrefix = origParts.prefix;
-          var origCore = origParts.core;
-          var origCoreTrim = origCore.trim();
-          if (!origCore) {
-            var hashOnly = prefix.startsWith('# ') ? '# ' : '';
-            var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
-            return escapeHTML(hashOnly) + wrapSpan(prefixNoHash + core, 'diff-removed');
-          }
-          var prefixNoHash = prefix.startsWith('# ') ? prefix.slice(2) : prefix;
-          var origPrefixNoHash = origPrefix.startsWith('# ') ? origPrefix.slice(2) : origPrefix;
-          var prefixHtml = escapeHTML(prefix.startsWith('# ') ? '# ' : '') + wordDiffRed(origPrefixNoHash, prefixNoHash);
-          var coreLabel = core.match(/(\s*\[[^\]]+\]\s*)$/);
-          var origLabel = origCore && origCore.match(/(\s*\[[^\]]+\]\s*)$/);
-          var coreBase = core;
-          var origBase = origCore;
-          var labelHtml = '';
-          if (coreLabel) {
-            var label = coreLabel[1];
-            coreBase = core.replace(coreLabel[1], '');
-            var origLabelText = origLabel ? origLabel[1] : '';
-            origBase = origCore.replace(origLabelText, '');
-            if (!origLabelText) {
-              labelHtml = wordDiffRed('', label);
-            } else if (origLabelText.toLowerCase() === label.toLowerCase()) {
-              labelHtml = escapeHTML(label);
-            } else {
-              labelHtml = wordDiffRed(origLabelText, label);
-            }
-          }
-          if (origCore && origCoreTrim.toLowerCase() === coreTrim.toLowerCase() && origPrefixNoHash === prefixNoHash) {
-            return escapeHTML(line);
-          }
-          return prefixHtml + wordDiffRed(origBase, coreBase) + labelHtml;
+          var p2 = splitTrackLine(lines2[match.idx]);
+          var res = escapeHTML(p3.hash);
+          var cueHtml = wordDiffRed(p2.cue, p3.cue); if (cueHtml) res += cueHtml + ' ';
+          res += wordDiffRed(p2.text, p3.text);
+          var labelHtml = wordDiffRed(p2.label, p3.label); if (labelHtml) res += ' ' + labelHtml;
+          return res;
         }).join('\n');
-
         $row.append($('<td>').append($('<pre>').html(html3)));
 
-        // Ensure each <pre> ends with a newline so that height calculations
-        // include the final line. Without this, some browsers may measure the
-        // scrollHeight one line too short, causing the Candidate column to crop
-        // its last row.
         $row.find('pre').each(function() {
           var $pre = $(this);
-          if (!$pre.text().endsWith('\n')) {
-            $pre.append('\n');
-          }
+          if (!$pre.text().endsWith('\n')) { $pre.append('\n'); }
         });
 
         $container.replaceWith($row);
