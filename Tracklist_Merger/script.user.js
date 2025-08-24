@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.24.3
+// @version      2025.08.24.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -705,28 +705,31 @@ function calcSimilarity(a, b) {
     function wordDiff(base, other, cls) {
       var parts = Diff.diffWordsWithSpace(other, base);
       var res = '';
-      var buf = '';
-      for (var i = 0; i < parts.length; i++) {
+      for (var i = 0; i < parts.length; ) {
         var p = parts[i];
-        if (p.added) {
-          var next = parts[i + 1];
-          if (next && next.removed) {
-            if (buf) { res += highlightWords(buf, cls); buf = ''; }
-            if (!/\s/.test(p.value) && !/\s/.test(next.value)) {
-              res += charDiff(p.value, next.value, cls);
-            } else {
-              res += highlightWords(p.value, cls);
-            }
-            i++;
-          } else {
-            buf += p.value;
-          }
-        } else {
-          if (buf) { res += highlightWords(buf, cls); buf = ''; }
-          if (!p.removed) { res += escapeHTML(p.value); }
+        var next = parts[i + 1];
+
+        // Handle swapped order: added followed by removed
+        if (p.added && next && next.removed && !/\s/.test(p.value) && !/\s/.test(next.value)) {
+          res += charDiff(p.value, next.value, cls);
+          i += 2;
+          continue;
         }
+
+        // Handle original order: removed followed by added
+        if (p.removed && next && next.added && !/\s/.test(p.value) && !/\s/.test(next.value)) {
+          res += charDiff(next.value, p.value, cls);
+          i += 2;
+          continue;
+        }
+
+        if (p.added) {
+          res += highlightWords(p.value, cls);
+        } else if (!p.removed) {
+          res += escapeHTML(p.value);
+        }
+        i++;
       }
-      if (buf) { res += highlightWords(buf, cls); }
       return res;
     }
     function fullHighlight(line, cls) {
