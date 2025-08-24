@@ -6,7 +6,7 @@
         position: absolute;
         width: 5px;
         cursor: col-resize;
-        background: #fff;
+        background: transparent;
         z-index: 10;
     }
 
@@ -32,5 +32,12 @@
                 margin: 0;
             }
         }
+    }
+
+    & #diffContainer td.identical-msg {
+        text-align: center;
+        font-style: italic;
+        font-size: 1.2em;
+        color: #777;
     }
 }
