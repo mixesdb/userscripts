@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.25.4
+// @version      2025.08.25.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -31,6 +31,8 @@ var cacheVersion = 5,
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
+// Threshold for fuzzy matching when merging track titles
+const similarityThreshold = 0.8;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -535,21 +537,15 @@ function mergeTracklists(original_arr, candidate_arr) {
                 }
             }
 
-            // 2) Fallback to fuzzy matching based on best similarity
+            // 2) Fallback to fuzzy matching
             if (!origItem) {
-                let bestScore = 0;
-                let bestItem = null;
-                for (const candNorm of candNorms) {
+                outer: for (const candNorm of candNorms) {
                     for (const entry of fuzzyList) {
-                        const score = calcSimilarity(entry.norm, candNorm);
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestItem = entry.item;
+                        if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
+                            origItem = entry.item;
+                            break outer;
                         }
                     }
-                }
-                if (bestScore > 0) {
-                    origItem = bestItem;
                 }
             }
         }
