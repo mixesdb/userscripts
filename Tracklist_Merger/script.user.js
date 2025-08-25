@@ -714,7 +714,7 @@ function calcSimilarity(a, b) {
           if (p.value.toLowerCase() === next.value.toLowerCase()) {
             res += escapeHTML(p.value);
           } else {
-            res += charDiff(p.value, next.value, cls);
+            res += highlightWords(p.value, cls);
           }
           i += 2;
           continue;
@@ -725,7 +725,7 @@ function calcSimilarity(a, b) {
           if (next.value.toLowerCase() === p.value.toLowerCase()) {
             res += escapeHTML(next.value);
           } else {
-            res += charDiff(next.value, p.value, cls);
+            res += highlightWords(next.value, cls);
           }
           i += 2;
           continue;
