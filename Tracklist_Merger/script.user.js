@@ -31,8 +31,6 @@ var cacheVersion = 5,
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 const tid_minGap = 3;
-// Threshold for fuzzy matching when merging track titles
-const similarityThreshold = 0.8;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -537,15 +535,21 @@ function mergeTracklists(original_arr, candidate_arr) {
                 }
             }
 
-            // 2) Fallback to fuzzy matching
+            // 2) Fallback to fuzzy matching based on best similarity
             if (!origItem) {
-                outer: for (const candNorm of candNorms) {
+                let bestScore = 0;
+                let bestItem = null;
+                for (const candNorm of candNorms) {
                     for (const entry of fuzzyList) {
-                        if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
-                            origItem = entry.item;
-                            break outer;
+                        const score = calcSimilarity(entry.norm, candNorm);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestItem = entry.item;
                         }
                     }
+                }
+                if (bestScore > 0) {
+                    origItem = bestItem;
                 }
             }
         }
