@@ -742,6 +742,26 @@ function calcSimilarity(a, b) {
       if (buffer) { res += highlightWords(buffer, cls); }
       return res;
     }
+    function wordDiffSimple(base, other, cls) {
+      if (!base) return '';
+      var tokens = base.split(/(\s+)/);
+      var otherWords = (other || '').trim().split(/\s+/);
+      var idx = 0;
+      var res = '';
+      tokens.forEach(function(tok) {
+        if (/^\s+$/.test(tok)) {
+          res += escapeHTML(tok);
+        } else {
+          var ow = otherWords[idx++] || '';
+          if (tok.toLowerCase() === ow.toLowerCase()) {
+            res += escapeHTML(tok);
+          } else {
+            res += highlightWords(tok, cls);
+          }
+        }
+      });
+      return res;
+    }
     function fullHighlight(line, cls) {
       var p = splitTrackLine(line);
       var res = escapeHTML(p.hash);
@@ -829,9 +849,9 @@ function calcSimilarity(a, b) {
           var otherLine = mergedPool.splice(match.idx, 1)[0];
           var p2 = splitTrackLine(otherLine);
           var res = escapeHTML(p3.hash);
-          var cueHtml = wordDiff(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
-          res += wordDiff(p3.text, p2.text, 'diff-removed');
-          var labelHtml = wordDiff(p3.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
+          var cueHtml = wordDiffSimple(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
+          res += wordDiffSimple(p3.text, p2.text, 'diff-removed');
+          var labelHtml = wordDiffSimple(p3.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html3)));
