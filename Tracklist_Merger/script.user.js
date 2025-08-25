@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.25.5
+// @version      2025.08.25.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -705,39 +705,57 @@ function calcSimilarity(a, b) {
     function wordDiff(base, other, cls) {
       var parts = Diff.diffWordsWithSpace(other, base);
       var res = '';
-      for (var i = 0; i < parts.length; ) {
+      for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
-        var next = parts[i + 1];
 
-        // Handle swapped order: added followed by removed
-        if (p.added && next && next.removed && !/\s/.test(p.value) && !/\s/.test(next.value)) {
-          if (p.value.toLowerCase() === next.value.toLowerCase()) {
-            res += escapeHTML(p.value);
+        if (p.added) {
+          var pair = null;
+          var next = parts[i + 1];
+          var prev = parts[i - 1];
+
+          // Swapped order: added followed by removed
+          if (next && next.removed && !/\s/.test(p.value) && !/\s/.test(next.value)) {
+            pair = next;
+            i++; // skip the removed part
+          }
+          // Original order: removed before added
+          else if (prev && prev.removed && !/\s/.test(p.value) && !/\s/.test(prev.value)) {
+            pair = prev;
+          }
+
+          if (pair) {
+            if (p.value.toLowerCase() === pair.value.toLowerCase()) {
+              res += escapeHTML(p.value);
+            } else {
+              res += charDiff(p.value, pair.value, cls);
+            }
           } else {
             res += highlightWords(p.value, cls);
           }
-          i += 2;
-          continue;
-        }
-
-        // Handle original order: removed followed by added
-        if (p.removed && next && next.added && !/\s/.test(p.value) && !/\s/.test(next.value)) {
-          if (next.value.toLowerCase() === p.value.toLowerCase()) {
-            res += escapeHTML(next.value);
-          } else {
-            res += highlightWords(next.value, cls);
-          }
-          i += 2;
-          continue;
-        }
-
-        if (p.added) {
-          res += highlightWords(p.value, cls);
         } else if (!p.removed) {
           res += escapeHTML(p.value);
         }
-        i++;
       }
+      return res;
+    }
+    function wordDiffSimple(base, other, cls) {
+      if (!base) return '';
+      var tokens = base.split(/(\s+)/);
+      var otherWords = (other || '').trim().split(/\s+/);
+      var idx = 0;
+      var res = '';
+      tokens.forEach(function(tok) {
+        if (/^\s+$/.test(tok)) {
+          res += escapeHTML(tok);
+        } else {
+          var ow = otherWords[idx++] || '';
+          if (tok.toLowerCase() === ow.toLowerCase()) {
+            res += escapeHTML(tok);
+          } else {
+            res += highlightWords(tok, cls);
+          }
+        }
+      });
       return res;
     }
     function fullHighlight(line, cls) {
@@ -815,19 +833,19 @@ function calcSimilarity(a, b) {
         $row.append($('<td>').append($('<pre>').html(html2)));
 
         // Column 3: Candidate vs Merged
-        var html3 = lines3.map(function(line) {
+        var html3 = lines3.map(function(line, idx) {
           if (line === '') { return ''; }
           var p3 = splitTrackLine(line);
           if (p3.text === '?' || p3.text === '...') { return escapeHTML(line); }
-          var match = findBestMatch(line, lines2);
-          if (match.score === 0 || match.idx === -1) {
+          var otherLine = lines2[idx];
+          if (otherLine === undefined) {
             return fullHighlight(line, 'diff-removed');
           }
-          var p2 = splitTrackLine(lines2[match.idx]);
+          var p2 = splitTrackLine(otherLine);
           var res = escapeHTML(p3.hash);
-          var cueHtml = wordDiff(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
-          res += wordDiff(p3.text, p2.text, 'diff-removed');
-          var labelHtml = wordDiff(p3.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
+          var cueHtml = wordDiffSimple(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
+          res += wordDiffSimple(p3.text, p2.text, 'diff-removed');
+          var labelHtml = wordDiffSimple(p3.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
           return res;
         }).join('\n');
         $row.append($('<td>').append($('<pre>').html(html3)));
