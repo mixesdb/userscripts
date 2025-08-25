@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.25.9
+// @version      2025.08.25.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -705,6 +705,7 @@ function calcSimilarity(a, b) {
     function wordDiff(base, other, cls) {
       var parts = Diff.diffWordsWithSpace(other, base);
       var res = '';
+      var buffer = '';
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
 
@@ -724,18 +725,21 @@ function calcSimilarity(a, b) {
           }
 
           if (pair) {
+            if (buffer) { res += highlightWords(buffer, cls); buffer = ''; }
             if (p.value.toLowerCase() === pair.value.toLowerCase()) {
               res += escapeHTML(p.value);
             } else {
               res += charDiff(p.value, pair.value, cls);
             }
           } else {
-            res += highlightWords(p.value, cls);
+            buffer += p.value;
           }
         } else if (!p.removed) {
+          if (buffer) { res += highlightWords(buffer, cls); buffer = ''; }
           res += escapeHTML(p.value);
         }
       }
+      if (buffer) { res += highlightWords(buffer, cls); }
       return res;
     }
     function wordDiffSimple(base, other, cls) {
