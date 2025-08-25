@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.25.5
+// @version      2025.08.25.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -815,15 +815,15 @@ function calcSimilarity(a, b) {
         $row.append($('<td>').append($('<pre>').html(html2)));
 
         // Column 3: Candidate vs Merged
-        var html3 = lines3.map(function(line) {
+        var html3 = lines3.map(function(line, idx) {
           if (line === '') { return ''; }
           var p3 = splitTrackLine(line);
           if (p3.text === '?' || p3.text === '...') { return escapeHTML(line); }
-          var match = findBestMatch(line, lines2);
-          if (match.score === 0 || match.idx === -1) {
+          var otherLine = lines2[idx];
+          if (otherLine === undefined) {
             return fullHighlight(line, 'diff-removed');
           }
-          var p2 = splitTrackLine(lines2[match.idx]);
+          var p2 = splitTrackLine(otherLine);
           var res = escapeHTML(p3.hash);
           var cueHtml = wordDiff(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
           res += wordDiff(p3.text, p2.text, 'diff-removed');
