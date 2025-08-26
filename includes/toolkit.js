@@ -618,7 +618,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     searchMessage = 'These players are';
                                 }
 
-                                searchMessage += ' not used on MixesDB yet. ' + searchTitleLink;
+                                searchMessage += ' not used on MixesDB yet or it was removed from the mix page. ' + searchTitleLink;
 
                                 $("#mdb-toolkit").addClass("filled");
                                 jNode.append( searchMessage ).addClass("filled");
