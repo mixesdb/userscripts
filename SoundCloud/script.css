@@ -61,6 +61,8 @@ a.sc_button-mdb:active {
 }
 
 #mdb-fileDetails {
+    font-size: 12px;
+    line-height: 1.4em;
     padding-bottom: 16px !important;
 }
 

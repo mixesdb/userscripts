@@ -19,6 +19,13 @@
 // ==/UserScript==
 
 
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 200 );
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
@@ -31,19 +38,6 @@ var cacheVersion = 9,
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Initialize feature functions per url path
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
- */
-redirectOnUrlChange( 200 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -65,6 +59,7 @@ function getDurationSec_YT() {
         }
         return total;
     }
+
     var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
               || window.ytplayer?.config?.args?.length_seconds;
     if( sec ) return parseInt( sec, 10 );
@@ -79,7 +74,8 @@ function getDurationSec_YT() {
 }
 
 if( ytId ) {
-    var playerUrl = "https://youtu.be/" + ytId;
+    var playerUrl = "https://youtu.be/" + ytId,
+        dur_sec = getDurationSec_YT();
     
     waitForKeyElements( "#bottom-row", function( jNode ) {
         var titleText = $("#title h1").text(),
