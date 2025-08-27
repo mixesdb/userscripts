@@ -111,3 +111,12 @@ if( ytId ) {
         }, 1000 );
     }, true );
 }
+
+waitForKeyElements( ".mdb-toggle", function( jNode ) {
+    jNode.click(function(){
+        var toggleId = $(this).attr("data-toggleid");
+        $("#"+toggleId).slideToggle( 400 );
+        $(this).toggleClass("selected");
+        if( toggleId == "mdb-fileDetails" ) $("#mdb-fileDetails textarea").select().focus();
+    });
+});
