@@ -50,6 +50,16 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 var ytId = getYoutubeIdFromUrl( url );
 
 function getDurationSec_YT() {
+    var hms = $(".ytp-time-duration").text();
+    if( hms ) {
+        var parts = hms.trim().split(":"),
+            total = 0;
+        for( var i = 0; i < parts.length; i++ ) {
+            total = total*60 + parseInt( parts[i], 10 );
+        }
+        return total;
+    }
+
     var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
               || window.ytplayer?.config?.args?.length_seconds;
     if( sec ) return parseInt( sec, 10 );
@@ -81,17 +91,18 @@ if( ytId ) {
         getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "link", 1, playerUrl );
     });
 
-    if( dur_sec ) {
+    waitForKeyElements( "#actions-inner", function( jNode ) {
+        var dur_sec = getDurationSec_YT();
+        if( !dur_sec ) return;
         var dur = convertHMS( dur_sec );
+        jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
+    });
 
-        waitForKeyElements( "#actions-inner", function( jNode ) {
-            jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
-        });
-
-        waitForKeyElements( "ytd-watch-metadata #description", function( jNode ) {
-            jNode.before( getFileDetails_forToggle( dur_sec ) );
-        });
-    }
+    waitForKeyElements( "ytd-watch-metadata #description", function( jNode ) {
+        var dur_sec = getDurationSec_YT();
+        if( !dur_sec ) return;
+        jNode.before( getFileDetails_forToggle( dur_sec ) );
+    });
 }
 
 waitForKeyElements( ".mdb-toggle", function( jNode ) {
