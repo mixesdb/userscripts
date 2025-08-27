@@ -114,9 +114,14 @@ if( ytId ) {
 
 waitForKeyElements( ".mdb-toggle", function( jNode ) {
     jNode.click(function(){
+<<<<<<< Updated upstream
         var toggleId = $(this).attr("data-toggleid"),
             target = $("#"+toggleId);
         target.slideToggle( 400 );
+=======
+        var toggleId = $(this).attr("data-toggleid");
+        $("#"+toggleId).slideToggle( 250 );
+>>>>>>> Stashed changes
         $(this).toggleClass("selected");
 
         var textarea = target.find("textarea");
