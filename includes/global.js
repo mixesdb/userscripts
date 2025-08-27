@@ -511,7 +511,8 @@ function getFileDetails_forToggle( dur_sec, bytes="" ) {
     logVar( "dur", dur );
 
     if( dur !== null ) {
-       return '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">{|{{NormalTableFormat-Bytes}}\n! dur\n! bytes\n! kbps\n|-\n| '+dur+'\n| '+bytes+'\n| \n|}</textarea></div>';
+       var mb = bytes ? ( parseInt( bytes, 10 ) / 1048576 ).toFixed( 2 ) : "";
+       return '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">{|{{NormalTableFormat}}\n! dur\n! MB\n! kbps\n|-\n| '+dur+'\n| '+mb+'\n| \n|}</textarea></div>';
     }
 }
 
