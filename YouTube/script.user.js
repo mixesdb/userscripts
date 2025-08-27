@@ -19,6 +19,13 @@
 // ==/UserScript==
 
 
+/*
+ * Before anythings starts: Reload the page
+ * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
+ */
+redirectOnUrlChange( 200 );
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
@@ -31,19 +38,6 @@ var cacheVersion = 9,
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Initialize feature functions per url path
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
- */
-redirectOnUrlChange( 200 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
