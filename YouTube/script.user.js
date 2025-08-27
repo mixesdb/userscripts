@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.27.5
+// @version      2025.08.27.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -52,6 +52,8 @@ var ytId = getYoutubeIdFromUrl( url );
 function getDurationSec_YT() {
     var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
               || window.ytplayer?.config?.args?.length_seconds;
+    if( sec ) return parseInt( sec, 10 );
+
     var player = document.querySelector('.html5-video-player');
     if( player && !player.classList.contains('ad-showing') ) {
         var hms = $(".ytp-time-duration").text().trim();
@@ -65,7 +67,6 @@ function getDurationSec_YT() {
         }
     }
 
-    if( sec ) return parseInt( sec, 10 );
     var iso = $("meta[itemprop='duration']").attr("content");
     if( typeof iso === "undefined" ) return null;
     var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
