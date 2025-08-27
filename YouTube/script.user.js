@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.27.8
+// @version      2025.08.27.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -113,18 +113,18 @@ if( ytId ) {
 }
 
 waitForKeyElements( ".mdb-toggle", function( jNode ) {
-    jNode.click(function(){
-<<<<<<< Updated upstream
+    jNode.on("click", function() {
         var toggleId = $(this).attr("data-toggleid"),
             target = $("#"+toggleId);
-        target.slideToggle( 400 );
-=======
-        var toggleId = $(this).attr("data-toggleid");
-        $("#"+toggleId).slideToggle( 250 );
->>>>>>> Stashed changes
+
+        target.slideToggle( msWaitToggle );
         $(this).toggleClass("selected");
 
-        var textarea = target.find("textarea");
-        if( textarea.length ) textarea.click();
+        setTimeout(function() {
+            var textarea = target.find("textarea");
+            if( textarea.length && textarea.is(":visible") ) {
+                textarea.trigger("focus").select();
+            }
+        }, msWaitToggle);
     });
 });
