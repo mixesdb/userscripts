@@ -50,6 +50,9 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 var ytId = getYoutubeIdFromUrl( url );
 
 function getDurationSec_YT() {
+    var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
+              || window.ytplayer?.config?.args?.length_seconds;
+    if( sec ) return parseInt( sec, 10 );
     var iso = $("meta[itemprop='duration']").attr("content");
     if( typeof iso === "undefined" ) return null;
     var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -85,7 +88,7 @@ if( ytId ) {
             jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
         });
 
-        waitForKeyElements( "#description", function( jNode ) {
+        waitForKeyElements( "ytd-watch-metadata #description", function( jNode ) {
             jNode.before( getFileDetails_forToggle( dur_sec ) );
         });
     }
