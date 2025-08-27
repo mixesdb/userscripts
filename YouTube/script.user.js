@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.27.4
+// @version      2025.01.13.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -99,7 +99,7 @@ if( ytId ) {
             dur_sec_cache = getDurationSec_YT();
             if( !dur_sec_cache ) return;
 
-            waitForKeyElements( "#actions-inner", function( jNode ) {
+            waitForKeyElements( "#top-level-buttons-computed", function( jNode ) {
                 var dur = convertHMS( dur_sec_cache );
                 jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
             }, true );
