@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.20.2
+// @version      2025.08.20.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -55,6 +55,29 @@ redirectOnUrlChange( 200 );
 
 var ytId = getYoutubeIdFromUrl( url );
 
+function getDurationSec_YT() {
+    var hms = $(".ytp-time-duration").text();
+    if( hms ) {
+        var parts = hms.trim().split(":"),
+            total = 0;
+        for( var i = 0; i < parts.length; i++ ) {
+            total = total*60 + parseInt( parts[i], 10 );
+        }
+        return total;
+    }
+    var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
+              || window.ytplayer?.config?.args?.length_seconds;
+    if( sec ) return parseInt( sec, 10 );
+    var iso = $("meta[itemprop='duration']").attr("content");
+    if( typeof iso === "undefined" ) return null;
+    var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if( !m ) return null;
+    var h = parseInt(m[1] || 0, 10),
+        min = parseInt(m[2] || 0, 10),
+        s = parseInt(m[3] || 0, 10);
+    return h*3600 + min*60 + s;
+}
+
 if( ytId ) {
     var playerUrl = "https://youtu.be/" + ytId;
     
@@ -71,4 +94,26 @@ if( ytId ) {
         // Toolkit
         getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "link", 1, playerUrl );
     });
+
+    waitForKeyElements( "#actions-inner", function( jNode ) {
+        var dur_sec = getDurationSec_YT();
+        if( !dur_sec ) return;
+        var dur = convertHMS( dur_sec );
+        jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
+    });
+
+    waitForKeyElements( "ytd-watch-metadata #description", function( jNode ) {
+        var dur_sec = getDurationSec_YT();
+        if( !dur_sec ) return;
+        jNode.before( getFileDetails_forToggle( dur_sec ) );
+    });
 }
+
+waitForKeyElements( ".mdb-toggle", function( jNode ) {
+    jNode.click(function(){
+        var toggleId = $(this).attr("data-toggleid");
+        $("#"+toggleId).slideToggle();
+        $(this).toggleClass("selected");
+        if( toggleId == "mdb-fileDetails" ) $("#mdb-fileDetails textarea").select().focus();
+    });
+});
