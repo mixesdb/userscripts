@@ -33,7 +33,7 @@ redirectOnUrlChange( 200 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 11,
+var cacheVersion = 12,
     scriptName = "YouTube";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -111,12 +111,3 @@ if( ytId ) {
         }, 1000 );
     }, true );
 }
-
-waitForKeyElements( ".mdb-toggle", function( jNode ) {
-    jNode.click(function(){
-        var toggleId = $(this).attr("data-toggleid");
-        $("#"+toggleId).slideToggle();
-        $(this).toggleClass("selected");
-        if( toggleId == "mdb-fileDetails" ) $("#mdb-fileDetails textarea").select().focus();
-    });
-});
