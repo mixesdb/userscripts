@@ -105,16 +105,3 @@ function fixScRedirectUrl( url ) {
     return url;
 }
 
-
-// toggle click
-waitForKeyElements(".mdb-toggle", function( jNode ) {
-    jNode.click(function(){
-        var toggleId = $(this).attr("data-toggleid");
-        log( toggleId );
-
-        $("#"+toggleId).slideToggle();
-        $(this).toggleClass("selected");
-
-        if( toggleId == "mdb-fileDetails" ) $("#mdb-fileDetails textarea").click();
-    });
-});
