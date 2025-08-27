@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_7
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_8
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-YouTube_12
 // @include      http*youtube.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
@@ -50,18 +50,21 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 var ytId = getYoutubeIdFromUrl( url );
 
 function getDurationSec_YT() {
-    var hms = $(".ytp-time-duration").text();
-    if( hms ) {
-        var parts = hms.trim().split(":"),
-            total = 0;
-        for( var i = 0; i < parts.length; i++ ) {
-            total = total*60 + parseInt( parts[i], 10 );
-        }
-        return total;
-    }
-
     var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
               || window.ytplayer?.config?.args?.length_seconds;
+    var player = document.querySelector('.html5-video-player');
+    if( player && !player.classList.contains('ad-showing') ) {
+        var hms = $(".ytp-time-duration").text().trim();
+        if( hms && hms !== "0:00" ) {
+            var parts = hms.split(":"),
+                total = 0;
+            for( var i = 0; i < parts.length; i++ ) {
+                total = total*60 + parseInt( parts[i], 10 );
+            }
+            return total;
+        }
+    }
+
     if( sec ) return parseInt( sec, 10 );
     var iso = $("meta[itemprop='duration']").attr("content");
     if( typeof iso === "undefined" ) return null;
@@ -75,8 +78,8 @@ function getDurationSec_YT() {
 
 if( ytId ) {
     var playerUrl = "https://youtu.be/" + ytId,
-        dur_sec = getDurationSec_YT();
-    
+        dur_sec_cache = null;
+  
     waitForKeyElements( "#bottom-row", function( jNode ) {
         var titleText = $("#title h1").text(),
             wrapper = jNode;
@@ -91,18 +94,21 @@ if( ytId ) {
         getToolkit( playerUrl, "playerUrl", "detail page", wrapper, "after", titleText, "link", 1, playerUrl );
     });
 
-    waitForKeyElements( "#actions-inner", function( jNode ) {
-        var dur_sec = getDurationSec_YT();
-        if( !dur_sec ) return;
-        var dur = convertHMS( dur_sec );
-        jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
-    });
+    waitForKeyElements( ".ytp-time-duration", function() {
+        setTimeout(function(){
+            dur_sec_cache = getDurationSec_YT();
+            if( !dur_sec_cache ) return;
 
-    waitForKeyElements( "ytd-watch-metadata #description", function( jNode ) {
-        var dur_sec = getDurationSec_YT();
-        if( !dur_sec ) return;
-        jNode.before( getFileDetails_forToggle( dur_sec ) );
-    });
+            waitForKeyElements( "#actions-inner", function( jNode ) {
+                var dur = convertHMS( dur_sec_cache );
+                jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
+            }, true );
+
+            waitForKeyElements( "ytd-watch-metadata #description", function( jNode ) {
+                jNode.before( getFileDetails_forToggle( dur_sec_cache ) );
+            }, true );
+        }, 1000 );
+    }, true );
 }
 
 waitForKeyElements( ".mdb-toggle", function( jNode ) {
