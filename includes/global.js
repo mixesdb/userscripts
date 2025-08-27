@@ -499,10 +499,14 @@ waitForKeyElements(".mdb-selectOnClick", function( jNode ) {
 // select on toggle
 waitForKeyElements(".mdb-toggle", function( jNode ) {
     jNode.on("click", function(){
-        var toggleId = $(this).attr("data-toggleid");
+        var toggleId = $(this).attr("data-toggleid"),
+            target = $("#"+toggleId);
+
+        target.slideToggle();
+        $(this).toggleClass("selected");
+
         setTimeout(function(){
-            var target = $("#"+toggleId),
-                selectTarget = target.hasClass("mdb-selectOnClick") ? target : target.find(".mdb-selectOnClick");
+            var selectTarget = target.hasClass("mdb-selectOnClick") ? target : target.find(".mdb-selectOnClick");
             if( selectTarget.length && selectTarget.is(":visible") ) {
                 selectTarget.addClass("selected").select().focus();
             }
