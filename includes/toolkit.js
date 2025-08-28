@@ -101,13 +101,14 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         // api.soundcloud.com or soundcloud.com/[key]
         if( /.+api\.soundcloud\.com.+/.test(srcUrl) ) {
             // https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/2007972247&show_artwork=true&color=%23ff5500&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true
+            // https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2159636073&color=%23e91bc7&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true
             // https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2020102693%3Fsecret_token%3Ds-vhhWvBuKaYu&color=%23ebebeb&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true
             // https://w.soundcloud.com/player/?visual=true&url=https:%2F%2Fapi.soundcloud.com%2Ftracks%2F1680484035&show_artwork=true&maxheight=1000&maxwidth=708
 
             // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
             var scUrl_api = ensureTrailingSlash(
                                 decodeURIComponent( srcUrl )
-                                    .replace( /^(.+(?:\?|&)url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
+                                    .replace( /^(.+(?:\?|&)(?:url|color|show_artwork)=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
                             );
             logVar( "scUrl_api", scUrl_api );
 
