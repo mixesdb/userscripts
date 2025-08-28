@@ -70,7 +70,8 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
                 dataType: "json",
                 url: scUrl_api,
                 success: function( data ) {
-                    var playerUrl = data.permalink_url;
+                    var playerUrl = data.permalink_url
+                                    .replace( /^(.+)\?.+=.+$/, "$1" );
                     if( playerUrl != "" ) {
                         getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
                     }
@@ -108,7 +109,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
             var scUrl_api = ensureTrailingSlash(
                                 decodeURIComponent( srcUrl )
-                                    .replace( /^(.+(?:\?|&)(?:url|color|show_artwork)=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
+                                    .replace( /^(.+(?:\?|&)url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
                             );
             logVar( "scUrl_api", scUrl_api );
 
