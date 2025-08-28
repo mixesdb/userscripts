@@ -70,8 +70,7 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
                 dataType: "json",
                 url: scUrl_api,
                 success: function( data ) {
-                    var playerUrl = data.permalink_url
-                                    .replace( /^(.+)\?.+=.+$/, "$1" );
+                    var playerUrl = data.permalink_url;
                     if( playerUrl != "" ) {
                         getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
                     }
