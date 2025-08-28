@@ -101,7 +101,6 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         // api.soundcloud.com or soundcloud.com/[key]
         if( /.+api\.soundcloud\.com.+/.test(srcUrl) ) {
             // https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/2007972247&show_artwork=true&color=%23ff5500&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true
-            // https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2159636073&color=%23e91bc7&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true
             // https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2020102693%3Fsecret_token%3Ds-vhhWvBuKaYu&color=%23ebebeb&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true
             // https://w.soundcloud.com/player/?visual=true&url=https:%2F%2Fapi.soundcloud.com%2Ftracks%2F1680484035&show_artwork=true&maxheight=1000&maxwidth=708
 
@@ -309,10 +308,10 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 }
 
 // makeAvailableLinksListItem
-function makeAvailableLinksListItem( playerUrl, titleText="", usage="" ) {
+function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants ) {
     var playerUrl_clean = remove_mdbVariant_fromUrlStr( playerUrl ),
         playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
-        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled>';
+        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
@@ -368,7 +367,38 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logVar( "thisUrl", thisUrl );
     logVar( "urlDomain", urlDomain );
 
-    getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+    if( urlDomain == "hearthis.at" ) {
+
+        // Important! Increase the max iterations for the new variant(s)!
+        max_toolboxIterations += 1;
+        log( "max_toolboxIterations increased to: " + max_toolboxIterations );
+
+        $.ajax({
+            url: thisUrl,
+            success: function() {
+                if( urlDomain == "hearthis.at" ) {
+                    log( "hearthis.at ok" );
+
+                    var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m ),
+                        hearthisUrl_short = "https://hearthis.at/" + matches_id[1] + "/";
+
+                    var matches_urlLong = arguments[0].match( /(?:^.+<meta property="og:url" content=")(.+)(".+$)/m ),
+                        hearthisUrl_long = matches_urlLong[1];
+
+                    logVar( "hearthisUrl_short", hearthisUrl_short );
+                    logVar( "hearthisUrl_long", hearthisUrl_long );
+
+                    embedUrl = hearthisUrl_short;
+
+                    // pass a variant parameter for cleanup
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+                }
+            }
+        });
+    } else {
+        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+    }
 }
 
 
@@ -397,6 +427,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     var addOutput = true,
         output = null,
         thisUrl_forApi = thisUrl,
+        playerUrl_possibleUsageVariants = 1,
         domain = getDomain_fromUrlStr( thisUrl );
 
     logVar( "thisUrl", thisUrl );
@@ -484,6 +515,21 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     if( domain == "youtube.com" || domain == "youtu.be" ) {
         log( "domain is YouTube. Changing the search URl to the YT ID only." );
         thisUrl_forApi = "https://youtu.be/" + getYoutubeIdFromUrl( thisUrl );
+    }
+
+    /*
+     * visitDomain exceptions
+     */
+    if( visitDomain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
+        playerUrl_possibleUsageVariants = 2;
+    }
+
+    /*
+     * classname for solved url variants
+     */
+    var class_solvedUrlVariants = "";
+    if( domain == "hearthis.at" ) {
+        class_solvedUrlVariants = "solvedUrlVariants";
     }
 
     /*
@@ -584,7 +630,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used" ) );
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants ) );
 
                             if( showPlayerUrls ) {
                                 jNode.addClass("filled");
@@ -619,7 +665,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     searchMessage = 'These players are';
                                 }
 
-                                searchMessage += ' not used on MixesDB yet or it was removed from the mix page. ' + searchTitleLink;
+                                searchMessage += ' not used on MixesDB yet. ' + searchTitleLink;
 
                                 $("#mdb-toolkit").addClass("filled");
                                 jNode.append( searchMessage ).addClass("filled");
@@ -632,7 +678,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         // if domain of variable URLs add unused player URL to unclear list
                         if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused" ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants ) );
 
                                 if( showPlayerUrls ) {
                                     jNode.addClass("filled");
@@ -646,7 +692,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants ) );
 
                                 if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
@@ -724,6 +770,25 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     });
 
                     reorderToolkitItems();
+
+                    /*
+                     * 2 playerUrl_possibleUsageVariants
+                     * On no-case-yet.com itself 2 URL types are used (and searched)
+                     * These results are possible:
+                     * 1 used, 1 unused listed
+                     * 2 unused hearthis.at playerURLs > 2 unclear listed
+                     */
+                    if( playerUrl_possibleUsageVariants == 2 ) {
+                        // if usageLink.unused, remove li_unclear
+                        if( li_noUsage_len > 0 ) {
+                            li_unclear.remove();
+                        }
+
+                        // if usageLink.used, remove li_used and li_unused
+                        if( li_usage_len > 0 ) {
+                            li_playerUrls_all.remove();
+                        }
+                    }
 
                     /*
                      * Solved URL variants
