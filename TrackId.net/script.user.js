@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.24.4
+// @version      2025.09.17.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -555,6 +555,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/([A-Z0-9]),([A-Z0-9])/i, "$1, $2") // https://trackid.net/audiostreams/calvo-at-nature-one-2o17-we-call-it-home
                        ,
             title  = thisTitle
+                       .replace(/\s*-\s*(?:feat(?:\.|uring)?)\s+(.+?)(?=$|\s*\()/i, ' (featuring $1)') // Scared Of My Heart - featuring E.R. Thorpe (Andre Lodemann Remix) https://trackid.net/audiostreams/balance-selections-215-james-harcourt#google_vignette
                        .replace(/ \(\d+ - Remaster\)$/, "") // Foo (Nutt Mix - Remastered 2021)
                        .replace(/^(.+) \((.+) - (?:\d+ )?Remaster(?:ed|ing)?(?: \d+)?\)/g, "$1 ($2)") // All Night (I Can Do It Right) (2016 - Remaster) https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-20090216-mix-2 | Run before below stuff
                        .replace(/^(.+) \(Remaster(ed|ing|is[ée])?( En)? '?\d{2,4}\)/gi, "$1") // (Remasterisé En 2002)
@@ -564,6 +565,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/^(.+) - (.+)$/g, "$1 ($2)") // "Track Title - Some Version" https://trackid.net/audiostreams/dj-hell-mayday-1999-soundtropolis
                        .replace(/(.+) \((\d+ )?Remaster(ed|ing)?( \d+)?\)$/g, "$1") // "Track Title - (Remaster)" etc
                        .replace(/(.+) \((\d+ )?([A-Za-z]+ )?(\s*Re-?master(ed|ing|;)?)(\s*(Mix|Version|Edition))?\)$/gi, "$1") // "Track Title - (2013 Japan Remaster; Remastered)"
+                       .replace(/\s+\(Mixed\)/i, "") // remove " (Mixed)" https://trackid.net/audiostreams/balance-selections-234-sinca
                        ,
             label  = $(".label", this).text()
                        .replace(/\s*\n\s*/g, ' ')
