@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NTS (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.12.1
+// @version      2025.09.17.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -46,16 +46,37 @@ waitForKeyElements("ul.tracklist__tracks", function( jNode ) {
             $(this).before( ta + '<br />' );
             var tl = "",
                 li = $("li.track",this);
+
             li.each(function(){
                 // Remove hidden duplicated artists
                 $(".track__artist--mobile", this).remove();
                 $(".track__artist", this).show();
 
-                var artist = $(".track__artists",this).text(),
-                    title = $(".track__title",this).text();
+                var artist = $(".track__artists",this).text()
+                              .replace(/\u00A0/g, ' ') // normalise all spaces to regular ASCII spaces
+                              .trim()
+                              // Fix versions behind artist names
+                              // "Pet Shop Boys (Ian Levine mix)" WTF
+                              // Only needs to match (artistname version), not (vocal) etc
+                              // https://www.nts.live/shows/rhythmsection/episodes/rhythmsection-7th-february-2024
+                              .replace( /^(.+) \(.+(?:mix|remix|version|edit|femix).*\)$/gi, "$1" )
+                              ;
+
+                var title = $(".track__title",this).text()
+                              .replace(/\u00A0/g, ' ') // normalise all spaces to regular ASCII spaces
+                              .trim();
+
+
+                logVar( "artist", artist );
+                logVar( "title", title );
 
                 tl += "# " + artist + " - " + title + "\n";
             });
+
+            // Fix multiple spaces
+            // FIXME: TLE API should handle this…
+            // https://www.nts.live/shows/rhythmsection/episodes/rhythmsection-7th-february-2024
+            tl = tl.replace( /\s{2,}/g, " ");
 
             log( tl );
 
