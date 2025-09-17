@@ -223,3 +223,13 @@ a.sc_button-mdb:active {
 .sc-button-more.sc-button-active .mdb-fakeDlButton:before {
     background-image: url(data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAEMAAABDCAYAAADHyrhzAAAACXBIWXMAAC4jAAAuIwF4pT92AAAB/klEQVR4nO2awVHDMBBFvxkKoIS0QAekA7j4nkqADlICZ19CB0kHuISUkA7EIcnMH6PJsNKulMN/d1maP9K+tewhpQRx5qH3Au4JhUEoDEJhEAqDUBiEwiAem8wyDvvqZ0xp7bCSm7QJA3hpNE8VOiaEwiAUBqEwCIVBKAxiMN9njMMKwMo4T32fAVj7jCOmdLQMKO0zdgCeCseWYgn0BODZOoH9mJzTDu8GK1lbdwVQWjOmNAPYFI2NZ3NZn5nyAjqlLwDb4vExbC/rKsJeQJeMww7Aa91DXPjGlN5qHuCh1g2A2eE5NcxwOLb1OwO46vYH7Q0DXM1RUDCX+DRdfQ1TZI4cfh1oH8MUmyOHbzve1jBV5sjhUzOWxBum2hw5ol7UIg0zI+g4xuwMIMowJziZI0fcK3yMYdzMkSP2PsPXMK7myBF/ueNjGHdz5IirGUvKDRNijhwtr/1KDDOjYSPXbmcAVsOcEGiOHG0vhG2GCTVHjva34/8zTLg5cvT5VHDbME3MkaNtzVjy1zDNzJGj90ckNsyMzpfMfXcGcDXMHh0K5pL+YdwRvY/JXaEwCIVB2D88j8MHgHf3lfjziSl9WAZoZxAKg1AYhMIgFAahMAiFQZT84HbwXkQQB+sAvagROiaEwiAUBqEwCIVBKAxCYRAKg1AYhMIgFAbxC74opTCjRzdRAAAAAElFTkSuQmCC); /* orange icon doesn't exist in SC CSS > custom made */
 }
+
+/*
+ * Force full description, remove "Show more/less" link
+ */
+.truncatedAudioInfo__wrapper {
+    max-height: inherit !important;
+}
+.truncatedAudioInfo__collapse {
+    display: none !important;
+}
