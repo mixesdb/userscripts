@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.17.1
+// @version      2025.09.29.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -49,6 +49,34 @@ waitForKeyElements(".mdb-element.select", function( jNode ) {
 
 /*
  * fixTidLabelnames
+ * Removes duplicate comma-separated names (case-insensitive)
+ *  Keeps the first occurrence, preserves order, trims whitespace.
+ */
+String.prototype.removeDuplicateNames = function () {
+    const input = String(this ?? "");
+
+    const parts = input
+        .split(/\s*,\s*/)       // split on commas
+        .map(s => s.trim())     // trim each
+        .filter(Boolean);       // drop empties
+
+    const seen = new Set();
+    const result = [];
+
+    for (const p of parts) {
+        const key = p.toLowerCase(); // case-insensitive uniqueness
+        if (!seen.has(key)) {
+            seen.add(key);
+            result.push(p);
+        }
+    }
+
+    return result.join(", ");
+};
+
+
+/*
+ * fixTidLabelnames
  */
 String.prototype.fixTidLabelnames = function() {
     logFunc( "fixTidLabelnames" );
@@ -71,7 +99,6 @@ String.prototype.fixTidLabelnames = function() {
  */
 String.prototype.removeMajorLabels = function() {
     logFunc( "removeMajorLabels" );
-    logVar( "text", text );
 
     var text = this.toString()
                    .replace( /(^|, )Atlantic( [^\]]+)?$/gi, '' )
@@ -553,6 +580,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         var artist = $(".artist", this).text()
                        .replace(/\s*\n\s*/g, ' ') // https://trackid.net/audiostreams/nature-one-2024-opening-gayphoriastage
                        .replace(/([A-Z0-9]),([A-Z0-9])/i, "$1, $2") // https://trackid.net/audiostreams/calvo-at-nature-one-2o17-we-call-it-home
+                       .removeDuplicateNames()
                        ,
             title  = thisTitle
                        .replace(/\s*-\s*(?:feat(?:\.|uring)?)\s+(.+?)(?=$|\s*\()/i, ' (featuring $1)') // Scared Of My Heart - featuring E.R. Thorpe (Andre Lodemann Remix) https://trackid.net/audiostreams/balance-selections-215-james-harcourt#google_vignette
@@ -566,15 +594,25 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/(.+) \((\d+ )?Remaster(ed|ing)?( \d+)?\)$/g, "$1") // "Track Title - (Remaster)" etc
                        .replace(/(.+) \((\d+ )?([A-Za-z]+ )?(\s*Re-?master(ed|ing|;)?)(\s*(Mix|Version|Edition))?\)$/gi, "$1") // "Track Title - (2013 Japan Remaster; Remastered)"
                        .replace(/\s+\(Mixed\)/i, "") // remove " (Mixed)" https://trackid.net/audiostreams/balance-selections-234-sinca
-                       ,
-            label  = $(".label", this).text()
-                       .replace(/\s*\n\s*/g, ' ')
-                       .replace("Records (Distribution)", "Records")
-                       .replace(/[\[\]]/g,"")
-                       .fixTidLabelnames()
-                       .removeMajorLabels()
-                       ,
-            startTime = $(".startTime", this).text(),
+                       ;
+
+        let label = "";
+        let $label = $(".label", this);
+        if ($label.length && $label.text().trim() !== "") {
+            logVar( "label before fixing", $label.text() );
+
+            label = $label.text()
+                .replace(/\s*\n\s*/g, " ")
+                .replace("Records (Distribution)", "Records")
+                .replace(/[\[\]]/g, "")
+                .fixTidLabelnames()
+                .removeMajorLabels()
+            ;
+
+            logVar( "label after fixing", label );
+        }
+
+        var startTime = $(".startTime", this).text(),
             startTime_Sec = durToSec(startTime),
             endTime = $(".endTime", this).text(),
             endTime_Sec = durToSec(endTime),
