@@ -135,6 +135,29 @@ button.mdb-element {
     font-size: .9rem;
 }
 
+table.mdb-element {
+    & th,
+    & td {
+        padding: 2px 4px;
+        border: 1px solid #ccc;
+    }
+    
+    & th {
+        background-color: #eee;
+        font-size: 110%;
+    }
+    
+    & tr:nth-child(even) {
+        background-color: #fff;
+    }
+    & tr:nth-child(odd) {
+        background-color: #fafafa;
+    }
+    & tr:hover {
+        background-color: #ff99006f;
+    }
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
