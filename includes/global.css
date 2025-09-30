@@ -12,6 +12,10 @@
     float: right;
 }
 
+.mdb-right {
+    text-align: right;
+}
+
 .hand,
 .mdb-toggle {
     cursor: pointer;
@@ -22,9 +26,16 @@
     font-family: Consolas, monospace !important;
 }
 
+
 /*
- * Highlight color (orange)
+ * Colors
  */
+
+.mdb-grey {
+    color: #aaa;
+}
+
+/* Highlight color (orange) */
 .mdb-highlight,
 .mdb-highlight a,
 .mdb-menu-hl {
@@ -104,6 +115,28 @@ waiter {
     background: #f60;
     padding: .25em .5em;
     transition: display 1s;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * .sortable table
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+table.mdb-element.sortable th {
+    cursor: pointer;
+}
+
+th.sorttable_sorted::after {
+    content: " ▲"; /* ascending */
+}
+th.sorttable_sorted_reverse::after {
+    content: " ▼"; /* descending */
+}
+/* hide the default arrow text (sorttable uses &nbsp;&nbsp;▲/▼) */
+.sorttable_sorted_reverse #sorttable_sortrevind,
+.sorttable_sorted #sorttable_sortfwdind {
+    display: none !important;
 }
 
 
