@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.30.2
+// @version      2025.09.30.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -92,13 +92,20 @@ if( playsetList_wrapper.length ) {
         var dur = isoDurationToTime( item_dur ); // 2:00:06
 
         // download links
-        var formats = [];
+        var urls = [];
         $("link[itemprop='associatedMedia']", this).each(function() {
             var url = $(this).attr("href");
-            if (!url) return;
-
+            if (url) urls.push(url);
+        });
+        // If we have mp3 and ogg → remove ogg(s)
+        var hasMp3 = urls.some(u => u.toLowerCase().endsWith(".mp3"));
+        if (hasMp3) {
+            urls = urls.filter(u => !u.toLowerCase().endsWith(".ogg"));
+        }
+        // Build download links
+        var formats = urls.map(function(url) {
             var ext = url.split(".").pop().toLowerCase();
-            formats.push('<a href="' + url + '" class="mdb-tooltip" data-tooltip="'+filename+'.'+ext+'">' + ext + '</a>');
+            return '<a href="' + url + '" class="mdb-tooltip" data-tooltip="'+filename+'.'+ext+'">' + ext + '</a>';
         });
         var download_links = formats.join(' <span class="mdb-grey">|</span> ');
 

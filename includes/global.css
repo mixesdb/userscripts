@@ -115,6 +115,7 @@ waiter {
     background: #f60;
     padding: .25em .5em;
     transition: display 1s;
+    color: #fff !important;
 }
 
 
