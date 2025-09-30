@@ -8,6 +8,10 @@
     display: none !important;
 }
 
+.mdb-center {
+    text-align: center;
+}
+
 .floatR {
     float: right;
 }

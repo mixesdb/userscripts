@@ -27,7 +27,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 4,
+var cacheVersion = 5,
     scriptName = "InternetArchive";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -51,7 +51,7 @@ if( playsetList_wrapper.length ) {
      */
     var playsetList_mdbTable_html = '<section id="playsetList_mdbTable_wrapper">';
     playsetList_mdbTable_html    +=   '<table id="playsetList_mdbTable" class="mdb-element sortable">';
-    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">#</th>';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" class="mdb-center" title="Sortable">#</th>';
     playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Name</th>';
     playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Detail</th>';
     playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Dur</th>';
@@ -122,5 +122,14 @@ if( playsetList_wrapper.length ) {
 
 
         playsetList_mdbTable.append( episode_row );
+    });
+
+    /*
+     * Metadata JS
+     */
+    waitForKeyElements( "input.js-ia-metadata", function( jNode ) {
+        var arr = jNode.attr("value");
+
+        logVar( "arr", arr );
     });
 }
