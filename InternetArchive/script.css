@@ -1,0 +1,7 @@
+#playsetList_mdbTable_wrapper {
+    width: 100vw;
+    
+    & table {
+        margin: 20px auto;
+    }
+}

@@ -466,6 +466,32 @@ function pad(str, max) {
 }
 
 
+/*
+ * isoDurationToTime()
+ * Convert Period Time (PT, ISO-8601) durations to h:mm:ss
+ * console.log(isoDurationToTime("PT0M7206S")); // 2:00:06
+ * console.log(isoDurationToTime("PT0M7053S")); // 1:57:33
+ */
+function isoDurationToTime(iso) {
+    // extract total seconds (S)
+    var match = iso.match(/PT(?:\d+M)?(\d+)S/);
+    if (!match) return "";
+
+    var totalSeconds = parseInt(match[1], 10);
+
+    var hours   = Math.floor(totalSeconds / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+
+    // pad with leading zeros
+    return [
+        hours,
+        String(minutes).padStart(2, '0'),
+        String(seconds).padStart(2, '0')
+    ].join(":");
+}
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Selecting text
