@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.30.1
+// @version      2025.09.30.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,9 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/InternetArchive/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-InternetArchive_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-InternetArchive_3
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-InternetArchive_1
+// @require      https://cdn.jsdelivr.net/npm/sorttable@1.0.2/sorttable.js
 // @include      http*archive.org/details/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -26,7 +27,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 1,
+var cacheVersion = 4,
     scriptName = "InternetArchive";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -35,22 +36,26 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Run
+ * playsetLists
+ * https://archive.org/details/Clubnight2011
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// playsetList
 var playsetList_wrapper = $("#theatre-ia-wrap");
 
-if( playsetList_wrapper.length == 1 ) {
+if( playsetList_wrapper.length ) {
     var playsetList_item = $('div[itemprop="hasPart"]', playsetList_wrapper);
 
-    // prepare mdb table
+    /*
+     * Prepare mdb table
+     */
     var playsetList_mdbTable_html = '<section id="playsetList_mdbTable_wrapper">';
-    playsetList_mdbTable_html    +=   '<table id="playsetList_mdbTable" class="mdb-element">';
-    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name">Duration</th>';
-    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name">Name</th>';
-    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name">Filename</th>';
+    playsetList_mdbTable_html    +=   '<table id="playsetList_mdbTable" class="mdb-element sortable">';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">#</th>';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Name</th>';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Detail</th>';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Dur</th>';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" class="sorttable_nosort">DL</th>';
     playsetList_mdbTable_html    +=   '</table>';
     playsetList_mdbTable_html    += '</section>';
 
@@ -59,19 +64,56 @@ if( playsetList_wrapper.length == 1 ) {
     var playsetList_mdbTable = $("#playsetList_mdbTable");
 
     // each playsetList item
+    var i = 0;
     playsetList_item.each(function(){
-        // Extract values
-        var item_name = $('meta[itemprop="name"]', this).attr("content");
-        var item_dur = $('meta[itemprop="duration"]', this).attr("content");
-        var item_url = $('link[itemprop="associatedMedia"]', this).first().attr("href");
+        i++;
 
-        // Work with the values
-        var dur = isoDurationToTime( item_dur );
+        /*
+         * Extract values
+         */
+        var item_name = $('meta[itemprop="name"]', this).attr("content"); // Clubnight 2011.01.01
+        var item_dur = $('meta[itemprop="duration"]', this).attr("content"); // PT0M7206S
+        var item_url = $('link[itemprop="associatedMedia"]', this).first().attr("href"); // https://archive.org/download/Clubnight2011/Clubnight%202011.01.01%20-%20Motorcitysoul.ogg
+
+        /*
+         * Work with the values
+         */
+        // Name
+        var episode = item_name;
+
+        // detail
         var filename = decodeURIComponent(
                            item_url.split("/").pop() // get last part after "/"
                            .replace(/\.[^/.]+$/, "")       // remove extension
                        );
+        var episode_detail = filename.replace( item_name + " - ", "" ); // Motorcitysoul
 
-        playsetList_mdbTable.append( '<tr><td>'+dur+'</td><td>'+item_name+'</td><td>'+filename+'</td></tr>' );
+        // dur
+        var dur = isoDurationToTime( item_dur ); // 2:00:06
+
+        // download links
+        var formats = [];
+        $("link[itemprop='associatedMedia']", this).each(function() {
+            var url = $(this).attr("href");
+            if (!url) return;
+
+            var ext = url.split(".").pop().toLowerCase();
+            formats.push('<a href="' + url + '" class="mdb-tooltip" data-tooltip="'+filename+'.'+ext+'">' + ext + '</a>');
+        });
+        var download_links = formats.join(' <span class="mdb-grey">|</span> ');
+
+        /*
+         * Add row to table
+         */
+        var episode_row = '<tr>';
+        episode_row    +=    '<td class="mdb-right">'+i+'</td>';
+        episode_row    +=    '<td>'+episode+'</td>';
+        episode_row    +=    '<td>'+episode_detail+'</td>';
+        episode_row    +=    '<td>'+dur+'</td>';
+        episode_row    +=    '<td>'+download_links+'</td>';
+        episode_row    += '</tr>';
+
+
+        playsetList_mdbTable.append( episode_row );
     });
 }
