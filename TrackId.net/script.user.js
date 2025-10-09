@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.29.1
+// @version      2025.10.09.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -585,8 +585,9 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             title  = thisTitle
                        .replace(/\s*-\s*(?:feat(?:\.|uring)?)\s+(.+?)(?=$|\s*\()/i, ' (featuring $1)') // Scared Of My Heart - featuring E.R. Thorpe (Andre Lodemann Remix) https://trackid.net/audiostreams/balance-selections-215-james-harcourt#google_vignette
                        .replace(/ \(\d+ - Remaster\)$/, "") // Foo (Nutt Mix - Remastered 2021)
-                       .replace(/^(.+) \((.+) - (?:\d+ )?Remaster(?:ed|ing)?(?: \d+)?\)/g, "$1 ($2)") // All Night (I Can Do It Right) (2016 - Remaster) https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-20090216-mix-2 | Run before below stuff
-                       .replace(/^(.+) \(Remaster(ed|ing|is[ée])?( En)? '?\d{2,4}\)/gi, "$1") // (Remasterisé En 2002)
+                       .replace(/^(.+) [\(\[](.+) - (?:\d+ )?Remaster(?:ed|ing)?(?: \d+)?[\)\]]/g, "$1 ($2)") // All Night (I Can Do It Right) (2016 - Remaster) https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-20090216-mix-2 | Run before below stuff
+                       .replace(/\s*[\(\[][^\(\[\)]*(Digital\s+Remaster|Mastering)[^\)\]]*[\)\]]/gi, "") // Title (2002 Digital Remaster / 24-Bit Mastering) https://trackid.net/audiostreams/dr-packer-live-in-ibiza-august-2025-hard-rock-hotel
+                       .replace(/^(.+) [\(\[]Remaster(ed|ing|is[ée])?( En)?(?:\s'?\d{2,4})?[\)\]]/gi, "$1") // (Remasterisé En 2002), also [Remaster] https://trackid.net/audiostreams/xmix3-1994-richie-hawtin-john-acquaviva-enter-the-digital-reality
                        .replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)")
                        .replace(/^\((.+)\)$/g, "$1") // avoid "[000] Inland [Systemscan]" https://trackid.net/audiostreams/shed-josey-rebelle-sven-von-thulen-txl-berlin-recordings-chapter-7-arte-concert
                        .replace(/^(.+)-\d{4,5}$/g, "$1") // numbers as suffix, e.g. "Track Title-24070" https://trackid.net/audiostreams/alex-kvitta-sonderspur-pod-011281213
@@ -594,6 +595,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/(.+) \((\d+ )?Remaster(ed|ing)?( \d+)?\)$/g, "$1") // "Track Title - (Remaster)" etc
                        .replace(/(.+) \((\d+ )?([A-Za-z]+ )?(\s*Re-?master(ed|ing|;)?)(\s*(Mix|Version|Edition))?\)$/gi, "$1") // "Track Title - (2013 Japan Remaster; Remastered)"
                        .replace(/\s+\(Mixed\)/i, "") // remove " (Mixed)" https://trackid.net/audiostreams/balance-selections-234-sinca
+                       .replace(/\s*\((?=Original)[^()]*?(?:\([^()]*\)[^()]*)*\)/gi, "") // (Original Mix (Digital Only)) and variants https://trackid.net/audiostreams/sirarthur-chris-liebing-umek-gayle-san-live-u60311-19991105-1of9
                        ;
 
         let label = "";
