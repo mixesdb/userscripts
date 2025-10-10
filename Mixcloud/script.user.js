@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.20.1
+// @version      2025.10.10.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -143,16 +143,56 @@ if( urlPath(2) == "uploads" || urlPath(2).replace(/\?.+$/,"") == "" ) { // https
 }
 
 // Hiding option: each used player
-waitForKeyElements('button[data-testid="audiocard-play-button"]', function( jNode ) {
-    if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players" );
+    waitForKeyElements('button[data-testid="audiocard-play-button"]', function (jNode) {
+        if (getHideUsed === "true") {
+            logFunc("Hiding used players");
 
-        var wrapper = jNode.parent("div").parent("div").parent("div").parent("div").parent("div"),
-            playerUrl = 'https://www.mixcloud.com' + $("a", wrapper).attr("href");
-        
-        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
-    }
-});
+            /* Select each player'S top wrapper (React classnames!)
+            • Replaces brittle .parent("div") chains with a semantic jump using .closest().
+            • Falls back to a fixed-depth hop only if the semantic selector fails.
+            • Picks a sensible anchor inside the card to build the show URL, avoiding /pro/ etc.
+            • Keeps your original getToolkit() call signature.
+
+             Step 1: jump to the nearest Card wrapper (React styled-component)
+             The outer node has classes like: "styles__CardWrapper-css-in-js__sc-494ggw-0 lgeAcl"
+             We match by substring "CardWrapper" to survive hash/class changes.
+
+             Stalls the webpage after hundreds of players tho
+            */
+            var $wrapper = jNode.closest('div[class*="CardWrapper"]');
+
+            // Fallback (rare): if the site changes naming, hop up a fixed number of DIV ancestors.
+            if (!$wrapper.length) {
+                // eq(4) ≈ five levels up; adjust if needed after testing.
+                $wrapper = jNode.parents('div').eq(4);
+            }
+
+            // If we still have nothing, bail out gracefully.
+            if (!$wrapper.length) {
+                console.warn("CardWrapper not found for node:", jNode.get(0));
+                return;
+            }
+
+            /* Step 2: extract the relative show link from inside the card.
+               Prefer title/artwork links that point to a show (start with "/"),
+               and avoid irrelevant anchors such as "/pro/".
+            */
+            var relHref = $wrapper
+                .find('a[href^="/"]:not([href^="/pro/"])')
+                .first()
+                .attr("href") || "";
+
+            if (!relHref) {
+                console.warn("No suitable anchor href found inside CardWrapper");
+                return;
+            }
+
+            // Step 3: build absolute URL and pass along
+            var playerUrl = "https://www.mixcloud.com" + relHref;
+
+            getToolkit(playerUrl, "hide if used", "lazy loading list", $wrapper);
+        }
+    });
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
