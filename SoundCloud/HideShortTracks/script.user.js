@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.15.4
+// @version      2025.10.15.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -22,7 +22,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 35,
+var cacheVersion = 2,
     scriptName = "SoundCloud/HideShortTracks";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -211,7 +211,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
       </label>
       <label style="display:inline-flex;align-items:center;gap:6px;">
         <span>&lt;</span>
-        <input id="sc-hide-short-minutes" type="number" min="1">
+        <input id="sc-hide-short-minutes" type="number" maxlength="3" min="1">
         <span>min</span>
       </label>
       <span id="sc-hide-short-hint" class="sc-hide-short-hint"></span>

@@ -1,20 +1,14 @@
 html.sc-hide-short-active [data-sc-too-short="1"] {
-    display:none !important;
+    display: none !important;
 }
 
-#sc-hide-short-ui-wrap {
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-}
 #sc-hide-short-ui-wrap input[type="number"] {
-    width:4.5em;
+    width: 3.5em;
 }
 #sc-hide-short-ui-wrap .sc-hide-short-hint {
-    opacity:.7;
-    font-size:.9em;
-    margin-left:6px;
+    opacity: .6;
+    font-size: .9em;
+    margin-left: 6px;
 }
 
 /* Preferred container spacing */
@@ -23,14 +17,15 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 }
 
 /* Fallback layout when not inside #mdb-streamActions */
-.header__inner + #sc-hide-short-ui-wrap {
-    margin:0 auto;
-    text-align:center;
-    height:20px;
-}
-body.sc-hideShortTracks-fallback #content {
-    margin-top:30px !important;
-}
-body.sc-hideShortTracks-fallback .userDropbar {
-    padding-top:30px !important;
+body.sc-hideShortTracks-fallback {
+    && #sc-hide-short-ui-wrap {
+        margin: 0 auto;
+        text-align: center;
+    }
+    && #content {
+        margin-top: 60px !important;
+    }
+    && .userDropbar {
+        padding-top: 32px !important;
+    }
 }
