@@ -1,0 +1,36 @@
+html.sc-hide-short-active [data-sc-too-short="1"] {
+    display:none !important;
+}
+
+#sc-hide-short-ui-wrap {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+}
+#sc-hide-short-ui-wrap input[type="number"] {
+    width:4.5em;
+}
+#sc-hide-short-ui-wrap .sc-hide-short-hint {
+    opacity:.7;
+    font-size:.9em;
+    margin-left:6px;
+}
+
+/* Preferred container spacing */
+#mdb-streamActions #sc-hide-short-ui-wrap {
+    margin-top:6px;
+}
+
+/* Fallback layout when not inside #mdb-streamActions */
+.header__inner + #sc-hide-short-ui-wrap {
+    margin:0 auto;
+    text-align:center;
+    height:20px;
+}
+body.sc-hideShortTracks-fallback #content {
+    margin-top:30px !important;
+}
+body.sc-hideShortTracks-fallback .userDropbar {
+    padding-top:30px !important;
+}

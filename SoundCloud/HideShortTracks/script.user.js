@@ -1,24 +1,65 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.15.3
+// @version      2025.10.15.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/SoundCloud/HideShortTracks/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/HideShortTracks/script.user.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_33
 // @match        https://soundcloud.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @run-at       document-idle
 // ==/UserScript==
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var cacheVersion = 35,
+    scriptName = "SoundCloud/HideShortTracks";
+
+//loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Main
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// ==UserScript==
+// @name         SC: Hide short tracks (20m) — streamActions + fallback
+// @description  Hide tracks shorter than X minutes on SoundCloud profile pages. UI prefers #mdb-streamActions, else falls back to header after 500ms.
+// @match        https://soundcloud.com/*
+// @run-at       document-idle
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// ==/UserScript==
+
+// ==UserScript==
+// @name         SC: Hide short tracks (20m) — full + streamActions + centered fallback (no CSS)
+// @match        https://soundcloud.com/*
+// @run-at       document-idle
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// ==/UserScript==
+
 (() => {
-  const DEFAULT_MIN = 20;          // minutes
-  const PAGE_RESOLVE_CAP = 40;     // max resolve calls per page (raise/lower as needed)
-  const REQ_INTERVAL_MS = 1500;    // spacing between resolve calls
+  // ---------- settings & cache ----------
+  const DEFAULT_MIN = 20;                  // minutes
+  const PAGE_RESOLVE_CAP = 40;             // max resolve calls per page
+  const REQ_INTERVAL_MS = 1500;            // spacing between resolves
   const CACHE_TTL = 7 * 24 * 3600 * 1e3;   // 7d positive cache
   const NEG_TTL   = 10 * 60 * 1000;        // 10m negative cache
-  const LS_KEY = 'sc_hide_short_cache_v6';
+  const LS_CACHE  = 'sc_hide_short_cache_v6';
+  const LS_SETTINGS = 'sc_hide_short_settings_v1';
+  const UI_ID = 'sc-hide-short-ui-wrap';
 
   const STATE = {
     thresholdMin: DEFAULT_MIN,
@@ -32,30 +73,17 @@
     pendingCards: new WeakSet(),
   };
 
-  const SETTINGS_KEY = 'sc_hide_short_settings_v1';
-  function loadSettings() {
-      try {
-          const raw = localStorage.getItem(SETTINGS_KEY);
-          const s = raw ? JSON.parse(raw) : null;
-          if (!s) return null;
-          if (typeof s.enabled !== 'boolean') return null;
-          if (!Number.isFinite(s.min) || s.min < 1) return null;
-          return s;
-      } catch { return null; }
-  }
-  function saveSettings(enabled, min) {
-      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ enabled, min })); } catch {}
-  }
-
-  // ---------- utils
+  // ---------- tiny utils ----------
   const qsa = (s, r=document)=>Array.from(r.querySelectorAll(s));
   const norm = u=>{ try{ const x=new URL(u, location.origin); return x.origin+x.pathname.replace(/\/+$/,''); } catch{ return (u||'').split('#')[0].split('?')[0]; } };
   const msToMMSS = ms=>{ if(ms==null) return '—:——'; const s=(ms/1000)|0, m=(s/60)|0; return `${m}:${String(s%60).padStart(2,'0')}`; };
   const now = ()=>Date.now();
-  function saveCache(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.cache)); }catch{} }
+  const isEnabled = () => document.documentElement.classList.contains('sc-hide-short-active');
+
+  function saveCache(){ try{ localStorage.setItem(LS_CACHE, JSON.stringify(STATE.cache)); }catch{} }
   function loadCache(){
     try{
-      const raw = localStorage.getItem(LS_KEY);
+      const raw = localStorage.getItem(LS_CACHE);
       const obj = raw ? JSON.parse(raw) : {};
       const t = now();
       for (const k in obj) {
@@ -67,8 +95,21 @@
       return obj;
     } catch { return {}; }
   }
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem(LS_SETTINGS);
+      const s = raw ? JSON.parse(raw) : null;
+      if (!s) return null;
+      if (typeof s.enabled !== 'boolean') return null;
+      if (!Number.isFinite(s.min) || s.min < 1) return null;
+      return s;
+    }catch{ return null; }
+  }
+  function saveSettings(enabled, min){
+    try{ localStorage.setItem(LS_SETTINGS, JSON.stringify({ enabled, min })); }catch{}
+  }
 
-  // ---------- hydration seed (cheap)
+  // ---------- hydration + JSON harvest + CID sniff ----------
   function harvestHydration(){
     const h = window.__sc_hydration;
     if (!Array.isArray(h)) return;
@@ -86,10 +127,7 @@
     }
     if (added) saveCache();
   }
-
-  // ---------- network harvest (JSON) + client_id sniff
   function harvestFromJson(obj){
-    // scan any JSON for {permalink_url, duration}
     const seen = new Set();
     const walk = v => {
       if (!v || typeof v !== 'object' || seen.has(v)) return;
@@ -99,21 +137,15 @@
       const dur = v.duration;
       if (url && typeof dur === 'number') {
         const key = norm(url);
-        if (!STATE.cache[key]) {
-          STATE.cache[key] = { ms: dur, t: now() };
-        }
+        if (!STATE.cache[key]) STATE.cache[key] = { ms: dur, t: now() };
       }
-      for (const k in v) {
-        const x = v[k];
-        if (x && typeof x === 'object') walk(x);
-      }
+      for (const k in v) { const x = v[k]; if (x && typeof x === 'object') walk(x); }
     };
     walk(obj);
     saveCache();
-    if (document.documentElement.classList.contains('sc-hide-short-active')) refreshVisible();
+    if (isEnabled()) refreshVisible();
   }
   function installNetworkHooks(){
-    // fetch
     const of = window.fetch;
     window.fetch = async function(input, init){
       try{
@@ -127,14 +159,10 @@
       const resp = await of.apply(this, arguments);
       try {
         const ct = resp.headers.get('content-type') || '';
-        if (ct.includes('application/json')) {
-          const clone = resp.clone();
-          clone.json().then(harvestFromJson).catch(()=>{});
-        }
+        if (ct.includes('application/json')) resp.clone().json().then(harvestFromJson).catch(()=>{});
       } catch {}
       return resp;
     };
-    // XHR
     const oo = XMLHttpRequest.prototype.open;
     const os = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function(method, url){
@@ -143,7 +171,6 @@
         const cid = u.searchParams.get('client_id');
         if (cid && !STATE.clientId) STATE.clientId = cid;
       }catch{}
-      this.__sc_url = url;
       return oo.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function(){
@@ -161,8 +188,6 @@
       return os.apply(this, arguments);
     };
   }
-
-  // ---------- client_id (inline)
   async function ensureClientId(){
     if (STATE.clientId) return STATE.clientId;
     for (const s of document.scripts){
@@ -173,57 +198,37 @@
     return STATE.clientId || null;
   }
 
-  // ---------- UI & CSS
-  function injectCSS(){
-    if (document.getElementById('sc-hide-short-style')) return;
-    const style = document.createElement('style');
-    style.id = 'sc-hide-short-style';
-    style.textContent = `
-      html.sc-hide-short-active [data-sc-too-short="1"] { display:none !important; }
-      .sc-hide-short-ui{display:flex;align-items:center;gap:8px;margin:8px 0;}
-      .sc-hide-short-ui input[type="number"]{width:4.5em;}
-      .sc-hide-short-hint{opacity:.7;font-size:.9em}
-    `;
-    document.documentElement.appendChild(style);
-  }
-  function injectUI() {
-    if (document.getElementById('sc-hide-short-checkbox')) return;
-    const anchor = document.querySelector('.profileHeader__info, .profileHeader, header[role="banner"], [data-testid="profileHeader"]') || document.querySelector('header');
-    if (!anchor) return;
-
+  // ---------- UI (no inline CSS; you load it separately) ----------
+  function buildUI() {
+    const existing = document.getElementById(UI_ID);
+    if (existing) return existing;
     const wrap = document.createElement('div');
-    wrap.className = 'sc-hide-short-ui';
+    wrap.id = UI_ID;
     wrap.innerHTML = `
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
         <input id="sc-hide-short-checkbox" type="checkbox">
-        <span>Hide short tracks</span>
+        <span>Hide short</span>
       </label>
-      <label style="display:flex;align-items:center;gap:6px;">
+      <label style="display:inline-flex;align-items:center;gap:6px;">
         <span>&lt;</span>
-        <input id="sc-hide-short-minutes" type="number" min="1" value="${STATE.thresholdMin}">
+        <input id="sc-hide-short-minutes" type="number" min="1">
         <span>min</span>
       </label>
       <span id="sc-hide-short-hint" class="sc-hide-short-hint"></span>
     `;
-    anchor.appendChild(wrap);
+    wireUI(wrap);
+    return wrap;
+  }
+  function wireUI(root) {
+    const cb  = root.querySelector('#sc-hide-short-checkbox');
+    const min = root.querySelector('#sc-hide-short-minutes');
 
-    const cb  = wrap.querySelector('#sc-hide-short-checkbox');
-    const min = wrap.querySelector('#sc-hide-short-minutes');
-
-    // 👉 Restore last setting
     const saved = loadSettings();
-    if (saved) {
-      STATE.thresholdMin = Math.max(1, parseInt(saved.min, 10));
-      min.value = String(STATE.thresholdMin);
-      cb.checked = !!saved.enabled;
-      document.documentElement.classList.toggle('sc-hide-short-active', cb.checked);
-      if (cb.checked) {
-        // kick once so it filters immediately after a hard reload
-        requestAnimationFrame(() => { refreshVisible(); });
-      }
-    }
+    STATE.thresholdMin = saved ? Math.max(1, parseInt(saved.min, 10)) : DEFAULT_MIN;
+    min.value = String(STATE.thresholdMin);
+    cb.checked = !!(saved && saved.enabled);
+    document.documentElement.classList.toggle('sc-hide-short-active', cb.checked);
 
-    // 👉 Save on change
     cb.addEventListener('change', () => {
       STATE.thresholdMin = Math.max(1, parseInt(min.value || '1', 10));
       document.documentElement.classList.toggle('sc-hide-short-active', cb.checked);
@@ -231,16 +236,47 @@
       refreshVisible();
       updateHint();
     });
-
     min.addEventListener('change', () => {
       STATE.thresholdMin = Math.max(1, parseInt(min.value || '1', 10));
       saveSettings(cb.checked, STATE.thresholdMin);
       if (cb.checked) refreshVisible();
       updateHint();
     });
-
     updateHint();
   }
+
+  // ---------- mounting (preferred #mdb-streamActions; fallback after header) ----------
+  function mountInto(container) {
+    if (!container) return;
+    const el = document.getElementById(UI_ID) || buildUI();
+    if (el.parentElement !== container) container.appendChild(el);
+  }
+  function insertAfterHeaderInner() {
+    const hdrInner = document.querySelector('#app header .header__inner');
+    if (!hdrInner) return false;
+    const el = document.getElementById(UI_ID) || buildUI();
+    hdrInner.insertAdjacentElement('afterend', el); // sibling to header__inner
+    document.body.classList.add('sc-hideShortTracks-fallback'); // <-- per your request
+    return true;
+  }
+  function initMounting() {
+    // fallback after 500ms if #mdb-streamActions not there yet
+    setTimeout(() => {
+      if (!document.getElementById(UI_ID) && !document.querySelector('#mdb-streamActions')) {
+        insertAfterHeaderInner();
+      }
+    }, 500);
+    // preferred mount via waitForKeyElements (move UI if needed)
+    /* global waitForKeyElements */
+    waitForKeyElements('#mdb-streamActions', ($c) => {
+      const node = $c instanceof Element ? $c : $c[0];
+      if (node) {
+        mountInto(node);
+        document.body.classList.remove('sc-hideShortTracks-fallback');
+      }
+    });
+  }
+
   function updateHint(){
     const el = document.getElementById('sc-hide-short-hint');
     if (!el) return;
@@ -253,7 +289,7 @@
       (STATE.clientId ? ' • cid:✓' : '');
   }
 
-  // ---------- cards
+  // ---------- cards & evaluation ----------
   function getTrackCards(root=document){
     return Array.from(new Set([
       ...qsa('article[aria-label="Track"]', root),
@@ -281,15 +317,22 @@
     if (!url) return '(untitled)';
     try{ return decodeURIComponent(url.split('/').pop()); }catch{ return url.split('/').pop(); }
   }
+  function thresholdMs(){ return STATE.thresholdMin * 60 * 1000; }
+  function isVisible(el){
+    const r = el.getBoundingClientRect();
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    return r.bottom > 0 && r.top < h;
+  }
+  function scheduleRecheck(card, delay=1600){
+    setTimeout(()=>{ if (isVisible(card)) evaluateCard(card); }, delay);
+  }
 
-  // ---------- resolvers (widget first, then api-v2)
   async function resolveViaWidget(url){
     try{
       const ep = `https://api-widget.soundcloud.com/resolve?url=${encodeURIComponent(url)}`;
       const r = await fetch(ep, { credentials: 'omit' });
       if (!r.ok) return null;
       const data = await r.json();
-      // try multiple shapes
       if (Number.isFinite(data?.duration)) return data.duration;
       if (Number.isFinite(data?.track?.duration)) return data.track.duration;
       if (Array.isArray(data?.tracks) && Number.isFinite(data.tracks[0]?.duration)) return data.tracks[0].duration;
@@ -302,7 +345,7 @@
     const ep = `https://api-v2.soundcloud.com/resolve?url=${encodeURIComponent(url)}&client_id=${cid}`;
     const r = await fetch(ep, { credentials: 'omit' });
     if (r.status === 429){
-      STATE.pausedUntil = now() + 30000; // 30s cooldown
+      STATE.pausedUntil = now() + 30000; // 30s
       updateHint();
       return null;
     }
@@ -312,8 +355,6 @@
   }
   async function resolveOnce(url){
     if (!url) return null;
-
-    // caches
     const cached = STATE.cache[url];
     if (cached) {
       if (cached.ms != null) return cached.ms;
@@ -337,31 +378,17 @@
         STATE.resolvesDone++;
         STATE.cache[url] = { ms, t: now() };
       } else {
-        STATE.cache[url] = { ms: null, t: now(), neg: true }; // negative cache
+        STATE.cache[url] = { ms: null, t: now(), neg: true };
       }
       saveCache();
       updateHint();
       return ms;
-    } catch {
-      return null;
-    } finally {
-      STATE.inflight = false;
-    }
+    } catch { return null; }
+    finally { STATE.inflight = false; }
   }
 
-  // ---------- evaluation
-  function thresholdMs(){ return STATE.thresholdMin * 60 * 1000; }
-  function isVisible(el){
-    const r = el.getBoundingClientRect();
-    const h = window.innerHeight || document.documentElement.clientHeight;
-    return r.bottom > 0 && r.top < h;
-  }
-  function scheduleRecheck(card, delay=1600){
-    setTimeout(()=>{ if (isVisible(card)) evaluateCard(card); }, delay);
-  }
   async function evaluateCard(card){
-    if (!document.documentElement.classList.contains('sc-hide-short-active')) return;
-    if (!isVisible(card)) return;
+    if (!isEnabled() || !isVisible(card)) return;
 
     const url = getCardUrl(card);
     if (!url) return;
@@ -373,8 +400,7 @@
       STATE.pendingCards.add(card);
       const got = await resolveOnce(url);
       STATE.pendingCards.delete(card);
-      if (got == null) scheduleRecheck(card);
-      else ms = got;
+      if (got == null) scheduleRecheck(card); else ms = got;
     }
 
     const title = getTitle(card, url);
@@ -386,7 +412,7 @@
     console.log(`[SC hide short] ${title} — ${mmss}${ms!=null?` (${ms}ms)`:''} ${hide?'→ HIDE':'→ keep'}`);
   }
 
-  // ---------- processing & observers
+  // ---------- processing & observers ----------
   let rafPending = false;
   function refreshVisible(){
     if (rafPending) return;
@@ -399,35 +425,33 @@
   function attachIO(){
     if (STATE.io) return;
     STATE.io = new IntersectionObserver((entries)=>{
-      if (!document.documentElement.classList.contains('sc-hide-short-active')) return;
+      if (!isEnabled()) return;
       for (const e of entries) if (e.isIntersecting) evaluateCard(e.target);
     }, { root:null, rootMargin:'120px', threshold:0.01 });
     getTrackCards().forEach(c => STATE.io.observe(c));
   }
   function observeDOM(){
     const debounce = ((t)=>fn=>{ clearTimeout(t.id); t.id=setTimeout(fn,120); })({id:0});
-    const mo = new MutationObserver(() => debounce(() => {
-      injectUI(); attachIO(); refreshVisible();
-    }));
+    const mo = new MutationObserver(() => debounce(() => { attachIO(); refreshVisible(); }));
     mo.observe(document.body || document.documentElement, { childList:true, subtree:true });
 
+    // SPA route changes
     let last = location.href;
     setInterval(() => {
       if (location.href !== last) {
         last = location.href;
         STATE.resolvesDone = 0;
         STATE.pausedUntil = 0;
-        if (document.documentElement.classList.contains('sc-hide-short-active')) refreshVisible();
+        if (isEnabled()) refreshVisible();
         updateHint();
       }
     }, 600);
   }
 
-  // ---------- boot
-  injectCSS();
+  // ---------- boot ----------
   harvestHydration();
-  installNetworkHooks();     // <-- harvest durations + learn client_id from any JSON/URL
-  injectUI();
+  installNetworkHooks();
+  initMounting();              // ⟵ fallback-in-500ms + waitForKeyElements(#mdb-streamActions)
   attachIO();
   observeDOM();
 })();
