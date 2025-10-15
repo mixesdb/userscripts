@@ -18,7 +18,7 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 
     & span,
     & label {
-    	padding-right: 0 !important;
+        padding-right: 0 !important;
     }
     
     & #sc-hide-short-checkbox {
@@ -26,6 +26,10 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
         clear: left;
         display: block;
         float: left;
+    }
+    
+    & #sc-hide-short-minutes {
+        margin-bottom: 0;
     }
 }
 
