@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.15.2
+// @version      2025.10.15.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -31,6 +31,21 @@
     io: null,
     pendingCards: new WeakSet(),
   };
+
+  const SETTINGS_KEY = 'sc_hide_short_settings_v1';
+  function loadSettings() {
+      try {
+          const raw = localStorage.getItem(SETTINGS_KEY);
+          const s = raw ? JSON.parse(raw) : null;
+          if (!s) return null;
+          if (typeof s.enabled !== 'boolean') return null;
+          if (!Number.isFinite(s.min) || s.min < 1) return null;
+          return s;
+      } catch { return null; }
+  }
+  function saveSettings(enabled, min) {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ enabled, min })); } catch {}
+  }
 
   // ---------- utils
   const qsa = (s, r=document)=>Array.from(r.querySelectorAll(s));
@@ -171,10 +186,11 @@
     `;
     document.documentElement.appendChild(style);
   }
-  function injectUI(){
+  function injectUI() {
     if (document.getElementById('sc-hide-short-checkbox')) return;
     const anchor = document.querySelector('.profileHeader__info, .profileHeader, header[role="banner"], [data-testid="profileHeader"]') || document.querySelector('header');
     if (!anchor) return;
+
     const wrap = document.createElement('div');
     wrap.className = 'sc-hide-short-ui';
     wrap.innerHTML = `
@@ -190,19 +206,39 @@
       <span id="sc-hide-short-hint" class="sc-hide-short-hint"></span>
     `;
     anchor.appendChild(wrap);
+
     const cb  = wrap.querySelector('#sc-hide-short-checkbox');
     const min = wrap.querySelector('#sc-hide-short-minutes');
-    cb.addEventListener('change', () => {
-      STATE.thresholdMin = Math.max(1, parseInt(min.value||'1',10));
+
+    // 👉 Restore last setting
+    const saved = loadSettings();
+    if (saved) {
+      STATE.thresholdMin = Math.max(1, parseInt(saved.min, 10));
+      min.value = String(STATE.thresholdMin);
+      cb.checked = !!saved.enabled;
       document.documentElement.classList.toggle('sc-hide-short-active', cb.checked);
+      if (cb.checked) {
+        // kick once so it filters immediately after a hard reload
+        requestAnimationFrame(() => { refreshVisible(); });
+      }
+    }
+
+    // 👉 Save on change
+    cb.addEventListener('change', () => {
+      STATE.thresholdMin = Math.max(1, parseInt(min.value || '1', 10));
+      document.documentElement.classList.toggle('sc-hide-short-active', cb.checked);
+      saveSettings(cb.checked, STATE.thresholdMin);
       refreshVisible();
       updateHint();
     });
+
     min.addEventListener('change', () => {
-      STATE.thresholdMin = Math.max(1, parseInt(min.value||'1',10));
+      STATE.thresholdMin = Math.max(1, parseInt(min.value || '1', 10));
+      saveSettings(cb.checked, STATE.thresholdMin);
       if (cb.checked) refreshVisible();
       updateHint();
     });
+
     updateHint();
   }
   function updateHint(){
