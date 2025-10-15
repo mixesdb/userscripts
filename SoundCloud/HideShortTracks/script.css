@@ -28,8 +28,13 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
         float: left;
     }
     
-    & #sc-hide-short-minutes {
-        margin-bottom: 0;
+    & #sc-hide-short-slider {
+        display: inline-block;
+        vertical-align: middle;
+        position: relative;
+        top: -1px;           /* move slider slightly down */
+        margin: -4px 2px;
+        width: 120px;
     }
 }
 
@@ -57,28 +62,28 @@ body.sc-hideShortTracks-fallback {
  * Force the slider to be blue (Safari)
  */
 #sc-hide-short-slider {
-  accent-color: #1e90ff; /* modern browsers (Safari 15+, Chrome 93+, etc.) */
+    accent-color: #1e90ff; /* modern browsers (Safari 15+, Chrome 93+, etc.) */
 }
 
 /* fallback / precise styling for WebKit */
 #sc-hide-short-slider::-webkit-slider-runnable-track {
-  background: #1e90ff;
-  height: 4px;
-  border-radius: 2px;
+    background: inherit;
+    height: 4px;
+    border-radius: 2px;
 }
 #sc-hide-short-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #007aff;          /* iOS / macOS system blue */
-  border: 2px solid #fff;       /* white ring for contrast */
-  margin-top: -4px;             /* vertically center thumb */
-  cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007aff;          /* iOS / macOS system blue */
+    border: 2px solid #fff;       /* white ring for contrast */
+    margin-top: -4px;             /* vertically center thumb */
+    cursor: pointer;
 }
 
 /* optional hover highlight */
 #sc-hide-short-slider:hover::-webkit-slider-thumb {
-  background: #3399ff;
+    background: #3399ff;
 }
