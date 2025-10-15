@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.15.18
+// @version      2025.10.15.19
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -42,7 +42,7 @@ function loadRawCss( urlVar ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 11,
+var cacheVersion = 12,
     scriptName = "SoundCloud/HideShortTracks";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -133,7 +133,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     wrap.innerHTML = `
       <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
         <input id="sc-hide-short-checkbox" type="checkbox">
-        <span>Hide short tracks &lt;<span id="sc-hide-short-val" style="min-width:2.5em;display:inline-block;text-align:right;">${DEFAULT_MIN}</span></span>
+        <span>Hide short tracks &lt;<span id="sc-hide-short-val">${DEFAULT_MIN}</span></span>
       </label>
 
       <input id="sc-hide-short-slider" type="range" min="${MIN_MINUTES}" max="${MAX_MINUTES}" step="1" style="width:100px">
