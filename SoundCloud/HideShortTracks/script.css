@@ -38,6 +38,12 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
     }
 }
 
+#sc-hide-short-val {
+    min-width: 2em;
+    display: inline-block;
+    text-align: center;
+}
+
 /* Fallback layout when not inside #mdb-streamActions */
 body.sc-hideShortTracks-fallback {
     && #sc-hide-short-ui-wrap {
