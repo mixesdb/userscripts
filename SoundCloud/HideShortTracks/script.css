@@ -5,6 +5,7 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 #sc-hide-short-ui-wrap input[type="number"] {
     width: 3.5em;
 }
+
 #sc-hide-short-ui-wrap .sc-hide-short-hint {
     opacity: .6;
     font-size: .9em;
@@ -13,18 +14,19 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 
 /* Preferred container spacing */
 #mdb-streamActions #sc-hide-short-ui-wrap {
-    margin-top:6px;
+    margin-top: 6px;
 
-    & span, & label {
+    & span,
+    & label {
     	padding-right: 0 !important;
     }
-
+    
     & #sc-hide-short-checkbox {
-	    margin-top: 3px;
-	    clear: left;
-	    display: block;
-	    float: left;
-	}
+        margin-top: 3px;
+        clear: left;
+        display: block;
+        float: left;
+    }
 }
 
 /* Fallback layout when not inside #mdb-streamActions */
@@ -33,9 +35,15 @@ body.sc-hideShortTracks-fallback {
         margin: 0 auto;
         text-align: center;
     }
-    && #content {
-        margin-top: 45px !important;
+    
+    #sc-hide-short-checkbox {
+        margin-bottom: 3px;
     }
+    
+    && #content {
+        margin-top: 75px !important;
+    }
+    
     && .userDropbar {
         padding-top: 32px !important;
     }
