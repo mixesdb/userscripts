@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.15.10
+// @version      2025.10.15.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -207,7 +207,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     wrap.innerHTML = `
       <label>
         <input id="sc-hide-short-checkbox" type="checkbox">
-        <span>Hide short</span>
+        <span>Hide short tracks</span>
       </label>
       <label>
         <span>&lt;</span>
