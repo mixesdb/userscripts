@@ -14,6 +14,10 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 /* Preferred container spacing */
 #mdb-streamActions #sc-hide-short-ui-wrap {
     margin-top:6px;
+
+    & span, & label {
+    	padding-right: 0 !important;
+    }
 }
 
 /* Fallback layout when not inside #mdb-streamActions */
