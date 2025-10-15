@@ -131,7 +131,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     wrap = document.createElement('div');
     wrap.id = UI_ID;
     wrap.innerHTML = `
-      <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+      <label>
         <input id="sc-hide-short-checkbox" type="checkbox">
         <span>Hide short tracks &lt;<span id="sc-hide-short-val">${DEFAULT_MIN}</span></span>
       </label>
