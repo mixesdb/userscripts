@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.15.12
+// @version      2025.10.15.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,16 +9,35 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/HideShortTracks/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_33
 // @match        https://soundcloud.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @run-at       document-idle
 // ==/UserScript==
 
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Copied stuff from global.js
+ * do not require aditionally (when normal SoundCloud userscript is active) > then e.g. API nd file details toggle gets buggy
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+const githubPath_raw = "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/";
+
+function loadRawCss( urlVar ) {
+    $.ajax({
+        url: urlVar,
+        dataType: "text",
+        success: function(fileText) {
+            // cssText will be a string containing the text of the file
+            $('head').append( '<style>'+fileText+'</style>' );
+        }
+    });
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
- * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -27,7 +46,6 @@ var cacheVersion = 8,
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
