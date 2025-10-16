@@ -31,7 +31,7 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 /* Preferred container spacing */
 #mdb-streamActions-filter {
     margin-top: 6px;
-
+    
     & span,
     & label {
         padding-right: 0 !important;
@@ -47,7 +47,7 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
 
     & span.value {
         display: inline-block;
-        min-width: 2em;      /* enough for up to 3 digits (e.g. "180") */
+        min-width: 2em !important;      /* enough for up to 3 digits (e.g. "180") */
         text-align: right;
         margin-right: .25em;
     }
