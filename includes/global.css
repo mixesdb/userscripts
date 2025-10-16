@@ -257,8 +257,8 @@ textarea.mono {
         color: #777;
     }
 
-    & span,
-    & label {
+    & #mdb-streamActions-hide span,
+    & #mdb-streamActions-hide label {
         padding-right: 1rem;
     }
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.17.1
+// @version      2025.10.16.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 34,
+var cacheVersion = 35,
     scriptName = "SoundCloud";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -257,10 +257,10 @@ function lazyLoadingList(jNode) {
 
     // add checkboxes
     if( $("#mdb-streamActions").length === 0 ) {
-        jNode.before('<div id="mdb-streamActions" class="sc-text-grey"></div>');
+        jNode.before('<div id="mdb-streamActions" class="sc-text-grey"><div id="mdb-streamActions-hide"></div></div>');
 
         // vars
-        var sa = $("#mdb-streamActions"),
+        var saHide = $("#mdb-streamActions-hide"),
             checkedPl = "checked",
             checkedReposts = "",
             checkedFav = "",
@@ -271,18 +271,18 @@ function lazyLoadingList(jNode) {
         if( getHideUsed == "true" ) checkedUsed = 'checked';
 
         // Display filter options per tab type
-        sa.append('<span class="mdb-darkorange">Hide:</span>');
+        saHide.append('<span class="mdb-darkorange">Hide:</span>');
         if( !isSetPage ) {
-            sa.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
-            sa.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
-            sa.append('<label class="pointer" title="Hide player that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
+            saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
+            saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
+            saHide.append('<label class="pointer" title="Hide player that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
         }
         // Not on Playlists tab, e.g. https://soundcloud.com/resident-advisor/sets
         // but allow on playlist page, e.g. https://soundcloud.com/resident-advisor/sets/ra-podcast
         if( !isSetPage || isSetPage && typeof( urlPath(3) ) != "undefined" ) {
-             sa.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
+             saHide.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
         } else {
-            sa.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
+            saHide.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
         }
     }
 
