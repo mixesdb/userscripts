@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.16.10
+// @version      2025.10.16.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -44,7 +44,7 @@ function urlPath(n) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 21,
+var cacheVersion = 22,
   scriptName = "SoundCloud/HideShortTracks";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -64,8 +64,9 @@ if( urlPath(2) !== "sets" ) {
         const MIN_MINUTES       = 3;
         const MAX_MINUTES       = 180;
 
-        const MIN_FAVS          = 1;
-        const MAX_FAVS          = 100;
+        const FAV_STEPS = [1, 5, 10, 20, 50, 100, 250, 500, 1000];
+        const FAV_STEP_MIN = 0;
+        const FAV_STEP_MAX = FAV_STEPS.length - 1;
         const DEFAULT_FAVS      = 1;
 
         const PAGE_RESOLVE_CAP  = 40;
@@ -174,7 +175,7 @@ if( urlPath(2) !== "sets" ) {
          --><span>Favorites ≥<span id="sc-min-favs-val" class="value">${DEFAULT_FAVS}</span></span><!--
          --></label><!--
 
-         --><input id="sc-min-favs-slider" type="range" min="${MIN_FAVS}" max="${MAX_FAVS}" step="1"><!--
+         --><input id="sc-min-favs-slider" type="range" min="0" max="${FAV_STEP_MAX}" step="1"><!--
 
          --><span class="visually-hidden"><!--
                 --><input id="sc-hide-short-minutes" type="number" maxlength="3" min="1"><!--
@@ -182,6 +183,11 @@ if( urlPath(2) !== "sets" ) {
         `;
             wireUI(wrap);
             return wrap;
+        }
+
+        function favValueFromSlider(slider) {
+            const idx = Math.round(parseInt(slider.value, 10));
+            return FAV_STEPS[Math.max(0, Math.min(FAV_STEP_MAX, idx))];
         }
 
         function wireUI(root) {
@@ -202,8 +208,10 @@ if( urlPath(2) !== "sets" ) {
             slDur.value          = String(STATE.thresholdMin);
             valDur.textContent   = String(STATE.thresholdMin);
 
-            slFavs.value         = String(STATE.thresholdFavs);
-            valFavs.textContent  = String(STATE.thresholdFavs);
+            // --- favorites initialization using non-linear mapping ---
+            const initFavIndex = FAV_STEPS.findIndex(v => v >= STATE.thresholdFavs);
+            slFavs.value = String(initFavIndex >= 0 ? initFavIndex : 0);
+            valFavs.textContent = String(STATE.thresholdFavs);
 
             cbMain.checked       = !!(saved && saved.enabled);
             cbFavs.checked       = STATE.favsEnabled;
@@ -240,7 +248,7 @@ if( urlPath(2) !== "sets" ) {
 
             // Favorites slider: auto-enable ONLY favorites checkbox; master turns on via OR
             slFavs.addEventListener('input', () => {
-                STATE.thresholdFavs = clampFav(slFavs.value || DEFAULT_FAVS);
+                STATE.thresholdFavs = favValueFromSlider(slFavs);
                 valFavs.textContent = String(STATE.thresholdFavs);
 
                 if (!cbFavs.checked) {
@@ -252,7 +260,10 @@ if( urlPath(2) !== "sets" ) {
 
                 if (computeEnabled(cbMain, cbFavs)) debouncedReset();
             });
+
             slFavs.addEventListener('change', () => {
+                STATE.thresholdFavs = favValueFromSlider(slFavs);
+                valFavs.textContent = String(STATE.thresholdFavs);
                 if (!cbFavs.checked) {
                     cbFavs.checked = true;
                     STATE.favsEnabled = true;
