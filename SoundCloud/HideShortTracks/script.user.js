@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.16.11
+// @version      2025.10.16.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -64,9 +64,8 @@ if( urlPath(2) !== "sets" ) {
         const MIN_MINUTES       = 3;
         const MAX_MINUTES       = 180;
 
-        const FAV_STEPS = [1, 5, 10, 20, 50, 100, 250, 500, 1000];
-        const FAV_STEP_MIN = 0;
-        const FAV_STEP_MAX = FAV_STEPS.length - 1;
+        const FAV_STEPS         = [1, 5, 10, 20, 50, 100, 250, 500, 1000];
+        const FAV_STEP_MAX      = FAV_STEPS.length - 1;
         const DEFAULT_FAVS      = 1;
 
         const PAGE_RESOLVE_CAP  = 40;
@@ -80,7 +79,7 @@ if( urlPath(2) !== "sets" ) {
         const ATTR_TOO_FEW_F    = 'data-sc-too-few-favs';
 
         const LS_CACHE          = 'sc_hide_short_cache_v6';
-        const LS_SETT           = 'sc_hide_short_settings_v4';
+        const LS_SETT           = 'sc_hide_short_settings_v5';
 
         // ---------- State ----------
         const STATE = {
@@ -100,17 +99,13 @@ if( urlPath(2) !== "sets" ) {
         const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
         const now = () => Date.now();
         const clampMin = m => Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, Math.round(parseInt(m, 10) || DEFAULT_MIN)));
-        const clampFav = f => Math.min(MAX_FAVS, Math.max(MIN_FAVS, Math.round(parseInt(f, 10) || DEFAULT_FAVS)));
         const enabled = () => document.documentElement.classList.contains('sc-hide-short-active');
         const thresholdMs = () => STATE.thresholdMin * 60 * 1000;
         const norm = u => {
             try { const x = new URL(u, location.origin); return x.origin + x.pathname.replace(/\/+$/, ''); }
             catch { return (u || '').split('#')[0].split('?')[0]; }
         };
-
-        function computeEnabled(cbMain, cbFavs) {
-            return !!(cbMain?.checked || cbFavs?.checked);
-        }
+        const computeEnabled = (cbMain, cbFavs) => !!(cbMain?.checked || cbFavs?.checked);
 
         function loadCache() {
             try {
@@ -133,9 +128,9 @@ if( urlPath(2) !== "sets" ) {
                 const s = JSON.parse(localStorage.getItem(LS_SETT) || 'null');
                 if (!s) return null;
                 return {
-                    enabled: !!s.enabled,                 // master flag from last run
+                    enabled: !!s.enabled,
                     min: clampMin(s.min ?? DEFAULT_MIN),
-                    minFavs: clampFav(s.minFavs ?? DEFAULT_FAVS),
+                    minFavs: Number.isFinite(s.minFavs) ? s.minFavs : DEFAULT_FAVS,
                     favsEnabled: !!s.favsEnabled
                 };
             } catch { return null; }
@@ -145,7 +140,7 @@ if( urlPath(2) !== "sets" ) {
                 localStorage.setItem(LS_SETT, JSON.stringify({
                     enabled: !!enabledVal,
                     min: clampMin(min),
-                    minFavs: clampFav(minFavs),
+                    minFavs,
                     favsEnabled: !!favsEnabledVal
                 }));
             } catch {}
@@ -185,11 +180,6 @@ if( urlPath(2) !== "sets" ) {
             return wrap;
         }
 
-        function favValueFromSlider(slider) {
-            const idx = Math.round(parseInt(slider.value, 10));
-            return FAV_STEPS[Math.max(0, Math.min(FAV_STEP_MAX, idx))];
-        }
-
         function wireUI(root) {
             const cbMain    = root.querySelector('#sc-hide-short-checkbox');
             const slDur     = root.querySelector('#sc-hide-short-slider');
@@ -204,29 +194,29 @@ if( urlPath(2) !== "sets" ) {
             STATE.thresholdFavs  = saved ? saved.minFavs : DEFAULT_FAVS;
             STATE.favsEnabled    = saved ? !!saved.favsEnabled : false;
 
-            minI.value           = String(STATE.thresholdMin);
-            slDur.value          = String(STATE.thresholdMin);
-            valDur.textContent   = String(STATE.thresholdMin);
+            // duration init
+            minI.value          = String(STATE.thresholdMin);
+            slDur.value         = String(STATE.thresholdMin);
+            valDur.textContent  = String(STATE.thresholdMin);
 
-            // --- favorites initialization using non-linear mapping ---
-            const initFavIndex = FAV_STEPS.findIndex(v => v >= STATE.thresholdFavs);
-            slFavs.value = String(initFavIndex >= 0 ? initFavIndex : 0);
-            valFavs.textContent = String(STATE.thresholdFavs);
+            // favorites init (map saved numeric → slider index)
+            const initFavIndex = Math.max(0, FAV_STEPS.findIndex(v => v >= STATE.thresholdFavs));
+            slFavs.value       = String(initFavIndex);
+            valFavs.textContent= String(STATE.thresholdFavs);
 
-            cbMain.checked       = !!(saved && saved.enabled);
-            cbFavs.checked       = STATE.favsEnabled;
+            cbMain.checked      = !!(saved && saved.enabled);
+            cbFavs.checked      = STATE.favsEnabled;
 
-            // Master ON if either checkbox is on
             document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
             saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
             let t;
             const debouncedReset = () => {
                 clearTimeout(t);
-                t = setTimeout(() => resetAll(), 150);
+                t = setTimeout(() => resetAll(), 120);   // fast feedback while dragging
             };
 
-            // Duration slider: auto-enable only duration checkbox
+            // Duration slider: auto-enable ONLY duration checkbox; live re-eval while dragging
             slDur.addEventListener('input', () => {
                 STATE.thresholdMin = clampMin(slDur.value || DEFAULT_MIN);
                 valDur.textContent = String(STATE.thresholdMin);
@@ -246,7 +236,12 @@ if( urlPath(2) !== "sets" ) {
                 resetAll();
             });
 
-            // Favorites slider: auto-enable ONLY favorites checkbox; master turns on via OR
+            const favValueFromSlider = slider => {
+                const idx = Math.max(0, Math.min(FAV_STEP_MAX, Math.round(parseInt(slider.value, 10) || 0)));
+                return FAV_STEPS[idx];
+            };
+
+            // Favorites slider: auto-enable ONLY favorites checkbox; live re-eval while dragging
             slFavs.addEventListener('input', () => {
                 STATE.thresholdFavs = favValueFromSlider(slFavs);
                 valFavs.textContent = String(STATE.thresholdFavs);
@@ -260,10 +255,10 @@ if( urlPath(2) !== "sets" ) {
 
                 if (computeEnabled(cbMain, cbFavs)) debouncedReset();
             });
-
             slFavs.addEventListener('change', () => {
                 STATE.thresholdFavs = favValueFromSlider(slFavs);
                 valFavs.textContent = String(STATE.thresholdFavs);
+
                 if (!cbFavs.checked) {
                     cbFavs.checked = true;
                     STATE.favsEnabled = true;
@@ -274,7 +269,7 @@ if( urlPath(2) !== "sets" ) {
                 resetAll();
             });
 
-            // Hidden number input (kept for compatibility)
+            // Hidden number input (compat)
             minI.addEventListener('change', () => {
                 STATE.thresholdMin = clampMin(minI.value || DEFAULT_MIN);
                 slDur.value = String(STATE.thresholdMin);
@@ -307,29 +302,15 @@ if( urlPath(2) !== "sets" ) {
         }
 
         function mountUI() {
-            // fallback after 500 ms
-            setTimeout(() => {
-                if (!document.getElementById(UI_ID) && !document.querySelector('#mdb-streamActions')) {
-                    const hdr = document.querySelector('#app header .header__inner');
-                    if (hdr) {
-                        const el = document.getElementById(UI_ID) || buildUI();
-                        hdr.insertAdjacentElement('afterend', el);
-                        document.body.classList.add('sc-hideShortTracks-fallback');
-                        refreshVisible();
-                    }
-                }
-            }, 500);
-
-            // preferred mount
+            // ONLY attach via waitForKeyElements
             /* global waitForKeyElements */
             waitForKeyElements('#mdb-streamActions', ($c) => {
                 const node = $c instanceof Element ? $c : $c[0];
-                if (node) {
-                    const el = document.getElementById(UI_ID) || buildUI();
-                    node.appendChild(el);
-                    document.body.classList.remove('sc-hideShortTracks-fallback');
-                    refreshVisible();
-                }
+                if (!node) return;
+                if (node.querySelector('#' + UI_ID)) return; // already mounted
+                const el = buildUI();
+                node.appendChild(el);
+                refreshVisible();
             });
         }
 
@@ -366,7 +347,7 @@ if( urlPath(2) !== "sets" ) {
             return null;
         }
 
-        // Favorites: only from the like button label
+        // Favorites count (from like button label only)
         function getFavoritesCount(card) {
             const likeBtn = card.querySelector('button.sc-button-like, .sc-button-like[aria-label="Like"]');
             const labelEl = likeBtn?.querySelector('.sc-button-label');
@@ -535,25 +516,25 @@ if( urlPath(2) !== "sets" ) {
 
                 const node = asCard(card);
 
-                // 1) Favorites — immediate and independent
+                // Favorites — immediate and independent
                 let tooFewFavs = false;
                 if (STATE.favsEnabled) {
                     const favs = getFavoritesCount(card);
-                    tooFewFavs = favs < (STATE.thresholdFavs ?? MIN_FAVS);
+                    tooFewFavs = favs < STATE.thresholdFavs;
                     if (tooFewFavs) node.setAttribute(ATTR_TOO_FEW_F, '1'); else node.removeAttribute(ATTR_TOO_FEW_F);
                 } else {
                     node.removeAttribute(ATTR_TOO_FEW_F);
                 }
-                if (tooFewFavs) {  // already hidden by favorites
+                if (tooFewFavs) {
                     card.classList.add(CHECKED_CLASS);
                     return;
                 }
 
-                // 2) Duration — cache → resolve
+                // Duration — cache → resolve
                 let ms = STATE.cache[url]?.ms ?? null;
                 const isNeg = !!STATE.cache[url]?.neg;
                 if (ms == null && !isNeg) {
-                    ms = await getDuration(url);  // may be null (cap/cooldown/neg)
+                    ms = await getDuration(url);  // may be null
                 }
                 const haveStableDuration = (ms != null) || !!STATE.cache[url]?.neg;
                 if (!haveStableDuration) {
