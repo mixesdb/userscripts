@@ -61,6 +61,9 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
         text-align: right;
         margin-right: .25em;
     }
+    & span.value.sc-min-favs-val {
+        min-width: 2.5em !important;
+    }
     
     & #sc-hide-short-checkbox {
         margin-top: 3px;
