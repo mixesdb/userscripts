@@ -44,7 +44,7 @@ function urlPath(n) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 22,
+var cacheVersion = 23,
   scriptName = "SoundCloud/HideShortTracks";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );

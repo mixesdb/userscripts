@@ -4,8 +4,8 @@
 #mdb-streamActions {
     position: sticky;
     top: 0;
-    z-index: 3000;             /* stays above SC header shadows */
-    background: var(--background-primary, #222);
+    z-index: 3000; /* stays above SC header shadows */
+    background: var(--button-secondary-background-color, #303030); /* SC default */
     padding: 10px 15px;
     border-bottom: 4px solid #aaaaaa70;
 }
