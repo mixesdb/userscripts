@@ -1,35 +1,57 @@
-html.sc-hide-short-active [data-sc-too-short="1"] {
+html.sc-hide-short-active [data-sc-too-short="1"],
+html.sc-hide-short-active [data-sc-too-few-favs="1"] {
     display: none !important;
 }
 
-#sc-hide-short-ui-wrap input[type="number"] {
-    width: 3.5em;
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
 
-#sc-hide-short-ui-wrap .sc-hide-short-hint {
-    opacity: .6;
-    font-size: .9em;
-    margin-left: 6px;
+html.sc-hide-short-active [data-sc-too-short="1"] {
+    display: none !important;
+}
+    
+.mdb-streamActions-group + .mdb-streamActions-group {
+    margin-left: 1.5em;
 }
 
 /* Preferred container spacing */
-#mdb-streamActions #sc-hide-short-ui-wrap {
+#mdb-streamActions-filter {
     margin-top: 6px;
 
     & span,
     & label {
         padding-right: 0 !important;
     }
+    
+    & input[type="number"] {
+        width: 3.5em;
+    }
 
     & span.mdb-darkorange {
         padding-right: .74rem !important;
+    }
+
+    & span.value {
+        display: inline-block;
+        min-width: 2em;      /* enough for up to 3 digits (e.g. "180") */
+        text-align: right;
+        margin-right: .25em;
     }
     
     & #sc-hide-short-checkbox {
         margin-top: 3px;
     }
     
-    & #sc-hide-short-slider {
+    & input[type=range] {
         display: inline-block;
         vertical-align: middle;
         position: relative;
@@ -39,15 +61,32 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
     }
 }
 
-#sc-hide-short-val {
-    min-width: 2em;
-    display: inline-block;
-    text-align: center;
-}
+/*
+ * Force the slider to be blue (Safari)
+ */
 
-/* Fallback layout when not inside #mdb-streamActions */
+
+/* fallback / precise styling for WebKit */
+input[type=range]::-webkit-slider-runnable-track {
+    background: inherit;
+    height: 4px;
+    border-radius: 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007aff !important;          /* iOS / macOS system blue */
+    border: 2px solid #fff;       /* white ring for contrast */
+    margin-top: -4px;             /* vertically center thumb */
+    cursor: pointer;
+}
+    
+/* TEMP BETA Fallback layout when not inside #mdb-streamActions */
 body.sc-hideShortTracks-fallback {
-    && #sc-hide-short-ui-wrap {
+    && #mdb-streamActions-filter {
         margin: 0 auto;
         text-align: center;
     }
@@ -63,34 +102,4 @@ body.sc-hideShortTracks-fallback {
     && .userDropbar {
         padding-top: 32px !important;
     }
-}
-
-/*
- * Force the slider to be blue (Safari)
- */
-#sc-hide-short-slider {
-    accent-color: #1e90ff; /* modern browsers (Safari 15+, Chrome 93+, etc.) */
-}
-
-/* fallback / precise styling for WebKit */
-#sc-hide-short-slider::-webkit-slider-runnable-track {
-    background: inherit;
-    height: 4px;
-    border-radius: 2px;
-}
-#sc-hide-short-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #007aff;          /* iOS / macOS system blue */
-    border: 2px solid #fff;       /* white ring for contrast */
-    margin-top: -4px;             /* vertically center thumb */
-    cursor: pointer;
-}
-
-/* optional hover highlight */
-#sc-hide-short-slider:hover::-webkit-slider-thumb {
-    background: #3399ff;
 }
