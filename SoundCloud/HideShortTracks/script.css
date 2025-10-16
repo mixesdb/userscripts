@@ -1,13 +1,24 @@
+/*
+ * Sticky toolbar on profile/stream pages
+ */
+#mdb-streamActions {
+    position: sticky;
+    top: 0;
+    z-index: 3000;             /* stays above SC header shadows */
+    background: var(--background-primary, #222);
+    padding: 10px 15px;
+    border-bottom: 4px solid #aaaaaa70;
+}
+/* ensure the following content doesn't overlap */
+div.stream__list {
+    margin-top: 10px;
+}
+
+/* Hide filtered players */
 html.sc-hide-short-active [data-sc-too-short="1"],
 html.sc-hide-short-active [data-sc-too-few-favs="1"] {
     display: none !important;
 }
-
-/* Ensure loading is activated (end of stream not detected if filter shows too few players) */
-.lazyLoadingList__list {
-    min-height: 100vh
-}
-
 .visually-hidden {
     position: absolute !important;
     width: 1px !important;
@@ -19,9 +30,13 @@ html.sc-hide-short-active [data-sc-too-few-favs="1"] {
     white-space: nowrap !important;
     border: 0 !important;
 }
-
 html.sc-hide-short-active [data-sc-too-short="1"] {
     display: none !important;
+}
+
+/* Ensure loading is activated (end of stream not detected if filter shows too few players) */
+.lazyLoadingList__list {
+    min-height: 100vh
 }
     
 .mdb-streamActions-group + .mdb-streamActions-group {
