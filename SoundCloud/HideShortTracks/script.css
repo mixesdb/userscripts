@@ -20,21 +20,22 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
     & label {
         padding-right: 0 !important;
     }
+
+    & span.mdb-darkorange {
+        padding-right: .74rem !important;
+    }
     
     & #sc-hide-short-checkbox {
         margin-top: 3px;
-        clear: left;
-        display: block;
-        float: left;
     }
     
     & #sc-hide-short-slider {
         display: inline-block;
         vertical-align: middle;
         position: relative;
-        top: -1px;           /* move slider slightly down */
+        top: -1px;
         margin: -4px 2px;
-        width: 120px;
+        width: 100px !important;
     }
 }
 
