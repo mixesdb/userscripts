@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.16.7
+// @version      2025.10.16.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -42,7 +42,7 @@ function loadRawCss( urlVar ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 19,
+var cacheVersion = 20,
   scriptName = "SoundCloud/HideShortTracks";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -171,7 +171,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         wrap = document.createElement('div');
         wrap.id = UI_ID;
         wrap.innerHTML = `
-            <span class="mdb-darkorange">Filter:</span><!--
+            <div id="mdb-streamActions-filter"><span class="mdb-darkorange">Filter:</span><!--
          --><span class="mdb-streamActions-group"><!--
          --><label><!--
          --><input id="sc-hide-short-checkbox" type="checkbox"><!--
@@ -191,7 +191,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
          --><span class="visually-hidden"><!--
                 --><input id="sc-hide-short-minutes" type="number" maxlength="3" min="1"><!--
-         --></span></span>
+         --></span></span></div>
         `;
         wireUI(wrap);
         return wrap;
