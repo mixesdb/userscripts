@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud: Hide short tracks (Beta) (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.16.3
+// @version      2025.10.16.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -42,7 +42,7 @@ function loadRawCss( urlVar ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 15,
+var cacheVersion = 16,
   scriptName = "SoundCloud/HideShortTracks";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -63,6 +63,14 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // ==/UserScript==
 
+// ==UserScript==
+// @name         SoundCloud: Hide short tracks + favorites (OR-enabled)
+// @description  Hide SoundCloud cards by duration (keep ≥ threshold) and/or favorites. Sliders auto-enable their own filters; feature active if either checkbox is on.
+// @match        https://soundcloud.com/*
+// @run-at       document-idle
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// ==/UserScript==
+
 (() => {
     // ---------- Config ----------
     const DEFAULT_MIN       = 20;                 // default minutes
@@ -76,15 +84,15 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     const PAGE_RESOLVE_CAP  = 40;
     const REQ_INTERVAL_MS   = 1500;
     const CACHE_TTL         = 10 * 365 * 24 * 3600 * 1e3;  // 10 years
-    const NEG_TTL           = 7 * 24 * 3600 * 1e3;         // negative cache: 7 days
+    const NEG_TTL           = 7 * 24 * 3600 * 1e3;         // 7 days
 
-    const UI_ID             = 'mdb-streamActions-filter';
+    const UI_ID             = 'sc-hide-short-ui-wrap';
     const CHECKED_CLASS     = 'sc-checked';
     const ATTR_TOO_SHORT    = 'data-sc-too-short';
     const ATTR_TOO_FEW_F    = 'data-sc-too-few-favs';
 
     const LS_CACHE          = 'sc_hide_short_cache_v6';
-    const LS_SETT           = 'sc_hide_short_settings_v3';
+    const LS_SETT           = 'sc_hide_short_settings_v4';
 
     // ---------- State ----------
     const STATE = {
@@ -103,23 +111,18 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     // ---------- Utils ----------
     const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
     const now = () => Date.now();
-    const enabled = () => document.documentElement.classList.contains('sc-hide-short-active');
     const clampMin = m => Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, Math.round(parseInt(m, 10) || DEFAULT_MIN)));
     const clampFav = f => Math.min(MAX_FAVS, Math.max(MIN_FAVS, Math.round(parseInt(f, 10) || DEFAULT_FAVS)));
-    const msToMMSS = ms => {
-        if (ms == null) return '—:——';
-        const s = (ms / 1000) | 0, m = (s / 60) | 0;
-        return `${m}:${String(s % 60).padStart(2, '0')}`;
-    };
-    const norm = u => {
-        try {
-            const x = new URL(u, location.origin);
-            return x.origin + x.pathname.replace(/\/+$/, '');
-        } catch {
-            return (u || '').split('#')[0].split('?')[0];
-        }
-    };
+    const enabled = () => document.documentElement.classList.contains('sc-hide-short-active');
     const thresholdMs = () => STATE.thresholdMin * 60 * 1000;
+    const norm = u => {
+        try { const x = new URL(u, location.origin); return x.origin + x.pathname.replace(/\/+$/, ''); }
+        catch { return (u || '').split('#')[0].split('?')[0]; }
+    };
+
+    function computeEnabled(cbMain, cbFavs) {
+        return !!(cbMain?.checked || cbFavs?.checked);
+    }
 
     function loadCache() {
         try {
@@ -140,11 +143,11 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     function loadSettings() {
         try {
             const s = JSON.parse(localStorage.getItem(LS_SETT) || 'null');
-            if (!s || typeof s.enabled !== 'boolean') return null;
+            if (!s) return null;
             return {
-                enabled: !!s.enabled,
-                min: clampMin(s.min),
-                minFavs: clampFav(s.minFavs),
+                enabled: !!s.enabled,                 // master flag from last run
+                min: clampMin(s.min ?? DEFAULT_MIN),
+                minFavs: clampFav(s.minFavs ?? DEFAULT_FAVS),
                 favsEnabled: !!s.favsEnabled
             };
         } catch { return null; }
@@ -197,8 +200,8 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
     function wireUI(root) {
         const cbMain    = root.querySelector('#sc-hide-short-checkbox');
         const slDur     = root.querySelector('#sc-hide-short-slider');
-        const slFavs    = root.querySelector('#sc-min-favs-slider');
         const cbFavs    = root.querySelector('#sc-favs-checkbox');
+        const slFavs    = root.querySelector('#sc-min-favs-slider');
         const minI      = root.querySelector('#sc-hide-short-minutes');
         const valDur    = root.querySelector('#sc-hide-short-val');
         const valFavs   = root.querySelector('#sc-min-favs-val');
@@ -218,8 +221,9 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         cbMain.checked       = !!(saved && saved.enabled);
         cbFavs.checked       = STATE.favsEnabled;
 
-        document.documentElement.classList.toggle('sc-hide-short-active', cbMain.checked);
-        saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        // Master ON if either checkbox is on
+        document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
         let t;
         const debouncedReset = () => {
@@ -227,55 +231,49 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
             t = setTimeout(() => resetAll(), 150);
         };
 
-        // Duration slider: auto-enable main checkbox when moved
+        // Duration slider: auto-enable only duration checkbox
         slDur.addEventListener('input', () => {
             STATE.thresholdMin = clampMin(slDur.value || DEFAULT_MIN);
             valDur.textContent = String(STATE.thresholdMin);
             minI.value = String(STATE.thresholdMin);
-            if (!cbMain.checked) {
-                cbMain.checked = true;
-                document.documentElement.classList.add('sc-hide-short-active');
-            }
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
-            if (cbMain.checked) debouncedReset();
+
+            if (!cbMain.checked) cbMain.checked = true;
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+
+            if (computeEnabled(cbMain, cbFavs)) debouncedReset();
         });
         slDur.addEventListener('change', () => {
+            if (!cbMain.checked) cbMain.checked = true;
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
             clearTimeout(t);
-            if (!cbMain.checked) {
-                cbMain.checked = true;
-                document.documentElement.classList.add('sc-hide-short-active');
-            }
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
             resetAll();
         });
 
-        // Favorites slider: auto-enable main + favorites checkboxes when moved
+        // Favorites slider: auto-enable ONLY favorites checkbox; master turns on via OR
         slFavs.addEventListener('input', () => {
             STATE.thresholdFavs = clampFav(slFavs.value || DEFAULT_FAVS);
             valFavs.textContent = String(STATE.thresholdFavs);
-            if (!cbMain.checked) {
-                cbMain.checked = true;
-                document.documentElement.classList.add('sc-hide-short-active');
-            }
+
             if (!cbFavs.checked) {
                 cbFavs.checked = true;
                 STATE.favsEnabled = true;
             }
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
-            if (cbMain.checked && cbFavs.checked) debouncedReset();
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+
+            if (computeEnabled(cbMain, cbFavs)) debouncedReset();
         });
         slFavs.addEventListener('change', () => {
-            clearTimeout(t);
-            if (!cbMain.checked) {
-                cbMain.checked = true;
-                document.documentElement.classList.add('sc-hide-short-active');
-            }
             if (!cbFavs.checked) {
                 cbFavs.checked = true;
                 STATE.favsEnabled = true;
             }
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
-            if (cbMain.checked) resetAll();
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+            clearTimeout(t);
+            resetAll();
         });
 
         // Hidden number input (kept for compatibility)
@@ -283,19 +281,19 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
             STATE.thresholdMin = clampMin(minI.value || DEFAULT_MIN);
             slDur.value = String(STATE.thresholdMin);
             valDur.textContent = String(STATE.thresholdMin);
-            if (!cbMain.checked) {
-                cbMain.checked = true;
-                document.documentElement.classList.add('sc-hide-short-active');
-            }
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+
+            if (!cbMain.checked) cbMain.checked = true;
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+
             clearTimeout(t);
             resetAll();
         });
 
         // Main enable/disable
         cbMain.addEventListener('change', () => {
-            document.documentElement.classList.toggle('sc-hide-short-active', cbMain.checked);
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
             clearTimeout(t);
             resetAll();
         });
@@ -303,9 +301,10 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         // Favorites enable/disable
         cbFavs.addEventListener('change', () => {
             STATE.favsEnabled = cbFavs.checked;
-            saveSettings(cbMain.checked, STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+            document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
+            saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
             clearTimeout(t);
-            if (cbMain.checked) resetAll();
+            if (computeEnabled(cbMain, cbFavs)) resetAll();
         });
     }
 
@@ -368,15 +367,9 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         }
         return null;
     }
-    function getTitle(card, url) {
-        const t =
-            card.querySelector('[itemprop="name"]')?.textContent ||
-            card.querySelector('[data-testid*="trackTitle"]')?.textContent ||
-            card.querySelector('a[title][href*="/"]')?.getAttribute('title') || '';
-        return (t && t.trim()) || (url ? decodeURIComponent(url.split('/').pop() || '') : '(untitled)');
-    }
+
+    // Favorites: only from the like button label
     function getFavoritesCount(card) {
-        // Only read from the Like button label to avoid confusing plays
         const likeBtn = card.querySelector('button.sc-button-like, .sc-button-like[aria-label="Like"]');
         const labelEl = likeBtn?.querySelector('.sc-button-label');
         if (labelEl) {
@@ -384,8 +377,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
             if (Number.isFinite(n)) return n;
         }
         if (likeBtn) {
-            const txt = (likeBtn.textContent || '').trim();
-            const n2 = parseInt(txt.replace(/[^\d]/g, ''), 10);
+            const n2 = parseInt((likeBtn.textContent || '').replace(/[^\d]/g, ''), 10);
             if (Number.isFinite(n2)) return n2;
         }
         const anyLike = card.querySelectorAll('.sc-button-like');
@@ -471,7 +463,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         return STATE.clientId || null;
     }
 
-    // ---------- Resolve duration (widget → api-v2) with in-flight dedupe ----------
+    // ---------- Resolve duration ----------
     async function resolveViaWidget(url) {
         try {
             const ep = `https://api-widget.soundcloud.com/resolve?url=${encodeURIComponent(url)}`;
@@ -497,7 +489,6 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         const data = await r.json();
         return Number.isFinite(data?.duration) ? data.duration : null;
     }
-
     async function getDuration(url) {
         const c = STATE.cache[url];
         if (c) { if (c.ms != null) return c.ms; if (c.neg) return null; }
@@ -530,7 +521,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         finally { STATE.inflight.delete(url); }
     }
 
-    // ---------- Evaluate one card ----------
+    // ---------- Evaluate ----------
     async function evaluateCard(card) {
         if (!enabled() || card.classList.contains(CHECKED_CLASS)) return;
 
@@ -544,41 +535,38 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
             const url = getCardUrl(card);
             if (!url) return;
 
-            // duration (cache → resolve)
+            const node = asCard(card);
+
+            // 1) Favorites — immediate and independent
+            let tooFewFavs = false;
+            if (STATE.favsEnabled) {
+                const favs = getFavoritesCount(card);
+                tooFewFavs = favs < (STATE.thresholdFavs ?? MIN_FAVS);
+                if (tooFewFavs) node.setAttribute(ATTR_TOO_FEW_F, '1'); else node.removeAttribute(ATTR_TOO_FEW_F);
+            } else {
+                node.removeAttribute(ATTR_TOO_FEW_F);
+            }
+            if (tooFewFavs) {  // already hidden by favorites
+                card.classList.add(CHECKED_CLASS);
+                return;
+            }
+
+            // 2) Duration — cache → resolve
             let ms = STATE.cache[url]?.ms ?? null;
             const isNeg = !!STATE.cache[url]?.neg;
             if (ms == null && !isNeg) {
-                ms = await getDuration(url);  // may be null if capped/cooldown/neg
+                ms = await getDuration(url);  // may be null (cap/cooldown/neg)
             }
             const haveStableDuration = (ms != null) || !!STATE.cache[url]?.neg;
-
-            // if duration not stable yet, retry later
             if (!haveStableDuration) {
                 setTimeout(() => { evaluateCard(card); }, 1600);
                 return;
             }
 
-            // filters
-            const tooShort = (ms != null) && (ms < thresholdMs());  // hide if strictly less; keep if >=
-            let tooFewFavs = false;
-            if (STATE.favsEnabled) {
-                const favs = getFavoritesCount(card);
-                tooFewFavs = favs < (STATE.thresholdFavs ?? MIN_FAVS);
-            } else {
-                asCard(card).removeAttribute(ATTR_TOO_FEW_F);
-            }
-
-            const node = asCard(card);
+            const tooShort = (ms != null) && (ms < thresholdMs()); // keep ≥ threshold
             if (tooShort) node.setAttribute(ATTR_TOO_SHORT, '1'); else node.removeAttribute(ATTR_TOO_SHORT);
-            if (tooFewFavs) node.setAttribute(ATTR_TOO_FEW_F, '1'); else node.removeAttribute(ATTR_TOO_FEW_F);
-
-            // optional log
-            // const title = getTitle(card, url);
-            // console.log(`[SC hide] ${title} — dur:${msToMMSS(ms)} ${(tooShort||tooFewFavs)?'→ HIDE':'→ keep'}`);
 
             card.classList.add(CHECKED_CLASS);
-        } catch (e) {
-            // swallow per-card errors
         } finally {
             card.dataset.scProcessing = '';
         }
@@ -637,27 +625,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
         refreshVisible();
     }
 
-    // ---------- Hydration seed (cheap) ----------
-    function harvestHydration() {
-        const h = window.__sc_hydration;
-        if (!Array.isArray(h)) return;
-        let added = 0;
-        for (const blk of h) {
-            const coll = Array.isArray(blk?.data?.collection) ? blk.data.collection
-                        : Array.isArray(blk?.data?.tracks) ? blk.data.tracks
-                        : blk?.data?.track ? [blk.data.track] : null;
-            if (!coll) continue;
-            for (const t of coll) {
-                const url = norm(t?.permalink_url || t?.uri || t?.permalink);
-                const ms  = Number.isFinite(t?.duration) ? t.duration : null;
-                if (url && ms != null && !STATE.cache[url]) { STATE.cache[url] = { ms, t: now() }; added++; }
-            }
-        }
-        if (added) saveCache();
-    }
-
     // ---------- Boot ----------
-    harvestHydration();
     installNetworkHooks();
     mountUI();
     attachIO();
