@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.10.1
+// @version      2025.10.16.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 14,
+var cacheVersion = 15,
     scriptName = "Mixcloud";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -115,8 +115,10 @@ if( urlPath(2) == "uploads" || urlPath(2).replace(/\?.+$/,"") == "" ) { // https
         // is really user page?
         if( userPageTabs_firstText == "Shows" ) {
             var filterOptions = '<div id="mdb-streamActions" class="mdb-element">';
+            filterOptions += '<div id="mdb-streamActions-hide">';
             filterOptions += '<span class="mdb-darkorange">Hide:</span>';
             filterOptions += '<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>';
+            filterOptions += '</div>';
             filterOptions += '</div>';
             
             userPageTabs.before( filterOptions );
