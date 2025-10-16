@@ -3,6 +3,11 @@ html.sc-hide-short-active [data-sc-too-few-favs="1"] {
     display: none !important;
 }
 
+/* Ensure loading is activated (end of stream not detected if filter shows too few players) */
+.lazyLoadingList__list {
+    min-height: 100vh
+}
+
 .visually-hidden {
     position: absolute !important;
     width: 1px !important;
@@ -60,11 +65,6 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
         width: 100px !important;
     }
 }
-
-/*
- * Force the slider to be blue (Safari)
- */
-
 
 /* fallback / precise styling for WebKit */
 input[type=range]::-webkit-slider-runnable-track {
