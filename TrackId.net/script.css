@@ -6,7 +6,7 @@
 	display: none !important;
 }
 
-#mdbTrackidCheck-wrapper .integrated .hand {
+#mdbTrackidCheck-wrapper.integrated .hand {
     cursor: inherit !important;
 }
 
