@@ -6,6 +6,10 @@
 	display: none !important;
 }
 
+#mdbTrackidCheck-wrapper .integrated .hand {
+    cursor: inherit !important;
+}
+
 /*
  * Font size of inserted elements weird
  * Buggy if set to body globally
