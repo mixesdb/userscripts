@@ -859,6 +859,18 @@ function removeDuplicateBracketedText( text ) {
     return result.replace(/\s+/g, ' ').trim(); // Remove extra spaces
 }
 
+/*
+ * removeDuplicatedVersionArtist
+ * "Strafe & Justin Martin - Set It Off (Justin Martin Remix)" => "Strafe - Set It Off (Justin Martin Remix)"
+ * https://trackid.net/audiostreams/baby-prince-robot-heart-burning-man-2025
+ */
+String.prototype.removeDuplicatedVersionArtist = function() {
+  return this.replace(
+    /^(.+?)\s*(?:&|vs\.|,)\s*([^ -]+.*?)\s*-\s*(.+\(\2[^)]*\))/i,
+    '$1 - $3'
+  );
+};
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
