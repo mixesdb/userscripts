@@ -35,11 +35,6 @@ html.sc-hide-short-active [data-sc-too-short="1"] {
     display: none !important;
 }
 
-/* Ensure loading is activated (end of stream not detected if filter shows too few players) */
-.lazyLoadingList__list {
-    min-height: 100vh
-}
-    
 .mdb-streamActions-group + .mdb-streamActions-group {
     margin-left: 1.5em;
 }
