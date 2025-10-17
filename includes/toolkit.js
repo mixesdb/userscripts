@@ -228,10 +228,10 @@ function makeMixesdbSearchUrl( text ) {
 
 // make_mdbTrackidCheck_input
 function make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, target="detail page" ) {
-    var output = '<input id="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+mdbPageId+'">';
+    var output = '<input id="mdbTrackidCheck-label" class="mdbTrackidCheck" type="checkbox" data-tidplayerurl="'+tidPlayerUrl+'" data-mdbpageid="'+mdbPageId+'">';
 
     if( target == "detail page" ) {
-        output += '<label for="mdbTrackidCheck">TID tracklist is integrated</label>&nbsp;'+mdbTooltip("(?)", "Mark this TrackId.net tracklist as integrated to the tracklist of the linked MixesDB page.");
+        output += '<label for="mdbTrackidCheck-label">TID tracklist is integrated</label>&nbsp;'+mdbTooltip("(?)", "Mark this TrackId.net tracklist as integrated to the tracklist of the linked MixesDB page.");
     }
 
     return output;
