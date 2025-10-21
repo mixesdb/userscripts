@@ -275,7 +275,7 @@ function lazyLoadingList(jNode) {
         if( !isSetPage ) {
             saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
             saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
-            saHide.append('<label class="pointer" title="Hide player that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
+            saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
         }
         // Not on Playlists tab, e.g. https://soundcloud.com/resident-advisor/sets
         // but allow on playlist page, e.g. https://soundcloud.com/resident-advisor/sets/ra-podcast
