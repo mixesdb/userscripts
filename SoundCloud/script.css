@@ -82,7 +82,9 @@ a.sc_button-mdb:active {
 .sc-button-group *,
 .sc-button-toolbar>.sc-button {
     margin-left: 0 !important;
-    margin-right: 7px !important;
+}
+.sc-button-toolbar>.sc-button {
+    margin-right: 7x !important;
 }
 
 .fullHero__artwork {
