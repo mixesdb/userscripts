@@ -687,9 +687,10 @@ textarea.mono {
     & .mdb-mixesdbLink-actionLinks-wrapper {
         & a,
         & a:visited {
+            white-space: break-spaces;
             color: #555;
             font-size: 85% !important;
-            padding: 0 4px 0 4px !important;
+            padding: 0 4px !important;
             line-height: 1 !important;
             border: 1px solid #ccc !important;
             background-color: rgba(100, 100, 100, 0.15) !important;
