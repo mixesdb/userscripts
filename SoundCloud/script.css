@@ -242,6 +242,27 @@ a.sc_button-mdb:active {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * 
  * 
+ * Compact playlists
+ * 
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* 
+ * On hovering a playlist item:
+ * Hide some buttons to make room for the added "Link"
+ * To not get hidden in "..."
+ */
+.compactTrackList__item {
+    button.sc-button-share,
+    button.sc-button-repost {
+        display: none !important;
+    }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 
+ * 
  * Filter row in #mdb-streamActions 
  * 
  * 
