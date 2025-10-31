@@ -257,11 +257,10 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
 
     var tidPlayerUrl = $("img.artwork").closest("a").attr("href");
 
-    // history link
-    // https://www.mixesdb.com/w/?curid=613340&action=history
+    // action links: edit hist
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
-    output += '<a href="'+mixesdbUrl+'&action=edit&from='+from+'&fromSite='+visitDomain+'&summary='+editSummary+'" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>';
-    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST';
+    output += '<a href="'+mixesdbUrl+'&action=edit&from='+from+'&fromSite='+visitDomain+'&summary='+editSummary+'" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>'; // edit link https://www.mixesdb.com/w/?curid=613340&action=edit
+    output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST'; // history link https://www.mixesdb.com/w/?curid=613340&action=history
     if( localDate_ago && localDate_long ) {
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
     }
