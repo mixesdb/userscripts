@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.10.31.5
+// @version      2025.10.31.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -152,10 +152,10 @@ function playlistSetsCaseOne( jNode ) {
 
 // Compact playlists
 // https://soundcloud.com/resident-advisor
-waitForKeyElements(".compactTrackList__listWrapper li.compactTrackList__item span.compactTrackListItem__trackTitle", function( jNode ) {
-    var playerUrlFixed = linkRemoveSetParameter( jNode.attr( "data-permalink-path") );
+waitForKeyElements(".compactTrackList__listWrapper li.compactTrackList__item a.trackItem__trackTitle", function( jNode ) {
+    var playerUrlFixed = linkRemoveSetParameter( jNode.attr( "href") );
 
-    jNode.after( '<a href="'+playerUrlFixed+'" title="'+playerUrlFixed+' (opens in a new tab)" target="_blank" class="mdb-element mdb-copyLink sc-link-dark sc-link-primary sc-font-light">Link</a>' );
+    jNode.after( '<a href="'+playerUrlFixed+'" title="'+playerUrlFixed+' (opens in a new tab)" target="_blank" class="mdb-element mdb-copyLink">Link</a>' );
 });
 
 // .copyLink on click open new tab
