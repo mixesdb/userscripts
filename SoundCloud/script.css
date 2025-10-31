@@ -83,7 +83,7 @@ a.sc_button-mdb:active {
 .sc-button-toolbar>.sc-button {
     margin-left: 0 !important;
 }
-.sc-button-toolbar>.sc-button {
+.sc-button-group>.sc-button {
     margin-right: 7x !important;
 }
 
