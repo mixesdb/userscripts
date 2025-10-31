@@ -189,15 +189,17 @@ a.sc_button-mdb:active {
     width: 100% !important;
 }
 
+.mdb-copyLink {
+    color: var(--link-secondary-color);
+    font-weight: 300;
+}
 
 #mdb-streamActions {
     margin-left: var(--spacing-2x);
 }
-
 .soundActions button {
     min-width: 33px !important;
 }
-
 .soundActions .mdb-tidSubmit img {
     max-height: 20px;
     margin-right: 0 !important;
