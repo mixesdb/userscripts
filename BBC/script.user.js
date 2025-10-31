@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BBC (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.04.20.1
+// @version      2025.10.21.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -77,7 +77,7 @@ function mainFX() {
               //fix span.title "Artist - Title" like > bbc.co.uk/programmes/b03f4lgk
               //var titleRx = new RegExp(artist + " - ", "g");
               //var title = title.replace(titleRx, '');
-              var title = $('.segment__track p.no-margin', this).text().replace(/\s/gm," ").trim();
+              var title = $('.segment__track p.no-margin', this).text().replace(/\s+/gm," ").trim();
 
 
               /* Build label */
