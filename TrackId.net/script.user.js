@@ -133,6 +133,20 @@ String.prototype.removeMajorLabels = function() {
 };
 
 
+/*
+ * removeArtistLabels
+ * "Abe Duque - What Happened? [Abe Duque Records]" > "Abe Duque - What Happened?" https://trackid.net/audiostreams/drea-31-october-2025
+ */
+String.prototype.removeArtistLabels = function(artist) {
+  if (!artist) return this.trim();
+
+  const escaped = artist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`^${escaped}(?:\\s+(?:Records|Recordings|Music|Label))?$`, 'i');
+
+  return re.test(this.trim()) ? '' : this.trim();
+};
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Initialize feature functions per url path
@@ -609,6 +623,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                 .replace(/[\[\]]/g, "")
                 .fixTidLabelnames()
                 .removeMajorLabels()
+                .removeArtistLabels(artist)
             ;
 
             logVar( "label after fixing", label );
