@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.11.04.1
+// @version      2025.11.04.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -110,6 +110,23 @@ function getApplePodcastsSearchLink( className, keywords ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// cleanPlayerUrls
+function cleanPlayerUrls(text) {
+  return text.replace(/\{\{Player([\s\S]*?)\}\}/g, (match, inner) => {
+    // Remove only the URL after a leading pipe on that line; keep the pipe, spaces, and the newline.
+    const cleaned = inner.replace(/(\|[ \t]*)https?:\/\/[^\|\}\n]+/g, '$1');
+    return `{{Player${cleaned}}}`;
+  });
+}
+
+// removeUrlsInNotes
+function removeUrlsInNotes(text) {
+    return text.replace(
+        /(==\s*Notes\s*==[\s\S]*?)(https?:\/\/\S+)([\s\S]*?==\s*Tracklist\s*==)/,
+        (_, before, _url, after) => before + after
+    );
+}
+
 // updateCategoryYear
 function updateCategoryYear(text, wgTitle) {
     // Extract the first 4 digits at the start of wgTitle
@@ -124,9 +141,10 @@ function updateCategoryYear(text, wgTitle) {
 
 d.ready(function(){ // needed for mw.config
     var preload = getURLParameter("preload");
+    logVar( "preload", preload );
 
     if( getURLParameter("action") == "edit"
-        && preload != ""
+        && preload
         && !/^Template:/i.test(preload) // assume clone was used (missing parameter from Add Mix form using clone)
       ) {
         log( "Edit with preload: " + getURLParameter("preload") );
@@ -135,27 +153,21 @@ d.ready(function(){ // needed for mw.config
             text = textbox.val();
 
         var text_clean = text
-        // clear tracklist section
+
+        // 1) clear tracklist section
         .replace(
             /== Tracklist ==\n\n[\s\S]*?\n\n\[\[Category:/,
             '== Tracklist ==\n\n<list>\n\n</list>\n\n[[Category:'
         )
-        // Remove URLs inside Player templates but keep |t1=..., etc.
-        .replace(
-            /\{\{Player([\s\S]*?)\}\}/g,
-            (match, inner) => {
-                // Remove URLs (http/https up to next pipe or newline)
-                let cleaned = inner.replace(/https?:\/\/[^\|\}\n]+/g, '');
-                // Collapse accidental double spaces or pipes
-                cleaned = cleaned.replace(/\|\s*\|/g, '||').replace(/ +\n/g, '\n');
-                // Trim trailing/leading spaces per line
-                cleaned = cleaned.replace(/[ \t]+$/gm, '');
-                return `{{Player${cleaned}}}`;
-            }
-        )
         ;
 
-        // update year category
+        // 2) Remove URLs inside Player templates but keep |t1=..., etc.
+        text_clean = cleanPlayerUrls( text_clean );
+
+        // 3) Remove URls in Notes section
+        text_clean = removeUrlsInNotes( text_clean );
+
+        // 4) Update year category
         // https://www.mixesdb.com/w/index.php?title=2024-12-01+-+Test+-+Podcast&action=edit&preload=2025-02-13+-+DREA+-+Rinse+FM
         text_clean = updateCategoryYear( text_clean, mw.config.get("wgTitle") );
 
