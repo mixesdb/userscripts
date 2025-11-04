@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.11.04.3
+// @version      2025.11.04.4
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -25,6 +25,12 @@
  * You need to set these on each update, but updates happen rarely for this script
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Clean cloned page text
+ * https://discord.com/channels/1258107262833262603/1435226936996794418/1435226936996794418
+ */
+const cleanClonedText = 1; // default: 1
 
 /*
  * Apple Music settings
@@ -110,85 +116,119 @@ function getApplePodcastsSearchLink( className, keywords ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// replaceFileLine
-function replaceFileLine(text, wgTitle) {
-  return text.replace(
-    /^\s*\[\[File:[^\]\|]+?(\.(?:jpe?g|jpeg|png|webp))([^\]]*)\]\]$/im,
-    function (_m, ext, rest) {
-      const extension = ext || '.jpg';
-      return `[[File:${wgTitle}${extension}${rest}]]`;
-    }
-  );
+// ── String prototype helpers ──────────────────────────────────────────────────
+// Note: only define if not already present.
+
+if (!String.prototype.replaceFileLine) {
+    // Replace a single [[File:...]] line with [[File:wgTitle.<ext>|...]],
+    // preserving jpg|jpeg|png|webp (case-insensitive) and keeping following line intact.
+    String.prototype.replaceFileLine = function (wgTitle) {
+        return this.replace(
+            /^\s*\[\[File:[^\]\|]+?(\.(?:jpe?g|jpeg|png|webp))([^\]]*)\]\]$/im,
+            function (_m, ext, rest) {
+                const extension = ext || '.jpg';
+                return `[[File:${wgTitle}${extension}${rest}]]`;
+            }
+        );
+    };
 }
 
-// cleanPlayerUrls
-function cleanPlayerUrls(text) {
-  return text.replace(/\{\{Player([\s\S]*?)\}\}/g, (match, inner) => {
-    // Remove only the URL after a leading pipe on that line; keep the pipe, spaces, and the newline.
-    const cleaned = inner.replace(/(\|[ \t]*)https?:\/\/[^\|\}\n]+/g, '$1');
-    return `{{Player${cleaned}}}`;
-  });
+if (!String.prototype.cleanPlayerUrls) {
+    // Remove only URL tokens inside {{Player ...}} while preserving pipes and line breaks.
+    String.prototype.cleanPlayerUrls = function () {
+        return this.replace(/\{\{Player([\s\S]*?)\}\}/g, function (match, inner) {
+            const cleaned = inner.replace(/(\|[ \t]*)https?:\/\/[^\|\}\n]+/g, '$1');
+            return `{{Player${cleaned}}}`;
+        });
+    };
 }
 
-// removeUrlsInNotes
-function removeUrlsInNotes(text) {
-    return text.replace(
-        /(==\s*Notes\s*==[\s\S]*?)(https?:\/\/\S+)([\s\S]*?==\s*Tracklist\s*==)/,
-        (_, before, _url, after) => before + after
-    );
-}
-
-// updateCategoryYear
-function updateCategoryYear(text, wgTitle) {
-    // Extract the first 4 digits at the start of wgTitle
-    const match = wgTitle.match(/^(\d{4})/);
-    if (!match) return text; // No year found, return unchanged
-
-    const year = match[1];
-
-    // Replace [[Category:YYYY]] (any year) with [[Category:year]]
-    return text.replace(/\[\[Category:\d{4}\]\]/, `[[Category:${year}]]`);
-}
-
-d.ready(function(){ // needed for mw.config
-    var preload = getURLParameter("preload");
-    logVar( "preload", preload );
-
-    var wgTitle = mw.config.get("wgTitle");
-
-    if( getURLParameter("action") == "edit"
-        && preload
-        && !/^Template:/i.test(preload) // assume clone was used (missing parameter from Add Mix form using clone)
-      ) {
-        log( "Edit with preload: " + getURLParameter("preload") );
-
-        var textbox = $("#wpTextbox1"),
-            text = textbox.val();
-
-        var text_clean = text;
-
-        // replaceFileLine
-        text_clean = replaceFileLine( text_clean, wgTitle );
-
-        // clear tracklist section
-        text_clean = text_clean.replace(
+if (!String.prototype.clearTracklist) {
+    // Replace anything between "== Tracklist ==" and the next "[[Category:" with an empty <list>.
+    String.prototype.clearTracklist = function () {
+        return this.replace(
             /== Tracklist ==\n\n[\s\S]*?\n\n\[\[Category:/,
             '== Tracklist ==\n\n<list>\n\n</list>\n\n[[Category:'
         );
+    };
+}
 
-        // Remove URLs inside Player templates but keep |t1=..., etc.
-        text_clean = cleanPlayerUrls( text_clean );
+if (!String.prototype.removeUrlsInNotes) {
+    // Remove bare URL tokens in Notes, keep all line breaks/templates intact.
+    String.prototype.removeUrlsInNotes = function () {
+        return this.replace(
+            /(==\s*Notes\s*==[\s\S]*?)(https?:\/\/\S+)([\s\S]*?==\s*Tracklist\s*==)/,
+            function (_m, before, _url, after) {
+                return before + after;
+            }
+        );
+    };
+}
 
-        // Remove URls in Notes section
-        text_clean = removeUrlsInNotes( text_clean );
+if (!String.prototype.updateCategoryYear) {
+    // Replace [[Category:YYYY]] with the year extracted from wgTitle (first 4 digits).
+    String.prototype.updateCategoryYear = function (wgTitle) {
+        const m = (wgTitle || '').match(/^(\d{4})/);
+        if (!m) return this.toString();
+        const year = m[1];
+        return this.replace(/\[\[Category:\d{4}\]\]/, `[[Category:${year}]]`);
+    };
+}
 
-        // Update year category
-        // https://www.mixesdb.com/w/index.php?title=2024-12-01+-+Test+-+Podcast&action=edit&preload=2025-02-13+-+DREA+-+Rinse+FM
-        text_clean = updateCategoryYear( text_clean, wgTitle );
+if (!String.prototype.updateArtistCategory) {
+    // Replace the 2nd category with artist(s) from wgTitle.
+    // If multiple artists joined by "," or "&", insert multiple categories in that slot.
+    String.prototype.updateArtistCategory = function (wgTitle) {
+        const m = (wgTitle || '').match(/^\s*\d{4}-\d{2}-\d{2}\s*-\s*(.+?)\s*-\s*/);
+        if (!m) return this.toString();
+        const artistField = m[1];
+        const artists = artistField
+        .split(/\s*(?:,|&)\s*/g)
+        .map(s => s.trim())
+        .filter(Boolean);
 
-        textbox.val(text_clean)
+        let idx = 0;
+        return this.replace(/\[\[Category:[^\]]+\]\]/g, function (cat) {
+            idx++;
+            if (idx === 2 && artists.length) {
+                return artists.map(a => `[[Category:${a}]]`).join('\n');
+            }
+            return cat;
+        });
+    };
+}
+
+// ── Usage in your ready handler ───────────────────────────────────────────────
+// Example wiring (unchanged logic, just using chained prototype methods):
+
+d.ready(function () { // needs mw.config
+    const preload = getURLParameter("preload") || "";
+    logVar("preload", preload);
+
+    const wgTitle = mw.config.get("wgTitle") || "";
+
+    if (cleanClonedText &&
+        getURLParameter("action") == "edit" &&
+        preload &&
+        !/^Template:/i.test(preload)) {
+
+        log("Edit with preload: " + preload);
+
+        const textbox = $("#wpTextbox1");
+        const text = textbox.val();
+
+        const text_clean = text
+        .replaceFileLine(wgTitle)
+        .clearTracklist()
+        .cleanPlayerUrls()
+        .removeUrlsInNotes()
+        .updateCategoryYear(wgTitle)
+        .updateArtistCategory(wgTitle);
+
+        textbox.val(text_clean);
     }
 });
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
