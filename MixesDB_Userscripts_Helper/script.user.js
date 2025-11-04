@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.11.04.4
+// @version      2025.11.04.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -215,9 +215,8 @@ d.ready(function () { // needs mw.config
         log("Edit with preload: " + preload);
 
         const textbox = $("#wpTextbox1");
-        const text = textbox.val();
 
-        const text_clean = text
+        const text_clean = textbox.val()
         .replaceFileLine(wgTitle)
         .clearTracklist()
         .cleanPlayerUrls()
