@@ -140,6 +140,30 @@ function normalizePlayerUrl( playerUrl ) {
     ;
 }
 
+// removeDotsFromUrlSlug
+// https://hearthis.at/subfader/h.o.u.s.e./ → https://hearthis.at/subfader/house/
+String.prototype.removeDotsFromUrlSlug = function() {
+
+    // keep original URL string
+    let url = this.toString();
+
+    // split into parts
+    let parts = url.split("/");
+
+    // get last non-empty part (slug)
+    let slug = parts.pop();
+    if (slug === "") slug = parts.pop();    // handle trailing slash
+
+    // remove all dots inside slug
+    let cleanSlug = slug.replace(/\./g, "");
+
+    // put cleaned slug back
+    parts.push(cleanSlug);
+
+    // return rebuilt URL (always with trailing slash)
+    return parts.join("/") + "/";
+};
+
 // urlIsTidSubmitCompatible
 function urlIsTidSubmitCompatible( thisUrl ) {
     logFunc( "urlIsTidSubmitCompatible" );
