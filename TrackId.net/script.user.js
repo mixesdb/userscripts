@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.11.04.1
+// @version      2025.12.01.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_107
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_108
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
@@ -514,7 +514,19 @@ waitForKeyElements(".request-summary img.artwork", function( jNode ) {
         heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
         titleText = normalizeTitleForSearch( heading.text() );
 
-    logVar( "playerUrl", playerUrl );
+    logVar( "playerUrl (in artwork as given)", playerUrl );
+
+    // Remove dots from hearthis slug urls (So marking as integrated works)
+    // https://trackid.net/audiostreams/subfader-house
+    // > https://hearthis.at/subfader/h.o.u.s.e./ >> https://hearthis.at/subfader/house/
+    var playerUrl_domain = getDomain_fromUrlStr( playerUrl );
+    logVar( "playerUrl_domain", playerUrl_domain );
+    if( playerUrl_domain == "hearthis.at" ) {
+        playerUrl = playerUrl.removeDotsFromSlugUrls();
+        logVar( "playerUrl (after removeDotsFromSlugUrls for hearthis.at)", playerUrl );
+        // change URL in artwork as well
+        jNode.closest("a").attr("href", playerUrl);
+    }
 
     if( url != "" ) {
         funcTidPlayers( jNode, playerUrl, titleText );
