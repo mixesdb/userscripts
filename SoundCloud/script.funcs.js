@@ -76,7 +76,7 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 
     if( getHideFav == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
+        jNode.closest(".soundList__item").hide();
     }
 }
 
@@ -203,6 +203,30 @@ function saveSettings(enabledVal, min, minFavs, favsEnabledVal) {
     } catch {}
 }
 
+function getUrlParamBool(name) {
+    const val = getURLParameter(name);
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return null;
+}
+
+function getUrlParamInt(name) {
+    const val = parseInt(getURLParameter(name), 10);
+    return Number.isFinite(val) ? val : null;
+}
+
+function updateUrlParams(updates) {
+    const url = new URL(window.location.href);
+    Object.entries(updates).forEach(([key, val]) => {
+        if (val === null || val === undefined) {
+            url.searchParams.delete(key);
+        } else {
+            url.searchParams.set(key, String(val));
+        }
+    });
+    history.replaceState({}, '', url.toString());
+}
+
 // ---------- UI ----------
 function buildUI() {
     let wrap = document.getElementById(UI_ID);
@@ -247,9 +271,14 @@ function wireUI(root) {
     const valFavs   = root.querySelector('#sc-min-favs-val');
 
     const saved = loadSettings();
-    STATE.thresholdMin   = saved ? saved.min : DEFAULT_MIN;
-    STATE.thresholdFavs  = saved ? saved.minFavs : DEFAULT_FAVS;
-    STATE.favsEnabled    = saved ? !!saved.favsEnabled : false;
+    const urlDuration    = getUrlParamInt('minDuration');
+    const urlDurationOn  = getUrlParamBool('filterDuration');
+    const urlFavs        = getUrlParamInt('minFavs');
+    const urlFavsOn      = getUrlParamBool('filterFavs');
+
+    STATE.thresholdMin   = urlDuration !== null ? clampMin(urlDuration) : saved ? saved.min : DEFAULT_MIN;
+    STATE.thresholdFavs  = urlFavs !== null ? urlFavs : saved ? saved.minFavs : DEFAULT_FAVS;
+    STATE.favsEnabled    = urlFavsOn !== null ? urlFavsOn : saved ? !!saved.favsEnabled : false;
 
     // duration init
     minI.value          = String(STATE.thresholdMin);
@@ -261,11 +290,17 @@ function wireUI(root) {
     slFavs.value       = String(initFavIndex);
     valFavs.textContent= String(STATE.thresholdFavs);
 
-    cbMain.checked      = !!(saved && saved.enabled);
+    cbMain.checked      = urlDurationOn !== null ? urlDurationOn : !!(saved && saved.enabled);
     cbFavs.checked      = STATE.favsEnabled;
 
     document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
     saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+    updateUrlParams({
+        filterDuration: cbMain.checked,
+        minDuration: STATE.thresholdMin,
+        filterFavs: cbFavs.checked,
+        minFavs: STATE.thresholdFavs
+    });
 
     let t;
     const debouncedReset = () => {
@@ -282,6 +317,7 @@ function wireUI(root) {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterDuration: true, minDuration: STATE.thresholdMin });
 
         if (computeEnabled(cbMain, cbFavs)) debouncedReset();
     });
@@ -289,6 +325,7 @@ function wireUI(root) {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterDuration: true, minDuration: STATE.thresholdMin });
         clearTimeout(t);
         resetAll();
     });
@@ -309,6 +346,7 @@ function wireUI(root) {
         }
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterFavs: true, minFavs: STATE.thresholdFavs });
 
         if (computeEnabled(cbMain, cbFavs)) debouncedReset();
     });
@@ -322,6 +360,7 @@ function wireUI(root) {
         }
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterFavs: true, minFavs: STATE.thresholdFavs });
         clearTimeout(t);
         resetAll();
     });
@@ -335,6 +374,7 @@ function wireUI(root) {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterDuration: true, minDuration: STATE.thresholdMin });
 
         clearTimeout(t);
         resetAll();
@@ -344,6 +384,7 @@ function wireUI(root) {
     cbMain.addEventListener('change', () => {
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterDuration: cbMain.checked, minDuration: STATE.thresholdMin });
         clearTimeout(t);
         resetAll();
     });
@@ -353,6 +394,7 @@ function wireUI(root) {
         STATE.favsEnabled = cbFavs.checked;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        updateUrlParams({ filterFavs: cbFavs.checked, minFavs: STATE.thresholdFavs });
         clearTimeout(t);
         if (computeEnabled(cbMain, cbFavs)) resetAll();
     });
