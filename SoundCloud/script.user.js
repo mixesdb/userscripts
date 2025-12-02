@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.12
+// @version      2025.12.02.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -568,18 +568,18 @@ waitForKeyElements(".userInfoBar__tabs ul", function( jNode ) {
 
 // Hiding option: each playlist
 waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
-    if( getHidePl == "true" ) {
-        log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
-    }
+    const item = jNode.closest('li.soundList__item');
+    const hidePlEnabled = localStorage.getItem(hidePlaylistsKey) === 'true';
+
+    setHideReasonFlag(item, 'playlist', hidePlEnabled);
 });
 
 // Hiding option: each repost player
 waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
-    if( getHidePl == "true" ) {
-        log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
-    }
+    const item = jNode.closest('li.soundList__item');
+    const hideRepostsEnabled = localStorage.getItem(hideRepostsKey) === 'true';
+
+    setHideReasonFlag(item, 'repost', hideRepostsEnabled);
 });
 
 // Hiding option: each fFaved players > on waitForKeyElements fav button
