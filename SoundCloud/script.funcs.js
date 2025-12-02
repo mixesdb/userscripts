@@ -203,6 +203,63 @@ function saveSettings(enabledVal, min, minFavs, favsEnabledVal) {
     } catch {}
 }
 
+function updateFilterParamsInUrl(enabledVal, min, minFavs, favsEnabledVal) {
+    const params = {
+        scDurEnabled: enabledVal ? 'true' : 'false',
+        scMinDur: clampMin(min),
+        scFavsEnabled: favsEnabledVal ? 'true' : 'false',
+        scMinFavs: Number.isFinite(parseInt(minFavs, 10)) ? parseInt(minFavs, 10) : DEFAULT_FAVS
+    };
+
+    if (typeof window.mdbUpdateUrlParams === 'function') {
+        window.mdbUpdateUrlParams(params);
+        return;
+    }
+
+    try {
+        const url = new URL(window.location.href);
+        Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+        History.prototype.replaceState.call(history, history.state, '', url.toString());
+    } catch {}
+}
+
+function persistSettings(enabledVal, min, minFavs, favsEnabledVal) {
+    saveSettings(enabledVal, min, minFavs, favsEnabledVal);
+    updateFilterParamsInUrl(enabledVal, min, minFavs, favsEnabledVal);
+}
+
+function clampFavs(val) {
+    const n = parseInt(val, 10);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, n);
+}
+
+function resolveSettings(saved) {
+    const base = saved || { enabled: false, min: DEFAULT_MIN, minFavs: DEFAULT_FAVS, favsEnabled: false };
+    const urlMinDur = getURLParameter('scMinDur');
+    const urlDurEnabled = getURLParameter('scDurEnabled');
+    const urlFavsEnabled = getURLParameter('scFavsEnabled');
+    const urlMinFavs = getURLParameter('scMinFavs');
+
+    const result = { ...base };
+
+    const durationParam = clampMin(urlMinDur || base.min);
+    if (durationParam) result.min = durationParam;
+
+    if (urlDurEnabled === 'true' || urlDurEnabled === 'false') {
+        result.enabled = urlDurEnabled === 'true';
+    }
+
+    const favsParam = clampFavs(urlMinFavs);
+    if (favsParam !== null) result.minFavs = favsParam;
+
+    if (urlFavsEnabled === 'true' || urlFavsEnabled === 'false') {
+        result.favsEnabled = urlFavsEnabled === 'true';
+    }
+
+    return result;
+}
+
 // ---------- UI ----------
 function buildUI() {
     let wrap = document.getElementById(UI_ID);
@@ -246,7 +303,7 @@ function wireUI(root) {
     const valDur    = root.querySelector('#sc-hide-short-val');
     const valFavs   = root.querySelector('#sc-min-favs-val');
 
-    const saved = loadSettings();
+    const saved = resolveSettings(loadSettings());
     STATE.thresholdMin   = saved ? saved.min : DEFAULT_MIN;
     STATE.thresholdFavs  = saved ? saved.minFavs : DEFAULT_FAVS;
     STATE.favsEnabled    = saved ? !!saved.favsEnabled : false;
@@ -265,7 +322,7 @@ function wireUI(root) {
     cbFavs.checked      = STATE.favsEnabled;
 
     document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-    saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+    persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
     let t;
     const debouncedReset = () => {
@@ -281,14 +338,14 @@ function wireUI(root) {
 
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
         if (computeEnabled(cbMain, cbFavs)) debouncedReset();
     });
     slDur.addEventListener('change', () => {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
         clearTimeout(t);
         resetAll();
     });
@@ -308,7 +365,7 @@ function wireUI(root) {
             STATE.favsEnabled = true;
         }
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
         if (computeEnabled(cbMain, cbFavs)) debouncedReset();
     });
@@ -321,7 +378,7 @@ function wireUI(root) {
             STATE.favsEnabled = true;
         }
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
         clearTimeout(t);
         resetAll();
     });
@@ -334,7 +391,7 @@ function wireUI(root) {
 
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
         clearTimeout(t);
         resetAll();
@@ -343,7 +400,7 @@ function wireUI(root) {
     // Main enable/disable
     cbMain.addEventListener('change', () => {
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
         clearTimeout(t);
         resetAll();
     });
@@ -352,7 +409,7 @@ function wireUI(root) {
     cbFavs.addEventListener('change', () => {
         STATE.favsEnabled = cbFavs.checked;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
-        saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        persistSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
         clearTimeout(t);
         if (computeEnabled(cbMain, cbFavs)) resetAll();
     });
