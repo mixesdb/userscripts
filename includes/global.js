@@ -50,22 +50,22 @@ logVar( "visitDomain / domain_cssSafe", visitDomain + " / " + domain_cssSafe );
 
 // log
 function log( text ) {
-	console.log( debugFilter + ": " + text );
+    console.log( debugFilter + ": " + text );
 }
 
 // logVar
 function logVar( variable, string ) {
-	if( string !== null ) {
-		log( variable + ": " + string );
-	} else {
-		log( variable + " empty" );
-	}
+    if( string !== null ) {
+        log( variable + ": " + string );
+    } else {
+        log( variable + " empty" );
+    }
 }
 
 // logFunc
 function logFunc( functionName ) {
-	var seperator = "####################################";
-	log( "\n"+ seperator +"\n# "+ functionName +"\n"+ seperator );
+    var seperator = "####################################";
+    log( "\n"+ seperator +"\n# "+ functionName +"\n"+ seperator );
 }
 
 // logArr
@@ -107,7 +107,7 @@ function urlPath_noParams(n) {
 }
 
 var domain = urlPath(0).replace(/.+\.(.+\.[a-z0-9]+)/gi, '$1'),
-	subdomain = urlPath(0);
+    subdomain = urlPath(0);
 
 // getURLParameter
 function getURLParameter(name) {
@@ -198,7 +198,7 @@ function urlIsTidSubmitCompatible( thisUrl ) {
 
 // makeTidSubmitUrl
 function makeTidSubmitUrl( playerUrl, keywords="" ) {
-	var keyowrds = normalizeTitleForSearch( keywords );
+    var keyowrds = normalizeTitleForSearch( keywords );
     return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
 }
 
@@ -367,10 +367,10 @@ function loadRawCss( urlVar ) {
 
 // makeCssSafe
 function makeCssSafe( text ) {
-	return text
-	           .replace("1001tracklists.com", "thousandandonetracklists.com")
-	           .replace("www.","")
-	           .replace(/\./, "-")
+    return text
+               .replace("1001tracklists.com", "thousandandonetracklists.com")
+               .replace("www.","")
+               .replace(/\./, "-")
            ;
 }
 
@@ -415,18 +415,18 @@ function normalizeTitleForSearch( text ) {
 
 // normalizeStreamingServiceTracks
 function normalizeStreamingServiceTracks( text ) {
-	// [] to ()
-	// https://music.apple.com/de/album/foo/1647160327
-	var textOut = text
-		.replace( /\[/g, "(" )
-		.replace( /\]/g, ")" )
-	;
-	
+    // [] to ()
+    // https://music.apple.com/de/album/foo/1647160327
+    var textOut = text
+        .replace( /\[/g, "(" )
+        .replace( /\]/g, ")" )
+    ;
+    
     // Pointless versions
     var textOut = textOut
         .replace( " (Mixed)", "" )
     ;
-	
+    
     /*
      * IDs for live mixes, e.g. on Apple Music
      * https://music.apple.com/us/album/foo/1500933343
@@ -525,11 +525,11 @@ function isoDurationToTime(iso) {
 // selectText()
 function selectText( e ) {
     var t = document.getElementById(e),
-		n = window.getSelection(),
-		r = document.createRange();
+        n = window.getSelection(),
+        r = document.createRange();
     r.selectNodeContents(t);
-	n.removeAllRanges();
-	n.addRange(r)
+    n.removeAllRanges();
+    n.addRange(r)
 }
 
 // mdb-select-onClick
@@ -593,17 +593,17 @@ function getFileDetails_forToggle( dur_sec, bytes="" ) {
 
 // create_input
 function create_input( text, className, id ) {
-	return '<input class="mdb-element input '+ className +'" id="'+id+'" name="'+id+'" value="'+text+'" />';
+    return '<input class="mdb-element input '+ className +'" id="'+id+'" name="'+id+'" value="'+text+'" />';
 }
 
 // create_note
 function create_note( text, className ) {
-	return '<span class="mdb-element note '+ className +'">'+text+'</span>';
+    return '<span class="mdb-element note '+ className +'">'+text+'</span>';
 }
 
 // create_button
 function create_button( text, className, type ) {
-	return '<button type="'+type+'" class="mdb-element button '+ className +'">'+text+'</button>';
+    return '<button type="'+type+'" class="mdb-element button '+ className +'">'+text+'</button>';
 }
 
 
@@ -619,65 +619,65 @@ function create_button( text, className, type ) {
 
 // fixTLbox
 function fixTLbox( feedback ) {
-	var tl = $("#mixesdb-TLbox");
-	tl.html( tl.html().replace(/&(nbsp|thinsp);/g, ' ') );
-	var text = "TEMPBEGINNING" + tl.val(),
-		textFix = text.replace(/TEMPBEGINNING(\n)?/g,"")
-	                  .replace(/\n$/g,"")
-					  .replace(/( )+/g, " ");
-	tl.val(textFix);
-	var text = tl.val(),
-		lines = text.split("\n"),
-		count = lines.length;
-	tl.attr('rows', count);
+    var tl = $("#mixesdb-TLbox");
+    tl.html( tl.html().replace(/&(nbsp|thinsp);/g, ' ') );
+    var text = "TEMPBEGINNING" + tl.val(),
+        textFix = text.replace(/TEMPBEGINNING(\n)?/g,"")
+                      .replace(/\n$/g,"")
+                      .replace(/( )+/g, " ");
+    tl.val(textFix);
+    var text = tl.val(),
+        lines = text.split("\n"),
+        count = lines.length;
+    tl.attr('rows', count);
 
-	autosize(tl); // beatport.com buggy in FF
+    autosize(tl); // beatport.com buggy in FF
 
-	if( feedback != null && feedback.text ) {
-		var tle = $("#tlEditor");
-		tle.addClass("bot10");
-		tl.attr( "id", "mixesdb-TLbox tlEditor-textarea" );
+    if( feedback != null && feedback.text ) {
+        var tle = $("#tlEditor");
+        tle.addClass("bot10");
+        tl.attr( "id", "mixesdb-TLbox tlEditor-textarea" );
 
-		if( feedback.warnings > 0 ) {
-			tle.addClass( "tlEditor-feedback-warning" );
-		} else {
-			if( feedback.hints > 0 ) {
-				tle.addClass( "tlEditor-feedback-hint" );
-			} else {
-				if( feedback.status == "incomplete" ) {
-					tle.addClass( "tlEditor-feedback-hint" );
-				} else {
-					tle.addClass( "tlEditor-feedback-complete" );
-				}
-			}
-		}
-		tl.after( feedback.text );
-	}
-	loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css" );
-		
-	tl.show().select().addClass("fixed");
+        if( feedback.warnings > 0 ) {
+            tle.addClass( "tlEditor-feedback-warning" );
+        } else {
+            if( feedback.hints > 0 ) {
+                tle.addClass( "tlEditor-feedback-hint" );
+            } else {
+                if( feedback.status == "incomplete" ) {
+                    tle.addClass( "tlEditor-feedback-hint" );
+                } else {
+                    tle.addClass( "tlEditor-feedback-complete" );
+                }
+            }
+        }
+        tl.after( feedback.text );
+    }
+    loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css" );
+        
+    tl.show().select().addClass("fixed");
 }
 
 // apiTracklist
 // allow site domain in Apache
 // allow mixesdb scxripts on site
 function apiTracklist( tl, type, genType ) {
-	var data = { query: "tracklistEditor",
-				 type: type,
-				 genType: genType,
-				 text: tl
-			   };
+    var data = { query: "tracklistEditor",
+                 type: type,
+                 genType: genType,
+                 text: tl
+               };
 
-	var jqXHR = $.ajax({
-		type: "POST",
-		url: apiUrlTools,
-		data: data,
-		async: false
-	});
+    var jqXHR = $.ajax({
+        type: "POST",
+        url: apiUrlTools,
+        data: data,
+        async: false
+    });
 
-	var res = JSON.parse(jqXHR.responseText);
+    var res = JSON.parse(jqXHR.responseText);
 
-	return res;
+    return res;
 }
 
 /*
@@ -1126,7 +1126,7 @@ function textify( text ) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 function redirectOnUrlChange( delay_ms=0 ) {
-	logFunc( "redirectOnUrlChange" );
+    logFunc( "redirectOnUrlChange" );
 
     window.setTimeout(function(){
         // event listener
@@ -1149,11 +1149,6 @@ function redirectOnUrlChange( delay_ms=0 ) {
         // redirect
         window.addEventListener('locationchange', function(){
             log( "URL change!" )
-            if (window.mdbSkipRedirect) {
-                log('onlocationchange event ignored');
-                return;
-            }
-
             var newUrl = location.href;
             log( 'onlocationchange event occurred > redirecting to ' + newUrl );
             window.location.replace( newUrl );
