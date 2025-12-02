@@ -642,8 +642,14 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // remove the wrapper if usage results
                         if( type == "hide if used" ) {
-                            log( "Removing " + thisUrl );
-                            wrapper.remove();
+                            log( "Marking used (was removed) " + thisUrl );
+                            wrapper.attr('data-mdb-used-on-mixesdb', 'true').addClass('mdb-used-on-mixesdb');
+
+                            if (typeof window.mdbMarkUsedOnMixesdb === 'function') {
+                                window.mdbMarkUsedOnMixesdb(wrapper, true);
+                            } else {
+                                wrapper.hide();
+                            }
                         }
                     }
 
@@ -653,6 +659,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                     if( type == "hide if used" ) {
                         log( "This is not used: " + playerUrl );
+                        wrapper.attr('data-mdb-used-on-mixesdb', 'false').removeClass('mdb-used-on-mixesdb');
+
+                        if (typeof window.mdbMarkUsedOnMixesdb === 'function') {
+                            window.mdbMarkUsedOnMixesdb(wrapper, false);
+                        } else {
+                            wrapper.show();
+                        }
                     }
 
                     if( addOutput ) {
