@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.01.2
+// @version      2025.12.02.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -687,7 +687,17 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
         // artist - title
         if (artist && title !== "") {
-            thisTrack += artist + ' - ' + title;
+            var artist_title = artist + ' - ' + title;
+
+            // last checks
+            // if found track is title of Mix CD
+            // https://trackid.net/audiostreams/groove-podcast-481-bossy-doll-bina
+            if (/\(Continuous DJ Mix\)\s*$/i.test(title)) {
+                artist_title = "?";
+                label = "";
+            }
+
+            thisTrack += artist_title;
         }
 
         // fixes on "Artist - Title"
