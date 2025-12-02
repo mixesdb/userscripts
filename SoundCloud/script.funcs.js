@@ -138,6 +138,9 @@ const ATTR_TOO_FEW_F    = 'data-sc-too-few-favs';
 const LS_CACHE          = 'sc_hide_short_cache_v6';
 const LS_SETT           = 'sc_hide_short_settings_v5';
 
+const PARAM_MINUTES     = 'minDur';
+const PARAM_FAVS        = 'minFavs';
+
 // ---------- State ----------
 const STATE = {
     thresholdMin: DEFAULT_MIN,
@@ -181,16 +184,19 @@ function saveCache() {
 }
 
 function loadSettings() {
-    try {
-        const s = JSON.parse(localStorage.getItem(LS_SETT) || 'null');
-        if (!s) return null;
-        return {
-            enabled: !!s.enabled,
-            min: clampMin(s.min ?? DEFAULT_MIN),
-            minFavs: Number.isFinite(s.minFavs) ? s.minFavs : DEFAULT_FAVS,
-            favsEnabled: !!s.favsEnabled
-        };
-    } catch { return null; }
+    const stored = loadStoredSettings();
+    const urlSettings = loadUrlSettings();
+
+    if (!stored && !urlSettings) return null;
+
+    return {
+        enabled: false,
+        min: DEFAULT_MIN,
+        minFavs: DEFAULT_FAVS,
+        favsEnabled: false,
+        ...(stored || {}),
+        ...(urlSettings || {})
+    };
 }
 function saveSettings(enabledVal, min, minFavs, favsEnabledVal) {
     try {
@@ -200,6 +206,72 @@ function saveSettings(enabledVal, min, minFavs, favsEnabledVal) {
             minFavs,
             favsEnabled: !!favsEnabledVal
         }));
+    } catch {}
+}
+
+function normalizeFavsValue(val) {
+    const num = Math.round(parseInt(val, 10));
+    if (!Number.isFinite(num)) return null;
+    if (num <= FAV_STEPS[0]) return FAV_STEPS[0];
+    for (const step of FAV_STEPS) {
+        if (num <= step) return step;
+    }
+    return FAV_STEPS[FAV_STEPS.length - 1];
+}
+
+function loadStoredSettings() {
+    try {
+        const s = JSON.parse(localStorage.getItem(LS_SETT) || 'null');
+        if (!s) return null;
+        return {
+            enabled: !!s.enabled,
+            min: clampMin(s.min ?? DEFAULT_MIN),
+            minFavs: normalizeFavsValue(Number.isFinite(s.minFavs) ? s.minFavs : DEFAULT_FAVS) || DEFAULT_FAVS,
+            favsEnabled: !!s.favsEnabled
+        };
+    } catch { return null; }
+}
+
+function loadUrlSettings() {
+    try {
+        const params = new URLSearchParams(location.search);
+        const out = {};
+        let fromUrl = false;
+
+        if (params.has(PARAM_MINUTES)) {
+            out.min = clampMin(params.get(PARAM_MINUTES));
+            out.enabled = true;
+            fromUrl = true;
+        }
+
+        if (params.has(PARAM_FAVS)) {
+            const favVal = normalizeFavsValue(params.get(PARAM_FAVS));
+            if (favVal !== null) {
+                out.minFavs = favVal;
+                out.favsEnabled = true;
+                fromUrl = true;
+            }
+        }
+
+        if (fromUrl) out.fromUrl = true;
+
+        return fromUrl ? out : null;
+    } catch { return null; }
+}
+
+function syncUrlParams(cbMain, cbFavs) {
+    try {
+        const url = new URL(window.location.href);
+
+        if (cbMain?.checked) url.searchParams.set(PARAM_MINUTES, STATE.thresholdMin);
+        else url.searchParams.delete(PARAM_MINUTES);
+
+        if (cbFavs?.checked) url.searchParams.set(PARAM_FAVS, STATE.thresholdFavs);
+        else url.searchParams.delete(PARAM_FAVS);
+
+        const query = url.searchParams.toString();
+        const newUrl = url.pathname + (query ? `?${query}` : '') + url.hash;
+        window.history.replaceState({}, '', newUrl);
     } catch {}
 }
 
@@ -247,6 +319,8 @@ function wireUI(root) {
     const valFavs   = root.querySelector('#sc-min-favs-val');
 
     const saved = loadSettings();
+    const initializedFromUrl = !!(saved && saved.fromUrl);
+
     STATE.thresholdMin   = saved ? saved.min : DEFAULT_MIN;
     STATE.thresholdFavs  = saved ? saved.minFavs : DEFAULT_FAVS;
     STATE.favsEnabled    = saved ? !!saved.favsEnabled : false;
@@ -267,6 +341,8 @@ function wireUI(root) {
     document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
     saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
 
+    if (initializedFromUrl) syncUrlParams(cbMain, cbFavs);
+
     let t;
     const debouncedReset = () => {
         clearTimeout(t);
@@ -282,6 +358,7 @@ function wireUI(root) {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
 
         if (computeEnabled(cbMain, cbFavs)) debouncedReset();
     });
@@ -289,6 +366,7 @@ function wireUI(root) {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
         clearTimeout(t);
         resetAll();
     });
@@ -309,6 +387,7 @@ function wireUI(root) {
         }
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
 
         if (computeEnabled(cbMain, cbFavs)) debouncedReset();
     });
@@ -322,6 +401,7 @@ function wireUI(root) {
         }
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
         clearTimeout(t);
         resetAll();
     });
@@ -335,6 +415,7 @@ function wireUI(root) {
         if (!cbMain.checked) cbMain.checked = true;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
 
         clearTimeout(t);
         resetAll();
@@ -344,6 +425,7 @@ function wireUI(root) {
     cbMain.addEventListener('change', () => {
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
         clearTimeout(t);
         resetAll();
     });
@@ -353,6 +435,7 @@ function wireUI(root) {
         STATE.favsEnabled = cbFavs.checked;
         document.documentElement.classList.toggle('sc-hide-short-active', computeEnabled(cbMain, cbFavs));
         saveSettings(computeEnabled(cbMain, cbFavs), STATE.thresholdMin, STATE.thresholdFavs, cbFavs.checked);
+        syncUrlParams(cbMain, cbFavs);
         clearTimeout(t);
         if (computeEnabled(cbMain, cbFavs)) resetAll();
     });
