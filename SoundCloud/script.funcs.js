@@ -76,7 +76,12 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
 
     if( getHideFav == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
+        const wrapper = jNode.closest(".soundList__item");
+        if (typeof window.mdbSetHideReasonFlag === 'function') {
+            window.mdbSetHideReasonFlag(wrapper, 'fav', true);
+        } else {
+            wrapper.hide();
+        }
     }
 }
 
