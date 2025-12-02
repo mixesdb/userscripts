@@ -1148,7 +1148,12 @@ function redirectOnUrlChange( delay_ms=0 ) {
 
         // redirect
         window.addEventListener('locationchange', function(){
-        	log( "URL change!" )
+                log( "URL change!" )
+            if (window.mdbSkipRedirect) {
+                log('onlocationchange event ignored');
+                return;
+            }
+
             var newUrl = location.href;
             log( 'onlocationchange event occurred > redirecting to ' + newUrl );
             window.location.replace( newUrl );
