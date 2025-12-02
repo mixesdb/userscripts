@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.1
+// @version      2025.12.02.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 40,
+var cacheVersion = 41,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -114,12 +114,17 @@ const fast = 200,
 var getHidePl = getURLParameter("hidePl") == "true" ? "true" : "false",
     getHideReposts = getURLParameter("hideReposts") == "true" ? "true" : "false",
     getHideFav = getURLParameter("hideFav") == "true" ? "true" : "false",
-    getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false";
+    getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false",
+    getHideXedParam = getURLParameter("hideXed"),
+    getHideXed = getHideXedParam == "true" ? "true" : getHideXedParam == "false" ? "false" : ( isHideXedEnabled() ? "true" : "false" );
+
+setHideXedEnabled(getHideXed === "true");
 
 logVar( "getHidePl", getHidePl );
 logVar( "getHideReposts", getHideReposts );
 logVar( "getHideFav", getHideFav );
 logVar( "getHideUsed", getHideUsed );
+logVar( "getHideXed", getHideXed );
 
 // On set pages show only some filter options and hide list items, not players
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
@@ -332,7 +337,7 @@ function lazyLoadingList(jNode) {
         if( getHideReposts == "true" ) checkedReposts = 'checked';
         if( getHideFav == "true" ) checkedFav = 'checked';
         if( getHideUsed == "true" ) checkedUsed = 'checked';
-        if( isHideXedEnabled() ) checkedXed = 'checked';
+        if( getHideXed == "true" ) checkedXed = 'checked';
 
         // Display filter options per tab type
         saHide.append('<span class="mdb-darkorange">Hide:</span>');
@@ -371,28 +376,26 @@ function lazyLoadingList(jNode) {
 
     if( typeof url != "undefined" ) {
         $("#hidePl").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
-                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
+            if(!this.checked) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
         }});
         $("#hideReposts").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav+"&hideUsed="+getHideUsed;
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
         }});
         $("#hideFav").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false&hideUsed="+getHideUsed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true&hideUsed="+getHideUsed;
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
         }});
         $("#hideUsed").change(function(){
-            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=false";
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=true";
+            if(!this.checked) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=false&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=true&hideXed="+getHideXed;
         }});
         $("#hideXed").change(function(){
             const hideXedEnabled = this.checked;
             setHideXedEnabled(hideXedEnabled);
 
-            if( hideXedEnabled ) {
-                $(".soundList__item").each(function(){ hideIfXed($(this)); });
-            }
+            windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+(hideXedEnabled ? "true" : "false");
         });
     }
 }
@@ -406,7 +409,7 @@ waitForKeyElements(".userInfoBar__tabs ul", function( jNode ) {
 
         logVar( "hidingParams", hidingParams );
 
-        if( /.*hidePl.*/.test(hidingParams) ) {
+        if( /hide(?:Pl|Reposts|Fav|Used|Xed)=/.test(hidingParams) ) {
             var href_hidingParams = href + hidingParams;
             link.attr( "href", href_hidingParams );
         }
