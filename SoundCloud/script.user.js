@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.2
+// @version      2025.12.02.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -354,7 +354,7 @@ function lazyLoadingList(jNode) {
             saHide.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
         }
 
-        saHide.append('<label class="pointer" title="Hide items you previously removed with X"><input type="checkbox" id="hideXed" name="hideXed" '+checkedXed+' value="">Hide previously X\'ed items</label>');
+        saHide.append('<label class="pointer" title="Hide items you previously removed with X"><input type="checkbox" id="hideXed" name="hideXed" '+checkedXed+' value="">X\'ed items</label>');
     }
 
     // Filter row
