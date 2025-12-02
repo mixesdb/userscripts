@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.8
+// @version      2025.12.02.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,6 +26,7 @@
  * A tiny delay is needed, otherwise there's constant reloading.
  */
 redirectOnUrlChange( 60 );
+window.mdbSkipRedirect = false;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -399,7 +400,10 @@ function lazyLoadingList(jNode) {
         urlObj.searchParams.set('hideUsed', getHideUsed);
         urlObj.searchParams.set('hideXed', getHideXed);
 
+        const previousSkipState = window.mdbSkipRedirect;
+        window.mdbSkipRedirect = true;
         history.replaceState(null, '', urlObj.toString());
+        window.mdbSkipRedirect = previousSkipState;
     };
 
     const applyStreamHiding = () => {
