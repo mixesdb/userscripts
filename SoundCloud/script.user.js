@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.13
+// @version      2025.12.02.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_33
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_49
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_20
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -37,27 +37,6 @@ redirectOnUrlChange( 60 );
 
 var cacheVersion = 41,
     scriptName = "SoundCloud";
-
-const nativeReplaceState = History.prototype.replaceState;
-const updateUrlParams = (params = {}) => {
-    const url = new URL(window.location.href);
-
-    Object.entries(params).forEach(([key, value]) => {
-        if (value === null || typeof value === 'undefined') {
-            url.searchParams.delete(key);
-        } else {
-            url.searchParams.set(key, value);
-        }
-    });
-
-    try {
-        nativeReplaceState.call(history, history.state, '', url.toString());
-    } catch (error) {
-        logVar('updateUrlParams failed', error);
-    }
-};
-
-window.mdbUpdateUrlParams = updateUrlParams;
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
       hideXedItemsKey = 'mdb-soundcloud-hide-xed',
@@ -116,47 +95,6 @@ const resolveHideOption = (paramName, storageKey, defaultValue = 'false') => {
 const setHideOption = (storageKey, isEnabled) => {
     localStorage.setItem(storageKey, isEnabled ? 'true' : 'false');
 };
-
-const HIDE_PREFIX = 'data-mdb-hide-';
-
-const updateHiddenState = (item) => {
-    const el = $(item);
-    if (!el.length || !el[0]) return;
-    const hasHideReason = Array.from(el[0].attributes || []).some((attr) => attr.name.startsWith(HIDE_PREFIX) && attr.value === 'true');
-
-    el.toggle(!hasHideReason);
-    el.toggleClass('mdb-hidden', hasHideReason);
-};
-
-const setHideReasonFlag = (item, reason, shouldHide) => {
-    const el = $(item);
-    if (!el.length) return;
-    const attrName = `${HIDE_PREFIX}${reason}`;
-
-    if (shouldHide) {
-        el.attr(attrName, 'true');
-    } else {
-        el.removeAttr(attrName);
-    }
-
-    updateHiddenState(el);
-};
-
-const markUsedOnMixesdb = (item, isUsed) => {
-    const el = $(item);
-    if (!el.length) return;
-
-    el.attr('data-mdb-used-on-mixesdb', isUsed ? 'true' : 'false');
-
-    if (typeof applyHideFilters === 'function') {
-        applyHideFilters();
-    } else {
-        updateHiddenState(el);
-    }
-};
-
-window.mdbSetHideReasonFlag = setHideReasonFlag;
-window.mdbMarkUsedOnMixesdb = markUsedOnMixesdb;
 
 const getSlugFromSoundItem = (soundItem) => {
     if (!soundItem || !soundItem.length) return null;
@@ -399,55 +337,6 @@ waitForKeyElements('.soundList__item:not(.mdb-xed-checked)', function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function syncHideUrlParams() {
-    updateUrlParams({
-        hidePl: getHidePl,
-        hideReposts: getHideReposts,
-        hideFav: getHideFav,
-        hideUsed: getHideUsed,
-        hideXed: getHideXed
-    });
-}
-
-function applyHideFilters() {
-    const hidePlEnabled = localStorage.getItem(hidePlaylistsKey) === 'true';
-    const hideRepostsEnabled = localStorage.getItem(hideRepostsKey) === 'true';
-    const hideFavEnabled = localStorage.getItem(hideFavoritesKey) === 'true';
-    const hideUsedEnabled = localStorage.getItem(hideUsedKey) === 'true';
-    const hideXedEnabled = isHideXedEnabled();
-
-    $('li.soundList__item').each(function(){
-        const item = $(this);
-
-        const isPlaylist = item.find('.sound.playlist').length > 0;
-        setHideReasonFlag(item, 'playlist', hidePlEnabled && isPlaylist);
-
-        const isRepost = item.find('.sc-ministats-reposts').length > 0;
-        setHideReasonFlag(item, 'repost', hideRepostsEnabled && isRepost);
-
-        const isFavorite = item.find('.sc-button-like.sc-button-selected').length > 0;
-        setHideReasonFlag(item, 'fav', hideFavEnabled && isFavorite);
-
-        const slug = getSlugFromSoundItem(item);
-        const isXedItem = slug && isXed(slug);
-        setHideReasonFlag(item, 'xed', hideXedEnabled && isXedItem);
-
-        const usedState = item.attr('data-mdb-used-on-mixesdb');
-        const isUsedKnown = usedState === 'true' || usedState === 'false';
-
-        if (!isUsedKnown && hideUsedEnabled) {
-            const link = item.find('.sc-link-primary.soundTitle__title');
-            if (link.length) {
-                const playerUrl = 'soundcloud.com' + link.attr('href');
-                getToolkit(playerUrl, 'hide if used', 'lazy loading list', item);
-            }
-        }
-
-        const shouldHideUsed = hideUsedEnabled && usedState === 'true';
-        setHideReasonFlag(item, 'used', shouldHideUsed);
-    });
-}
-
 // lazy loading lists (streams and feed)
 waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
@@ -501,53 +390,50 @@ function lazyLoadingList(jNode) {
         refreshVisible();
     }
 
-    const updateHideStateFromStorage = () => {
-        getHidePl = localStorage.getItem(hidePlaylistsKey) === 'true' ? 'true' : 'false';
-        getHideReposts = localStorage.getItem(hideRepostsKey) === 'true' ? 'true' : 'false';
-        getHideFav = localStorage.getItem(hideFavoritesKey) === 'true' ? 'true' : 'false';
-        getHideUsed = localStorage.getItem(hideUsedKey) === 'true' ? 'true' : 'false';
-        getHideXed = isHideXedEnabled() ? 'true' : 'false';
-    };
+    // reload
+    var windowLocation = window.location,
+        href = $(location).attr('href');
 
-    $("#hidePl").change(function(){
-        const hidePlEnabled = this.checked;
-        setHideOption(hidePlaylistsKey, hidePlEnabled);
-        updateHideStateFromStorage();
-        syncHideUrlParams();
-        applyHideFilters();
-    });
-    $("#hideReposts").change(function(){
-        const hideRepostsEnabled = this.checked;
-        setHideOption(hideRepostsKey, hideRepostsEnabled);
-        updateHideStateFromStorage();
-        syncHideUrlParams();
-        applyHideFilters();
-    });
-    $("#hideFav").change(function(){
-        const hideFavEnabled = this.checked;
-        setHideOption(hideFavoritesKey, hideFavEnabled);
-        updateHideStateFromStorage();
-        syncHideUrlParams();
-        applyHideFilters();
-    });
-    $("#hideUsed").change(function(){
-        const hideUsedEnabled = this.checked;
-        setHideOption(hideUsedKey, hideUsedEnabled);
-        updateHideStateFromStorage();
-        syncHideUrlParams();
-        applyHideFilters();
-    });
-    $("#hideXed").change(function(){
-        const hideXedEnabled = this.checked;
-        setHideXedEnabled(hideXedEnabled);
-        updateHideStateFromStorage();
-        syncHideUrlParams();
-        applyHideFilters();
-    });
+    if( typeof href != "undefined" ) {
+        var url = href.replace(/\?.*$/g,"");
+    }
 
-    updateHideStateFromStorage();
-    syncHideUrlParams();
-    applyHideFilters();
+    if( typeof url != "undefined" ) {
+        $("#hidePl").change(function(){
+            const hidePlEnabled = this.checked;
+            setHideOption(hidePlaylistsKey, hidePlEnabled);
+
+            if(!hidePlEnabled) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+        }});
+        $("#hideReposts").change(function(){
+            const hideRepostsEnabled = this.checked;
+            setHideOption(hideRepostsKey, hideRepostsEnabled);
+
+            if(!hideRepostsEnabled) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+        }});
+        $("#hideFav").change(function(){
+            const hideFavEnabled = this.checked;
+            setHideOption(hideFavoritesKey, hideFavEnabled);
+
+            if(!hideFavEnabled) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
+        }});
+        $("#hideUsed").change(function(){
+            const hideUsedEnabled = this.checked;
+            setHideOption(hideUsedKey, hideUsedEnabled);
+
+            if(!hideUsedEnabled) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=false&hideXed="+getHideXed;
+                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=true&hideXed="+getHideXed;
+        }});
+        $("#hideXed").change(function(){
+            const hideXedEnabled = this.checked;
+            setHideXedEnabled(hideXedEnabled);
+
+            windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+(hideXedEnabled ? "true" : "false");
+        });
+    }
 }
 
 // Pass URL parameters for hiding options to user profile tabs
@@ -568,18 +454,18 @@ waitForKeyElements(".userInfoBar__tabs ul", function( jNode ) {
 
 // Hiding option: each playlist
 waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
-    const item = jNode.closest('li.soundList__item');
-    const hidePlEnabled = localStorage.getItem(hidePlaylistsKey) === 'true';
-
-    setHideReasonFlag(item, 'playlist', hidePlEnabled);
+    if( getHidePl == "true" ) {
+        log( "Hidden: " + jNode.closest(".soundTitle__title") );
+        jNode.closest(".soundList__item").remove();
+    }
 });
 
 // Hiding option: each repost player
 waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
-    const item = jNode.closest('li.soundList__item');
-    const hideRepostsEnabled = localStorage.getItem(hideRepostsKey) === 'true';
-
-    setHideReasonFlag(item, 'repost', hideRepostsEnabled);
+    if( getHidePl == "true" ) {
+        log( "Hidden: " + jNode.closest(".soundTitle__title") );
+        jNode.closest(".soundList__item").remove();
+    }
 });
 
 // Hiding option: each fFaved players > on waitForKeyElements fav button
