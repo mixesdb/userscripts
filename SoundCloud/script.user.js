@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.3
+// @version      2025.12.02.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -271,7 +271,7 @@ waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", functi
 
 // if favorited before, show hidden soundActions
 waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
-    var removeItem = '<div class="mdb-removeItem hand sc-text-grey" title="Remove the player (this session only)">X</div>';
+    var removeItem = '<div class="mdb-removeItem hand sc-text-grey" title="Remove the player (can be filtered out again with the hiding option &quot;X\'ed items&quot;)">X</div>';
     jNode.append( removeItem );
 });
 
