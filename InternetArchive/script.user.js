@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.11.1
+// @version      2025.12.11.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-InternetArchive_1
 // @require      https://cdn.jsdelivr.net/npm/sorttable@1.0.2/sorttable.js
 // @include      http*archive.org/details/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=archive.org
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
@@ -27,7 +27,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 5,
+var cacheVersion = 6,
     scriptName = "InternetArchive";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -133,8 +133,17 @@ if( playsetList_wrapper.length ) {
 
         try {
             var arr = JSON.parse( arrString );
+
             if ( Array.isArray( arr ) && arr.length ) {
-                apiIdentifier = arr[0]?.metadata?.identifier || "";
+                var arrItemWithMetadata = arr.find( function( item ) {
+                    return item && item.metadata && item.metadata.identifier;
+                } );
+
+                apiIdentifier = arrItemWithMetadata?.metadata?.identifier
+                || arr.find( function( item ) { return item && item.identifier; } )?.identifier
+                || "";
+            } else if ( arr && typeof arr === "object" ) {
+                apiIdentifier = arr.metadata?.identifier || arr.identifier || "";
             }
         } catch ( error ) {
             console.error( "InternetArchive: Failed to parse metadata", error );
