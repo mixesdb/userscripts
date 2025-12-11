@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.30.3
+// @version      2025.12.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -128,8 +128,23 @@ if( playsetList_wrapper.length ) {
      * Metadata JS
      */
     waitForKeyElements( "input.js-ia-metadata", function( jNode ) {
-        var arr = jNode.attr("value");
+        var arrString = jNode.attr("value");
+        var apiIdentifier = "";
 
-        logVar( "arr", arr );
+        try {
+            var arr = JSON.parse( arrString );
+            if ( Array.isArray( arr ) && arr.length ) {
+                apiIdentifier = arr[0]?.metadata?.identifier || "";
+            }
+        } catch ( error ) {
+            console.error( "InternetArchive: Failed to parse metadata", error );
+        }
+
+        logVar( "arr", arrString );
+
+        if ( apiIdentifier ) {
+            var apiLink = $( '<div id="playsetList_apiLink" class="mdb-center"><a href="https://archive.org/metadata/' + apiIdentifier + '" target="_blank">API</a></div>' );
+            $( "#playsetList_mdbTable" ).before( apiLink );
+        }
     });
 }
