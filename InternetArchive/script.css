@@ -2,6 +2,10 @@
     width: 100vw;
     
     & table {
-        margin: 20px auto;
+        margin: 10px auto 20px;
     }
+}
+
+#playsetList_apiLink {
+    margin-top: 10px;
 }
