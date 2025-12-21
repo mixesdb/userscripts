@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.11.2
+// @version      2025.12.21.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -56,6 +56,7 @@ if( playsetList_wrapper.length ) {
     playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Detail</th>';
     playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" title="Sortable">Dur</th>';
     playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" class="sorttable_nosort">DL</th>';
+    playsetList_mdbTable_html    +=     '<th id="playsetList_mdbTable-name" class="sorttable_nosort">MixesDB usage</th>';
     playsetList_mdbTable_html    +=   '</table>';
     playsetList_mdbTable_html    += '</section>';
 
@@ -74,6 +75,9 @@ if( playsetList_wrapper.length ) {
         var item_name = $('meta[itemprop="name"]', this).attr("content"); // Clubnight 2011.01.01
         var item_dur = $('meta[itemprop="duration"]', this).attr("content"); // PT0M7206S
         var item_url = $('link[itemprop="associatedMedia"]', this).first().attr("href"); // https://archive.org/download/Clubnight2011/Clubnight%202011.01.01%20-%20Motorcitysoul.ogg
+        var item_detailUrl = $('meta[itemprop="url"]', this).attr("content")
+                        || $('link[itemprop="url"]', this).attr("href")
+                        || "";
 
         /*
          * Work with the values
@@ -108,16 +112,22 @@ if( playsetList_wrapper.length ) {
             return '<a href="' + url + '" class="mdb-tooltip" data-tooltip="'+filename+'.'+ext+'">' + ext + '</a>';
         });
         var download_links = formats.join(' <span class="mdb-grey">|</span> ');
+        var first_download_url = urls[0] ? new URL( urls[0], window.location.origin ).href : "";
+        var details_url = item_detailUrl ? new URL( item_detailUrl, window.location.origin ).href : "";
 
         /*
          * Add row to table
          */
-        var episode_row = '<tr>';
+        var episode_row = '<tr';
+        episode_row    +=    ( first_download_url ? ' data-download-url="' + first_download_url + '"' : "" );
+        episode_row    +=    ( details_url ? ' data-details-url="' + details_url + '"' : "" );
+        episode_row    +=    '>';
         episode_row    +=    '<td class="mdb-right">'+i+'</td>';
         episode_row    +=    '<td>'+episode+'</td>';
         episode_row    +=    '<td>'+episode_detail+'</td>';
         episode_row    +=    '<td>'+dur+'</td>';
         episode_row    +=    '<td>'+download_links+'</td>';
+        episode_row    +=    '<td class="playsetList_mdbTable-mixesdb">'+( first_download_url ? "Checking…" : "No download URL" )+'</td>';
         episode_row    += '</tr>';
 
 
@@ -155,5 +165,53 @@ if( playsetList_wrapper.length ) {
             var apiLink = $( '<div id="playsetList_apiLink" class="mdb-center"><a href="https://archive.org/metadata/' + apiIdentifier + '" target="_blank">API</a></div>' );
             $( "#playsetList_mdbTable" ).before( apiLink );
         }
+    });
+
+    /*
+     * MixesDB usage
+     */
+    var mixesdbApiUrl = "https://www.mixesdb.com/w/api.php";
+
+    playsetList_mdbTable.find( "tr" ).each(function() {
+        var row = $( this ),
+            downloadUrl = row.data( "download-url" ),
+            mixesdbCell = $( ".playsetList_mdbTable-mixesdb", row );
+
+        if ( !mixesdbCell.length ) return;
+
+        if ( !downloadUrl ) {
+            mixesdbCell.text( "No download URL" );
+            return;
+        }
+
+        $.ajax({
+            dataType: "json",
+            url: mixesdbApiUrl,
+            data: {
+                action: "query",
+                list: "search",
+                srprop: "timestamp",
+                format: "json",
+                origin: "*",
+                srsearch: 'insource:"' + downloadUrl.replace(/(["\\])/g, "\\$1") + '"'
+            },
+            success: function( data ) {
+                var searchResults = data?.query?.search;
+
+                if ( Array.isArray( searchResults ) && searchResults.length ) {
+                    var firstResult = searchResults[0],
+                        pageTitle = firstResult?.title || "MixesDB",
+                        pageId = firstResult?.pageid,
+                        pageUrl = pageId ? "https://www.mixesdb.com/w/index.php?curid=" + pageId : "https://www.mixesdb.com/w/" + encodeURIComponent( pageTitle.replace( / /g, "_" ) );
+
+                    mixesdbCell.html( '<a href="' + pageUrl + '" target="_blank">' + pageTitle + '</a>' );
+                } else {
+                    mixesdbCell.html( 'DL URL not used' );
+                }
+            },
+            error: function() {
+                mixesdbCell.text( "MixesDB check failed" );
+            }
+        });
     });
 }
