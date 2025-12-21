@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.11.2
+// @version      2025.12.21.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -74,6 +74,9 @@ if( playsetList_wrapper.length ) {
         var item_name = $('meta[itemprop="name"]', this).attr("content"); // Clubnight 2011.01.01
         var item_dur = $('meta[itemprop="duration"]', this).attr("content"); // PT0M7206S
         var item_url = $('link[itemprop="associatedMedia"]', this).first().attr("href"); // https://archive.org/download/Clubnight2011/Clubnight%202011.01.01%20-%20Motorcitysoul.ogg
+        var item_detailUrl = $('meta[itemprop="url"]', this).attr("content")
+                        || $('link[itemprop="url"]', this).attr("href")
+                        || "";
 
         /*
          * Work with the values
@@ -108,11 +111,16 @@ if( playsetList_wrapper.length ) {
             return '<a href="' + url + '" class="mdb-tooltip" data-tooltip="'+filename+'.'+ext+'">' + ext + '</a>';
         });
         var download_links = formats.join(' <span class="mdb-grey">|</span> ');
+        var first_download_url = urls[0] ? new URL( urls[0], window.location.origin ).href : "";
+        var details_url = item_detailUrl ? new URL( item_detailUrl, window.location.origin ).href : "";
 
         /*
          * Add row to table
          */
-        var episode_row = '<tr>';
+        var episode_row = '<tr';
+        episode_row    +=    ( first_download_url ? ' data-download-url="' + first_download_url + '"' : "" );
+        episode_row    +=    ( details_url ? ' data-details-url="' + details_url + '"' : "" );
+        episode_row    +=    '>';
         episode_row    +=    '<td class="mdb-right">'+i+'</td>';
         episode_row    +=    '<td>'+episode+'</td>';
         episode_row    +=    '<td>'+episode_detail+'</td>';
