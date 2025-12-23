@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.21.3
+// @version      2025.12.23.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -62,7 +62,49 @@ if( playsetList_wrapper.length ) {
 
     playsetList_wrapper.after( playsetList_mdbTable_html );
 
-    var playsetList_mdbTable = $("#playsetList_mdbTable");
+    var playsetList_mdbTable_wrapper = $( "#playsetList_mdbTable_wrapper" ),
+        playsetList_mdbTable = $( "#playsetList_mdbTable" ),
+        playsetList_apiLink = $( '<div id="playsetList_apiLink" class="mdb-center"></div>' );
+
+    playsetList_mdbTable.before( playsetList_apiLink );
+
+    function setApiLink( identifier ) {
+        if ( !identifier ) return false;
+
+        var currentIdentifier = playsetList_apiLink.data( "identifier" );
+
+        if ( currentIdentifier === identifier ) return true;
+
+        playsetList_apiLink.data( "identifier", identifier );
+        playsetList_apiLink.html( '<a href="https://archive.org/metadata/' + identifier + '" target="_blank">API</a>' );
+
+        return true;
+    }
+
+    function setApiUnavailable() {
+        if ( playsetList_apiLink.find( "a" ).length ) return;
+
+        playsetList_apiLink.text( "API link unavailable" );
+    }
+
+    function getIdentifierFromPath() {
+        try {
+            var pathParts = window.location.pathname.split( "/" ).filter( Boolean ),
+                detailsIndex = pathParts.indexOf( "details" );
+
+            if ( detailsIndex !== -1 && pathParts.length > detailsIndex + 1 ) {
+                return decodeURIComponent( pathParts[ detailsIndex + 1 ] );
+            }
+
+            if ( pathParts.length ) return decodeURIComponent( pathParts[0] );
+        } catch ( error ) {
+            console.error( "InternetArchive: Failed to derive identifier from path", error );
+        }
+
+        return "";
+    }
+
+    setApiLink( getIdentifierFromPath() );
 
     // each playsetList item
     var i = 0;
@@ -162,56 +204,93 @@ if( playsetList_wrapper.length ) {
         logVar( "arr", arrString );
 
         if ( apiIdentifier ) {
-            var apiLink = $( '<div id="playsetList_apiLink" class="mdb-center"><a href="https://archive.org/metadata/' + apiIdentifier + '" target="_blank">API</a></div>' );
-            $( "#playsetList_mdbTable" ).before( apiLink );
+            setApiLink( apiIdentifier );
+        } else {
+            setApiUnavailable();
         }
     });
 
-    /*
-     * MixesDB usage
-     */
-    var mixesdbApiUrl = "https://www.mixesdb.com/w/api.php";
+    var playsetList_hasRows = playsetList_mdbTable.find( "tr" ).length > 0,
+        playsetList_hasSlug = playsetList_mdbTable.find( "tr[data-download-url]" ).length > 0;
 
-    playsetList_mdbTable.find( "tr" ).each(function() {
-        var row = $( this ),
-            downloadUrl = row.data( "download-url" ),
-            mixesdbCell = $( ".playsetList_mdbTable-mixesdb", row );
+    if ( !playsetList_hasRows || !playsetList_hasSlug ) {
+        playsetList_mdbTable.remove();
+        playsetList_mdbTable_wrapper.append( '<div id="playsetList_mdbTable-empty" class="mdb-center">No URLs for MixesDB usage check found</div>' );
+    } else {
+        /*
+         * MixesDB usage
+         */
+        var mixesdbApiUrl = "https://www.mixesdb.com/w/api.php";
 
-        if ( !mixesdbCell.length ) return;
+        function buildMixesdbSearchPath( downloadUrl ) {
+            try {
+                var urlObj = new URL( downloadUrl, window.location.origin ),
+                    pathParts = urlObj.pathname.split( "/" ),
+                    downloadIndex = pathParts.indexOf( "download" );
 
-        if ( !downloadUrl ) {
-            mixesdbCell.text( "No download URL" );
-            return;
+                if ( downloadIndex !== -1 && pathParts.length > downloadIndex + 2 ) {
+                    var identifier = pathParts[ downloadIndex + 1 ],
+                        filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" );
+
+                    return "/" + identifier + "/" + filenamePart;
+                        filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" ),
+                        encodedFilename = encodeURIComponent( filenamePart );
+
+                    return "/" + identifier + "/" + encodedFilename;
+                }
+            } catch ( error ) {
+                console.error( "InternetArchive: Failed to build MixesDB search path", error );
+            }
+
+            return downloadUrl;
         }
 
-        $.ajax({
-            dataType: "json",
-            url: mixesdbApiUrl,
-            data: {
+        playsetList_mdbTable.find( "tr" ).each(function() {
+            var row = $( this ),
+                downloadUrl = row.data( "download-url" ),
+                mixesdbSearchPath = downloadUrl ? buildMixesdbSearchPath( downloadUrl ) : "",
+                mixesdbCell = $( ".playsetList_mdbTable-mixesdb", row );
+
+            if ( !mixesdbCell.length ) return;
+
+            if ( !downloadUrl ) {
+                mixesdbCell.text( "No download URL" );
+                return;
+            }
+
+            var mixesdbApiParams = {
                 action: "query",
                 list: "search",
                 srprop: "timestamp",
                 format: "json",
                 origin: "*",
-                srsearch: 'insource:"' + downloadUrl.replace(/(["\\])/g, "\\$1") + '"'
-            },
-            success: function( data ) {
-                var searchResults = data?.query?.search;
+                srsearch: 'insource:"' + mixesdbSearchPath.replace(/(["\\])/g, "\\$1") + '"'
+            };
 
-                if ( Array.isArray( searchResults ) && searchResults.length ) {
-                    var firstResult = searchResults[0],
-                        pageTitle = firstResult?.title || "MixesDB",
-                        pageId = firstResult?.pageid,
-                        pageUrl = pageId ? "https://www.mixesdb.com/w/index.php?curid=" + pageId : "https://www.mixesdb.com/w/" + encodeURIComponent( pageTitle.replace( / /g, "_" ) );
+            $.ajax({
+                dataType: "json",
+                url: mixesdbApiUrl,
+                data: mixesdbApiParams,
+                success: function( data ) {
+                    var searchResults = data?.query?.search;
 
-                    mixesdbCell.html( '<a href="' + pageUrl + '" target="_blank">' + pageTitle + '</a>' );
-                } else {
-                    mixesdbCell.html( 'DL URL not used' );
+                    if ( Array.isArray( searchResults ) && searchResults.length ) {
+                        var firstResult = searchResults[0],
+                            pageTitle = firstResult?.title || "MixesDB",
+                            pageId = firstResult?.pageid,
+                            pageUrl = pageId ? "https://www.mixesdb.com/w/index.php?curid=" + pageId : "https://www.mixesdb.com/w/" + encodeURIComponent( pageTitle.replace( / /g, "_" ) );
+
+                        mixesdbCell.html( '<a href="' + pageUrl + '" target="_blank">' + pageTitle + '</a>' );
+                    } else {
+                        var mixesdbApiSearchUrl = mixesdbApiUrl + "?" + $.param( mixesdbApiParams );
+
+                        mixesdbCell.html( '<a href="' + mixesdbApiSearchUrl + '" target="_blank">Slug not used</a>' );
+                    }
+                },
+                error: function() {
+                    mixesdbCell.text( "MixesDB check failed" );
                 }
-            },
-            error: function() {
-                mixesdbCell.text( "MixesDB check failed" );
-            }
+            });
         });
-    });
+    }
 }
