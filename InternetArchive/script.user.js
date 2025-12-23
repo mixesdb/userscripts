@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.21.4
+// @version      2025.12.23.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -183,9 +183,30 @@ if( playsetList_wrapper.length ) {
          */
         var mixesdbApiUrl = "https://www.mixesdb.com/w/api.php";
 
+        function buildMixesdbSearchPath( downloadUrl ) {
+            try {
+                var urlObj = new URL( downloadUrl, window.location.origin ),
+                    pathParts = urlObj.pathname.split( "/" ),
+                    downloadIndex = pathParts.indexOf( "download" );
+
+                if ( downloadIndex !== -1 && pathParts.length > downloadIndex + 2 ) {
+                    var identifier = pathParts[ downloadIndex + 1 ],
+                        filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" ),
+                        encodedFilename = encodeURIComponent( filenamePart );
+
+                    return "/" + identifier + "/" + encodedFilename;
+                }
+            } catch ( error ) {
+                console.error( "InternetArchive: Failed to build MixesDB search path", error );
+            }
+
+            return downloadUrl;
+        }
+
         playsetList_mdbTable.find( "tr" ).each(function() {
             var row = $( this ),
                 downloadUrl = row.data( "download-url" ),
+                mixesdbSearchPath = downloadUrl ? buildMixesdbSearchPath( downloadUrl ) : "",
                 mixesdbCell = $( ".playsetList_mdbTable-mixesdb", row );
 
             if ( !mixesdbCell.length ) return;
@@ -204,7 +225,7 @@ if( playsetList_wrapper.length ) {
                     srprop: "timestamp",
                     format: "json",
                     origin: "*",
-                    srsearch: 'insource:"' + downloadUrl.replace(/(["\\])/g, "\\$1") + '"'
+                    srsearch: 'insource:"' + mixesdbSearchPath.replace(/(["\\])/g, "\\$1") + '"'
                 },
                 success: function( data ) {
                     var searchResults = data?.query?.search;
