@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.23.4
+// @version      2025.12.23.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -67,6 +67,44 @@ if( playsetList_wrapper.length ) {
         playsetList_apiLink = $( '<div id="playsetList_apiLink" class="mdb-center"></div>' );
 
     playsetList_mdbTable.before( playsetList_apiLink );
+
+    function setApiLink( identifier ) {
+        if ( !identifier ) return false;
+
+        var currentIdentifier = playsetList_apiLink.data( "identifier" );
+
+        if ( currentIdentifier === identifier ) return true;
+
+        playsetList_apiLink.data( "identifier", identifier );
+        playsetList_apiLink.html( '<a href="https://archive.org/metadata/' + identifier + '" target="_blank">API</a>' );
+
+        return true;
+    }
+
+    function setApiUnavailable() {
+        if ( playsetList_apiLink.find( "a" ).length ) return;
+
+        playsetList_apiLink.text( "API link unavailable" );
+    }
+
+    function getIdentifierFromPath() {
+        try {
+            var pathParts = window.location.pathname.split( "/" ).filter( Boolean ),
+                detailsIndex = pathParts.indexOf( "details" );
+
+            if ( detailsIndex !== -1 && pathParts.length > detailsIndex + 1 ) {
+                return decodeURIComponent( pathParts[ detailsIndex + 1 ] );
+            }
+
+            if ( pathParts.length ) return decodeURIComponent( pathParts[0] );
+        } catch ( error ) {
+            console.error( "InternetArchive: Failed to derive identifier from path", error );
+        }
+
+        return "";
+    }
+
+    setApiLink( getIdentifierFromPath() );
 
     // each playsetList item
     var i = 0;
@@ -166,9 +204,9 @@ if( playsetList_wrapper.length ) {
         logVar( "arr", arrString );
 
         if ( apiIdentifier ) {
-            playsetList_apiLink.html( '<a href="https://archive.org/metadata/' + apiIdentifier + '" target="_blank">API</a>' );
+            setApiLink( apiIdentifier );
         } else {
-            playsetList_apiLink.text( "API link unavailable" );
+            setApiUnavailable();
         }
     });
 
