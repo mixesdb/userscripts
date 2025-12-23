@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.23.3
+// @version      2025.12.23.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -172,11 +172,12 @@ if( playsetList_wrapper.length ) {
         }
     });
 
-    var playsetList_hasRows = playsetList_mdbTable.find( "tr" ).length > 0;
+    var playsetList_hasRows = playsetList_mdbTable.find( "tr" ).length > 0,
+        playsetList_hasSlug = playsetList_mdbTable.find( "tr[data-download-url]" ).length > 0;
 
-    if ( !playsetList_hasRows ) {
+    if ( !playsetList_hasRows || !playsetList_hasSlug ) {
         playsetList_mdbTable.remove();
-        playsetList_mdbTable_wrapper.append( '<div id="playsetList_mdbTable-empty" class="mdb-center">No player URLs found for MixesDB usage check.</div>' );
+        playsetList_mdbTable_wrapper.append( '<div id="playsetList_mdbTable-empty" class="mdb-center">No URLs for MixesDB usage check found</div>' );
     } else {
         /*
          * MixesDB usage
