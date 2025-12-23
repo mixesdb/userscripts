@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.23.2
+// @version      2025.12.23.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -219,17 +219,19 @@ if( playsetList_wrapper.length ) {
                 return;
             }
 
+            var mixesdbApiParams = {
+                action: "query",
+                list: "search",
+                srprop: "timestamp",
+                format: "json",
+                origin: "*",
+                srsearch: 'insource:"' + mixesdbSearchPath.replace(/(["\\])/g, "\\$1") + '"'
+            };
+
             $.ajax({
                 dataType: "json",
                 url: mixesdbApiUrl,
-                data: {
-                    action: "query",
-                    list: "search",
-                    srprop: "timestamp",
-                    format: "json",
-                    origin: "*",
-                    srsearch: 'insource:"' + mixesdbSearchPath.replace(/(["\\])/g, "\\$1") + '"'
-                },
+                data: mixesdbApiParams,
                 success: function( data ) {
                     var searchResults = data?.query?.search;
 
@@ -241,7 +243,9 @@ if( playsetList_wrapper.length ) {
 
                         mixesdbCell.html( '<a href="' + pageUrl + '" target="_blank">' + pageTitle + '</a>' );
                     } else {
-                        mixesdbCell.html( 'DL URL not used' );
+                        var mixesdbApiSearchUrl = mixesdbApiUrl + "?" + $.param( mixesdbApiParams );
+
+                        mixesdbCell.html( '<a href="' + mixesdbApiSearchUrl + '" target="_blank">Slug not used</a>' );
                     }
                 },
                 error: function() {
