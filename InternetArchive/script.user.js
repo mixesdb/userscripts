@@ -194,6 +194,10 @@ if( playsetList_wrapper.length ) {
                         filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" );
 
                     return "/" + identifier + "/" + filenamePart;
+                        filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" ),
+                        encodedFilename = encodeURIComponent( filenamePart );
+
+                    return "/" + identifier + "/" + encodedFilename;
                 }
             } catch ( error ) {
                 console.error( "InternetArchive: Failed to build MixesDB search path", error );
