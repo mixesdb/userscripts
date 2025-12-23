@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.23.1
+// @version      2025.12.23.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -191,6 +191,9 @@ if( playsetList_wrapper.length ) {
 
                 if ( downloadIndex !== -1 && pathParts.length > downloadIndex + 2 ) {
                     var identifier = pathParts[ downloadIndex + 1 ],
+                        filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" );
+
+                    return "/" + identifier + "/" + filenamePart;
                         filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" ),
                         encodedFilename = encodeURIComponent( filenamePart );
 
