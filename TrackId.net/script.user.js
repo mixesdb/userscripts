@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.07.1
+// @version      2026.01.07.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1015,6 +1015,53 @@ function on_submitrequest() {
     // if url was passed as parameter
     var requestUrl = getURLParameter( "url" ) || getURLParameter( "requestUrl" );
     logVar( "requestUrl", requestUrl );
+
+    waitForKeyElements( ".submit-request-url", function( jNode ) {
+        if( jNode.hasClass("mdb-validate-submit") ) {
+            return;
+        }
+
+        jNode.addClass("mdb-validate-submit");
+
+        var input = jNode.find("input[type=text].MuiInputBase-input").first(),
+            validateButton = jNode.find("button").filter(function() {
+                return $(this).text().trim() === "Validate";
+            }).first(),
+            form = jNode.closest("form");
+
+        if( !validateButton.length ) {
+            return;
+        }
+
+        validateButton.on("click.mdbSubmitUrl", function(event) {
+            var urlValue = input.val();
+
+            if( !urlValue ) {
+                return;
+            }
+
+            var actionBase = form.length ? (form.attr("action") || window.location.href) : window.location.href,
+                actionUrl = new URL( actionBase, window.location.href );
+
+            actionUrl.searchParams.set("url", urlValue.trim());
+
+            if( form.length ) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                form.attr("action", actionUrl.toString());
+
+                var formElement = form.get(0),
+                    submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+
+                if( formElement && formElement.dispatchEvent(submitEvent) ) {
+                    formElement.submit();
+                }
+            } else {
+                window.location.href = actionUrl.toString();
+            }
+        });
+    });
 
     // Insert the requestUrl to the submit input
     if( requestUrl && requestUrl !== "" ) {
