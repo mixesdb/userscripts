@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.1
+// @version      2026.01.07.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1013,7 +1013,7 @@ function on_submitrequest() {
     }
 
     // if url was passed as parameter
-    var requestUrl = getURLParameter( "requestUrl" );
+    var requestUrl = getURLParameter( "url" ) || getURLParameter( "requestUrl" );
     logVar( "requestUrl", requestUrl );
 
     // Insert the requestUrl to the submit input
@@ -1028,33 +1028,17 @@ function on_submitrequest() {
         waitForKeyElements( ".MuiGrid-grid-xs-12 .MuiFormControl-root input[type=text].MuiInputBase-input", function( jNode ) {
             logFunc( "submitRequest_input_wait" );
 
-            // Submit notice cos we cannot just trigger a click on the the "VALIDATE" button
-            // For YouTube URLs it doesn't allow a blank after the URL...
-            var note_standard = create_note( "Press the SPACEBAR and ENTER to validate" ),
-                note_YouTube  = create_note( "Press the SPACEBAR, BACKSPACE and ENTER" );
-
-            switch( requestUrl_domain ) {
-                case "youtube.com":
-                    var submitNote = note_YouTube;
-                    break;
-
-                case "youtu.be":
-                    var submitNote = note_YouTube;
-                    break;
-
-                default:
-                    var submitNote = note_standard;
-            }
-
             var input = create_input( requestUrl );
             jNode.closest(".MuiGrid-container").before( input );
-            //var e = jQuery.Event( "keydown", { keyCode: 32 } );
 
-            jNode.select();
             setTimeout(function () {
-                jNode.val( requestUrl );
-                //jNode.trigger( e );
-                jNode.closest(".MuiGrid-container").after( submitNote );
+                var inputElement = jNode.get(0),
+                    valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+
+                valueSetter.call(inputElement, requestUrl);
+                inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+                inputElement.dispatchEvent(new Event("change", { bubbles: true }));
+                inputElement.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Enter" }));
             }, timeoutDelay);
         });
 
@@ -1072,8 +1056,15 @@ function on_submitrequest() {
         });
 
         // Click button "View Tracklist" when it appeas
+        var didAutoSubmit = false;
+
         waitForKeyElements( "button.MuiButton-root", function( jNode ) {
             var buttonText = jNode.text();
+
+            if( !didAutoSubmit && buttonText == "Validate" ) {
+                didAutoSubmit = true;
+                jNode.click();
+            }
 
             if( buttonText == "View Tracklist" || buttonText == "Submit" ) {
                 jNode.click();
