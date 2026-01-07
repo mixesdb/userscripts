@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.12.02.1
+// @version      2026.01.07.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -988,6 +988,30 @@ function funcTidTables(jNode) {
 function on_submitrequest() {
     logFunc( "on_submitrequest" );
 
+    function setInputValue(inputEl, value) {
+        if (!inputEl) {
+            return;
+        }
+
+        var valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+        valueSetter.call(inputEl, value);
+        inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function clickValidateButton() {
+        var button = $("button.MuiButton-root").filter(function () {
+            return $(this).text() === "Validate";
+        }).first();
+
+        if (button.length && !button.prop("disabled")) {
+            button.trigger("click");
+            return true;
+        }
+
+        return false;
+    }
+
     // submitted URL, page preview pops up
     // if exists, take user directly there without confirmation
     // Test URL page exists: https://soundcloud.com/resident-advisor/ra944-tsvi
@@ -1052,9 +1076,17 @@ function on_submitrequest() {
 
             jNode.select();
             setTimeout(function () {
-                jNode.val( requestUrl );
+                setInputValue(jNode.get(0), requestUrl);
                 //jNode.trigger( e );
                 jNode.closest(".MuiGrid-container").after( submitNote );
+
+                var attempts = 0;
+                var clickTimer = setInterval(function () {
+                    attempts += 1;
+                    if (clickValidateButton() || attempts > 20) {
+                        clearInterval(clickTimer);
+                    }
+                }, 250);
             }, timeoutDelay);
         });
 
