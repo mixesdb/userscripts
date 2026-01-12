@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.12.2
+// @version      2025.11.04.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -109,61 +109,6 @@ function getApplePodcastsSearchLink( className, keywords ) {
     return iconLink;
 }
 
-// Open TrackId links in a popup and close 1s after any URL change in the popup.
-function openTidPopup( url ) {
-    var popupWidth = Math.round( window.innerWidth * 0.8 ),
-        popupHeight = Math.round( window.innerHeight * 0.8 ),
-        left = Math.round( ( window.screenX || window.screenLeft || 0 ) + ( window.innerWidth - popupWidth ) / 2 ),
-        top = Math.round( ( window.screenY || window.screenTop || 0 ) + ( window.innerHeight - popupHeight ) / 2 ),
-        features = "popup=yes,resizable=yes,scrollbars=yes,width=" + popupWidth + ",height=" + popupHeight + ",left=" + left + ",top=" + top,
-        popup = window.open( "about:blank", "mixesdbTidPopup", features );
-
-    if( !popup ) {
-        return null;
-    }
-
-    var closeAfterFirstLoad = false;
-    try {
-        var parsedUrl = new URL( url );
-        closeAfterFirstLoad = parsedUrl.hostname === "trackid.net" && parsedUrl.pathname.split( "/" )[1] === "myrequests";
-    } catch( error ) {
-        closeAfterFirstLoad = false;
-    }
-
-    var loadCount = 0;
-    var handleLoad = function() {
-        loadCount++;
-        if( closeAfterFirstLoad || loadCount > 1 ) {
-            setTimeout( function() {
-                if( !popup.closed ) {
-                    popup.close();
-                }
-            }, 1000 );
-        }
-    };
-
-    if( popup.addEventListener ) {
-        popup.addEventListener( "load", handleLoad );
-    } else {
-        popup.onload = handleLoad;
-    }
-
-    popup.location.href = url;
-
-    return popup;
-}
-
-$( document ).on( "click", "a.tidLink", function( event ) {
-    var href = $( this ).attr( "href" );
-    if( !href ) {
-        return;
-    }
-
-    var popup = openTidPopup( href );
-    if( popup ) {
-        event.preventDefault();
-    }
-} );
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -367,7 +312,7 @@ d.ready(function(){ // needed for mw.config
                         // avoid undefined error
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
-                            var tidLink_submit = '<a class="tidLink" href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
                             playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
@@ -378,7 +323,7 @@ d.ready(function(){ // needed for mw.config
                             logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                             if( trackidurl ) {
-                                tidLink += '<a class="tidLink" href="'+trackidurl+'">Exists on TrackId.net</a>';
+                                tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
 
                                 if( lastCheckedAgainstMixesDB ) {
                                     tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
