@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.12.1
+// @version      2026.01.12.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1026,13 +1026,14 @@ function on_submitrequest() {
         return false;
     }
 
+    var submitClicked = false;
     function maybeAutoSubmit() {
-        if (!manualSubmitReady) {
+        if (submitClicked) {
             return;
         }
 
         if (clickSubmitButton()) {
-            manualSubmitReady = false;
+            submitClicked = true;
         }
     }
 
@@ -1064,15 +1065,10 @@ function on_submitrequest() {
     var requestUrl = getURLParameter( "requestUrl" );
     logVar( "requestUrl", requestUrl );
 
-    waitForKeyElements( ".MuiGrid-grid-xs-12 .MuiFormControl-root input[type=text].MuiInputBase-input", function( jNode ) {
-        jNode.on("input", function () {
-            manualSubmitReady = $(this).val().trim() !== "";
+    waitForKeyElements( "button.MuiButton-root", function( jNode ) {
+        if( jNode.text() === "Submit" ) {
             maybeAutoSubmit();
-        });
-    });
-
-    waitForKeyElements( "button.MuiButton-root", function() {
-        maybeAutoSubmit();
+        }
     });
 
     // Insert the requestUrl to the submit input
