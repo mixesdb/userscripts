@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.07.1
+// @version      2026.01.12.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -987,6 +987,7 @@ function funcTidTables(jNode) {
 
 function on_submitrequest() {
     logFunc( "on_submitrequest" );
+    var manualSubmitReady = false;
 
     function setInputValue(inputEl, value) {
         if (!inputEl) {
@@ -1010,6 +1011,30 @@ function on_submitrequest() {
         }
 
         return false;
+    }
+
+    function clickSubmitButton() {
+        var button = $("button.MuiButton-root").filter(function () {
+            return $(this).text() === "Submit";
+        }).first();
+
+        if (button.length && !button.prop("disabled")) {
+            button.trigger("click");
+            return true;
+        }
+
+        return false;
+    }
+
+    var submitClicked = false;
+    function maybeAutoSubmit() {
+        if (submitClicked) {
+            return;
+        }
+
+        if (clickSubmitButton()) {
+            submitClicked = true;
+        }
     }
 
     // submitted URL, page preview pops up
@@ -1039,6 +1064,12 @@ function on_submitrequest() {
     // if url was passed as parameter
     var requestUrl = getURLParameter( "requestUrl" );
     logVar( "requestUrl", requestUrl );
+
+    waitForKeyElements( "button.MuiButton-root", function( jNode ) {
+        if( jNode.text() === "Submit" ) {
+            maybeAutoSubmit();
+        }
+    });
 
     // Insert the requestUrl to the submit input
     if( requestUrl && requestUrl !== "" ) {
