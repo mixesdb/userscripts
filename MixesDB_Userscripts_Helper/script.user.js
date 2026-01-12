@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.12.3
+// @version      2026.01.12.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -109,7 +109,7 @@ function getApplePodcastsSearchLink( className, keywords ) {
     return iconLink;
 }
 
-// Open TrackId links in a popup and close 1s after it reaches /myrequests.
+// Open TrackId links in a popup and close 1s after any URL change in the popup.
 function openTidPopup( url ) {
     var popupWidth = Math.round( window.innerWidth * 0.8 ),
         popupHeight = Math.round( window.innerHeight * 0.8 ),
@@ -122,35 +122,15 @@ function openTidPopup( url ) {
         return null;
     }
 
-    var lastHref = url;
-    var closeTimeout = null;
-    var checkInterval = null;
-    var loadedOnce = false;
-    var closeUrl = "https://trackid.net/myrequests";
-    var scheduleClose = function() {
-        if( closeTimeout ) {
-            return;
-        }
-        closeTimeout = setTimeout( function() {
-            if( !popup.closed ) {
-                popup.close();
-            }
-        }, 1000 );
-    };
-    var shouldCloseForUrl = function( currentHref ) {
-        return currentHref && currentHref.indexOf( closeUrl ) === 0;
-    };
+    var loadCount = 0;
     var handleLoad = function() {
-        if( !loadedOnce ) {
-            loadedOnce = true;
-            return;
-        }
-        try {
-            if( shouldCloseForUrl( popup.location.href ) ) {
-                scheduleClose();
-            }
-        } catch( error ) {
-            // Ignore cross-origin errors; only close on explicit target URL.
+        loadCount++;
+        if( loadCount > 1 ) {
+            setTimeout( function() {
+                if( !popup.closed ) {
+                    popup.close();
+                }
+            }, 1000 );
         }
     };
 
@@ -159,25 +139,6 @@ function openTidPopup( url ) {
     } else {
         popup.onload = handleLoad;
     }
-
-    checkInterval = setInterval( function() {
-        if( popup.closed ) {
-            clearInterval( checkInterval );
-            return;
-        }
-        try {
-            var currentHref = popup.location.href;
-            if( currentHref && currentHref !== lastHref ) {
-                lastHref = currentHref;
-                if( shouldCloseForUrl( currentHref ) ) {
-                    scheduleClose();
-                    clearInterval( checkInterval );
-                }
-            }
-        } catch( error ) {
-            // Ignore cross-origin errors; only close on explicit target URL.
-        }
-    }, 500 );
 
     popup.location.href = url;
 
