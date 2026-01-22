@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.12.3
+// @version      2026.01.22.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -502,6 +502,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     if( playerUrl ) {
         // toolkit output
         waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
+            logVar( "titleText toolkit", titleText );
             getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1 );
             jNode.addClass("mdb-processed-toolkit");
         });
@@ -511,7 +512,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
 // embed player
 waitForKeyElements(".request-summary img.artwork", function( jNode ) {
     var playerUrl = jNode.closest("a").attr("href"),
-        heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
+        heading = $(".MuiGrid-root h1"),
         titleText = normalizeTitleForSearch( heading.text() );
 
     logVar( "playerUrl (in artwork as given)", playerUrl );
