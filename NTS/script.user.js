@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NTS (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.09.17.1
+// @version      2026.01.22.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,60 +37,115 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements("ul.tracklist__tracks", function( jNode ) {
-        var tlE = jNode;
+/*
+    Because humans love repeating themselves, here’s your routine wrapped in a function,
+    then called from TWO waitForKeyElements hooks:
+    1) when timestamps exist (.track__timestamp)
+    2) when durations are NOT available (div.tracklist-promo)
 
-        log( "Tracklists found: " + tlE.length );
+    Both pass the same tlE selection into the function.
+*/
 
-        tlE.each(function(){
-            $(this).before( ta + '<br />' );
-            var tl = "",
-                li = $("li.track",this);
+/*
+    No drama, no observers, no voodoo.
+    Promo is loaded immediately, so we just CHECK for it once.
 
-            li.each(function(){
-                // Remove hidden duplicated artists
-                $(".track__artist--mobile", this).remove();
-                $(".track__artist", this).show();
+    Logic:
+    - Always wait for timestamps (async case)
+    - ALSO do a one-time length check for promo-based lists (no timestamps ever)
+*/
 
-                var artist = $(".track__artists",this).text()
-                              .replace(/\u00A0/g, ' ') // normalise all spaces to regular ASCII spaces
-                              .trim()
-                              // Fix versions behind artist names
-                              // "Pet Shop Boys (Ian Levine mix)" WTF
-                              // Only needs to match (artistname version), not (vocal) etc
-                              // https://www.nts.live/shows/rhythmsection/episodes/rhythmsection-7th-february-2024
-                              .replace( /^(.+) \(.+(?:mix|remix|version|edit|femix).*\)$/gi, "$1" )
-                              ;
+function ntsProcessTracklists(tlE){
+    log("Tracklists found: " + tlE.length);
 
-                var title = $(".track__title",this).text()
-                              .replace(/\u00A0/g, ' ') // normalise all spaces to regular ASCII spaces
-                              .trim();
+    tlE.each(function(){
+        $(this).before(ta + "<br />");
 
+        var tl_has_dur = 0,
+            tl = "",
+            li = $("li.track", this);
 
-                logVar( "artist", artist );
-                logVar( "title", title );
+        li.each(function(){
+            $(".track__artist--mobile", this).remove();
+            $(".track__artist", this).show();
 
-                tl += "# " + artist + " - " + title + "\n";
-            });
+            var artist = $(".track__artists", this).text()
+                .replace(/\u00A0/g, " ")
+                .trim()
+                .replace(/^(.+) \(.+(?:mix|remix|version|edit|femix).*\)$/gi, "$1");
 
-            // Fix multiple spaces
-            // FIXME: TLE API should handle this…
-            // https://www.nts.live/shows/rhythmsection/episodes/rhythmsection-7th-february-2024
-            tl = tl.replace( /\s{2,}/g, " ");
+            var dur = $(".track__timestamp", this).text().trim()
+                .replace("--:--", "");
 
-            log( tl );
+            var title = $(".track__title", this).text()
+                .replace(/\u00A0/g, " ")
+                .trim();
 
-            // API
-            if( tl ) {
-                var res = apiTracklist( tl, "standard" ),
+            logVar("dur", dur);
+            logVar("artist", artist);
+            logVar("title", title);
+
+            tl += "# ";
+
+            if(dur && dur != ""){
+                tl_has_dur = 1;
+                tl += "[" + dur + "] ";
+            }
+
+            tl += artist;
+
+            if(title && title != ""){
+                tl += " - " + title;
+            }
+
+            tl += "\n";
+        });
+
+        tl = tl.replace(/\s{2,}/g, " ");
+
+        log(tl);
+
+        if(tl){
+            if(tl_has_dur){
+                var res_dur = apiTracklist(tl, "durToMins"),
+                    tlApi_dur = res_dur.text;
+
+                var res = apiTracklist(tlApi_dur, "addDurBrackets"),
                     tlApi = res.text,
                     feedback = res.feedback;
-
-                if( tlApi ) {
-                    $("#tlEditor").addClass("fs75p").css("width","95%");
-                    $("#mixesdb-TLbox").val( tlApi );
-                    fixTLbox( res.feedback );
-                }
+            }else{
+                var res = apiTracklist(tl, "standard"),
+                    tlApi = res.text,
+                    feedback = res.feedback;
             }
-        });
+
+            if(tlApi){
+                $("#tlEditor").addClass("fs75p").css("width", "95%");
+                $("#mixesdb-TLbox").val(tlApi);
+                fixTLbox(res.feedback);
+            }
+        }
+    });
+
+    tlE.addClass("processed");
+}
+
+/*
+    1) ASYNC case: wait for timestamps
+*/
+waitForKeyElements("ul.tracklist__tracks .track__timestamp", function(jNode){
+    var tlE = jNode.closest("ul.tracklist__tracks:not(.processed)");
+    ntsProcessTracklists(tlE);
 });
+
+/*
+    2) SYNC case: promo exists immediately (no timestamps ever)
+*/
+(function(){
+    var tlE = $("ul.tracklist__tracks:not(.processed)").has("div.tracklist-promo:not(.hidden)");
+
+    if(tlE.length){
+        ntsProcessTracklists(tlE);
+    } else {
+    }
+})();
