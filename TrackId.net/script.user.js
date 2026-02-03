@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.22.1
+// @version      2026.02.03.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -122,8 +122,10 @@ String.prototype.removeMajorLabels = function() {
                    .replace( /(^|, )UNI\/MOTOWN( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Warner( [^\]]+)?$/gi, '' )
                    .replace( /(?:^|, )WM Germany(?: - )([^\]]+)?$/gi, '$1' )
+                   .replace( /^WM Sweden$/gi, '' )
                    // re-issues
                    .replace( /(^|, )(Azuli|Verve) (Back Catalog|Reissues)( [^\]]+)?$/gi, '$1$2' )
+                   .replace( /(^|, )(Altra Moda Music|RMD Entertainment|S&S Records)$/gi, '' )
                    // different Catalogs
                    .replace( /(^|, )(Clarence Avant|Onelove|PIAS) (Recordings )?Catalog(ue)?( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Recordings Catalogue( [^\]]+)?$/gi, '' ) // yes, "Recordings Catalogue"! https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-summer-beats-20090119
@@ -610,11 +612,12 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .removeDuplicateNames()
                        ,
             title  = thisTitle
+                       .replace(")[", ") [") // normalize ")[" in title for futther treatment (removal) https://trackid.net/audiostreams/subfader-subfreaquence-house-tech-house-20100208
                        .replace(/\s*-\s*(?:feat(?:\.|uring)?)\s+(.+?)(?=$|\s*\()/i, ' (featuring $1)') // Scared Of My Heart - featuring E.R. Thorpe (Andre Lodemann Remix) https://trackid.net/audiostreams/balance-selections-215-james-harcourt#google_vignette
                        .replace(/ \(\d+ - Remaster\)$/, "") // Foo (Nutt Mix - Remastered 2021)
                        .replace(/^(.+) [\(\[](.+) - (?:\d+ )?Remaster(?:ed|ing)?(?: \d+)?[\)\]]/g, "$1 ($2)") // All Night (I Can Do It Right) (2016 - Remaster) https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-20090216-mix-2 | Run before below stuff
                        .replace(/\s*[\(\[][^\(\[\)]*(Digital\s+Remaster|Mastering)[^\)\]]*[\)\]]/gi, "") // Title (2002 Digital Remaster / 24-Bit Mastering) https://trackid.net/audiostreams/dr-packer-live-in-ibiza-august-2025-hard-rock-hotel
-                       .replace(/^(.+) [\(\[]Remaster(ed|ing|is[ée])?( En)?(?:\s'?\d{2,4})?[\)\]]/gi, "$1") // (Remasterisé En 2002), also [Remaster] https://trackid.net/audiostreams/xmix3-1994-richie-hawtin-john-acquaviva-enter-the-digital-reality
+                       .replace(/^(.+) [\(\[]Re-?master(ed|ing|is[ée])?( En)?(?:\s'?\d{2,4})?[\)\]]/gi, "$1") // (Remasterisé En 2002), also [Remaster] https://trackid.net/audiostreams/xmix3-1994-richie-hawtin-john-acquaviva-enter-the-digital-reality
                        .replace(/(.+) - (.+ (?:Remix|Mix|Version))/g, "$1 ($2)")
                        .replace(/^\((.+)\)$/g, "$1") // avoid "[000] Inland [Systemscan]" https://trackid.net/audiostreams/shed-josey-rebelle-sven-von-thulen-txl-berlin-recordings-chapter-7-arte-concert
                        .replace(/^(.+)-\d{4,5}$/g, "$1") // numbers as suffix, e.g. "Track Title-24070" https://trackid.net/audiostreams/alex-kvitta-sonderspur-pod-011281213
