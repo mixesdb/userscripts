@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NTS (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.04.2
+// @version      2026.02.04.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -152,8 +152,14 @@ waitForKeyElements("ul.tracklist__tracks div.tracklist-promo:not(.hidden)", func
 
 // Case 3: No timestamps at all
 waitForKeyElements("ul.tracklist__tracks:not(.processed)", function(jNode){
-    if(!jNode.find(".track__timestamp").length && !jNode.find("div.tracklist-promo:not(.hidden)").length){
-        ntsProcessTracklists(jNode);
-        jNode.addClass("processed");
-    }
+    setTimeout(function(){
+        if(jNode.hasClass("processed")){
+            return;
+        }
+        if(!jNode.find(".track__timestamp").length && !jNode.find("div.tracklist-promo:not(.hidden)").length){
+            ntsProcessTracklists(jNode);
+            jNode.addClass("processed");
+        }
+    }, 1000);
 });
+
