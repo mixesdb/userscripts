@@ -33,42 +33,19 @@ div[contenteditable="plaintext-only"] {
 }
 
 /*
- * Menu
+ * Quick links
  */
-.mdb-menu-hl {
-	padding: 0;
-	margin: 20px 0 5px;
+.user-name {
+	display: none;
 }
-.mdb-menu a {
+.mdb-quickLinks a {
 	font-size: 1em !important;
-	color: #fff !important;
+	color: #ff;
 	text-decoration: none;
-}
 
-/* Slim menu */
-.MuiList-padding {
-    padding: 0;
-    margin: 0;
-    
-    & .MuiListItemIcon-root {
-        display: none;
-    }
-
-    & .MuiSvgIcon-fontSizeMedium {
-        margin: -10px 0;
-    }
-    
-    & .MuiListItemButton-gutters {
-        padding: 5px 0;
-        
-        & .MuiListItemText-secondary {
-            padding: 5px 10px;
-        }
-    }
-    
-    & span {
-        font-size: 13px;
-    }
+	& :hover {
+		color: #f60 !important;
+	}
 }
 
 .MuiDivider-root.MuiDivider-fullWidth {
