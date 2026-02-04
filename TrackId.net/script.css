@@ -40,7 +40,7 @@ div[contenteditable="plaintext-only"] {
 }
 .mdb-quickLinks a {
 	font-size: 1em !important;
-	color: #fff;
+	color: #fff !important;
 	text-decoration: none;
 
 	&:hover {
