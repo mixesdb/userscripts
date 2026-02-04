@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NTS (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.22.2
+// @version      2026.02.04.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -60,6 +60,8 @@ function ntsProcessTracklists(tlE){
             // Remove hidden duplicated artists
             $(".track__artist--mobile", this).remove();
             $(".track__artist", this).show();
+
+            log( $(this).text() );
 
             var artist = $(".track__artists", this).text()
                 .replace(/\u00A0/g, " ") // normalise all spaces to regular ASCII spaces
@@ -143,6 +145,21 @@ waitForKeyElements("ul.tracklist__tracks .track__timestamp", function(jNode){
 // Case 2: timestamps are NOT available (promo element exists)
 waitForKeyElements("ul.tracklist__tracks div.tracklist-promo:not(.hidden)", function(jNode){
     var tlE = jNode.closest("ul.tracklist__tracks:not(.processed)");
-    ntsProcessTracklists(tlE);
+    if(!tlE.find(".track__timestamp").length){
+        ntsProcessTracklists(tlE);
+    }
+});
+
+// Case 3: No timestamps at all
+waitForKeyElements("ul.tracklist__tracks:not(.processed)", function(jNode){
+    setTimeout(function(){
+        if(jNode.hasClass("processed")){
+            return;
+        }
+        if(!jNode.find(".track__timestamp").length && !jNode.find("div.tracklist-promo:not(.hidden)").length){
+            ntsProcessTracklists(jNode);
+            jNode.addClass("processed");
+        }
+    }, 1000);
 });
 
