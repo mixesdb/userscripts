@@ -42,7 +42,9 @@
 /* Highlight color (orange) */
 .mdb-highlight,
 .mdb-highlight a,
-.mdb-menu-hl {
+.mdb-menu-hl,
+a.mdb-highlight-hover:hover,
+.mdb-highlight-hover *:hover {
     color: #f90 !important;
 }
 .mdb-darkorange,
