@@ -38,14 +38,18 @@ div[contenteditable="plaintext-only"] {
 .user-name {
 	display: none;
 }
-.mdb-quickLinks a {
-	font-size: 1em !important;
-	color: #fff !important;
-	text-decoration: none;
+.mdb-quickLinks {
+    text-align: center;
 
-	&:hover {
-        cursor: pointer;
-	    text-decoration: underline;
+	& a {
+		font-size: 1em !important;
+		color: #fff !important;
+		text-decoration: none;
+
+		&:hover {
+	        cursor: pointer;
+		    text-decoration: underline;
+		}
 	}
 }
 
