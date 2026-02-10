@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.15
+// @version      2026.02.10.16
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -788,6 +788,19 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
 
     // Cycle: original -> format change -> both -> original
     var nextMode = (currentMode + 1) % 3;
+
+    var replaceOnAllTracklists = $tracklist.attr("data-mdb-replace-all-tracklists") === "1";
+    if (replaceOnAllTracklists) {
+        var $allTracklists = $("[data-mdb-replace-all-tracklists='1']");
+
+        $allTracklists.each(function () {
+            var $list = $(this);
+            $list.data("cueDisplayMode", nextMode);
+            applyTracklistCueMode($list, nextMode);
+        });
+        return;
+    }
+
     $tracklist.data("cueDisplayMode", nextMode);
 
     if ($tracklist.is(".list, ul, ol")) {
@@ -821,10 +834,18 @@ d.ready(function(){ // needed for mw.config
     logVar( "wgTitle", wgTitle );
     logVar( "wgPageName", wgPageName );
 
-    function processTracklists($tracklists) {
+    function processTracklists($tracklists, options) {
+        options = options || {};
+
         $tracklists.each(function () {
             var tracklist = $(this),
                 tracks = tracklist.find(".list-track");
+
+            if (options.replaceOnAllTracklists) {
+                tracklist.attr("data-mdb-replace-all-tracklists", "1");
+            } else {
+                tracklist.removeAttr("data-mdb-replace-all-tracklists");
+            }
 
             // Fallback for pages where tracklists are plain UL/OL without .list-track classes.
             if (!tracks.length && (tracklist.is("ul") || tracklist.is("ol"))) {
@@ -859,7 +880,9 @@ d.ready(function(){ // needed for mw.config
 
     function runCueSwitcherSection(section) {
         log("> Running on " + section.label);
-        processTracklists(section.getTracklists());
+        processTracklists(section.getTracklists(), {
+            replaceOnAllTracklists: !!section.replaceOnAllTracklists
+        });
     }
 
     function watchLightboxTracklists() {
@@ -872,6 +895,7 @@ d.ready(function(){ // needed for mw.config
     var runSections = [
         {
             label: "mix pages",
+            replaceOnAllTracklists: true,
             shouldRun: function () {
                 return wgNamespaceNumber === 0 && wgTitle !== "Main Page";
             },
@@ -886,6 +910,7 @@ d.ready(function(){ // needed for mw.config
         },
         {
             label: "Explorer/Mixes",
+            replaceOnAllTracklists: false,
             shouldRun: function () {
                 return wgNamespaceNumber === 4 && wgTitle === "Explorer/Mixes";
             },
