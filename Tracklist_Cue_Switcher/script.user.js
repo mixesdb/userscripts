@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.10
+// @version      2026.02.10.11
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -330,35 +330,43 @@ function minuteRangeToMM(minMinutes, maxMinutes, context, originalWidth) {
     return rangeToPattern(minMinutes, maxMinutes, width, forcePad);
 }
 
-function inferHourForZeroHundredsCue(nextCue) {
-    if (!nextCue) return null;
+function inferHourForZeroHundredsCue(nextCue, overNextCue) {
+    function inferFromCandidate(candidateCue) {
+        if (!candidateCue) return null;
 
-    var n = String(nextCue).trim();
+        var n = String(candidateCue).trim();
 
-    // If next cue is explicit 0XX in minutes-only format, keep current cue in hour 0 bucket.
-    if (/^0[0-9]{2}$/.test(n)) {
-        return 0;
+        // If cue is explicit 0XX in minutes-only format, keep current cue in hour 0 bucket.
+        if (/^0[0-9]{2}$/.test(n)) {
+            return 0;
+        }
+
+        var parsed = cueToMinuteRange(n);
+        if (!parsed || parsed.type === "INVALID") return null;
+
+        var minH = Math.floor(parsed.minMinutes / 60);
+        var maxH = Math.floor(parsed.maxMinutes / 60);
+
+        // Only infer when cue clearly sits in one hour bucket.
+        if (minH === maxH) return minH;
+
+        return null;
     }
 
-    var parsed = cueToMinuteRange(n);
-    if (!parsed || parsed.type === "INVALID") return null;
+    var inferred = inferFromCandidate(nextCue);
+    if (inferred != null) return inferred;
 
-    var minH = Math.floor(parsed.minMinutes / 60);
-    var maxH = Math.floor(parsed.maxMinutes / 60);
-
-    // Only infer when next cue clearly sits in one hour bucket.
-    if (minH === maxH) return minH;
-
-    return null;
+    // If next cue is still ambiguous, look one cue further.
+    return inferFromCandidate(overNextCue);
 }
 
-function toggleCue_MM_HMM_WithAssumptions(cue, nextCue) {
+function toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue) {
     var s = String(cue).trim();
 
     // Ambiguous minutes-only cue crossing 0..99 range.
     // Use the next cue to infer the intended hour when possible.
     if (/^0\?\?$/.test(s)) {
-        var inferredHour = inferHourForZeroHundredsCue(nextCue);
+        var inferredHour = inferHourForZeroHundredsCue(nextCue, overNextCue);
         if (inferredHour != null) {
             return String(inferredHour) + ":??";
         }
@@ -641,11 +649,11 @@ function enableCueToggleLinks($tracks) {
     });
 }
 
-function getAlternateCueFromOriginal(cue, nextCue) {
+function getAlternateCueFromOriginal(cue, nextCue, overNextCue) {
     var key = getCueFormatKey(cue);
 
     if (key === "NN" || key === "NNN") {
-        return toggleCue_MM_HMM_WithAssumptions(cue, nextCue);
+        return toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
     }
 
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -666,8 +674,9 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
             var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
             var idx = $all.index(linkEl);
             var nextCue = (idx >= 0 && idx + 1 < $all.length) ? getCueFromToggleText($($all[idx + 1]).text()) : null;
+            var overNextCue = (idx >= 0 && idx + 2 < $all.length) ? getCueFromToggleText($($all[idx + 2]).text()) : null;
 
-            switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue);
+            switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
         }
     } else if (targetFormat === "MM") {
         if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -704,10 +713,11 @@ function applyTracklistCueMode($tracklist, mode) {
         var $link = $(this);
         var originalCue = originalCues[idx] || String($link.data("originalCue") || "").trim();
         var nextCue = (idx + 1 < originalCues.length) ? originalCues[idx + 1] : null;
+        var overNextCue = (idx + 2 < originalCues.length) ? originalCues[idx + 2] : null;
 
         var alternateCue = $link.data("alternateCue");
         if (!alternateCue) {
-            alternateCue = getAlternateCueFromOriginal(originalCue, nextCue);
+            alternateCue = getAlternateCueFromOriginal(originalCue, nextCue, overNextCue);
             $link.data("alternateCue", alternateCue);
 
             var altKey = getCueFormatKey(alternateCue);
