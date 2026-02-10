@@ -355,6 +355,13 @@ function inferHourForZeroHundredsCue(prevCue, nextCue, overNextCue) {
         return null;
     }
 
+    if (prevStableHour != null && nextStableHour != null && prevStableHour === nextStableHour) {
+        return prevStableHour;
+    }
+
+    if (nextStableHour != null) return nextStableHour;
+    if (prevStableHour != null) return prevStableHour;
+
     var inferred = inferFromCandidate(nextCue);
     if (inferred != null) return inferred;
 
@@ -427,13 +434,25 @@ function inferStableHourFromCue(cue) {
     return null;
 }
 
-function inferUnknownNumericCueToHMM(cue, prevCue, nextCue) {
+function findNearestStableHour(cues, startIdx, step) {
+    if (!Array.isArray(cues)) return null;
+    if (step !== -1 && step !== 1) return null;
+
+    for (var i = startIdx; i >= 0 && i < cues.length; i += step) {
+        var hour = inferStableHourFromCue(cues[i]);
+        if (hour != null) return hour;
+    }
+
+    return null;
+}
+
+function inferUnknownNumericCueToHMM(cue, prevCue, nextCue, prevStableHour, nextStableHour) {
     var cueStr = String(cue || "").trim();
 
     if (!/^\?{2,3}$/.test(cueStr)) return null;
 
-    var prevHour = inferStableHourFromCue(prevCue);
-    var nextHour = inferStableHourFromCue(nextCue);
+    var prevHour = (prevStableHour != null) ? prevStableHour : inferStableHourFromCue(prevCue);
+    var nextHour = (nextStableHour != null) ? nextStableHour : inferStableHourFromCue(nextCue);
 
     if (prevHour != null && nextHour != null && prevHour === nextHour) {
         return String(prevHour) + ":??";
@@ -729,7 +748,7 @@ function enableCueToggleLinks($tracks) {
     });
 }
 
-function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
+function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue, prevStableHour, nextStableHour) {
     var key = getCueFormatKey(cue);
 
     if (key === "NN" || key === "NNN") {
@@ -737,7 +756,7 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
     }
 
     if (key === "??" || key === "???") {
-        return inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
+        return inferUnknownNumericCueToHMM(cue, prevCue, nextCue, prevStableHour, nextStableHour) || cue;
     }
 
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -821,12 +840,18 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
         if (key === "NN" || key === "NNN" || key === "??" || key === "???") {
             var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
             var idx = $all.index(linkEl);
-            var prevCue = (idx > 0) ? getCueFromToggleText($($all[idx - 1]).text()) : null;
-            var nextCue = (idx >= 0 && idx + 1 < $all.length) ? getCueFromToggleText($($all[idx + 1]).text()) : null;
-            var overNextCue = (idx >= 0 && idx + 2 < $all.length) ? getCueFromToggleText($($all[idx + 2]).text()) : null;
+            var cues = $all.map(function () {
+                return getCueFromToggleText($(this).text());
+            }).get();
+
+            var prevCue = (idx > 0) ? cues[idx - 1] : null;
+            var nextCue = (idx >= 0 && idx + 1 < cues.length) ? cues[idx + 1] : null;
+            var overNextCue = (idx >= 0 && idx + 2 < cues.length) ? cues[idx + 2] : null;
+            var prevStableHour = findNearestStableHour(cues, idx - 1, -1);
+            var nextStableHour = findNearestStableHour(cues, idx + 1, 1);
 
             if (key === "??" || key === "???") {
-                switchedCue = inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
+                switchedCue = inferUnknownNumericCueToHMM(cue, prevCue, nextCue, prevStableHour, nextStableHour) || cue;
             } else {
                 switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, prevCue, nextCue, overNextCue);
             }
@@ -870,9 +895,12 @@ function applyTracklistCueMode($tracklist, mode) {
         var nextCue = (idx + 1 < originalCues.length) ? originalCues[idx + 1] : null;
         var overNextCue = (idx + 2 < originalCues.length) ? originalCues[idx + 2] : null;
 
+        var prevStableHour = findNearestStableHour(originalCues, idx - 1, -1);
+        var nextStableHour = findNearestStableHour(originalCues, idx + 1, 1);
+
         var alternateCue = $link.data("alternateCue");
         if (!alternateCue) {
-            alternateCue = getAlternateCueFromOriginal(originalCue, prevCue, nextCue, overNextCue);
+            alternateCue = getAlternateCueFromOriginal(originalCue, prevCue, nextCue, overNextCue, prevStableHour, nextStableHour);
             $link.data("alternateCue", alternateCue);
 
             var altKey = getCueFormatKey(alternateCue);
