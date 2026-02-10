@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.13
+// @version      2026.02.10.14
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -821,21 +821,8 @@ d.ready(function(){ // needed for mw.config
     logVar( "wgTitle", wgTitle );
     logVar( "wgPageName", wgPageName );
 
-    /*
-     * On mix pages
-     */
-    if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
-        log( "> Running on mix pages" );
-
-        // has tracklist?
-        // any .list between div.mw-heading > h2#Tracklist and div#bodyBottom
-        // Select all .list elements between h2#Tracklist and #bodyBottom
-        var tracklists = $("h2#Tracklist")
-            .closest(".mw-heading")
-            .nextUntil("#bodyBottom", ".list, ul, ol");
-
-        // Each tracklist
-        tracklists.each(function () {
+    function processTracklists($tracklists) {
+        $tracklists.each(function () {
             var tracklist = $(this),
                 tracks = tracklist.find(".list-track");
 
@@ -870,46 +857,40 @@ d.ready(function(){ // needed for mw.config
         });
     }
 
-    /*
-     * On MixesDB:Explorer/Mixes
-     */
-    if( wgNamespaceNumber==4 && wgTitle=="Explorer/Mixes" ) {
-        log( "> Running on Explorer/Mixes" );
-
-        var tracklists = $(".ExplorerTracklist .list, ul, ol");
-
-        tracklists.each(function () {
-            var tracklist = $(this),
-                tracks = tracklist.find(".list-track");
-
-            // Fallback for pages where tracklists are plain UL/OL without .list-track classes.
-            if (!tracks.length && (tracklist.is("ul") || tracklist.is("ol"))) {
-                tracks = tracklist.children("li");
-            }
-
-            // Check if the tracklist is consistent
-            var result = checkTracklistCueConsistency(tracks, {
-                ignorePureUnknown: true, // ignore "??" and "???" if you want
-                ignoreInvalid: false
-            });
-
-            var tracklist_consistent = (result.uniqueKeys.length <= 1 && result.invalidTracks.length === 0);
-
-            //logVar("tracklist_formats_found", result.uniqueKeys);
-            logVar("tracklist_consistent", tracklist_consistent);
-
-            // Each track
-            tracks.each(function () {
-                var trackText = $(this).text().trim();
-                var cue = getTrackCue(this);
-                var key = getCueFormatKey(cue);
-
-                logVar("track", trackText);
-                log("> cue: " + cue + " / format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
-            });
-
-            // Always make cues clickable where detectable.
-            enableCueToggleLinks(tracks);
-        });
+    function runCueSwitcherSection(section) {
+        log("> Running on " + section.label);
+        processTracklists(section.getTracklists());
     }
+
+    var runSections = [
+        {
+            label: "mix pages",
+            shouldRun: function () {
+                return wgNamespaceNumber === 0 && wgTitle !== "Main Page";
+            },
+            getTracklists: function () {
+                // has tracklist?
+                // any .list between div.mw-heading > h2#Tracklist and div#bodyBottom
+                // Select all .list elements between h2#Tracklist and #bodyBottom
+                return $("h2#Tracklist")
+                    .closest(".mw-heading")
+                    .nextUntil("#bodyBottom", ".list, ul, ol");
+            }
+        },
+        {
+            label: "Explorer/Mixes",
+            shouldRun: function () {
+                return wgNamespaceNumber === 4 && wgTitle === "Explorer/Mixes";
+            },
+            getTracklists: function () {
+                return $(".ExplorerTracklist .list, ul, ol");
+            }
+        }
+    ];
+
+    $.each(runSections, function (_, section) {
+        if (section.shouldRun()) {
+            runCueSwitcherSection(section);
+        }
+    });
 });
