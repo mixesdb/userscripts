@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.17
+// @version      2026.02.10.18
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -733,6 +733,9 @@ function applyStoredPreferredFormat($tracklist) {
     $links.each(function () {
         toggleLinkToTargetFormat(this, preferredFormat);
     });
+
+    // Keep mode in sync with the rendered cues so first click advances to "both".
+    $tracklist.data("cueDisplayMode", 1);
 }
 
 function toggleLinkToTargetFormat(linkEl, targetFormat) {
@@ -835,29 +838,17 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
     // Cycle: original -> format change -> both -> original
     var nextMode = (currentMode + 1) % 3;
 
-    var replaceOnAllTracklists = $tracklist.attr("data-mdb-replace-all-tracklists") === "1";
-    if (replaceOnAllTracklists) {
-        var $allTracklists = $("[data-mdb-replace-all-tracklists='1']");
-
-        $allTracklists.each(function () {
-            var $list = $(this);
-            $list.data("cueDisplayMode", nextMode);
-            applyTracklistCueMode($list, nextMode);
-            if (nextMode === 1) rememberTracklistPreferredFormat($list);
-        });
-        return;
+    var $allTracklists = $("[data-mdb-cue-tracklist='1']");
+    if (!$allTracklists.length) {
+        $allTracklists = $tracklist;
     }
 
-    $tracklist.data("cueDisplayMode", nextMode);
-
-    if ($tracklist.is(".list, ul, ol")) {
-        applyTracklistCueMode($tracklist, nextMode);
-        if (nextMode === 1) rememberTracklistPreferredFormat($tracklist);
-        return;
-    }
-
-    applyTracklistCueMode($tracklist, nextMode);
-    if (nextMode === 1) rememberTracklistPreferredFormat($tracklist);
+    $allTracklists.each(function () {
+        var $list = $(this);
+        $list.data("cueDisplayMode", nextMode);
+        applyTracklistCueMode($list, nextMode);
+        if (nextMode === 1) rememberTracklistPreferredFormat($list);
+    });
 });
 
 
@@ -883,18 +874,12 @@ d.ready(function(){ // needed for mw.config
     logVar( "wgTitle", wgTitle );
     logVar( "wgPageName", wgPageName );
 
-    function processTracklists($tracklists, options) {
-        options = options || {};
-
+    function processTracklists($tracklists) {
         $tracklists.each(function () {
             var tracklist = $(this),
                 tracks = tracklist.find(".list-track");
 
-            if (options.replaceOnAllTracklists) {
-                tracklist.attr("data-mdb-replace-all-tracklists", "1");
-            } else {
-                tracklist.removeAttr("data-mdb-replace-all-tracklists");
-            }
+            tracklist.attr("data-mdb-cue-tracklist", "1");
 
             // Fallback for pages where tracklists are plain UL/OL without .list-track classes.
             if (!tracks.length && (tracklist.is("ul") || tracklist.is("ol"))) {
@@ -930,9 +915,7 @@ d.ready(function(){ // needed for mw.config
 
     function runCueSwitcherSection(section) {
         log("> Running on " + section.label);
-        processTracklists(section.getTracklists(), {
-            replaceOnAllTracklists: !!section.replaceOnAllTracklists
-        });
+        processTracklists(section.getTracklists());
     }
 
     function watchLightboxTracklists() {
@@ -945,7 +928,6 @@ d.ready(function(){ // needed for mw.config
     var runSections = [
         {
             label: "mix pages",
-            replaceOnAllTracklists: true,
             shouldRun: function () {
                 return wgNamespaceNumber === 0 && wgTitle !== "Main Page";
             },
@@ -960,7 +942,6 @@ d.ready(function(){ // needed for mw.config
         },
         {
             label: "Explorer/Mixes",
-            replaceOnAllTracklists: false,
             shouldRun: function () {
                 return wgNamespaceNumber === 4 && wgTitle === "Explorer/Mixes";
             },
