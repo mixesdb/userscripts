@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.25
+// @version      2026.02.10.26
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -712,6 +712,7 @@ function wrapCueWithToggleLink(trackEl) {
     var link = document.createElement("a");
     link.className = "mdbCueToggle";
     link.href = "#";
+    link.style.cssText = "color: inherit !important; text-decoration: none;"; // avoid flashing (CSS file sometimes fires after elements are created)
     link.textContent = "[" + m[2] + "]";
     link.dataset.originalCue = m[2];
     link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? m[2] : "";
