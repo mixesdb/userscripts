@@ -543,8 +543,7 @@ function switchTrackCueFormatInDom(el) {
  * - Uses event delegation so it works with dynamic content
  *
  * Requires:
- * - switchTrackCueFormatInDom(el)      // your working DOM toggler
- * - toggleCue_MM_HMM(cue)             // already in your script
+ * - toggleCue_MM_HMM(cue)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -690,6 +689,9 @@ d.ready(function(){ // needed for mw.config
                     // Write back only the leading visible text, keep the span and everything else intact
                     enableCueToggleLinks(tracks);
                 });
+
+                // Make cues clickable once per tracklist.
+                enableCueToggleLinks(tracks);
             } // if tracklist_consistent
         });
     }
