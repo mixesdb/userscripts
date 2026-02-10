@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.3
+// @version      2026.02.10.4
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -507,6 +507,11 @@ function wrapCueWithToggleLink(trackEl) {
     var m = val.match(/^(\s*\[\s*)([0-9\?:]+)(\s*\][\s\S]*)$/);
     if (!m) return false;
 
+    var cueKey = getCueFormatKey(m[2]);
+    if (!["NN", "NNN", "N:NN", "N:NN:NN"].includes(cueKey)) {
+        return false;
+    }
+
     // If already wrapped, don't wrap again
     // We detect by checking if the next sibling already is the link we would insert.
     var next = textNode.nextSibling;
@@ -524,6 +529,7 @@ function wrapCueWithToggleLink(trackEl) {
     link.className = "mdbCueToggle";
     link.href = "#";
     link.textContent = m[2];
+    link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? m[2] : "";
 
     // Dotted underline, only on the cue value
     link.style.textDecoration = "underline";
@@ -549,18 +555,55 @@ function enableCueToggleLinks($tracks) {
     });
 }
 
-// Event delegation: click on cue toggles the format for that track
+function toggleLinkToTargetFormat(linkEl, targetFormat) {
+    var $link = $(linkEl);
+    var cue = $link.text();
+    var key = getCueFormatKey(cue);
+    var switchedCue = cue;
+
+    if (targetFormat === "HMM") {
+        if (key === "NN" || key === "NNN") {
+            switchedCue = toggleCue_MM_HMM(cue);
+        }
+    } else if (targetFormat === "MM") {
+        if (key === "N:NN" || key === "N:NN:NN") {
+            switchedCue = $link.data("lastMmCue") || toggleCue_MM_HMM(cue);
+        }
+    }
+
+    if (!switchedCue || switchedCue === cue) return;
+
+    var newKey = getCueFormatKey(switchedCue);
+    if (newKey === "NN" || newKey === "NNN") {
+        $link.data("lastMmCue", switchedCue);
+    }
+
+    $link.text(switchedCue);
+}
+
+// Event delegation: click on one cue toggles all cues in the tracklist
 $(document).on("click", "a.mdbCueToggle", function (e) {
     e.preventDefault();
     e.stopPropagation();
 
     var $link = $(this);
     var cue = $link.text();
-    var switchedCue = toggleCue_MM_HMM(cue);
-    if (!switchedCue || switchedCue === cue) return;
+    var key = getCueFormatKey(cue);
+    var targetFormat = null;
 
-    // Keep the link in place so it can switch back on next click.
-    $link.text(switchedCue);
+    if (key === "NN" || key === "NNN") targetFormat = "HMM";
+    if (key === "N:NN" || key === "N:NN:NN") targetFormat = "MM";
+    if (!targetFormat) return;
+
+    var $tracklist = $link.closest(".list");
+    if (!$tracklist.length) {
+        toggleLinkToTargetFormat(this, targetFormat);
+        return;
+    }
+
+    $tracklist.find("a.mdbCueToggle").each(function () {
+        toggleLinkToTargetFormat(this, targetFormat);
+    });
 });
 
 
