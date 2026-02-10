@@ -24,7 +24,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 1,
+var cacheVersion = 2,
     scriptName = "Tracklist_Cue_Switcher";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
