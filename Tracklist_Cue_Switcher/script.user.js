@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.22
+// @version      2026.02.10.23
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -364,6 +364,17 @@ function inferHourForZeroHundredsCue(nextCue, overNextCue) {
 
 function toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue) {
     var s = String(cue).trim();
+
+    // Ambiguous X?? cue may span multiple hours (e.g. 1?? -> 100..199).
+    // If following cue makes the hour obvious, keep the leading hour.
+    if (/^[0-9]\?\?$/.test(s)) {
+        var leadingHour = parseInt(s.charAt(0), 10);
+        var inferredLeadingHour = inferHourForZeroHundredsCue(nextCue, overNextCue);
+
+        if (inferredLeadingHour != null && inferredLeadingHour === leadingHour) {
+            return String(leadingHour) + ":??";
+        }
+    }
 
     // Ambiguous minutes-only cue crossing 0..99 range.
     // Use the next cue to infer the intended hour when possible.
