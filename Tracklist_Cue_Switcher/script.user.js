@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.6
+// @version      2026.02.10.7
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -340,6 +340,18 @@ function minuteRangeToMM(minMinutes, maxMinutes, context, originalWidth) {
 function toggleCue_MM_HMM(cue) {
     var s = String(cue).trim();
     if (!s) return s;
+
+    // Disambiguate MM:SS cues first.
+    //
+    // "58:10" should toggle to "58" (minutes-only), not "0:58".
+    // Handling this branch before generic range parsing avoids accidental
+    // interpretation as a minutes-only cue in callers that pre-process text.
+    if (/^[0-9\?]{2}:[0-9\?]{2}$/.test(s)) {
+        var mmss = cueToMinuteRange(s);
+        if (mmss.type === "MMSS") {
+            return minuteRangeToMM(mmss.minMinutes, mmss.maxMinutes, "FROM_HMM", null);
+        }
+    }
 
     var r = cueToMinuteRange(s);
 
