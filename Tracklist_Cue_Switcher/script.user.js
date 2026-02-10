@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.18
+// @version      2026.02.10.19
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -709,11 +709,23 @@ function getTargetFormatFromCue(cue) {
     return null;
 }
 
-function rememberTracklistPreferredFormat($tracklist) {
+function rememberTracklistPreferredFormatForMode($tracklist, mode) {
     var selectedFormat = null;
 
     $tracklist.find("a.mdbCueToggle").each(function () {
-        var cue = getCueFromToggleText($(this).text());
+        var $link = $(this);
+        var originalCue = String($link.data("originalCue") || getCueFromToggleText($link.text()) || "").trim();
+        var alternateCue = String($link.data("alternateCue") || "").trim();
+        var cue = null;
+
+        if (mode === 0) {
+            cue = originalCue;
+        } else if (mode === 1) {
+            cue = alternateCue || originalCue;
+        }
+
+        if (!cue) return;
+
         selectedFormat = getTargetFormatFromCue(cue);
         if (selectedFormat) return false;
     });
@@ -847,7 +859,7 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
         var $list = $(this);
         $list.data("cueDisplayMode", nextMode);
         applyTracklistCueMode($list, nextMode);
-        if (nextMode === 1) rememberTracklistPreferredFormat($list);
+        rememberTracklistPreferredFormatForMode($list, nextMode);
     });
 });
 
