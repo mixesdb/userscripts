@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.16
+// @version      2026.02.10.20
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -26,6 +26,8 @@
 
 var cacheVersion = 2,
     scriptName = "Tracklist_Cue_Switcher";
+
+var cuePreferredFormatStorageKey = "mdb_tracklistCueSwitcherPreferredFormat";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -689,6 +691,70 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
     return cue;
 }
 
+function getStoredPreferredCueFormat() {
+    var value = String(localStorage.getItem(cuePreferredFormatStorageKey) || "").trim();
+    if (value === "MM" || value === "HMM") return value;
+    return null;
+}
+
+function storePreferredCueFormat(format) {
+    if (format !== "MM" && format !== "HMM") return;
+    localStorage.setItem(cuePreferredFormatStorageKey, format);
+}
+
+function getTargetFormatFromCue(cue) {
+    var key = getCueFormatKey(cue);
+    if (key === "NN" || key === "NNN" || key === "???") return "MM";
+    if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") return "HMM";
+    return null;
+}
+
+function rememberTracklistPreferredFormatForMode($tracklist, mode) {
+    var selectedFormat = null;
+
+    $tracklist.find("a.mdbCueToggle").each(function () {
+        var $link = $(this);
+        var originalCue = String($link.data("originalCue") || getCueFromToggleText($link.text()) || "").trim();
+        var alternateCue = String($link.data("alternateCue") || "").trim();
+        var cue = null;
+
+        if (mode === 0) {
+            cue = originalCue;
+        } else if (mode === 1) {
+            cue = alternateCue || originalCue;
+        }
+
+        if (!cue) return;
+
+        selectedFormat = getTargetFormatFromCue(cue);
+        if (selectedFormat) return false;
+    });
+
+    if (selectedFormat) {
+        storePreferredCueFormat(selectedFormat);
+    }
+}
+
+function applyStoredPreferredFormat($tracklist) {
+    var preferredFormat = getStoredPreferredCueFormat();
+    if (!preferredFormat) return;
+
+    var $links = $tracklist.find("a.mdbCueToggle");
+    if (!$links.length) return;
+
+    var changedAny = false;
+
+    $links.each(function () {
+        if (toggleLinkToTargetFormat(this, preferredFormat)) {
+            changedAny = true;
+        }
+    });
+
+    // Keep mode in sync with rendered cues.
+    // If no cue was changed, the tracklist is still in original mode.
+    $tracklist.data("cueDisplayMode", changedAny ? 1 : 0);
+}
+
 function toggleLinkToTargetFormat(linkEl, targetFormat) {
     var $link = $(linkEl);
     var cue = getCueFromToggleText($link.text());
@@ -715,7 +781,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
         }
     }
 
-    if (!switchedCue || switchedCue === cue) return;
+    if (!switchedCue || switchedCue === cue) return false;
 
     var newKey = getCueFormatKey(switchedCue);
     if (newKey === "NN" || newKey === "NNN") {
@@ -723,6 +789,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
     }
 
     $link.text("[" + switchedCue + "]");
+    return true;
 }
 
 function applyTracklistCueMode($tracklist, mode) {
@@ -789,26 +856,17 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
     // Cycle: original -> format change -> both -> original
     var nextMode = (currentMode + 1) % 3;
 
-    var replaceOnAllTracklists = $tracklist.attr("data-mdb-replace-all-tracklists") === "1";
-    if (replaceOnAllTracklists) {
-        var $allTracklists = $("[data-mdb-replace-all-tracklists='1']");
-
-        $allTracklists.each(function () {
-            var $list = $(this);
-            $list.data("cueDisplayMode", nextMode);
-            applyTracklistCueMode($list, nextMode);
-        });
-        return;
+    var $allTracklists = $("[data-mdb-cue-tracklist='1']");
+    if (!$allTracklists.length) {
+        $allTracklists = $tracklist;
     }
 
-    $tracklist.data("cueDisplayMode", nextMode);
-
-    if ($tracklist.is(".list, ul, ol")) {
-        applyTracklistCueMode($tracklist, nextMode);
-        return;
-    }
-
-    applyTracklistCueMode($tracklist, nextMode);
+    $allTracklists.each(function () {
+        var $list = $(this);
+        $list.data("cueDisplayMode", nextMode);
+        applyTracklistCueMode($list, nextMode);
+        rememberTracklistPreferredFormatForMode($list, nextMode);
+    });
 });
 
 
@@ -834,18 +892,12 @@ d.ready(function(){ // needed for mw.config
     logVar( "wgTitle", wgTitle );
     logVar( "wgPageName", wgPageName );
 
-    function processTracklists($tracklists, options) {
-        options = options || {};
-
+    function processTracklists($tracklists) {
         $tracklists.each(function () {
             var tracklist = $(this),
                 tracks = tracklist.find(".list-track");
 
-            if (options.replaceOnAllTracklists) {
-                tracklist.attr("data-mdb-replace-all-tracklists", "1");
-            } else {
-                tracklist.removeAttr("data-mdb-replace-all-tracklists");
-            }
+            tracklist.attr("data-mdb-cue-tracklist", "1");
 
             // Fallback for pages where tracklists are plain UL/OL without .list-track classes.
             if (!tracks.length && (tracklist.is("ul") || tracklist.is("ol"))) {
@@ -875,14 +927,13 @@ d.ready(function(){ // needed for mw.config
 
             // Always make cues clickable where detectable.
             enableCueToggleLinks(tracks);
+            applyStoredPreferredFormat(tracklist);
         });
     }
 
     function runCueSwitcherSection(section) {
         log("> Running on " + section.label);
-        processTracklists(section.getTracklists(), {
-            replaceOnAllTracklists: !!section.replaceOnAllTracklists
-        });
+        processTracklists(section.getTracklists());
     }
 
     function watchLightboxTracklists() {
@@ -895,7 +946,6 @@ d.ready(function(){ // needed for mw.config
     var runSections = [
         {
             label: "mix pages",
-            replaceOnAllTracklists: true,
             shouldRun: function () {
                 return wgNamespaceNumber === 0 && wgTitle !== "Main Page";
             },
@@ -910,7 +960,6 @@ d.ready(function(){ // needed for mw.config
         },
         {
             label: "Explorer/Mixes",
-            replaceOnAllTracklists: false,
             shouldRun: function () {
                 return wgNamespaceNumber === 4 && wgTitle === "Explorer/Mixes";
             },
