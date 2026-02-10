@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.4
+// @version      2026.02.10.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -595,7 +595,7 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
     if (key === "N:NN" || key === "N:NN:NN") targetFormat = "MM";
     if (!targetFormat) return;
 
-    var $tracklist = $link.closest(".list");
+    var $tracklist = $link.closest(".list, ul, ol");
     if (!$tracklist.length) {
         toggleLinkToTargetFormat(this, targetFormat);
         return;
@@ -634,12 +634,17 @@ d.ready(function(){ // needed for mw.config
         // Select all .list elements between h2#Tracklist and #bodyBottom
         var tracklists = $("h2#Tracklist")
             .closest(".mw-heading")
-            .nextUntil("#bodyBottom", ".list");
+            .nextUntil("#bodyBottom", ".list, ul, ol");
 
         // Each tracklist
         tracklists.each(function () {
             var tracklist = $(this),
-                tracks = $(".list-track", tracklist);
+                tracks = tracklist.find(".list-track");
+
+            // Fallback for pages where tracklists are plain UL/OL without .list-track classes.
+            if (!tracks.length && (tracklist.is("ul") || tracklist.is("ol"))) {
+                tracks = tracklist.children("li");
+            }
 
             // Check if the tracklist is consistent
             var result = checkTracklistCueConsistency(tracks, {
