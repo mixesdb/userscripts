@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.21
+// @version      2026.02.10.22
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -399,10 +399,38 @@ function inferUnknownThreeDigitCueToHMM(prevCue, nextCue) {
     return minuteRangeToHMM(minMinutes, maxMinutes);
 }
 
+function inferStableHourFromCue(cue) {
+    if (!cue) return null;
+
+    var parsed = cueToMinuteRange(cue);
+    if (!parsed || parsed.type === "INVALID") return null;
+
+    var minH = Math.floor(parsed.minMinutes / 60);
+    var maxH = Math.floor(parsed.maxMinutes / 60);
+
+    if (minH === maxH) return minH;
+    return null;
+}
+
 function inferUnknownNumericCueToHMM(cue, prevCue, nextCue) {
     var cueStr = String(cue || "").trim();
 
     if (!/^\?{2,3}$/.test(cueStr)) return null;
+
+    var prevHour = inferStableHourFromCue(prevCue);
+    var nextHour = inferStableHourFromCue(nextCue);
+
+    if (prevHour != null && nextHour != null && prevHour === nextHour) {
+        return String(prevHour) + ":??";
+    }
+
+    if (nextHour != null) {
+        return String(nextHour) + ":??";
+    }
+
+    if (prevHour != null) {
+        return String(prevHour) + ":??";
+    }
 
     if (prevCue && nextCue) {
         var inferred = inferUnknownThreeDigitCueToHMM(prevCue, nextCue);
