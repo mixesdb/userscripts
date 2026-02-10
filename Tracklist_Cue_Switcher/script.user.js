@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.16
+// @version      2026.02.10.17
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -26,6 +26,8 @@
 
 var cacheVersion = 2,
     scriptName = "Tracklist_Cue_Switcher";
+
+var cuePreferredFormatStorageKey = "mdb_tracklistCueSwitcherPreferredFormat";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -689,6 +691,50 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
     return cue;
 }
 
+function getStoredPreferredCueFormat() {
+    var value = String(localStorage.getItem(cuePreferredFormatStorageKey) || "").trim();
+    if (value === "MM" || value === "HMM") return value;
+    return null;
+}
+
+function storePreferredCueFormat(format) {
+    if (format !== "MM" && format !== "HMM") return;
+    localStorage.setItem(cuePreferredFormatStorageKey, format);
+}
+
+function getTargetFormatFromCue(cue) {
+    var key = getCueFormatKey(cue);
+    if (key === "NN" || key === "NNN" || key === "???") return "MM";
+    if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") return "HMM";
+    return null;
+}
+
+function rememberTracklistPreferredFormat($tracklist) {
+    var selectedFormat = null;
+
+    $tracklist.find("a.mdbCueToggle").each(function () {
+        var cue = getCueFromToggleText($(this).text());
+        selectedFormat = getTargetFormatFromCue(cue);
+        if (selectedFormat) return false;
+    });
+
+    if (selectedFormat) {
+        storePreferredCueFormat(selectedFormat);
+    }
+}
+
+function applyStoredPreferredFormat($tracklist) {
+    var preferredFormat = getStoredPreferredCueFormat();
+    if (!preferredFormat) return;
+
+    var $links = $tracklist.find("a.mdbCueToggle");
+    if (!$links.length) return;
+
+    $links.each(function () {
+        toggleLinkToTargetFormat(this, preferredFormat);
+    });
+}
+
 function toggleLinkToTargetFormat(linkEl, targetFormat) {
     var $link = $(linkEl);
     var cue = getCueFromToggleText($link.text());
@@ -797,6 +843,7 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
             var $list = $(this);
             $list.data("cueDisplayMode", nextMode);
             applyTracklistCueMode($list, nextMode);
+            if (nextMode === 1) rememberTracklistPreferredFormat($list);
         });
         return;
     }
@@ -805,10 +852,12 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
 
     if ($tracklist.is(".list, ul, ol")) {
         applyTracklistCueMode($tracklist, nextMode);
+        if (nextMode === 1) rememberTracklistPreferredFormat($tracklist);
         return;
     }
 
     applyTracklistCueMode($tracklist, nextMode);
+    if (nextMode === 1) rememberTracklistPreferredFormat($tracklist);
 });
 
 
@@ -875,6 +924,7 @@ d.ready(function(){ // needed for mw.config
 
             // Always make cues clickable where detectable.
             enableCueToggleLinks(tracks);
+            applyStoredPreferredFormat(tracklist);
         });
     }
 
