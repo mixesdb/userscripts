@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.23
+// @version      2026.02.10.24
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -332,7 +332,7 @@ function minuteRangeToMM(minMinutes, maxMinutes, context, originalWidth) {
     return rangeToPattern(minMinutes, maxMinutes, width, forcePad);
 }
 
-function inferHourForZeroHundredsCue(nextCue, overNextCue) {
+function inferHourForZeroHundredsCue(prevCue, nextCue, overNextCue) {
     function inferFromCandidate(candidateCue) {
         if (!candidateCue) return null;
 
@@ -358,18 +358,22 @@ function inferHourForZeroHundredsCue(nextCue, overNextCue) {
     var inferred = inferFromCandidate(nextCue);
     if (inferred != null) return inferred;
 
+    // If next cue is ambiguous/missing, fall back to previous stable cue.
+    inferred = inferFromCandidate(prevCue);
+    if (inferred != null) return inferred;
+
     // If next cue is still ambiguous, look one cue further.
     return inferFromCandidate(overNextCue);
 }
 
-function toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue) {
+function toggleCue_MM_HMM_WithAssumptions(cue, prevCue, nextCue, overNextCue) {
     var s = String(cue).trim();
 
     // Ambiguous X?? cue may span multiple hours (e.g. 1?? -> 100..199).
     // If following cue makes the hour obvious, keep the leading hour.
     if (/^[0-9]\?\?$/.test(s)) {
         var leadingHour = parseInt(s.charAt(0), 10);
-        var inferredLeadingHour = inferHourForZeroHundredsCue(nextCue, overNextCue);
+        var inferredLeadingHour = inferHourForZeroHundredsCue(prevCue, nextCue, overNextCue);
 
         if (inferredLeadingHour != null && inferredLeadingHour === leadingHour) {
             return String(leadingHour) + ":??";
@@ -379,7 +383,7 @@ function toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue) {
     // Ambiguous minutes-only cue crossing 0..99 range.
     // Use the next cue to infer the intended hour when possible.
     if (/^0\?\?$/.test(s)) {
-        var inferredHour = inferHourForZeroHundredsCue(nextCue, overNextCue);
+        var inferredHour = inferHourForZeroHundredsCue(prevCue, nextCue, overNextCue);
         if (inferredHour != null) {
             return String(inferredHour) + ":??";
         }
@@ -729,7 +733,7 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
     var key = getCueFormatKey(cue);
 
     if (key === "NN" || key === "NNN") {
-        return toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
+        return toggleCue_MM_HMM_WithAssumptions(cue, prevCue, nextCue, overNextCue);
     }
 
     if (key === "??" || key === "???") {
@@ -824,7 +828,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
             if (key === "??" || key === "???") {
                 switchedCue = inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
             } else {
-                switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
+                switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, prevCue, nextCue, overNextCue);
             }
         }
     } else if (targetFormat === "MM") {
