@@ -1,7 +1,11 @@
 .mdbCueToggle {
     color: inherit;
-    text-decoration: underline dotted;
-    text-decoration-color: #aaa !important;
+    text-decoration: underline;
+    text-decoration-color: #ccc !important;
     text-underline-offset: 2px;
     cursor: pointer;
+    
+    &:active {
+        color: #f60;
+    }
 }
