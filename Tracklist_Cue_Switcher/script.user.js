@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.9
+// @version      2026.02.10.10
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -559,8 +559,8 @@ function getFirstDirectTextNode(el) {
  *
  * Clickable cue toggles
  *
- * - Wraps only the cue value inside "[...]" with an <a> element:
- *   [<a class="mdbCueToggle">000</a>]
+ * - Wraps the full bracketed cue with an <a> element:
+ *   <a class="mdbCueToggle">[000]</a>
  * - Adds dotted underline via inline styles (or you can move to CSS)
  * - Click toggles the cue format for that single track item
  * - Uses event delegation so it works with dynamic content
@@ -578,10 +578,10 @@ function wrapCueWithToggleLink(trackEl) {
 
     // Match leading: optional whitespace, "[", cue, "]"
     // Capture:
-    // 1) leading whitespace + "["
+    // 1) leading whitespace
     // 2) cue
-    // 3) "]" and whatever after (keep)
-    var m = val.match(/^(\s*\[\s*)([0-9\?:]+)(\s*\][\s\S]*)$/);
+    // 3) whatever after closing bracket (keep)
+    var m = val.match(/^(\s*)\[\s*([0-9\?:]+)\s*\]([\s\S]*)$/);
     if (!m) return false;
 
     var cueKey = getCueFormatKey(m[2]);
@@ -597,15 +597,15 @@ function wrapCueWithToggleLink(trackEl) {
     }
 
     // Replace the text node with:
-    // text node: "["
-    // link node: "cue"
-    // text node: "] ..."
+    // text node: optional leading whitespace
+    // link node: "[cue]"
+    // text node: remainder
     var before = document.createTextNode(m[1]);
 
     var link = document.createElement("a");
     link.className = "mdbCueToggle";
     link.href = "#";
-    link.textContent = m[2];
+    link.textContent = "[" + m[2] + "]";
     link.dataset.originalCue = m[2];
     link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? m[2] : "";
 
@@ -618,6 +618,20 @@ function wrapCueWithToggleLink(trackEl) {
     parent.removeChild(textNode);
 
     return true;
+}
+
+function getCueFromToggleText(value) {
+    var s = String(value || "").trim();
+
+    // Single cue: [000]
+    var one = s.match(/^\[\s*([0-9\?:]+)\s*\]$/);
+    if (one) return one[1];
+
+    // Dual cue display: [000] [0:00]
+    var two = s.match(/^\[\s*([0-9\?:]+)\s*\]\s*\[\s*([0-9\?:]+)\s*\]$/);
+    if (two) return two[1];
+
+    return s;
 }
 
 // Add wrapping to a set of tracks
@@ -643,7 +657,7 @@ function getAlternateCueFromOriginal(cue, nextCue) {
 
 function toggleLinkToTargetFormat(linkEl, targetFormat) {
     var $link = $(linkEl);
-    var cue = $link.text();
+    var cue = getCueFromToggleText($link.text());
     var key = getCueFormatKey(cue);
     var switchedCue = cue;
 
@@ -651,7 +665,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
         if (key === "NN" || key === "NNN") {
             var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
             var idx = $all.index(linkEl);
-            var nextCue = (idx >= 0 && idx + 1 < $all.length) ? $($all[idx + 1]).text() : null;
+            var nextCue = (idx >= 0 && idx + 1 < $all.length) ? getCueFromToggleText($($all[idx + 1]).text()) : null;
 
             switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue);
         }
@@ -668,7 +682,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
         $link.data("lastMmCue", switchedCue);
     }
 
-    $link.text(switchedCue);
+    $link.text("[" + switchedCue + "]");
 }
 
 function applyTracklistCueMode($tracklist, mode) {
@@ -678,7 +692,7 @@ function applyTracklistCueMode($tracklist, mode) {
     $links.each(function () {
         var $link = $(this);
         if (!$link.data("originalCue")) {
-            $link.data("originalCue", $link.text());
+            $link.data("originalCue", getCueFromToggleText($link.text()));
         }
     });
 
@@ -703,14 +717,14 @@ function applyTracklistCueMode($tracklist, mode) {
         }
 
         if (mode === 0) {
-            $link.text(originalCue);
+            $link.text("[" + originalCue + "]");
         } else if (mode === 1) {
-            $link.text(alternateCue || originalCue);
+            $link.text("[" + (alternateCue || originalCue) + "]");
         } else if (mode === 2) {
             if (alternateCue && alternateCue !== originalCue) {
-                $link.text(originalCue + "] [" + alternateCue);
+                $link.text("[" + originalCue + "] [" + alternateCue + "]");
             } else {
-                $link.text(originalCue);
+                $link.text("[" + originalCue + "]");
             }
         }
     });
