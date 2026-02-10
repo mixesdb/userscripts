@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.20
+// @version      2026.02.10.23
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -365,6 +365,17 @@ function inferHourForZeroHundredsCue(nextCue, overNextCue) {
 function toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue) {
     var s = String(cue).trim();
 
+    // Ambiguous X?? cue may span multiple hours (e.g. 1?? -> 100..199).
+    // If following cue makes the hour obvious, keep the leading hour.
+    if (/^[0-9]\?\?$/.test(s)) {
+        var leadingHour = parseInt(s.charAt(0), 10);
+        var inferredLeadingHour = inferHourForZeroHundredsCue(nextCue, overNextCue);
+
+        if (inferredLeadingHour != null && inferredLeadingHour === leadingHour) {
+            return String(leadingHour) + ":??";
+        }
+    }
+
     // Ambiguous minutes-only cue crossing 0..99 range.
     // Use the next cue to infer the intended hour when possible.
     if (/^0\?\?$/.test(s)) {
@@ -397,6 +408,47 @@ function inferUnknownThreeDigitCueToHMM(prevCue, nextCue) {
     }
 
     return minuteRangeToHMM(minMinutes, maxMinutes);
+}
+
+function inferStableHourFromCue(cue) {
+    if (!cue) return null;
+
+    var parsed = cueToMinuteRange(cue);
+    if (!parsed || parsed.type === "INVALID") return null;
+
+    var minH = Math.floor(parsed.minMinutes / 60);
+    var maxH = Math.floor(parsed.maxMinutes / 60);
+
+    if (minH === maxH) return minH;
+    return null;
+}
+
+function inferUnknownNumericCueToHMM(cue, prevCue, nextCue) {
+    var cueStr = String(cue || "").trim();
+
+    if (!/^\?{2,3}$/.test(cueStr)) return null;
+
+    var prevHour = inferStableHourFromCue(prevCue);
+    var nextHour = inferStableHourFromCue(nextCue);
+
+    if (prevHour != null && nextHour != null && prevHour === nextHour) {
+        return String(prevHour) + ":??";
+    }
+
+    if (nextHour != null) {
+        return String(nextHour) + ":??";
+    }
+
+    if (prevHour != null) {
+        return String(prevHour) + ":??";
+    }
+
+    if (prevCue && nextCue) {
+        var inferred = inferUnknownThreeDigitCueToHMM(prevCue, nextCue);
+        if (inferred) return inferred;
+    }
+
+    return toggleCue_MM_HMM(cueStr);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -617,7 +669,7 @@ function wrapCueWithToggleLink(trackEl) {
     if (!m) return false;
 
     var cueKey = getCueFormatKey(m[2]);
-    if (!["NN", "NNN", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
+    if (!["NN", "NNN", "??", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
         return false;
     }
 
@@ -680,8 +732,8 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
         return toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
     }
 
-    if (key === "???") {
-        return inferUnknownThreeDigitCueToHMM(prevCue, nextCue) || cue;
+    if (key === "??" || key === "???") {
+        return inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
     }
 
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -704,7 +756,7 @@ function storePreferredCueFormat(format) {
 
 function getTargetFormatFromCue(cue) {
     var key = getCueFormatKey(cue);
-    if (key === "NN" || key === "NNN" || key === "???") return "MM";
+    if (key === "NN" || key === "NNN" || key === "??" || key === "???") return "MM";
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") return "HMM";
     return null;
 }
@@ -762,15 +814,15 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
     var switchedCue = cue;
 
     if (targetFormat === "HMM") {
-        if (key === "NN" || key === "NNN" || key === "???") {
+        if (key === "NN" || key === "NNN" || key === "??" || key === "???") {
             var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
             var idx = $all.index(linkEl);
             var prevCue = (idx > 0) ? getCueFromToggleText($($all[idx - 1]).text()) : null;
             var nextCue = (idx >= 0 && idx + 1 < $all.length) ? getCueFromToggleText($($all[idx + 1]).text()) : null;
             var overNextCue = (idx >= 0 && idx + 2 < $all.length) ? getCueFromToggleText($($all[idx + 2]).text()) : null;
 
-            if (key === "???") {
-                switchedCue = inferUnknownThreeDigitCueToHMM(prevCue, nextCue) || cue;
+            if (key === "??" || key === "???") {
+                switchedCue = inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
             } else {
                 switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
             }
