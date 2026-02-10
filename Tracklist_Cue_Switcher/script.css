@@ -1,0 +1,11 @@
+.mdbCueToggle {
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none !important;
+    
+    &:hover,
+    &:active {
+        color: #f60;
+        text-decoration: none !important;
+    }
+}
