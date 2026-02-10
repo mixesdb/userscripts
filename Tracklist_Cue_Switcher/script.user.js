@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.14
+// @version      2026.02.10.15
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -862,6 +862,13 @@ d.ready(function(){ // needed for mw.config
         processTracklists(section.getTracklists());
     }
 
+    function watchLightboxTracklists() {
+        waitForKeyElements("#lightbox .list, #lightbox ul, #lightbox ol", function (jNode) {
+            log("> Running on lightbox");
+            processTracklists(jNode);
+        });
+    }
+
     var runSections = [
         {
             label: "mix pages",
@@ -893,4 +900,6 @@ d.ready(function(){ // needed for mw.config
             runCueSwitcherSection(section);
         }
     });
+
+    watchLightboxTracklists();
 });
