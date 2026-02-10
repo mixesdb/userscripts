@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.20
+// @version      2026.02.10.21
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -399,6 +399,19 @@ function inferUnknownThreeDigitCueToHMM(prevCue, nextCue) {
     return minuteRangeToHMM(minMinutes, maxMinutes);
 }
 
+function inferUnknownNumericCueToHMM(cue, prevCue, nextCue) {
+    var cueStr = String(cue || "").trim();
+
+    if (!/^\?{2,3}$/.test(cueStr)) return null;
+
+    if (prevCue && nextCue) {
+        var inferred = inferUnknownThreeDigitCueToHMM(prevCue, nextCue);
+        if (inferred) return inferred;
+    }
+
+    return toggleCue_MM_HMM(cueStr);
+}
+
 // ─────────────────────────────────────────────────────────────
 // Public: toggle between minutes-only (MM*) and h:mm
 // - If input is MM* -> output h:mm
@@ -617,7 +630,7 @@ function wrapCueWithToggleLink(trackEl) {
     if (!m) return false;
 
     var cueKey = getCueFormatKey(m[2]);
-    if (!["NN", "NNN", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
+    if (!["NN", "NNN", "??", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
         return false;
     }
 
@@ -680,8 +693,8 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
         return toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
     }
 
-    if (key === "???") {
-        return inferUnknownThreeDigitCueToHMM(prevCue, nextCue) || cue;
+    if (key === "??" || key === "???") {
+        return inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
     }
 
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -704,7 +717,7 @@ function storePreferredCueFormat(format) {
 
 function getTargetFormatFromCue(cue) {
     var key = getCueFormatKey(cue);
-    if (key === "NN" || key === "NNN" || key === "???") return "MM";
+    if (key === "NN" || key === "NNN" || key === "??" || key === "???") return "MM";
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") return "HMM";
     return null;
 }
@@ -762,15 +775,15 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
     var switchedCue = cue;
 
     if (targetFormat === "HMM") {
-        if (key === "NN" || key === "NNN" || key === "???") {
+        if (key === "NN" || key === "NNN" || key === "??" || key === "???") {
             var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
             var idx = $all.index(linkEl);
             var prevCue = (idx > 0) ? getCueFromToggleText($($all[idx - 1]).text()) : null;
             var nextCue = (idx >= 0 && idx + 1 < $all.length) ? getCueFromToggleText($($all[idx + 1]).text()) : null;
             var overNextCue = (idx >= 0 && idx + 2 < $all.length) ? getCueFromToggleText($($all[idx + 2]).text()) : null;
 
-            if (key === "???") {
-                switchedCue = inferUnknownThreeDigitCueToHMM(prevCue, nextCue) || cue;
+            if (key === "??" || key === "???") {
+                switchedCue = inferUnknownNumericCueToHMM(cue, prevCue, nextCue) || cue;
             } else {
                 switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
             }
