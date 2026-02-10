@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.1
+// @version      2026.02.10.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -24,7 +24,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 7,
+var cacheVersion = 1,
     scriptName = "Tracklist_Cue_Switcher";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -344,122 +344,122 @@ function toggleCue_MM_HMM(cue) {
 
 // getCue(track)
 function getCue(track) {
-	if (track == null) return null;
+    if (track == null) return null;
 
-	var s = String(track).trim();
-	if (!s) return null;
+    var s = String(track).trim();
+    if (!s) return null;
 
-	var m = s.match(/^\[\s*([0-9\?:]+)\s*\]/);
-	if (!m) return null;
+    var m = s.match(/^\[\s*([0-9\?:]+)\s*\]/);
+    if (!m) return null;
 
-	return m[1];
+    return m[1];
 }
 
 function getTrackCue(trackEl) {
-	var textNode = getFirstDirectTextNode(trackEl);
-	if (textNode && textNode.nodeValue != null) {
-		var cue = getCue(textNode.nodeValue);
-		if (cue != null) return cue;
-	}
+    var textNode = getFirstDirectTextNode(trackEl);
+    if (textNode && textNode.nodeValue != null) {
+        var cue = getCue(textNode.nodeValue);
+        if (cue != null) return cue;
+    }
 
-	// Fallback: full text can still contain a cue when DOM differs.
-	return getCue($(trackEl).text());
+    // Fallback: full text can still contain a cue when DOM differs.
+    return getCue($(trackEl).text());
 }
 
 // getCueFormatKey
 function getCueFormatKey(cueOrTrackText) {
-	var cue = getCue(cueOrTrackText) || String(cueOrTrackText || "").trim();
-	if (!cue) return null;
+    var cue = getCue(cueOrTrackText) || String(cueOrTrackText || "").trim();
+    if (!cue) return null;
 
-	// Allowed cue patterns (anchored to full cue)
-	// Note: We classify by returning explicit keys, not raw cue strings,
-	// so "03" and "99" both become "NN".
-	//
-	// Unknowns:
-	// - "??" / "???" / "0??" / "03?" / "1?" etc
-	// - "?:??" / "??:??" / "0:??:??" / "??:??:??" etc
+    // Allowed cue patterns (anchored to full cue)
+    // Note: We classify by returning explicit keys, not raw cue strings,
+    // so "03" and "99" both become "NN".
+    //
+    // Unknowns:
+    // - "??" / "???" / "0??" / "03?" / "1?" etc
+    // - "?:??" / "??:??" / "0:??:??" / "??:??:??" etc
 
-	// 3-part timecode: NN:NN:NN OR N:NN:NN, with ? allowed in positions
-	// First part: either 1 digit or 2 digits or 1/? or 2/?s combos.
-	// We'll keep it simple and explicit via separate regexes and keys.
+    // 3-part timecode: NN:NN:NN OR N:NN:NN, with ? allowed in positions
+    // First part: either 1 digit or 2 digits or 1/? or 2/?s combos.
+    // We'll keep it simple and explicit via separate regexes and keys.
 
-	// Pure unknown fixed-width numeric
-	if (/^\?{2}$/.test(cue)) return "??";
-	if (/^\?{3}$/.test(cue)) return "???";
+    // Pure unknown fixed-width numeric
+    if (/^\?{2}$/.test(cue)) return "??";
+    if (/^\?{3}$/.test(cue)) return "???";
 
-	// Numeric with unknowns (2 or 3 chars, digits and ?)
-	// Examples: "1?", "03?", "0??", "??", "???"
-	if (/^[0-9\?]{2}$/.test(cue)) return "NN";   // bucket for 2-char numeric/unknown
-	if (/^[0-9\?]{3}$/.test(cue)) return "NNN";  // bucket for 3-char numeric/unknown
+    // Numeric with unknowns (2 or 3 chars, digits and ?)
+    // Examples: "1?", "03?", "0??", "??", "???"
+    if (/^[0-9\?]{2}$/.test(cue)) return "NN";   // bucket for 2-char numeric/unknown
+    if (/^[0-9\?]{3}$/.test(cue)) return "NNN";  // bucket for 3-char numeric/unknown
 
-	// Timecode 2-part: N:NN or NN:NN, allow ? in each field
-	// Examples: "3:45", "?:??", "0?:??", "??:??"
-	// We'll bucket into "N:NN" vs "NN:NN" based on left field width
-	if (/^[0-9\?]{1}:[0-9\?]{2}$/.test(cue)) return "N:NN";
-	if (/^[0-9\?]{2}:[0-9\?]{2}$/.test(cue)) return "NN:NN";
+    // Timecode 2-part: N:NN or NN:NN, allow ? in each field
+    // Examples: "3:45", "?:??", "0?:??", "??:??"
+    // We'll bucket into "N:NN" vs "NN:NN" based on left field width
+    if (/^[0-9\?]{1}:[0-9\?]{2}$/.test(cue)) return "N:NN";
+    if (/^[0-9\?]{2}:[0-9\?]{2}$/.test(cue)) return "NN:NN";
 
-	// Timecode 3-part: N:NN:NN or NN:NN:NN, allow ? in each field
-	// Examples: "1:02:33", "0:??:??", "??:??:??", "12:34:56"
-	if (/^[0-9\?]{1}:[0-9\?]{2}:[0-9\?]{2}$/.test(cue)) return "N:NN:NN";
-	if (/^[0-9\?]{2}:[0-9\?]{2}:[0-9\?]{2}$/.test(cue)) return "NN:NN:NN";
+    // Timecode 3-part: N:NN:NN or NN:NN:NN, allow ? in each field
+    // Examples: "1:02:33", "0:??:??", "??:??:??", "12:34:56"
+    if (/^[0-9\?]{1}:[0-9\?]{2}:[0-9\?]{2}$/.test(cue)) return "N:NN:NN";
+    if (/^[0-9\?]{2}:[0-9\?]{2}:[0-9\?]{2}$/.test(cue)) return "NN:NN:NN";
 
-	// If you want to allow other weirdness, add it above.
-	return "INVALID";
+    // If you want to allow other weirdness, add it above.
+    return "INVALID";
 }
 
 // checkTracklistCueConsistency
 function checkTracklistCueConsistency(tracks, opts) {
-	opts = opts || {};
-	var ignorePureUnknown = !!opts.ignorePureUnknown; // if true, ignore "??" and "???"
-	var ignoreInvalid = !!opts.ignoreInvalid;         // if true, don't fail on INVALID (not recommended)
+    opts = opts || {};
+    var ignorePureUnknown = !!opts.ignorePureUnknown; // if true, ignore "??" and "???"
+    var ignoreInvalid = !!opts.ignoreInvalid;         // if true, don't fail on INVALID (not recommended)
 
-	var seen = {};
-	var invalid = [];
-	var missing = [];
-	var keys = [];
+    var seen = {};
+    var invalid = [];
+    var missing = [];
+    var keys = [];
 
-	tracks.each(function () {
-		var cue = getTrackCue(this);
-		var key = getCueFormatKey(cue);
-		var track = $(this).text().trim();
+    tracks.each(function () {
+        var cue = getTrackCue(this);
+        var key = getCueFormatKey(cue);
+        var track = $(this).text().trim();
 
-		if (key === null) {
-			missing.push(track);
-			return;
-		}
+        if (key === null) {
+            missing.push(track);
+            return;
+        }
 
-		if (key === "INVALID") {
-			invalid.push(track);
-			if (!ignoreInvalid) {
-				seen[key] = true;
-			}
-			return;
-		}
+        if (key === "INVALID") {
+            invalid.push(track);
+            if (!ignoreInvalid) {
+                seen[key] = true;
+            }
+            return;
+        }
 
-		if (ignorePureUnknown && (key === "??" || key === "???")) {
-			return;
-		}
+        if (ignorePureUnknown && (key === "??" || key === "???")) {
+            return;
+        }
 
-		seen[key] = true;
-		keys.push(key);
-	});
+        seen[key] = true;
+        keys.push(key);
+    });
 
-	var uniqueKeys = Object.keys(seen).filter(function (k) { return seen[k]; });
+    var uniqueKeys = Object.keys(seen).filter(function (k) { return seen[k]; });
 
-	return {
-		ok: uniqueKeys.length <= 1 && invalid.length === 0 && (!ignoreInvalid),
-		uniqueKeys: uniqueKeys, // formats found (after ignoring rules)
-		invalidTracks: invalid, // tracks with bad cues
-		missingCueTracks: missing, // tracks without leading [cue]
-		sampleKey: uniqueKeys[0] || null
-	};
+    return {
+        ok: uniqueKeys.length <= 1 && invalid.length === 0 && (!ignoreInvalid),
+        uniqueKeys: uniqueKeys, // formats found (after ignoring rules)
+        invalidTracks: invalid, // tracks with bad cues
+        missingCueTracks: missing, // tracks without leading [cue]
+        sampleKey: uniqueKeys[0] || null
+    };
 }
 
 function getFirstDirectTextNode(el) {
-	var $nodes = $(el).contents().filter(function () {
-		return this.nodeType === Node.TEXT_NODE && this.nodeValue != null;
-	});
-	return $nodes.length ? $nodes[0] : null;
+    var $nodes = $(el).contents().filter(function () {
+        return this.nodeType === Node.TEXT_NODE && this.nodeValue != null;
+    });
+    return $nodes.length ? $nodes[0] : null;
 }
 
 
@@ -478,73 +478,6 @@ function getFirstDirectTextNode(el) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// Extract cue from a raw text node value (NO trim that would eat the space!)
-function getCueFromTextNodeValue(textValue) {
-	if (textValue == null) return null;
-	var s = String(textValue);
-
-	// Leading cue only
-	var m = s.match(/^\s*\[([0-9\?:]+)\]/);
-	if (!m) return null;
-
-	return m[1];
-}
-
-// Replace ONLY the cue prefix in the leading text node and force exactly one space after "]".
-// We deliberately ignore whatever whitespace was there before, because it keeps betraying you.
-function setCuePrefixForceSpace(el, newCue) {
-	if (!el) return false;
-
-	if (newCue == null) return false;
-	newCue = String(newCue).trim();
-	if (!newCue) return false;
-
-	var textNode = getFirstDirectTextNode(el);
-	if (!textNode) return false;
-
-	var val = String(textNode.nodeValue || "");
-
-	// Must start with a bracket cue (allow leading whitespace)
-	var m = val.match(/^(\s*)\[[^\]]+\](?:\s*)([\s\S]*)$/);
-	if (!m) return false;
-
-	// Keep any text that was in the SAME text node after the cue (rare, but possible)
-	// Strip leading whitespace because we will inject exactly one space.
-	var rest = (m[2] || "").replace(/^\s+/, "");
-
-	// Deterministic prefix: "[newCue] " + rest
-	textNode.nodeValue = "[" + newCue + "] " + rest;
-
-	// If the next sibling is an element and the browser decides to be “helpful”,
-	// inserting a standalone whitespace node makes it unambiguous.
-	var next = textNode.nextSibling;
-	if (next && next.nodeType === Node.ELEMENT_NODE) {
-		// Ensure there is an explicit whitespace text node between prefix and element
-		// ONLY if the current text node does not already end with whitespace (it does).
-		// This is belt + suspenders: it prevents DOM normalization surprises.
-		if (!/\s$/.test(textNode.nodeValue)) {
-			textNode.parentNode.insertBefore(document.createTextNode(" "), next);
-		}
-	}
-
-	return true;
-}
-
-// Switch cue for a track element in-place.
-function switchTrackCueFormatInDom(el) {
-	var textNode = getFirstDirectTextNode(el);
-	if (!textNode) return false;
-
-	var cue = getCueFromTextNodeValue(textNode.nodeValue);
-	if (cue == null) return false;
-
-	var switchedCue = toggleCue_MM_HMM(cue);
-	if (!switchedCue) return false;
-
-	return setCuePrefixForceSpace(el, switchedCue);
-}
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Clickable cue toggles
@@ -561,75 +494,73 @@ function switchTrackCueFormatInDom(el) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 function wrapCueWithToggleLink(trackEl) {
-	var textNode = getFirstDirectTextNode(trackEl);
-	if (!textNode) return false;
+    var textNode = getFirstDirectTextNode(trackEl);
+    if (!textNode) return false;
 
-	var val = String(textNode.nodeValue || "");
+    var val = String(textNode.nodeValue || "");
 
-	// Match leading: optional whitespace, "[", cue, "]"
-	// Capture:
-	// 1) leading whitespace + "["
-	// 2) cue
-	// 3) "]" and whatever after (keep)
-	var m = val.match(/^(\s*\[\s*)([0-9\?:]+)(\s*\][\s\S]*)$/);
-	if (!m) return false;
+    // Match leading: optional whitespace, "[", cue, "]"
+    // Capture:
+    // 1) leading whitespace + "["
+    // 2) cue
+    // 3) "]" and whatever after (keep)
+    var m = val.match(/^(\s*\[\s*)([0-9\?:]+)(\s*\][\s\S]*)$/);
+    if (!m) return false;
 
-	// If already wrapped, don't wrap again
-	// We detect by checking if the next sibling already is the link we would insert.
-	var next = textNode.nextSibling;
-	if (next && next.nodeType === Node.ELEMENT_NODE && $(next).hasClass("mdbCueToggle")) {
-		return false;
-	}
+    // If already wrapped, don't wrap again
+    // We detect by checking if the next sibling already is the link we would insert.
+    var next = textNode.nextSibling;
+    if (next && next.nodeType === Node.ELEMENT_NODE && $(next).hasClass("mdbCueToggle")) {
+        return false;
+    }
 
-	// Replace the text node with:
-	// text node: "["
-	// link node: "cue"
-	// text node: "] ..."
-	var before = document.createTextNode(m[1]);
+    // Replace the text node with:
+    // text node: "["
+    // link node: "cue"
+    // text node: "] ..."
+    var before = document.createTextNode(m[1]);
 
-	var link = document.createElement("a");
-	link.className = "mdbCueToggle";
-	link.href = "#";
-	link.textContent = m[2];
+    var link = document.createElement("a");
+    link.className = "mdbCueToggle";
+    link.href = "#";
+    link.textContent = m[2];
 
-	// Dotted underline, only on the cue value
-	link.style.textDecoration = "underline";
-	link.style.textDecorationStyle = "dotted";
-	link.style.textUnderlineOffset = "2px";
-	link.style.cursor = "pointer";
+    // Dotted underline, only on the cue value
+    link.style.textDecoration = "underline";
+    link.style.textDecorationStyle = "dotted";
+    link.style.textUnderlineOffset = "2px";
+    link.style.cursor = "pointer";
 
-	var after = document.createTextNode(m[3]);
+    var after = document.createTextNode(m[3]);
 
-	var parent = textNode.parentNode;
-	parent.insertBefore(before, textNode);
-	parent.insertBefore(link, textNode);
-	parent.insertBefore(after, textNode);
-	parent.removeChild(textNode);
+    var parent = textNode.parentNode;
+    parent.insertBefore(before, textNode);
+    parent.insertBefore(link, textNode);
+    parent.insertBefore(after, textNode);
+    parent.removeChild(textNode);
 
-	return true;
+    return true;
 }
 
 // Add wrapping to a set of tracks
 function enableCueToggleLinks($tracks) {
-	$tracks.each(function () {
-		wrapCueWithToggleLink(this);
-	});
+    $tracks.each(function () {
+        wrapCueWithToggleLink(this);
+    });
 }
 
 // Event delegation: click on cue toggles the format for that track
 $(document).on("click", "a.mdbCueToggle", function (e) {
-	e.preventDefault();
-	e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
 
-	var trackEl = $(this).closest(".list-track, li")[0];
-	if (!trackEl) return;
+    var $link = $(this);
+    var cue = $link.text();
+    var switchedCue = toggleCue_MM_HMM(cue);
+    if (!switchedCue || switchedCue === cue) return;
 
-	// Toggle cue format in DOM (your working function)
-	switchTrackCueFormatInDom(trackEl);
-
-	// Rebuild this one cue link to reflect updated text in the leading text node.
-	$(this).replaceWith(document.createTextNode($(this).text()));
-	wrapCueWithToggleLink(trackEl);
+    // Keep the link in place so it can switch back on next click.
+    $link.text(switchedCue);
 });
 
 
@@ -641,17 +572,17 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
 d.ready(function(){ // needed for mw.config
 
     // Prepare variables to check if we're on a mix page etc.
-    var actionView =  $("body").hasClass("action-view") ? true : false,
-        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
-        wgTitle = mw.config.get("wgTitle"),
-        wgPageName = mw.config.get("wgPageName");
-
+    var wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+        wgTitle = mw.config.get("wgTitle");
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      *
      * Tracklist cue format switcher
      *
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    logVar( "wgNamespaceNumber", wgNamespaceNumber );
+    logVar( "wgTitle", wgTitle );
+
     if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) { // on mix pages
         logFunc( "Tracklist cue switcher" );
 
@@ -687,26 +618,18 @@ d.ready(function(){ // needed for mw.config
                 result.missingCueTracks.forEach(function (t) { log(t); });
             }
 
-            if( tracklist_consistent ) {
-                // Each track
-                tracks.each(function () {
-                    // Visible track string (your processing input)
-                    var trackText = $(this).clone().children().remove().end().text().trim();
+            // Each track
+            tracks.each(function () {
+                var trackText = $(this).text().trim();
+                var cue = getTrackCue(this);
+                var key = getCueFormatKey(cue);
 
-                    var cue = getCue(trackText);
-                    var key = getCueFormatKey(trackText);
+                logVar("track", trackText);
+                log("> cue format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
+            });
 
-                    logVar("track", trackText);
-                    log("> cue format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
-
-                    // Write back only the leading visible text, keep the span and everything else intact
-                    enableCueToggleLinks(tracks);
-                });
-
-                // Make cues clickable once per tracklist.
-                enableCueToggleLinks(tracks);
-            } // if tracklist_consistent
+            // Always make cues clickable where detectable.
+            enableCueToggleLinks(tracks);
         });
     }
-
 });
