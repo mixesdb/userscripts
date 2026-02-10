@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.12
+// @version      2026.02.10.13
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Cue_Switcher_1
-// @match        https://www.mixesdb.com/*
+// @match        https://www.mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @grant        unsafeWindow
@@ -800,26 +800,32 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
 
 
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ *
+ * Run
+ *
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/*
- * If MixesDB page ready
- */
 d.ready(function(){ // needed for mw.config
+    logFunc( "Tracklist cue switcher" );
 
     // Prepare variables to check if we're on a mix page etc.
-    var wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
-        wgTitle = mw.config.get("wgTitle");
+    var actionView =  $("body").hasClass("action-view") ? true : false,
+        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+        wgTitle = mw.config.get("wgTitle"),
+        wgPageName = mw.config.get("wgPageName");
 
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-     *
-     * Tracklist cue format switcher
-     *
-     * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     logVar( "wgNamespaceNumber", wgNamespaceNumber );
     logVar( "wgTitle", wgTitle );
+    logVar( "wgPageName", wgPageName );
 
-    if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) { // on mix pages
-        logFunc( "Tracklist cue switcher" );
+    /*
+     * On mix pages
+     */
+    if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
+        log( "> Running on mix pages" );
 
         // has tracklist?
         // any .list between div.mw-heading > h2#Tracklist and div#bodyBottom
@@ -846,17 +852,51 @@ d.ready(function(){ // needed for mw.config
 
             var tracklist_consistent = (result.uniqueKeys.length <= 1 && result.invalidTracks.length === 0);
 
-            logVar("tracklist_formats_found", result.uniqueKeys);
+            //logVar("tracklist_formats_found", result.uniqueKeys);
             logVar("tracklist_consistent", tracklist_consistent);
 
-            if (result.invalidTracks.length) {
-                log("INVALID CUE TRACKS:");
-                result.invalidTracks.forEach(function (t) { log(t); });
+            // Each track
+            tracks.each(function () {
+                var trackText = $(this).text().trim();
+                var cue = getTrackCue(this);
+                var key = getCueFormatKey(cue);
+
+                logVar("track", trackText);
+                log("> cue: " + cue + " / format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
+            });
+
+            // Always make cues clickable where detectable.
+            enableCueToggleLinks(tracks);
+        });
+    }
+
+    /*
+     * On MixesDB:Explorer/Mixes
+     */
+    if( wgNamespaceNumber==4 && wgTitle=="Explorer/Mixes" ) {
+        log( "> Running on Explorer/Mixes" );
+
+        var tracklists = $(".ExplorerTracklist .list, ul, ol");
+
+        tracklists.each(function () {
+            var tracklist = $(this),
+                tracks = tracklist.find(".list-track");
+
+            // Fallback for pages where tracklists are plain UL/OL without .list-track classes.
+            if (!tracks.length && (tracklist.is("ul") || tracklist.is("ol"))) {
+                tracks = tracklist.children("li");
             }
-            if (result.missingCueTracks.length) {
-                log("MISSING CUE TRACKS:");
-                result.missingCueTracks.forEach(function (t) { log(t); });
-            }
+
+            // Check if the tracklist is consistent
+            var result = checkTracklistCueConsistency(tracks, {
+                ignorePureUnknown: true, // ignore "??" and "???" if you want
+                ignoreInvalid: false
+            });
+
+            var tracklist_consistent = (result.uniqueKeys.length <= 1 && result.invalidTracks.length === 0);
+
+            //logVar("tracklist_formats_found", result.uniqueKeys);
+            logVar("tracklist_consistent", tracklist_consistent);
 
             // Each track
             tracks.each(function () {
