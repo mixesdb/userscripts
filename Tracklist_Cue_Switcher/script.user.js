@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.8
+// @version      2026.02.10.9
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -606,6 +606,7 @@ function wrapCueWithToggleLink(trackEl) {
     link.className = "mdbCueToggle";
     link.href = "#";
     link.textContent = m[2];
+    link.dataset.originalCue = m[2];
     link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? m[2] : "";
 
     var after = document.createTextNode(m[3]);
@@ -624,6 +625,20 @@ function enableCueToggleLinks($tracks) {
     $tracks.each(function () {
         wrapCueWithToggleLink(this);
     });
+}
+
+function getAlternateCueFromOriginal(cue, nextCue) {
+    var key = getCueFormatKey(cue);
+
+    if (key === "NN" || key === "NNN") {
+        return toggleCue_MM_HMM_WithAssumptions(cue, nextCue);
+    }
+
+    if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
+        return toggleCue_MM_HMM(cue);
+    }
+
+    return cue;
 }
 
 function toggleLinkToTargetFormat(linkEl, targetFormat) {
@@ -656,29 +671,75 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
     $link.text(switchedCue);
 }
 
-// Event delegation: click on one cue toggles all cues in the tracklist
+function applyTracklistCueMode($tracklist, mode) {
+    var $links = $tracklist.find("a.mdbCueToggle");
+    if (!$links.length) return;
+
+    $links.each(function () {
+        var $link = $(this);
+        if (!$link.data("originalCue")) {
+            $link.data("originalCue", $link.text());
+        }
+    });
+
+    var originalCues = $links.map(function () {
+        return String($(this).data("originalCue") || "").trim();
+    }).get();
+
+    $links.each(function (idx) {
+        var $link = $(this);
+        var originalCue = originalCues[idx] || String($link.data("originalCue") || "").trim();
+        var nextCue = (idx + 1 < originalCues.length) ? originalCues[idx + 1] : null;
+
+        var alternateCue = $link.data("alternateCue");
+        if (!alternateCue) {
+            alternateCue = getAlternateCueFromOriginal(originalCue, nextCue);
+            $link.data("alternateCue", alternateCue);
+
+            var altKey = getCueFormatKey(alternateCue);
+            if (altKey === "NN" || altKey === "NNN") {
+                $link.data("lastMmCue", alternateCue);
+            }
+        }
+
+        if (mode === 0) {
+            $link.text(originalCue);
+        } else if (mode === 1) {
+            $link.text(alternateCue || originalCue);
+        } else if (mode === 2) {
+            if (alternateCue && alternateCue !== originalCue) {
+                $link.text(originalCue + "] [" + alternateCue);
+            } else {
+                $link.text(originalCue);
+            }
+        }
+    });
+}
+
+// Event delegation: click on one cue cycles all cues in the tracklist
 $(document).on("click", "a.mdbCueToggle", function (e) {
     e.preventDefault();
     e.stopPropagation();
 
     var $link = $(this);
-    var cue = $link.text();
-    var key = getCueFormatKey(cue);
-    var targetFormat = null;
-
-    if (key === "NN" || key === "NNN") targetFormat = "HMM";
-    if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") targetFormat = "MM";
-    if (!targetFormat) return;
-
     var $tracklist = $link.closest(".list, ul, ol");
     if (!$tracklist.length) {
-        toggleLinkToTargetFormat(this, targetFormat);
+        $tracklist = $link.parent();
+    }
+
+    var currentMode = parseInt($tracklist.data("cueDisplayMode"), 10);
+    if (isNaN(currentMode)) currentMode = 0;
+
+    // Cycle: original -> format change -> both -> original
+    var nextMode = (currentMode + 1) % 3;
+    $tracklist.data("cueDisplayMode", nextMode);
+
+    if ($tracklist.is(".list, ul, ol")) {
+        applyTracklistCueMode($tracklist, nextMode);
         return;
     }
 
-    $tracklist.find("a.mdbCueToggle").each(function () {
-        toggleLinkToTargetFormat(this, targetFormat);
-    });
+    applyTracklistCueMode($tracklist, nextMode);
 });
 
 
