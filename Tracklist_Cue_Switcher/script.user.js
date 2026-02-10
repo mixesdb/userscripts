@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.7
+// @version      2026.02.10.8
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -324,10 +324,47 @@ function minuteRangeToMM(minMinutes, maxMinutes, context, originalWidth) {
     }
 
     // For width=3, forcePad true so we can get "0??" instead of "??" for small ranges.
-    // For width=2, do not force pad so "70..79" becomes "7?" not "7?" with weird trimming.
-    var forcePad = (width === 3);
+    // For width=2, keep padding for H:MM/MM:SS inputs so 2:16 becomes "02" (not "2").
+    var forcePad = (width === 3 || (width === 2 && context !== "FROM_MM"));
 
     return rangeToPattern(minMinutes, maxMinutes, width, forcePad);
+}
+
+function inferHourForZeroHundredsCue(nextCue) {
+    if (!nextCue) return null;
+
+    var n = String(nextCue).trim();
+
+    // If next cue is explicit 0XX in minutes-only format, keep current cue in hour 0 bucket.
+    if (/^0[0-9]{2}$/.test(n)) {
+        return 0;
+    }
+
+    var parsed = cueToMinuteRange(n);
+    if (!parsed || parsed.type === "INVALID") return null;
+
+    var minH = Math.floor(parsed.minMinutes / 60);
+    var maxH = Math.floor(parsed.maxMinutes / 60);
+
+    // Only infer when next cue clearly sits in one hour bucket.
+    if (minH === maxH) return minH;
+
+    return null;
+}
+
+function toggleCue_MM_HMM_WithAssumptions(cue, nextCue) {
+    var s = String(cue).trim();
+
+    // Ambiguous minutes-only cue crossing 0..99 range.
+    // Use the next cue to infer the intended hour when possible.
+    if (/^0\?\?$/.test(s)) {
+        var inferredHour = inferHourForZeroHundredsCue(nextCue);
+        if (inferredHour != null) {
+            return String(inferredHour) + ":??";
+        }
+    }
+
+    return toggleCue_MM_HMM(s);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -597,7 +634,11 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
 
     if (targetFormat === "HMM") {
         if (key === "NN" || key === "NNN") {
-            switchedCue = toggleCue_MM_HMM(cue);
+            var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
+            var idx = $all.index(linkEl);
+            var nextCue = (idx >= 0 && idx + 1 < $all.length) ? $($all[idx + 1]).text() : null;
+
+            switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue);
         }
     } else if (targetFormat === "MM") {
         if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
