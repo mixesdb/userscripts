@@ -349,15 +349,27 @@ function getCue(track) {
 	var s = String(track).trim();
 	if (!s) return null;
 
-	var m = s.match(/^\[([0-9\?:]+)\]/);
+	var m = s.match(/^\[\s*([0-9\?:]+)\s*\]/);
 	if (!m) return null;
 
 	return m[1];
 }
 
+function getTrackCue(trackEl) {
+	var textNode = getFirstDirectTextNode(trackEl);
+	if (textNode && textNode.nodeValue != null) {
+		var cue = getCue(textNode.nodeValue);
+		if (cue != null) return cue;
+	}
+
+	// Fallback: full text can still contain a cue when DOM differs.
+	return getCue($(trackEl).text());
+}
+
 // getCueFormatKey
-function getCueFormatKey(trackText) {
-	var cue = getCue(trackText);
+function getCueFormatKey(cueOrTrackText) {
+	var cue = getCue(cueOrTrackText) || String(cueOrTrackText || "").trim();
+	if (!cue) return null;
 
 	// Allowed cue patterns (anchored to full cue)
 	// Note: We classify by returning explicit keys, not raw cue strings,
@@ -407,8 +419,9 @@ function checkTracklistCueConsistency(tracks, opts) {
 	var keys = [];
 
 	tracks.each(function () {
+		var cue = getTrackCue(this);
+		var key = getCueFormatKey(cue);
 		var track = $(this).text().trim();
-		var key = getCueFormatKey(track);
 
 		if (key === null) {
 			missing.push(track);
@@ -558,7 +571,7 @@ function wrapCueWithToggleLink(trackEl) {
 	// 1) leading whitespace + "["
 	// 2) cue
 	// 3) "]" and whatever after (keep)
-	var m = val.match(/^(\s*\[)([0-9\?:]+)(\][\s\S]*)$/);
+	var m = val.match(/^(\s*\[\s*)([0-9\?:]+)(\s*\][\s\S]*)$/);
 	if (!m) return false;
 
 	// If already wrapped, don't wrap again
