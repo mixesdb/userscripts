@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.5
+// @version      2026.02.10.6
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -184,11 +184,12 @@ function decideMinutesOnlyWidth(minMinutes, maxMinutes, context) {
 // Supports:
 // - MM*: "NN", "NNN", with '?' allowed: "7?", "07?", "0??", "00?"
 // - h:mm: "H:MM", hours can have '?' and multiple digits; minutes exactly 2 with '?' allowed
+// - mm:ss: "MM:SS" (left side exactly 2 chars) for cues like "58:10"; converted with rounded minutes
 // - h:mm:ss / hh:mm:ss: mainly for converting to MM*, supports '?' in mm/ss
 //
 // Returns:
 // { type, minMinutes, maxMinutes, mmWidth }
-// type: "MM" | "HMM" | "HMS" | "INVALID"
+// type: "MM" | "HMM" | "MMSS" | "HMS" | "INVALID"
 // mmWidth: original minutes-only width (2 or 3) if type==="MM"
 // ─────────────────────────────────────────────────────────────
 function cueToMinuteRange(cue) {
@@ -228,6 +229,29 @@ function cueToMinuteRange(cue) {
             type: "HMS",
             minMinutes: minMinutes,
             maxMinutes: maxMinutes,
+            mmWidth: null
+        };
+    }
+
+    // mm:ss (with '?' allowed), 2+2 chars, convert via rounded minutes.
+    // This catches cues like "58:10" and maps to 58 minutes.
+    if (/^[0-9\?]{2}:[0-9\?]{2}$/.test(s)) {
+        var p2 = s.split(":");
+        var mm3 = tokenToMinMax(p2[0], 0, 99);
+        var ss3 = tokenToMinMax(p2[1], 0, 59);
+
+        if (!mm3 || !ss3) return { type: "INVALID" };
+
+        var minSec2 = (mm3.min * 60) + ss3.min;
+        var maxSec2 = (mm3.max * 60) + ss3.max;
+
+        var minMinutes3 = Math.round(minSec2 / 60);
+        var maxMinutes3 = Math.round(maxSec2 / 60);
+
+        return {
+            type: "MMSS",
+            minMinutes: minMinutes3,
+            maxMinutes: maxMinutes3,
             mmWidth: null
         };
     }
@@ -324,6 +348,10 @@ function toggleCue_MM_HMM(cue) {
     }
 
     if (r.type === "HMM") {
+        return minuteRangeToMM(r.minMinutes, r.maxMinutes, "FROM_HMM", null);
+    }
+
+    if (r.type === "MMSS") {
         return minuteRangeToMM(r.minMinutes, r.maxMinutes, "FROM_HMM", null);
     }
 
@@ -508,7 +536,7 @@ function wrapCueWithToggleLink(trackEl) {
     if (!m) return false;
 
     var cueKey = getCueFormatKey(m[2]);
-    if (!["NN", "NNN", "N:NN", "N:NN:NN"].includes(cueKey)) {
+    if (!["NN", "NNN", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
         return false;
     }
 
@@ -566,7 +594,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
             switchedCue = toggleCue_MM_HMM(cue);
         }
     } else if (targetFormat === "MM") {
-        if (key === "N:NN" || key === "N:NN:NN") {
+        if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
             switchedCue = $link.data("lastMmCue") || toggleCue_MM_HMM(cue);
         }
     }
@@ -592,7 +620,7 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
     var targetFormat = null;
 
     if (key === "NN" || key === "NNN") targetFormat = "HMM";
-    if (key === "N:NN" || key === "N:NN:NN") targetFormat = "MM";
+    if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") targetFormat = "MM";
     if (!targetFormat) return;
 
     var $tracklist = $link.closest(".list, ul, ol");
