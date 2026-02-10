@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.19
+// @version      2026.02.10.20
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -742,12 +742,17 @@ function applyStoredPreferredFormat($tracklist) {
     var $links = $tracklist.find("a.mdbCueToggle");
     if (!$links.length) return;
 
+    var changedAny = false;
+
     $links.each(function () {
-        toggleLinkToTargetFormat(this, preferredFormat);
+        if (toggleLinkToTargetFormat(this, preferredFormat)) {
+            changedAny = true;
+        }
     });
 
-    // Keep mode in sync with the rendered cues so first click advances to "both".
-    $tracklist.data("cueDisplayMode", 1);
+    // Keep mode in sync with rendered cues.
+    // If no cue was changed, the tracklist is still in original mode.
+    $tracklist.data("cueDisplayMode", changedAny ? 1 : 0);
 }
 
 function toggleLinkToTargetFormat(linkEl, targetFormat) {
@@ -776,7 +781,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
         }
     }
 
-    if (!switchedCue || switchedCue === cue) return;
+    if (!switchedCue || switchedCue === cue) return false;
 
     var newKey = getCueFormatKey(switchedCue);
     if (newKey === "NN" || newKey === "NNN") {
@@ -784,6 +789,7 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
     }
 
     $link.text("[" + switchedCue + "]");
+    return true;
 }
 
 function applyTracklistCueMode($tracklist, mode) {
