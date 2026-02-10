@@ -571,12 +571,6 @@ function wrapCueWithToggleLink(trackEl) {
     link.textContent = m[2];
     link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? m[2] : "";
 
-    // Dotted underline, only on the cue value
-    link.style.textDecoration = "underline";
-    link.style.textDecorationStyle = "dotted";
-    link.style.textUnderlineOffset = "2px";
-    link.style.cursor = "pointer";
-
     var after = document.createTextNode(m[3]);
 
     var parent = textNode.parentNode;
@@ -713,7 +707,7 @@ d.ready(function(){ // needed for mw.config
                 var key = getCueFormatKey(cue);
 
                 logVar("track", trackText);
-                log("> cue format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
+                log("> cue: " + cue + " / format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
             });
 
             // Always make cues clickable where detectable.
