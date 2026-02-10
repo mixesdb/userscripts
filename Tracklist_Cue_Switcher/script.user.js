@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.11.04.5
+// @version      2026.02.10.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -442,56 +442,6 @@ function checkTracklistCueConsistency(tracks, opts) {
 	};
 }
 
-// replaceCue(track, newCue)
-// Replaces ONLY the leading [CUE] part.
-// Returns original track if no leading cue exists.
-function replaceCue(track, newCue) {
-	if (track == null) return track;
-
-	var s = String(track);
-
-	if (newCue == null) return s;
-	newCue = String(newCue).trim();
-	if (!newCue) return s;
-
-	// Replace only if track starts with [something]
-	// Keep everything after the closing bracket untouched.
-	if (!/^\[[^\]]+\]/.test(s.trim())) return s;
-
-	return s.replace(/^\s*\[[^\]]+\]/, "[" + newCue + "]");
-}
-
-// switchTrackCueFormat(track)
-// Extracts cue, toggles it, and replaces it back into the track line.
-// If cue missing/invalid, returns original.
-function switchTrackCueFormat(track) {
-	if (track == null) return track;
-
-	var s = String(track);
-	var cue = getCue(s);
-	if (cue == null) return s;
-
-	// This must exist in your included script
-	var switched = toggleCue_MM_HMM(cue);
-	if (switched == null || switched === "") return s;
-
-	return replaceCue(s, switched);
-}
-
-function replaceLeadingTextNode($el, newText) {
-	// Replace only the first direct text node (not inside children)
-	var $t = $el.contents().filter(function () {
-		return this.nodeType === Node.TEXT_NODE;
-	}).first();
-
-	if ($t.length) {
-		$t[0].nodeValue = newText;
-	} else {
-		// If there was no direct text node, prepend one
-		$el.prepend(document.createTextNode(newText));
-	}
-}
-
 function getFirstDirectTextNode(el) {
 	var $nodes = $(el).contents().filter(function () {
 		return this.nodeType === Node.TEXT_NODE && this.nodeValue != null;
@@ -515,80 +465,6 @@ function getFirstDirectTextNode(el) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function getFirstDirectTextNode(el) {
-	var $nodes = $(el).contents().filter(function () {
-		return this.nodeType === Node.TEXT_NODE && this.nodeValue != null;
-	});
-	return $nodes.length ? $nodes[0] : null;
-}
-
-// Extract cue from a raw text node value (NO trim that would eat the space!)
-function getCueFromTextNodeValue(textValue) {
-	if (textValue == null) return null;
-	var s = String(textValue);
-
-	// Leading cue only
-	var m = s.match(/^\s*\[([0-9\?:]+)\]/);
-	if (!m) return null;
-
-	return m[1];
-}
-
-// Replace ONLY the cue prefix in the leading text node and force exactly one space after "]".
-// We deliberately ignore whatever whitespace was there before, because it keeps betraying you.
-function setCuePrefixForceSpace(el, newCue) {
-	if (!el) return false;
-
-	if (newCue == null) return false;
-	newCue = String(newCue).trim();
-	if (!newCue) return false;
-
-	var textNode = getFirstDirectTextNode(el);
-	if (!textNode) return false;
-
-	var val = String(textNode.nodeValue || "");
-
-	// Must start with a bracket cue (allow leading whitespace)
-	var m = val.match(/^(\s*)\[[^\]]+\](?:\s*)([\s\S]*)$/);
-	if (!m) return false;
-
-	// Keep any text that was in the SAME text node after the cue (rare, but possible)
-	// Strip leading whitespace because we will inject exactly one space.
-	var rest = (m[2] || "").replace(/^\s+/, "");
-
-	// Deterministic prefix: "[newCue] " + rest
-	textNode.nodeValue = "[" + newCue + "] " + rest;
-
-	// If the next sibling is an element and the browser decides to be “helpful”,
-	// inserting a standalone whitespace node makes it unambiguous.
-	var next = textNode.nextSibling;
-	if (next && next.nodeType === Node.ELEMENT_NODE) {
-		// Ensure there is an explicit whitespace text node between prefix and element
-		// ONLY if the current text node does not already end with whitespace (it does).
-		// This is belt + suspenders: it prevents DOM normalization surprises.
-		if (!/\s$/.test(textNode.nodeValue)) {
-			textNode.parentNode.insertBefore(document.createTextNode(" "), next);
-		}
-	}
-
-	return true;
-}
-
-// Switch cue for a track element in-place.
-function switchTrackCueFormatInDom(el) {
-	var textNode = getFirstDirectTextNode(el);
-	if (!textNode) return false;
-
-	var cue = getCueFromTextNodeValue(textNode.nodeValue);
-	if (cue == null) return false;
-
-	var switchedCue = toggleCue_MM_HMM(cue);
-	if (!switchedCue) return false;
-
-	return setCuePrefixForceSpace(el, switchedCue);
-}
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Clickable cue toggles
@@ -600,8 +476,7 @@ function switchTrackCueFormatInDom(el) {
  * - Uses event delegation so it works with dynamic content
  *
  * Requires:
- * - switchTrackCueFormatInDom(el)      // your working DOM toggler
- * - toggleCue_MM_HMM(cue)             // already in your script
+ * - toggleCue_MM_HMM(cue)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -666,43 +541,13 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
 	e.preventDefault();
 	e.stopPropagation();
 
-	var trackEl = $(this).closest(".list-track, li")[0];
-	if (!trackEl) return;
-
-	// Toggle cue format in DOM (your working function)
-	switchTrackCueFormatInDom(trackEl);
-
-	// After switching, the cue text inside the link is now outdated.
-	// Easiest: rebuild just this one link by removing it and re-wrapping.
-	// We remove the existing link and merge back to a simple text node, then wrap again.
-	// This avoids weird partial updates and keeps spacing sane.
-
-	// Reconstruct the leading prefix as plain text first:
 	var $link = $(this);
-	var cueText = $link.text();
+	var cue = $link.text();
+	var switchedCue = toggleCue_MM_HMM(cue);
+	if (!switchedCue || switchedCue === cue) return;
 
-	// Find the surrounding text nodes "[" and "]..."
-	var prevNode = this.previousSibling; // should be text node containing "["
-	var nextNode = this.nextSibling;     // should be text node containing "]..."
-
-	if (prevNode && prevNode.nodeType === Node.TEXT_NODE && nextNode && nextNode.nodeType === Node.TEXT_NODE) {
-		// Combine into one text node again
-		var combined = (prevNode.nodeValue || "") + cueText + (nextNode.nodeValue || "");
-		var combinedNode = document.createTextNode(combined);
-
-		var parent = this.parentNode;
-		parent.insertBefore(combinedNode, prevNode);
-
-		parent.removeChild(prevNode);
-		parent.removeChild(nextNode);
-		parent.removeChild(this);
-
-		// Wrap again (now with updated cue in DOM)
-		wrapCueWithToggleLink(trackEl);
-	} else {
-		// Fallback: just re-run wrapping for the whole track element
-		wrapCueWithToggleLink(trackEl);
-	}
+	// Keep the link in place so it can switch back on next click.
+	$link.text(switchedCue);
 });
 
 
@@ -763,23 +608,18 @@ d.ready(function(){ // needed for mw.config
             if( tracklist_consistent ) {
                 // Each track
                 tracks.each(function () {
-                    var $trackEl = $(this);
-
                     // Visible track string (your processing input)
-                    var trackText = $trackEl.clone().children().remove().end().text().trim();
+                    var trackText = $(this).clone().children().remove().end().text().trim();
 
                     var cue = getCue(trackText);
                     var key = getCueFormatKey(trackText);
 
                     logVar("track", trackText);
                     log("> cue format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
-
-                    var switchedText = switchTrackCueFormat(trackText);
-
-                    // Write back only the leading visible text, keep the span and everything else intact
-                    //switchTrackCueFormatInDom( $trackEl );
-                    enableCueToggleLinks(tracks);
                 });
+
+                // Make cues clickable once per tracklist.
+                enableCueToggleLinks(tracks);
             } // if tracklist_consistent
         });
     }
