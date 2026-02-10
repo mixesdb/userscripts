@@ -732,7 +732,7 @@ function applyTracklistCueMode($tracklist, mode) {
             $link.text("[" + (alternateCue || originalCue) + "]");
         } else if (mode === 2) {
             if (alternateCue && alternateCue !== originalCue) {
-                $link.text("[" + originalCue + "] [" + alternateCue + "]");
+                $link.text("[" + originalCue + "|" + alternateCue + "]");
             } else {
                 $link.text("[" + originalCue + "]");
             }
