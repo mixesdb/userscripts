@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.2
+// @version      2026.02.10.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -465,6 +465,73 @@ function getFirstDirectTextNode(el) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// Extract cue from a raw text node value (NO trim that would eat the space!)
+function getCueFromTextNodeValue(textValue) {
+	if (textValue == null) return null;
+	var s = String(textValue);
+
+	// Leading cue only
+	var m = s.match(/^\s*\[([0-9\?:]+)\]/);
+	if (!m) return null;
+
+	return m[1];
+}
+
+// Replace ONLY the cue prefix in the leading text node and force exactly one space after "]".
+// We deliberately ignore whatever whitespace was there before, because it keeps betraying you.
+function setCuePrefixForceSpace(el, newCue) {
+	if (!el) return false;
+
+	if (newCue == null) return false;
+	newCue = String(newCue).trim();
+	if (!newCue) return false;
+
+	var textNode = getFirstDirectTextNode(el);
+	if (!textNode) return false;
+
+	var val = String(textNode.nodeValue || "");
+
+	// Must start with a bracket cue (allow leading whitespace)
+	var m = val.match(/^(\s*)\[[^\]]+\](?:\s*)([\s\S]*)$/);
+	if (!m) return false;
+
+	// Keep any text that was in the SAME text node after the cue (rare, but possible)
+	// Strip leading whitespace because we will inject exactly one space.
+	var rest = (m[2] || "").replace(/^\s+/, "");
+
+	// Deterministic prefix: "[newCue] " + rest
+	textNode.nodeValue = "[" + newCue + "] " + rest;
+
+	// If the next sibling is an element and the browser decides to be “helpful”,
+	// inserting a standalone whitespace node makes it unambiguous.
+	var next = textNode.nextSibling;
+	if (next && next.nodeType === Node.ELEMENT_NODE) {
+		// Ensure there is an explicit whitespace text node between prefix and element
+		// ONLY if the current text node does not already end with whitespace (it does).
+		// This is belt + suspenders: it prevents DOM normalization surprises.
+		if (!/\s$/.test(textNode.nodeValue)) {
+			textNode.parentNode.insertBefore(document.createTextNode(" "), next);
+		}
+	}
+
+	return true;
+}
+
+// Switch cue for a track element in-place.
+function switchTrackCueFormatInDom(el) {
+	var textNode = getFirstDirectTextNode(el);
+	if (!textNode) return false;
+
+	var cue = getCueFromTextNodeValue(textNode.nodeValue);
+	if (cue == null) return false;
+
+	var switchedCue = toggleCue_MM_HMM(cue);
+	if (!switchedCue) return false;
+
+	return setCuePrefixForceSpace(el, switchedCue);
+}
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Clickable cue toggles
@@ -541,13 +608,15 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
 	e.preventDefault();
 	e.stopPropagation();
 
-	var $link = $(this);
-	var cue = $link.text();
-	var switchedCue = toggleCue_MM_HMM(cue);
-	if (!switchedCue || switchedCue === cue) return;
+	var trackEl = $(this).closest(".list-track, li")[0];
+	if (!trackEl) return;
 
-	// Keep the link in place so it can switch back on next click.
-	$link.text(switchedCue);
+	// Toggle cue format in DOM (your working function)
+	switchTrackCueFormatInDom(trackEl);
+
+	// Rebuild this one cue link to reflect updated text in the leading text node.
+	$(this).replaceWith(document.createTextNode($(this).text()));
+	wrapCueWithToggleLink(trackEl);
 });
 
 
@@ -616,6 +685,9 @@ d.ready(function(){ // needed for mw.config
 
                     logVar("track", trackText);
                     log("> cue format: " + key + " / toggled: " + toggleCue_MM_HMM(cue));
+
+                    // Write back only the leading visible text, keep the span and everything else intact
+                    enableCueToggleLinks(tracks);
                 });
 
                 // Make cues clickable once per tracklist.
