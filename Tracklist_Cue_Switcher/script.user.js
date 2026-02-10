@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.10.11
+// @version      2026.02.10.12
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -375,6 +375,28 @@ function toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue) {
     return toggleCue_MM_HMM(s);
 }
 
+function inferUnknownThreeDigitCueToHMM(prevCue, nextCue) {
+    if (!prevCue || !nextCue) return null;
+
+    var prevParsed = cueToMinuteRange(prevCue);
+    var nextParsed = cueToMinuteRange(nextCue);
+
+    if (!prevParsed || !nextParsed) return null;
+    if (prevParsed.type === "INVALID" || nextParsed.type === "INVALID") return null;
+
+    // Track is between previous and next cue.
+    // Use the open interval between both ranges when possible.
+    var minMinutes = prevParsed.maxMinutes + 1;
+    var maxMinutes = nextParsed.minMinutes - 1;
+
+    if (minMinutes > maxMinutes) {
+        minMinutes = Math.min(prevParsed.minMinutes, nextParsed.minMinutes);
+        maxMinutes = Math.max(prevParsed.maxMinutes, nextParsed.maxMinutes);
+    }
+
+    return minuteRangeToHMM(minMinutes, maxMinutes);
+}
+
 // ─────────────────────────────────────────────────────────────
 // Public: toggle between minutes-only (MM*) and h:mm
 // - If input is MM* -> output h:mm
@@ -593,7 +615,7 @@ function wrapCueWithToggleLink(trackEl) {
     if (!m) return false;
 
     var cueKey = getCueFormatKey(m[2]);
-    if (!["NN", "NNN", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
+    if (!["NN", "NNN", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
         return false;
     }
 
@@ -649,11 +671,15 @@ function enableCueToggleLinks($tracks) {
     });
 }
 
-function getAlternateCueFromOriginal(cue, nextCue, overNextCue) {
+function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue) {
     var key = getCueFormatKey(cue);
 
     if (key === "NN" || key === "NNN") {
         return toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
+    }
+
+    if (key === "???") {
+        return inferUnknownThreeDigitCueToHMM(prevCue, nextCue) || cue;
     }
 
     if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -670,13 +696,18 @@ function toggleLinkToTargetFormat(linkEl, targetFormat) {
     var switchedCue = cue;
 
     if (targetFormat === "HMM") {
-        if (key === "NN" || key === "NNN") {
+        if (key === "NN" || key === "NNN" || key === "???") {
             var $all = $link.closest(".list, ul, ol").find("a.mdbCueToggle");
             var idx = $all.index(linkEl);
+            var prevCue = (idx > 0) ? getCueFromToggleText($($all[idx - 1]).text()) : null;
             var nextCue = (idx >= 0 && idx + 1 < $all.length) ? getCueFromToggleText($($all[idx + 1]).text()) : null;
             var overNextCue = (idx >= 0 && idx + 2 < $all.length) ? getCueFromToggleText($($all[idx + 2]).text()) : null;
 
-            switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
+            if (key === "???") {
+                switchedCue = inferUnknownThreeDigitCueToHMM(prevCue, nextCue) || cue;
+            } else {
+                switchedCue = toggleCue_MM_HMM_WithAssumptions(cue, nextCue, overNextCue);
+            }
         }
     } else if (targetFormat === "MM") {
         if (key === "N:NN" || key === "NN:NN" || key === "N:NN:NN") {
@@ -712,12 +743,13 @@ function applyTracklistCueMode($tracklist, mode) {
     $links.each(function (idx) {
         var $link = $(this);
         var originalCue = originalCues[idx] || String($link.data("originalCue") || "").trim();
+        var prevCue = (idx > 0) ? originalCues[idx - 1] : null;
         var nextCue = (idx + 1 < originalCues.length) ? originalCues[idx + 1] : null;
         var overNextCue = (idx + 2 < originalCues.length) ? originalCues[idx + 2] : null;
 
         var alternateCue = $link.data("alternateCue");
         if (!alternateCue) {
-            alternateCue = getAlternateCueFromOriginal(originalCue, nextCue, overNextCue);
+            alternateCue = getAlternateCueFromOriginal(originalCue, prevCue, nextCue, overNextCue);
             $link.data("alternateCue", alternateCue);
 
             var altKey = getCueFormatKey(alternateCue);
