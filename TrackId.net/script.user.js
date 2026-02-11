@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.7
+// @version      2026.02.11.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,6 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
-// @include      https://www.mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
 // @run-at       document-end
@@ -171,32 +170,6 @@ d.ready(function(){
         path1 = window.location.pathname.replace(/^\//, "");
 
     logVar( "path1", path1 );
-
-    if( domain == "mixesdb.com" ) {
-        var wgAction = (typeof mw !== "undefined" && mw.config) ? (mw.config.get("wgAction") || "") : "",
-            wgNamespaceNumber = (typeof mw !== "undefined" && mw.config) ? mw.config.get("wgNamespaceNumber") : null,
-            wgTitle = (typeof mw !== "undefined" && mw.config) ? (mw.config.get("wgTitle") || "") : "",
-            tidHasTl = getURLParameter("tidHasTl") || "";
-
-        if( ( wgAction == "edit" || wgAction == "submit" )
-            && wgNamespaceNumber == 0
-            && wgTitle != "Main Page"
-            && ( tidHasTl == "incomplete" || tidHasTl == "complete" )
-          ) {
-            var textbox = $("textarea#wpTextbox1");
-
-            if( textbox.length ) {
-                textbox.val(
-                    textbox.val().replace(
-                        "[[Category:Tracklist: none]]",
-                        "[[Category:Tracklist: " + tidHasTl + "]]"
-                    )
-                );
-            }
-        }
-
-        return;
-    }
 
     switch( path1 ) {
         case "submiturl":
@@ -590,55 +563,6 @@ waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
     var lastEditTimestamp = jNode.attr("data-lastedittimestamp"); // 2025-01-28T20:26:13Z
 
     pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp );
-});
-
-/*
- * Tracklist status from feedback + pass status to MixesDB edit link
- */
-function setTlStatusByFeedback() {
-    var feedbackWrapper = $("#tlEditor-feedback"),
-        status = "";
-
-    if( feedbackWrapper.length === 0 ) return;
-
-    $("ul.tlEditor-feedback-topInfo li", feedbackWrapper).each(function(){
-        var msg = $(this).text().trim();
-
-        if( msg.indexOf("The tracklist seems to be valid and incomplete") === 0 ) {
-            status = "incomplete";
-            return false;
-        }
-
-        if( msg.indexOf("The tracklist seems valid and complete") === 0 ) {
-            status = "complete";
-            return false;
-        }
-    });
-
-    if( status !== "" ) {
-        feedbackWrapper.attr("data-tl-status", status);
-        return status;
-    }
-}
-
-function addTlStatusToEditLink( jNode ) {
-    var status = $("#tlEditor-feedback").attr("data-tl-status") || "",
-        href = jNode.attr("href") || "";
-
-    if( status === "" || href === "" || href.match(/(?:\?|&)tidHasTl=/) ) return;
-    if( !href.match(/(?:\?|&)fromSite=trackid\.net(?:&|$)/) ) return;
-
-    jNode.attr("href", href.replace(/fromSite=trackid\.net/, "fromSite=trackid.net&tidHasTl=" + status));
-}
-
-waitForKeyElements("#tlEditor-feedback", function( jNode ) {
-    var status = setTlStatusByFeedback();
-
-    if( status ) {
-        waitForKeyElements("a.mdb-mixesdbLink.edit", function( jEditLink ) {
-            addTlStatusToEditLink( jEditLink );
-        });
-    }
 });
 
 
