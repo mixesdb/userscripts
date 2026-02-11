@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.08.25.11
+// @version      2026.02.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1063,6 +1063,22 @@ if( domain == "mixesdb.com" ) {
  * On TID
  */
 if( domain == "trackid.net" ) {
+    function add_mergeLink( $topInfo, mergeLink ) {
+        var $mergeLi = $topInfo.children('#mergeLink');
+
+        if( !$mergeLi.length ) {
+            $mergeLi = $('<li id="mergeLink"></li>').append( mergeLink );
+        }
+
+        var $cueSwitch = $topInfo.children('li.info_switchCueFormat').first();
+
+        if( $cueSwitch.length ) {
+            $cueSwitch.after( $mergeLi );
+        } else {
+            $topInfo.prepend( $mergeLi );
+        }
+    }
+
     // create merge link under tracklists
     waitForKeyElements("ul#tlEditor-feedback-topInfo", function( jNode ) {
         var tl_candidate = $("textarea.mixesdb-TLbox").val();
@@ -1070,7 +1086,16 @@ if( domain == "trackid.net" ) {
         if( tl_candidate ) {
             var mergeLink = '<a href="https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger?tl_candidate='+encodeURIComponent( tl_candidate )+'" target="_blank">Open in Tracklist Merger</a>';
 
-            jNode.prepend( '<li id="mergeLink">'+mergeLink+'</li>' );
+            add_mergeLink( jNode, mergeLink );
+        }
+    });
+
+    waitForKeyElements("ul#tlEditor-feedback-topInfo li.info_switchCueFormat", function( jNode ) {
+        var $topInfo = jNode.closest('ul#tlEditor-feedback-topInfo'),
+            $mergeLi = $topInfo.children('#mergeLink');
+
+        if( $topInfo.length && $mergeLi.length ) {
+            jNode.after( $mergeLi );
         }
     });
 }
