@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.1
+// @version      2026.02.11.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,7 +12,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_109
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -821,6 +821,22 @@ function toggleTracklistTextareaCueFormat() {
 
     var currentFormat = ta.attr("data-mdb-cue-format") || "MM";
     var nextFormat = currentFormat === "MM" ? "HMM" : "MM";
+
+    if (currentFormat === "MM") {
+        ta.attr("data-mdb-cue-original", ta.val() || "");
+    }
+
+    if (nextFormat === "MM") {
+        var originalTracklist = ta.attr("data-mdb-cue-original");
+        if (typeof originalTracklist !== "undefined") {
+            ta.val(originalTracklist);
+            ta.attr("data-mdb-cue-format", nextFormat);
+
+            var buttonLabel_mm = "Switch cue format (mmm > h:m)";
+            $("#switchCueFormat").text(buttonLabel_mm);
+            return;
+        }
+    }
 
     var lines = String(ta.val() || "").split("\n");
     var convertedLines = lines.map(function (line) {
