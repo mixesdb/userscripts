@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.9
+// @version      2026.02.11.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_109
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_78
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
 // @include      http*mixesdb.com/w/*
@@ -508,7 +508,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
         // toolkit output
         waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
             logVar( "titleText toolkit", titleText );
-            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1 );
+            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1, "", "auto" );
             jNode.addClass("mdb-processed-toolkit");
         });
     }
@@ -888,94 +888,9 @@ waitForKeyElements("ul#tlEditor-feedback-topInfo", function(jNode) {
     }
 });
 
-function updateTidHasTlInEditLinks() {
-    var tlStatus = $("#tlEditor-feedback").attr("data-tl-status");
-
-    if (!tlStatus || !/^(incomplete|complete)$/.test(tlStatus)) {
-        return;
-    }
-
-    $("a.mdb-mixesdbLink.edit").each(function () {
-        var editLink = $(this),
-            href = editLink.attr("href") || "";
-
-        if (!href || href.indexOf("fromSite=trackid.net") === -1) {
-            return;
-        }
-
-        href = href.replace(/&tidHasTl=(incomplete|complete)/g, "");
-        href = href.replace(/(fromSite=trackid\.net)/, "$1&tidHasTl=" + tlStatus);
-
-        editLink.attr("href", href);
-    });
-}
-
-waitForKeyElements("#tlEditor-feedback", function(jNode) {
-    var status = "";
-
-    $("ul.tlEditor-feedback-topInfo li, ul#tlEditor-feedback-topInfo li").each(function () {
-        var liText = $(this).text().trim();
-
-        if (/^The tracklist seems to be valid and incomplete/i.test(liText) || /^The tracklist seems valid and incomplete/i.test(liText)) {
-            status = "incomplete";
-            return false;
-        }
-
-        if (/^The tracklist seems to be valid and complete/i.test(liText) || /^The tracklist seems valid and complete/i.test(liText)) {
-            status = "complete";
-            return false;
-        }
-    });
-
-    if (status) {
-        jNode.attr("data-tl-status", status);
-        updateTidHasTlInEditLinks();
-    }
-});
-
-waitForKeyElements("a.mdb-mixesdbLink.edit", function(jNode) {
-    updateTidHasTlInEditLinks();
-});
-
 $(document).on("click", "#switchCueFormat", function(e) {
     e.preventDefault();
     toggleTracklistTextareaCueFormat();
-});
-
-d.ready(function () {
-    if (domain != "mixesdb.com" || typeof mw === "undefined" || !mw.config) {
-        return;
-    }
-
-    var wgAction = mw.config.get("wgAction"),
-        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
-        wgTitle = mw.config.get("wgTitle"),
-        tidHasTl = getURLParameter("tidHasTl");
-
-    if ((wgAction == "edit" || wgAction == "submit")
-        && wgNamespaceNumber == 0
-        && wgTitle != "Main Page"
-        && /^(incomplete|complete)$/.test(tidHasTl)
-    ) {
-        var textarea = $("textarea#wpTextbox1");
-
-        if (textarea.length) {
-            textarea.val(
-                textarea.val().replace(
-                    "[[Category:Tracklist: none]]",
-                    "[[Category:Tracklist: " + tidHasTl + "]]"
-                )
-            );
-            // click on afterTextbox1 link would be easier, but doesn't work for some reason
-            // change active afterTextbox1 link
-            $("#afterTextbox1 a.button-after").removeClass("op1");
-            var buttonSelector = tidHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
-                targetButton = $(buttonSelector);
-            if (targetButton.length) {
-                targetButton.addClass("op1");
-            }
-        }
-    }
 });
 
 // toggleTlCandidate
