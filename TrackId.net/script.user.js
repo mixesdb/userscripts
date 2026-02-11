@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.2
+// @version      2026.02.11.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -819,7 +819,16 @@ function toggleTracklistTextareaCueFormat() {
     var ta = $("textarea.mixesdb-TLbox");
     if (!ta.length) return;
 
-    var currentFormat = ta.attr("data-mdb-cue-format") || "MM";
+    function detectCueFormatFromTextarea(text) {
+        var m = String(text || "").match(/^\s*\[\s*([0-9\?:]+)\s*\]/m);
+        if (!m) return "MM";
+
+        var cue = String(m[1] || "");
+        if (cue.indexOf(":") >= 0) return "HMM";
+        return "MM";
+    }
+
+    var currentFormat = ta.attr("data-mdb-cue-format") || detectCueFormatFromTextarea(ta.val());
     var nextFormat = currentFormat === "MM" ? "HMM" : "MM";
 
     if (currentFormat === "MM") {
@@ -838,10 +847,24 @@ function toggleTracklistTextareaCueFormat() {
         }
     }
 
+    function padTrackIdMinutesCue(cue) {
+        var s = String(cue || "").trim();
+        if (!/^[0-9\?]{2}$/.test(s)) return s;
+        return "0" + s;
+    }
+
     var lines = String(ta.val() || "").split("\n");
     var convertedLines = lines.map(function (line) {
         return line.replace(/^\s*\[\s*([0-9\?:]+)\s*\]/, function (m, cue) {
-            return "[" + toggleCue_MM_HMM(cue) + "]";
+            var switchedCue = toggleCue_MM_HMM(cue);
+
+            // TrackId exports mmm-style cues. Keep left-padding when converting
+            // from h:mm back to minutes-only so 0:59 becomes 059.
+            if (nextFormat === "MM") {
+                switchedCue = padTrackIdMinutesCue(switchedCue);
+            }
+
+            return "[" + switchedCue + "]";
         });
     });
 
