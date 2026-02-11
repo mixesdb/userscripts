@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.11
+// @version      2026.02.11.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -103,6 +103,7 @@ String.prototype.fixTidLabelnames = function() {
                    .replace( /(^|, )(.+) S\.?r\.?l\.?/gi, '$1$2' ) // Expanded Music Srl
                    .replace( /(^|, )(.+) GmbH/gi, '$1$2' ) // Foo GmbH
                    .replace( /^(.+), LLC/gi, '$1' ) // e.g. Tommy Boy Music, LLC
+                   .replace( /^(.+) (UK|US)/gi, '$1' ) // Country codes, eg ADA UK
                    .replace( "VIVa MUSiC (BEAT Music Fund)", "VIVa" )
                    ;
     return text;
@@ -141,7 +142,7 @@ String.prototype.removeMajorLabels = function() {
                    .replace( /^WM Sweden$/gi, '' )
                    // re-issues
                    .replace( /(^|, )(Azuli|Verve) (Back Catalog|Reissues)( [^\]]+)?$/gi, '$1$2' )
-                   .replace( /(^|, )(Altra Moda Music|RMD Entertainment|S&S Records)$/gi, '' )
+                   .replace( /(^|, )(Altra Moda Music|Essential 12" Classics|RMD Entertainment|S&S Records)$/gi, '' )
                    // different Catalogs
                    .replace( /(^|, )(Clarence Avant|Onelove|PIAS) (Recordings )?Catalog(ue)?( [^\]]+)?$/gi, '' )
                    .replace( /(^|, )Recordings Catalogue( [^\]]+)?$/gi, '' ) // yes, "Recordings Catalogue"! https://trackid.net/audiostreams/subfader-the-ghetto-funk-show-summer-beats-20090119
