@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2025.11.04.5
+// @version      2026.02.11.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-MixesDB_Userscripts_Helper_3
-// @match        https://www.mixesdb.com/*
+// @include      http*mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @grant        unsafeWindow
@@ -391,6 +391,39 @@ d.ready(function(){ // needed for mw.config
         } else {
             log( "applePodcasts_addSearchIcons diabled." );
         }
+    }
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * On MixesDB edit page, auto-click TL completeness button from tidHasTl URL param
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+d.ready(function () {
+    if (typeof mw === "undefined" || !mw.config) {
+        return;
+    }
+
+    var wgAction = mw.config.get("wgAction"),
+        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+        wgTitle = mw.config.get("wgTitle"),
+        tidHasTl = getURLParameter("tidHasTl");
+
+    if ((wgAction == "edit" || wgAction == "submit")
+        && wgNamespaceNumber == 0
+        && wgTitle != "Main Page"
+        && /^(incomplete|complete)$/.test(tidHasTl)
+    ) {
+        waitForKeyElements("#afterTextbox1 a.button-after", function() {
+            var buttonSelector = tidHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
+                targetButton = $(buttonSelector);
+
+            if (targetButton.length) {
+                targetButton.trigger("click");
+            }
+        });
     }
 });
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.7
+// @version      2026.02.11.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,6 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
-// @include      http*mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
 // @run-at       document-end
@@ -940,32 +939,6 @@ waitForKeyElements("a.mdb-mixesdbLink.edit", function(jNode) {
 $(document).on("click", "#switchCueFormat", function(e) {
     e.preventDefault();
     toggleTracklistTextareaCueFormat();
-});
-
-d.ready(function () {
-    if (domain != "mixesdb.com" || typeof mw === "undefined" || !mw.config) {
-        return;
-    }
-
-    var wgAction = mw.config.get("wgAction"),
-        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
-        wgTitle = mw.config.get("wgTitle"),
-        tidHasTl = getURLParameter("tidHasTl");
-
-    if ((wgAction == "edit" || wgAction == "submit")
-        && wgNamespaceNumber == 0
-        && wgTitle != "Main Page"
-        && /^(incomplete|complete)$/.test(tidHasTl)
-    ) {
-        waitForKeyElements("#afterTextbox1 a.button-after", function() {
-            var buttonSelector = tidHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
-                targetButton = $(buttonSelector);
-
-            if (targetButton.length) {
-                targetButton.trigger("click");
-            }
-        });
-    }
 });
 
 // toggleTlCandidate
