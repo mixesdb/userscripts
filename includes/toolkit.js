@@ -56,7 +56,7 @@ function ensureTrailingSlash( url ) {
  * Call API to the user/title URL as used on MixesDB
  * Pass that URL to getToolkit()
  */
-function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations ) {
+function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl="" ) {
     logFunc( "getToolkit_fromSCscUrl_api" );
 
     if( scUrl_api ) {
@@ -72,7 +72,7 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
                 success: function( data ) {
                     var playerUrl = data.permalink_url;
                     if( playerUrl != "" ) {
-                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
+                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
                     }
                 }
             });
@@ -86,7 +86,7 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
  * SoundCloud: Usually has track API URL, needs to call API and fire getToolkit from ajax result
  * Thus all the parameters for getToolkit() must be carried around
  */
-function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1 ) {
+function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, siteHasTl="" ) {
     logFunc( "getplayerUrl_fromIframe" );
 
     var srcUrl = iframe.attr("src"),
@@ -114,7 +114,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // Sanity check: if URL conatins track ID
             if( scUrl_api.split("/")[3] == "tracks" && regExp_numbers.test( scUrl_api.split("/")[4] ) ) {
                 // call SC API to get user/title URL
-                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
+                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl );
             }
 
         } else {
@@ -126,7 +126,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 
             // Sanity check: if no path behind soundcloud.com/[key]
             if( scUrl_key.split("/")[4] != "" && scUrl_key.split("/")[5] == "" ) {
-                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
+                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
             }
         }
     }
@@ -138,7 +138,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = srcUrl.replace( /^(http.+hearthis\.at)(\/embed\/)(\d+)(\/.+)$/, "$1/$3/" );
 
         if( playerUrl ) {
-            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "" );
+            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
         }
     }
 
@@ -157,7 +157,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         }
 
         if( mcUrl ) {
-            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "" );
+            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "", siteHasTl );
         }
     }
 
@@ -168,7 +168,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = "https://youtu.be/" + getYoutubeIdFromUrl( srcUrl ) ;
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "" );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "", siteHasTl );
         }
     }
 }
@@ -237,8 +237,71 @@ function make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, target="detail pag
     return output;
 }
 
+// toolkit_getSiteHasTlStatus
+function toolkit_getSiteHasTlStatus() {
+    var status = "";
+
+    $("ul.tlEditor-feedback-topInfo li, ul#tlEditor-feedback-topInfo li").each(function () {
+        var liText = $(this).text().trim();
+
+        if (/^The tracklist seems to be valid and incomplete/i.test(liText) || /^The tracklist seems valid and incomplete/i.test(liText)) {
+            status = "incomplete";
+            return false;
+        }
+
+        if (/^The tracklist seems to be valid and complete/i.test(liText) || /^The tracklist seems valid and complete/i.test(liText)) {
+            status = "complete";
+            return false;
+        }
+    });
+
+    return status;
+}
+
+// toolkit_getSiteHasTlParam
+function toolkit_getSiteHasTlParam( siteHasTl="" ) {
+    var status = siteHasTl;
+
+    if( siteHasTl == "auto" ) {
+        status = toolkit_getSiteHasTlStatus();
+    }
+
+    if( /^(incomplete|complete)$/.test(status) ) {
+        return status;
+    }
+
+    return "";
+}
+
+// toolkit_updateEditLinksSiteHasTl
+function toolkit_updateEditLinksSiteHasTl( fromSite="", siteHasTl="" ) {
+    var status = toolkit_getSiteHasTlParam( siteHasTl );
+
+    if( !status ) {
+        return;
+    }
+
+    $("a.mdb-mixesdbLink.edit").each(function () {
+        var editLink = $(this),
+            href = editLink.attr("href") || "";
+
+        if( !href ) {
+            return;
+        }
+
+        if( fromSite != "" && href.indexOf("fromSite=" + fromSite) === -1 ) {
+            return;
+        }
+
+        href = href.replace(/&siteHasTl=(incomplete|complete)/g, "");
+        href = href.replace(/(fromSite=[^&]+)/, "$1&siteHasTl=" + status);
+
+        editLink.attr("href", href);
+    });
+}
+
 // makeMixesdbLink_fromId
-function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastEditTimestamp="", from="", visitDomain="" ) {
+function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastEditTimestamp="", from="", visitDomain="", siteHasTl="" ) {
     // normal link
     // https://www.mixesdb.com/w/?curid=613340
     var editSummary = "",
@@ -257,9 +320,16 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
 
     var tidPlayerUrl = $("img.artwork").closest("a").attr("href");
 
+    var siteHasTl_linkParam = toolkit_getSiteHasTlParam( siteHasTl ),
+        editUrl = mixesdbUrl+'&action=edit&from='+from+'&fromSite='+visitDomain+'&summary='+editSummary;
+
+    if( siteHasTl_linkParam != "" ) {
+        editUrl += '&siteHasTl=' + siteHasTl_linkParam;
+    }
+
     // action links: edit hist
     output += '<span class="mdb-mixesdbLink-actionLinks-wrapper">';
-    output += '<a href="'+mixesdbUrl+'&action=edit&from='+from+'&fromSite='+visitDomain+'&summary='+editSummary+'" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>'; // edit link https://www.mixesdb.com/w/?curid=613340&action=edit
+    output += '<a href="'+editUrl+'" class="mdb-mixesdbLink edit" target="_blank">EDIT</a>'; // edit link https://www.mixesdb.com/w/?curid=613340&action=edit
     output += '<a href="'+mixesdbUrl+'&action=history" class="mdb-mixesdbLink history" target="_blank">HIST'; // history link https://www.mixesdb.com/w/?curid=613340&action=history
     if( localDate_ago && localDate_long ) {
         output += ' <span class="mdb-mixesdbLink lastEdit" data-lastedittimestamp="'+lastEditTimestamp+'">('+mdbTooltip( localDate_ago, "Last edit: " + localDate_long )+')</span>';
@@ -358,7 +428,7 @@ function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
  * Gating URLs before running actual func
  * E.g. URL variants: take 1 url, create 2nd variant, send each to getToolkit_func
  */
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="" ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="", siteHasTl="" ) {
     logFunc( "getToolkit" );
 
     var urlDomain = getDomain_fromUrlStr( thisUrl );
@@ -390,13 +460,13 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
-                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
-                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
                 }
             }
         });
     } else {
-        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl );
+        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
     }
 }
 
@@ -410,7 +480,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
 var toolboxIteration = 0; // count iterations for multiple iframes
 
-function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="" ) {
+function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="", siteHasTl="" ) {
     logFunc( "getToolkit_run" );
     // types: "playerUrl", "hide if used"
 
@@ -597,7 +667,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 logVar( "title", title );
                                 logVar( "mdbPageId", mdbPageId );
 
-                                var link_playerUsedOn = makeMixesdbLink_fromId( mdbPageId, title, linkClass, lastEditTimestamp, "toolkit", visitDomain );
+                                var link_playerUsedOn = makeMixesdbLink_fromId( mdbPageId, title, linkClass, lastEditTimestamp, "toolkit", visitDomain, siteHasTl );
 
                                 usageLinks.push( link_playerUsedOn );
                             }
@@ -1002,6 +1072,61 @@ function toolkit_addTidLink( playerUrl, title ) {
         }); // END ajax
     }); // END wait "#mdb-toolkit > ul"
 }
+
+// keep Toolkit edit links in sync with TL status feedback
+waitForKeyElements("#tlEditor-feedback", function( jNode ) {
+    var currentDomain = typeof domain !== "undefined" ? domain : "";
+
+    if( currentDomain != "" ) {
+        toolkit_updateEditLinksSiteHasTl( currentDomain, "auto" );
+    }
+});
+
+waitForKeyElements("a.mdb-mixesdbLink.edit", function( jNode ) {
+    var currentDomain = typeof domain !== "undefined" ? domain : "";
+
+    if( currentDomain != "" ) {
+        toolkit_updateEditLinksSiteHasTl( currentDomain, "auto" );
+    }
+});
+
+// MixesDB edit page: apply siteHasTl query parameter to categories and active button
+d.ready(function () {
+    if (domain != "mixesdb.com" || typeof mw === "undefined" || !mw.config) {
+        return;
+    }
+
+    var wgAction = mw.config.get("wgAction"),
+        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+        wgTitle = mw.config.get("wgTitle"),
+        siteHasTl = getURLParameter("siteHasTl");
+
+    if ((wgAction == "edit" || wgAction == "submit")
+        && wgNamespaceNumber == 0
+        && wgTitle != "Main Page"
+        && /^(incomplete|complete)$/.test(siteHasTl)
+    ) {
+        var textarea = $("textarea#wpTextbox1");
+
+        if (textarea.length) {
+            textarea.val(
+                textarea.val().replace(
+                    "[[Category:Tracklist: none]]",
+                    "[[Category:Tracklist: " + siteHasTl + "]]"
+                )
+            );
+
+            $("#afterTextbox1 a.button-after").removeClass("op1");
+
+            var buttonSelector = siteHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
+                targetButton = $(buttonSelector);
+
+            if (targetButton.length) {
+                targetButton.addClass("op1");
+            }
+        }
+    }
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
