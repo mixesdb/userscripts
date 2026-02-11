@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.2
+// @version      2026.02.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,7 +12,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_109
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
@@ -819,40 +819,18 @@ function toggleTracklistTextareaCueFormat() {
     var ta = $("textarea.mixesdb-TLbox");
     if (!ta.length) return;
 
-    var currentValue = String(ta.val() || ""),
-        currentFormat = ta.attr("data-mdb-cue-format") || "MM",
-        cachedMM = ta.attr("data-mdb-cue-mm") || "",
-        cachedHMM = ta.attr("data-mdb-cue-hmm") || "";
+    var currentFormat = ta.attr("data-mdb-cue-format") || "MM";
+    var nextFormat = currentFormat === "MM" ? "HMM" : "MM";
 
-    if (currentFormat === "MM" && cachedMM === currentValue && cachedHMM) {
-        ta.val(cachedHMM);
-        ta.attr("data-mdb-cue-format", "HMM");
-    } else if (currentFormat === "HMM" && cachedHMM === currentValue && cachedMM) {
-        ta.val(cachedMM);
-        ta.attr("data-mdb-cue-format", "MM");
-    } else {
-        var lines = currentValue.split("\n");
-        var convertedLines = lines.map(function (line) {
-            return line.replace(/^\s*\[\s*([0-9\?:]+)\s*\]/, function (m, cue) {
-                return "[" + toggleCue_MM_HMM(cue) + "]";
-            });
+    var lines = String(ta.val() || "").split("\n");
+    var convertedLines = lines.map(function (line) {
+        return line.replace(/^\s*\[\s*([0-9\?:]+)\s*\]/, function (m, cue) {
+            return "[" + toggleCue_MM_HMM(cue) + "]";
         });
+    });
 
-        var convertedValue = convertedLines.join("\n");
-        if (currentFormat === "MM") {
-            ta.attr("data-mdb-cue-mm", currentValue);
-            ta.attr("data-mdb-cue-hmm", convertedValue);
-            ta.attr("data-mdb-cue-format", "HMM");
-        } else {
-            ta.attr("data-mdb-cue-hmm", currentValue);
-            ta.attr("data-mdb-cue-mm", convertedValue);
-            ta.attr("data-mdb-cue-format", "MM");
-        }
-
-        ta.val(convertedValue);
-    }
-
-    var nextFormat = ta.attr("data-mdb-cue-format") || "MM";
+    ta.val(convertedLines.join("\n"));
+    ta.attr("data-mdb-cue-format", nextFormat);
 
     var buttonLabel = nextFormat === "HMM" ? "Switch cue format (h:m > mmm)" : "Switch cue format (mmm > h:m)";
     $("#switchCueFormat").text(buttonLabel);
