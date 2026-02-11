@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.3
+// @version      2026.02.11.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -819,7 +819,16 @@ function toggleTracklistTextareaCueFormat() {
     var ta = $("textarea.mixesdb-TLbox");
     if (!ta.length) return;
 
-    var currentFormat = ta.attr("data-mdb-cue-format") || "MM";
+    function detectCueFormatFromTextarea(text) {
+        var m = String(text || "").match(/^\s*\[\s*([0-9\?:]+)\s*\]/m);
+        if (!m) return "MM";
+
+        var cue = String(m[1] || "");
+        if (cue.indexOf(":") >= 0) return "HMM";
+        return "MM";
+    }
+
+    var currentFormat = ta.attr("data-mdb-cue-format") || detectCueFormatFromTextarea(ta.val());
     var nextFormat = currentFormat === "MM" ? "HMM" : "MM";
 
     if (currentFormat === "MM") {
