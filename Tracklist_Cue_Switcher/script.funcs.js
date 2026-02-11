@@ -131,7 +131,7 @@ function rangeToPattern(min, max, width, forcePad) {
 // Decide minutes-only output width for a minute range.
 // Rules derived from your examples:
 // - From h:mm:ss -> minutes-only: ALWAYS 3 digits (e.g. 0..59 => "0??")
-// - From h:mm -> minutes-only: 2 digits if <100 else 3 (e.g. 70..79 => "7?")
+// - From h:mm -> minutes-only: ALWAYS 3 digits (e.g. 0:59 => "059")
 // - From minutes-only input: keep its original width (2 or 3)
 function decideMinutesOnlyWidth(minMinutes, maxMinutes, context) {
     // context: "FROM_HMS" | "FROM_HMM" | "FROM_MM"
@@ -143,7 +143,7 @@ function decideMinutesOnlyWidth(minMinutes, maxMinutes, context) {
     }
 
     // FROM_HMM
-    return (maxMinutes >= 100) ? 3 : 2;
+    return 3;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -483,5 +483,4 @@ function toggleCue_MM_HMM(cue) {
     // INVALID
     return s;
 }
-
 
