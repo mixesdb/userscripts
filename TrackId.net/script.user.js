@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.5
+// @version      2026.02.11.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,6 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_77
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
+// @include      http*mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
 // @noframes
 // @run-at       document-end
@@ -887,9 +888,86 @@ waitForKeyElements("ul#tlEditor-feedback-topInfo", function(jNode) {
     }
 });
 
+function updateTidHasTlInEditLinks() {
+    var tlStatus = $("#tlEditor-feedback").attr("data-tl-status");
+
+    if (!tlStatus || !/^(incomplete|complete)$/.test(tlStatus)) {
+        return;
+    }
+
+    $("a.mdb-mixesdbLink.edit").each(function () {
+        var editLink = $(this),
+            href = editLink.attr("href") || "";
+
+        if (!href || href.indexOf("fromSite=trackid.net") === -1) {
+            return;
+        }
+
+        href = href.replace(/&tidHasTl=(incomplete|complete)/g, "");
+        href = href.replace(/(fromSite=trackid\.net)/, "$1&tidHasTl=" + tlStatus);
+
+        editLink.attr("href", href);
+    });
+}
+
+waitForKeyElements("#tlEditor-feedback", function(jNode) {
+    var status = "";
+
+    $("ul.tlEditor-feedback-topInfo li, ul#tlEditor-feedback-topInfo li").each(function () {
+        var liText = $(this).text().trim();
+
+        if (/^The tracklist seems to be valid and incomplete/i.test(liText) || /^The tracklist seems valid and incomplete/i.test(liText)) {
+            status = "incomplete";
+            return false;
+        }
+
+        if (/^The tracklist seems to be valid and complete/i.test(liText) || /^The tracklist seems valid and complete/i.test(liText)) {
+            status = "complete";
+            return false;
+        }
+    });
+
+    if (status) {
+        jNode.attr("data-tl-status", status);
+        updateTidHasTlInEditLinks();
+    }
+});
+
+waitForKeyElements("a.mdb-mixesdbLink.edit", function(jNode) {
+    updateTidHasTlInEditLinks();
+});
+
 $(document).on("click", "#switchCueFormat", function(e) {
     e.preventDefault();
     toggleTracklistTextareaCueFormat();
+});
+
+d.ready(function () {
+    if (domain != "mixesdb.com" || typeof mw === "undefined" || !mw.config) {
+        return;
+    }
+
+    var wgAction = mw.config.get("wgAction"),
+        wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+        wgTitle = mw.config.get("wgTitle"),
+        tidHasTl = getURLParameter("tidHasTl");
+
+    if ((wgAction == "edit" || wgAction == "submit")
+        && wgNamespaceNumber == 0
+        && wgTitle != "Main Page"
+        && /^(incomplete|complete)$/.test(tidHasTl)
+    ) {
+        var textarea = $("textarea#wpTextbox1");
+
+        if (textarea.length) {
+            textarea.val(
+                textarea.val().replace(
+                    "[[Category:Tracklist: none]]",
+                    "[[Category:Tracklist: " + tidHasTl + "]]"
+                )
+            );
+        }
+    }
 });
 
 // toggleTlCandidate
