@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.13
+// @version      2026.02.19.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -105,6 +105,7 @@ String.prototype.fixTidLabelnames = function() {
                    .replace( /^(.+), LLC/gi, '$1' ) // e.g. Tommy Boy Music, LLC
                    .replace( /^(.+) (UK|US)/gi, '$1' ) // Country codes, eg ADA UK
                    .replace( "Defected - Slip 'N' Slide", "Slip 'N' Slide" )
+                   .replace( "DUB Recordings", "" ) // would end up as [DUB] > (Dub)
                    .replace( "VIVa MUSiC (BEAT Music Fund)", "VIVa" )
                    ;
     return text;
