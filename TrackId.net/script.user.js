@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.19.1
+// @version      2026.02.19.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -32,6 +32,7 @@ var cacheVersion = 96,
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -180,7 +181,9 @@ String.prototype.removeArtistLabels = function(artist) {
  * Before anythings starts: Reload the page
  * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
  */
-redirectOnUrlChange( 50 );
+if( visitDomain == "trackid.net" ) {
+    redirectOnUrlChange( 50 );
+}
 
 /*
  * grab url path and fire functions
