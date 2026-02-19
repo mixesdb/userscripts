@@ -264,7 +264,7 @@ function toolkit_getSiteHasTlParam( siteHasTl="" ) {
 
     if( siteHasTl == "auto" ) {
         status = toolkit_getSiteHasTlStatus();
-    }
+    }//get
 
     if( /^(incomplete|complete)$/.test(status) ) {
         return status;
@@ -460,7 +460,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
-                    //getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
                     getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
                 }
             }
