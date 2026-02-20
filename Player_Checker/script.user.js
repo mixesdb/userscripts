@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.20.6
+// @version      2026.02.20.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,6 +35,7 @@ https://finn-johannsen.de
 https://finn-johannsen.de/2026/01/28/finn-johannsen-full-support-2026-01-28/
 https://finn-johannsen.de/2025/11/04/at-the-top-of-the-stairs-0044-all-that-scratching-is-making-me-glitch/
 https://finn-johannsen.de/2025/06/19/finn-johannsen-finn-johannsen-go-check-the-survey-vol-1-3-pepe-bradock/
+https://finn-johannsen.de/2025/12/04/finn-johannsen-hausmusik-57-2005/
 https://groove.de/2025/01/29/groove-podcast-447-albert-van-abbe/
 https://groove.de/2025/01/15/benjamin-roeder-charlie-groove-resident-podcast-60/
 https://ra.co/podcast/970
@@ -137,11 +138,11 @@ if( visitDomain == "finn-johannsen.de" ) {
         var $post = $(this);
 
         // Collect tracklists from BOTH:
-        // - <p> blocks with timestamps + <br>
+        // - <p> blocks after embeds (figure + p) with <br>
         // - <figure class="wp-block-table"> tables (2 columns: Title | Artist)
         var items = [];
 
-        // Every <p> that contains a tracklist (timestamp + index at line start)
+        // Every <p> that contains a tracklist (timestamp optional)
         // NOTE: Freeze the list first so DOM changes (textarea insert, fixTLbox) can't mess with iteration
         var pList = $post.find("p").get();
 
@@ -149,7 +150,7 @@ if( visitDomain == "finn-johannsen.de" ) {
 
             var $p = $(pList[i]);
 
-            // Make pure text (convert <br> to \n, keep entities decoded by jQuery)
+            // Make pure text (convert <br> to \n, keep entities decoded)
             var html = $p.html();
             if( !html ) continue;
 
@@ -161,20 +162,44 @@ if( visitDomain == "finn-johannsen.de" ) {
             tmp.innerHTML = html_nl;
 
             var tl = tmp.textContent.trim();
+            if( !tl ) continue;
 
-            // Reject if no timestamp at line start (multiline)
-            // - Some lists have track numbers after the timestamp, some don't
-            if( !/^\s*\d{2}:\d{2}:\d{2}\s+/m.test(tl) ) continue;
+            var lines = tl.split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+            var tl_rows = lines.length;
 
-            var tl_rows = tl.split(/\r?\n/).filter(Boolean).length;
+            // Detect:
+            // - If it has timestamps at line start: accept
+            // - Else: accept only if it is likely a plain (no-timestamp) tracklist (> 8 lines)
+            var hasTimestamp = /^\d{2}:\d{2}:\d{2}\s+/m.test(tl);
+
+            if( !hasTimestamp && tl_rows <= 8 ) continue;
 
             log("tl before API:\n" + tl);
             logVar("tl_rows", tl_rows);
 
-            // Make track number optional:
-            // 00:00:00 1 Artist – Title  -> [00:00:00] Artist – Title
-            // 00:00:00 Artist – Title    -> [00:00:00] Artist – Title
-            var tl_fixed = tl.replace( /^0?([\d:]+)\s+(?:\d+\s+)?(.+)$/gm, "[$1] $2" );
+            var tl_fixed = tl;
+
+            if( hasTimestamp ) {
+
+                // Check if ALL lines use "HH:MM:SS <number> <rest>"
+                var allHaveNumbering = lines.every(function(line){
+                    return /^\d{2}:\d{2}:\d{2}\s+\d+\s+/.test(line);
+                });
+
+                if( allHaveNumbering ) {
+                    // Remove numbering after timestamp
+                    tl_fixed = tl.replace(
+                        /^0?([\d:]+)\s+(?:\d+\s+)(.+)$/gm,
+                        "[$1] $2"
+                    );
+                } else {
+                    // Only normalize timestamp, keep rest untouched
+                    tl_fixed = tl.replace(
+                        /^0?([\d:]+)\s+(.+)$/gm,
+                        "[$1] $2"
+                    );
+                }
+            }
 
             if( tl_rows > 8 ) { // sanity check if p-tag is tracklist
                 items.push({
@@ -215,7 +240,7 @@ if( visitDomain == "finn-johannsen.de" ) {
                 out.push( td2 + " - " + td1 );
             });
 
-            if( out.length < 8 ) continue; // sanity check if table is tracklist
+            if( out.length <= 8 ) continue; // sanity check if table is tracklist
 
             var tl_table = out.join("\n");
             var tl_rows_table = out.length;
