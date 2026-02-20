@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.19.4
+// @version      2026.02.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -905,11 +905,13 @@ function toggleTracklistTextareaCueFormat() {
     selectTracklistTextarea();
 }
 
-waitForKeyElements("ul#tlEditor-feedback-topInfo", function(jNode) {
-    if (!$("#switchCueFormat").length) {
-        jNode.prepend('<li class="info_switchCueFormat"><button id="switchCueFormat" class="hand">Switch cue format (mmm > h:m)</button></li>');
-    }
-});
+if( visitDomain == "trackid.net" ) {
+    waitForKeyElements("ul#tlEditor-feedback-topInfo", function(jNode) {
+        if (!$("#switchCueFormat").length) {
+            jNode.prepend('<li class="info_switchCueFormat"><button id="switchCueFormat" class="hand">Switch cue format (mmm > h:m)</button></li>');
+        }
+    });
+}
 
 $(document).on("click", "#switchCueFormat", function(e) {
     e.preventDefault();
