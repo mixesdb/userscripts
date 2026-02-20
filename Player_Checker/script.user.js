@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.20.2
+// @version      2026.02.20.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -197,7 +197,9 @@ if( visitDomain == "finn-johannsen.de" ) {
                 var td1 = $td.eq(0).text().replace(/\s+/g, " ").trim(); // Title
                 var td2 = $td.eq(1).text().replace(/\s+/g, " ").trim(); // Artist
 
-                if( !td1 || !td2 ) return;
+                // Fallback handling for empty cells
+                if( !td1 ) td1 = "?";
+                if( !td2 ) td2 = "?";
 
                 out.push( td2 + " - " + td1 );
             });
