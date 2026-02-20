@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.012.20.1
+// @version      2026.02.20.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -32,7 +32,6 @@
 
 /*
 https://finn-johannsen.de
-https://finn-johannsen.de/2026/02/18/finn-johannsen-full-support-2026-02-18/
 https://groove.de/2025/01/29/groove-podcast-447-albert-van-abbe/
 https://groove.de/2025/01/15/benjamin-roeder-charlie-groove-resident-podcast-60/
 https://ra.co/podcast/970
@@ -102,7 +101,8 @@ setTimeout(function() {
         case "finn-johannsen.de":
             wrapper         = "iframe.mdb-processed-toolkit";
             wrapper_append  = "after";
-            break;
+            //break;
+            return;
 
         default:
             wrapper         = "iframe.mdb-processed-toolkit:first";
@@ -129,42 +129,114 @@ setTimeout(function() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var ta = '<div id="tlEditor"><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
-
 if( visitDomain == "finn-johannsen.de" ) {
-    var tl_wrapper = $(".post p:first");
+    $(".post").each(function(){
+        var $post = $(this);
 
-    // Convert <br> to newline, strip remaining HTML
-    var tl = tl_wrapper
-        .html()
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<[^>]+>/g, "")
-        .trim();
+        // Collect tracklists from BOTH:
+        // - <p> blocks with timestamps + <br>
+        // - <figure class="wp-block-table"> tables (2 columns: Title | Artist)
+        var items = [];
 
-    var tl_rows = tl.split(/\r?\n/).filter(Boolean).length;
+        // Every <p> that contains a tracklist (timestamp + index at line start)
+        // NOTE: Freeze the list first so DOM changes (textarea insert, fixTLbox) can't mess with iteration
+        var pList = $post.find("p").get();
 
-    log("tl before API:\n" + tl);
-    logVar("tl_rows", tl_rows);
+        for( var i = 0; i < pList.length; i++ ) {
 
-    var tl_fixed = tl.replace( /^0?([\d:]+) \d+ (.+)/gm, "[$1] $2" );
+            var $p = $(pList[i]);
 
-    if( tl_rows > 8 ) { // sanity check if p-tag is tracklist
-        tl_wrapper.before(ta);
+            // Make pure text (convert <br> to \n, keep entities decoded by jQuery)
+            var html = $p.html();
+            if( !html ) continue;
 
-        /*
-        var res = apiTracklist( tl_fixed, "Standard" ),
-            tlApi = res.text;
-        log( 'tlApi ("trackidNet"):\n' + tlApi );
-        */
-        $("#mixesdb-TLbox")
-            .addClass("mixesdb-TLbox")
-            .val( tl_fixed )
-            .show();
+            var tl = html
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .trim();
 
-        //fixTLbox( res.feedback );
-        fixTLbox();
-        $("#mixesdb-TLbox").css("height","");
-    } else {
-        log( "Not detected as tracklist." );
-    }
+            // Reject if no timestamp+index at line start (multiline)
+            if( !/^\s*\d{2}:\d{2}:\d{2}\s+\d+\s+/m.test(tl) ) continue;
+
+            var tl_rows = tl.split(/\r?\n/).filter(Boolean).length;
+
+            log("tl before API:\n" + tl);
+            logVar("tl_rows", tl_rows);
+
+            var tl_fixed = tl.replace( /^0?([\d:]+)\s+\d+\s+(.+)$/gm, "[$1] $2" );
+
+            if( tl_rows > 8 ) { // sanity check if p-tag is tracklist
+                items.push({
+                    anchor: $p,
+                    tl_fixed: tl_fixed,
+                    tl_rows: tl_rows
+                });
+            } else {
+                log( "Not detected as tracklist." );
+            }
+        }
+
+        // Tables that are tracklists (2 columns)
+        // Build: td2 + " - " + td1 + "\n"
+        var figList = $post.find("figure.wp-block-table").get();
+
+        for( var j = 0; j < figList.length; j++ ) {
+
+            var $fig = $(figList[j]);
+            var $rows = $fig.find("tr");
+
+            if( $rows.length < 3 ) continue; // sanity: ignore tiny tables
+
+            var out = [];
+
+            $rows.each(function(){
+
+                var $td = $("td", this);
+                if( $td.length < 2 ) return;
+
+                var td1 = $td.eq(0).text().replace(/\s+/g, " ").trim(); // Title
+                var td2 = $td.eq(1).text().replace(/\s+/g, " ").trim(); // Artist
+
+                if( !td1 || !td2 ) return;
+
+                out.push( td2 + " - " + td1 );
+            });
+
+            if( out.length < 8 ) continue; // sanity check if table is tracklist
+
+            var tl_table = out.join("\n");
+            var tl_rows_table = out.length;
+
+            log("tl (table) before API:\n" + tl_table);
+            logVar("tl_rows (table)", tl_rows_table);
+
+            items.push({
+                anchor: $fig,
+                tl_fixed: tl_table,
+                tl_rows: tl_rows_table
+            });
+
+            $fig.css("margin-top","20px");
+        }
+
+        // Render all detected tracklists (multiple per post supported)
+        for( var k = 0; k < items.length; k++ ) {
+
+            var it = items[k];
+
+            // Create textarea that keeps each track on ONE visual line (no soft wrap)
+            var ta = '<textarea class="mixesdb-TLbox mono" ' +
+                     'wrap="off" ' +
+                     'style="display:none; width:100%; margin:10px 0 0 0; white-space:pre; overflow-x:auto; resize:vertical;" ' +
+                     'rows="' + it.tl_rows + '"></textarea>';
+
+            it.anchor.before(ta);
+
+            it.anchor.prev("textarea.mixesdb-TLbox")
+                .val( it.tl_fixed )
+                .show();
+
+            //fixTLbox( res.feedback );
+        }
+    });
 }
