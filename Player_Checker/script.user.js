@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.20.3
+// @version      2026.02.20.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -32,6 +32,9 @@
 
 /*
 https://finn-johannsen.de
+https://finn-johannsen.de/2026/01/28/finn-johannsen-full-support-2026-01-28/
+https://finn-johannsen.de/2025/11/04/at-the-top-of-the-stairs-0044-all-that-scratching-is-making-me-glitch/
+https://finn-johannsen.de/2025/06/19/finn-johannsen-finn-johannsen-go-check-the-survey-vol-1-3-pepe-bradock/
 https://groove.de/2025/01/29/groove-podcast-447-albert-van-abbe/
 https://groove.de/2025/01/15/benjamin-roeder-charlie-groove-resident-podcast-60/
 https://ra.co/podcast/970
@@ -155,15 +158,19 @@ if( visitDomain == "finn-johannsen.de" ) {
             .replace(/<[^>]+>/g, "")
             .trim();
 
-            // Reject if no timestamp+index at line start (multiline)
-            if( !/^\s*\d{2}:\d{2}:\d{2}\s+\d+\s+/m.test(tl) ) continue;
+            // Reject if no timestamp at line start (multiline)
+            // - Some lists have track numbers after the timestamp, some don't
+            if( !/^\s*\d{2}:\d{2}:\d{2}\s+/m.test(tl) ) continue;
 
             var tl_rows = tl.split(/\r?\n/).filter(Boolean).length;
 
             log("tl before API:\n" + tl);
             logVar("tl_rows", tl_rows);
 
-            var tl_fixed = tl.replace( /^0?([\d:]+)\s+\d+\s+(.+)$/gm, "[$1] $2" );
+            // Make track number optional:
+            // 00:00:00 1 Artist – Title  -> [00:00:00] Artist – Title
+            // 00:00:00 Artist – Title    -> [00:00:00] Artist – Title
+            var tl_fixed = tl.replace( /^0?([\d:]+)\s+(?:\d+\s+)?(.+)$/gm, "[$1] $2" );
 
             if( tl_rows > 8 ) { // sanity check if p-tag is tracklist
                 items.push({
@@ -217,8 +224,6 @@ if( visitDomain == "finn-johannsen.de" ) {
                 tl_fixed: tl_table,
                 tl_rows: tl_rows_table
             });
-
-            $fig.css("margin-top","20px");
         }
 
         // Render all detected tracklists (multiple per post supported)
