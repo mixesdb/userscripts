@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.20.5
+// @version      2026.02.20.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -153,10 +153,14 @@ if( visitDomain == "finn-johannsen.de" ) {
             var html = $p.html();
             if( !html ) continue;
 
-            var tl = html
-            .replace(/<br\s*\/?>/gi, "\n")
-            .replace(/<[^>]+>/g, "")
-            .trim();
+            // Convert <br> to \n
+            var html_nl = html.replace(/<br\s*\/?>/gi, "\n");
+
+            // Decode HTML entities properly (e.g. &amp; -> &)
+            var tmp = document.createElement("div");
+            tmp.innerHTML = html_nl;
+
+            var tl = tmp.textContent.trim();
 
             // Reject if no timestamp at line start (multiline)
             // - Some lists have track numbers after the timestamp, some don't
