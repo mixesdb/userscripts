@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.20.1
+// @version      2026.02.23.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -651,6 +651,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                        .replace(/(.+) \((\d+ )?Remaster(ed|ing)?( \d+)?\)$/g, "$1") // "Track Title - (Remaster)" etc
                        .replace(/(.+) \((\d+ )?([A-Za-z]+ )?(\s*Re-?master(ed|ing|;)?)(\s*(Mix|Version|Edition))?\)$/gi, "$1") // "Track Title - (2013 Japan Remaster; Remastered)"
                        .replace(/\s+\(Mixed\)/i, "") // remove " (Mixed)" https://trackid.net/audiostreams/balance-selections-234-sinca
+                       .replace(/\((.+);Mixed\)/i, "($1)") // remove "(Versionx;Mixed)" https://trackid.net/audiostreams/itps064-iron-curtis
                        .replace(/\s*\((?=Original)[^()]*?(?:\([^()]*\)[^()]*)*\)/gi, "") // (Original Mix (Digital Only)) and variants https://trackid.net/audiostreams/sirarthur-chris-liebing-umek-gayle-san-live-u60311-19991105-1of9
                        ;
 
