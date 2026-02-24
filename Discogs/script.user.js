@@ -12,7 +12,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Cue_Switcher_1_
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_1
 // @match        https://www.discogs.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=discogs.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
