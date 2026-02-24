@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.1
+// @version      2026.02.24.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -161,10 +161,12 @@ if( visitDomain == "finn-johannsen.de" ) {
             var tmp = document.createElement("div");
             tmp.innerHTML = html_nl;
 
-            var tl = tmp.textContent.trim();
+            var tl = tmp.textContent.trim().replace( /–/g, "-" );
             if( !tl ) continue;
 
-            var lines = tl.split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+            var lines = tl
+                .split(/\r?\n/)
+                .map(function(s){ return s.trim(); }).filter(Boolean);
             var tl_rows = lines.length;
 
             // Detect:
@@ -261,7 +263,7 @@ if( visitDomain == "finn-johannsen.de" ) {
             var it = items[k];
 
             // Create textarea that keeps each track on ONE visual line (no soft wrap)
-            var ta = '<textarea class="mixesdb-TLbox mono" ' +
+            var ta = '<div id="tlEditor"><textarea id="mixesdb-TLbox" class="mono" ' +
                      'wrap="off" ' +
                      'style="display:none; width:100%; margin:10px 0 0 0; white-space:pre; overflow-x:auto; resize:vertical;" ' +
                      'rows="' + it.tl_rows + '"></textarea>';
@@ -273,7 +275,7 @@ if( visitDomain == "finn-johannsen.de" ) {
                 feedback = res.feedback;
             log( 'tlApi ("trackidNet"):\n' + tlApi );
 
-            it.anchor.prev("textarea.mixesdb-TLbox")
+            $("textarea#mixesdb-TLbox")
                 .val( tlApi )
                 .show();
 
