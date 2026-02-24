@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.16
+// @version      2026.02.24.17
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -27,7 +27,7 @@
 
 var cacheVersion = 2;
 var scriptName = "Discogs";
-var ta = '<div id="tlEditor"><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
+var ta = '<div id="tlEditor"><textarea id="mixesdb-fileDetails" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 //loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -95,6 +95,111 @@ function parseDurationToSeconds(dur){
 function isLikelyDuration(s){
 	s = cleanDurRaw(s);
 	return /^\d{1,2}:\d{2}(?::\d{2})?$/.test(s);
+}
+
+function formatDurationHMMSS(totalSeconds){
+	totalSeconds = Math.max(0, parseInt(totalSeconds, 10) || 0);
+	var h = Math.floor(totalSeconds / 3600);
+	var m = Math.floor((totalSeconds % 3600) / 60);
+	var s = totalSeconds % 60;
+	return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function getCanonicalDiscogsUrl(){
+	var path = window.location.pathname || "";
+	path = path.replace(/^\/[a-z]{2}(?=\/)/i, "");
+	if (!path.startsWith("/")){
+		path = "/" + path;
+	}
+	return window.location.origin + path;
+}
+
+function buildFileDetailsAndNotes(rows, shouldInferPartChapters){
+	var chapters = [];
+	var currentChapter = null;
+	var emittedPartChapters = {};
+	var allTracksHaveDuration = true;
+	var hasTracks = false;
+
+	rows.forEach(function(tr){
+		var tds = Array.from(tr.querySelectorAll("td"));
+		if (tds.length < 2){
+			return;
+		}
+
+		var trackPos = norm(tds[0] ? tds[0].textContent : "") || norm(tr.getAttribute("data-track-position") || "");
+		var titleCell = getTrackTitleCell(tr, tds, false);
+		var title = getTrackTitleFromCell(titleCell);
+		var isChapterRow = tr.classList.contains("heading_mkZNt")
+			|| tr.classList.contains("heading_Yx9y2")
+			|| Array.from(tr.classList).some(function(c){ return /^heading_/.test(c); })
+			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
+
+		if (isChapterRow && title){
+			currentChapter = { name: title, seconds: 0 };
+			chapters.push(currentChapter);
+			return;
+		}
+
+		if (shouldInferPartChapters){
+			var disc = getDiscFromTrackPos(trackPos);
+			if (disc && !emittedPartChapters[disc]){
+				currentChapter = { name: "Part " + disc, seconds: 0 };
+				chapters.push(currentChapter);
+				emittedPartChapters[disc] = true;
+			}
+		}
+
+		var lastCellTxt = norm(tds[tds.length - 1].textContent);
+		var hasDuration = isLikelyDuration(lastCellTxt);
+		hasTracks = true;
+
+		if (!hasDuration){
+			allTracksHaveDuration = false;
+			return;
+		}
+
+		if (!currentChapter){
+			currentChapter = { name: "", seconds: 0 };
+			chapters.push(currentChapter);
+		}
+
+		currentChapter.seconds += parseDurationToSeconds(lastCellTxt);
+	});
+
+	var notesBlock = "== Notes ==\n\n" + getCanonicalDiscogsUrl();
+
+	if (!hasTracks || !allTracksHaveDuration){
+		return notesBlock;
+	}
+
+	var hasNamedChapters = chapters.some(function(ch){ return !!ch.name; });
+	var totalSeconds = chapters.reduce(function(sum, ch){ return sum + ch.seconds; }, 0);
+	var lines = [
+		"== File details ==",
+		"",
+		"{|{{NormalTableFormat}}"
+	];
+
+	if (hasNamedChapters){
+		lines.push("! Pt.");
+	}
+	lines.push("! dur", "! MB", "! kbps", "|-");
+
+	if (hasNamedChapters){
+		chapters.forEach(function(ch, idx){
+			lines.push("| " + (idx + 1), "| " + formatDurationHMMSS(ch.seconds), "| ", "| ");
+			if (idx < chapters.length - 1){
+				lines.push("|-");
+			}
+		});
+		lines.push("|-", "| ", "| " + formatDurationHMMSS(totalSeconds), "| ", "| ");
+	}else{
+		lines.push("| " + formatDurationHMMSS(totalSeconds), "| ", "| ");
+	}
+
+	lines.push("|}", "", notesBlock);
+	return lines.join("\n");
 }
 
 function getTimestampPadWidth(rows, shouldInferPartChapters){
@@ -336,6 +441,7 @@ function buildDiscogsTL(){
 		return isLikelyDuration(norm(tds[tds.length - 1].textContent));
 	});
 	var chapterStamp = "";
+	var fileDetailsAndNotes = buildFileDetailsAndNotes(rows, shouldInferPartChapters);
 
 	rows.forEach(function(tr, idx){
 
@@ -446,6 +552,11 @@ function buildDiscogsTL(){
 	$("#mixesdb-TLbox")
 		.css("position","inherit")
 		.val(tlApi)
+		.show();
+
+	$("#mixesdb-fileDetails")
+		.css("position","inherit")
+		.val(fileDetailsAndNotes)
 		.show();
 
 	fixTLbox(res.feedback);
