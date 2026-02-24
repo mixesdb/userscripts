@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.18
+// @version      2026.02.24.19
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -114,7 +114,32 @@ function getCanonicalDiscogsUrl(){
 	return window.location.origin + path;
 }
 
-function buildFileDetailsAndNotes(rows, shouldInferPartChapters){
+function isCdReleaseFormat(){
+	var metaRows = Array.from(document.querySelectorAll("tr"));
+	for (var i = 0; i < metaRows.length; i++){
+		var row = metaRows[i];
+		var th = row.querySelector("th h2");
+		if (!th){
+			continue;
+		}
+
+		var label = norm(th.textContent).replace(/:$/, "").toLowerCase();
+		if (label !== "format"){
+			continue;
+		}
+
+		var td = row.querySelector("td");
+		if (!td){
+			return false;
+		}
+
+		return /\bcd\b/i.test(norm(td.textContent));
+	}
+
+	return false;
+}
+
+function buildFileDetailsAndNotes(rows, shouldInferPartChapters, isCdFormat){
 	var chapters = [];
 	var currentChapter = null;
 	var emittedPartChapters = {};
@@ -144,7 +169,7 @@ function buildFileDetailsAndNotes(rows, shouldInferPartChapters){
 		if (shouldInferPartChapters){
 			var disc = getDiscFromTrackPos(trackPos);
 			if (disc && !emittedPartChapters[disc]){
-				currentChapter = { name: "Part " + disc, seconds: 0 };
+				currentChapter = { name: (isCdFormat ? "CD " : "Part ") + disc, seconds: 0 };
 				chapters.push(currentChapter);
 				emittedPartChapters[disc] = true;
 			}
@@ -182,7 +207,7 @@ function buildFileDetailsAndNotes(rows, shouldInferPartChapters){
 	];
 
 	if (hasNamedChapters){
-		lines.push("! Pt.");
+		lines.push(shouldInferPartChapters && isCdFormat ? "! CD" : "! Pt.");
 	}
 	lines.push("! dur", "! MB", "! kbps", "|-");
 
@@ -430,6 +455,7 @@ function buildDiscogsTL(){
 		}
 	});
 	var shouldInferPartChapters = !hasExplicitChapterRows && inferredDiscs.length > 1;
+	var isCdFormat = isCdReleaseFormat();
 	var stampPadWidth = getTimestampPadWidth(rows, shouldInferPartChapters);
 	var emittedPartChapters = {};
 	var chapterStartSeconds = 0;
@@ -441,7 +467,7 @@ function buildDiscogsTL(){
 		return isLikelyDuration(norm(tds[tds.length - 1].textContent));
 	});
 	var chapterStamp = "";
-	var fileDetailsAndNotes = buildFileDetailsAndNotes(rows, shouldInferPartChapters);
+	var fileDetailsAndNotes = buildFileDetailsAndNotes(rows, shouldInferPartChapters, isCdFormat);
 
 	rows.forEach(function(tr, idx){
 
@@ -489,7 +515,7 @@ function buildDiscogsTL(){
 				if (out.length && out[out.length - 1] !== ""){
 					out.push("");
 				}
-				out.push(chapterStamp + ";Part " + disc);
+				out.push(chapterStamp + ";" + (isCdFormat ? "CD " : "Part ") + disc);
 				emittedPartChapters[disc] = true;
 				chapterStartSeconds = cumSeconds;
 			}
