@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.15
+// @version      2026.02.24.16
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -97,10 +97,12 @@ function isLikelyDuration(s){
 	return /^\d{1,2}:\d{2}(?::\d{2})?$/.test(s);
 }
 
-function getTimestampPadWidth(rows){
+function getTimestampPadWidth(rows, shouldInferPartChapters){
 	var cumSeconds = 0;
+	var chapterStartSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var maxKnownMinuteStamp = 0;
+	var emittedPartChapters = {};
 
 	rows.forEach(function(tr){
 		if (hasUnknownDurationFromHere){
@@ -112,6 +114,27 @@ function getTimestampPadWidth(rows){
 			return;
 		}
 
+		var trackPos = norm(tds[0] ? tds[0].textContent : "") || norm(tr.getAttribute("data-track-position") || "");
+		var titleCell = getTrackTitleCell(tr, tds, false);
+		var title = getTrackTitleFromCell(titleCell);
+		var isChapterRow = tr.classList.contains("heading_mkZNt")
+			|| tr.classList.contains("heading_Yx9y2")
+			|| Array.from(tr.classList).some(function(c){ return /^heading_/.test(c); })
+			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
+
+		if (shouldInferPartChapters){
+			var disc = getDiscFromTrackPos(trackPos);
+			if (disc && !emittedPartChapters[disc]){
+				emittedPartChapters[disc] = true;
+				chapterStartSeconds = cumSeconds;
+			}
+		}
+
+		if (isChapterRow && title){
+			chapterStartSeconds = cumSeconds;
+			return;
+		}
+
 		var lastCellTxt = norm(tds[tds.length - 1].textContent);
 		var hasDuration = isLikelyDuration(lastCellTxt);
 
@@ -120,7 +143,7 @@ function getTimestampPadWidth(rows){
 			return;
 		}
 
-		maxKnownMinuteStamp = Math.max(maxKnownMinuteStamp, Math.floor(cumSeconds / 60));
+		maxKnownMinuteStamp = Math.max(maxKnownMinuteStamp, Math.floor((cumSeconds - chapterStartSeconds) / 60));
 		cumSeconds += parseDurationToSeconds(lastCellTxt);
 	});
 
@@ -278,7 +301,6 @@ function buildDiscogsTL(){
 	var out = [];
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
-	var stampPadWidth = getTimestampPadWidth(rows);
 	var releaseArtist = getReleaseArtistFromHeading();
 	var hasExplicitChapterRows = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
@@ -303,6 +325,7 @@ function buildDiscogsTL(){
 		}
 	});
 	var shouldInferPartChapters = !hasExplicitChapterRows && inferredDiscs.length > 1;
+	var stampPadWidth = getTimestampPadWidth(rows, shouldInferPartChapters);
 	var emittedPartChapters = {};
 	var hasAnyDuration = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
