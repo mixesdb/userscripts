@@ -619,22 +619,29 @@ function create_button( text, className, type ) {
 
 // fixTLbox
 function fixTLbox( feedback ) {
-    var tl = $("#mixesdb-TLbox");
-    tl.html( tl.html().replace(/&(nbsp|thinsp);/g, ' ') );
-    var text = "TEMPBEGINNING" + tl.val(),
-        textFix = text.replace(/TEMPBEGINNING(\n)?/g,"")
-                      .replace(/\n$/g,"")
-                      .replace(/( )+/g, " ");
-    tl.val(textFix);
-    var text = tl.val(),
-        lines = text.split("\n"),
-        count = lines.length;
-    tl.attr('rows', count);
+    var tls = $("#mixesdb-TLbox, textarea.mixesdb-TLbox");
 
-    autosize(tl); // beatport.com buggy in FF
+    tls.each(function() {
+        var tl = $(this);
+        tl.html( tl.html().replace(/&(nbsp|thinsp);/g, ' ') );
+        var text = "TEMPBEGINNING" + tl.val(),
+            textFix = text.replace(/TEMPBEGINNING(\n)?/g,"")
+                          .replace(/\n$/g,"")
+                          .replace(/( )+/g, " ");
+        tl.val(textFix);
+        text = tl.val();
+        var lines = text.split("\n"),
+            count = lines.length;
+        tl.attr('rows', count);
+
+        autosize(tl); // beatport.com buggy in FF
+
+        tl.show().select().addClass("fixed");
+    });
 
     if( feedback != null && feedback.text ) {
         var tle = $("#tlEditor");
+        var tl = $("#mixesdb-TLbox, textarea.mixesdb-TLbox").first();
         tle.addClass("bot10");
         tl.attr( "id", "mixesdb-TLbox tlEditor-textarea" );
 
@@ -654,8 +661,6 @@ function fixTLbox( feedback ) {
         tl.after( feedback.text );
     }
     loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css" );
-        
-    tl.show().select().addClass("fixed");
 }
 
 // apiTracklist
