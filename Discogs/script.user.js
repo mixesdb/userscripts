@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.10
+// @version      2026.02.24.13
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -97,8 +97,39 @@ function isLikelyDuration(s){
 	return /^\d{1,2}:\d{2}(?::\d{2})?$/.test(s);
 }
 
-function pad2(n){
-	return String(n).padStart(2, "0");
+function getTimestampPadWidth(rows){
+	var cumSeconds = 0;
+	var hasUnknownDurationFromHere = false;
+	var maxKnownMinuteStamp = 0;
+
+	rows.forEach(function(tr){
+		if (hasUnknownDurationFromHere){
+			return;
+		}
+
+		var tds = Array.from(tr.querySelectorAll("td"));
+		if (tds.length < 2){
+			return;
+		}
+
+		var lastCellTxt = norm(tds[tds.length - 1].textContent);
+		var hasDuration = isLikelyDuration(lastCellTxt);
+
+		if (!hasDuration){
+			hasUnknownDurationFromHere = true;
+			return;
+		}
+
+		maxKnownMinuteStamp = Math.max(maxKnownMinuteStamp, Math.floor(cumSeconds / 60));
+		cumSeconds += parseDurationToSeconds(lastCellTxt);
+	});
+
+	return maxKnownMinuteStamp >= 100 ? 3 : 2;
+}
+
+function getDiscFromTrackPos(pos){
+	var m = norm(pos).match(/^(\d+)\s*[-–—]\s*\d+[A-Za-z]?$/);
+	return m ? m[1] : "";
 }
 
 function removeStrayAsterisks(wrapper){
@@ -247,7 +278,32 @@ function buildDiscogsTL(){
 	var out = [];
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
+	var stampPadWidth = getTimestampPadWidth(rows);
 	var releaseArtist = getReleaseArtistFromHeading();
+	var hasExplicitChapterRows = rows.some(function(tr){
+		var tds = Array.from(tr.querySelectorAll("td"));
+		var trackPos = norm(tds[0] ? tds[0].textContent : "");
+		var titleCell = getTrackTitleCell(tr, tds, false);
+		var title = getTrackTitleFromCell(titleCell);
+		return tr.classList.contains("heading_mkZNt")
+			|| tr.classList.contains("heading_Yx9y2")
+			|| Array.from(tr.classList).some(function(c){ return /^heading_/.test(c); })
+			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
+	});
+	var inferredDiscs = [];
+	rows.forEach(function(tr){
+		var tds = Array.from(tr.querySelectorAll("td"));
+		if (!tds.length){
+			return;
+		}
+		var trackPos = norm(tds[0] ? tds[0].textContent : "") || norm(tr.getAttribute("data-track-position") || "");
+		var disc = getDiscFromTrackPos(trackPos);
+		if (disc && inferredDiscs.indexOf(disc) === -1){
+			inferredDiscs.push(disc);
+		}
+	});
+	var shouldInferPartChapters = !hasExplicitChapterRows && inferredDiscs.length > 1;
+	var emittedPartChapters = {};
 	var hasAnyDuration = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		if (!tds.length){
@@ -275,14 +331,10 @@ function buildDiscogsTL(){
 			artistCells = tds.slice(1, artistEnd);
 		}
 
-		if (!hasDuration){
-			hasUnknownDurationFromHere = true;
-		}
-
 		var durStr = hasDuration ? cleanDurRaw(lastCellTxt) : "";
 		var durSec = parseDurationToSeconds(durStr);
 		var title  = getTrackTitleFromCell(titleCell);
-		var trackPos = norm(tds[0] ? tds[0].textContent : "");
+		var trackPos = norm(tds[0] ? tds[0].textContent : "") || norm(tr.getAttribute("data-track-position") || "");
 
 		var isChapterRow = tr.classList.contains("heading_mkZNt")
 			|| tr.classList.contains("heading_Yx9y2")
@@ -295,6 +347,21 @@ function buildDiscogsTL(){
 			}
 			out.push(";" + title);
 			return;
+		}
+
+		if (!hasDuration){
+			hasUnknownDurationFromHere = true;
+		}
+
+		if (shouldInferPartChapters){
+			var disc = getDiscFromTrackPos(trackPos);
+			if (disc && !emittedPartChapters[disc]){
+				if (out.length && out[out.length - 1] !== ""){
+					out.push("");
+				}
+				out.push(";Part " + disc);
+				emittedPartChapters[disc] = true;
+			}
 		}
 
 		var artistParts = [];
@@ -320,7 +387,7 @@ function buildDiscogsTL(){
 		if (hasAnyDuration){
 			stamp = hasUnknownDurationFromHere
 				? "[??]"
-				: "[" + pad2(Math.floor(cumSeconds / 60)) + "]";
+				: "[" + String(Math.floor(cumSeconds / 60)).padStart(stampPadWidth, "0") + "]";
 		}
 
 		out.push((stamp ? (stamp + " ") : "") + artist + " - " + title);
