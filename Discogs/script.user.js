@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.3
+// @version      2026.02.24.4
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -277,6 +277,25 @@ function buildDiscogsTL(){
  * Wait for Discogs React render
  * --------------------------------------------------------- */
 
+var discogsBuildTLTimer = null;
+var discogsTLBuilt = false;
+
+function scheduleDiscogsTLBuild(){
+	if (discogsTLBuilt){
+		return;
+	}
+
+	clearTimeout(discogsBuildTLTimer);
+	discogsBuildTLTimer = setTimeout(function(){
+		if (discogsTLBuilt){
+			return;
+		}
+
+		buildDiscogsTL();
+		discogsTLBuilt = $("#tlEditor").length > 0;
+	}, 350);
+}
+
 waitForKeyElements("#release-tracklist table", function(){
-	buildDiscogsTL();
+	scheduleDiscogsTLBuild();
 });
