@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.2
+// @version      2026.02.24.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -90,6 +90,11 @@ function parseDurationToSeconds(dur){
 	}
 
 	return (h * 3600) + (m * 60) + s;
+}
+
+function isLikelyDuration(s){
+	s = cleanDurRaw(s);
+	return /^\d{1,2}:\d{2}(?::\d{2})?$/.test(s);
 }
 
 function pad2(n){
@@ -182,15 +187,30 @@ function buildDiscogsTL(){
 			return;
 		}
 
-		var durStr = cleanDurRaw(tds[tds.length - 1].textContent);
+		var titleCell = tr.querySelector("td.trackTitle_loyWF") || null;
+		var artistCells = Array.from(tr.querySelectorAll("td.artist_VsG56"));
+
+		var lastCellTxt = norm(tds[tds.length - 1].textContent);
+		var hasDuration = isLikelyDuration(lastCellTxt);
+
+		if (!titleCell){
+			titleCell = hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
+		}
+
+		if (!artistCells.length){
+			var artistEnd = hasDuration ? tds.length - 2 : tds.length - 1;
+			artistCells = tds.slice(1, artistEnd);
+		}
+
+		var durStr = hasDuration ? cleanDurRaw(lastCellTxt) : "";
 		var durSec = parseDurationToSeconds(durStr);
-		var title  = norm(tds[tds.length - 2].textContent);
+		var title  = norm(titleCell ? titleCell.textContent : "");
 
 		var artistParts = [];
 
-		for (var i = 1; i <= tds.length - 3; i++){
+		for (var i = 0; i < artistCells.length; i++){
 
-			var cell = tds[i];
+			var cell = artistCells[i];
 			var links = cell.querySelectorAll("a");
 
 			if (links.length){
