@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.13
+// @version      2026.02.24.14
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -349,9 +349,7 @@ function buildDiscogsTL(){
 			return;
 		}
 
-		if (!hasDuration){
-			hasUnknownDurationFromHere = true;
-		}
+		var isMissingDurationOnThisTrack = !hasDuration;
 
 		if (shouldInferPartChapters){
 			var disc = getDiscFromTrackPos(trackPos);
@@ -394,6 +392,10 @@ function buildDiscogsTL(){
 
 		if (!hasUnknownDurationFromHere){
 			cumSeconds += durSec;
+		}
+
+		if (isMissingDurationOnThisTrack){
+			hasUnknownDurationFromHere = true;
 		}
 	});
 
