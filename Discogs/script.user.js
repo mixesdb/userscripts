@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.8
+// @version      2026.02.24.9
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -182,6 +182,44 @@ function getTrackTitleCell(tr, tds, hasDuration){
 	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
 }
 
+function getArtistFromCell(cell){
+	if (!cell){
+		return "";
+	}
+
+	var out = "";
+
+	Array.from(cell.childNodes).forEach(function(node){
+		if (node.nodeType === Node.ELEMENT_NODE){
+			if (node.matches("a") || node.querySelector("a")){
+				var link = node.matches("a") ? node : node.querySelector("a");
+				var linkName = cleanArtist(link.textContent).replace(/\s*\(\d+\)\s*/g, "").trim();
+				if (linkName){
+					out += linkName;
+				}
+				return;
+			}
+
+			var elText = norm(node.textContent);
+			if (!elText || elText === "–" || elText === "-" || elText === "—"){
+				return;
+			}
+			out += " " + elText + " ";
+			return;
+		}
+
+		if (node.nodeType === Node.TEXT_NODE){
+			var txt = norm(node.nodeValue || "");
+			if (!txt || txt === "–" || txt === "-" || txt === "—"){
+				return;
+			}
+			out += " " + txt + " ";
+		}
+	});
+
+	return cleanArtist(norm(out));
+}
+
 
 /* ---------------------------------------------------------
  * Main builder
@@ -257,24 +295,7 @@ function buildDiscogsTL(){
 		for (var i = 0; i < artistCells.length; i++){
 
 			var cell = artistCells[i];
-			var links = cell.querySelectorAll("a");
-
-			if (links.length){
-				links.forEach(function(a){
-					var name = cleanArtist(a.textContent);
-					if (name){
-						artistParts.push(name);
-					}
-				});
-				continue;
-			}
-
-			var txt = norm(cell.textContent);
-			if (!txt || txt === "–" || txt === "-" || txt === "—"){
-				continue;
-			}
-
-			txt = cleanArtist(txt);
+			var txt = getArtistFromCell(cell);
 			if (txt){
 				artistParts.push(txt);
 			}
