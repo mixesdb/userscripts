@@ -327,6 +327,7 @@ function buildDiscogsTL(){
 	var shouldInferPartChapters = !hasExplicitChapterRows && inferredDiscs.length > 1;
 	var stampPadWidth = getTimestampPadWidth(rows, shouldInferPartChapters);
 	var emittedPartChapters = {};
+	var chapterStartSeconds = 0;
 	var hasAnyDuration = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		if (!tds.length){
@@ -366,6 +367,7 @@ function buildDiscogsTL(){
 			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
 
 		if (isChapterRow && title){
+			chapterStartSeconds = cumSeconds;
 			if (out.length && out[out.length - 1] !== ""){
 				out.push("");
 			}
