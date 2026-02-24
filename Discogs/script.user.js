@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.5
+// @version      2026.02.24.6
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -152,6 +152,24 @@ function getReleaseArtistFromHeading(){
 	return cleanArtist(out);
 }
 
+function getTrackTitleFromCell(titleCell){
+	if (!titleCell){
+		return "";
+	}
+
+	var explicitTrackTitle = titleCell.querySelector("span.trackTitle_loyWF");
+	if (explicitTrackTitle){
+		return norm(explicitTrackTitle.textContent);
+	}
+
+	var clone = titleCell.cloneNode(true);
+	clone.querySelectorAll(".trackCredits_f3JDq, .measure_JB5_t, .credits_vzBtg").forEach(function(el){
+		el.remove();
+	});
+
+	return norm(clone.textContent);
+}
+
 
 /* ---------------------------------------------------------
  * Main builder
@@ -204,7 +222,7 @@ function buildDiscogsTL(){
 
 		var durStr = hasDuration ? cleanDurRaw(lastCellTxt) : "";
 		var durSec = parseDurationToSeconds(durStr);
-		var title  = norm(titleCell ? titleCell.textContent : "");
+		var title  = getTrackTitleFromCell(titleCell);
 		var trackPos = norm(tds[0] ? tds[0].textContent : "");
 
 		var isChapterRow = tr.classList.contains("heading_mkZNt")
