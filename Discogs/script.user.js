@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.1
+// @version      2026.02.24.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -110,6 +110,43 @@ function removeStrayAsterisks(wrapper){
 	});
 }
 
+function getReleaseArtistFromHeading(){
+	var h1 = document.querySelector("h1");
+	if (!h1){
+		return "";
+	}
+
+	var out = "";
+	var stop = false;
+
+	Array.from(h1.childNodes).forEach(function(node){
+		if (stop){
+			return;
+		}
+
+		if (node.nodeType === Node.ELEMENT_NODE){
+			var txt = cleanArtist(node.textContent);
+			if (txt){
+				out += txt;
+			}
+			return;
+		}
+
+		if (node.nodeType !== Node.TEXT_NODE){
+			return;
+		}
+
+		var raw = node.nodeValue || "";
+		var parts = raw.split(/\s+[–—-]\s+/);
+		out += parts[0] || "";
+		if (parts.length > 1){
+			stop = true;
+		}
+	});
+
+	return cleanArtist(out);
+}
+
 
 /* ---------------------------------------------------------
  * Main builder
@@ -136,6 +173,7 @@ function buildDiscogsTL(){
 
 	var out = [];
 	var cumSeconds = 0;
+	var releaseArtist = getReleaseArtistFromHeading();
 
 	rows.forEach(function(tr, idx){
 
@@ -177,6 +215,9 @@ function buildDiscogsTL(){
 		}
 
 		var artist = artistParts.join(" / ").trim();
+		if (!artist && releaseArtist){
+			artist = releaseArtist;
+		}
 		if (!artist && !title){
 			return;
 		}
