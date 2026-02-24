@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.4
+// @version      2026.02.24.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -205,6 +205,18 @@ function buildDiscogsTL(){
 		var durStr = hasDuration ? cleanDurRaw(lastCellTxt) : "";
 		var durSec = parseDurationToSeconds(durStr);
 		var title  = norm(titleCell ? titleCell.textContent : "");
+		var trackPos = norm(tds[0] ? tds[0].textContent : "");
+
+		var isChapterRow = tr.classList.contains("heading_mkZNt")
+			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
+
+		if (isChapterRow && title){
+			if (out.length && out[out.length - 1] !== ""){
+				out.push("");
+			}
+			out.push(";" + title);
+			return;
+		}
 
 		var artistParts = [];
 
