@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.9
+// @version      2026.02.24.10
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -248,6 +248,13 @@ function buildDiscogsTL(){
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
+	var hasAnyDuration = rows.some(function(tr){
+		var tds = Array.from(tr.querySelectorAll("td"));
+		if (!tds.length){
+			return false;
+		}
+		return isLikelyDuration(norm(tds[tds.length - 1].textContent));
+	});
 
 	rows.forEach(function(tr, idx){
 
@@ -309,11 +316,14 @@ function buildDiscogsTL(){
 			return;
 		}
 
-		var stamp = hasUnknownDurationFromHere
-			? "[??]"
-			: "[" + pad2(Math.floor(cumSeconds / 60)) + "]";
+		var stamp = "";
+		if (hasAnyDuration){
+			stamp = hasUnknownDurationFromHere
+				? "[??]"
+				: "[" + pad2(Math.floor(cumSeconds / 60)) + "]";
+		}
 
-		out.push(stamp + " " + artist + " - " + title);
+		out.push((stamp ? (stamp + " ") : "") + artist + " - " + title);
 
 		if (!hasUnknownDurationFromHere){
 			cumSeconds += durSec;
