@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.7
+// @version      2026.02.24.8
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -208,6 +208,7 @@ function buildDiscogsTL(){
 
 	var out = [];
 	var cumSeconds = 0;
+	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
 
 	rows.forEach(function(tr, idx){
@@ -227,6 +228,10 @@ function buildDiscogsTL(){
 		if (!artistCells.length){
 			var artistEnd = hasDuration ? tds.length - 2 : tds.length - 1;
 			artistCells = tds.slice(1, artistEnd);
+		}
+
+		if (!hasDuration){
+			hasUnknownDurationFromHere = true;
 		}
 
 		var durStr = hasDuration ? cleanDurRaw(lastCellTxt) : "";
@@ -283,9 +288,15 @@ function buildDiscogsTL(){
 			return;
 		}
 
-		var stampSec = cumSeconds;					// start time of THIS track
-        out.push("[" + pad2(Math.floor(stampSec / 60)) + "] " + artist + " - " + title);
-        cumSeconds += durSec;						// then advance for next track
+		var stamp = hasUnknownDurationFromHere
+			? "[??]"
+			: "[" + pad2(Math.floor(cumSeconds / 60)) + "]";
+
+		out.push(stamp + " " + artist + " - " + title);
+
+		if (!hasUnknownDurationFromHere){
+			cumSeconds += durSec;
+		}
 	});
 
 	var tl = out.join("\n").trim();
