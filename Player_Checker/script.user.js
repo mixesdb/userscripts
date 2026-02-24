@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Player_Checker/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Player_Checker_8
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Player_Checker_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Player_Checker_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-Player_Checker_1
 // @include      http*finn-johannsen.de*
@@ -268,11 +268,16 @@ if( visitDomain == "finn-johannsen.de" ) {
 
             it.anchor.before(ta);
 
+            var res = apiTracklist( it.tl_fixed, "standard" ),
+                tlApi = res.text,
+                feedback = res.feedback;
+            log( 'tlApi ("trackidNet"):\n' + tlApi );
+
             it.anchor.prev("textarea.mixesdb-TLbox")
-                .val( it.tl_fixed )
+                .val( tlApi )
                 .show();
 
-            //fixTLbox( res.feedback );
+            fixTLbox( res.feedback );
         }
     });
 }
