@@ -360,6 +360,7 @@ function buildDiscogsTL(){
 				}
 				out.push(chapterStamp + ";Part " + disc);
 				emittedPartChapters[disc] = true;
+				chapterStartSeconds = cumSeconds;
 			}
 		}
 
@@ -386,7 +387,7 @@ function buildDiscogsTL(){
 		if (hasAnyDuration){
 			stamp = hasUnknownDurationFromHere
 				? "[??]"
-				: "[" + String(Math.floor(cumSeconds / 60)).padStart(stampPadWidth, "0") + "]";
+				: "[" + String(Math.floor((cumSeconds - chapterStartSeconds) / 60)).padStart(stampPadWidth, "0") + "]";
 		}
 
 		out.push((stamp ? (stamp + " ") : "") + artist + " - " + title);
