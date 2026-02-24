@@ -311,7 +311,7 @@ function buildDiscogsTL(){
 		}
 		return isLikelyDuration(norm(tds[tds.length - 1].textContent));
 	});
-	var chapterStamp = hasAnyDuration ? "[00] " : "";
+	var chapterStamp = "";
 
 	rows.forEach(function(tr, idx){
 
