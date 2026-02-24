@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.6
+// @version      2026.02.24.7
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -170,6 +170,18 @@ function getTrackTitleFromCell(titleCell){
 	return norm(clone.textContent);
 }
 
+function getTrackTitleCell(tr, tds, hasDuration){
+	var titleCell = tr.querySelector("td.trackTitle_loyWF")
+		|| tr.querySelector("td[class*='trackTitle']")
+		|| null;
+
+	if (titleCell){
+		return titleCell;
+	}
+
+	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
+}
+
 
 /* ---------------------------------------------------------
  * Main builder
@@ -205,15 +217,12 @@ function buildDiscogsTL(){
 			return;
 		}
 
-		var titleCell = tr.querySelector("td.trackTitle_loyWF") || null;
-		var artistCells = Array.from(tr.querySelectorAll("td.artist_VsG56"));
+		var artistCells = Array.from(tr.querySelectorAll("td.artist_VsG56, td[class*='artist_']"));
 
 		var lastCellTxt = norm(tds[tds.length - 1].textContent);
 		var hasDuration = isLikelyDuration(lastCellTxt);
 
-		if (!titleCell){
-			titleCell = hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
-		}
+		var titleCell = getTrackTitleCell(tr, tds, hasDuration);
 
 		if (!artistCells.length){
 			var artistEnd = hasDuration ? tds.length - 2 : tds.length - 1;
@@ -226,6 +235,8 @@ function buildDiscogsTL(){
 		var trackPos = norm(tds[0] ? tds[0].textContent : "");
 
 		var isChapterRow = tr.classList.contains("heading_mkZNt")
+			|| tr.classList.contains("heading_Yx9y2")
+			|| Array.from(tr.classList).some(function(c){ return /^heading_/.test(c); })
 			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
 
 		if (isChapterRow && title){
