@@ -98,9 +98,6 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
     if( /.+soundcloud\.com.+/.test(srcUrl) ) {
         log( "iframe is SoundCloud" );
 
-        srcUrl = removeParametersFromUrl( srcUrl );
-        logVar( "srcUrl after removeParametersFromUrl()", srcUrl );
-
         // api.soundcloud.com or soundcloud.com/[key]
         if( /.+api\.soundcloud\.com.+/.test(srcUrl) ) {
             // https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/2007972247&show_artwork=true&color=%23ff5500&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true
