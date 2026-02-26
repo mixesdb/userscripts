@@ -121,11 +121,11 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra970-upsammy/&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra996-ron-trent&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             
-            var scUrl_key = ensureTrailingSlash( extractUrlFromUrlParameter( srcUrl ) );
+            var scUrl_key = removeParametersFromUrl( extractUrlFromUrlParameter( srcUrl ) );
             logVar( "scUrl_key", scUrl_key );
 
-            // Sanity check: if no path behind soundcloud.com/[key]
-            if( scUrl_key.split("/")[4] != "" && scUrl_key.split("/")[5] == "" ) {
+            // Sanity check: if URL has /user/track
+            if( /^https:\/\/(www\.)?soundcloud\.com\/[^/]+\/[^/?#]+\/?$/.test(scUrl_key) ) {
                 getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
             }
         }
