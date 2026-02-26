@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.26.5
+// @version      2026.02.26.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -100,11 +100,13 @@ setTimeout(function() {
     let wrapper_append;
     let wrapper_context = "";
 
+    let runToolkitPerPost = false;
+
     switch (visitDomain) {
         case "finn-johannsen.de":
-            wrapper         = "iframe.mdb-processed-toolkit:first";
-            wrapper_append  = "before";
-            wrapper_context = ".post";
+            wrapper             = "iframe.mdb-processed-toolkit:first";
+            wrapper_append      = "before";
+            runToolkitPerPost   = true;
             break;
 
         default:
@@ -115,23 +117,12 @@ setTimeout(function() {
     // let's go
     if( max_toolboxIterations > 0 ) {
 
-        if( wrapper_context != "" ) {
-            var contexts = $(wrapper_context).get();
-            var contextIndex = 0;
-            var contextDelay = (typeof toolkitUrls_totalTimeout !== "undefined" ? toolkitUrls_totalTimeout : 2000) + 500;
-
-            function processNextContext() {
-                if( contextIndex >= contexts.length ) {
-                    return;
-                }
-
-                var context = $(contexts[contextIndex]);
-                contextIndex++;
-
-                var iframes = context.find("iframe:not(.mdb-processed-toolkit)");
+        if( runToolkitPerPost ) {
+            $(".post").each(function() {
+                var $post = $(this);
+                var iframes = $post.find("iframe:not(.mdb-processed-toolkit)");
 
                 if( iframes.length === 0 ) {
-                    processNextContext();
                     return;
                 }
 
@@ -141,22 +132,10 @@ setTimeout(function() {
                     var iframe = $(this);
                     iframe.addClass("mdb-processed-toolkit");
 
-                    var wrapper_thisContext = context.find( wrapper );
-                    getToolkit_fromIframe( iframe, "playerUrl", "detail page", wrapper_thisContext, wrapper_append, titleText, "", iframes.length );
+                    var wrapper_thisPost = $post.find( wrapper );
+                    getToolkit_fromIframe( iframe, "playerUrl", "detail page", wrapper_thisPost, wrapper_append, titleText, "", iframes.length );
                 });
-
-                setTimeout(function() {
-                    var toolkit = $("#mdb-toolkit");
-                    if( toolkit.length ) {
-                        toolkit.attr("id", "mdb-toolkit-context-" + contextIndex);
-                        toolkit.find("#mdb-toolkit_waiter").attr("id", "mdb-toolkit_waiter-context-" + contextIndex);
-                    }
-
-                    processNextContext();
-                }, contextDelay);
-            }
-
-            processNextContext();
+            });
         } else {
             // visible iframes
             waitForKeyElements("iframe:not(.mdb-processed-toolkit)", function( jNode ) {
