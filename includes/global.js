@@ -637,8 +637,6 @@ function fixTLbox( feedback, target ) {
             count = lines.length;
         tl.attr('rows', count);
 
-        autosize(tl); // beatport.com buggy in FF
-
         tl.show().select().addClass("fixed");
     });
 
