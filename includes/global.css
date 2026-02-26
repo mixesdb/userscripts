@@ -206,6 +206,7 @@ table.mdb-element {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 textarea#mixesdb-TLbox,
+textarea.mixesdb-TLbox,
 textarea.mdb-tlBox,
 textarea.mono {
     color: #111 !important;
