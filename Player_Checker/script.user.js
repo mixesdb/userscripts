@@ -98,6 +98,7 @@ setTimeout(function() {
     // wrapper configuration (domain-based)
     let wrapper;
     let wrapper_append;
+    let wrapper_context = "";
 
     let runToolkitPerPost = false;
 
