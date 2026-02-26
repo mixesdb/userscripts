@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.26.1
+// @version      2026.02.26.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -53,7 +53,7 @@ https://wearesoundspace.com/in-focus-008-break-3000-dirt-crew-recordings/
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 8,
+var cacheVersion = 9,
     scriptName = "Player_Checker";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -88,11 +88,10 @@ setTimeout(function() {
     // playerUrlItems after timeout
     // not hidden ones like googletagmanager
     var playerUrlItems = [ $("iframe:visible").length ];
-
     log_playerUrlItems_len( playerUrlItems, "after timeout ("+playerUrlItems_timeout+")" );
 
     var max_toolboxIterations = get_playerUrlItems_len( playerUrlItems );
-    var titleText = normalizeWebsiteTitles( $('meta[property="og:title"]').attr("content") );
+    var titleText = normalizeWebsiteTitles( $('meta[property="og:title"]').attr("content") || "" );
 
     logVar( "max_toolboxIterations", max_toolboxIterations );
 
@@ -101,13 +100,6 @@ setTimeout(function() {
     let wrapper_append;
 
     switch (visitDomain) {
-
-        case "finn-johannsen.de":
-            wrapper         = "iframe.mdb-processed-toolkit";
-            wrapper_append  = "after";
-            //break;
-            return;
-
         default:
             wrapper         = "iframe.mdb-processed-toolkit:first";
             wrapper_append  = "before";
