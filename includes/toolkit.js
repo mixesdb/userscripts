@@ -98,6 +98,9 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
     if( /.+soundcloud\.com.+/.test(srcUrl) ) {
         log( "iframe is SoundCloud" );
 
+        srcUrl = removeParametersFromUrl( srcUrl );
+        logVar( "srcUrl after removeParametersFromUrl()", srcUrl );
+
         // api.soundcloud.com or soundcloud.com/[key]
         if( /.+api\.soundcloud\.com.+/.test(srcUrl) ) {
             // https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/2007972247&show_artwork=true&color=%23ff5500&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true
@@ -121,7 +124,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra970-upsammy/&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra996-ron-trent&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             
-            var scUrl_key = removeParametersFromUrl( extractUrlFromUrlParameter( srcUrl ) );
+            var scUrl_key = ensureTrailingSlash( extractUrlFromUrlParameter( srcUrl ) );
             logVar( "scUrl_key", scUrl_key );
 
             // Sanity check: if URL has /user/track
