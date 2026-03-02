@@ -40,7 +40,18 @@ function changeYoutubeUrlVariant(url, variant = "youtube.com") {
 function extractUrlFromUrlParameter( fullUrl ) {
     logFunc( "extractUrlFromUrlParameter" );
     logVar( "fullUrl", fullUrl );
-    
+
+    try {
+        var parsedUrl = new URL( fullUrl, window.location.href );
+        var urlParam = parsedUrl.searchParams.get( "url" );
+
+        if( urlParam ) {
+            return decodeURIComponent( urlParam );
+        }
+    } catch( error ) {
+        log( "extractUrlFromUrlParameter: URL parser failed" );
+    }
+
     var match = fullUrl.match(/[?&]url=([^&]+)/);
     return match ? decodeURIComponent(match[1]) : fullUrl;
 }
@@ -105,14 +116,11 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // https://w.soundcloud.com/player/?visual=true&url=https:%2F%2Fapi.soundcloud.com%2Ftracks%2F1680484035&show_artwork=true&maxheight=1000&maxwidth=708
 
             // expect api URL, e.g. https://api.soundcloud.com/tracks/2007972247
-            var scUrl_api = ensureTrailingSlash(
-                                decodeURIComponent( srcUrl )
-                                    .replace( /^(.+(?:\?|&)url=)(https:\/\/api\.soundcloud\.com\/tracks\/\d+)(.+)$/, "$2" )
-                            );
+            var scUrl_api = extractUrlFromUrlParameter( srcUrl );
             logVar( "scUrl_api", scUrl_api );
 
-            // Sanity check: if URL conatins track ID
-            if( scUrl_api.split("/")[3] == "tracks" && regExp_numbers.test( scUrl_api.split("/")[4] ) ) {
+            // Sanity check: if URL points to a SoundCloud API resource (track, playlist, etc.)
+            if( /^https:\/\/(api\.)?soundcloud\.com\/.+/.test(scUrl_api) ) {
                 // call SC API to get user/title URL
                 getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl );
             }
