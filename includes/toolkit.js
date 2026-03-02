@@ -200,41 +200,17 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 
 // remove_mdbVariant_fromUrlStr
 function remove_mdbVariant_fromUrlStr( thisUrl ) {
-    try {
-        var parsedUrl = new URL( thisUrl, window.location.href );
-
-        if( !parsedUrl.searchParams.has( "mdb-variant" ) && !parsedUrl.searchParams.has( "mdb-variantType" ) ) {
-            return thisUrl;
-        }
-
-        parsedUrl.searchParams.delete( "mdb-variant" );
-        parsedUrl.searchParams.delete( "mdb-variantType" );
-        return parsedUrl.toString();
-    } catch( error ) {
-        return thisUrl.replace( /^(.+)(\?mdb-variant=.+&mdb-variantType=.+)$/, "$1" );
-    }
+    return thisUrl.replace( /^(.+)(\?mdb-variant=.+&mdb-variantType=.+)$/, "$1" );
 }
 
 // get_mdbVariant_fromUrlStr
 function get_mdbVariant_fromUrlStr( thisUrl ) {
-    try {
-        var parsedUrl = new URL( thisUrl, window.location.href );
-        var variantUrl = parsedUrl.searchParams.get( "mdb-variant" );
-        return variantUrl ? variantUrl : "";
-    } catch( error ) {
-        return thisUrl.replace( /^(.+\?mdb-variant=)(.+)(&mdb-variantType=.+)$/, "$2" );
-    }
+    return thisUrl.replace( /^(.+\?mdb-variant=)(.+)(&mdb-variantType=.+)$/, "$2" );
 }
 
 // get_mdbVariantType_fromUrlStr
 function get_mdbVariantType_fromUrlStr( thisUrl ) {
-    try {
-        var parsedUrl = new URL( thisUrl, window.location.href );
-        var variantType = parsedUrl.searchParams.get( "mdb-variantType" );
-        return variantType ? variantType : "";
-    } catch( error ) {
-        return thisUrl.replace( /^(.+&mdb-variantType=)(.+)$/, "$2" );
-    }
+    return thisUrl.replace( /^(.+&mdb-variantType=)(.+)$/, "$2" );
 }
 
 // get_playerUrlItems_len
@@ -502,8 +478,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
-                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+encodeURIComponent(hearthisUrl_long)+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
-                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+encodeURIComponent(hearthisUrl_short)+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
                 }
             }
         });
@@ -631,7 +607,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     /*
      * visitDomain exceptions
      */
-    if( domain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
+    if( visitDomain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
         playerUrl_possibleUsageVariants = 2;
     }
 
@@ -923,7 +899,6 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             var urlThis_clean = remove_mdbVariant_fromUrlStr( urlThis ),
                                 urlThis_variant = get_mdbVariant_fromUrlStr( urlThis ),
                                 urlThis_variantType = get_mdbVariantType_fromUrlStr( urlThis ),
-                                urlThis_variantType_original = urlThis_variantType,
                                 linkVariant = '<a href="'+urlThis_variant+'" class="mdb-variantLink processed" data-varianttype="'+urlThis_variantType+'">'+urlThis_variant+'</a>';
 
                             logVar( "urlThis", urlThis );
@@ -941,14 +916,12 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             linkThis
                                 .attr( "href", urlThis_clean )
                                 .attr( "data-varianttype", urlThis_variantType )
-                                .attr( "data-variantorigin", urlThis_variantType_original )
                                 .addClass("processed")
                                 .text( urlThis_clean )
                                 .after( " = " + linkVariant );
 
                             linkThis
                                 .add( linkThis.closest("li.solvedUrlVariants") )
-                                .attr( "data-variantorigin", urlThis_variantType_original )
                                 .attr( "data-mdbvariant", urlThis_variant );
 
                             // Remove unused variant link
@@ -959,13 +932,11 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 });
                             });
 
-                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants[data-variantorigin='not-preferred']", function( jNode ) {
-                                // Remove the mirrored (not-preferred) duplicate and keep the preferred origin item.
-                                var actualUrl = $("a.mdb-actualPlayerLink", jNode).attr("href");
-
-                                if( actualUrl && $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants.unused[data-variantorigin="preferred"][data-mdbvariant="'+actualUrl+'"]').length > 0 ) {
-                                    jNode.remove();
-                                }
+                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants", function( jNode ) { // wait for unused
+                                // unused duplicated solvedUrlVariants
+                                    log("Unused duplicates");
+                                    var variantUrl = $('a[data-varianttype="preferred"]', jNode).attr("href");
+                                    $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants.unused[data-mdbvariant="'+variantUrl+'"]').remove();
                             });
                         }
                     });
