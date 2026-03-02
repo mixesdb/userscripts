@@ -200,17 +200,36 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 
 // remove_mdbVariant_fromUrlStr
 function remove_mdbVariant_fromUrlStr( thisUrl ) {
-    return thisUrl.replace( /^(.+)(\?mdb-variant=.+&mdb-variantType=.+)$/, "$1" );
+    try {
+        var parsedUrl = new URL( thisUrl, window.location.href );
+        parsedUrl.searchParams.delete( "mdb-variant" );
+        parsedUrl.searchParams.delete( "mdb-variantType" );
+        return parsedUrl.toString();
+    } catch( error ) {
+        return thisUrl.replace( /^(.+)(\?mdb-variant=.+&mdb-variantType=.+)$/, "$1" );
+    }
 }
 
 // get_mdbVariant_fromUrlStr
 function get_mdbVariant_fromUrlStr( thisUrl ) {
-    return thisUrl.replace( /^(.+\?mdb-variant=)(.+)(&mdb-variantType=.+)$/, "$2" );
+    try {
+        var parsedUrl = new URL( thisUrl, window.location.href );
+        var variantUrl = parsedUrl.searchParams.get( "mdb-variant" );
+        return variantUrl ? decodeURIComponent( variantUrl ) : thisUrl;
+    } catch( error ) {
+        return thisUrl.replace( /^(.+\?mdb-variant=)(.+)(&mdb-variantType=.+)$/, "$2" );
+    }
 }
 
 // get_mdbVariantType_fromUrlStr
 function get_mdbVariantType_fromUrlStr( thisUrl ) {
-    return thisUrl.replace( /^(.+&mdb-variantType=)(.+)$/, "$2" );
+    try {
+        var parsedUrl = new URL( thisUrl, window.location.href );
+        var variantType = parsedUrl.searchParams.get( "mdb-variantType" );
+        return variantType ? variantType : thisUrl;
+    } catch( error ) {
+        return thisUrl.replace( /^(.+&mdb-variantType=)(.+)$/, "$2" );
+    }
 }
 
 // get_playerUrlItems_len
@@ -607,7 +626,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     /*
      * visitDomain exceptions
      */
-    if( visitDomain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
+    if( domain == "hearthis.at" ) { // YouTube URLs are searched with the ID only, so not 2 variants to handle in output
         playerUrl_possibleUsageVariants = 2;
     }
 
