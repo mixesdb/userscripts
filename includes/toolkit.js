@@ -455,31 +455,20 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logVar( "urlDomain", urlDomain );
 
     if( urlDomain == "hearthis.at" ) {
-
-        // Important! Increase the max iterations for the new variant(s)!
-        max_toolboxIterations += 1;
-        log( "max_toolboxIterations increased to: " + max_toolboxIterations );
-
         $.ajax({
             url: thisUrl,
             success: function() {
                 if( urlDomain == "hearthis.at" ) {
                     log( "hearthis.at ok" );
 
-                    var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m ),
-                        hearthisUrl_short = "https://hearthis.at/" + matches_id[1] + "/";
+                    var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m );
 
-                    var matches_urlLong = arguments[0].match( /(?:^.+<meta property="og:url" content=")(.+)(".+$)/m ),
-                        hearthisUrl_long = matches_urlLong[1];
+                    if( matches_id && matches_id[1] ) {
+                        embedUrl = "https://hearthis.at/" + matches_id[1] + "/";
+                        logVar( "embedUrl", embedUrl );
+                    }
 
-                    logVar( "hearthisUrl_short", hearthisUrl_short );
-                    logVar( "hearthisUrl_long", hearthisUrl_long );
-
-                    embedUrl = hearthisUrl_short;
-
-                    // pass a variant parameter for cleanup
-                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
-                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
                 }
             }
         });
@@ -611,13 +600,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         playerUrl_possibleUsageVariants = 2;
     }
 
-    /*
-     * classname for solved url variants
-     */
     var class_solvedUrlVariants = "";
-    if( domain == "hearthis.at" ) {
-        class_solvedUrlVariants = "solvedUrlVariants";
-    }
 
     /*
      * Final apiURl prepartion
@@ -886,60 +869,6 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             li_playerUrls_all.remove();
                         }
                     }
-
-                    /*
-                     * Solved URL variants
-                     * @TODO urlThis_variantType is not used yet. moving the preferred before the unpreferred somewhat failed.
-                     */
-                    $("#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants a.mdb-actualPlayerLink:not(.processed)").each(function(){
-                        var linkThis = $(this),
-                            urlThis = linkThis.attr("data-urlwithvariant") || linkThis.attr("href");
-
-                        if( urlThis ) {
-                            var urlThis_clean = remove_mdbVariant_fromUrlStr( urlThis ),
-                                urlThis_variant = get_mdbVariant_fromUrlStr( urlThis ),
-                                urlThis_variantType = get_mdbVariantType_fromUrlStr( urlThis ),
-                                linkVariant = '<a href="'+urlThis_variant+'" class="mdb-variantLink processed" data-varianttype="'+urlThis_variantType+'">'+urlThis_variant+'</a>';
-
-                            logVar( "urlThis", urlThis );
-                            logVar( "urlThis_clean", urlThis_clean );
-                            logVar( "urlThis_variant", urlThis_variant );
-                            logVar( "urlThis_variantType", urlThis_variantType );
-
-                            // switch urlThis_variantType
-                            if( urlThis_variantType == "preferred" ) {
-                                urlThis_variantType = "not-preferred";
-                            } else {
-                                urlThis_variantType = "preferred";
-                            }
-
-                            linkThis
-                                .attr( "href", urlThis_clean )
-                                .attr( "data-varianttype", urlThis_variantType )
-                                .addClass("processed")
-                                .text( urlThis_clean )
-                                .after( " = " + linkVariant );
-
-                            linkThis
-                                .add( linkThis.closest("li.solvedUrlVariants") )
-                                .attr( "data-mdbvariant", urlThis_variant );
-
-                            // Remove unused variant link
-                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants a.mdb-actualPlayerLink.processed", function( jNode ) { // wait for unused
-                                $("#mdb-toolkit li.mdb-toolkit-playerUrls-item.used.filled.solvedUrlVariants a.mdb-actualPlayerLink.processed").each(function(){ // each used
-                                    var variantUrl = $(this).attr("href");
-                                    $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants[data-mdbvariant="'+variantUrl+'"]').remove(); // remove unused
-                                });
-                            });
-
-                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants", function( jNode ) { // wait for unused
-                                // unused duplicated solvedUrlVariants
-                                    log("Unused duplicates");
-                                    var variantUrl = $('a[data-varianttype="preferred"]', jNode).attr("href");
-                                    $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants.unused[data-mdbvariant="'+variantUrl+'"]').remove();
-                            });
-                        }
-                    });
 
                     /*
                      * Remove empty list items
