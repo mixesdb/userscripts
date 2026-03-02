@@ -406,7 +406,7 @@ textarea.mono {
 /* finn-johannsen.de */
 .mdb-toolkit.finn-johannsen-de {
     background-color: var(--box-color);
-    
+
     & li.mdb-toolkit-playerUrls a {
         color: #044dd2 !important;
     }
@@ -503,10 +503,6 @@ textarea.mono {
         }
         & a:hover {
             text-decoration: underline;
-        }
-
-        & .tidSubmit-icon {
-            margin-bottom: -4px;
         }
     }
 }
@@ -666,6 +662,7 @@ textarea.mono {
 }
 
 /* light / white websites */
+.mdb-toolkit.finn-johannsen-de,
 .mdb-toolkit.groove-de,
 .mdb-toolkit.ra-co,
 .mdb-toolkit.wearesoundspace-com {
@@ -674,6 +671,7 @@ textarea.mono {
     }
 }
 
+.mdb-toolkit.finn-johannsen-de,
 .mdb-toolkit.groove-de,
 .mdb-toolkit.ra-co,
 .mdb-toolkit.toxicfamily-de,
