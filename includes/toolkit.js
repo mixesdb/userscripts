@@ -540,7 +540,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     // allow multiple iterations to add list items
     if( addOutput ) {
         if( toolboxIteration == 1 ) {
-            toolkitOutput += '<fieldset id="mdb-toolkit" class="'+domain_cssSafe+'">';
+            toolkitOutput += '<fieldset id="mdb-toolkit" class="mdb-toolkit '+domain_cssSafe+'">';
             toolkitOutput += '<legend>Toolkit</legend>';
             toolkitOutput += '<div id="mdb-toolkit_waiter" style="display:none"></div>';
             toolkitOutput += '<ul style="display:none">';
