@@ -403,6 +403,40 @@ textarea.mono {
     }
 }
 
+/* finn-johannsen.de */
+.mdb-toolkit.finn-johannsen-de {
+    margin: 10px 0 20px !important;
+    border: 1px solid #f90;
+    border-radius: 10px;
+    font-family: sans-serif;
+    font-size: 14px;
+    background-color: #fcfcfc;
+
+    & legend {
+        font-weight: 700;
+        color: #f60;
+        margin-left: 10px;
+        padding: 0 4px 0 3px !important;
+    }
+
+    & > ul {
+        margin-bottom: 8px !important;
+    }
+
+    & li {
+        line-height: 1.4em !important;
+    }
+
+    & li + li {
+        margin-top: 5px !important;
+    }
+
+    & a {
+        font-weight: inherit !important;
+        color: #f60;
+    }
+}
+
 /* groove.de */
 #mdb-toolkit.groove-de {
     & > ul > li  ul  li * {
