@@ -737,8 +737,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            var thisPlayerOrder = playerOrder || toolboxIteration;
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants, thisPlayerOrder ) );
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants, toolboxIteration ) );
                             reorderToolkitPlayerUrlListItems( jNode );
 
                             if( showPlayerUrls ) {
@@ -787,8 +786,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         // if domain of variable URLs add unused player URL to unclear list
                         if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                var thisPlayerOrder = playerOrder || toolboxIteration;
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants, thisPlayerOrder ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants, toolboxIteration ) );
                                 reorderToolkitPlayerUrlListItems( jNode );
 
                                 if( showPlayerUrls ) {
@@ -803,8 +801,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     unclear = "unclear";
                                 }
 
-                                var thisPlayerOrder = playerOrder || toolboxIteration;
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants, thisPlayerOrder ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants, toolboxIteration ) );
                                 reorderToolkitPlayerUrlListItems( jNode );
 
                                 if( showPlayerUrls || force_unclearResult ) {

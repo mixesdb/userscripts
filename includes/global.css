@@ -405,6 +405,8 @@ textarea.mono {
 
 /* finn-johannsen.de */
 .mdb-toolkit.finn-johannsen-de {
+    background-color: var(--box-color);
+    
     & li.mdb-toolkit-playerUrls a {
         color: #044dd2 !important;
     }
