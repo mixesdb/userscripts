@@ -61,6 +61,16 @@ function ensureTrailingSlash( url ) {
     return url.replace(/\/?$/, '/');
 }
 
+// removeTrackingParameters
+// Removes URL parameters from SoundCloud URLs, keeps other domains unchanged.
+function removeTrackingParameters( url ) {
+    if( !url || getDomain_fromUrlStr( url ) != "soundcloud.com" ) {
+        return url;
+    }
+
+    return ensureTrailingSlash( removeParametersFromUrl( url ) );
+}
+
 /*
  * getToolkit_fromSCscUrl_api
  * Takes API track URL
@@ -386,14 +396,14 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 
 // makeAvailableLinksListItem
 function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants ) {
-    var playerUrl_clean = remove_mdbVariant_fromUrlStr( playerUrl ),
+    var playerUrl_clean = removeTrackingParameters( remove_mdbVariant_fromUrlStr( playerUrl ) ),
         playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
         link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
     link += '<a href="'+playerUrl_clean+'" class="mdb-domainIconLink">'+domainIcon+'</a>';
-    link += '<a href="'+playerUrl+'" class="mdb-actualPlayerLink">' + playerUrl + '</a>'; // do not shorten link text (for copy-paste)
+    link += '<a href="'+playerUrl_clean+'" class="mdb-actualPlayerLink">' + playerUrl_clean + '</a>'; // do not shorten link text (for copy-paste)
 
     log( "urlIsTidSubmitCompatible( playerUrl ): " + urlIsTidSubmitCompatible( playerUrl ) )
 
@@ -835,8 +845,18 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         );
                     });
 
-                    // remove multiple embed URL
-                    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled + li.mdb-toolkit-embedUrl.filled").remove();
+                    // remove multiple embed URL with same value
+                    var embedUrlsSeen = {};
+                    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled").each(function(){
+                        var embedInput = $("input", this),
+                            embedUrlValue = embedInput.val();
+
+                        if( embedUrlValue && embedUrlsSeen[embedUrlValue] ) {
+                            $(this).remove();
+                        } else {
+                            embedUrlsSeen[embedUrlValue] = true;
+                        }
+                    });
 
                     // remove empty list items
                     $("#mdb-toolkit > ul > li").each(function(){ // For each element
