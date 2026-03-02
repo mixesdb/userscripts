@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.01.05.1
+// @version      2026.03.02.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-InternetArchive_3
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-InternetArchive_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-InternetArchive_2
 // @require      https://cdn.jsdelivr.net/npm/sorttable@1.0.2/sorttable.js
 // @include      http*archive.org/details/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archive.org
