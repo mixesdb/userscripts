@@ -395,10 +395,10 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 }
 
 // makeAvailableLinksListItem
-function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants ) {
+function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants, playerOrder=0 ) {
     var playerUrl_clean = removeTrackingParameters( remove_mdbVariant_fromUrlStr( playerUrl ) ),
         playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
-        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
+        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'" data-playerorder="'+playerOrder+'">';
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
@@ -414,6 +414,27 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
     link += '</li>';
 
     return link;
+}
+
+function reorderToolkitPlayerUrlListItems( wrapper ) {
+    var wrapper_jq = $(wrapper),
+        list_jq = $("> ul", wrapper_jq),
+        listItems_jq = $("> li.mdb-toolkit-playerUrls-item", list_jq);
+
+    listItems_jq.sort(function(a, b) {
+        var orderA = parseInt( $(a).attr("data-playerorder"), 10 ),
+            orderB = parseInt( $(b).attr("data-playerorder"), 10 );
+
+        if( isNaN(orderA) ) {
+            orderA = Number.MAX_SAFE_INTEGER;
+        }
+
+        if( isNaN(orderB) ) {
+            orderB = Number.MAX_SAFE_INTEGER;
+        }
+
+        return orderA - orderB;
+    }).appendTo( list_jq );
 }
 
 // pageCreated_vs_lastEdit
@@ -700,7 +721,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants ) );
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants, toolboxIteration ) );
+                            reorderToolkitPlayerUrlListItems( jNode );
 
                             if( showPlayerUrls ) {
                                 jNode.addClass("filled");
@@ -748,7 +770,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         // if domain of variable URLs add unused player URL to unclear list
                         if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants, toolboxIteration ) );
+                                reorderToolkitPlayerUrlListItems( jNode );
 
                                 if( showPlayerUrls ) {
                                     jNode.addClass("filled");
@@ -762,7 +785,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants ) );
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants, toolboxIteration ) );
+                                reorderToolkitPlayerUrlListItems( jNode );
 
                                 if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
@@ -827,6 +851,10 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first > ul")
                         );
                     });
+
+                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled:first" );
+                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled:first" );
+                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first" );
 
                     // remove multiple embed URL with same value
                     var embedUrlsSeen = {};
