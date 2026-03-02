@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.2
+// @version      2026.03.02.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -148,6 +148,7 @@ setTimeout(function() {
                 setTimeout(function() {
                     var toolkit = $("#mdb-toolkit");
                     if( toolkit.length ) {
+                        toolkit.addClass("mdb-toolkit");
                         toolkit.attr("id", "mdb-toolkit-context-" + contextIndex);
                         toolkit.find("#mdb-toolkit_waiter").attr("id", "mdb-toolkit_waiter-context-" + contextIndex);
                     }
