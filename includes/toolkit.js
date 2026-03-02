@@ -923,6 +923,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             var urlThis_clean = remove_mdbVariant_fromUrlStr( urlThis ),
                                 urlThis_variant = get_mdbVariant_fromUrlStr( urlThis ),
                                 urlThis_variantType = get_mdbVariantType_fromUrlStr( urlThis ),
+                                urlThis_variantType_original = urlThis_variantType,
                                 linkVariant = '<a href="'+urlThis_variant+'" class="mdb-variantLink processed" data-varianttype="'+urlThis_variantType+'">'+urlThis_variant+'</a>';
 
                             logVar( "urlThis", urlThis );
@@ -940,12 +941,14 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             linkThis
                                 .attr( "href", urlThis_clean )
                                 .attr( "data-varianttype", urlThis_variantType )
+                                .attr( "data-variantorigin", urlThis_variantType_original )
                                 .addClass("processed")
                                 .text( urlThis_clean )
                                 .after( " = " + linkVariant );
 
                             linkThis
                                 .add( linkThis.closest("li.solvedUrlVariants") )
+                                .attr( "data-variantorigin", urlThis_variantType_original )
                                 .attr( "data-mdbvariant", urlThis_variant );
 
                             // Remove unused variant link
@@ -956,11 +959,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 });
                             });
 
-                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants", function( jNode ) { // wait for unused
-                                // unused duplicated solvedUrlVariants
-                                    log("Unused duplicates");
-                                    var variantUrl = $('a[data-varianttype="preferred"]', jNode).attr("href");
-                                    $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants.unused[data-mdbvariant="'+variantUrl+'"]').remove();
+                            waitForKeyElements("#mdb-toolkit li.mdb-toolkit-playerUrls-item.unused.filled.solvedUrlVariants[data-variantorigin='not-preferred']", function( jNode ) {
+                                // Remove the mirrored (not-preferred) duplicate and keep the preferred origin item.
+                                var actualUrl = $("a.mdb-actualPlayerLink", jNode).attr("href");
+
+                                if( actualUrl && $('#mdb-toolkit li.mdb-toolkit-playerUrls-item.solvedUrlVariants.unused[data-variantorigin="preferred"][data-mdbvariant="'+actualUrl+'"]').length > 0 ) {
+                                    jNode.remove();
+                                }
                             });
                         }
                     });
