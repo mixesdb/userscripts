@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.2
+// @version      2026.03.02.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -379,6 +379,12 @@ function getArtistFromCell(cell){
 	return cleanArtist(visibleText);
 }
 
+function fixArtistText( s ) {
+    return s
+        .replace( " Versus ", " vs " )
+        ;
+}
+
 
 /* ---------------------------------------------------------
  * Main builder
@@ -521,6 +527,8 @@ function buildDiscogsTL(){
 				? "[??]"
 				: "[" + String(Math.floor((cumSeconds - chapterStartSeconds) / 60)).padStart(stampPadWidth, "0") + "]";
 		}
+
+        artist = fixArtistText( artist );
 
 		out.push((stamp ? (stamp + " ") : "") + artist + " - " + title);
 
