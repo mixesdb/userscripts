@@ -77,7 +77,7 @@ function removeTrackingParameters( url ) {
  * Call API to the user/title URL as used on MixesDB
  * Pass that URL to getToolkit()
  */
-function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl="" ) {
+function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl="", playerOrder=0 ) {
     logFunc( "getToolkit_fromSCscUrl_api" );
 
     if( scUrl_api ) {
@@ -93,7 +93,7 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
                 success: function( data ) {
                     var playerUrl = data.permalink_url;
                     if( playerUrl != "" ) {
-                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
+                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl, playerOrder );
                     }
                 }
             });
@@ -107,10 +107,26 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
  * SoundCloud: Usually has track API URL, needs to call API and fire getToolkit from ajax result
  * Thus all the parameters for getToolkit() must be carried around
  */
+var toolkitPlayerOrderCounter = 0;
+
+function getToolkitPlayerOrder( iframe ) {
+    var iframe_jNode = $(iframe),
+        playerOrder = parseInt( iframe_jNode.attr("data-mdb-playerorder"), 10 );
+
+    if( isNaN(playerOrder) ) {
+        toolkitPlayerOrderCounter = toolkitPlayerOrderCounter + 1;
+        playerOrder = toolkitPlayerOrderCounter;
+        iframe_jNode.attr("data-mdb-playerorder", playerOrder);
+    }
+
+    return playerOrder;
+}
+
 function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, siteHasTl="" ) {
     logFunc( "getplayerUrl_fromIframe" );
 
-    var srcUrl = iframe.attr("src"),
+    var playerOrder = getToolkitPlayerOrder( iframe ),
+        srcUrl = iframe.attr("src"),
         playerUrl = "";
 
     logVar( "srcUrl", srcUrl );
@@ -132,7 +148,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
             // Sanity check: if URL points to a SoundCloud API resource (track, playlist, etc.)
             if( /^https:\/\/(api\.)?soundcloud\.com\/.+/.test(scUrl_api) ) {
                 // call SC API to get user/title URL
-                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl );
+                getToolkit_fromScUrl_api( scUrl_api, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, siteHasTl, playerOrder );
             }
 
         } else {
@@ -144,7 +160,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 
             // Sanity check: if URL has /user/track
             if( /^https:\/\/(www\.)?soundcloud\.com\/[^/]+\/[^/?#]+\/?$/.test(scUrl_key) ) {
-                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
+                getToolkit( scUrl_key, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl, playerOrder );
             }
         }
     }
@@ -156,7 +172,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = srcUrl.replace( /^(http.+hearthis\.at)(\/embed\/)(\d+)(\/.+)$/, "$1/$3/" );
 
         if( playerUrl ) {
-            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl );
+            getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl, playerOrder );
         }
     }
 
@@ -175,7 +191,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         }
 
         if( mcUrl ) {
-            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "", siteHasTl );
+            getToolkit( mcUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "", siteHasTl, playerOrder );
         }
     }
 
@@ -186,7 +202,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         playerUrl = "https://youtu.be/" + getYoutubeIdFromUrl( srcUrl ) ;
 
         if( playerUrl ) {
-            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "", siteHasTl );
+            getToolkit( playerUrl, "playerUrl", "detail page", wrapper, insertType, titleText, "", max_toolboxIterations, "", siteHasTl, playerOrder );
         }
     }
 }
@@ -395,10 +411,10 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 }
 
 // makeAvailableLinksListItem
-function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants ) {
+function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants, playerOrder=0 ) {
     var playerUrl_clean = removeTrackingParameters( remove_mdbVariant_fromUrlStr( playerUrl ) ),
         playerUrl_domain = getDomain_fromUrlStr( playerUrl ),
-        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'">';
+        link = '<li class="mdb-toolkit-playerUrls-item '+usage+' filled '+class_solvedUrlVariants+'" data-playerorder="'+playerOrder+'">';
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
@@ -414,6 +430,27 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
     link += '</li>';
 
     return link;
+}
+
+function reorderToolkitPlayerUrlListItems( wrapper ) {
+    var wrapper_jq = $(wrapper),
+        list_jq = $("> ul", wrapper_jq),
+        listItems_jq = $("> li.mdb-toolkit-playerUrls-item", list_jq);
+
+    listItems_jq.sort(function(a, b) {
+        var orderA = parseInt( $(a).attr("data-playerorder"), 10 ),
+            orderB = parseInt( $(b).attr("data-playerorder"), 10 );
+
+        if( isNaN(orderA) ) {
+            orderA = Number.MAX_SAFE_INTEGER;
+        }
+
+        if( isNaN(orderB) ) {
+            orderB = Number.MAX_SAFE_INTEGER;
+        }
+
+        return orderA - orderB;
+    }).appendTo( list_jq );
 }
 
 // pageCreated_vs_lastEdit
@@ -446,7 +483,7 @@ function pageCreated_vs_lastEdit( pageCreationTimestamp, lastEditTimestamp ) {
  * Gating URLs before running actual func
  * E.g. URL variants: take 1 url, create 2nd variant, send each to getToolkit_func
  */
-function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="", siteHasTl="" ) {
+function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="", siteHasTl="", playerOrder=0 ) {
     logFunc( "getToolkit" );
 
     var urlDomain = getDomain_fromUrlStr( thisUrl );
@@ -468,12 +505,12 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                         logVar( "embedUrl", embedUrl );
                     }
 
-                    getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl, playerOrder );
                 }
             }
         });
     } else {
-        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+        getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl, playerOrder );
     }
 }
 
@@ -487,7 +524,7 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
 
 var toolboxIteration = 0; // count iterations for multiple iframes
 
-function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="", siteHasTl="" ) {
+function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, insertType="append", titleText="", linkClass="", max_toolboxIterations=1, embedUrl="", siteHasTl="", playerOrder=0 ) {
     logFunc( "getToolkit_run" );
     // types: "playerUrl", "hide if used"
 
@@ -700,7 +737,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                         // available links used
                         waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants ) );
+                            var thisPlayerOrder = playerOrder || toolboxIteration;
+                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants, thisPlayerOrder ) );
+                            reorderToolkitPlayerUrlListItems( jNode );
 
                             if( showPlayerUrls ) {
                                 jNode.addClass("filled");
@@ -748,7 +787,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         // if domain of variable URLs add unused player URL to unclear list
                         if( domain != "no-case-yet.com" ) {
                             waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants ) );
+                                var thisPlayerOrder = playerOrder || toolboxIteration;
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants, thisPlayerOrder ) );
+                                reorderToolkitPlayerUrlListItems( jNode );
 
                                 if( showPlayerUrls ) {
                                     jNode.addClass("filled");
@@ -762,7 +803,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants ) );
+                                var thisPlayerOrder = playerOrder || toolboxIteration;
+                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants, thisPlayerOrder ) );
+                                reorderToolkitPlayerUrlListItems( jNode );
 
                                 if( showPlayerUrls || force_unclearResult ) {
                                     jNode.addClass("filled");
@@ -827,6 +870,10 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first > ul")
                         );
                     });
+
+                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled:first" );
+                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled:first" );
+                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first" );
 
                     // remove multiple embed URL with same value
                     var embedUrlsSeen = {};
