@@ -202,6 +202,11 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
 function remove_mdbVariant_fromUrlStr( thisUrl ) {
     try {
         var parsedUrl = new URL( thisUrl, window.location.href );
+
+        if( !parsedUrl.searchParams.has( "mdb-variant" ) && !parsedUrl.searchParams.has( "mdb-variantType" ) ) {
+            return thisUrl;
+        }
+
         parsedUrl.searchParams.delete( "mdb-variant" );
         parsedUrl.searchParams.delete( "mdb-variantType" );
         return parsedUrl.toString();
@@ -215,7 +220,7 @@ function get_mdbVariant_fromUrlStr( thisUrl ) {
     try {
         var parsedUrl = new URL( thisUrl, window.location.href );
         var variantUrl = parsedUrl.searchParams.get( "mdb-variant" );
-        return variantUrl ? decodeURIComponent( variantUrl ) : thisUrl;
+        return variantUrl ? variantUrl : "";
     } catch( error ) {
         return thisUrl.replace( /^(.+\?mdb-variant=)(.+)(&mdb-variantType=.+)$/, "$2" );
     }
@@ -226,7 +231,7 @@ function get_mdbVariantType_fromUrlStr( thisUrl ) {
     try {
         var parsedUrl = new URL( thisUrl, window.location.href );
         var variantType = parsedUrl.searchParams.get( "mdb-variantType" );
-        return variantType ? variantType : thisUrl;
+        return variantType ? variantType : "";
     } catch( error ) {
         return thisUrl.replace( /^(.+&mdb-variantType=)(.+)$/, "$2" );
     }
@@ -497,8 +502,8 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
                     embedUrl = hearthisUrl_short;
 
                     // pass a variant parameter for cleanup
-                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+hearthisUrl_long+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
-                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+hearthisUrl_short+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( hearthisUrl_short+"?mdb-variant="+encodeURIComponent(hearthisUrl_long)+"&mdb-variantType=preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
+                    getToolkit_run( hearthisUrl_long+"?mdb-variant="+encodeURIComponent(hearthisUrl_short)+"&mdb-variantType=not-preferred", type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl );
                 }
             }
         });
