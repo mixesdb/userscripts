@@ -403,6 +403,23 @@ textarea.mono {
     }
 }
 
+/* finn-johannsen.de */
+.mdb-toolkit.finn-johannsen-de {
+    & li.mdb-toolkit-playerUrls a {
+        color: #044dd2 !important;
+    }
+
+    & a {
+        font-weight: inherit !important;
+        color: #f60;
+        border-bottom: none !important;
+    }
+    
+    & a.mdb-tidSubmit img.tidSubmit-icon {
+        margin-bottom: -3px !important;
+    }
+}
+
 /* groove.de */
 .mdb-toolkit.groove-de {
     & > ul > li  ul  li * {
