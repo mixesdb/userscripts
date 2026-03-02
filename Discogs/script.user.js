@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.24.19
+// @version      2026.03.02.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -371,37 +371,12 @@ function getArtistFromCell(cell){
 		return "";
 	}
 
-	var out = "";
+	var visibleText = cleanArtist(cell.textContent || "").replace(/\s*\(\d+\)\s*/g, "").trim();
+	if (!visibleText){
+		return "";
+	}
 
-	Array.from(cell.childNodes).forEach(function(node){
-		if (node.nodeType === Node.ELEMENT_NODE){
-			if (node.matches("a") || node.querySelector("a")){
-				var link = node.matches("a") ? node : node.querySelector("a");
-				var linkName = cleanArtist(link.textContent).replace(/\s*\(\d+\)\s*/g, "").trim();
-				if (linkName){
-					out += linkName;
-				}
-				return;
-			}
-
-			var elText = norm(node.textContent);
-			if (!elText || elText === "–" || elText === "-" || elText === "—"){
-				return;
-			}
-			out += " " + elText + " ";
-			return;
-		}
-
-		if (node.nodeType === Node.TEXT_NODE){
-			var txt = norm(node.nodeValue || "");
-			if (!txt || txt === "–" || txt === "-" || txt === "—"){
-				return;
-			}
-			out += " " + txt + " ";
-		}
-	});
-
-	return cleanArtist(norm(out));
+	return cleanArtist(visibleText.split(/\s+(?:&|vs\.?|versus)\s+/i)[0]);
 }
 
 
