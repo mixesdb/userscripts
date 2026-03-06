@@ -245,6 +245,10 @@ for (i = 0; i < ytId_testUrls.length; ++i) {
 */
 
 function getYoutubeIdFromUrl(url){
+    function isValidYoutubeId( candidateId ) {
+        return typeof candidateId === "string" && /^[a-zA-Z0-9_-]{11}$/.test( candidateId );
+    }
+
     function parseYoutubeId( candidateUrl, depth ) {
         if( !candidateUrl || depth > 2 ) return false;
 
@@ -259,7 +263,21 @@ function getYoutubeIdFromUrl(url){
         }
 
         var idFromParam = parsedUrl.searchParams.get( "v" );
-        if( idFromParam && idFromParam.length == 11 ) return idFromParam;
+        if( isValidYoutubeId( idFromParam ) ) return idFromParam;
+
+        var pathParts = parsedUrl.pathname.split( "/" ).filter(Boolean),
+            firstPathPart = pathParts[0],
+            secondPathPart = pathParts[1] || "";
+
+        if( parsedUrl.hostname === "youtu.be" || parsedUrl.hostname.endsWith( ".youtu.be" ) ) {
+            if( isValidYoutubeId( firstPathPart ) ) return firstPathPart;
+        }
+
+        if( firstPathPart === "shorts" || firstPathPart === "live" || firstPathPart === "embed" || firstPathPart === "v" || firstPathPart === "e" ) {
+            if( isValidYoutubeId( secondPathPart ) ) return secondPathPart;
+        }
+
+        if( isValidYoutubeId( firstPathPart ) ) return firstPathPart;
 
         var nestedCandidates = [
             parsedUrl.searchParams.get( "continue" ),
@@ -276,7 +294,11 @@ function getYoutubeIdFromUrl(url){
             if( nestedId ) return nestedId;
 
             if( nested.indexOf( "%" ) !== -1 ) {
-                nestedId = parseYoutubeId( decodeURIComponent( nested ), depth + 1 );
+                try {
+                    nestedId = parseYoutubeId( decodeURIComponent( nested ), depth + 1 );
+                } catch( e ) {
+                    nestedId = false;
+                }
                 if( nestedId ) return nestedId;
             }
         }
