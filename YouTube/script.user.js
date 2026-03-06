@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.06.11
+// @version      2026.03.06.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -83,21 +83,8 @@ function getYoutubeIdFromDom() {
     return false;
 }
 
-function getYoutubeIdFromLocation() {
-    var pathMatch = window.location.pathname.match( /^\/(shorts|live)\/([a-zA-Z0-9_-]{11})(?:$|\/)/ );
-    if( pathMatch && pathMatch[2] ) return pathMatch[2];
-
-    if( window.location.hostname === "youtu.be" ) {
-        var shortPathMatch = window.location.pathname.match( /^\/([a-zA-Z0-9_-]{11})(?:$|\/)/ );
-        if( shortPathMatch && shortPathMatch[1] ) return shortPathMatch[1];
-    }
-
-    return false;
-}
-
 function resolveYoutubeId() {
-    var id = getYoutubeIdFromLocation()
-             || getYoutubeIdFromUrl( window.location.href )
+    var id = getYoutubeIdFromUrl( window.location.href )
              || getYoutubeIdFromUrl( url )
              || getYoutubeIdFromDom();
 
@@ -137,7 +124,6 @@ function getDurationSec_YT() {
 }
 
 var youtubeEnhancementsStartedFor = null;
-var youtubeWaitLogShownForUrl = null;
 
 function initYoutubeEnhancements( ytId ) {
     if( !ytId || youtubeEnhancementsStartedFor === ytId ) return;
@@ -218,10 +204,7 @@ function initYoutubeEnhancements( ytId ) {
 function ensureYoutubeEnhancementsStarted() {
     var ytId = resolveYoutubeId();
     if( !ytId ) {
-        if( youtubeWaitLogShownForUrl !== window.location.href ) {
-            youtubeWaitLogShownForUrl = window.location.href;
-            log( "No YouTube ID yet, waiting for page data..." );
-        }
+        log( "No YouTube ID yet, waiting for page data..." );
         return false;
     }
 
@@ -234,17 +217,7 @@ ensureYoutubeEnhancementsStarted();
 var youtubeInitAttempts = 0,
     youtubeInitTimer = setInterval(function() {
         youtubeInitAttempts++;
-        if( ensureYoutubeEnhancementsStarted() || youtubeInitAttempts >= 60 ) {
+        if( ensureYoutubeEnhancementsStarted() || youtubeInitAttempts >= 20 ) {
             clearInterval( youtubeInitTimer );
         }
     }, 500 );
-
-document.addEventListener( "yt-navigate-finish", function() {
-    youtubeEnhancementsStartedFor = null;
-    youtubeWaitLogShownForUrl = null;
-    ensureYoutubeEnhancementsStarted();
-});
-
-waitForKeyElements( "ytd-watch-flexy, ytd-player", function() {
-    ensureYoutubeEnhancementsStarted();
-}, true );
