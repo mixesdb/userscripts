@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.06.8
+// @version      2026.03.06.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -53,7 +53,34 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var ytId = getYoutubeIdFromUrl( url );
+function getYoutubeIdFromDom() {
+    var selectors = [
+        "ytd-watch-flexy[video-id]",
+        "ytd-player[video-id]",
+        "meta[itemprop='videoId']"
+    ];
+
+    for( var i = 0; i < selectors.length; i++ ) {
+        var node = document.querySelector( selectors[i] );
+        if( !node ) continue;
+
+        var id = node.getAttribute( "video-id" ) || node.getAttribute( "content" );
+        if( id && id.length == 11 ) return id;
+    }
+
+    var linkCandidates = document.querySelectorAll( "a[href*='watch?v='], a[href*='youtu.be/']" );
+    for( var j = 0; j < linkCandidates.length; j++ ) {
+        var href = linkCandidates[j].href || linkCandidates[j].getAttribute( "href" );
+        if( !href ) continue;
+
+        var parsedId = getYoutubeIdFromUrl( href );
+        if( parsedId ) return parsedId;
+    }
+
+    return false;
+}
+
+var ytId = getYoutubeIdFromUrl( url ) || getYoutubeIdFromDom();
 logVar( "url", url );
 logVar( "ytId", ytId );
 
