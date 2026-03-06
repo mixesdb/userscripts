@@ -245,9 +245,46 @@ for (i = 0; i < ytId_testUrls.length; ++i) {
 */
 
 function getYoutubeIdFromUrl(url){
-    var match = url.match( ytId_rx );
+    function parseYoutubeId( candidateUrl, depth ) {
+        if( !candidateUrl || depth > 2 ) return false;
 
-    return ( match && match[1].length == 11 ) ? match[1] : false;
+        var match = candidateUrl.match( ytId_rx );
+        if( match && match[1].length == 11 ) return match[1];
+
+        var parsedUrl;
+        try {
+            parsedUrl = new URL( candidateUrl, "https://www.youtube.com" );
+        } catch( e ) {
+            return false;
+        }
+
+        var idFromParam = parsedUrl.searchParams.get( "v" );
+        if( idFromParam && idFromParam.length == 11 ) return idFromParam;
+
+        var nestedCandidates = [
+            parsedUrl.searchParams.get( "continue" ),
+            parsedUrl.searchParams.get( "next" ),
+            parsedUrl.searchParams.get( "url" ),
+            parsedUrl.searchParams.get( "q" )
+        ];
+
+        for( var i = 0; i < nestedCandidates.length; ++i ) {
+            var nested = nestedCandidates[i];
+            if( !nested ) continue;
+
+            var nestedId = parseYoutubeId( nested, depth + 1 );
+            if( nestedId ) return nestedId;
+
+            if( nested.indexOf( "%" ) !== -1 ) {
+                nestedId = parseYoutubeId( decodeURIComponent( nested ), depth + 1 );
+                if( nestedId ) return nestedId;
+            }
+        }
+
+        return false;
+    }
+
+    return parseYoutubeId( url, 0 );
 }
 
 /*
