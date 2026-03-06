@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.06.9
+// @version      2026.03.06.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -68,6 +68,9 @@ function getYoutubeIdFromDom() {
         if( id && id.length == 11 ) return id;
     }
 
+    var playerResponseId = window.ytInitialPlayerResponse?.videoDetails?.videoId;
+    if( playerResponseId && playerResponseId.length == 11 ) return playerResponseId;
+
     var linkCandidates = document.querySelectorAll( "a[href*='watch?v='], a[href*='youtu.be/']" );
     for( var j = 0; j < linkCandidates.length; j++ ) {
         var href = linkCandidates[j].href || linkCandidates[j].getAttribute( "href" );
@@ -80,9 +83,17 @@ function getYoutubeIdFromDom() {
     return false;
 }
 
-var ytId = getYoutubeIdFromUrl( url ) || getYoutubeIdFromDom();
-logVar( "url", url );
-logVar( "ytId", ytId );
+function resolveYoutubeId() {
+    var id = getYoutubeIdFromUrl( window.location.href )
+             || getYoutubeIdFromUrl( url )
+             || getYoutubeIdFromDom();
+
+    if( typeof window.mdbYoutubeIdOverride === "string" && window.mdbYoutubeIdOverride.length == 11 ) {
+        id = window.mdbYoutubeIdOverride;
+    }
+
+    return id;
+}
 
 function getDurationSec_YT() {
     var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
@@ -112,7 +123,15 @@ function getDurationSec_YT() {
     return h*3600 + min*60 + s;
 }
 
-if( ytId ) {
+var youtubeEnhancementsStartedFor = null;
+
+function initYoutubeEnhancements( ytId ) {
+    if( !ytId || youtubeEnhancementsStartedFor === ytId ) return;
+
+    youtubeEnhancementsStartedFor = ytId;
+    logVar( "url", window.location.href );
+    logVar( "ytId", ytId );
+
     var playerUrl = "https://youtu.be/" + ytId,
         dur_sec_cache = null,
         detailEnhancementsAdded = false,
@@ -181,3 +200,24 @@ if( ytId ) {
         addDurationEnhancements();
     }, true );
 }
+
+function ensureYoutubeEnhancementsStarted() {
+    var ytId = resolveYoutubeId();
+    if( !ytId ) {
+        log( "No YouTube ID yet, waiting for page data..." );
+        return false;
+    }
+
+    initYoutubeEnhancements( ytId );
+    return true;
+}
+
+ensureYoutubeEnhancementsStarted();
+
+var youtubeInitAttempts = 0,
+    youtubeInitTimer = setInterval(function() {
+        youtubeInitAttempts++;
+        if( ensureYoutubeEnhancementsStarted() || youtubeInitAttempts >= 20 ) {
+            clearInterval( youtubeInitTimer );
+        }
+    }, 500 );
