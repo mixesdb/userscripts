@@ -245,9 +245,68 @@ for (i = 0; i < ytId_testUrls.length; ++i) {
 */
 
 function getYoutubeIdFromUrl(url){
-    var match = url.match( ytId_rx );
+    function isValidYoutubeId( candidateId ) {
+        return typeof candidateId === "string" && /^[a-zA-Z0-9_-]{11}$/.test( candidateId );
+    }
 
-    return ( match && match[1].length == 11 ) ? match[1] : false;
+    function parseYoutubeId( candidateUrl, depth ) {
+        if( !candidateUrl || depth > 2 ) return false;
+
+        var match = candidateUrl.match( ytId_rx );
+        if( match && match[1].length == 11 ) return match[1];
+
+        var parsedUrl;
+        try {
+            parsedUrl = new URL( candidateUrl, "https://www.youtube.com" );
+        } catch( e ) {
+            return false;
+        }
+
+        var idFromParam = parsedUrl.searchParams.get( "v" );
+        if( isValidYoutubeId( idFromParam ) ) return idFromParam;
+
+        var pathParts = parsedUrl.pathname.split( "/" ).filter(Boolean),
+            firstPathPart = pathParts[0],
+            secondPathPart = pathParts[1] || "";
+
+        if( parsedUrl.hostname === "youtu.be" || parsedUrl.hostname.endsWith( ".youtu.be" ) ) {
+            if( isValidYoutubeId( firstPathPart ) ) return firstPathPart;
+        }
+
+        if( firstPathPart === "shorts" || firstPathPart === "live" || firstPathPart === "embed" || firstPathPart === "v" || firstPathPart === "e" ) {
+            if( isValidYoutubeId( secondPathPart ) ) return secondPathPart;
+        }
+
+        if( isValidYoutubeId( firstPathPart ) ) return firstPathPart;
+
+        var nestedCandidates = [
+            parsedUrl.searchParams.get( "continue" ),
+            parsedUrl.searchParams.get( "next" ),
+            parsedUrl.searchParams.get( "url" ),
+            parsedUrl.searchParams.get( "q" )
+        ];
+
+        for( var i = 0; i < nestedCandidates.length; ++i ) {
+            var nested = nestedCandidates[i];
+            if( !nested ) continue;
+
+            var nestedId = parseYoutubeId( nested, depth + 1 );
+            if( nestedId ) return nestedId;
+
+            if( nested.indexOf( "%" ) !== -1 ) {
+                try {
+                    nestedId = parseYoutubeId( decodeURIComponent( nested ), depth + 1 );
+                } catch( e ) {
+                    nestedId = false;
+                }
+                if( nestedId ) return nestedId;
+            }
+        }
+
+        return false;
+    }
+
+    return parseYoutubeId( url, 0 );
 }
 
 /*

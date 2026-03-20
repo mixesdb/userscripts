@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.3
+// @version      2026.03.20.4
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -333,7 +333,8 @@ function getReleaseArtistFromHeading(){
 		}
 	});
 
-	return cleanArtist(out);
+	out = cleanArtist(out);
+	return /^unknown artist$/i.test(out) ? "N/A" : out;
 }
 
 function getTrackTitleFromCell(titleCell){
@@ -364,6 +365,48 @@ function getTrackTitleCell(tr, tds, hasDuration){
 	}
 
 	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
+}
+
+function getReleaseLabelFromMainSection(){
+	var rows = Array.from(document.querySelectorAll("div.main_cQEFk table tr"));
+
+	for (var i = 0; i < rows.length; i++){
+		var row = rows[i];
+		var labelHeading = norm((row.querySelector("th .MuiTypography-labelSmall") || {}).textContent || "")
+			.replace(/:$/, "")
+			.toLowerCase();
+		if (labelHeading !== "label"){
+			continue;
+		}
+
+		var labelParts = Array.from(row.querySelectorAll("td .MuiTypography-labelSmall"))
+			.map(function(el){
+				return norm(el.textContent);
+			})
+			.filter(Boolean);
+
+		return norm( labelParts
+                         .join(" ")
+                         .replace( "–", "-" )
+                   );
+	}
+
+	return "";
+}
+
+function getFormattedTrackTitle(title, trackPos, shouldAppendReleaseLabel, releaseLabel){
+	var formattedTitle = title;
+	var isUntitled = /^untitled$/i.test(formattedTitle);
+
+	if (isUntitled && /^[A-Za-z]+\d*$/.test(trackPos)){
+		formattedTitle = "Untitled (" + trackPos + ")";
+	}
+
+	if (shouldAppendReleaseLabel && releaseLabel && formattedTitle && isUntitled){
+		formattedTitle += " [" + releaseLabel + "]";
+	}
+
+	return formattedTitle;
 }
 
 function getArtistFromCell(cell){
@@ -413,6 +456,7 @@ function buildDiscogsTL(){
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
+	var releaseLabel = getReleaseLabelFromMainSection();
 	var hasExplicitChapterRows = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		var trackPos = norm(tds[0] ? tds[0].textContent : "");
@@ -514,9 +558,12 @@ function buildDiscogsTL(){
 		}
 
 		var artist = artistParts.join(" / ").trim();
+		var usedReleaseArtist = false;
 		if (!artist && releaseArtist){
 			artist = releaseArtist;
+			usedReleaseArtist = true;
 		}
+		title = getFormattedTrackTitle(title, trackPos, usedReleaseArtist, releaseLabel);
 		if (!artist && !title){
 			return;
 		}
