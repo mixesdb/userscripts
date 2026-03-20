@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.3
+// @version      2026.03.20.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -333,7 +333,8 @@ function getReleaseArtistFromHeading(){
 		}
 	});
 
-	return cleanArtist(out);
+	var releaseArtist = cleanArtist(out);
+	return releaseArtist === "Unknown Artist" ? "N/A" : releaseArtist;
 }
 
 function getTrackTitleFromCell(titleCell){
@@ -364,6 +365,37 @@ function getTrackTitleCell(tr, tds, hasDuration){
 	}
 
 	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
+}
+
+function getReleaseLabelText(){
+	var h1 = document.querySelector("h1");
+	if (!h1){
+		return "";
+	}
+
+	var current = h1.parentElement;
+	while (current && current !== document.body){
+		var labels = Array.from(current.querySelectorAll(".MuiTypography-labelSmall"))
+			.filter(function(label){
+				return !h1.contains(label) && !label.closest("#release-tracklist");
+			})
+			.map(function(label){
+				return norm(label.textContent);
+			})
+			.filter(function(label){
+				return !!label;
+			});
+
+		if (labels.length){
+			return labels.filter(function(label, idx){
+				return labels.indexOf(label) === idx;
+			}).join(" - ");
+		}
+
+		current = current.parentElement;
+	}
+
+	return "";
 }
 
 function getArtistFromCell(cell){
@@ -413,6 +445,29 @@ function buildDiscogsTL(){
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
+	var releaseLabelText = getReleaseLabelText();
+	var regularTrackTitles = rows.map(function(tr){
+		var tds = Array.from(tr.querySelectorAll("td"));
+		if (tds.length < 2){
+			return "";
+		}
+
+		var hasDuration = isLikelyDuration(norm(tds[tds.length - 1].textContent));
+		var titleCell = getTrackTitleCell(tr, tds, hasDuration);
+		var title = getTrackTitleFromCell(titleCell);
+		var trackPos = norm(tds[0] ? tds[0].textContent : "") || norm(tr.getAttribute("data-track-position") || "");
+		var isChapterRow = tr.classList.contains("heading_mkZNt")
+			|| tr.classList.contains("heading_Yx9y2")
+			|| Array.from(tr.classList).some(function(c){ return /^heading_/.test(c); })
+			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
+
+		return isChapterRow ? "" : title;
+	}).filter(function(title){
+		return !!title;
+	});
+	var allTracksUntitled = regularTrackTitles.length > 0 && regularTrackTitles.every(function(title){
+		return title === "Untitled";
+	});
 	var hasExplicitChapterRows = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		var trackPos = norm(tds[0] ? tds[0].textContent : "");
@@ -514,9 +569,20 @@ function buildDiscogsTL(){
 		}
 
 		var artist = artistParts.join(" / ").trim();
+		var usedReleaseArtist = false;
 		if (!artist && releaseArtist){
 			artist = releaseArtist;
+			usedReleaseArtist = true;
 		}
+
+		if (usedReleaseArtist && allTracksUntitled && title === "Untitled"){
+			title = "?";
+		}
+
+		if (usedReleaseArtist && releaseLabelText && title.indexOf(" [" + releaseLabelText + "]") === -1){
+			title += " [" + releaseLabelText + "]";
+		}
+
 		if (!artist && !title){
 			return;
 		}
