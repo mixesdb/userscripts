@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.20.2
+// @version      2026.03.20.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -367,35 +367,9 @@ function getTrackTitleCell(tr, tds, hasDuration){
 	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
 }
 
-function getReleaseLabelText(){
-	var h1 = document.querySelector("h1");
-	if (!h1){
-		return "";
-	}
-
-	var current = h1.parentElement;
-	while (current && current !== document.body){
-		var labels = Array.from(current.querySelectorAll(".MuiTypography-labelSmall"))
-			.filter(function(label){
-				return !h1.contains(label) && !label.closest("#release-tracklist");
-			})
-			.map(function(label){
-				return norm(label.textContent);
-			})
-			.filter(function(label){
-				return !!label;
-			});
-
-		if (labels.length){
-			return labels.filter(function(label, idx){
-				return labels.indexOf(label) === idx;
-			}).join(" - ");
-		}
-
-		current = current.parentElement;
-	}
-
-	return "";
+function getTrackLabelText(tr){
+	var label = tr.querySelector(".MuiTypography-labelSmall");
+	return label ? norm(label.textContent) : "";
 }
 
 function getArtistFromCell(cell){
@@ -445,7 +419,6 @@ function buildDiscogsTL(){
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
-	var releaseLabelText = getReleaseLabelText();
 	var regularTrackTitles = rows.map(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		if (tds.length < 2){
@@ -579,8 +552,11 @@ function buildDiscogsTL(){
 			title = "?";
 		}
 
-		if (usedReleaseArtist && releaseLabelText && title.indexOf(" [" + releaseLabelText + "]") === -1){
-			title += " [" + releaseLabelText + "]";
+		if (usedReleaseArtist){
+			var labelText = getTrackLabelText(tr);
+			if (labelText && title.indexOf(" [" + labelText + "]") === -1){
+				title += " [" + labelText + "]";
+			}
 		}
 
 		if (!artist && !title){
