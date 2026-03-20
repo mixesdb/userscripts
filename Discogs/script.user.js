@@ -333,8 +333,7 @@ function getReleaseArtistFromHeading(){
 		}
 	});
 
-	var releaseArtist = cleanArtist(out);
-	return releaseArtist === "Unknown Artist" ? "N/A" : releaseArtist;
+	return cleanArtist(out);
 }
 
 function getTrackTitleFromCell(titleCell){
@@ -365,11 +364,6 @@ function getTrackTitleCell(tr, tds, hasDuration){
 	}
 
 	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
-}
-
-function getTrackLabelText(tr){
-	var label = tr.querySelector(".MuiTypography-labelSmall");
-	return label ? norm(label.textContent) : "";
 }
 
 function getArtistFromCell(cell){
@@ -419,28 +413,6 @@ function buildDiscogsTL(){
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
-	var regularTrackTitles = rows.map(function(tr){
-		var tds = Array.from(tr.querySelectorAll("td"));
-		if (tds.length < 2){
-			return "";
-		}
-
-		var hasDuration = isLikelyDuration(norm(tds[tds.length - 1].textContent));
-		var titleCell = getTrackTitleCell(tr, tds, hasDuration);
-		var title = getTrackTitleFromCell(titleCell);
-		var trackPos = norm(tds[0] ? tds[0].textContent : "") || norm(tr.getAttribute("data-track-position") || "");
-		var isChapterRow = tr.classList.contains("heading_mkZNt")
-			|| tr.classList.contains("heading_Yx9y2")
-			|| Array.from(tr.classList).some(function(c){ return /^heading_/.test(c); })
-			|| (!tr.hasAttribute("data-track-position") && !trackPos && title);
-
-		return isChapterRow ? "" : title;
-	}).filter(function(title){
-		return !!title;
-	});
-	var allTracksUntitled = regularTrackTitles.length > 0 && regularTrackTitles.every(function(title){
-		return title === "Untitled";
-	});
 	var hasExplicitChapterRows = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		var trackPos = norm(tds[0] ? tds[0].textContent : "");
@@ -542,23 +514,9 @@ function buildDiscogsTL(){
 		}
 
 		var artist = artistParts.join(" / ").trim();
-		var usedReleaseArtist = false;
 		if (!artist && releaseArtist){
 			artist = releaseArtist;
-			usedReleaseArtist = true;
 		}
-
-		if (usedReleaseArtist && allTracksUntitled && title === "Untitled"){
-			title = "?";
-		}
-
-		if (usedReleaseArtist){
-			var labelText = getTrackLabelText(tr);
-			if (labelText && title.indexOf(" [" + labelText + "]") === -1){
-				title += " [" + labelText + "]";
-			}
-		}
-
 		if (!artist && !title){
 			return;
 		}
