@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.20.1
+// @version      2026.03.20.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -385,8 +385,7 @@ function getReleaseLabelFromMainSection(){
 			value = parentText.replace(/^Label\s*:?\s*/i, "");
 		}
 
-		value = value.replace(/\s*[–—]\s*/g, " - ");
-		return norm(value);
+		return value;
 	}
 
 	return "";
@@ -394,12 +393,13 @@ function getReleaseLabelFromMainSection(){
 
 function getFormattedTrackTitle(title, trackPos, shouldAppendReleaseLabel, releaseLabel){
 	var formattedTitle = title;
+	var isUntitled = /^untitled$/i.test(formattedTitle);
 
-	if (/^untitled$/i.test(formattedTitle) && /^[A-Za-z]+\d*$/.test(trackPos)){
+	if (isUntitled && /^[A-Za-z]+\d*$/.test(trackPos)){
 		formattedTitle = "Untitled (" + trackPos + ")";
 	}
 
-	if (shouldAppendReleaseLabel && releaseLabel && formattedTitle){
+	if (shouldAppendReleaseLabel && releaseLabel && formattedTitle && isUntitled){
 		formattedTitle += " [" + releaseLabel + "]";
 	}
 
