@@ -333,7 +333,8 @@ function getReleaseArtistFromHeading(){
 		}
 	});
 
-	return cleanArtist(out);
+	out = cleanArtist(out);
+	return /^unknown artist$/i.test(out) ? "N/A" : out;
 }
 
 function getTrackTitleFromCell(titleCell){
@@ -364,6 +365,45 @@ function getTrackTitleCell(tr, tds, hasDuration){
 	}
 
 	return hasDuration ? tds[tds.length - 2] : tds[tds.length - 1];
+}
+
+function getReleaseLabelFromMainSection(){
+	var labelSpans = Array.from(document.querySelectorAll("span.MuiTypography-labelSmall"));
+
+	for (var i = 0; i < labelSpans.length; i++){
+		var span = labelSpans[i];
+		var labelText = norm(span.textContent).replace(/:$/, "").toLowerCase();
+		if (labelText !== "label"){
+			continue;
+		}
+
+		var row = span.closest("tr");
+		var value = row ? norm((row.querySelector("td") || {}).textContent || "") : "";
+
+		if (!value){
+			var parentText = norm((span.parentElement || {}).textContent || "");
+			value = parentText.replace(/^Label\s*:?\s*/i, "");
+		}
+
+		value = value.replace(/\s*[–—]\s*/g, " - ");
+		return norm(value);
+	}
+
+	return "";
+}
+
+function getFormattedTrackTitle(title, trackPos, shouldAppendReleaseLabel, releaseLabel){
+	var formattedTitle = title;
+
+	if (/^untitled$/i.test(formattedTitle) && /^[A-Za-z]+\d*$/.test(trackPos)){
+		formattedTitle = "Untitled (" + trackPos + ")";
+	}
+
+	if (shouldAppendReleaseLabel && releaseLabel && formattedTitle){
+		formattedTitle += " [" + releaseLabel + "]";
+	}
+
+	return formattedTitle;
 }
 
 function getArtistFromCell(cell){
@@ -413,6 +453,7 @@ function buildDiscogsTL(){
 	var cumSeconds = 0;
 	var hasUnknownDurationFromHere = false;
 	var releaseArtist = getReleaseArtistFromHeading();
+	var releaseLabel = getReleaseLabelFromMainSection();
 	var hasExplicitChapterRows = rows.some(function(tr){
 		var tds = Array.from(tr.querySelectorAll("td"));
 		var trackPos = norm(tds[0] ? tds[0].textContent : "");
@@ -514,9 +555,12 @@ function buildDiscogsTL(){
 		}
 
 		var artist = artistParts.join(" / ").trim();
+		var usedReleaseArtist = false;
 		if (!artist && releaseArtist){
 			artist = releaseArtist;
+			usedReleaseArtist = true;
 		}
+		title = getFormattedTrackTitle(title, trackPos, usedReleaseArtist, releaseLabel);
 		if (!artist && !title){
 			return;
 		}
