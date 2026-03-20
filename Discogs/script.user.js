@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.20.2
+// @version      2026.03.20.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -368,24 +368,24 @@ function getTrackTitleCell(tr, tds, hasDuration){
 }
 
 function getReleaseLabelFromMainSection(){
-	var labelSpans = Array.from(document.querySelectorAll("span.MuiTypography-labelSmall"));
+	var rows = Array.from(document.querySelectorAll("div.main_cQEFk table tr"));
 
-	for (var i = 0; i < labelSpans.length; i++){
-		var span = labelSpans[i];
-		var labelText = norm(span.textContent).replace(/:$/, "").toLowerCase();
-		if (labelText !== "label"){
+	for (var i = 0; i < rows.length; i++){
+		var row = rows[i];
+		var labelHeading = norm((row.querySelector("th .MuiTypography-labelSmall") || {}).textContent || "")
+			.replace(/:$/, "")
+			.toLowerCase();
+		if (labelHeading !== "label"){
 			continue;
 		}
 
-		var row = span.closest("tr");
-		var value = row ? norm((row.querySelector("td") || {}).textContent || "") : "";
+		var labelParts = Array.from(row.querySelectorAll("td .MuiTypography-labelSmall"))
+			.map(function(el){
+				return norm(el.textContent);
+			})
+			.filter(Boolean);
 
-		if (!value){
-			var parentText = norm((span.parentElement || {}).textContent || "");
-			value = parentText.replace(/^Label\s*:?\s*/i, "");
-		}
-
-		return value;
+		return norm(labelParts.join(" "));
 	}
 
 	return "";
