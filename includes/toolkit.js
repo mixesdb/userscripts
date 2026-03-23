@@ -61,6 +61,21 @@ function ensureTrailingSlash( url ) {
     return url.replace(/\/?$/, '/');
 }
 
+// shouldShowEmbedUrl
+function shouldShowEmbedUrl( embedUrl ) {
+    if( !embedUrl || visitDomain == "trackid.net" ) {
+        return false;
+    }
+
+    var embedDomain = getDomain_fromUrlStr( embedUrl );
+
+    if( !embedDomain ) {
+        return false;
+    }
+
+    return visitDomain.replace("www.", "") == embedDomain;
+}
+
 // removeTrackingParameters
 // Removes URL parameters from SoundCloud URLs, keeps other domains unchanged.
 function removeTrackingParameters( url ) {
@@ -635,7 +650,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         toolkitOutput_li += '</li>';
 
         // embedUrl
-        if( embedUrl && visitDomain != "trackid.net" ) {
+        if( shouldShowEmbedUrl( embedUrl ) ) {
             var embedUrl_len = embedUrl.length;
             toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-embedUrl filled">Embed URL: ';
             toolkitOutput_li += '<input class="mdb-element inline mdb-selectOnClick mono" type="text" value="'+embedUrl+'" size="'+embedUrl_len+'" />';
