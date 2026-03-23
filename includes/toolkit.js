@@ -61,6 +61,21 @@ function ensureTrailingSlash( url ) {
     return url.replace(/\/?$/, '/');
 }
 
+// shouldShowEmbedUrl
+function shouldShowEmbedUrl( embedUrl ) {
+    if( !embedUrl || visitDomain == "trackid.net" ) {
+        return false;
+    }
+
+    var embedDomain = getDomain_fromUrlStr( embedUrl );
+
+    if( !embedDomain ) {
+        return false;
+    }
+
+    return visitDomain.replace("www.", "") == embedDomain;
+}
+
 // removeTrackingParameters
 // Removes URL parameters from SoundCloud URLs, keeps other domains unchanged.
 function removeTrackingParameters( url ) {
@@ -154,7 +169,7 @@ function getToolkit_fromIframe( iframe, type="playerUrl", outputType="detail pag
         } else {
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra970-upsammy/&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
             // https://w.soundcloud.com/player/?url=https://soundcloud.com/resident-advisor/ra996-ron-trent&color=1a1a1a&theme_color=000000&auto_play=false&show_artwork=false&show_playcount=false&download=false&liking=false&sharing=false
-            
+
             var scUrl_key = ensureTrailingSlash( extractUrlFromUrlParameter( srcUrl ) );
             logVar( "scUrl_key", scUrl_key );
 
@@ -581,8 +596,10 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     }
 
     // userscript Player Checker inserts before first fitting iframe
-    if( wrapper == "iframe.mdb-processed-toolkit:first" ) {
-        wrapper = $("iframe.mdb-processed-toolkit:first");
+    if (wrapper === "iframe.mdb-processed-toolkit:first") {
+        wrapper = $("iframe.mdb-processed-toolkit").first();
+    } else {
+        wrapper = $(wrapper);
     }
 
     // output wrapper
@@ -633,7 +650,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         toolkitOutput_li += '</li>';
 
         // embedUrl
-        if( embedUrl && visitDomain != "trackid.net" ) {
+        if( shouldShowEmbedUrl( embedUrl ) ) {
             var embedUrl_len = embedUrl.length;
             toolkitOutput_li += '<li data-iteration="'+toolboxIteration+'" class="mdb-toolkit-embedUrl filled">Embed URL: ';
             toolkitOutput_li += '<input class="mdb-element inline mdb-selectOnClick mono" type="text" value="'+embedUrl+'" size="'+embedUrl_len+'" />';
@@ -725,6 +742,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 output = '<span class="mdb-toolkit-usageLink-intro">This mix is on MixesDB: </span>';
                             }
 
+                            log( "Ready to output usage links" );
+                            logVar( "showPlayerUrls", showPlayerUrls );
+
                             for( i = 0; i < resultsArr.length; i++ ){
                                 var title = resultsArr[i].title,
                                     mdbPageId = resultsArr[i].pageid,
@@ -758,17 +778,35 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         }
 
                         // append usageLink used
-                        waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink.used:last", function( jNode ) {
+                        waitForKeyElements("#mdb-toolkit ul li.mdb-toolkit-usageLink.used", function(jNode) {
+
+                            const $all = $("#mdb-toolkit ul li.mdb-toolkit-usageLink.used");
+                            const $last = $all.last();
+
+                            // Only act on the current LAST .used item
+                            if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
+
                             $("#mdb-toolkit").addClass("filled");
-                            jNode.append( output ).addClass("filled");
+                            jNode.append(output).addClass("filled");
                         });
 
-                        // available links used
-                        waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used:last", function( jNode ) {
-                            $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "used", class_solvedUrlVariants, toolboxIteration ) );
-                            reorderToolkitPlayerUrlListItems( jNode );
 
-                            if( showPlayerUrls ) {
+                        // available links used
+                        waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used", function(jNode) {
+
+                            const $all = $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used");
+                            const $last = $all.last();
+
+                            // Only act on the current LAST .used item
+                            if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
+
+                            $("ul", jNode).append(
+                                makeAvailableLinksListItem(thisUrl, titleText, "used", class_solvedUrlVariants, toolboxIteration)
+                            );
+
+                            reorderToolkitPlayerUrlListItems(jNode);
+
+                            if (showPlayerUrls) {
                                 jNode.addClass("filled");
                             }
                         });
@@ -793,50 +831,79 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     }
 
                     if( addOutput ) {
-                        if( searchTitleLink ) {
-                            waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused:last", function( jNode ) {
+                        if (searchTitleLink) {
+                            waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused", function(jNode) {
+
+                                const $all = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused");
+                                const $last = $all.last();
+
+                                // Only act on the current LAST .unused item
+                                if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
+
                                 var searchMessage = 'This player is';
 
-                                if( max_toolboxIterations > 1 ) {
+                                if (max_toolboxIterations > 1) {
                                     searchMessage = 'These players are';
                                 }
 
                                 searchMessage += ' not used on MixesDB yet. ' + searchTitleLink;
 
                                 $("#mdb-toolkit").addClass("filled");
-                                jNode.append( searchMessage ).addClass("filled");
+                                jNode.append(searchMessage).addClass("filled");
                             });
                         } else {
-                            log( "No search res: No titleText!" );
+                            log("No search res: No titleText!");
                         }
 
                         // available links unused
                         // if domain of variable URLs add unused player URL to unclear list
-                        if( domain != "no-case-yet.com" ) {
-                            waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused:last", function( jNode ) {
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, "unused", class_solvedUrlVariants, toolboxIteration ) );
-                                reorderToolkitPlayerUrlListItems( jNode );
+                        if (domain != "no-case-yet.com") {
+                            waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused", function(jNode) {
 
-                                if( showPlayerUrls ) {
+                                const $all = $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused");
+                                const $last = $all.last();
+
+                                // Only act on the current LAST .unused item
+                                if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
+
+                                $("ul", jNode).append(
+                                    makeAvailableLinksListItem(thisUrl, titleText, "unused", class_solvedUrlVariants, toolboxIteration)
+                                );
+
+                                reorderToolkitPlayerUrlListItems(jNode);
+
+                                if (showPlayerUrls) {
                                     jNode.addClass("filled");
                                 }
                             });
                         } else {
-                            waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear:last", function( jNode ) {
+                            waitForKeyElements("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear", function(jNode) {
+
+                                const $all = $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear");
+                                const $last = $all.last();
+
+                                // Only act on the current LAST .unclear item
+                                if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
+
                                 var unclear = "";
 
-                                if( domain == "no-case-yet.com" ) {
+                                if (domain == "no-case-yet.com") {
                                     unclear = "unclear";
                                 }
 
-                                $("ul",jNode).append( makeAvailableLinksListItem( thisUrl, titleText, unclear, class_solvedUrlVariants, toolboxIteration ) );
-                                reorderToolkitPlayerUrlListItems( jNode );
+                                $("ul", jNode).append(
+                                    makeAvailableLinksListItem(thisUrl, titleText, unclear, class_solvedUrlVariants, toolboxIteration)
+                                );
 
-                                if( showPlayerUrls || force_unclearResult ) {
+                                reorderToolkitPlayerUrlListItems(jNode);
+
+                                if (showPlayerUrls || force_unclearResult) {
                                     jNode.addClass("filled");
                                 }
                             });
                         }
+                    } else {
+                        varLog( "addOutput", addOutput );
                     }
                 }
             }
@@ -876,29 +943,49 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                     }
 
                     // remove extra usage list items
-                    $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.used:not(:first)").remove();
-                    $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused:not(:first)").remove();
+                    $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.used").not(":first").remove();
+                    $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused").not(":first").remove();
 
                     // merge used and unused list items
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:not(:first) > ul > li.mdb-toolkit-playerUrls-item.used.filled").each(function(){
+                    $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled")
+                        .not(":first")
+                        .find("> ul > li.mdb-toolkit-playerUrls-item.used.filled")
+                        .each(function() {
                         $(this).appendTo(
-                            $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled:first > ul")
-                        );
-                    });
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:not(:first) > ul > li.mdb-toolkit-playerUrls-item.unused.filled").each(function(){
-                        $(this).appendTo(
-                            $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled:first > ul")
-                        );
-                    });
-                    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:not(:first) > ul > li.mdb-toolkit-playerUrls-item.unclear.filled").each(function(){
-                        $(this).appendTo(
-                            $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first > ul")
+                            $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled").first().find("> ul")
                         );
                     });
 
-                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled:first" );
-                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled:first" );
-                    reorderToolkitPlayerUrlListItems( "#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled:first" );
+                    $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled")
+                        .not(":first")
+                        .find("> ul > li.mdb-toolkit-playerUrls-item.unused.filled")
+                        .each(function() {
+                        $(this).appendTo(
+                            $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled").first().find("> ul")
+                        );
+                    });
+
+                    $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled")
+                        .not(":first")
+                        .find("> ul > li.mdb-toolkit-playerUrls-item.unclear.filled")
+                        .each(function() {
+                        $(this).appendTo(
+                            $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled").first().find("> ul")
+                        );
+                    });
+
+                    // reorder merged first matching blocks
+                    reorderToolkitPlayerUrlListItems(
+                        $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.used.filled").first()
+                    );
+
+                    reorderToolkitPlayerUrlListItems(
+                        $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unused.filled").first()
+                    );
+
+                    reorderToolkitPlayerUrlListItems(
+                        $("#mdb-toolkit > ul > li.mdb-toolkit-playerUrls.unclear.filled").first()
+                    );
 
                     // remove multiple embed URL with same value
                     var embedUrlsSeen = {};
@@ -995,26 +1082,50 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
  * reorderToolkitItem
  */
 function reorderToolkitItems() {
-    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
-        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
-    );
-    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first").insertBefore(
-        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
-    );
-    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore(
-        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unclear.filled:first")
-    );
-    $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.used.filled:first").insertBefore( // again
-        $("#mdb-toolkit > ul li.mdb-toolkit-playerUrls.unused.filled:first")
-    );
-    // embed URL to bottom
-    $("#mdb-toolkit > ul li.mdb-toolkit-embedUrl.filled").appendTo(
-        $("#mdb-toolkit > ul")
-    );
-    // last reorder: usage li always to top
-    $("#mdb-toolkit > ul li.mdb-toolkit-usageLink.filled").prependTo(
-        $("#mdb-toolkit > ul")
-    );
+
+    /* ------------------------------------------------------------
+     * Get the FIRST matching top-level list items.
+     * We do NOT use :first-of-type here, because that means
+     * "first LI among siblings", not "first matching element".
+     * ------------------------------------------------------------ */
+    const $toolkitList = $("#mdb-toolkit > ul");
+
+    const $used = $toolkitList.children("li.mdb-toolkit-playerUrls.used.filled").first();
+    const $unused = $toolkitList.children("li.mdb-toolkit-playerUrls.unused.filled").first();
+    const $unclear = $toolkitList.children("li.mdb-toolkit-playerUrls.unclear.filled").first();
+
+    /* ------------------------------------------------------------
+     * Desired order:
+     * 1. used
+     * 2. unused
+     * 3. unclear
+     *
+     * Append moves existing nodes, so this is a simple and robust
+     * way to normalize order without fragile insertBefore chains.
+     * Missing items are skipped automatically.
+     * ------------------------------------------------------------ */
+    if ($used.length) {
+        $used.appendTo($toolkitList);
+    }
+
+    if ($unused.length) {
+        $unused.appendTo($toolkitList);
+    }
+
+    if ($unclear.length) {
+        $unclear.appendTo($toolkitList);
+    }
+
+    /* ------------------------------------------------------------
+     * Embed URL should always be near the bottom / at the end.
+     * ------------------------------------------------------------ */
+    $toolkitList.children("li.mdb-toolkit-embedUrl.filled").appendTo($toolkitList);
+
+    /* ------------------------------------------------------------
+     * Usage items should always be at the top.
+     * prependTo() keeps the set order as returned by jQuery.
+     * ------------------------------------------------------------ */
+    $toolkitList.children("li.mdb-toolkit-usageLink.filled").prependTo($toolkitList);
 }
 
 
