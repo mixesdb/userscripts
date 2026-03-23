@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hearthis.at (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.2
+// @version      2026.03.23.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-hearthis.at_8
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-hearthis.at_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-hearthis.at_20
 // @include      http*hearthis.at*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hearthis.at
 // @noframes
@@ -50,10 +50,16 @@ redirectOnUrlChange( 50 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var pageUrl = $('meta[property="og:url"]').attr("content"), // e.g. https://hearthis.at/andrei-mor/01-cultureshockandgrafix-radio1sessentialmix-sat-01-18-2025-talion/">
-    pageId = $('meta[property="hearthis:embed:id"]').attr("content"), // e.g. 11703627
-    titleText = $('meta[property="og:title"]').attr("content"), // e.g. Culture Shock &amp; Grafix - Radio 1's Essential Mix 2025-01-18
-    toolkitTarget = $("section.track-detail-header");
+var pageUrl_meta = $('meta[property="og:url"]').attr("content"), // e.g. https://hearthis.at/andrei-mor/01-cultureshockandgrafix-radio1sessentialmix-sat-01-18-2025-talion/">
+    pageId_meta = $('meta[property="hearthis:embed:id"]').attr("content"), // e.g. 11703627
+    titleText = $('meta[property="og:title"]').attr("content") || document.title.replace(/\s*\|\s*HearThis.*$/i, ""), // e.g. Culture Shock &amp; Grafix - Radio 1's Essential Mix 2025-01-18
+    toolkitTarget = $("section.track-detail-header"),
+    pageUrl = pageUrl_meta || removeParametersFromUrl( location.href ),
+    pageId = pageId_meta;
+
+if( !pageId && isHearthisIdUrl(pageUrl) ) {
+    pageId = pageUrl.split("/")[3];
+}
 
 logVar( "pageUrl", pageUrl );
 logVar( "pageId", pageId );
@@ -64,6 +70,6 @@ if( urlPath(2) && toolkitTarget.length == 1 && pageUrl != "" && pageId != "" ) {
 
     var pageUrl_short = 'https://hearthis.at/'+pageId+'/';
 
-    // Handles both URL variants
-    getToolkit( pageUrl_short, "playerUrl", "detail page", toolkitTarget, "after", titleText, "", 2, "" );
+    // Pass the canonical detail URL so toolkit.js can search both detail and short/embed variants
+    getToolkit( pageUrl, "playerUrl", "detail page", toolkitTarget, "after", titleText, "", 2, pageUrl_short );
 }

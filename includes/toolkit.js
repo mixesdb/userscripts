@@ -492,23 +492,51 @@ function getToolkit( thisUrl, type, outputType="detail page", wrapper, insertTyp
     logVar( "urlDomain", urlDomain );
 
     if( urlDomain == "hearthis.at" ) {
-        $.ajax({
-            url: thisUrl,
-            success: function() {
-                if( urlDomain == "hearthis.at" ) {
-                    log( "hearthis.at ok" );
+        var toolkitUrls = [];
 
-                    var matches_id = arguments[0].match( /(?:^.+<meta property="hearthis:embed:id" content=")(\d+)(".+$)/m );
+        if( !embedUrl && isHearthisIdUrl(thisUrl) ) {
+            embedUrl = thisUrl;
+        }
 
-                    if( matches_id && matches_id[1] ) {
-                        embedUrl = "https://hearthis.at/" + matches_id[1] + "/";
-                        logVar( "embedUrl", embedUrl );
+        toolkitUrls.push( thisUrl );
+
+        if( embedUrl && embedUrl != thisUrl ) {
+            log( "hearthis.at embed URL was provided by caller." );
+            toolkitUrls.push( embedUrl );
+            toolkitUrls = array_unique( toolkitUrls );
+            logVar( "toolkitUrls", JSON.stringify(toolkitUrls) );
+
+            $.each( toolkitUrls, function( index, toolkitUrl ) {
+                getToolkit_run( toolkitUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl, playerOrder );
+            });
+        } else {
+            $.ajax({
+                url: thisUrl,
+                success: function() {
+                    if( urlDomain == "hearthis.at" ) {
+                        log( "hearthis.at ok" );
+
+                        var matches_id = arguments[0].match( /<meta property="hearthis:embed:id" content="(\d+)"/m );
+
+                        if( matches_id && matches_id[1] ) {
+                            embedUrl = "https://hearthis.at/" + matches_id[1] + "/";
+                            logVar( "embedUrl", embedUrl );
+                        }
+
+                        if( embedUrl && embedUrl != thisUrl ) {
+                            toolkitUrls.push( embedUrl );
+                        }
+
+                        toolkitUrls = array_unique( toolkitUrls );
+                        logVar( "toolkitUrls", JSON.stringify(toolkitUrls) );
+
+                        $.each( toolkitUrls, function( index, toolkitUrl ) {
+                            getToolkit_run( toolkitUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl, playerOrder );
+                        });
                     }
-
-                    getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl, playerOrder );
                 }
-            }
-        });
+            });
+        }
     } else {
         getToolkit_run( thisUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, embedUrl, siteHasTl, playerOrder );
     }
