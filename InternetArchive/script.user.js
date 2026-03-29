@@ -106,6 +106,79 @@ if( playsetList_wrapper.length ) {
 
     setApiLink( getIdentifierFromPath() );
 
+    // Clipboard helper (Safari/Userscripts compatible)
+    function copyToClipboard(text) {
+        if (!text) return $.Deferred().reject("empty").promise();
+
+        // Prefer GM/TM style if available (not always in Userscripts Safari)
+        try {
+            if (typeof GM_setClipboard === "function") {
+                GM_setClipboard(text);
+                return $.Deferred().resolve().promise();
+            }
+        } catch (e) {}
+
+        // Modern clipboard API (requires user gesture)
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            return navigator.clipboard.writeText(text);
+        }
+
+        // Fallback: hidden textarea + execCommand
+        try {
+            var $ta = $('<textarea readonly></textarea>').css({
+                position: "fixed",
+                top: "-1000px",
+                left: "-1000px",
+                opacity: 0
+            }).val(text);
+
+            $("body").append($ta);
+            $ta[0].focus();
+            $ta[0].select();
+
+            var ok = document.execCommand("copy");
+            $ta.remove();
+
+            return ok
+                ? $.Deferred().resolve().promise()
+                : $.Deferred().reject("execCommand failed").promise();
+        } catch (e) {
+            return $.Deferred().reject(e).promise();
+        }
+    }
+
+    // tiny copy button (icon) HTML
+    function buildCopyIconButton(copyText, tooltipText) {
+        if (!copyText) return "";
+
+        var safeCopy = String(copyText).replace(/"/g, "&quot;");
+        var safeTip  = String(tooltipText || "").replace(/"/g, "&quot;");
+
+        return ' <span class="mdb-tooltip"'
+            + (safeTip ? ' data-tooltip="' + safeTip + '"' : "")
+            + '>'
+            + '<button type="button" class="playsetList-copyIcon" aria-label="Copy" data-copy="' + safeCopy + '">⧉</button>'
+            + '</span>';
+    }
+
+    // click handler (event delegation)
+    // (kept outside the loop so it's registered once)
+    $(document).on("click", ".playsetList-copyIcon", function(e) {
+        e.preventDefault();
+
+        var $btn = $(this);
+        var txt = $btn.attr("data-copy") || "";
+
+        copyToClipboard(txt).then(function() {
+            // minimal visual feedback
+            $btn.addClass("is-copied");
+            setTimeout(function(){ $btn.removeClass("is-copied"); }, 900);
+        }).catch(function() {
+            $btn.addClass("is-failed");
+            setTimeout(function(){ $btn.removeClass("is-failed"); }, 900);
+        });
+    });
+
     // each playsetList item
     var i = 0;
     playsetList_item.each(function(){
@@ -167,7 +240,7 @@ if( playsetList_wrapper.length ) {
         episode_row    +=    '<td class="mdb-right">'+i+'</td>';
         episode_row    +=    '<td>'+episode+'</td>';
         episode_row    +=    '<td>'+episode_detail+'</td>';
-        episode_row    +=    '<td>'+dur+'</td>';
+        episode_row    +=    '<td>' + dur + buildCopyIconButton(dur, 'Copy Duration to Clipboard') + '</td>';
         episode_row    +=    '<td>'+download_links+'</td>';
         episode_row    +=    '<td class="playsetList_mdbTable-mixesdb">'+( first_download_url ? "Checking…" : "No download URL" )+'</td>';
         episode_row    += '</tr>';
