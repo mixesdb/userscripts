@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.2
+// @version      2026.04.09.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -836,8 +836,47 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     } else {
         log("tl empty");
     }
+
+    outputTidGenresTextarea();
 });
 
+
+function outputTidGenresTextarea() {
+    if (urlPath_noParams(1) != "audiostreams") return;
+
+    var styleRenameMap = {
+            "Drum n Bass": "Drum & Bass"
+        },
+        tidStyles = [];
+
+    var stylesRow = $("p.MuiTypography-body1").filter(function() {
+        return $(this).text().trim() == "Styles";
+    }).first().closest(".MuiBox-root");
+
+    if (!stylesRow.length) return;
+
+    $("a.link", stylesRow).each(function() {
+        var styleName = $(this).text().trim().replace(/,\s*$/, "");
+        if (styleName) {
+            tidStyles.push(styleName);
+        }
+    });
+
+    $("#mixesdb-TIDgenresWrapper").remove();
+
+    if (tidStyles.length < 1) return;
+    if (!$("#tlEditor").length || !$(".mdb-tid-table").length) return;
+
+    var tidStylesOutput = [];
+    $.each(tidStyles, function(i, styleName) {
+        var outputStyleName = styleRenameMap[styleName] || styleName;
+        tidStylesOutput.push("[[Category:" + outputStyleName + "]]");
+    });
+
+    var output = tidStylesOutput.join("\n");
+    $("#tlEditor").after('<div id="mixesdb-TIDgenresWrapper"><textarea id="mixesdb-TIDgenres" class="mono" style="display:block; width:100%; margin:10px 0 0 0;"></textarea></div>');
+    $("#mixesdb-TIDgenres").val(output);
+}
 
 
 function toggleTracklistTextareaCueFormat() {
