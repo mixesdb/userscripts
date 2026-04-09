@@ -30,6 +30,15 @@
     font-family: Consolas, monospace !important;
 }
 
+.mdb-small {
+    font-size: small !important;
+}
+
+.mdb-top5 {
+    margin-top: 5px;
+    padding-top: 0;
+}
+
 
 /*
  * Colors
