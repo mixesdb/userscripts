@@ -25,6 +25,13 @@ div[contenteditable="plaintext-only"] {
 }
 
 /*
+ * TID styles
+ */
+#mixesdb-TIDstylesWrapper {
+	margin-bottom: 30px;
+}
+
+/*
  * Quick links
  */
 .user-name {

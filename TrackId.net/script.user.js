@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.04.09.1
+// @version      2026.04.09.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -27,7 +27,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 96,
+var cacheVersion = 97,
     scriptName = "TrackId.net";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -862,7 +862,7 @@ function outputTidGenresTextarea() {
         }
     });
 
-    $("#mixesdb-TIDgenresWrapper").remove();
+    $("#mixesdb-TIDstylesWrapper").remove();
 
     if (tidStyles.length < 1) return;
     if (!$("#tlEditor").length || !$(".mdb-tid-table").length) return;
@@ -874,8 +874,8 @@ function outputTidGenresTextarea() {
     });
 
     var output = tidStylesOutput.join("\n");
-    $("#tlEditor").after('<div id="mixesdb-TIDgenresWrapper"><textarea id="mixesdb-TIDgenres" class="mono" style="display:block; width:100%; margin:10px 0 0 0;"></textarea></div>');
-    $("#mixesdb-TIDgenres").val(output);
+    $("#tlEditor").after('<div id="mixesdb-TIDstylesWrapper"><strong class="mdb-highlight">Style suggestions</strong><textarea id="mixesdb-TIDstyles" class="mono" style="display:block; width:100%; margin:10px 0 0 0;"></textarea></div>');
+    $("#mixesdb-TIDstyles").val(output);
 }
 
 
