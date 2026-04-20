@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.04.20.1
+// @version      2026.04.20.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -846,14 +846,28 @@ function outputTidGenresTextarea() {
 
     var styleRenameMap = {
         "Abstract": ["Experimental"],
+        "African": ["World Music"],
+        "Alternative Rock": ["Rock"],
+        "Bass Music": ["Bass"],
+        "Contemporary Jazz": ["Jazz"],
+        "Contemporary R&B": ["R&B"],
+        "Dance-pop": ["Pop"],
         "Drum n Bass": ["Drum & Bass"],
+        "Electro House": ["Progressive House"],
         "Garage House": ["House"],
+        "Indie Rock": ["Rock"],
         "Italo-Disco": ["Disco"],
+        "Jazz-Funk": ["Jazz", "Funk"],
+        "New Wave": ["Pop"],
         "Nu-Disco": ["Disco", "House"],
+        "Pop Rap": ["Pop", "Hip Hop"],
+        "Pop Rock": ["Pop", "Rock"],
+        "Psy-Trance": ["Psytrance"],
+        "Psychedelic Rock": ["Psychedelic", "Rock"],
+        "Roots Reggae": ["Reggae"],
         "Synth-pop": ["Pop"]
-        },
-        tidStyles = [];
-
+    };
+    var tidStyles = [];
     var stylesRow = $("p.MuiTypography-body1").filter(function() {
         return $(this).text().trim() == "Styles";
     }).first().closest(".MuiBox-root");
