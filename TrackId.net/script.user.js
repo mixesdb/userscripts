@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.04.09.3
+// @version      2026.04.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -845,11 +845,12 @@ function outputTidGenresTextarea() {
     if (urlPath_noParams(1) != "audiostreams") return;
 
     var styleRenameMap = {
-        "Abstract": "Experimental",
-        "Drum n Bass": "Drum & Bass",
-        "Garage House": "House",
-        "Italo-Disco": "Disco",
-        "Synth-pop": "Pop"
+        "Abstract": ["Experimental"],
+        "Drum n Bass": ["Drum & Bass"],
+        "Garage House": ["House"],
+        "Italo-Disco": ["Disco"],
+        "Nu-Disco": ["Disco", "House"],
+        "Synth-pop": ["Pop"]
         },
         tidStyles = [];
 
@@ -873,9 +874,13 @@ function outputTidGenresTextarea() {
 
     var tidStylesOutput = [];
     $.each(tidStyles, function(i, styleName) {
-        var outputStyleName = styleRenameMap[styleName] || styleName;
-        tidStylesOutput.push("[[Category:" + outputStyleName + "]]");
+        var outputStyleNames = styleRenameMap[styleName] || [styleName];
+        $.each(outputStyleNames, function(j, outputStyleName) {
+            tidStylesOutput.push("[[Category:" + outputStyleName + "]]");
+        });
     });
+
+    tidStylesOutput = [...new Set(tidStylesOutput)];
 
     var output = tidStylesOutput.join("\n");
     $("#tlEditor").after('<div id="mixesdb-TIDstylesWrapper"><strong class="mdb-highlight">Style suggestions</strong><textarea id="mixesdb-TIDstyles" class="mono" style="display:block; width:100%; margin:10px 0 0 0;"></textarea><p class="mdb-top5 mdb-small mdb-grey"><em>Please double-check by skipping through the mix manually.</em></p></div>');
