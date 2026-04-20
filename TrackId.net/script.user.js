@@ -845,7 +845,11 @@ function outputTidGenresTextarea() {
     if (urlPath_noParams(1) != "audiostreams") return;
 
     var styleRenameMap = {
-            "Drum n Bass": "Drum & Bass"
+        "Abstract": "Experimental",
+        "Drum n Bass": "Drum & Bass",
+        "Garage House": "House",
+        "Italo-Disco": "Disco",
+        "Synth-pop": "Pop"
         },
         tidStyles = [];
 
