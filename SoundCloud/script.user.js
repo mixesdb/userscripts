@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.23.3
+// @version      2026.04.23.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -462,7 +462,7 @@ waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
 
 // Hiding option: each repost player
 waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
-    if( getHidePl == "true" ) {
+    if( getHideReposts == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
         jNode.closest(".soundList__item").remove();
     }
