@@ -53,3 +53,13 @@
 		border: 1px solid lightskyblue;
 	}
 }
+
+
+/*
+ * Ads
+ */
+
+.ytd-in-feed-ad-layout-renderer /* Ads in search results */
+{
+    display: none;
+}
