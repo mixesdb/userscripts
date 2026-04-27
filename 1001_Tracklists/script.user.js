@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.2
+// @version      2026.04.27.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -53,45 +53,81 @@ function thousandoneTl() {
             len = li.length,
             rows = len;
 
+        // persist chapter between <li> iterations
+        var pendingIntro = "";
+
         li.each(function() {
 
-            // track
-            if( $(this).attr("data-trno") != "" ) {
+            // -------------------------
+            // 1) detect "chapter intro" li (the standalone '''...''' rows)
+            // -------------------------
+            var span = $("span", this);
+
+            if (
+                span.length &&
+                span.attr("id") &&
+                span.attr("id").endsWith("headtext_column")
+            ) {
+                // store for NEXT track
+                pendingIntro = span.text().trim().replace(/:$/g, "");
+                return; // important: skip further processing for this li
+            }
+
+
+            // -------------------------
+            // 2) detect track li
+            // -------------------------
+            if ($(this).attr("data-trno") != "") {
+
                 var track = "",
-                    song = $("div .trackValue",this).text().trim(),
-                    label = $("div[itemprop='tracks'] .trackLabel",this)
-                                .map(function(){ return $(this).text().trim(); })
-                                .get()
-                                .join(" / ").toLowerCase()
-                                .replace( /(.+) \(.+\)/, "$1" ),
-                    dur = $("div[data-mode='hours']",this).text().trim();
+                    song = $("div .trackValue", this).text().trim(),
+                    label = $("div[itemprop='tracks'] .trackLabel", this)
+                .map(function(){ return $(this).text().trim(); })
+                .get()
+                .join(" / ")
+                .toLowerCase()
+                .replace(/(.+) \(.+\)/, "$1"),
+                    dur = $("div[data-mode='hours']", this).text().trim();
 
-                if( dur != "" ) track = "["+dur+"] ";
+
+                // + duration
+                if (dur !== "") {
+                    track += "[" + dur + "] ";
+                }
+
+                // + pending chapter (consume once)
+                if (pendingIntro !== "") {
+                    track += "'''" + pendingIntro + ":''' ";
+                    pendingIntro = ""; // reset after use
+                }
+
+                // + song
                 track += song;
-                if( label != "" ) track += " ["+label+"]";
 
-                //log( track );
-                if( track != "" && track != " " )  {
+                // + label
+                if (label !== "") {
+                    track += " [" + label + "]";
+                }
+
+                if (track.trim() !== "") {
                     tl += track + "\n";
                 }
             }
 
-            // chapter
-            // https://www.1001tracklists.com/tracklist/y3gt5lt/dominik-koislmeyer-jetique-energy-extravadance-charts-2021-08-28.html
-            if( $(".fRow",this).length === 1 ) {
-                var chapter = $(".fRow a",this).text().trim();
-                if( chapter != "" ) tl += ";" + chapter + "\n";
-            }
 
-            // song chapter
-            var span = $("span",this);
-            if( span.attr("id") && span.attr("id").replace(/.+_(headtext_column)$/g, "$1") == "headtext_column" ) {
-                var intro = span.text().trim().replace(/:$/g,"");
-                if( intro != "" ) tl += "''" + intro + ":'' ";
+            // -------------------------
+            // 3) detect main chapter (;Pete Tong etc.)
+            // -------------------------
+            if ($(".fRow", this).length === 1) {
+                var chapter = $(".fRow a", this).text().trim();
+
+                if (chapter !== "") {
+                    tl += ";" + chapter + "\n";
+                }
             }
         });
 
-        log( tl );
+        log( "tl before API:\n" + tl );
 
         // fixes
         var tl = tl.replace('&thinsp;', ' ')
