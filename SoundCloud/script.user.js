@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.04.23.1
+// @version      2026.05.04.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -166,12 +166,26 @@ waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         //log( location.href );
 
-        // Artwork link tzo original
+        // Artwork link to original (legacy wrapper)
         var artworkWrapper = $(".listenArtworkWrapper"),
             artwork_url = $(".sc-artwork", artworkWrapper).html().replace(/.+&quot;(htt.+(?:jpg|png)).+/, "$1");
         log( artworkWrapper.html() );
         logVar( "artwork_url", artwork_url );
         if( typeof artwork_url  !== "undefined" ) {
+            append_artwork( artwork_url );
+        }
+    }
+});
+
+// Artwork link to original (new listenInfo wrapper)
+waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image']", function( jNode ) {
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        var styleAttr = jNode.attr("style") || "",
+            artwork_url = styleAttr.replace(/.*background-image:\s*url\(["']?(https?:[^"')]+(?:jpg|png))["']?\).*/, "$1");
+
+        logVar( "artwork_url (listenInfo)", artwork_url );
+
+        if( typeof artwork_url !== "undefined" && artwork_url !== styleAttr ) {
             append_artwork( artwork_url );
         }
     }
