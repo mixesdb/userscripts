@@ -146,6 +146,15 @@ a.sc_button-mdb:active {
     text-align: right;
 }
 
+.listenInfo {
+    width: 240px;
+
+    & #mdb-artwork-input {
+        clear: both;
+        width: 100%;
+    }
+}
+
 .userStream h3 {
     margin: 0 0 10px;
 }

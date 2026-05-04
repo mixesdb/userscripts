@@ -20,12 +20,16 @@ function append_artwork( artwork_url ) {
     logVar( "origUrl", origUrl );
 
     if( $("#mdb-artwork-wrapper").length === 0 ) {
-        $(".listenArtworkWrapper").replaceWith('<div id="mdb-artwork-wrapper"></div>');
-        var imgWrapper = $("#mdb-artwork-wrapper");
+        if( $(".listenArtworkWrapper").length ) {
+            $(".listenArtworkWrapper").replaceWith('<div id="mdb-artwork-wrapper"></div>');
+            var imgWrapper = $("#mdb-artwork-wrapper");
 
-        imgWrapper.append('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /></div>');
+            imgWrapper.append('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /></div>');
+            imgWrapper.prepend('<a class="mdb-artwork-img" href="'+origUrl+'" target="_blank"><img id="mdb-artwork-img" src="'+origUrl+'" /></a>');
 
-        imgWrapper.prepend('<a class="mdb-artwork-img" href="'+origUrl+'" target="_blank"><img id="mdb-artwork-img" src="'+origUrl+'" /></a>');
+        } else if( $(".listenInfo .listenArtistInfo__report").length ) {
+            $(".listenInfo .listenArtistInfo__report").replaceWith('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /><a id="mdb-artwork-link" href="'+origUrl+'" target="_blank">open artwork</a><img id="mdb-artwork-img" src="'+origUrl+'" style="display:none;" /></div>');
+        }
     }
 }
 
