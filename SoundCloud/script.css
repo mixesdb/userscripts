@@ -147,11 +147,11 @@ a.sc_button-mdb:active {
 }
 
 .listenInfo {
-    width: 240px;
+    width: 240px !important;
 
     & #mdb-artwork-input {
-        clear: both;
-        width: 100%;
+        clear: both !important;
+        width: 100% !important;
     }
 }
 

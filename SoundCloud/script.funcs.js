@@ -28,7 +28,7 @@ function append_artwork( artwork_url ) {
             imgWrapper.prepend('<a class="mdb-artwork-img" href="'+origUrl+'" target="_blank"><img id="mdb-artwork-img" src="'+origUrl+'" /></a>');
 
         } else if( $(".listenInfo .listenArtistInfo__report").length ) {
-            $(".listenInfo .listenArtistInfo__report").replaceWith('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /><a id="mdb-artwork-link" href="'+origUrl+'" target="_blank">open artwork</a><img id="mdb-artwork-img" src="'+origUrl+'" style="display:none;" /></div>');
+            $(".listenInfo .listenArtistInfo__report").replaceWith('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /><img id="mdb-artwork-img" src="'+origUrl+'" style="display:none;" /></div>');
         }
     }
 }
