@@ -65,3 +65,22 @@ body.rootpage-MixesDB_Explorer {
         margin-bottom: 3px;
     }
 }
+
+/*
+ * Pre-save formatting review
+ */
+#mixesdb-edit-format-review {
+    padding-top: .5rem;
+    
+    & #mixesdb-edit-format-review-trigger {
+        margin-right: 15px;
+    }
+
+    & #mixesdb-edit-format-review-results {
+	    margin: 0;
+        
+        & > * {
+            margin: 1rem 0 0;
+        }
+    }
+}
