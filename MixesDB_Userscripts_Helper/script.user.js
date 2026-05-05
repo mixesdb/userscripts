@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.02.2
+// @version      2026.05.05.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -68,7 +68,7 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 7,
+var cacheVersion = 8,
     scriptName = "MixesDB_Userscripts_Helper";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -108,126 +108,6 @@ function getApplePodcastsSearchLink( className, keywords ) {
 
     return iconLink;
 }
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Edit: If page is cloned, remove URLs and tracklist, fix year cat
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// ── String prototype helpers ──────────────────────────────────────────────────
-// Note: only define if not already present.
-
-if (!String.prototype.replaceFileLine) {
-    // Replace a single [[File:...]] line with [[File:wgTitle.<ext>|...]],
-    // preserving jpg|jpeg|png|webp (case-insensitive) and keeping following line intact.
-    String.prototype.replaceFileLine = function (wgTitle) {
-        return this.replace(
-            /^\s*\[\[File:[^\]\|]+?(\.(?:jpe?g|jpeg|png|webp))([^\]]*)\]\]$/im,
-            function (_m, ext, rest) {
-                const extension = ext || '.jpg';
-                return `[[File:${wgTitle}${extension}${rest}]]`;
-            }
-        );
-    };
-}
-
-if (!String.prototype.cleanPlayerUrls) {
-    // Remove only URL tokens inside {{Player ...}} while preserving pipes and line breaks.
-    String.prototype.cleanPlayerUrls = function () {
-        return this.replace(/\{\{Player([\s\S]*?)\}\}/g, function (match, inner) {
-            const cleaned = inner.replace(/(\|[ \t]*)https?:\/\/[^\|\}\n]+/g, '$1');
-            return `{{Player${cleaned}}}`;
-        });
-    };
-}
-
-if (!String.prototype.clearTracklist) {
-    // Replace anything between "== Tracklist ==" and the next "[[Category:" with an empty <list>.
-    String.prototype.clearTracklist = function () {
-        return this.replace(
-            /== Tracklist ==\n\n[\s\S]*?\n\n\[\[Category:/,
-            '== Tracklist ==\n\n<list>\n\n</list>\n\n[[Category:'
-        );
-    };
-}
-
-if (!String.prototype.removeUrlsInNotes) {
-    // Remove bare URL tokens in Notes, keep all line breaks/templates intact.
-    String.prototype.removeUrlsInNotes = function () {
-        return this.replace(
-            /(==\s*Notes\s*==[\s\S]*?)(https?:\/\/\S+)([\s\S]*?==\s*Tracklist\s*==)/,
-            function (_m, before, _url, after) {
-                return before + after;
-            }
-        );
-    };
-}
-
-if (!String.prototype.updateCategoryYear) {
-    // Replace [[Category:YYYY]] with the year extracted from wgTitle (first 4 digits).
-    String.prototype.updateCategoryYear = function (wgTitle) {
-        const m = (wgTitle || '').match(/^(\d{4})/);
-        if (!m) return this.toString();
-        const year = m[1];
-        return this.replace(/\[\[Category:\d{4}\]\]/, `[[Category:${year}]]`);
-    };
-}
-
-if (!String.prototype.updateArtistCategory) {
-    // Replace the 2nd category with artist(s) from wgTitle.
-    // If multiple artists joined by "," or "&", insert multiple categories in that slot.
-    String.prototype.updateArtistCategory = function (wgTitle) {
-        const m = (wgTitle || '').match(/^\s*\d{4}-\d{2}-\d{2}\s*-\s*(.+?)\s*-\s*/);
-        if (!m) return this.toString();
-        const artistField = m[1];
-        const artists = artistField
-        .split(/\s*(?:,|&)\s*/g)
-        .map(s => s.trim())
-        .filter(Boolean);
-
-        let idx = 0;
-        return this.replace(/\[\[Category:[^\]]+\]\]/g, function (cat) {
-            idx++;
-            if (idx === 2 && artists.length) {
-                return artists.map(a => `[[Category:${a}]]`).join('\n');
-            }
-            return cat;
-        });
-    };
-}
-
-// ── Usage in your ready handler ───────────────────────────────────────────────
-// Example wiring (unchanged logic, just using chained prototype methods):
-
-d.ready(function () { // needs mw.config
-    const preload = getURLParameter("preload") || "";
-    logVar("preload", preload);
-
-    const wgTitle = mw.config.get("wgTitle") || "";
-
-    if (cleanClonedText &&
-        getURLParameter("action") == "edit" &&
-        preload &&
-        !/^Template:/i.test(preload)) {
-
-        log("Edit with preload: " + preload);
-
-        const textbox = $("#wpTextbox1");
-
-        const text_clean = textbox.val()
-        .replaceFileLine(wgTitle)
-        .clearTracklist()
-        .cleanPlayerUrls()
-        .removeUrlsInNotes()
-        .updateCategoryYear(wgTitle)
-        .updateArtistCategory(wgTitle);
-
-        textbox.val(text_clean);
-    }
-});
-
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -449,3 +329,144 @@ function waitAppleMusicLinks(jNode) {
         });
     }
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Edit: If page is cloned, remove URLs and tracklist, fix year cat
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// ── String prototype helpers ──────────────────────────────────────────────────
+// Note: only define if not already present.
+
+if (!String.prototype.replaceFileLine) {
+    // Replace a single [[File:...]] line with [[File:wgTitle.<ext>|...]],
+    // preserving jpg|jpeg|png|webp (case-insensitive) and keeping following line intact.
+    String.prototype.replaceFileLine = function (wgTitle) {
+        return this.replace(
+            /^\s*\[\[File:[^\]\|]+?(\.(?:jpe?g|jpeg|png|webp))([^\]]*)\]\]$/im,
+            function (_m, ext, rest) {
+                const extension = ext || '.jpg';
+                return `[[File:${wgTitle}${extension}${rest}]]`;
+            }
+        );
+    };
+}
+
+if (!String.prototype.cleanPlayerUrls) {
+    // Remove only URL tokens inside {{Player ...}} while preserving pipes and line breaks.
+    String.prototype.cleanPlayerUrls = function () {
+        return this.replace(/\{\{Player([\s\S]*?)\}\}/g, function (match, inner) {
+            const cleaned = inner.replace(/(\|[ \t]*)https?:\/\/[^\|\}\n]+/g, '$1');
+            return `{{Player${cleaned}}}`;
+        });
+    };
+}
+
+if (!String.prototype.clearTracklist) {
+    // Replace anything between "== Tracklist ==" and the next "[[Category:" with an empty <list>.
+    String.prototype.clearTracklist = function () {
+        return this.replace(
+            /== Tracklist ==\n\n[\s\S]*?\n\n\[\[Category:/,
+            '== Tracklist ==\n\n<list>\n\n</list>\n\n[[Category:'
+        );
+    };
+}
+
+if (!String.prototype.removeUrlsInNotes) {
+    // Remove bare URL tokens in Notes, keep all line breaks/templates intact.
+    String.prototype.removeUrlsInNotes = function () {
+        return this.replace(
+            /(==\s*Notes\s*==[\s\S]*?)(https?:\/\/\S+)([\s\S]*?==\s*Tracklist\s*==)/,
+            function (_m, before, _url, after) {
+                return before + after;
+            }
+        );
+    };
+}
+
+if (!String.prototype.updateCategoryYear) {
+    // Replace [[Category:YYYY]] with the year extracted from wgTitle (first 4 digits).
+    String.prototype.updateCategoryYear = function (wgTitle) {
+        const m = (wgTitle || '').match(/^(\d{4})/);
+        if (!m) return this.toString();
+        const year = m[1];
+        return this.replace(/\[\[Category:\d{4}\]\]/, `[[Category:${year}]]`);
+    };
+}
+
+if (!String.prototype.updateArtistCategory) {
+    // Replace the 2nd category with artist(s) from wgTitle.
+    // If multiple artists joined by "," or "&", insert multiple categories in that slot.
+    String.prototype.updateArtistCategory = function (wgTitle) {
+        const m = (wgTitle || '').match(/^\s*\d{4}-\d{2}-\d{2}\s*-\s*(.+?)\s*-\s*/);
+        if (!m) return this.toString();
+        const artistField = m[1];
+        const artists = artistField
+        .split(/\s*(?:,|&)\s*/g)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+        let idx = 0;
+        return this.replace(/\[\[Category:[^\]]+\]\]/g, function (cat) {
+            idx++;
+            if (idx === 2 && artists.length) {
+                return artists.map(a => `[[Category:${a}]]`).join('\n');
+            }
+            return cat;
+        });
+    };
+}
+
+// ── Usage in your ready handler ───────────────────────────────────────────────
+// Example wiring (unchanged logic, just using chained prototype methods):
+
+d.ready(function () { // needs mw.config
+    const preload = getURLParameter("preload") || "";
+    logVar("preload", preload);
+
+    const wgTitle = mw.config.get("wgTitle") || "";
+
+    if (cleanClonedText &&
+        getURLParameter("action") == "edit" &&
+        preload &&
+        !/^Template:/i.test(preload)) {
+
+        log("Edit with preload: " + preload);
+
+        const textbox = $("#wpTextbox1");
+
+        const text_clean = textbox.val()
+        .replaceFileLine(wgTitle)
+        .clearTracklist()
+        .cleanPlayerUrls()
+        .removeUrlsInNotes()
+        .updateCategoryYear(wgTitle)
+        .updateArtistCategory(wgTitle);
+
+        textbox.val(text_clean);
+    }
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Edit: Move AI formatting review below form buttons
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+d.ready(function () { // needs mw.config
+    if( mw.config.get('wgNamespaceNumber') == 0
+        && ( getURLParameter("action") == "edit" || getURLParameter("action") == "submit" )
+    ) {
+        // move section
+        $("#mixesdb-edit-format-review")
+            .insertAfter(".editOptions");
+
+        // also move button and remove help text (only advanced users use this userscript)
+        $("#mixesdb-edit-format-review-trigger")
+            .insertBefore("label.mixesdb-edit-format-review-opt-in");
+        $(".mixesdb-edit-format-review-help").hide();
+    }
+});
