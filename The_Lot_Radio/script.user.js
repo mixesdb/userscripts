@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         The Lot Radio (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.06.3
+// @version      2026.05.06.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -55,6 +55,14 @@ function formatTheLotRadioCue( totalSeconds, padTo ) {
     return pad( minutes, padTo );
 }
 
+function formatTheLotRadioTrackCue( track, padTo, isFirstTrack ) {
+    if( isFirstTrack && Math.round(track.timeSeconds / 60) === 1 ) {
+        return formatTheLotRadioCue( 0, padTo );
+    }
+
+    return formatTheLotRadioCue( track.timeSeconds, padTo );
+}
+
 function buildTheLotRadioTracklist( wrapperUl ) {
     var wrapper = $(wrapperUl);
 
@@ -104,7 +112,7 @@ function buildTheLotRadioTracklist( wrapperUl ) {
             nextTrack = tracks[index + 1];
 
         if( track.timeSeconds !== null ) {
-            line += "[" + formatTheLotRadioCue( track.timeSeconds, padTo ) + "] ";
+            line += "[" + formatTheLotRadioTrackCue( track, padTo, index === 0 ) + "] ";
         }
 
         if( track.artist !== "" ) {
