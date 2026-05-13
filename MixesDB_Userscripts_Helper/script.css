@@ -49,6 +49,7 @@
         width: auto !important;
         padding-left: 3px;
         padding-right: 4px;
+        margin-top: -2px !important;
     }
 }
 
