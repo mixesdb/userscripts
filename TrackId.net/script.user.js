@@ -366,16 +366,19 @@ function chunkTrackIdBatchPlayerUrls( playerUrls ) {
     };
 }
 
-function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
+function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter, options ) {
     var currentUsername = $(".user-name").text(),
         allowUserTableMarking = ["Schrute_Inc.", "Komapatient"].includes(currentUsername),
         dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
         notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>',
+        noPageFoundText = '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>',
         resultItems = Array.isArray( data.mixesdbtrackid ) ? data.mixesdbtrackid : [],
         mixesdbPages = ( resultItems[0] && Array.isArray( resultItems[0].mixesdbpages ) ) ? resultItems[0].mixesdbpages : [],
         firstMixesdbPage = mixesdbPages[0] || null,
         checked_pageId = firstMixesdbPage ? firstMixesdbPage.page_id : "",
         checked_url = firstMixesdbPage ? firstMixesdbPage.url : "";
+
+    options = options || {};
 
     waiter = waiter || $("waiter", wrapper);
     waiter.remove();
@@ -421,8 +424,14 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
             }
         }
     } else {
-        // Preserve the old recovery path for rows that do not come back with a direct page_id.
-        // Batching reduces request fan-out, but table behavior should stay familiar.
+        if( options.skipSearchFallback ) {
+            // Batch callers already asked MixesDB about this player URL.
+            // Do not fan back out into per-row lookups when no page_id comes back.
+            wrapper.append( noPageFoundText );
+            return;
+        }
+
+        // Preserve the old recovery path for legacy single-item checks.
         log( "No checked_pageId! Run searchKeywords API for player URL to get the mdbPageId" );
 
         var apiQueryUrl = apiUrl_searchKeywords_fromUrl( tidPlayerUrl );
@@ -571,7 +580,9 @@ function flushTableTidIntegrationChecks() {
                         };
 
                     $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
-                        renderTableTrackIdCheckResult( playerUrl, wrapper, tableData, $("waiter", wrapper) );
+                        renderTableTrackIdCheckResult( playerUrl, wrapper, tableData, $("waiter", wrapper), {
+                            skipSearchFallback: true
+                        } );
                     });
                 });
             },
