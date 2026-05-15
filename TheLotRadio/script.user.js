@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         The Lot Radio (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.15.1
+// @version      2026.05.15.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -64,32 +64,58 @@ function formatTheLotRadioTrackCue( track, padTo, isFirstTrack ) {
 }
 
 
+function setTheLotRadioImportantStyles( element, styles ) {
+    $.each( styles, function( property, value ) {
+        element[0].style.setProperty( property, value, "important" );
+    });
+}
+
 function ensureTheLotRadioTracklistLayout( wrapper, tlEditor ) {
     var layout = wrapper.parent(".mdb-thelotradio-tracklist-layout");
 
     wrapper.addClass("mdb-thelotradio-source-tracklist");
-    wrapper.css({
+    setTheLotRadioImportantStyles( wrapper, {
+        "box-sizing": "border-box",
+        "clear": "both",
         "display": "block",
-        "width": "100%",
-        "max-width": "100%"
+        "float": "none",
+        "max-width": "100%",
+        "position": "static",
+        "transform": "none",
+        "width": "100%"
     });
 
-    tlEditor.css({
+    setTheLotRadioImportantStyles( tlEditor, {
         "box-sizing": "border-box",
+        "clear": "both",
         "display": "block",
+        "float": "none",
         "flex": "0 0 100%",
-        "width": "100%",
+        "margin-bottom": "1rem",
         "max-width": "100%",
-        "margin-bottom": "1rem"
+        "position": "relative",
+        "transform": "none",
+        "width": "100%",
+        "z-index": "1"
     });
 
     if( !layout.length ) {
-        layout = $('<div class="mdb-thelotradio-tracklist-layout"></div>').css({
+        layout = $('<div class="mdb-thelotradio-tracklist-layout"></div>');
+        setTheLotRadioImportantStyles( layout, {
             "box-sizing": "border-box",
-            "display": "block",
+            "clear": "both",
+            "display": "flex",
             "flex": "0 0 100%",
-            "width": "100%",
-            "max-width": "100%"
+            "flex-direction": "column",
+            "float": "none",
+            "gap": "1rem",
+            "grid-column": "1 / -1",
+            "max-width": "100%",
+            "min-width": "0",
+            "overflow": "visible",
+            "position": "relative",
+            "transform": "none",
+            "width": "100%"
         });
 
         wrapper.before( layout );
@@ -98,6 +124,11 @@ function ensureTheLotRadioTracklistLayout( wrapper, tlEditor ) {
         return;
     }
 
+    setTheLotRadioImportantStyles( layout, {
+        "display": "flex",
+        "flex-direction": "column",
+        "gap": "1rem"
+    });
     layout.prepend( tlEditor );
 }
 
