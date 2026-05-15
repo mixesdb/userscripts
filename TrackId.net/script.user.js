@@ -317,6 +317,9 @@ var mdbTrackidTableBatchQueue = {},
     mdbTrackidTableBatchTimer = null,
     mdbTrackidBatchMaxUrlsPerRequest = 25,
     mdbTrackidBatchMaxQueryLength = 1800;
+
+// Split one large table scan into bounded batch requests.
+// The userscript previously called the single-item API once per row.
 function chunkTrackIdBatchPlayerUrls( playerUrls ) {
     var chunks = [],
         oversizedUrls = [],
@@ -372,6 +375,8 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
     waiter = waiter || $("waiter", wrapper);
     waiter.remove();
 
+    // Treat explicit API errors as terminal row states.
+    // Missing rows are handled below by the existing search-keyword fallback.
     if( data.error && data.error.code == "notfound" ) {
         wrapper.append( '<span class="tooltip-title" title="TrackId.net page not found (recently created?)">&ndash;</span>' );
         return;
@@ -411,6 +416,8 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
             }
         }
     } else {
+        // Preserve the old recovery path for rows that do not come back with a direct page_id.
+        // Batching reduces request fan-out, but table behavior should stay familiar.
         log( "No checked_pageId! Run searchKeywords API for player URL to get the mdbPageId" );
 
         var apiQueryUrl = apiUrl_searchKeywords_fromUrl( tidPlayerUrl );
@@ -472,12 +479,15 @@ function queueTableTidIntegrationCheck( wrapper ) {
         mdbTrackidTableBatchQueue[playerUrl] = [];
     }
 
+    // Multiple rows can point at the same player URL.
+    // Queue all wrappers so one batch result can update every matching cell.
     mdbTrackidTableBatchQueue[playerUrl].push( wrapper );
 
     if( mdbTrackidTableBatchTimer ) {
         clearTimeout( mdbTrackidTableBatchTimer );
     }
 
+    // Small debounce window so rows discovered together become one request burst.
     mdbTrackidTableBatchTimer = setTimeout( flushTableTidIntegrationChecks, 50 );
 }
 
@@ -494,6 +504,8 @@ function flushTableTidIntegrationChecks() {
 
     var batchPlan = chunkTrackIdBatchPlayerUrls( playerUrls );
 
+    // If one URL is too large even by itself, surface that row locally instead of
+    // sending an oversized request that can fail the whole batch unexpectedly.
     $.each( batchPlan.oversizedUrls, function( index, playerUrl ) {
         $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
             renderTableTrackIdCheckResult( playerUrl, wrapper, {
@@ -535,6 +547,8 @@ function flushTableTidIntegrationChecks() {
                 }
 
                 $.each( data.mixesdbtrackidbatch || [], function( index, result ) {
+                    // The batch API echoes both requestedurl and sanitizedurl.
+                    // Index both so the table lookup can tolerate backend normalization.
                     if( result.requestedurl ) {
                         resultsByUrl[result.requestedurl] = result;
                     }
@@ -549,6 +563,8 @@ function flushTableTidIntegrationChecks() {
                             mixesdbtrackid: Array.isArray( result.mixesdbtrackid ) ? result.mixesdbtrackid : [],
                             error: result.error
                         } : {
+                            // No direct batch hit: fall through to the existing search-keyword path
+                            // instead of inventing a new table-only row state.
                             mixesdbtrackid: []
                         };
 
