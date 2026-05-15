@@ -314,35 +314,104 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
 }
 
 var mdbTrackidTableBatchQueue = {},
-    mdbTrackidTableBatchTimer = null;
+    mdbTrackidTableBatchTimer = null,
+    mdbTrackidBatchMaxUrlsPerRequest = 25,
+    mdbTrackidBatchMaxQueryLength = 1800;
+
+function appendTooltipText( wrapper, text, title, extraClass="" ) {
+    var span = $("<span></span>")
+        .addClass( "tooltip-title" )
+        .attr( "title", title || "" )
+        .html( text );
+
+    if( extraClass ) {
+        span.addClass( extraClass );
+    }
+
+    wrapper.append( span );
+}
+
+function appendSafeCheckedLink( wrapper, checked_url ) {
+    try {
+        var checkedUrlObj = new URL( checked_url, window.location.origin );
+
+        if( !["http:", "https:"].includes( checkedUrlObj.protocol ) ) {
+            appendTooltipText( wrapper, "&ndash;", "MixesDB returned an unsupported link protocol" );
+            return;
+        }
+
+        var checkedLink = $("<a></a>")
+            .attr( "href", checkedUrlObj.href )
+            .append( $( checkIcon ) );
+
+        wrapper.append( checkedLink );
+    } catch( error ) {
+        appendTooltipText( wrapper, "&ndash;", "MixesDB returned an invalid link" );
+    }
+}
+
+function chunkTrackIdBatchPlayerUrls( playerUrls ) {
+    var chunks = [],
+        currentChunk = [],
+        currentLength = ( apiUrl_mw + "?action=mixesdbtrackidbatch&format=json" ).length;
+
+    $.each( playerUrls, function( index, playerUrl ) {
+        var queryPart = "&urls=" + encodeURIComponent( playerUrl );
+
+        if(
+            currentChunk.length > 0
+            && (
+                currentChunk.length >= mdbTrackidBatchMaxUrlsPerRequest
+                || currentLength + queryPart.length > mdbTrackidBatchMaxQueryLength
+            )
+        ) {
+            chunks.push( currentChunk );
+            currentChunk = [];
+            currentLength = ( apiUrl_mw + "?action=mixesdbtrackidbatch&format=json" ).length;
+        }
+
+        currentChunk.push( playerUrl );
+        currentLength += queryPart.length;
+    });
+
+    if( currentChunk.length > 0 ) {
+        chunks.push( currentChunk );
+    }
+
+    return chunks;
+}
 
 function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
     var currentUsername = $(".user-name").text(),
         allowUserTableMarking = ["Schrute_Inc.", "Komapatient"].includes(currentUsername),
-        dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
-        notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>',
-        checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
-        checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
+        resultItems = Array.isArray( data.mixesdbtrackid ) ? data.mixesdbtrackid : [],
+        mixesdbPages = ( resultItems[0] && Array.isArray( resultItems[0].mixesdbpages ) ) ? resultItems[0].mixesdbpages : [],
+        firstMixesdbPage = mixesdbPages[0] || null,
+        checked_pageId = firstMixesdbPage ? firstMixesdbPage.page_id : "",
+        checked_url = firstMixesdbPage ? firstMixesdbPage.url : "";
 
     waiter = waiter || $("waiter", wrapper);
     waiter.remove();
 
     if( data.error && data.error.code == "notfound" ) {
-        wrapper.append( '<span class="tooltip-title" title="TrackId.net page not found (recently created?)">&ndash;</span>' );
+        appendTooltipText( wrapper, "&ndash;", "TrackId.net page not found (recently created?)" );
+        return;
+    }
+
+    if( data.error ) {
+        appendTooltipText( wrapper, "&ndash;", data.error.info || "TrackId.net batch check failed" );
         return;
     }
 
     if( checked_pageId ) {
-        var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+        var lastCheckedAgainstMixesDB = firstMixesdbPage.lastCheckedAgainstMixesDB;
 
         logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
         if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
             log( "Checked and page found: ("+checked_pageId+")" );
 
-            var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
-
-            wrapper.append( checkedLink );
+            appendSafeCheckedLink( wrapper, checked_url );
         } else {
             var status_td = wrapper.prev("td.status"),
                 status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
@@ -354,10 +423,10 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
                     var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
                     wrapper.append( input );
                 } else {
-                    wrapper.append( notYetIntegratedText );
+                    appendTooltipText( wrapper, "not yet", "This tracklist is not intergated yet to the found mix page", "small" );
                 }
             } else {
-                wrapper.append( dashText );
+                appendTooltipText( wrapper, "&ndash;", "Status is not ready" );
             }
         }
     } else {
@@ -388,22 +457,22 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
                                 var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
                                 wrapper.append( input );
                             } else {
-                                wrapper.append( notYetIntegratedText );
+                                appendTooltipText( wrapper, "not yet", "This tracklist is not intergated yet to the found mix page", "small" );
                             }
                         } else {
-                            wrapper.append( dashText );
+                            appendTooltipText( wrapper, "&ndash;", "Status is not ready" );
                         }
                     } else {
-                        wrapper.append( notYetIntegratedText );
+                        appendTooltipText( wrapper, "not yet", "This tracklist is not intergated yet to the found mix page", "small" );
                     }
                 } else {
                     log( "resultNum != 1: " + resultNum );
 
                     if( resultNum == 0 ) {
-                        wrapper.append( '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>' );
+                        appendTooltipText( wrapper, "not found", "No MixesDB mix page found using this player", "small" );
                     }
                     if( resultNum > 1 ) {
-                        wrapper.append( '<span class="tooltip-title small" title="Bug: Too many results">multiple pages using this</span>' );
+                        appendTooltipText( wrapper, "multiple pages using this", "Bug: Too many results", "small" );
                     }
                 }
             }
@@ -442,67 +511,75 @@ function flushTableTidIntegrationChecks() {
     mdbTrackidTableBatchQueue = {};
     mdbTrackidTableBatchTimer = null;
 
-    var apiQueryUrl = apiUrl_mw;
-    apiQueryUrl += "?action=mixesdbtrackidbatch";
-    apiQueryUrl += "&format=json";
+    $.each( chunkTrackIdBatchPlayerUrls( playerUrls ), function( chunkIndex, playerUrlChunk ) {
+        var apiQueryUrl = apiUrl_mw;
+        apiQueryUrl += "?action=mixesdbtrackidbatch";
+        apiQueryUrl += "&format=json";
 
-    $.each( playerUrls, function( index, playerUrl ) {
-        apiQueryUrl += "&urls=" + encodeURIComponent( playerUrl );
-    });
+        $.each( playerUrlChunk, function( index, playerUrl ) {
+            apiQueryUrl += "&urls=" + encodeURIComponent( playerUrl );
+        });
 
-    logVar( "apiQueryUrl_batch", apiQueryUrl );
+        logVar( "apiQueryUrl_batch", apiQueryUrl );
 
-    $.ajax({
-        url: apiQueryUrl,
-        type: 'get',
-        dataType: 'json',
-        async: true,
-        success: function(data) {
-            if( data.error ) {
-                $.each( playerUrls, function( index, playerUrl ) {
+        $.ajax({
+            url: apiQueryUrl,
+            type: 'get',
+            dataType: 'json',
+            async: true,
+            success: function(data) {
+                var resultsByUrl = {};
+
+                if( data.error ) {
+                    $.each( playerUrlChunk, function( index, playerUrl ) {
+                        $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
+                            renderTableTrackIdCheckResult( playerUrl, wrapper, { error: data.error }, $("waiter", wrapper) );
+                        });
+                    });
+                    return;
+                }
+
+                $.each( data.mixesdbtrackidbatch || [], function( index, result ) {
+                    if( result.requestedurl ) {
+                        resultsByUrl[result.requestedurl] = result;
+                    }
+                    if( result.sanitizedurl ) {
+                        resultsByUrl[result.sanitizedurl] = result;
+                    }
+                });
+
+                $.each( playerUrlChunk, function( index, playerUrl ) {
+                    var result = resultsByUrl[playerUrl] || {
+                            error: {
+                                code: "notfound",
+                                info: "No matching data found for the given URL",
+                                url: playerUrl
+                            }
+                        },
+                        tableData = {
+                            mixesdbtrackid: Array.isArray( result.mixesdbtrackid ) ? result.mixesdbtrackid : [],
+                            error: result.error
+                        };
+
                     $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
-                        renderTableTrackIdCheckResult( playerUrl, wrapper, { error: data.error }, $("waiter", wrapper) );
+                        renderTableTrackIdCheckResult( playerUrl, wrapper, tableData, $("waiter", wrapper) );
                     });
                 });
-                return;
+            },
+            error: function() {
+                $.each( playerUrlChunk, function( index, playerUrl ) {
+                    $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
+                        renderTableTrackIdCheckResult( playerUrl, wrapper, {
+                            error: {
+                                code: "batchfailed",
+                                info: "TrackId.net batch check failed",
+                                url: playerUrl
+                            }
+                        }, $("waiter", wrapper) );
+                    });
+                });
             }
-
-            var resultsByUrl = {};
-
-            $.each( data.mixesdbtrackidbatch || [], function( index, result ) {
-                resultsByUrl[result.requestedurl] = result;
-                if( result.sanitizedurl ) {
-                    resultsByUrl[result.sanitizedurl] = result;
-                }
-            });
-
-            $.each( playerUrls, function( index, playerUrl ) {
-                var result = resultsByUrl[playerUrl] || {
-                        error: {
-                            code: "notfound",
-                            info: "No matching data found for the given URL",
-                            url: playerUrl
-                        }
-                    },
-                    tableData = {
-                        mixesdbtrackid: result.mixesdbtrackid,
-                        error: result.error
-                    };
-
-                $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
-                    renderTableTrackIdCheckResult( playerUrl, wrapper, tableData, $("waiter", wrapper) );
-                });
-            });
-        },
-        error: function() {
-            $.each( playerUrls, function( index, playerUrl ) {
-                $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
-                    var waiter = $("waiter", wrapper);
-                    waiter.remove();
-                    wrapper.append( '<span class="tooltip-title" title="TrackId.net batch check failed">&ndash;</span>' );
-                });
-            });
-        }
+        });
     });
 }
 
