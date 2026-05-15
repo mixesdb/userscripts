@@ -17,6 +17,20 @@
 // ==/UserScript==
 
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var cacheVersion = 1,
+    scriptName = "TheLotRadio";
+
+loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+
+
 /*
  * Before anythings starts: Reload the page
  * A tiny delay is needed, otherwise there's constant reloading.

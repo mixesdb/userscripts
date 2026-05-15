@@ -1,0 +1,54 @@
+/* Wrapper */
+.mdb-thelotradio-source-tracklist {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+}
+
+/* Editor */
+.mdb-thelotradio-tl-editor {
+	box-sizing: border-box;
+	display: block;
+	flex: 0 0 100%;
+	width: 100%;
+	max-width: 100%;
+    background-color: #fff;
+    
+    & textarea {
+        padding: .2rem 0 0 .2rem !important;
+        margin: 0 0 -5px 0 !important;
+    }
+}
+
+/* Layout container */
+.mdb-thelotradio-tracklist-layout {
+	box-sizing: border-box;
+	display: block;
+	flex: 0 0 100%;
+	width: 100%;
+	max-width: 100%;
+}
+    
+/* Normalizing */
+#tlEditor-feedback {
+    border-radius: 0 !important;
+    
+    & ul {
+        list-style: inherit;
+        margin: 1rem .5rem !important;
+        margin-block-start: inherit !important;
+        margin-block-end: inherit !important;
+    }
+    
+    & div ul {
+        margin-top: .5rem !important;
+    }
+    
+    & li {
+        font-size: .8rem;
+    }
+}
+
+#tlEditor-feedback-topInfo + div {
+    margin-top: inherit !important;
+}
