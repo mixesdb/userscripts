@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         The Lot Radio (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.06.4
+// @version      2026.05.15.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -61,6 +61,44 @@ function formatTheLotRadioTrackCue( track, padTo, isFirstTrack ) {
     }
 
     return formatTheLotRadioCue( track.timeSeconds, padTo );
+}
+
+
+function ensureTheLotRadioTracklistLayout( wrapper, tlEditor ) {
+    var layout = wrapper.parent(".mdb-thelotradio-tracklist-layout");
+
+    wrapper.addClass("mdb-thelotradio-source-tracklist");
+    wrapper.css({
+        "display": "block",
+        "width": "100%",
+        "max-width": "100%"
+    });
+
+    tlEditor.css({
+        "box-sizing": "border-box",
+        "display": "block",
+        "flex": "0 0 100%",
+        "width": "100%",
+        "max-width": "100%",
+        "margin-bottom": "1rem"
+    });
+
+    if( !layout.length ) {
+        layout = $('<div class="mdb-thelotradio-tracklist-layout"></div>').css({
+            "box-sizing": "border-box",
+            "display": "block",
+            "flex": "0 0 100%",
+            "width": "100%",
+            "max-width": "100%"
+        });
+
+        wrapper.before( layout );
+        layout.append( tlEditor );
+        layout.append( wrapper );
+        return;
+    }
+
+    layout.prepend( tlEditor );
 }
 
 function buildTheLotRadioTracklist( wrapperUl ) {
@@ -147,7 +185,7 @@ function buildTheLotRadioTracklist( wrapperUl ) {
             .show();
 
         tlEditor.append( tlTextarea );
-        wrapper.before( tlEditor );
+        ensureTheLotRadioTracklistLayout( wrapper, tlEditor );
         fixTLbox( feedback, tlEditor );
         wrapper.addClass("mdb-processed-tracklist");
     }
