@@ -422,7 +422,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
 
     var keywords = mixesdbPlayerUsage_keywords( thisUrl );
 
-    return 'https://www.mixesdb.com/w/api.php?action=mixesdb_player_search&format=json&url='+encodeURIComponent( keywords );
+    return 'https://www.mixesdb.com/w/api.php?action=mixesdb_player_search&format=json&url='+keywords;
 }
 
 // makeAvailableLinksListItem

@@ -222,9 +222,9 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
         var apiQueryUrl_check = apiUrl_mw;
         apiQueryUrl_check += "?action=mixesdbtrackid";
         apiQueryUrl_check += "&format=json";
-        apiQueryUrl_check += "&url=" + encodeURIComponent( tidPlayerUrl );
+        apiQueryUrl_check += "&url=" + tidPlayerUrl;
 
-        var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + encodeURIComponent( mdbPageId );
+        var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + mdbPageId;
 
         // waiter
         if( target == "table" ) {
@@ -254,14 +254,11 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                             }
                         // if no error
                         } else {
-                            var directResultItems = Array.isArray( data.mixesdbtrackid ) ? data.mixesdbtrackid : [],
-                                directMixesdbPages = ( directResultItems[0] && Array.isArray( directResultItems[0].mixesdbpages ) ) ? directResultItems[0].mixesdbpages : [],
-                                directFirstMixesdbPage = directMixesdbPages[0] || null,
-                                checked_pageId = directFirstMixesdbPage ? directFirstMixesdbPage.page_id : "",
-                                checked_url = directFirstMixesdbPage ? directFirstMixesdbPage.url : "";
+                            var checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
+                                checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
 
                             if( checked_pageId == mdbPageId ) {
-                                var lastCheckedAgainstMixesDB = directFirstMixesdbPage ? directFirstMixesdbPage.lastCheckedAgainstMixesDB : null;
+                                var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
 
                                 if( lastCheckedAgainstMixesDB != null ) {
                                     log( "Is marked as integrated (mdbPageId: " +mdbPageId+ ")" );
@@ -320,39 +317,6 @@ var mdbTrackidTableBatchQueue = {},
     mdbTrackidTableBatchTimer = null,
     mdbTrackidBatchMaxUrlsPerRequest = 25,
     mdbTrackidBatchMaxQueryLength = 1800;
-
-function appendTooltipText( wrapper, text, title, extraClass="" ) {
-    var span = $("<span></span>")
-        .addClass( "tooltip-title" )
-        .attr( "title", title || "" )
-        .html( text );
-
-    if( extraClass ) {
-        span.addClass( extraClass );
-    }
-
-    wrapper.append( span );
-}
-
-function appendSafeCheckedLink( wrapper, checked_url ) {
-    try {
-        var checkedUrlObj = new URL( checked_url, window.location.origin );
-
-        if( !["http:", "https:"].includes( checkedUrlObj.protocol ) ) {
-            appendTooltipText( wrapper, "&ndash;", "MixesDB returned an unsupported link protocol" );
-            return;
-        }
-
-        var checkedLink = $("<a></a>")
-            .attr( "href", checkedUrlObj.href )
-            .append( $( checkIcon ) );
-
-        wrapper.append( checkedLink );
-    } catch( error ) {
-        appendTooltipText( wrapper, "&ndash;", "MixesDB returned an invalid link" );
-    }
-}
-
 function chunkTrackIdBatchPlayerUrls( playerUrls ) {
     var chunks = [],
         oversizedUrls = [],
@@ -397,6 +361,8 @@ function chunkTrackIdBatchPlayerUrls( playerUrls ) {
 function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
     var currentUsername = $(".user-name").text(),
         allowUserTableMarking = ["Schrute_Inc.", "Komapatient"].includes(currentUsername),
+        dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
+        notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>',
         resultItems = Array.isArray( data.mixesdbtrackid ) ? data.mixesdbtrackid : [],
         mixesdbPages = ( resultItems[0] && Array.isArray( resultItems[0].mixesdbpages ) ) ? resultItems[0].mixesdbpages : [],
         firstMixesdbPage = mixesdbPages[0] || null,
@@ -407,12 +373,12 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
     waiter.remove();
 
     if( data.error && data.error.code == "notfound" ) {
-        appendTooltipText( wrapper, "&ndash;", "TrackId.net page not found (recently created?)" );
+        wrapper.append( '<span class="tooltip-title" title="TrackId.net page not found (recently created?)">&ndash;</span>' );
         return;
     }
 
     if( data.error ) {
-        appendTooltipText( wrapper, "&ndash;", data.error.info || "TrackId.net batch check failed" );
+        wrapper.append( '<span class="tooltip-title" title="' + ( data.error.info || "TrackId.net batch check failed" ) + '">&ndash;</span>' );
         return;
     }
 
@@ -424,7 +390,9 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
         if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
             log( "Checked and page found: ("+checked_pageId+")" );
 
-            appendSafeCheckedLink( wrapper, checked_url );
+            var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
+
+            wrapper.append( checkedLink );
         } else {
             var status_td = wrapper.prev("td.status"),
                 status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
@@ -436,10 +404,10 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
                     var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
                     wrapper.append( input );
                 } else {
-                    appendTooltipText( wrapper, "not yet", "This tracklist is not intergated yet to the found mix page", "small" );
+                    wrapper.append( notYetIntegratedText );
                 }
             } else {
-                appendTooltipText( wrapper, "&ndash;", "Status is not ready" );
+                wrapper.append( dashText );
             }
         }
     } else {
@@ -470,22 +438,22 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
                                 var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
                                 wrapper.append( input );
                             } else {
-                                appendTooltipText( wrapper, "not yet", "This tracklist is not intergated yet to the found mix page", "small" );
+                                wrapper.append( notYetIntegratedText );
                             }
                         } else {
-                            appendTooltipText( wrapper, "&ndash;", "Status is not ready" );
+                            wrapper.append( dashText );
                         }
                     } else {
-                        appendTooltipText( wrapper, "not yet", "This tracklist is not intergated yet to the found mix page", "small" );
+                        wrapper.append( notYetIntegratedText );
                     }
                 } else {
                     log( "resultNum != 1: " + resultNum );
 
                     if( resultNum == 0 ) {
-                        appendTooltipText( wrapper, "not found", "No MixesDB mix page found using this player", "small" );
+                        wrapper.append( '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>' );
                     }
                     if( resultNum > 1 ) {
-                        appendTooltipText( wrapper, "multiple pages using this", "Bug: Too many results", "small" );
+                        wrapper.append( '<span class="tooltip-title small" title="Bug: Too many results">multiple pages using this</span>' );
                     }
                 }
             }
