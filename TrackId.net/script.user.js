@@ -318,19 +318,25 @@ var mdbTrackidTableBatchQueue = {},
     mdbTrackidBatchMaxUrlsPerRequest = 25,
     mdbTrackidBatchMaxQueryLength = 1800;
 
+function buildTrackIdBatchQueryValue( playerUrls ) {
+    return encodeURIComponent( playerUrls.join( "|" ) );
+}
+
 // Split one large table scan into bounded batch requests.
-// The userscript previously called the single-item API once per row.
+// MediaWiki multi-value GET params are pipe-delimited inside one param value,
+// not repeated as &urls=a&urls=b.
 function chunkTrackIdBatchPlayerUrls( playerUrls ) {
     var chunks = [],
         oversizedUrls = [],
         currentChunk = [],
-        baseLength = ( apiUrl_mw + "?action=mixesdbtrackidbatch&format=json" ).length,
-        currentLength = baseLength;
+        baseLength = ( apiUrl_mw + "?action=mixesdbtrackidbatch&format=json&urls=" ).length;
 
     $.each( playerUrls, function( index, playerUrl ) {
-        var queryPart = "&urls=" + encodeURIComponent( playerUrl );
+        var singleUrlLength = baseLength + buildTrackIdBatchQueryValue( [ playerUrl ] ).length,
+            nextChunk = currentChunk.concat( [ playerUrl ] ),
+            nextChunkLength = baseLength + buildTrackIdBatchQueryValue( nextChunk ).length;
 
-        if( baseLength + queryPart.length > mdbTrackidBatchMaxQueryLength ) {
+        if( singleUrlLength > mdbTrackidBatchMaxQueryLength ) {
             oversizedUrls.push( playerUrl );
             return;
         }
@@ -339,16 +345,15 @@ function chunkTrackIdBatchPlayerUrls( playerUrls ) {
             currentChunk.length > 0
             && (
                 currentChunk.length >= mdbTrackidBatchMaxUrlsPerRequest
-                || currentLength + queryPart.length > mdbTrackidBatchMaxQueryLength
+                || nextChunkLength > mdbTrackidBatchMaxQueryLength
             )
         ) {
             chunks.push( currentChunk );
-            currentChunk = [];
-            currentLength = baseLength;
+            currentChunk = [ playerUrl ];
+            return;
         }
 
-        currentChunk.push( playerUrl );
-        currentLength += queryPart.length;
+        currentChunk = nextChunk;
     });
 
     if( currentChunk.length > 0 ) {
@@ -522,10 +527,7 @@ function flushTableTidIntegrationChecks() {
         var apiQueryUrl = apiUrl_mw;
         apiQueryUrl += "?action=mixesdbtrackidbatch";
         apiQueryUrl += "&format=json";
-
-        $.each( playerUrlChunk, function( index, playerUrl ) {
-            apiQueryUrl += "&urls=" + encodeURIComponent( playerUrl );
-        });
+        apiQueryUrl += "&urls=" + buildTrackIdBatchQueryValue( playerUrlChunk );
 
         logVar( "apiQueryUrl_batch", apiQueryUrl );
 
