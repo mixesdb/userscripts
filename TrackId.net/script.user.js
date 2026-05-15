@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.05.2
+// @version      2026.05.15.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -284,96 +284,9 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                     wrapper.show();
                                 }
 
-                                // Add checkbox in tables for certain users
-                                var currentUsername = $(".user-name").text(),
-                                    allowUserTableMarking = ["Schrute_Inc.", "Komapatient"].includes(currentUsername);
-
-                                var dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
-                                    notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>';
-
                                 // tables
                                 if( target == "table" ) {
-                                    waiter.remove();
-
-
-                                    if( checked_pageId ) {
-                                        var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
-
-                                        logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
-
-                                        if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
-                                            log( "Checked and page found: ("+checked_pageId+")" );
-
-                                            var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
-
-                                            wrapper.append( checkedLink );
-                                        } else {
-                                            var status_td = wrapper.prev("td.status"),
-                                                status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
-
-                                            logVar( "status", status );
-
-                                            if( status == "Tracklist ready" ) {
-                                                if( allowUserTableMarking ) {
-                                                    var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
-                                                    wrapper.append( input );
-                                                } else {
-                                                    wrapper.append( notYetIntegratedText );
-                                                }
-                                            } else {
-                                                wrapper.append( dashText );
-                                            }
-                                        }
-                                    } else {
-                                        log( "No checked_pageId! Run searchKeywords API for player URL to get the mdbPageId" );
-
-                                        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( tidPlayerUrl );
-                                        logVar( "apiQueryUrl", apiQueryUrl );
-
-                                        $.ajax({
-                                            url: apiQueryUrl,
-                                            type: 'get',
-                                            dataType: 'json',
-                                            async: false,
-                                            success: function(data) {
-                                                var resultNum = data["query"]["searchinfo"]["totalhits"];
-                                                if( resultNum == 1 ) {
-                                                    // @TODO DRY
-                                                    var resultsArr = data["query"]["search"],
-                                                        mdbPageId = resultsArr[0].pageid;
-
-                                                    if( mdbPageId ) {
-                                                        var status_td = wrapper.prev("td.status"),
-                                                            status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
-
-                                                        logVar( "status", status );
-
-                                                        if( status == "Tracklist ready" ) {
-                                                            if( allowUserTableMarking ) {
-                                                                var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
-                                                                wrapper.append( input );
-                                                            } else {
-                                                                wrapper.append( notYetIntegratedText );
-                                                            }
-                                                        } else {
-                                                            wrapper.append( dashText );
-                                                        }
-                                                    } else {
-                                                        wrapper.append( notYetIntegratedText );
-                                                    }
-                                                } else {
-                                                    log( "resultNum != 1: " + resultNum );
-
-                                                    if( resultNum == 0 ) {
-                                                        wrapper.append( '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>' );
-                                                    }
-                                                    if( resultNum > 1 ) {
-                                                        wrapper.append( '<span class="tooltip-title small" title="Bug: Too many results">multiple pages using this</span>' );
-                                                    }
-                                                }
-                                            }
-                                        }); // end ajax
-                                    }
+                                    renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter );
                                 }
                             }
                         }
@@ -398,6 +311,199 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                 break;
         }
     }
+}
+
+var mdbTrackidTableBatchQueue = {},
+    mdbTrackidTableBatchTimer = null;
+
+function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter ) {
+    var currentUsername = $(".user-name").text(),
+        allowUserTableMarking = ["Schrute_Inc.", "Komapatient"].includes(currentUsername),
+        dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
+        notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>',
+        checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
+        checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
+
+    waiter = waiter || $("waiter", wrapper);
+    waiter.remove();
+
+    if( data.error && data.error.code == "notfound" ) {
+        wrapper.append( '<span class="tooltip-title" title="TrackId.net page not found (recently created?)">&ndash;</span>' );
+        return;
+    }
+
+    if( checked_pageId ) {
+        var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+
+        logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+
+        if( lastCheckedAgainstMixesDB != null && lastCheckedAgainstMixesDB != "empty" ) {
+            log( "Checked and page found: ("+checked_pageId+")" );
+
+            var checkedLink = '<a href="'+checked_url+'">'+checkIcon+'</a>';
+
+            wrapper.append( checkedLink );
+        } else {
+            var status_td = wrapper.prev("td.status"),
+                status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
+
+            logVar( "status", status );
+
+            if( status == "Tracklist ready" ) {
+                if( allowUserTableMarking ) {
+                    var input = make_mdbTrackidCheck_input( tidPlayerUrl, checked_pageId, "table" );
+                    wrapper.append( input );
+                } else {
+                    wrapper.append( notYetIntegratedText );
+                }
+            } else {
+                wrapper.append( dashText );
+            }
+        }
+    } else {
+        log( "No checked_pageId! Run searchKeywords API for player URL to get the mdbPageId" );
+
+        var apiQueryUrl = apiUrl_searchKeywords_fromUrl( tidPlayerUrl );
+        logVar( "apiQueryUrl", apiQueryUrl );
+
+        $.ajax({
+            url: apiQueryUrl,
+            type: 'get',
+            dataType: 'json',
+            async: false,
+            success: function(data) {
+                var resultNum = data["query"]["searchinfo"]["totalhits"];
+                if( resultNum == 1 ) {
+                    var resultsArr = data["query"]["search"],
+                        mdbPageId = resultsArr[0].pageid;
+
+                    if( mdbPageId ) {
+                        var status_td = wrapper.prev("td.status"),
+                            status = $("div.MuiBox-root",status_td).attr("aria-label").trim();
+
+                        logVar( "status", status );
+
+                        if( status == "Tracklist ready" ) {
+                            if( allowUserTableMarking ) {
+                                var input = make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "table" );
+                                wrapper.append( input );
+                            } else {
+                                wrapper.append( notYetIntegratedText );
+                            }
+                        } else {
+                            wrapper.append( dashText );
+                        }
+                    } else {
+                        wrapper.append( notYetIntegratedText );
+                    }
+                } else {
+                    log( "resultNum != 1: " + resultNum );
+
+                    if( resultNum == 0 ) {
+                        wrapper.append( '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>' );
+                    }
+                    if( resultNum > 1 ) {
+                        wrapper.append( '<span class="tooltip-title small" title="Bug: Too many results">multiple pages using this</span>' );
+                    }
+                }
+            }
+        });
+    }
+}
+
+function queueTableTidIntegrationCheck( wrapper ) {
+    var playerUrl = wrapper.attr("data-tidplayerurl");
+
+    if( !playerUrl || playerUrl == "undefined" ) {
+        return;
+    }
+
+    if( !mdbTrackidTableBatchQueue[playerUrl] ) {
+        mdbTrackidTableBatchQueue[playerUrl] = [];
+    }
+
+    mdbTrackidTableBatchQueue[playerUrl].push( wrapper );
+
+    if( mdbTrackidTableBatchTimer ) {
+        clearTimeout( mdbTrackidTableBatchTimer );
+    }
+
+    mdbTrackidTableBatchTimer = setTimeout( flushTableTidIntegrationChecks, 50 );
+}
+
+function flushTableTidIntegrationChecks() {
+    var playerUrls = Object.keys( mdbTrackidTableBatchQueue );
+
+    if( playerUrls.length === 0 ) {
+        return;
+    }
+
+    var queue = mdbTrackidTableBatchQueue;
+    mdbTrackidTableBatchQueue = {};
+    mdbTrackidTableBatchTimer = null;
+
+    var apiQueryUrl = apiUrl_mw;
+    apiQueryUrl += "?action=mixesdbtrackidbatch";
+    apiQueryUrl += "&format=json";
+
+    $.each( playerUrls, function( index, playerUrl ) {
+        apiQueryUrl += "&urls=" + encodeURIComponent( playerUrl );
+    });
+
+    logVar( "apiQueryUrl_batch", apiQueryUrl );
+
+    $.ajax({
+        url: apiQueryUrl,
+        type: 'get',
+        dataType: 'json',
+        async: true,
+        success: function(data) {
+            if( data.error ) {
+                $.each( playerUrls, function( index, playerUrl ) {
+                    $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
+                        renderTableTrackIdCheckResult( playerUrl, wrapper, { error: data.error }, $("waiter", wrapper) );
+                    });
+                });
+                return;
+            }
+
+            var resultsByUrl = {};
+
+            $.each( data.mixesdbtrackidbatch || [], function( index, result ) {
+                resultsByUrl[result.requestedurl] = result;
+                if( result.sanitizedurl ) {
+                    resultsByUrl[result.sanitizedurl] = result;
+                }
+            });
+
+            $.each( playerUrls, function( index, playerUrl ) {
+                var result = resultsByUrl[playerUrl] || {
+                        error: {
+                            code: "notfound",
+                            info: "No matching data found for the given URL",
+                            url: playerUrl
+                        }
+                    },
+                    tableData = {
+                        mixesdbtrackid: result.mixesdbtrackid,
+                        error: result.error
+                    };
+
+                $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
+                    renderTableTrackIdCheckResult( playerUrl, wrapper, tableData, $("waiter", wrapper) );
+                });
+            });
+        },
+        error: function() {
+            $.each( playerUrls, function( index, playerUrl ) {
+                $.each( queue[playerUrl] || [], function( wrapperIndex, wrapper ) {
+                    var waiter = $("waiter", wrapper);
+                    waiter.remove();
+                    wrapper.append( '<span class="tooltip-title" title="TrackId.net batch check failed">&ndash;</span>' );
+                });
+            });
+        }
+    });
 }
 
 /*
@@ -432,11 +538,7 @@ waitForKeyElements("#mdbTrackidCheck-wrapper", function( jNode ) {
  * tables
  */
 waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck", function( jNode ) {
-    var playerUrl = jNode.attr("data-tidplayerurl");
-
-    if( playerUrl != "undefined" ) {
-        checkTidIntegration( playerUrl, null, "check", jNode , "table" );
-    }
+    queueTableTidIntegrationCheck( jNode );
 });
 
 waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck input[type=checkbox]", function( jNode ) {
