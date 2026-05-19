@@ -5,22 +5,6 @@
     max-width: 100%;
 }
 
-/* Editor */
-.mdb-thelotradio-tl-editor {
-    box-sizing: border-box;
-    display: block;
-    flex: 0 0 100%;
-    width: 100%;
-    max-width: 100%;
-    background-color: #fff;
-    
-    & textarea {
-        font-size: 13px;
-        padding: .2rem 0 0 .2rem !important;
-        margin: 0 0 -5px !important;
-    }
-}
-
 /* Layout container */
 .mdb-thelotradio-tracklist-layout {
     box-sizing: border-box;
@@ -28,6 +12,16 @@
     flex: 0 0 100%;
     width: 100%;
     max-width: 100%;
+    
+    /* Textarea */
+    & .mdb-thelotradio-tracklist {
+        & textarea {
+            font-size: 13px;
+            padding: .2rem 0 0 .2rem !important;
+            margin: 0 0 -5px !important;
+        }
+    }
+
 }
     
 /* Normalizing */
