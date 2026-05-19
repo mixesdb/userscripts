@@ -27,6 +27,7 @@
 /* Normalizing */
 #tlEditor-feedback {
     border-radius: 0 !important;
+    font-size: 13px !important;
     
     & ul {
         list-style: inherit;
@@ -39,8 +40,13 @@
         margin-top: .5rem !important;
     }
     
-    & li {
-        font-size: .8rem;
+    & li:not(code),
+    & strong {
+        font-size: 13px;
+        font-family: sans-serif;
+    }
+    & li:not(code) {
+        font-weight: 600;
     }
 }
 
