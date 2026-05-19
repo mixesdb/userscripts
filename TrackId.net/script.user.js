@@ -1100,7 +1100,8 @@ function outputTidGenresTextarea() {
     tidStylesOutput = [...new Set(tidStylesOutput)];
 
     var output = tidStylesOutput.join("\n");
-    $("#tlEditor").after('<div id="mixesdb-TIDstylesWrapper"><strong class="mdb-highlight">Style suggestions</strong><textarea id="mixesdb-TIDstyles" class="mono" style="display:block; width:100%; margin:10px 0 0 0;"></textarea><p class="mdb-top5 mdb-small mdb-grey"><em>Please double-check by skipping through the mix manually.</em></p></div>');
+    var outputRows = Math.max(1, tidStylesOutput.length);
+    $("#tlEditor").after('<div id="mixesdb-TIDstylesWrapper"><strong class="mdb-highlight">Style suggestions</strong><textarea id="mixesdb-TIDstyles" class="mono" rows="' + outputRows + '" style="display:block; width:100%; margin:10px 0 0 0;"></textarea><p class="mdb-top5 mdb-small mdb-grey"><em>Please double-check by skipping through the mix manually.</em></p></div>');
     $("#mixesdb-TIDstyles").val(output);
 }
 
