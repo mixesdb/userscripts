@@ -68,7 +68,7 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 10,
+var cacheVersion = 11,
     scriptName = "MixesDB_Userscripts_Helper";
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
