@@ -24,6 +24,304 @@ function changeYoutubeUrlVariant(url, variant = "youtube.com") {
     }
 }
 
+var mdbTrackidLookupCacheTtlMs = 30000,
+    mdbTrackidLookupCache = {},
+    mdbTrackidLookupInflight = {};
+
+function normalizeTrackIdLookupUrl( playerUrl ) {
+    if( !playerUrl ) {
+        return "";
+    }
+
+    var normalized = String( playerUrl ).trim(),
+        decodeAttempts = 0;
+
+    while( decodeAttempts < 2 ) {
+        try {
+            var decoded = decodeURIComponent( normalized );
+
+            if( decoded == normalized ) {
+                break;
+            }
+
+            normalized = decoded;
+        } catch( error ) {
+            break;
+        }
+
+        decodeAttempts++;
+    }
+
+    if( /[?&]url=/.test( normalized ) ) {
+        normalized = extractUrlFromUrlParameter( normalized );
+    }
+
+    normalized = remove_mdbVariant_fromUrlStr( normalized );
+    normalized = normalizePlayerUrl( normalized );
+
+    if( /^youtu\.be\//.test( normalized ) || /youtube\.com\/watch\?v=/.test( normalized ) ) {
+        normalized = changeYoutubeUrlVariant( normalized, "youtube.com" ) || normalized;
+        normalized = normalizePlayerUrl( normalized );
+    }
+
+    normalized = removeTrackingParameters( normalized );
+
+    return normalized;
+}
+
+function getTrackIdLookupCacheEntry( lookupUrl ) {
+    var cacheEntry = mdbTrackidLookupCache[lookupUrl];
+
+    if( !cacheEntry ) {
+        return null;
+    }
+
+    if( Date.now() - cacheEntry.timestamp > mdbTrackidLookupCacheTtlMs ) {
+        delete mdbTrackidLookupCache[lookupUrl];
+        return null;
+    }
+
+    return cacheEntry.data;
+}
+
+function setTrackIdLookupCacheEntry( lookupUrl, data ) {
+    mdbTrackidLookupCache[lookupUrl] = {
+        timestamp: Date.now(),
+        data: data
+    };
+}
+
+function buildTrackIdLookupApiUrl( action, params ) {
+    var apiQueryUrl = apiUrl_mw + "?action=" + action + "&format=json";
+
+    if( params && params.url ) {
+        apiQueryUrl += "&url=" + encodeURIComponent( params.url );
+    }
+
+    if( params && params.urls ) {
+        apiQueryUrl += "&urls=" + encodeURIComponent( params.urls.join( "|" ) );
+    }
+
+    if( params && params.page_id ) {
+        apiQueryUrl += "&page_id=" + encodeURIComponent( params.page_id );
+    }
+
+    return apiQueryUrl;
+}
+
+function toolkit_requestTrackIdLookup( playerUrl, options ) {
+    options = options || {};
+
+    var lookupUrl = normalizeTrackIdLookupUrl( playerUrl );
+
+    if( !lookupUrl ) {
+        return $.Deferred().reject( {
+            error: {
+                code: "invalidurl",
+                info: "TrackId lookup URL is missing"
+            }
+        } ).promise();
+    }
+
+    var cachedResult = getTrackIdLookupCacheEntry( lookupUrl );
+
+    if( cachedResult ) {
+        return $.Deferred().resolve( cachedResult ).promise();
+    }
+
+    var inflightEntry = mdbTrackidLookupInflight[lookupUrl];
+
+    if( inflightEntry ) {
+        return inflightEntry.promise;
+    }
+
+    var deferred = $.Deferred();
+
+    mdbTrackidLookupInflight[lookupUrl] = {
+        deferred: deferred,
+        promise: deferred.promise()
+    };
+
+    if( options.source ) {
+        logVar( "trackidRequestSource", options.source );
+    }
+
+    var apiQueryUrl = buildTrackIdLookupApiUrl( "mixesdbtrackid", {
+        url: lookupUrl
+    } );
+
+    logVar( "apiQueryUrl_check", apiQueryUrl );
+
+    $.ajax({
+        url: apiQueryUrl,
+        type: 'get',
+        dataType: 'json',
+        async: true
+    }).done(function( data ) {
+        setTrackIdLookupCacheEntry( lookupUrl, data );
+        deferred.resolve( data );
+    }).fail(function( xhr, status, error ) {
+        deferred.reject( error || status || xhr );
+    }).always(function() {
+        delete mdbTrackidLookupInflight[lookupUrl];
+    });
+
+    return deferred.promise();
+}
+
+function toolkit_requestTrackIdBatchLookup( playerUrls, options ) {
+    options = options || {};
+
+    var batchDeferred = $.Deferred(),
+        resultsByUrl = {},
+        waitPromises = [],
+        requestUrls = [],
+        seenUrls = {};
+
+    $.each( playerUrls || [], function( index, playerUrl ) {
+        var lookupUrl = normalizeTrackIdLookupUrl( playerUrl );
+
+        if( !lookupUrl || seenUrls[lookupUrl] ) {
+            return;
+        }
+
+        seenUrls[lookupUrl] = true;
+
+        var cachedResult = getTrackIdLookupCacheEntry( lookupUrl );
+
+        if( cachedResult ) {
+            resultsByUrl[lookupUrl] = cachedResult;
+            return;
+        }
+
+        var inflightEntry = mdbTrackidLookupInflight[lookupUrl];
+
+        if( inflightEntry ) {
+            waitPromises.push( inflightEntry.promise.then(function( data ) {
+                resultsByUrl[lookupUrl] = data;
+                return data;
+            }) );
+            return;
+        }
+
+        var deferred = $.Deferred();
+
+        mdbTrackidLookupInflight[lookupUrl] = {
+            deferred: deferred,
+            promise: deferred.promise()
+        };
+
+        requestUrls.push( lookupUrl );
+        waitPromises.push( deferred.promise().then(function( data ) {
+            resultsByUrl[lookupUrl] = data;
+            return data;
+        }) );
+    });
+
+    if( requestUrls.length === 0 ) {
+        if( waitPromises.length === 0 ) {
+            return batchDeferred.resolve( resultsByUrl ).promise();
+        }
+
+        $.when.apply( $, waitPromises ).then(function() {
+            batchDeferred.resolve( resultsByUrl );
+        }, function( error ) {
+            batchDeferred.reject( error );
+        });
+
+        return batchDeferred.promise();
+    }
+
+    if( options.source ) {
+        logVar( "trackidRequestSource", options.source );
+    }
+
+    var apiQueryUrl = buildTrackIdLookupApiUrl( "mixesdbtrackidbatch", {
+        urls: requestUrls
+    } );
+
+    logVar( "apiQueryUrl_batch", apiQueryUrl );
+
+    $.ajax({
+        url: apiQueryUrl,
+        type: 'get',
+        dataType: 'json',
+        async: true
+    }).done(function( data ) {
+        var responseByUrl = {};
+
+        if( data.error ) {
+            $.each( requestUrls, function( index, lookupUrl ) {
+                var inflightEntry = mdbTrackidLookupInflight[lookupUrl];
+
+                if( inflightEntry ) {
+                    inflightEntry.deferred.reject( data.error );
+                    delete mdbTrackidLookupInflight[lookupUrl];
+                }
+            });
+
+            batchDeferred.reject( data.error );
+            return;
+        }
+
+        $.each( data.mixesdbtrackidbatch || [], function( index, result ) {
+            $.each( [ result.requestedurl, result.sanitizedurl ], function( keyIndex, resultUrl ) {
+                var lookupUrl = normalizeTrackIdLookupUrl( resultUrl );
+
+                if( lookupUrl ) {
+                    responseByUrl[lookupUrl] = result;
+                }
+            });
+        });
+
+        $.each( requestUrls, function( index, lookupUrl ) {
+            var result = responseByUrl[lookupUrl] || {
+                error: {
+                    code: "notfound",
+                    info: "TrackId.net page not found (recently created?)",
+                    url: lookupUrl
+                },
+                mixesdbtrackid: [],
+                __trackidBatchMiss: true
+            },
+                inflightEntry = mdbTrackidLookupInflight[lookupUrl];
+
+            setTrackIdLookupCacheEntry( lookupUrl, result );
+
+            if( inflightEntry ) {
+                inflightEntry.deferred.resolve( result );
+                delete mdbTrackidLookupInflight[lookupUrl];
+            }
+
+            resultsByUrl[lookupUrl] = result;
+        });
+
+        if( waitPromises.length === 0 ) {
+            batchDeferred.resolve( resultsByUrl );
+            return;
+        }
+
+        $.when.apply( $, waitPromises ).then(function() {
+            batchDeferred.resolve( resultsByUrl );
+        }, function( error ) {
+            batchDeferred.reject( error );
+        });
+    }).fail(function( xhr, status, error ) {
+        $.each( requestUrls, function( index, lookupUrl ) {
+            var inflightEntry = mdbTrackidLookupInflight[lookupUrl];
+
+            if( inflightEntry ) {
+                inflightEntry.deferred.reject( error || status || xhr );
+                delete mdbTrackidLookupInflight[lookupUrl];
+            }
+        });
+
+        batchDeferred.reject( error || status || xhr );
+    });
+
+    return batchDeferred.promise();
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -1161,55 +1459,44 @@ function toolkit_addTidLink( playerUrl, title ) {
 
     // Wait for toolkit
     waitForKeyElements("#mdb-toolkit > ul", function( jNode ) {
-        var apiQueryUrl_check = apiUrl_mw;
-        apiQueryUrl_check += "?action=mixesdbtrackid";
-        apiQueryUrl_check += "&format=json";
-        apiQueryUrl_check += "&url=" + playerUrl;
+        toolkit_requestTrackIdLookup( playerUrl, {
+            source: "toolkit"
+        } ).done(function( data ) {
+            // avoid undefined error
+            if( ( data.error && data.error.code == "notfound" )  ) {
+                // no result
+                var keywords = normalizeTitleForSearch( title ),
+                    tidLink = makeTidSubmitLink( playerUrl, keywords, "text" );
+                if( tidLink ) {
+                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
+                }
+                // if no error
+            } else {
+                var li_tidLink_out = "",
+                    trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                    lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
 
-        logVar( "apiQueryUrl_check", apiQueryUrl_check );
+                logVar( "trackidurl", trackidurl );
+                logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
-        $.ajax({
-            url: apiQueryUrl_check,
-            type: 'get', /* GET on checking */
-            dataType: 'json',
-            async: true,
-            success: function(data) {
-                // avoid undefined error
-                if( ( data.error && data.error.code == "notfound" )  ) {
-                    // no result
-                    var keywords = normalizeTitleForSearch( title ),
-                        tidLink = makeTidSubmitLink( playerUrl, keywords, "text" );
-                    if( tidLink ) {
-                        jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
-                    }
-                    // if no error
-                } else {
-                    var li_tidLink_out = "",
-                        trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
-                        lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
-
-                    logVar( "trackidurl", trackidurl );
-                    logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
-
-                    if( trackidurl ) {
-                        li_tidLink_out += '<a href="'+trackidurl+'">This player exists on TrackId.net</a>';
-                    }
-
-                    if( lastCheckedAgainstMixesDB ) {
-                        li_tidLink_out += ' <span id="mdbTrackidCheck-wrapper" class="integrated">'+checkIcon+'integrated</span>';
-                        li_tidLink_out += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
-                    } else {
-                        li_tidLink_out += ' (not integrated yet)';
-                    }
-
-                    if( li_tidLink_out != "" ) {
-                        jNode.append( '<li class="mdb-toolkit-tidLink filled">'+li_tidLink_out+'</li>' ).show();
-                    }
+                if( trackidurl ) {
+                    li_tidLink_out += '<a href="'+trackidurl+'">This player exists on TrackId.net</a>';
                 }
 
-                reorderToolkitItems();
+                if( lastCheckedAgainstMixesDB ) {
+                    li_tidLink_out += ' <span id="mdbTrackidCheck-wrapper" class="integrated">'+checkIcon+'integrated</span>';
+                    li_tidLink_out += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+                } else {
+                    li_tidLink_out += ' (not integrated yet)';
+                }
+
+                if( li_tidLink_out != "" ) {
+                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+li_tidLink_out+'</li>' ).show();
+                }
             }
-        }); // END ajax
+
+            reorderToolkitItems();
+        });
     }); // END wait "#mdb-toolkit > ul"
 }
 
