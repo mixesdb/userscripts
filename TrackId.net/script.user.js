@@ -230,7 +230,7 @@ function getTrackIdRequestSource( action, target, options ) {
     }
 
     if( target == "table" ) {
-        return "trackid-save-check";
+        return "trackid-table";
     }
 
     return "trackid-detail";
