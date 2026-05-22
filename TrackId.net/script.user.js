@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.19.1
+// @version      2026.05.22.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -212,19 +212,89 @@ d.ready(function(){
  * checkTidIntegration
  * save action: the mix page reference takes params page_id, dbKey, title
  */
-function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page" ) {
+var mdbTrackidSingleCheckQueue = [],
+    mdbTrackidSingleCheckActiveCount = 0,
+    mdbTrackidSingleCheckMaxConcurrent = 4,
+    mdbTrackidTableBatchQueue = {},
+    mdbTrackidTableBatchTimer = null,
+    mdbTrackidBatchMaxUrlsPerRequest = 25,
+    mdbTrackidBatchMaxQueryLength = 1800;
+
+function getTrackIdRequestSource( action, target, options ) {
+    if( options && options.source ) {
+        return options.source;
+    }
+
+    if( action == "save" ) {
+        return "trackid-save";
+    }
+
+    if( target == "table" ) {
+        return "trackid-table";
+    }
+
+    return "trackid-detail";
+}
+
+function buildTrackIdSingleApiQueryUrl( tidPlayerUrl, source, mdbPageId ) {
+    var apiQueryUrl = apiUrl_mw;
+    apiQueryUrl += "?action=mixesdbtrackid";
+    apiQueryUrl += "&format=json";
+    apiQueryUrl += "&source=" + encodeURIComponent( source );
+    apiQueryUrl += "&url=" + encodeURIComponent( tidPlayerUrl );
+
+    if( typeof( mdbPageId ) !== "undefined" && mdbPageId !== null && mdbPageId !== "" ) {
+        apiQueryUrl += "&page_id=" + encodeURIComponent( mdbPageId );
+    }
+
+    return apiQueryUrl;
+}
+
+function flushTrackIdSingleCheckQueue() {
+    while(
+        mdbTrackidSingleCheckActiveCount < mdbTrackidSingleCheckMaxConcurrent
+        && mdbTrackidSingleCheckQueue.length > 0
+    ) {
+        var queuedRequest = mdbTrackidSingleCheckQueue.shift();
+        mdbTrackidSingleCheckActiveCount++;
+
+        $.ajax({
+            url: queuedRequest.url,
+            type: 'get',
+            dataType: 'json',
+            async: true,
+            success: queuedRequest.success,
+            error: queuedRequest.error,
+            complete: function() {
+                mdbTrackidSingleCheckActiveCount--;
+                flushTrackIdSingleCheckQueue();
+            }
+        });
+    }
+}
+
+function queueTrackIdSingleCheckRequest( url, success, error ) {
+    mdbTrackidSingleCheckQueue.push({
+        url: url,
+        success: success,
+        error: error
+    });
+
+    flushTrackIdSingleCheckQueue();
+}
+
+function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page", options={} ) {
     logFunc( "checkTidIntegration" );
     logVar( "action", action );
     logVar( "tidPlayerUrl", tidPlayerUrl );
     logVar( "wrapper", wrapper.html() );
 
     if( tidPlayerUrl && tidPlayerUrl != "" && typeof(tidPlayerUrl) !== "undefined" && tidPlayerUrl != "undefined" ) {
-        var apiQueryUrl_check = apiUrl_mw;
-        apiQueryUrl_check += "?action=mixesdbtrackid";
-        apiQueryUrl_check += "&format=json";
-        apiQueryUrl_check += "&url=" + tidPlayerUrl;
+        var requestSource = getTrackIdRequestSource( action, target, options ),
+            apiQueryUrl_check = buildTrackIdSingleApiQueryUrl( tidPlayerUrl, requestSource ),
+            apiQueryUrl_save = buildTrackIdSingleApiQueryUrl( tidPlayerUrl, requestSource, mdbPageId );
 
-        var apiQueryUrl_save = apiQueryUrl_check + "&page_id=" + mdbPageId;
+        logVar( "requestSource", requestSource );
 
         // waiter
         if( target == "table" ) {
@@ -237,12 +307,9 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
             case "check":
                 logVar( "apiQueryUrl_check", apiQueryUrl_check );
 
-                $.ajax({
-                    url: apiQueryUrl_check,
-                    type: 'get', /* GET on checking */
-                    dataType: 'json',
-                    async: true,
-                    success: function(data) {
+                queueTrackIdSingleCheckRequest(
+                    apiQueryUrl_check,
+                    function(data) {
                         // avoid undefined error
                         if( data.error && data.error.code == "notfound" ) {
                             if( target == "audiostream page" ) {
@@ -290,13 +357,22 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                 }
                             }
                         }
+                    },
+                    function() {
+                        if( target == "audiostream page" ) {
+                            wrapper.html('TrackId integration check failed.').show();
+                        }
+                        if( target == "table" ) {
+                            waiter.remove();
+                            wrapper.append( '<span class="tooltip-title" title="TrackId integration check failed">&ndash;</span>' );
+                        }
                     }
-                });
+                );
                 break;
 
             // save
             case "save":
-                //logVar( "apiQueryUrl_save", apiQueryUrl_save );
+                logVar( "apiQueryUrl_save", apiQueryUrl_save );
 
                 // confirm, disable input
                 $.ajax({
@@ -305,18 +381,13 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                     dataType: 'json',
                     async: true,
                     success: function(data) {
-                        checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper, target );
+                        checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper, target, { source: "trackid-save-check" } );
                     }
                 });
                 break;
         }
     }
 }
-
-var mdbTrackidTableBatchQueue = {},
-    mdbTrackidTableBatchTimer = null,
-    mdbTrackidBatchMaxUrlsPerRequest = 25,
-    mdbTrackidBatchMaxQueryLength = 1800;
 
 function buildTrackIdBatchQueryValue( playerUrls ) {
     return encodeURIComponent( playerUrls.join( "|" ) );
@@ -536,6 +607,7 @@ function flushTableTidIntegrationChecks() {
         var apiQueryUrl = apiUrl_mw;
         apiQueryUrl += "?action=mixesdbtrackidbatch";
         apiQueryUrl += "&format=json";
+        apiQueryUrl += "&source=trackid-table";
         apiQueryUrl += "&urls=" + buildTrackIdBatchQueryValue( playerUrlChunk );
 
         logVar( "apiQueryUrl_batch", apiQueryUrl );
