@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.13.2
+// @version      2026.05.22.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Userscripts_Helper_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-MixesDB_Userscripts_Helper_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-MixesDB_Userscripts_Helper_6
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -175,50 +175,38 @@ d.ready(function(){ // needed for mw.config
 
             if( playerTidCompatible == "true" ) {
 
-                // check usage
-                var apiQueryUrl_check = apiUrl_mw;
-                apiQueryUrl_check += "?action=mixesdbtrackid";
-                apiQueryUrl_check += "&format=json";
-                apiQueryUrl_check += "&url=" + playerUrl;
+                toolkit_requestTrackIdLookup( playerUrl, {
+                    source: "helper"
+                } ).done(function( data ) {
+                    // avoid undefined error
+                    if( ( data.error && data.error.code == "notfound" )  ) {
+                        // no result
+                        var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
+                        playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
+                    } else {
+                        var tidLink = "",
+                            trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                            lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
 
-                logVar( "apiQueryUrl_check", apiQueryUrl_check );
+                        logVar( "trackidurl", trackidurl );
+                        logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
-                $.ajax({
-                    url: apiQueryUrl_check,
-                    type: 'get', /* GET on checking */
-                    dataType: 'json',
-                    async: true,
-                    success: function(data) {
-                        // avoid undefined error
-                        if( ( data.error && data.error.code == "notfound" )  ) {
-                            // no result
-                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
-                            playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
-                        } else {
-                            var tidLink = "",
-                                trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
-                                lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+                        if( trackidurl ) {
+                            tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
 
-                            logVar( "trackidurl", trackidurl );
-                            logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
-
-                            if( trackidurl ) {
-                                tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
-
-                                if( lastCheckedAgainstMixesDB ) {
-                                    tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
-                                    tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
-                                } else {
-                                    tidLink += ' (not integrated yet)';
-                                }
-                            }
-
-                            if( tidLink != "" ) {
-                                playerWrapper.append( '<div class="tidLink '+playerSite+' grey">'+tidLink+'</div>' );
+                            if( lastCheckedAgainstMixesDB ) {
+                                tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
+                                tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+                            } else {
+                                tidLink += ' (not integrated yet)';
                             }
                         }
+
+                        if( tidLink != "" ) {
+                            playerWrapper.append( '<div class="tidLink '+playerSite+' grey">'+tidLink+'</div>' );
+                        }
                     }
-                }); // END ajax
+                });
             } else {
                 log( "NOT playerTidCompatible: " + playerUrl );
             }
