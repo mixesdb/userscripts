@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.13.2
+// @version      2026.05.13.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -69,7 +69,9 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var cacheVersion = 11,
-    scriptName = "MixesDB_Userscripts_Helper";
+    scriptName = "MixesDB_Userscripts_Helper",
+    mdbTrackidBatchMaxUrlsPerRequest = 25,
+    mdbTrackidBatchMaxQueryLength = 1800;
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -109,6 +111,182 @@ function getApplePodcastsSearchLink( className, keywords ) {
     return iconLink;
 }
 
+function normalizeTrackIdPlayerUrl( playerSite, playerUrl ) {
+    if( !playerUrl ) {
+        return "";
+    }
+
+    // Remove URL parameters from e.g. SoundCloud and Mixcloud
+    if( playerSite != "YouTube" ) {
+        playerUrl = removeParametersFromUrl( playerUrl );
+    } else {
+        playerUrl = playerUrl.replace( "www.youtu.be", "youtu.be" );
+    }
+
+    if( playerSite == "hearthis-at" ) {
+        playerUrl = playerUrl.replace( "hearthis.audio", "hearthis.at" );
+    }
+
+    return playerUrl;
+}
+
+function buildTrackIdBatchQueryValue( playerUrls ) {
+    return encodeURIComponent( playerUrls.join( "|" ) );
+}
+
+function chunkTrackIdBatchPlayerUrls( playerUrls ) {
+    var chunks = [],
+        oversizedUrls = [],
+        currentChunk = [],
+        baseLength = ( apiUrl_mw + "?action=mixesdbtrackidbatch&format=json&urls=" ).length;
+
+    $.each( playerUrls, function( index, playerUrl ) {
+        var singleUrlLength = baseLength + buildTrackIdBatchQueryValue( [ playerUrl ] ).length,
+            nextChunk = currentChunk.concat( [ playerUrl ] ),
+            nextChunkLength = baseLength + buildTrackIdBatchQueryValue( nextChunk ).length;
+
+        if( singleUrlLength > mdbTrackidBatchMaxQueryLength ) {
+            oversizedUrls.push( playerUrl );
+            return;
+        }
+
+        if(
+            currentChunk.length > 0
+            && (
+                currentChunk.length >= mdbTrackidBatchMaxUrlsPerRequest
+                || nextChunkLength > mdbTrackidBatchMaxQueryLength
+            )
+        ) {
+            chunks.push( currentChunk );
+            currentChunk = [ playerUrl ];
+            return;
+        }
+
+        currentChunk = nextChunk;
+    });
+
+    if( currentChunk.length > 0 ) {
+        chunks.push( currentChunk );
+    }
+
+    return {
+        chunks: chunks,
+        oversizedUrls: oversizedUrls
+    };
+}
+
+function groupExplorerTrackIdEntriesByUrl( entries ) {
+    var groupedEntries = {};
+
+    $.each( entries, function( index, entry ) {
+        if( !groupedEntries[entry.playerUrl] ) {
+            groupedEntries[entry.playerUrl] = [];
+        }
+
+        groupedEntries[entry.playerUrl].push( entry );
+    });
+
+    return groupedEntries;
+}
+
+function indexTrackIdBatchResultsByUrl( batchResults ) {
+    var resultsByUrl = {};
+
+    $.each( batchResults || [], function( index, result ) {
+        if( result.requestedurl ) {
+            resultsByUrl[result.requestedurl] = result;
+        }
+        if( result.sanitizedurl ) {
+            resultsByUrl[result.sanitizedurl] = result;
+        }
+    });
+
+    return resultsByUrl;
+}
+
+function renderExplorerTrackIdEntry( entry, result ) {
+    var playerWrapper = entry.playerWrapper,
+        playerSite = entry.playerSite,
+        playerUrl = entry.playerUrl,
+        keywords = entry.keywords;
+
+    if( result && !( result.error && result.error.code == "notfound" ) ) {
+        var tidLink = "",
+            trackidurl = result.mixesdbtrackid?.[0]?.trackidurl || null,
+            lastCheckedAgainstMixesDB = result.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+
+        logVar( "trackidurl", trackidurl );
+        logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+
+        if( trackidurl ) {
+            tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
+
+            if( lastCheckedAgainstMixesDB ) {
+                tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
+                tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+            } else {
+                tidLink += ' (not integrated yet)';
+            }
+        }
+
+        if( tidLink != "" ) {
+            playerWrapper.append( '<div class="tidLink '+playerSite+' grey">'+tidLink+'</div>' );
+            return;
+        }
+    }
+
+    var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
+    playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
+}
+
+function runExplorerTrackIdBatchChecks( entries ) {
+    if( entries.length === 0 ) {
+        return;
+    }
+
+    var groupedEntries = groupExplorerTrackIdEntriesByUrl( entries ),
+        playerUrls = Object.keys( groupedEntries ),
+        batchPlan = chunkTrackIdBatchPlayerUrls( playerUrls );
+
+    $.each( batchPlan.oversizedUrls, function( index, playerUrl ) {
+        $.each( groupedEntries[playerUrl] || [], function( entryIndex, entry ) {
+            renderExplorerTrackIdEntry( entry, null );
+        });
+    });
+
+    $.each( batchPlan.chunks, function( chunkIndex, playerUrlChunk ) {
+        var apiQueryUrl = apiUrl_mw;
+        apiQueryUrl += "?action=mixesdbtrackidbatch";
+        apiQueryUrl += "&format=json";
+        apiQueryUrl += "&urls=" + buildTrackIdBatchQueryValue( playerUrlChunk );
+
+        logVar( "apiQueryUrl_batch", apiQueryUrl );
+
+        $.ajax({
+            url: apiQueryUrl,
+            type: 'get',
+            dataType: 'json',
+            async: true,
+            success: function(data) {
+                var resultsByUrl = indexTrackIdBatchResultsByUrl( data.mixesdbtrackidbatch || [] );
+
+                $.each( playerUrlChunk, function( index, playerUrl ) {
+                    $.each( groupedEntries[playerUrl] || [], function( entryIndex, entry ) {
+                        renderExplorerTrackIdEntry( entry, resultsByUrl[playerUrl] || null );
+                    });
+                });
+            },
+            error: function() {
+                $.each( playerUrlChunk, function( index, playerUrl ) {
+                    $.each( groupedEntries[playerUrl] || [], function( entryIndex, entry ) {
+                        renderExplorerTrackIdEntry( entry, null );
+                    });
+                });
+            }
+        });
+    });
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -132,34 +310,28 @@ d.ready(function(){ // needed for mw.config
      * Also allow on page edit (preview)
      */
     if( trackIdnet_addLinks
-        && ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
-        || ( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" )
+        && ( ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
+        || ( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) )
       ) {
         log( "Criteria for mix page matched." );
 
         /*
          * TrackId.net submit link under each player
          */
+        var explorerTrackIdEntries = [];
+
         $(".playerWrapper[data-playersite]").each(function(){
             var playerWrapper = $(this),
                 playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
                 playerUrl = playerWrapper.attr("data-playerurl"),
                 playerSite = makeCssSafe( playerWrapper.attr("data-playersite") ),
-                keywords = "";
+                keywords = "",
+                isExplorerPage = ( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" );
 
             logVar( "playerSite", playerSite );
             logVar( "playerUrl", playerUrl );
 
-            // Remove URL paramteres from e.g. SoundCloud and Mixcloud
-            if( playerSite != "YouTube" ) {
-                playerUrl = removeParametersFromUrl( playerWrapper.attr("data-playerurl") );
-            } else {
-                playerUrl = playerUrl.replace( "www.youtu.be", "youtu.be" );
-            }
-
-            if( playerSite == "hearthis-at" ) {
-                playerUrl = playerUrl.replace( "hearthis.audio", "hearthis.at" );
-            }
+            playerUrl = normalizeTrackIdPlayerUrl( playerSite, playerUrl );
 
             // if mix page
             if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
@@ -167,13 +339,22 @@ d.ready(function(){ // needed for mw.config
             }
 
             // if Explorer/Mixes
-            if( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
+            if( isExplorerPage ) {
                 var explorerResult = playerWrapper.closest(".explorerResult"),
                     explorerResult_title = $(".playerLink", explorerResult).attr("title");
                 keywords = normalizeTitleForSearch( explorerResult_title );
             }
 
             if( playerTidCompatible == "true" ) {
+                if( isExplorerPage ) {
+                    explorerTrackIdEntries.push({
+                        playerWrapper: playerWrapper,
+                        playerSite: playerSite,
+                        playerUrl: playerUrl,
+                        keywords: keywords
+                    });
+                    return;
+                }
 
                 // check usage
                 var apiQueryUrl_check = apiUrl_mw;
@@ -223,6 +404,10 @@ d.ready(function(){ // needed for mw.config
                 log( "NOT playerTidCompatible: " + playerUrl );
             }
         });
+
+        if( explorerTrackIdEntries.length > 0 ) {
+            runExplorerTrackIdBatchChecks( explorerTrackIdEntries );
+        }
     }
 
     /*
