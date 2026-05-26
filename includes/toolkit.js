@@ -1232,6 +1232,10 @@ waitForKeyElements("a.mdb-mixesdbLink.edit", function( jNode ) {
 
 // MixesDB edit page: apply siteHasTl query parameter to categories and active button
 d.ready(function () {
+    if (scriptName != "TrackId.net") {
+        return;
+    }
+
     if (domain != "mixesdb.com" || typeof mw === "undefined" || !mw.config) {
         return;
     }
