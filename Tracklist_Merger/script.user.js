@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.1
+// @version      2026.05.26.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1081,13 +1081,14 @@ if( domain == "trackid.net" ) {
 
     // create merge link under tracklists
     waitForKeyElements("ul#tlEditor-feedback-topInfo", function( jNode ) {
-        var tl_candidate = $("textarea.mixesdb-TLbox").val();
+        var mergeLink = '<a href="https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger" target="_blank" rel="noopener">Open in Tracklist Merger</a>';
 
-        if( tl_candidate ) {
-            var mergeLink = '<a href="https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger?tl_candidate='+encodeURIComponent( tl_candidate )+'" target="_blank">Open in Tracklist Merger</a>';
+        add_mergeLink( jNode, mergeLink );
+    });
 
-            add_mergeLink( jNode, mergeLink );
-        }
+    $(document).on('click', '#mergeLink a', function() {
+        var tl_candidate = $("textarea.mixesdb-TLbox").val() || '';
+        this.href = "https://www.mixesdb.com/w/MixesDB:Tests/Tracklist_Merger?tl_candidate=" + encodeURIComponent( tl_candidate );
     });
 
     waitForKeyElements("ul#tlEditor-feedback-topInfo li.info_switchCueFormat", function( jNode ) {
