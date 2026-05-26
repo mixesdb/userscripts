@@ -1262,15 +1262,17 @@ d.ready(function () {
                 );
             }
 
-            if( !skipCategoryUpdate ) {
-                $("#afterTextbox1 a.button-after").removeClass("op1");
+            if( skipCategoryUpdate ) {
+                return;
+            }
 
-                var buttonSelector = siteHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
-                    targetButton = $(buttonSelector);
+            $("#afterTextbox1 a.button-after").removeClass("op1");
 
-                if (targetButton.length) {
-                    targetButton.addClass("op1");
-                }
+            var buttonSelector = siteHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
+                targetButton = $(buttonSelector);
+
+            if (targetButton.length) {
+                targetButton.addClass("op1");
             }
         }
     }
