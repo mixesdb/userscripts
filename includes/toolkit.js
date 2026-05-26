@@ -1249,12 +1249,18 @@ d.ready(function () {
         var textarea = $("textarea#wpTextbox1");
 
         if (textarea.length) {
-            textarea.val(
-                textarea.val().replace(
-                    "[[Category:Tracklist: none]]",
-                    "[[Category:Tracklist: " + siteHasTl + "]]"
-                )
-            );
+            var currentText = textarea.val(),
+                hasTracklistCompleteCategory = currentText.indexOf("[[Category:Tracklist: complete]]") !== -1,
+                skipCategoryUpdate = (siteHasTl == "incomplete" && hasTracklistCompleteCategory);
+
+            if( !skipCategoryUpdate ) {
+                textarea.val(
+                    currentText.replace(
+                        "[[Category:Tracklist: none]]",
+                        "[[Category:Tracklist: " + siteHasTl + "]]"
+                    )
+                );
+            }
 
             $("#afterTextbox1 a.button-after").removeClass("op1");
 
