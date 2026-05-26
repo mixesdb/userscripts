@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.26.5
+// @version      2026.05.26.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -971,37 +971,13 @@ function run_merge( showDebug=false ) {
         }
     }
 
-    // If the merged list uses colon cues, normalize unknown placeholders.
-    // For "??", infer the prefix from neighboring cues (e.g. "1:??", "2:??"),
-    // with "0:??" as fallback.
+    // If the merged list uses MM:SS cues, normalize unknown cue placeholders
+    // from "??" to "0:??" so they match the active cue format.
     var mergedHasColon = tl_merged_arr.some(item => item.type === "track" && item.cue && item.cue.includes(':'));
     if( mergedHasColon ) {
-        var tracksOnly = tl_merged_arr.filter(item => item.type === "track");
-        tracksOnly.forEach(function(item, idx){
-            if( item.cue === "??" ) {
-                var inferredPrefix = null;
-
-                // Prefer previous cue (helps long lists where later tracks are 1:XX, 2:XX, ...)
-                for( var p = idx - 1; p >= 0; p-- ) {
-                    var prevCue = tracksOnly[p].cue;
-                    if( prevCue && /^(\d+):\d{1,2}$/.test(prevCue) ) {
-                        inferredPrefix = prevCue.split(':')[0];
-                        break;
-                    }
-                }
-
-                // Fallback to next cue
-                if( inferredPrefix === null ) {
-                    for( var n = idx + 1; n < tracksOnly.length; n++ ) {
-                        var nextCue = tracksOnly[n].cue;
-                        if( nextCue && /^(\d+):\d{1,2}$/.test(nextCue) ) {
-                            inferredPrefix = nextCue.split(':')[0];
-                            break;
-                        }
-                    }
-                }
-
-                item.cue = (inferredPrefix !== null ? inferredPrefix : '0') + ":??";
+        tl_merged_arr.forEach(function(item){
+            if( item.type === "track" && item.cue === "??" ) {
+                item.cue = "0:??";
             }
         });
     }
