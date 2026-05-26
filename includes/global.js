@@ -994,8 +994,7 @@ function make_tlArr( tl ) {
         var row = { type: "track" };
 
         // Remove leading "#" or similar
-        line = line.replace(/^#\s*/, '')
-                   .replace(/^\[[\d*\?*\:*]\]+\s*/, '');
+        line = line.replace(/^#\s*/, '');
 
         // Optional cue [00] at the start
         var cueMatch = line.match(/^\[((?:\d|X|\?)+(?::(?:\d|X|\?){1,2}){0,2})\]/i);
