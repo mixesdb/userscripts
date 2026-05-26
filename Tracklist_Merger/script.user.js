@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.26.6
+// @version      2026.05.26.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -971,25 +971,13 @@ function run_merge( showDebug=false ) {
         }
     }
 
-    // If the candidate uses colon cues, normalize unknown/missing placeholders
-    // using the last given cue prefix (X from X:XX => X:??).
-    // Do not infer from future rows: if we have no previous given cue yet,
-    // leave the cue untouched.
+    // If the merged list uses MM:SS cues, normalize unknown cue placeholders
+    // from "??" to "0:??" so they match the active cue format.
     var mergedHasColon = tl_merged_arr.some(item => item.type === "track" && item.cue && item.cue.includes(':'));
     if( mergedHasColon ) {
-        var lastCuePrefix = null;
         tl_merged_arr.forEach(function(item){
-            if( item.type !== "track" ) {
-                return;
-            }
-
-            if( item.cue && /^(\d+):\d{1,2}$/.test(item.cue) ) {
-                lastCuePrefix = item.cue.split(':')[0];
-                return;
-            }
-
-            if( ( !item.cue || item.cue === "??" ) && lastCuePrefix !== null ) {
-                item.cue = lastCuePrefix + ":??";
+            if( item.type === "track" && item.cue === "??" ) {
+                item.cue = "0:??";
             }
         });
     }
