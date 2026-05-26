@@ -1262,13 +1262,15 @@ d.ready(function () {
                 );
             }
 
-            $("#afterTextbox1 a.button-after").removeClass("op1");
+            if( !skipCategoryUpdate ) {
+                $("#afterTextbox1 a.button-after").removeClass("op1");
 
-            var buttonSelector = siteHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
-                targetButton = $(buttonSelector);
+                var buttonSelector = siteHasTl == "incomplete" ? "a#button-after-TLi" : "a#button-after-TLc",
+                    targetButton = $(buttonSelector);
 
-            if (targetButton.length) {
-                targetButton.addClass("op1");
+                if (targetButton.length) {
+                    targetButton.addClass("op1");
+                }
             }
         }
     }
