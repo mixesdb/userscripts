@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.27.1
+// @version      2026.02.11.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -301,14 +301,26 @@ function getTargetFormatFromCue(cue) {
     return null;
 }
 
-function rememberPreferredFormatFromClickedCue(linkEl, mode) {
-    // Only persist on the two single-format modes.
-    // Mode 2 intentionally shows both formats and should not become default.
-    if (mode !== 0 && mode !== 1) return;
+function rememberTracklistPreferredFormatForMode($tracklist, mode) {
+    var selectedFormat = null;
 
-    var $link = $(linkEl);
-    var displayedCue = getCueFromToggleText($link.text());
-    var selectedFormat = getTargetFormatFromCue(displayedCue);
+    $tracklist.find("a.mdbCueToggle").each(function () {
+        var $link = $(this);
+        var originalCue = String($link.data("originalCue") || getCueFromToggleText($link.text()) || "").trim();
+        var alternateCue = String($link.data("alternateCue") || "").trim();
+        var cue = null;
+
+        if (mode === 0) {
+            cue = originalCue;
+        } else if (mode === 1) {
+            cue = alternateCue || originalCue;
+        }
+
+        if (!cue) return;
+
+        selectedFormat = getTargetFormatFromCue(cue);
+        if (selectedFormat) return false;
+    });
 
     if (selectedFormat) {
         storePreferredCueFormat(selectedFormat);
@@ -454,9 +466,8 @@ $(document).on("click", "a.mdbCueToggle", function (e) {
         var $list = $(this);
         $list.data("cueDisplayMode", nextMode);
         applyTracklistCueMode($list, nextMode);
+        rememberTracklistPreferredFormatForMode($list, nextMode);
     });
-
-    rememberPreferredFormatFromClickedCue(this, nextMode);
 });
 
 
