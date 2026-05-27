@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.26.3
+// @version      2026.05.27.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1106,7 +1106,19 @@ function outputTidGenresTextarea() {
 }
 
 
-function toggleTracklistTextareaCueFormat() {
+var cueFormatPreferenceStorageKey = "mdb_trackid_preferredCueFormat";
+
+function getStoredCueFormatPreference() {
+    var value = String(localStorage.getItem(cueFormatPreferenceStorageKey) || "").trim();
+    return (value === "MM" || value === "HMM") ? value : null;
+}
+
+function storeCueFormatPreference(format) {
+    if (format !== "MM" && format !== "HMM") return;
+    localStorage.setItem(cueFormatPreferenceStorageKey, format);
+}
+
+function toggleTracklistTextareaCueFormat(targetFormat) {
     var ta = $("textarea.mixesdb-TLbox");
     if (!ta.length) return;
 
@@ -1124,7 +1136,14 @@ function toggleTracklistTextareaCueFormat() {
     }
 
     var currentFormat = ta.attr("data-mdb-cue-format") || detectCueFormatFromTextarea(ta.val());
-    var nextFormat = currentFormat === "MM" ? "HMM" : "MM";
+    var nextFormat = (targetFormat === "MM" || targetFormat === "HMM") ? targetFormat : (currentFormat === "MM" ? "HMM" : "MM");
+
+    if (currentFormat === nextFormat) {
+        var currentButtonLabel = nextFormat === "HMM" ? "Switch cue format (h:m > mmm)" : "Switch cue format (mmm > h:m)";
+        $("#switchCueFormat").text(currentButtonLabel);
+        storeCueFormatPreference(nextFormat);
+        return;
+    }
 
     if (currentFormat === "MM") {
         ta.attr("data-mdb-cue-original", ta.val() || "");
@@ -1169,6 +1188,7 @@ function toggleTracklistTextareaCueFormat() {
 
     var buttonLabel = nextFormat === "HMM" ? "Switch cue format (h:m > mmm)" : "Switch cue format (mmm > h:m)";
     $("#switchCueFormat").text(buttonLabel);
+    storeCueFormatPreference(nextFormat);
     selectTracklistTextarea();
 }
 
@@ -1176,6 +1196,14 @@ if( visitDomain == "trackid.net" ) {
     waitForKeyElements("ul#tlEditor-feedback-topInfo", function(jNode) {
         if (!$("#switchCueFormat").length) {
             jNode.prepend('<li class="info_switchCueFormat"><button id="switchCueFormat" class="hand">Switch cue format (mmm > h:m)</button></li>');
+        }
+
+        var preferredFormat = getStoredCueFormatPreference();
+        if (preferredFormat === "HMM") {
+            $("#switchCueFormat").text("Switch cue format (h:m > mmm)");
+            toggleTracklistTextareaCueFormat("HMM");
+        } else if (preferredFormat === "MM") {
+            $("#switchCueFormat").text("Switch cue format (mmm > h:m)");
         }
     });
 }
