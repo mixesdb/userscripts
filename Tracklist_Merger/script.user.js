@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.27.5
+// @version      2026.05.27.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -989,10 +989,20 @@ function getCueFormat(tl_arr) {
  * normalizeCueToFormat
  * Convert a cue string to the target cue format.
  */
-function normalizeCueToFormat(cue, format) {
+function normalizeCueToFormat(cue, format, options) {
     if( !cue || !format || !/^\d+(:\d+)?$/.test(cue) ) { return cue; }
+    options = options || {};
 
     if( format.hasColon ) {
+        // Special case: original uses H:MM (e.g. "0:06"), candidate uses bare MM
+        // (e.g. "06"). In that case, keep the original prefix ("0") and map the
+        // candidate number to the second component ("0:06"), not "6:00".
+        if( !cue.includes(':') && options.bareAsSecondComponent ) {
+            var secondValue = parseInt(cue, 10);
+            var prefix = String(options.defaultPrefix || "0");
+            return prefix.padStart(format.minDigits, '0') + ":" + String(secondValue).padStart(format.secDigits, '0');
+        }
+
         var totalSeconds = cue.includes(':') ? durToSec_MS(cue) : parseInt(cue, 10) * 60;
         var mins = Math.floor(totalSeconds / 60),
             secs = Math.round(totalSeconds % 60);
@@ -1009,11 +1019,11 @@ function normalizeCueToFormat(cue, format) {
  * normalizeTracklistCueFormat
  * Normalize all candidate numeric cues to the original cue format.
  */
-function normalizeTracklistCueFormat(tl_arr, targetFormat) {
+function normalizeTracklistCueFormat(tl_arr, targetFormat, options) {
     if( !targetFormat ) { return tl_arr; }
     tl_arr.forEach(function(item){
         if( item.type === "track" && item.cue ) {
-            item.cue = normalizeCueToFormat(item.cue, targetFormat);
+            item.cue = normalizeCueToFormat(item.cue, targetFormat, options);
         }
     });
     return tl_arr;
@@ -1030,7 +1040,21 @@ function run_merge( showDebug=false ) {
 
     // Normalize candidate cues to the original cue format before merging.
     var originalCueFormat = getCueFormat(tl_original_arr);
-    normalizeTracklistCueFormat(tl_candidate_arr, originalCueFormat);
+    var originalFirstCuePrefix = "0";
+    if( originalCueFormat && originalCueFormat.hasColon ) {
+        var firstColonCueItem = tl_original_arr.find(function(item){
+            return item.type === "track" && item.cue && item.cue.includes(':');
+        });
+        if( firstColonCueItem ) {
+            originalFirstCuePrefix = firstColonCueItem.cue.split(':')[0];
+        }
+    }
+
+    var candidateCueNormalizationOptions = {
+        bareAsSecondComponent: !!(originalCueFormat && originalCueFormat.hasColon),
+        defaultPrefix: originalFirstCuePrefix
+    };
+    normalizeTracklistCueFormat(tl_candidate_arr, originalCueFormat, candidateCueNormalizationOptions);
 
     tl_original_arr  = addCueDiffs( tl_original_arr );
     tl_candidate_arr = addCueDiffs( tl_candidate_arr );
@@ -1042,7 +1066,7 @@ function run_merge( showDebug=false ) {
     var tl_merged_arr = mergeTracklists( tl_original_arr, tl_candidate_arr );
 
     // Keep merged cues in original format.
-    normalizeTracklistCueFormat(tl_merged_arr, originalCueFormat);
+    normalizeTracklistCueFormat(tl_merged_arr, originalCueFormat, candidateCueNormalizationOptions);
 
     // If the merged list uses MM:SS cues, normalize unknown/missing cues
     // to "X:??" where X is the last known minute prefix.
