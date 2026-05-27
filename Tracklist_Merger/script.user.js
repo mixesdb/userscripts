@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.26.4
+// @version      2026.05.26.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -972,12 +972,23 @@ function run_merge( showDebug=false ) {
     }
 
     // If the merged list uses MM:SS cues, normalize unknown cue placeholders
-    // from "??" to "0:??" so they match the active cue format.
+    // from "??" to "X:??" where X is the last known minute prefix.
     var mergedHasColon = tl_merged_arr.some(item => item.type === "track" && item.cue && item.cue.includes(':'));
     if( mergedHasColon ) {
+        var lastCuePrefix = "0";
         tl_merged_arr.forEach(function(item){
-            if( item.type === "track" && item.cue === "??" ) {
-                item.cue = "0:??";
+            if( item.type !== "track" ) return;
+
+            if( item.cue === "??" ) {
+                item.cue = lastCuePrefix + ":??";
+                return;
+            }
+
+            if( item.cue && item.cue.includes(':') ) {
+                var cuePrefix = item.cue.split(':')[0];
+                if( /^\d+$/.test(cuePrefix) ) {
+                    lastCuePrefix = cuePrefix;
+                }
             }
         });
     }
