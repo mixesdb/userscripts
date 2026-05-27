@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.27.4
+// @version      2026.05.27.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -498,7 +498,10 @@ function mergeTracklists(original_arr, candidate_arr) {
 
     // Build exact lookup + fuzzy list for all original track items
     const originalMap   = {}; // normalizedTitle → original item
-    const fuzzyList     = []; // [{ norm, item }]
+    const fuzzyList     = []; // [{ norm, item, len, head }]
+    const fuzzyBuckets  = {}; // first-char → fuzzyList entries
+    const fuzzyByLen    = []; // array grouped by norm length
+    const similarityCache = {}; // "a||b" -> bool
     const originalHasGaps = original_arr.some(item => item.type === "gap" || item.trackText === "?");
 
     original_arr.forEach(item => {
@@ -506,10 +509,65 @@ function mergeTracklists(original_arr, candidate_arr) {
             const norms = getTrackMatchNorms(item.trackText);
             norms.forEach(norm => {
                 originalMap[norm] = item;
-                fuzzyList.push({ norm, item });
+                const entry = { norm, item, len: norm.length, head: norm.charAt(0) };
+                fuzzyList.push(entry);
+
+                if (!fuzzyBuckets[entry.head]) {
+                    fuzzyBuckets[entry.head] = [];
+                }
+                fuzzyBuckets[entry.head].push(entry);
+
+                if (!fuzzyByLen[entry.len]) {
+                    fuzzyByLen[entry.len] = [];
+                }
+                fuzzyByLen[entry.len].push(entry);
             });
         }
     });
+
+    function isLikelySimilarText(normA, normB, threshold) {
+        if (normA === normB) {
+            return true;
+        }
+
+        const key = normA < normB ? (normA + "||" + normB) : (normB + "||" + normA);
+        if (similarityCache.hasOwnProperty(key)) {
+            return similarityCache[key];
+        }
+
+        const lenA = normA.length;
+        const lenB = normB.length;
+        const maxLen = Math.max(lenA, lenB);
+        const allowedEdits = Math.floor((1 - threshold) * maxLen);
+        if (Math.abs(lenA - lenB) > allowedEdits) {
+            similarityCache[key] = false;
+            return false;
+        }
+
+        const result = $.isTextSimilar(normA, normB, threshold);
+        similarityCache[key] = result;
+        return result;
+    }
+
+    function getFuzzyCandidates(candNorm) {
+        const len = candNorm.length;
+        const head = candNorm.charAt(0);
+        let pool = fuzzyBuckets[head] || fuzzyList;
+        const nearbyLenPool = [];
+
+        // Pull only nearby lengths. At threshold=0.8, strings with huge length
+        // differences can never match, so we avoid expensive Levenshtein calls.
+        for (let l = Math.max(0, len - 6); l <= len + 6; l++) {
+            if (fuzzyByLen[l]) {
+                nearbyLenPool.push.apply(nearbyLenPool, fuzzyByLen[l]);
+            }
+        }
+
+        if (nearbyLenPool.length && nearbyLenPool.length < pool.length) {
+            pool = nearbyLenPool;
+        }
+        return pool;
+    }
 
     const unmatched = [];
 
@@ -540,8 +598,9 @@ function mergeTracklists(original_arr, candidate_arr) {
             // 2) Fallback to fuzzy matching
             if (!origItem) {
                 outer: for (const candNorm of candNorms) {
-                    for (const entry of fuzzyList) {
-                        if ($.isTextSimilar(entry.norm, candNorm, similarityThreshold)) {
+                    const fuzzyCandidates = getFuzzyCandidates(candNorm);
+                    for (const entry of fuzzyCandidates) {
+                        if (isLikelySimilarText(entry.norm, candNorm, similarityThreshold)) {
                             origItem = entry.item;
                             break outer;
                         }
