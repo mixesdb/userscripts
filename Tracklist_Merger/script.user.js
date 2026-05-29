@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.27.6
+// @version      2026.05.29.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -33,6 +33,20 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 const tid_minGap = 3;
 // Threshold for fuzzy matching when merging track titles
 const similarityThreshold = 0.8;
+// Wait only briefly after typing pauses before rebuilding the expensive diff view.
+const diffInputDelay = 175;
+// Keep diff-rendering work inside a short frame budget so large tracklists do
+// not monopolize the main thread while users continue editing.
+const diffRenderFrameBudget = 8;
+
+function clearScheduledDiffWork(timerId) {
+    if( !timerId ) { return; }
+    if( window.cancelIdleCallback ) {
+        window.cancelIdleCallback( timerId );
+    } else {
+        window.clearTimeout( timerId );
+    }
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -704,22 +718,31 @@ function mergeTracklists(original_arr, candidate_arr) {
 
 function calcSimilarity(a, b) {
   var m = a.length, n = b.length;
-  var dp = Array(m + 1);
-  for (var i = 0; i <= m; i++) {
-    dp[i] = Array(n + 1).fill(0);
-  }
+  var maxLen = Math.max(m, n);
+  if (maxLen === 0) { return 1; }
+
+  // Keep only the previous/current Levenshtein rows instead of an m*n matrix.
+  // Diff rendering calls this many times, so avoiding repeated large matrix
+  // allocations makes textarea input noticeably more responsive.
+  var prev = Array(n + 1), curr = Array(n + 1);
+  for (var j = 0; j <= n; j++) { prev[j] = j; }
+
   for (var i = 1; i <= m; i++) {
+    curr[0] = i;
     for (var j = 1; j <= n; j++) {
       var cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + cost
       );
     }
+    var tmp = prev;
+    prev = curr;
+    curr = tmp;
   }
-  var maxLen = Math.max(m, n);
-  return maxLen === 0 ? 1 : (maxLen - dp[m][n]) / maxLen;
+
+  return (maxLen - prev[n]) / maxLen;
 }
 
 // New diff logic
@@ -807,96 +830,161 @@ function calcSimilarity(a, b) {
       if (p.label) res += highlightWords(p.label, cls);
       return res;
     }
-    function findBestMatch(line, lines) {
-      var base = splitTrackLine(line);
-      var baseNorms = getTrackMatchNorms(base.text);
+    function buildTrackLineEntries(lines) {
+      return lines.map(function(line) {
+        var parts = splitTrackLine(line);
+        return {
+          line: line,
+          parts: parts,
+          norms: getTrackMatchNorms(parts.text)
+        };
+      });
+    }
+    function buildMatchContext(entries) {
+      var exact = Object.create(null);
+      var flattened = [];
+
+      entries.forEach(function(entry, idx) {
+        entry.norms.forEach(function(norm) {
+          if (!norm) { return; }
+          if (exact[norm] === undefined) { exact[norm] = idx; }
+          flattened.push({ norm: norm, length: norm.length, idx: idx });
+        });
+      });
+
+      return { entries: entries, exact: exact, flattened: flattened };
+    }
+    function findBestMatchEntry(baseEntry, targetContext) {
+      var baseNorms = baseEntry.norms;
       var bestIdx = -1, bestScore = 0;
-      for (var i = 0; i < lines.length; i++) {
-        var other = splitTrackLine(lines[i]);
-        var otherNorms = getTrackMatchNorms(other.text);
+
+      for (var b = 0; b < baseNorms.length; b++) {
+        var baseNorm = baseNorms[b];
+        if (baseNorm && targetContext.exact[baseNorm] !== undefined) {
+          return { idx: targetContext.exact[baseNorm], score: 1 };
+        }
+      }
+
+      for (var i = 0; i < targetContext.flattened.length; i++) {
+        var other = targetContext.flattened[i];
         for (var b = 0; b < baseNorms.length; b++) {
-          for (var o = 0; o < otherNorms.length; o++) {
-            var score = calcSimilarity(otherNorms[o], baseNorms[b]);
-            if (score > bestScore) { bestScore = score; bestIdx = i; }
+          var base = baseNorms[b];
+          var maxLen = Math.max(other.length, base.length);
+          if (maxLen === 0) { continue; }
+
+          // The best possible Levenshtein similarity cannot exceed the length
+          // ratio. Skip comparisons that cannot improve the current match.
+          if ((Math.min(other.length, base.length) / maxLen) <= bestScore) {
+            continue;
+          }
+
+          var score = calcSimilarity(other.norm, base);
+          if (score > bestScore) {
+            bestScore = score;
+            bestIdx = other.idx;
+            if (bestScore === 1) { return { idx: bestIdx, score: bestScore }; }
           }
         }
       }
       return { idx: bestIdx, score: bestScore };
     }
+    function renderDiffLine(entry, targetContext, cls) {
+      if (entry.line === '') { return ''; }
+      if (entry.parts.text === '?' || entry.parts.text === '...') { return escapeHTML(entry.line); }
+
+      var match = findBestMatchEntry(entry, targetContext);
+      if (match.score === 0 || match.idx === -1) {
+        return fullHighlight(entry.line, cls);
+      }
+
+      var target = targetContext.entries[match.idx].parts;
+      var res = escapeHTML(entry.parts.hash);
+      var cueHtml = wordDiff(entry.parts.cue, target.cue, cls); if (cueHtml) res += cueHtml;
+      res += wordDiff(entry.parts.text, target.text, cls);
+      var labelHtml = wordDiff(entry.parts.label, target.label, cls); if (labelHtml) res += labelHtml;
+      return res;
+    }
+    function scheduleDiffWork(callback) {
+      if (window.requestIdleCallback) {
+        return window.requestIdleCallback(callback, { timeout: 250 });
+      }
+      return window.setTimeout(function() {
+        callback({
+          timeRemaining: function() { return diffRenderFrameBudget; },
+          didTimeout: true
+        });
+      }, 16);
+    }
     $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
       var text2 = opts.text2 || '';
       var text3 = opts.text3 || '';
+      var jobId = opts.jobId;
+      var isCurrent = opts.isCurrent || function(){ return true; };
+      var onComplete = opts.onComplete || function(){};
+      var setTimer = opts.setTimer || function(){};
       if (text1.slice(-1) !== '\n') { text1 += '\n'; }
       if (text2.slice(-1) !== '\n') { text2 += '\n'; }
       if (text3.slice(-1) !== '\n') { text3 += '\n'; }
-      var lines1 = text1.split('\n');
-      var lines2 = text2.split('\n');
-      var lines3 = text3.split('\n');
+
+      var entries1 = buildTrackLineEntries(text1.split('\n'));
+      var entries2 = buildTrackLineEntries(text2.split('\n'));
+      var entries3 = buildTrackLineEntries(text3.split('\n'));
+      var context1 = buildMatchContext(entries1);
+      var context2 = buildMatchContext(entries2);
+
       return this.each(function() {
-        var $container = $(this).empty();
-        var $row = $('<tr id="diffContainer">');
+        var container = this;
+        var columns = [
+          { source: entries1, target: context2, cls: 'diff-removed', html: [], index: 0 },
+          { source: entries2, target: context1, cls: 'diff-added', html: [], index: 0 },
+          { source: entries3, target: context2, cls: 'diff-removed', html: [], index: 0 }
+        ];
+        var columnIndex = 0;
 
-        // Column 1: Original vs Merged
-        var html1 = lines1.map(function(line) {
-          if (line === '') { return ''; }
-          var p1 = splitTrackLine(line);
-          if (p1.text === '?' || p1.text === '...') { return escapeHTML(line); }
-          var match = findBestMatch(line, lines2);
-          if (match.score === 0 || match.idx === -1) {
-            return fullHighlight(line, 'diff-removed');
+        function renderChunk(deadline) {
+          if (!isCurrent(jobId)) { return; }
+
+          var startedAt = Date.now();
+          function hasFrameBudget() {
+            if (deadline && !deadline.didTimeout && deadline.timeRemaining) {
+              return deadline.timeRemaining() > 1;
+            }
+            return Date.now() - startedAt < diffRenderFrameBudget;
           }
-          var p2 = splitTrackLine(lines2[match.idx]);
-          var res = escapeHTML(p1.hash);
-          var cueHtml = wordDiff(p1.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
-          res += wordDiff(p1.text, p2.text, 'diff-removed');
-          var labelHtml = wordDiff(p1.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
-          return res;
-        }).join('\n');
-        $row.append($('<td>').append($('<pre>').html(html1)));
 
-        // Column 2: Merged vs Original
-        var html2 = lines2.map(function(line) {
-          if (line === '') { return ''; }
-          var p2 = splitTrackLine(line);
-          if (p2.text === '?' || p2.text === '...') { return escapeHTML(line); }
-          var match = findBestMatch(line, lines1);
-          if (match.score === 0 || match.idx === -1) {
-            return fullHighlight(line, 'diff-added');
+          do {
+            var column = columns[columnIndex];
+            column.html.push(renderDiffLine(column.source[column.index], column.target, column.cls));
+            column.index++;
+
+            if (!isCurrent(jobId)) { return; }
+            if (column.index >= column.source.length) {
+              columnIndex++;
+            }
+          } while (columnIndex < columns.length && hasFrameBudget());
+
+          if (columnIndex < columns.length) {
+            setTimer(scheduleDiffWork(renderChunk));
+            return;
           }
-          var p1 = splitTrackLine(lines1[match.idx]);
-          var res = escapeHTML(p2.hash);
-          var cueHtml = wordDiff(p2.cue, p1.cue, 'diff-added'); if (cueHtml) res += cueHtml;
-          res += wordDiff(p2.text, p1.text, 'diff-added');
-          var labelHtml = wordDiff(p2.label, p1.label, 'diff-added'); if (labelHtml) res += labelHtml;
-          return res;
-        }).join('\n');
-        $row.append($('<td>').append($('<pre>').html(html2)));
 
-        // Column 3: Candidate vs Merged
-        var html3 = lines3.map(function(line) {
-          if (line === '') { return ''; }
-          var p3 = splitTrackLine(line);
-          if (p3.text === '?' || p3.text === '...') { return escapeHTML(line); }
-          var match = findBestMatch(line, lines2);
-          if (match.score === 0 || match.idx === -1) {
-            return fullHighlight(line, 'diff-removed');
+          var $row = $('<tr id="diffContainer">');
+          columns.forEach(function(column) {
+            $row.append($('<td>').append($('<pre>').html(column.html.join('\n'))));
+          });
+          $row.find('pre').each(function() {
+            var $pre = $(this);
+            if (!$pre.text().endsWith('\n')) { $pre.append('\n'); }
+          });
+
+          if (isCurrent(jobId)) {
+            $(container).replaceWith($row);
+            onComplete();
           }
-          var p2 = splitTrackLine(lines2[match.idx]);
-          var res = escapeHTML(p3.hash);
-          var cueHtml = wordDiff(p3.cue, p2.cue, 'diff-removed'); if (cueHtml) res += cueHtml;
-          res += wordDiff(p3.text, p2.text, 'diff-removed');
-          var labelHtml = wordDiff(p3.label, p2.label, 'diff-removed'); if (labelHtml) res += labelHtml;
-          return res;
-        }).join('\n');
-        $row.append($('<td>').append($('<pre>').html(html3)));
+        }
 
-        $row.find('pre').each(function() {
-          var $pre = $(this);
-          if (!$pre.text().endsWith('\n')) { $pre.append('\n'); }
-        });
-
-        $container.replaceWith($row);
+        setTimer(scheduleDiffWork(renderChunk));
       });
     };
   })(jQuery);
@@ -905,24 +993,72 @@ function calcSimilarity(a, b) {
 /*
  * run_diff
  */
+var diffInputTimer = null,
+    diffRenderTimer = null,
+    diffRenderJobId = 0;
+
+function cancel_diff_render() {
+    diffRenderJobId++;
+    if( diffRenderTimer ) {
+        clearScheduledDiffWork( diffRenderTimer );
+        diffRenderTimer = null;
+    }
+}
+
+function schedule_run_diff() {
+    if( diffInputTimer ) {
+        clearTimeout( diffInputTimer );
+    }
+
+    // Stop any in-progress chunked diff immediately. Without this, a large
+    // stale render can continue to consume the main thread while editing the
+    // merged TLE textarea.
+    cancel_diff_render();
+
+    diffInputTimer = setTimeout(function(){
+        diffInputTimer = null;
+        run_diff();
+    }, diffInputDelay );
+}
+
 function run_diff() {
+    if( diffInputTimer ) {
+        clearTimeout( diffInputTimer );
+        diffInputTimer = null;
+    }
+    cancel_diff_render();
+
     var text1 = $("#tl_original").val(),
         text2 = $("#merge_result_tle").val(),
-        text3 = $("#tl_candidate").val();
+        text3 = $("#tl_candidate").val(),
+        jobId = diffRenderJobId;
+
     if( text1 && text2 && text3 ) {
         if( text1 === text2 ) {
             $("#diffContainer").html('<td colspan="3" class="identical-msg">The merged tracklist is identical to the original.</td>');
+            adjust_columnWidths();
         } else {
-            $('#diffContainer').showTracklistDiffs({ text1, text2, text3 });
-            var pre = $('#diffContainer pre').first();
-            if( pre.length ) {
-                adjust_preHeights( pre );
-            }
+            $('#diffContainer').showTracklistDiffs({
+                text1: text1,
+                text2: text2,
+                text3: text3,
+                jobId: jobId,
+                isCurrent: function(id){ return id === diffRenderJobId; },
+                setTimer: function(timerId){ diffRenderTimer = timerId; },
+                onComplete: function(){
+                    diffRenderTimer = null;
+                    var pre = $('#diffContainer pre').first();
+                    if( pre.length ) {
+                        adjust_preHeights( pre );
+                    }
+                    adjust_columnWidths();
+                }
+            });
         }
     } else {
         $("#diffContainer td").remove();
+        adjust_columnWidths();
     }
-    adjust_columnWidths();
 }
 
 
@@ -1176,7 +1312,7 @@ if( domain == "mixesdb.com" ) {
             run_merge( true );
         }
 
-        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', run_diff);
+        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', schedule_run_diff);
         run_diff();
     });
 }
