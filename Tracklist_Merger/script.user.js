@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.29.3
+// @version      2026.05.29.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -640,6 +640,7 @@ function mergeTracklists(original_arr, candidate_arr) {
             if (cand.cue && (!origItem.cue || String(origItem.cue).includes('?'))) origItem.cue = cand.cue;
             if (cand.dur && !origItem.dur)         origItem.dur   = cand.dur;
             if (candidateLabel && !origItem.label) origItem.label = candidateLabel;
+            origItem._mergeMatchedCandidateIndex = i;
 
             const nextCand = candidate_arr[i + 1];
             if (
@@ -661,8 +662,86 @@ function mergeTracklists(original_arr, candidate_arr) {
         }
     }
 
-    // Insert unmatched tracks (including gaps around them)
-    unmatched.forEach(({ cand, index, isUnknown }) => {
+    const unmatchedByIndex = {};
+    unmatched.forEach(item => {
+        unmatchedByIndex[item.index] = item;
+    });
+
+    function findUnknownSlotForCandidateIndex(candidateIndex) {
+        let prevAnchor = null,
+            nextAnchor = null;
+
+        original_arr.forEach(item => {
+            if (item.type !== "track" || typeof item._mergeMatchedCandidateIndex !== "number") {
+                return;
+            }
+
+            if (
+                item._mergeMatchedCandidateIndex < candidateIndex &&
+                (!prevAnchor || item._mergeMatchedCandidateIndex > prevAnchor._mergeMatchedCandidateIndex)
+            ) {
+                prevAnchor = item;
+            }
+
+            if (
+                item._mergeMatchedCandidateIndex > candidateIndex &&
+                (!nextAnchor || item._mergeMatchedCandidateIndex < nextAnchor._mergeMatchedCandidateIndex)
+            ) {
+                nextAnchor = item;
+            }
+        });
+
+        const startIndex = prevAnchor ? original_arr.indexOf(prevAnchor) + 1 : 0;
+        const endIndex = nextAnchor ? original_arr.indexOf(nextAnchor) : original_arr.length;
+
+        if (startIndex > endIndex) {
+            return null;
+        }
+
+        for (let i = startIndex; i < endIndex; i++) {
+            const item = original_arr[i];
+            if (
+                item.type === "track" &&
+                item.trackText === "?" &&
+                !item._mergeConsumedUnknown
+            ) {
+                return item;
+            }
+        }
+
+        return null;
+    }
+
+    if (originalHasGaps) {
+        candidate_arr.forEach((cand, index) => {
+            const unmatchedItem = unmatchedByIndex[index];
+
+            if (unmatchedItem) {
+                const slot = findUnknownSlotForCandidateIndex(index);
+                if (slot) {
+                    if (cand.cue) slot.cue = cand.cue;
+                    if (cand.dur && !slot.dur) slot.dur = cand.dur;
+                    if (cand.trackText !== "?") slot.trackText = cand.trackText;
+                    if (cand.label && !slot.label) slot.label = cand.label;
+                    slot._mergeConsumedUnknown = true;
+                    unmatchedItem.filledUnknownSlot = true;
+                }
+            } else if (cand.type === "gap") {
+                const slot = findUnknownSlotForCandidateIndex(index);
+                if (slot) {
+                    slot._mergeConsumedUnknown = true;
+                }
+            }
+        });
+    }
+
+    // Insert unmatched tracks (including gaps around them) when no original
+    // unknown placeholder was available in the same matched candidate segment.
+    unmatched.forEach(({ cand, index, isUnknown, filledUnknownSlot }) => {
+        if (filledUnknownSlot) {
+            return;
+        }
+
         const cueNum = parseInt(cand.cue);
         if (
             isUnknown && (
@@ -704,6 +783,11 @@ function mergeTracklists(original_arr, candidate_arr) {
         ) {
             original_arr.splice(insertIndex + 1, 0, { type: "gap" });
         }
+    });
+
+    original_arr.forEach(item => {
+        delete item._mergeMatchedCandidateIndex;
+        delete item._mergeConsumedUnknown;
     });
 
     return original_arr; // = merged
