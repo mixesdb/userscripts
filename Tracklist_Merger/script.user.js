@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.27.6
+// @version      2026.05.29.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -33,6 +33,8 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 const tid_minGap = 3;
 // Threshold for fuzzy matching when merging track titles
 const similarityThreshold = 0.8;
+// Wait until typing pauses before rebuilding the expensive diff view.
+const diffInputDelay = 400;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -905,7 +907,25 @@ function calcSimilarity(a, b) {
 /*
  * run_diff
  */
+var diffInputTimer = null;
+
+function schedule_run_diff() {
+    if( diffInputTimer ) {
+        clearTimeout( diffInputTimer );
+    }
+
+    diffInputTimer = setTimeout(function(){
+        diffInputTimer = null;
+        run_diff();
+    }, diffInputDelay );
+}
+
 function run_diff() {
+    if( diffInputTimer ) {
+        clearTimeout( diffInputTimer );
+        diffInputTimer = null;
+    }
+
     var text1 = $("#tl_original").val(),
         text2 = $("#merge_result_tle").val(),
         text3 = $("#tl_candidate").val();
@@ -1176,7 +1196,7 @@ if( domain == "mixesdb.com" ) {
             run_merge( true );
         }
 
-        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', run_diff);
+        $("#tl_original, #merge_result_tle, #tl_candidate").on('input', schedule_run_diff);
         run_diff();
     });
 }
