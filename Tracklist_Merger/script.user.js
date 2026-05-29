@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.29.2
+// @version      2026.05.29.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -33,11 +33,20 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 const tid_minGap = 3;
 // Threshold for fuzzy matching when merging track titles
 const similarityThreshold = 0.8;
-// Wait until typing pauses before rebuilding the expensive diff view.
-const diffInputDelay = 400;
-// Keep individual diff-rendering chunks short so large tracklists do not
-// monopolize the main thread while users continue editing.
-const diffRenderChunkSize = 5;
+// Wait only briefly after typing pauses before rebuilding the expensive diff view.
+const diffInputDelay = 175;
+// Keep diff-rendering work inside a short frame budget so large tracklists do
+// not monopolize the main thread while users continue editing.
+const diffRenderFrameBudget = 8;
+
+function clearScheduledDiffWork(timerId) {
+    if( !timerId ) { return; }
+    if( window.cancelIdleCallback ) {
+        window.cancelIdleCallback( timerId );
+    } else {
+        window.clearTimeout( timerId );
+    }
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -709,22 +718,31 @@ function mergeTracklists(original_arr, candidate_arr) {
 
 function calcSimilarity(a, b) {
   var m = a.length, n = b.length;
-  var dp = Array(m + 1);
-  for (var i = 0; i <= m; i++) {
-    dp[i] = Array(n + 1).fill(0);
-  }
+  var maxLen = Math.max(m, n);
+  if (maxLen === 0) { return 1; }
+
+  // Keep only the previous/current Levenshtein rows instead of an m*n matrix.
+  // Diff rendering calls this many times, so avoiding repeated large matrix
+  // allocations makes textarea input noticeably more responsive.
+  var prev = Array(n + 1), curr = Array(n + 1);
+  for (var j = 0; j <= n; j++) { prev[j] = j; }
+
   for (var i = 1; i <= m; i++) {
+    curr[0] = i;
     for (var j = 1; j <= n; j++) {
       var cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + cost
       );
     }
+    var tmp = prev;
+    prev = curr;
+    curr = tmp;
   }
-  var maxLen = Math.max(m, n);
-  return maxLen === 0 ? 1 : (maxLen - dp[m][n]) / maxLen;
+
+  return (maxLen - prev[n]) / maxLen;
 }
 
 // New diff logic
@@ -822,30 +840,64 @@ function calcSimilarity(a, b) {
         };
       });
     }
-    function findBestMatchEntry(baseEntry, entries) {
+    function buildMatchContext(entries) {
+      var exact = Object.create(null);
+      var flattened = [];
+
+      entries.forEach(function(entry, idx) {
+        entry.norms.forEach(function(norm) {
+          if (!norm) { return; }
+          if (exact[norm] === undefined) { exact[norm] = idx; }
+          flattened.push({ norm: norm, length: norm.length, idx: idx });
+        });
+      });
+
+      return { entries: entries, exact: exact, flattened: flattened };
+    }
+    function findBestMatchEntry(baseEntry, targetContext) {
       var baseNorms = baseEntry.norms;
       var bestIdx = -1, bestScore = 0;
-      for (var i = 0; i < entries.length; i++) {
-        var otherNorms = entries[i].norms;
+
+      for (var b = 0; b < baseNorms.length; b++) {
+        var baseNorm = baseNorms[b];
+        if (baseNorm && targetContext.exact[baseNorm] !== undefined) {
+          return { idx: targetContext.exact[baseNorm], score: 1 };
+        }
+      }
+
+      for (var i = 0; i < targetContext.flattened.length; i++) {
+        var other = targetContext.flattened[i];
         for (var b = 0; b < baseNorms.length; b++) {
-          for (var o = 0; o < otherNorms.length; o++) {
-            var score = calcSimilarity(otherNorms[o], baseNorms[b]);
-            if (score > bestScore) { bestScore = score; bestIdx = i; }
+          var base = baseNorms[b];
+          var maxLen = Math.max(other.length, base.length);
+          if (maxLen === 0) { continue; }
+
+          // The best possible Levenshtein similarity cannot exceed the length
+          // ratio. Skip comparisons that cannot improve the current match.
+          if ((Math.min(other.length, base.length) / maxLen) <= bestScore) {
+            continue;
+          }
+
+          var score = calcSimilarity(other.norm, base);
+          if (score > bestScore) {
+            bestScore = score;
+            bestIdx = other.idx;
+            if (bestScore === 1) { return { idx: bestIdx, score: bestScore }; }
           }
         }
       }
       return { idx: bestIdx, score: bestScore };
     }
-    function renderDiffLine(entry, targetEntries, cls) {
+    function renderDiffLine(entry, targetContext, cls) {
       if (entry.line === '') { return ''; }
       if (entry.parts.text === '?' || entry.parts.text === '...') { return escapeHTML(entry.line); }
 
-      var match = findBestMatchEntry(entry, targetEntries);
+      var match = findBestMatchEntry(entry, targetContext);
       if (match.score === 0 || match.idx === -1) {
         return fullHighlight(entry.line, cls);
       }
 
-      var target = targetEntries[match.idx].parts;
+      var target = targetContext.entries[match.idx].parts;
       var res = escapeHTML(entry.parts.hash);
       var cueHtml = wordDiff(entry.parts.cue, target.cue, cls); if (cueHtml) res += cueHtml;
       res += wordDiff(entry.parts.text, target.text, cls);
@@ -853,7 +905,15 @@ function calcSimilarity(a, b) {
       return res;
     }
     function scheduleDiffWork(callback) {
-      return window.setTimeout(callback, 0);
+      if (window.requestIdleCallback) {
+        return window.requestIdleCallback(callback, { timeout: 250 });
+      }
+      return window.setTimeout(function() {
+        callback({
+          timeRemaining: function() { return diffRenderFrameBudget; },
+          didTimeout: true
+        });
+      }, 16);
     }
     $.fn.showTracklistDiffs = function(opts) {
       var text1 = opts.text1 || '';
@@ -870,31 +930,39 @@ function calcSimilarity(a, b) {
       var entries1 = buildTrackLineEntries(text1.split('\n'));
       var entries2 = buildTrackLineEntries(text2.split('\n'));
       var entries3 = buildTrackLineEntries(text3.split('\n'));
+      var context1 = buildMatchContext(entries1);
+      var context2 = buildMatchContext(entries2);
 
       return this.each(function() {
         var container = this;
         var columns = [
-          { source: entries1, target: entries2, cls: 'diff-removed', html: [], index: 0 },
-          { source: entries2, target: entries1, cls: 'diff-added', html: [], index: 0 },
-          { source: entries3, target: entries2, cls: 'diff-removed', html: [], index: 0 }
+          { source: entries1, target: context2, cls: 'diff-removed', html: [], index: 0 },
+          { source: entries2, target: context1, cls: 'diff-added', html: [], index: 0 },
+          { source: entries3, target: context2, cls: 'diff-removed', html: [], index: 0 }
         ];
         var columnIndex = 0;
 
-        function renderChunk() {
+        function renderChunk(deadline) {
           if (!isCurrent(jobId)) { return; }
 
-          var linesRendered = 0;
-          while (columnIndex < columns.length && linesRendered < diffRenderChunkSize) {
-            var column = columns[columnIndex];
-            while (column.index < column.source.length && linesRendered < diffRenderChunkSize) {
-              column.html.push(renderDiffLine(column.source[column.index], column.target, column.cls));
-              column.index++;
-              linesRendered++;
+          var startedAt = Date.now();
+          function hasFrameBudget() {
+            if (deadline && !deadline.didTimeout && deadline.timeRemaining) {
+              return deadline.timeRemaining() > 1;
             }
+            return Date.now() - startedAt < diffRenderFrameBudget;
+          }
+
+          do {
+            var column = columns[columnIndex];
+            column.html.push(renderDiffLine(column.source[column.index], column.target, column.cls));
+            column.index++;
+
+            if (!isCurrent(jobId)) { return; }
             if (column.index >= column.source.length) {
               columnIndex++;
             }
-          }
+          } while (columnIndex < columns.length && hasFrameBudget());
 
           if (columnIndex < columns.length) {
             setTimer(scheduleDiffWork(renderChunk));
@@ -916,7 +984,7 @@ function calcSimilarity(a, b) {
           }
         }
 
-        renderChunk();
+        setTimer(scheduleDiffWork(renderChunk));
       });
     };
   })(jQuery);
@@ -932,7 +1000,7 @@ var diffInputTimer = null,
 function cancel_diff_render() {
     diffRenderJobId++;
     if( diffRenderTimer ) {
-        clearTimeout( diffRenderTimer );
+        clearScheduledDiffWork( diffRenderTimer );
         diffRenderTimer = null;
     }
 }
