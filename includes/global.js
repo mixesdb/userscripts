@@ -198,7 +198,13 @@ function urlIsTidSubmitCompatible( thisUrl ) {
 
 // makeTidSubmitUrl
 function makeTidSubmitUrl( playerUrl, keywords="" ) {
-    var keyowrds = normalizeTitleForSearch( keywords );
+    var keyowrds = normalizeTitleForSearch( keywords ),
+        youtubeId = getYoutubeIdFromUrl( playerUrl );
+
+    if( youtubeId && /(?:^|\.)youtube(?:-nocookie)?\.com$|(?:^|\.)youtu\.be$/i.test( new URL( playerUrl, "https://www.youtube.com" ).hostname ) ) {
+        playerUrl = "https://www.youtube.com/watch?v=" + youtubeId;
+    }
+
     return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
 }
 
