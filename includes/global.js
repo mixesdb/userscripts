@@ -90,8 +90,14 @@ function logArr( name, arr ) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 function getArtworkImageType( artworkUrl ) {
-    var imageType = artworkUrl.replace(/^.+\.([a-zA-Z0-9]{3,4})(?:[?#].*)?$/, "$1");
-    return imageType === artworkUrl ? "" : imageType.toUpperCase();
+    artworkUrl = ( artworkUrl || "" ).replace(/(\r\n|\n|\r)/gm, "");
+
+    var urlPath = artworkUrl.split(/[?#]/)[0],
+        fileName = urlPath.split("/").pop(),
+        imageTypeMatches = fileName.match(/\.[a-zA-Z0-9]{3,4}(?=$|[^a-zA-Z0-9])/g) || [],
+        imageType = imageTypeMatches.pop();
+
+    return imageType ? imageType.replace(".", "").toUpperCase() : "";
 }
 
 function getArtworkInfoText( artworkUrl, imageWidth, imageHeight ) {
