@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.23.2
+// @version      2026.06.07.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,6 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-Player_Checker_1
 // @include      http*finn-johannsen.de*
 // @include      http*groove.de/*/*/*/*podcast*
-// @include      http*ra.co/news/*
-// @include      http*ra.co/podcast/*
 // @include      http*wearesoundspace.com/*
 // @include      http*toxicfamily.de/*/*/*/*
 // @noframes
@@ -38,8 +36,6 @@ https://finn-johannsen.de/2025/06/19/finn-johannsen-finn-johannsen-go-check-the-
 https://finn-johannsen.de/2025/12/04/finn-johannsen-hausmusik-57-2005/
 https://groove.de/2025/01/29/groove-podcast-447-albert-van-abbe/
 https://groove.de/2025/01/15/benjamin-roeder-charlie-groove-resident-podcast-60/
-https://ra.co/podcast/970
-https://de.ra.co/podcast/970
 https://www.toxicfamily.de/2024/09/26/tofa-nightshift-vom-25-09-2024-mit-grille-in-the-mix/
 https://wearesoundspace.com/mix386-luca-olivotto/
 https://wearesoundspace.com/in-focus-008-break-3000-dirt-crew-recordings/
@@ -69,9 +65,7 @@ var playerUrlItems_timeout = 500;
 
 // normalizeWebsiteTitles
 function normalizeWebsiteTitles( titleText ) {
-    return titleText
-               .replace( " ⟋ RA Podcast", "" )
-    ;
+    return titleText;
 }
 
 
