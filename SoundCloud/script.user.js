@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.04.4
+// @version      2026.06.07.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -263,20 +263,6 @@ waitForKeyElements(".mdb-copyLink", function( jNode ) {
         var url = $(this).attr("href");
         window.open( url, "_blank" );
     });
-
-    // Hiding option: each used player in li.compactTrackList__item
-    /* TOO EXPENSIVE ON https://soundcloud.com/resident-advisor/sets
-    if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players in li.compactTrackListItem" );
-
-        var wrapper = jNode.closest("li.compactTrackList__item"),
-            playerUrl = "soundcloud.com" + jNode.attr("href");
-
-        logVar( "li.compactTrackList__item playerUrl", playerUrl );
-
-        getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
-    }
-    */
 });
 
 // button to copy link (no href)
@@ -710,7 +696,7 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails .tagWrapper:not(.mdb-processed-toolkit)", function( jNode ) {
+waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit)", function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-toolkit");
 
