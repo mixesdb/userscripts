@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.02.1
+// @version      2026.06.07.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -461,8 +461,9 @@ d.ready(function () { // needs mw.config
         && ( getURLParameter("action") == "edit" || getURLParameter("action") == "submit" )
     ) {
         // move section
-        $("#mixesdb-edit-format-review")
-            .insertAfter(".editOptions");
+        waitForKeyElements(".editOptions", function(jNode){
+            $("#mixesdb-edit-format-review").insertAfter(jNode);
+        });
 
         // also move button and remove help text (only advanced users use this userscript)
         $("#mixesdb-edit-format-review-trigger")
