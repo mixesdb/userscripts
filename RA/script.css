@@ -1,0 +1,42 @@
+.mdb-ra-artwork-info {
+    background-color: rgba(20, 20, 20, .7);
+    display: flex;
+    font-size: 12px;
+    line-height: 20px;
+    min-height: 20px;
+    width: 100%;
+}
+
+.mdb-ra-artwork-input,
+.mdb-ra-artwork-size {
+    background-color: rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    color: #fff;
+    height: 20px;
+    opacity: .75;
+}
+
+.mdb-ra-artwork-input {
+    border: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 3px;
+}
+
+.mdb-ra-artwork-input::selection {
+    background-color: #fc0 !important;
+    color: #fff;
+    opacity: 1;
+}
+
+.mdb-ra-artwork-size {
+    flex: 0 0 115px;
+    padding-right: 5px;
+    text-align: right;
+}
+
+.mdb-ra-artwork-size a {
+    color: #fff;
+    text-decoration: underline;
+}
