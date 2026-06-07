@@ -239,6 +239,11 @@ textarea.mono {
             color: #111;
         }
     }
+
+    & span {
+        font-family: sans-serif;
+        font-size: .8rem !important;
+    }
 }
 
 
