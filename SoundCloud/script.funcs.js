@@ -24,36 +24,26 @@ function append_artwork( artwork_url ) {
             $(".listenArtworkWrapper").replaceWith('<div id="mdb-artwork-wrapper"></div>');
             var imgWrapper = $("#mdb-artwork-wrapper");
 
-            imgWrapper.append('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /></div>');
+            imgWrapper.append( createArtworkInfoWrapper( origUrl, {
+                wrapperId: "mdb-artwork-input-wrapper",
+                inputId: "mdb-artwork-input",
+                inputClass: "selectOnClick",
+                infoId: "mdb-artwork-info"
+            }) );
             imgWrapper.prepend('<a class="mdb-artwork-img" href="'+origUrl+'" target="_blank"><img id="mdb-artwork-img" src="'+origUrl+'" /></a>');
 
         } else if( $(".listenInfo .listenArtistInfo__report").length ) {
-            $(".listenInfo .listenArtistInfo__report").replaceWith('<div id="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="selectOnClick" type="text" value="'+origUrl+'" /><img id="mdb-artwork-img" src="'+origUrl+'" style="display:none;" /></div>');
+            var artworkInfoWrapper = createArtworkInfoWrapper( origUrl, {
+                wrapperId: "mdb-artwork-input-wrapper",
+                inputId: "mdb-artwork-input",
+                inputClass: "selectOnClick",
+                infoId: "mdb-artwork-info"
+            });
+            artworkInfoWrapper.append('<img id="mdb-artwork-img" src="'+origUrl+'" style="display:none;" />');
+            $(".listenInfo .listenArtistInfo__report").replaceWith( artworkInfoWrapper );
         }
     }
 }
-
-// Artwork info
-// runs after append_artwork() replaced the artwork
-waitForKeyElements("img#mdb-artwork-img", function( jNode ) {
-    var origUrl = jNode.attr("src").replace(/(\r\n|\n|\r)/gm, ""), // replace line breaks
-        imageType = origUrl.replace(/^.+\.([a-zA-Z]{3})/, "$1").toUpperCase();
-        //imageType = origUrl.substr( origUrl.length - 3 ).toUpperCase();
-    logVar( "origUrl", origUrl );
-
-    var img = new Image();
-    img.onload = function(){
-            var imageWidth = this.width,
-                imageHeight = this.height,
-                artworkInfo = imageWidth +'&thinsp;x&thinsp;'+ imageHeight +' '+ imageType;
-            logVar( "imageType", imageType );
-            logVar( "artworkInfo", artworkInfo );
-
-            $("#mdb-artwork-input-wrapper").append('<div id="mdb-artwork-info"><a href="'+origUrl+'" target="_blank">'+artworkInfo+'</a></div>');
-    };
-    img.src = origUrl;
-});
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
