@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.2
+// @version      2026.06.07.3
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 2,
+var cacheVersion = 3,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -62,6 +62,14 @@ function isRaEventPage() {
     return /^\/events\/\d+(?:[/?#]|$)/.test( window.location.pathname );
 }
 
+function isRaPodcastEpisodePage() {
+    return /^\/podcast\/\d+(?:[/?#]|$)/.test( window.location.pathname );
+}
+
+function isRaArtworkPage() {
+    return isRaEventPage() || isRaPodcastEpisodePage();
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -72,6 +80,8 @@ function isRaEventPage() {
 
 setTimeout(function() {
     logFunc( "RA toolkit" );
+
+    if( !isRaPodcastEpisodePage() ) return;
 
     var playerUrlItems = [ Math.max( $("iframe:visible").length, $("iframe").length ) ];
     log_playerUrlItems_len( playerUrlItems, "after timeout ("+playerUrlItems_timeout+")" );
@@ -131,8 +141,19 @@ function escapeHtmlAttr( text ) {
                .replace(/>/g, "&gt;");
 }
 
+function isRaEventArtwork( img ) {
+    return img.parent("[class*='FullWidthStyle']").length > 0;
+}
+
+function isRaPodcastArtwork( img ) {
+    var alt = img.attr("alt") || "";
+    return /^RA[\s.]\d+/.test( alt );
+}
+
 function appendRaArtworkInfo( img ) {
-    if( !isRaEventPage() ) return;
+    if( !isRaArtworkPage() ) return;
+    if( isRaEventPage() && !isRaEventArtwork( img ) ) return;
+    if( isRaPodcastEpisodePage() && !isRaPodcastArtwork( img ) ) return;
 
     var imgproxyUrl = getRaArtworkSource( img );
     if( !imgproxyUrl ) return;
@@ -152,7 +173,7 @@ function appendRaArtworkInfo( img ) {
     probe.src = origUrl;
 }
 
-waitForKeyElements("div[class*='FullWidthStyle'] > img:not(.mdb-ra-artwork-processed)", function( jNode ) {
+waitForKeyElements("div[class*='FullWidthStyle'] > img:not(.mdb-ra-artwork-processed), img[src*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed), img[srcset*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed)", function( jNode ) {
     jNode.addClass("mdb-ra-artwork-processed");
     appendRaArtworkInfo( jNode );
 });
