@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.3
+// @version      2026.06.07.4
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/RA/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-RA_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-RA_2
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-RA_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-RA_1
 // @match        *://ra.co/*
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 3,
+var cacheVersion = 4,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -134,13 +134,6 @@ function getRaArtworkSource( img ) {
     return candidates.length ? candidates[candidates.length - 1] : "";
 }
 
-function escapeHtmlAttr( text ) {
-    return text.replace(/&/g, "&amp;")
-               .replace(/"/g, "&quot;")
-               .replace(/</g, "&lt;")
-               .replace(/>/g, "&gt;");
-}
-
 function isRaEventArtwork( img ) {
     return img.parent("[class*='FullWidthStyle']").length > 0;
 }
@@ -159,18 +152,14 @@ function appendRaArtworkInfo( img ) {
     if( !imgproxyUrl ) return;
 
     var origUrl = raImgproxyToOriginal( imgproxyUrl ),
-        imageType = origUrl.replace(/^.+\.([a-zA-Z]{3,4})(?:[?#].*)?$/, "$1").toUpperCase(),
-        escapedOrigUrl = escapeHtmlAttr( origUrl ),
-        wrapper = $('<div class="mdb-ra-artwork-info"><input class="mdb-ra-artwork-input selectOnClick" type="text" readonly value="'+escapedOrigUrl+'" /><div class="mdb-ra-artwork-size"><a href="'+escapedOrigUrl+'" target="_blank">loading…</a></div></div>');
+        wrapper = createArtworkInfoWrapper( origUrl, {
+            wrapperClass: "mdb-ra-artwork-info",
+            inputClass: "mdb-ra-artwork-input selectOnClick",
+            infoClass: "mdb-ra-artwork-size",
+            readonly: true
+        });
 
     img.after( wrapper );
-
-    var probe = new Image();
-    probe.onload = function() {
-        var artworkInfo = this.width +'&thinsp;x&thinsp;'+ this.height +' '+ imageType;
-        wrapper.find(".mdb-ra-artwork-size a").html( artworkInfo );
-    };
-    probe.src = origUrl;
 }
 
 waitForKeyElements("div[class*='FullWidthStyle'] > img:not(.mdb-ra-artwork-processed), img[src*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed), img[srcset*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed)", function( jNode ) {

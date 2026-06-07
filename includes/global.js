@@ -81,6 +81,67 @@ function logArr( name, arr ) {
 //logVar( "is_safari", is_safari );
 
 
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Artwork funcs
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+function getArtworkImageType( artworkUrl ) {
+    var imageType = artworkUrl.replace(/^.+\.([a-zA-Z0-9]{3,4})(?:[?#].*)?$/, "$1");
+    return imageType === artworkUrl ? "" : imageType.toUpperCase();
+}
+
+function getArtworkInfoText( artworkUrl, imageWidth, imageHeight ) {
+    var imageType = getArtworkImageType( artworkUrl );
+    return imageWidth +'&thinsp;x&thinsp;'+ imageHeight + ( imageType ? ' '+ imageType : '' );
+}
+
+function loadArtworkInfo( artworkUrl, callback ) {
+    var img = new Image();
+    img.onload = function() {
+        callback( getArtworkInfoText( artworkUrl, this.width, this.height ) );
+    };
+    img.src = artworkUrl;
+}
+
+function createArtworkInfoWrapper( artworkUrl, options ) {
+    options = options || {};
+
+    var wrapper = $("<div>");
+    if( options.wrapperId ) wrapper.attr( "id", options.wrapperId );
+    if( options.wrapperClass ) wrapper.addClass( options.wrapperClass );
+
+    var input = $("<input>", {
+        type: "text",
+        value: artworkUrl
+    });
+    if( options.inputId ) input.attr( "id", options.inputId );
+    if( options.inputClass ) input.addClass( options.inputClass );
+    if( options.readonly ) input.prop( "readonly", true );
+
+    var link = $("<a>", {
+        href: artworkUrl,
+        target: "_blank"
+    }).text( options.loadingText || "loading…" );
+
+    var info = $("<div>");
+    if( options.infoId ) info.attr( "id", options.infoId );
+    if( options.infoClass ) info.addClass( options.infoClass );
+    info.append( link );
+
+    wrapper.append( input, info );
+
+    loadArtworkInfo( artworkUrl, function( artworkInfo ) {
+        link.html( artworkInfo );
+    });
+
+    return wrapper;
+}
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * URL funcs
