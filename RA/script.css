@@ -41,3 +41,14 @@
     color: #fff;
     text-decoration: underline;
 }
+
+
+.mdb-ra-tracklist-editor {
+    margin: 8px 0 12px;
+}
+
+.mdb-ra-tracklist-editor #mixesdb-TLbox {
+    box-sizing: border-box;
+    font-size: 12px;
+    line-height: 1.4;
+}

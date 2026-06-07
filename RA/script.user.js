@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.4
+// @version      2026.06.07.5
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 4,
+var cacheVersion = 5,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -69,6 +69,68 @@ function isRaPodcastEpisodePage() {
 function isRaArtworkPage() {
     return isRaEventPage() || isRaPodcastEpisodePage();
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Podcast tracklist
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+function getRaTracklistHeadline( tracklist ) {
+    var heading = tracklist.prevAll("span").filter(function() {
+        return $(this).text().trim().toLowerCase() === "tracklist";
+    }).first();
+
+    if( heading.length ) return heading;
+
+    return tracklist.closest("li").find("span").filter(function() {
+        return $(this).text().trim().toLowerCase() === "tracklist";
+    }).first();
+}
+
+function getRaTracklistText( tracklist ) {
+    return tracklist.text()
+                    .replace(/\u00A0/g, " ")
+                    .split("\n")
+                    .map(function( row ) {
+                        return row.trim().replace(/\s{2,}/g, " ");
+                    })
+                    .filter(function( row ) {
+                        return row !== "";
+                    })
+                    .map(function( row ) {
+                        return "# " + row;
+                    })
+                    .join("\n");
+}
+
+function appendRaTracklistEditor( tracklist ) {
+    if( !isRaPodcastEpisodePage() ) return;
+
+    var heading = getRaTracklistHeadline( tracklist );
+    if( !heading.length ) return;
+
+    var tl = getRaTracklistText( tracklist );
+    if( !tl ) return;
+
+    log( "RA tracklist before API:\n" + tl );
+
+    var res = apiTracklist( tl, "standard" ),
+        tlApi = res.text;
+
+    if( !tlApi ) return;
+
+    var editor = $(ta).addClass("mdb-ra-tracklist-editor");
+    tracklist.before( editor );
+    editor.find("#mixesdb-TLbox").val( tlApi );
+    fixTLbox( res.feedback, editor );
+}
+
+waitForKeyElements("ol[class*='Tracklist']:not(.mdb-ra-tracklist-processed)", function( jNode ) {
+    jNode.addClass("mdb-ra-tracklist-processed");
+    appendRaTracklistEditor( jNode );
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
