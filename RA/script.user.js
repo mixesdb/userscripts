@@ -1,11 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-<<<<<<< Updated upstream
-// @version      2026.06.07.5
-=======
-// @version      2026.06.07.6
->>>>>>> Stashed changes
+// @version      2026.06.07.7
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -41,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 5,
+var cacheVersion = 6,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -73,8 +69,6 @@ function isRaPodcastEpisodePage() {
 function isRaArtworkPage() {
     return isRaEventPage() || isRaPodcastEpisodePage();
 }
-
-<<<<<<< Updated upstream
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -136,9 +130,6 @@ waitForKeyElements("ol[class*='Tracklist']:not(.mdb-ra-tracklist-processed)", fu
     jNode.addClass("mdb-ra-tracklist-processed");
     appendRaTracklistEditor( jNode );
 });
-
-=======
->>>>>>> Stashed changes
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -228,11 +219,7 @@ function appendRaArtworkInfo( img ) {
             readonly: true
         });
 
-<<<<<<< Updated upstream
-    img.after( wrapper );
-=======
     img.closest("div").after( wrapper );
->>>>>>> Stashed changes
 }
 
 waitForKeyElements("div[class*='FullWidthStyle'] > img:not(.mdb-ra-artwork-processed), img[src*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed), img[srcset*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed)", function( jNode ) {

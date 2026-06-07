@@ -40,19 +40,8 @@
 .mdb-ra-artwork-size a {
     color: #fff;
     text-decoration: underline;
-<<<<<<< Updated upstream
 }
-
 
 .mdb-ra-tracklist-editor {
-    margin: 8px 0 12px;
+    margin-top: -10px;
 }
-
-.mdb-ra-tracklist-editor #mixesdb-TLbox {
-    box-sizing: border-box;
-    font-size: 12px;
-    line-height: 1.4;
-}
-=======
-}
->>>>>>> Stashed changes
