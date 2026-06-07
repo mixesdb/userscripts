@@ -1,5 +1,5 @@
 .mdb-ra-artwork-info {
-    background-color: rgba(20, 20, 20, .7);
+    background-color: #444;
     display: flex;
     font-size: 12px;
     line-height: 20px;
@@ -40,4 +40,8 @@
 .mdb-ra-artwork-size a {
     color: #fff;
     text-decoration: underline;
+}
+
+.mdb-ra-tracklist-editor {
+    margin-top: -10px;
 }
