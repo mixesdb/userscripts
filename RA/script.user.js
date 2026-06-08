@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.10
+// @version      2026.06.08.11
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -146,6 +146,7 @@ function appendRaInlineCopyAndMixesDbButtons( sourceNode, options ) {
             return "'"+ text + "' copied!";
         },
         mixesDbLabel: "Search on MixesDB",
+        processedClass: "mdb-copy-text-processed",
         rowClass: "mdb-ra-copy-row",
         sourceClass: ""
     }, options || {});
@@ -154,6 +155,7 @@ function appendRaInlineCopyAndMixesDbButtons( sourceNode, options ) {
         ariaLabel: "Copy the name",
         buttonTitle: "Copy the name",
         copiedMessage: settings.copiedMessage,
+        processedClass: settings.processedClass,
         sourceClass: settings.sourceClass
     });
 
@@ -179,12 +181,17 @@ function appendRaEventVenueCopyButton( venueLink ) {
 
 function appendRaProfileNameCopyButton( profileName ) {
     var isVenue = isRaVenuePage(),
-        isArtist = isRaArtistPage();
+        isArtist = isRaArtistPage(),
+        profileHeader = profileName.closest( "h1" );
 
     if( !isVenue && !isArtist ) return;
 
+    if( profileName.closest( ".mdb-ra-profile-name-copy-row, .mdb-copy-text-control, .mdb-ra-mixesdb-control" ).length ) return;
+    if( profileHeader.find( ".mdb-ra-profile-name-copy-row" ).length ) return;
+
     appendRaInlineCopyAndMixesDbButtons( profileName, {
         mixesDbLabel: isVenue ? "Search venue on MixesDB" : "Search artist on MixesDB",
+        processedClass: "mdb-ra-profile-name-processed",
         rowClass: "mdb-ra-profile-name-copy-row",
         sourceClass: "mdb-copy-text-source-ra-profile-name"
     });
@@ -194,7 +201,7 @@ waitForKeyElements("a[data-pw-test-id='event-venue-link']:not(.mdb-copy-text-pro
     appendRaEventVenueCopyButton( jNode );
 });
 
-waitForKeyElements("[class*='ProfileHeader__HeaderContentWrapper'] h1 span:not(.mdb-copy-text-processed)", function( jNode ) {
+waitForKeyElements("[class*='ProfileHeader__HeaderContentWrapper'] h1 span:not(.mdb-ra-profile-name-processed):not(.mdb-ra-profile-name-copy-row):not(.mdb-copy-text-control):not(.mdb-copy-text-feedback):not(.mdb-ra-mixesdb-control)", function( jNode ) {
     appendRaProfileNameCopyButton( jNode );
 });
 
