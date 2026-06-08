@@ -45,3 +45,25 @@
 .mdb-ra-tracklist-editor {
     margin-top: -10px;
 }
+.mdb-ra-venue-copy-button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 3px;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    height: 20px;
+    justify-content: center;
+    line-height: 1;
+    margin-left: 6px;
+    padding: 0 5px;
+    vertical-align: middle;
+}
+
+.mdb-ra-venue-copy-button:hover,
+.mdb-ra-venue-copy-button:focus {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.7);
+}
