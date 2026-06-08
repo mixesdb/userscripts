@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.4
+// @version      2026.06.08.5
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 12,
+var cacheVersion = 13,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -77,6 +77,14 @@ function isRaArtworkPage() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+function groupRaVenueCopyButton( venueLink ) {
+    var control = venueLink.next( ".mdb-copy-text-control" );
+
+    if( !control.length || venueLink.parent().hasClass( "mdb-ra-event-venue-copy-row" ) ) return;
+
+    venueLink.add( control ).wrapAll( $( "<span>" ).addClass( "mdb-ra-event-venue-copy-row" ) );
+}
+
 function appendRaVenueCopyButton( venueLink ) {
     if( !isRaEventPage() ) return;
 
@@ -88,6 +96,8 @@ function appendRaVenueCopyButton( venueLink ) {
         },
         sourceClass: "mdb-copy-text-source-ra-event-venue"
     });
+
+    groupRaVenueCopyButton( venueLink );
 }
 
 waitForKeyElements("a[data-pw-test-id='event-venue-link']:not(.mdb-copy-text-processed)", function( jNode ) {

@@ -45,3 +45,19 @@
 .mdb-ra-tracklist-editor {
     margin-top: -10px;
 }
+
+.mdb-ra-event-venue-copy-row {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 1 auto;
+    max-width: 100%;
+    width: fit-content;
+}
+
+.mdb-ra-event-venue-copy-row > .mdb-copy-text-source-ra-event-venue {
+    min-width: 0;
+}
+
+.mdb-ra-event-venue-copy-row > .mdb-copy-text-control {
+    flex: 0 0 auto;
+}
