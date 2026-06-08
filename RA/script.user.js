@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.5
+// @version      2026.06.08.8
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 13,
+var cacheVersion = 15,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -77,12 +77,40 @@ function isRaArtworkPage() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+function getRaMixesDbSearchUrl( searchText ) {
+    return "https://www.mixesdb.com/w/index.php?title=Special:Search&search="
+        + encodeURIComponent( searchText )
+        + "&mode=simple&fulltext=1&profile=cats";
+}
+
+function appendRaVenueMixesDbButton( venueLink ) {
+    var sourceText = $.trim( venueLink.text() ),
+        control = venueLink.next( ".mdb-copy-text-control" );
+
+    if( !sourceText || !control.length || control.next( ".mdb-ra-event-venue-mixesdb-control" ).length ) return;
+
+    $( "<a>" )
+        .attr({
+            "aria-label": "Search venue on MixesDB",
+            href: getRaMixesDbSearchUrl( sourceText ),
+            rel: "noopener noreferrer",
+            target: "_blank",
+            title: "Search venue on MixesDB"
+        })
+        .addClass( "mdb-ra-event-venue-mixesdb-control" )
+        .text( "MixesDB" )
+        .insertAfter( control );
+}
+
 function groupRaVenueCopyButton( venueLink ) {
-    var control = venueLink.next( ".mdb-copy-text-control" );
+    var control = venueLink.next( ".mdb-copy-text-control" ),
+        mixesDbControl = control.next( ".mdb-ra-event-venue-mixesdb-control" );
 
     if( !control.length || venueLink.parent().hasClass( "mdb-ra-event-venue-copy-row" ) ) return;
 
-    venueLink.add( control ).wrapAll( $( "<span>" ).addClass( "mdb-ra-event-venue-copy-row" ) );
+    venueLink.add( control )
+        .add( mixesDbControl )
+        .wrapAll( $( "<span>" ).addClass( "mdb-ra-event-venue-copy-row" ) );
 }
 
 function appendRaVenueCopyButton( venueLink ) {
@@ -92,11 +120,12 @@ function appendRaVenueCopyButton( venueLink ) {
         ariaLabel: "Copy venue name",
         buttonTitle: "Copy venue name",
         copiedMessage: function( text ) {
-            return text + " copied!";
+            return "'"+ text + "' copied!";
         },
         sourceClass: "mdb-copy-text-source-ra-event-venue"
     });
 
+    appendRaVenueMixesDbButton( venueLink );
     groupRaVenueCopyButton( venueLink );
 }
 

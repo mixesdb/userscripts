@@ -61,3 +61,21 @@
 .mdb-ra-event-venue-copy-row > .mdb-copy-text-control {
     flex: 0 0 auto;
 }
+
+.mdb-ra-event-venue-copy-row > .mdb-ra-event-venue-mixesdb-control {
+    background: #0645ad;
+    border-radius: 3px;
+    color: #fff !important;
+    flex: 0 0 auto;
+    font: inherit;
+    line-height: 22px;
+    margin-left: 6px;
+    padding: 0 6px;
+    text-decoration: none;
+}
+
+.mdb-ra-event-venue-copy-row > .mdb-ra-event-venue-mixesdb-control:hover,
+.mdb-ra-event-venue-copy-row > .mdb-ra-event-venue-mixesdb-control:focus {
+    background: #0b5ed7;
+    color: #fff !important;
+}
