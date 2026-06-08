@@ -200,7 +200,8 @@ button.mdb-element {
 
 .mdb-copy-text-button {
     align-items: center;
-    background: #f60;
+    border: 1px solid #fff8;
+    background: #f608;
     border-radius: .3rem;
     color: inherit;
     cursor: pointer;
@@ -213,8 +214,8 @@ button.mdb-element {
 
 .mdb-copy-text-button:hover,
 .mdb-copy-text-button:focus {
+    border: 1px solid #fff;
     background: #f90;
-    border-color: rgba(255, 255, 255, 01);
 }
 
 .mdb-copy-text-feedback {
