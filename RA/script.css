@@ -46,7 +46,8 @@
     margin-top: -10px;
 }
 
-.mdb-ra-event-venue-copy-row {
+.mdb-ra-event-venue-copy-row,
+.mdb-ra-profile-name-copy-row {
     align-items: center;
     display: inline-flex;
     flex: 0 1 auto;
@@ -54,28 +55,39 @@
     width: fit-content;
 }
 
-.mdb-ra-event-venue-copy-row > .mdb-copy-text-source-ra-event-venue {
+.mdb-ra-event-venue-copy-row > .mdb-copy-text-source-ra-event-venue,
+.mdb-ra-profile-name-copy-row > .mdb-copy-text-source-ra-profile-name {
     min-width: 0;
 }
 
-.mdb-ra-event-venue-copy-row > .mdb-copy-text-control {
+.mdb-ra-event-venue-copy-row > .mdb-copy-text-control,
+.mdb-ra-profile-name-copy-row > .mdb-copy-text-control,
+.mdb-ra-event-venue-copy-row > .mdb-ra-mixesdb-control,
+.mdb-ra-profile-name-copy-row > .mdb-ra-mixesdb-control {
     flex: 0 0 auto;
 }
 
-.mdb-ra-event-venue-copy-row > .mdb-ra-event-venue-mixesdb-control {
-    background: #0645ad;
-    border-radius: 3px;
-    color: #fff !important;
-    flex: 0 0 auto;
-    font: inherit;
-    line-height: 22px;
+.mdb-ra-mixesdb-control {
+    align-items: center;
+    display: inline-flex;
+    height: 22px;
+    justify-content: center;
     margin-left: 6px;
-    padding: 0 6px;
+    opacity: .85;
     text-decoration: none;
+    transition: opacity .15s ease, transform .15s ease;
+    vertical-align: middle;
+    width: 22px;
 }
 
-.mdb-ra-event-venue-copy-row > .mdb-ra-event-venue-mixesdb-control:hover,
-.mdb-ra-event-venue-copy-row > .mdb-ra-event-venue-mixesdb-control:focus {
-    background: #0b5ed7;
-    color: #fff !important;
+.mdb-ra-mixesdb-control:hover,
+.mdb-ra-mixesdb-control:focus {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+.mdb-ra-mixesdb-control img {
+    display: block;
+    height: 22px;
+    width: 22px;
 }
