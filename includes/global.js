@@ -738,6 +738,117 @@ function create_button( text, className, type ) {
     return '<button type="'+type+'" class="mdb-element button '+ className +'">'+text+'</button>';
 }
 
+// mdbCopyTextToClipboard
+function mdbCopyTextToClipboard( text ) {
+    if( navigator.clipboard && navigator.clipboard.writeText ) {
+        return navigator.clipboard.writeText( text );
+    }
+
+    var textarea = $("<textarea>")
+        .val( text )
+        .attr( "readonly", true )
+        .css({
+            left: "-9999px",
+            position: "fixed",
+            top: "-9999px"
+        })
+        .appendTo( document.body );
+
+    textarea[0].select();
+    document.execCommand( "copy" );
+    textarea.remove();
+
+    return Promise.resolve();
+}
+
+// showMdbCopyTextFeedback
+function showMdbCopyTextFeedback( button, message ) {
+    var control = $(button).closest( ".mdb-copy-text-control" ),
+        feedback = control.find( ".mdb-copy-text-feedback" ).first();
+
+    if( !feedback.length ) {
+        feedback = $("<span>")
+            .addClass( "mdb-copy-text-feedback" )
+            .attr( "role", "status" )
+            .attr( "aria-live", "polite" )
+            .appendTo( control );
+    }
+
+    clearTimeout( feedback.data( "mdb-copy-text-timeout" ) );
+
+    feedback
+        .text( message )
+        .addClass( "visible" );
+
+    feedback.data( "mdb-copy-text-timeout", setTimeout(function() {
+        feedback.removeClass( "visible" ).text( "" );
+    }, 2200));
+}
+
+// appendMdbCopyTextButton
+function appendMdbCopyTextButton( source, options ) {
+    var settings = $.extend({
+            ariaLabel: "Copy text",
+            buttonTitle: "Copy text",
+            buttonText: "⧉",
+            copiedMessage: function( text ) {
+                return text + " copied!";
+            },
+            emptyMessage: "Nothing to copy.",
+            failedMessage: "Copy failed.",
+            processedClass: "mdb-copy-text-processed",
+            sourceClass: ""
+        }, options || {}),
+        sourceNode = $(source).first();
+
+    if( !sourceNode.length || sourceNode.hasClass( settings.processedClass ) ) return;
+
+    var sourceText = $.trim( sourceNode.text() );
+    if( !sourceText ) return;
+
+    sourceNode.addClass( settings.processedClass + " mdb-copy-text-source" );
+
+    if( settings.sourceClass ) {
+        sourceNode.addClass( settings.sourceClass );
+    }
+
+    var control = $("<span>")
+            .addClass( "mdb-copy-text-control" ),
+        button = $("<button>")
+            .attr({
+                "aria-label": settings.ariaLabel,
+                title: settings.buttonTitle,
+                type: "button"
+            })
+            .addClass( "mdb-copy-text-button" )
+            .text( settings.buttonText ),
+        feedback = $("<span>")
+            .addClass( "mdb-copy-text-feedback" )
+            .attr( "role", "status" )
+            .attr( "aria-live", "polite" );
+
+    button.on( "click", function( event ) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        var currentText = $.trim( sourceNode.text() );
+
+        if( !currentText ) {
+            showMdbCopyTextFeedback( button, settings.emptyMessage );
+            return;
+        }
+
+        mdbCopyTextToClipboard( currentText ).then(function() {
+            showMdbCopyTextFeedback( button, settings.copiedMessage( currentText ) );
+        }).catch(function() {
+            showMdbCopyTextFeedback( button, settings.failedMessage );
+        });
+    });
+
+    control.append( button, feedback );
+    sourceNode.after( control );
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
