@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.9
+// @version      2026.06.08.1
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 9,
+var cacheVersion = 10,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -104,6 +104,40 @@ function getRaTracklistText( tracklist ) {
                     .join("\n");
 }
 
+function getRaPodcastPlayerIframe() {
+    return $("iframe.mdb-processed-toolkit[src*='soundcloud.com'], iframe[src*='soundcloud.com']").first();
+}
+
+function moveRaTracklistSectionBelowPlayer( tracklist ) {
+    if( !isRaPodcastEpisodePage() ) return;
+
+    var iframe = getRaPodcastPlayerIframe();
+    if( !iframe.length ) return;
+
+    var tracklistLi = tracklist.closest("li"),
+        tracklistSection = tracklistLi.children().filter(function() {
+            return $.contains( this, tracklist[0] );
+        }).first();
+
+    if( !tracklistSection.length ) {
+        tracklistSection = tracklist.parent();
+    }
+
+    if( tracklistSection.parent()[0] === iframe.parent()[0] && tracklistSection.index() > iframe.index() ) return;
+
+    iframe.after( tracklistSection );
+
+    if( tracklistLi.length && $.trim( tracklistLi.text() ) === "" && tracklistLi.children().length === 0 ) {
+        tracklistLi.remove();
+    }
+}
+
+function moveRaTracklistsBelowPlayer() {
+    $("ol.mdb-ra-tracklist-processed").each(function() {
+        moveRaTracklistSectionBelowPlayer( $(this) );
+    });
+}
+
 function appendRaTracklistEditor( tracklist ) {
     if( !isRaPodcastEpisodePage() ) return;
 
@@ -124,6 +158,8 @@ function appendRaTracklistEditor( tracklist ) {
     tracklist.before( editor );
     editor.find("#mixesdb-TLbox").val( tlApi );
     fixTLbox( res.feedback, editor );
+
+    moveRaTracklistSectionBelowPlayer( tracklist );
 }
 
 waitForKeyElements("ol[class*='Tracklist']:not(.mdb-ra-tracklist-processed)", function( jNode ) {
@@ -156,6 +192,7 @@ setTimeout(function() {
         iframe.addClass("mdb-processed-toolkit");
 
         getToolkit_fromIframe( iframe, "playerUrl", "detail page", "iframe.mdb-processed-toolkit:first", "before", titleText, "", max_toolboxIterations );
+        moveRaTracklistsBelowPlayer();
     });
 }, playerUrlItems_timeout );
 
