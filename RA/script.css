@@ -91,3 +91,14 @@
     height: 22px;
     width: 22px;
 }
+
+.mdb-ra-profile-name-copy-row > .mdb-copy-text-control .mdb-copy-text-button {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.mdb-ra-profile-name-copy-row > .mdb-ra-mixesdb-control,
+.mdb-ra-profile-name-copy-row > .mdb-ra-mixesdb-control img {
+    height: 44px;
+    width: 44px;
+}
