@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.1
+// @version      2026.06.08.2
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -108,6 +108,14 @@ function getRaPodcastPlayerIframe() {
     return $("iframe.mdb-processed-toolkit[src*='soundcloud.com'], iframe[src*='soundcloud.com']").first();
 }
 
+function selectRaTracklistEditor( container ) {
+    var editor = $(container).find("#mixesdb-TLbox, textarea.mixesdb-TLbox").filter(":visible").first();
+
+    if( editor.length ) {
+        editor.select().focus();
+    }
+}
+
 function moveRaTracklistSectionBelowPlayer( tracklist ) {
     if( !isRaPodcastEpisodePage() ) return;
 
@@ -126,6 +134,7 @@ function moveRaTracklistSectionBelowPlayer( tracklist ) {
     if( tracklistSection.parent()[0] === iframe.parent()[0] && tracklistSection.index() > iframe.index() ) return;
 
     iframe.after( tracklistSection );
+    selectRaTracklistEditor( tracklistSection );
 
     if( tracklistLi.length && $.trim( tracklistLi.text() ) === "" && tracklistLi.children().length === 0 ) {
         tracklistLi.remove();
@@ -154,12 +163,12 @@ function appendRaTracklistEditor( tracklist ) {
 
     if( !tlApi ) return;
 
+    moveRaTracklistSectionBelowPlayer( tracklist );
+
     var editor = $(ta).addClass("mdb-ra-tracklist-editor");
     tracklist.before( editor );
     editor.find("#mixesdb-TLbox").val( tlApi );
     fixTLbox( res.feedback, editor );
-
-    moveRaTracklistSectionBelowPlayer( tracklist );
 }
 
 waitForKeyElements("ol[class*='Tracklist']:not(.mdb-ra-tracklist-processed)", function( jNode ) {
