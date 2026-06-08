@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.5
+// @version      2026.06.08.6
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -92,7 +92,7 @@ function appendRaVenueCopyButton( venueLink ) {
         ariaLabel: "Copy venue name",
         buttonTitle: "Copy venue name",
         copiedMessage: function( text ) {
-            return text + " copied!";
+            return "'"+ text + "' copied!";
         },
         sourceClass: "mdb-copy-text-source-ra-event-venue"
     });
