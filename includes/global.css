@@ -200,23 +200,22 @@ button.mdb-element {
 
 .mdb-copy-text-button {
     align-items: center;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: #f609;
     border-radius: 3px;
     color: inherit;
     cursor: pointer;
     display: inline-flex;
     font: inherit;
-    height: 20px;
+    height: 22px;
     justify-content: center;
-    line-height: 1;
     padding: 0 5px;
+    color: #fff;
 }
 
 .mdb-copy-text-button:hover,
 .mdb-copy-text-button:focus {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.7);
+    background: #f60;
+    border-color: rgba(255, 255, 255, 01);
 }
 
 .mdb-copy-text-feedback {
