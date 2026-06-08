@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.8
+// @version      2026.06.08.10
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 15,
+var cacheVersion = 16,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -73,7 +73,7 @@ function isRaArtworkPage() {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Event venue copy button
+ * Copy buttons and MixesDB search links
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -83,54 +83,119 @@ function getRaMixesDbSearchUrl( searchText ) {
         + "&mode=simple&fulltext=1&profile=cats";
 }
 
-function appendRaVenueMixesDbButton( venueLink ) {
-    var sourceText = $.trim( venueLink.text() ),
-        control = venueLink.next( ".mdb-copy-text-control" );
+function getRaMixesDbIconUrl( width ) {
+    return "https://www.mixesdb.com/w/thumb.php?f=MixesDB_logo_-_no_padding.png&width=" + width;
+}
 
-    if( !sourceText || !control.length || control.next( ".mdb-ra-event-venue-mixesdb-control" ).length ) return;
+function isRaVenuePage() {
+    return /^\/clubs\/\d+(?:[/?#]|$)/.test( window.location.pathname );
+}
+
+function isRaArtistPage() {
+    return /^\/dj\/[^/?#]+(?:[/?#]|$)/.test( window.location.pathname );
+}
+
+function appendRaMixesDbButton( sourceNode, options ) {
+    var settings = $.extend({
+            buttonClass: "mdb-ra-mixesdb-control",
+            iconWidth: 44,
+            insertAfter: null,
+            label: "Search on MixesDB"
+        }, options || {}),
+        sourceText = $.trim( sourceNode.text() ),
+        insertAfter = settings.insertAfter ? $(settings.insertAfter) : sourceNode;
+
+    if( !sourceText || !insertAfter.length || insertAfter.next( "." + settings.buttonClass ).length ) return;
 
     $( "<a>" )
         .attr({
-            "aria-label": "Search venue on MixesDB",
+            "aria-label": settings.label,
             href: getRaMixesDbSearchUrl( sourceText ),
             rel: "noopener noreferrer",
             target: "_blank",
-            title: "Search venue on MixesDB"
+            title: settings.label
         })
-        .addClass( "mdb-ra-event-venue-mixesdb-control" )
-        .text( "MixesDB" )
-        .insertAfter( control );
+        .addClass( settings.buttonClass )
+        .append( $( "<img>" ).attr({
+            alt: "",
+            height: 22,
+            src: getRaMixesDbIconUrl( settings.iconWidth ),
+            width: 22
+        }))
+        .insertAfter( insertAfter );
 }
 
-function groupRaVenueCopyButton( venueLink ) {
-    var control = venueLink.next( ".mdb-copy-text-control" ),
-        mixesDbControl = control.next( ".mdb-ra-event-venue-mixesdb-control" );
+function groupRaInlineControls( sourceNode, options ) {
+    var settings = $.extend({
+            rowClass: "mdb-ra-copy-row",
+            mixesDbClass: "mdb-ra-mixesdb-control"
+        }, options || {}),
+        control = sourceNode.next( ".mdb-copy-text-control" ),
+        mixesDbControl = control.next( "." + settings.mixesDbClass );
 
-    if( !control.length || venueLink.parent().hasClass( "mdb-ra-event-venue-copy-row" ) ) return;
+    if( !control.length || sourceNode.parent().hasClass( settings.rowClass ) ) return;
 
-    venueLink.add( control )
+    sourceNode.add( control )
         .add( mixesDbControl )
-        .wrapAll( $( "<span>" ).addClass( "mdb-ra-event-venue-copy-row" ) );
+        .wrapAll( $( "<span>" ).addClass( settings.rowClass ) );
 }
 
-function appendRaVenueCopyButton( venueLink ) {
-    if( !isRaEventPage() ) return;
-
-    appendMdbCopyTextButton( venueLink, {
-        ariaLabel: "Copy venue name",
-        buttonTitle: "Copy venue name",
+function appendRaInlineCopyAndMixesDbButtons( sourceNode, options ) {
+    var settings = $.extend({
         copiedMessage: function( text ) {
             return "'"+ text + "' copied!";
         },
-        sourceClass: "mdb-copy-text-source-ra-event-venue"
+        mixesDbLabel: "Search on MixesDB",
+        rowClass: "mdb-ra-copy-row",
+        sourceClass: ""
+    }, options || {});
+
+    appendMdbCopyTextButton( sourceNode, {
+        ariaLabel: "Copy the name",
+        buttonTitle: "Copy the name",
+        copiedMessage: settings.copiedMessage,
+        sourceClass: settings.sourceClass
     });
 
-    appendRaVenueMixesDbButton( venueLink );
-    groupRaVenueCopyButton( venueLink );
+    appendRaMixesDbButton( sourceNode, {
+        insertAfter: sourceNode.next( ".mdb-copy-text-control" ),
+        label: settings.mixesDbLabel
+    });
+
+    groupRaInlineControls( sourceNode, {
+        rowClass: settings.rowClass
+    });
+}
+
+function appendRaEventVenueCopyButton( venueLink ) {
+    if( !isRaEventPage() ) return;
+
+    appendRaInlineCopyAndMixesDbButtons( venueLink, {
+        mixesDbLabel: "Search venue on MixesDB",
+        rowClass: "mdb-ra-event-venue-copy-row",
+        sourceClass: "mdb-copy-text-source-ra-event-venue"
+    });
+}
+
+function appendRaProfileNameCopyButton( profileName ) {
+    var isVenue = isRaVenuePage(),
+        isArtist = isRaArtistPage();
+
+    if( !isVenue && !isArtist ) return;
+
+    appendRaInlineCopyAndMixesDbButtons( profileName, {
+        mixesDbLabel: isVenue ? "Search venue on MixesDB" : "Search artist on MixesDB",
+        rowClass: "mdb-ra-profile-name-copy-row",
+        sourceClass: "mdb-copy-text-source-ra-profile-name"
+    });
 }
 
 waitForKeyElements("a[data-pw-test-id='event-venue-link']:not(.mdb-copy-text-processed)", function( jNode ) {
-    appendRaVenueCopyButton( jNode );
+    appendRaEventVenueCopyButton( jNode );
+});
+
+waitForKeyElements("[class*='ProfileHeader__HeaderContentWrapper'] h1 span:not(.mdb-copy-text-processed)", function( jNode ) {
+    appendRaProfileNameCopyButton( jNode );
 });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
