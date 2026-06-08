@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.3
+// @version      2026.06.08.4
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/RA/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-RA_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-RA_3
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-RA_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-RA_1
 // @match        *://ra.co/*
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 11,
+var cacheVersion = 12,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -77,66 +77,20 @@ function isRaArtworkPage() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function copyRaTextToClipboard( text ) {
-    if( navigator.clipboard && navigator.clipboard.writeText ) {
-        return navigator.clipboard.writeText( text );
-    }
-
-    var textarea = $("<textarea>")
-        .val( text )
-        .attr( "readonly", true )
-        .css({
-            left: "-9999px",
-            position: "fixed",
-            top: "-9999px"
-        })
-        .appendTo( document.body );
-
-    textarea[0].select();
-    document.execCommand( "copy" );
-    textarea.remove();
-
-    return Promise.resolve();
-}
-
-function showRaCopyDialog( message ) {
-    window.alert( message );
-}
-
 function appendRaVenueCopyButton( venueLink ) {
     if( !isRaEventPage() ) return;
-    if( venueLink.hasClass( "mdb-ra-venue-copy-processed" ) ) return;
 
-    var venueName = $.trim( venueLink.text() );
-    if( !venueName ) return;
-
-    venueLink.addClass( "mdb-ra-venue-copy-processed" );
-
-    var button = $("<button>")
-        .attr({
-            "aria-label": "Copy venue name",
-            title: "Copy venue name",
-            type: "button"
-        })
-        .addClass( "mdb-ra-venue-copy-button" )
-        .text( "⧉" );
-
-    button.on( "click", function( event ) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        var currentVenueName = $.trim( venueLink.text() );
-        if( !currentVenueName ) return;
-
-        copyRaTextToClipboard( currentVenueName ).then(function() {
-            showRaCopyDialog( currentVenueName + " copied!" );
-        });
+    appendMdbCopyTextButton( venueLink, {
+        ariaLabel: "Copy venue name",
+        buttonTitle: "Copy venue name",
+        copiedMessage: function( text ) {
+            return text + " copied!";
+        },
+        sourceClass: "mdb-copy-text-source-ra-event-venue"
     });
-
-    venueLink.after( button );
 }
 
-waitForKeyElements("a[data-pw-test-id='event-venue-link']:not(.mdb-ra-venue-copy-processed)", function( jNode ) {
+waitForKeyElements("a[data-pw-test-id='event-venue-link']:not(.mdb-copy-text-processed)", function( jNode ) {
     appendRaVenueCopyButton( jNode );
 });
 
