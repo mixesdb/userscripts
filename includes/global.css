@@ -184,6 +184,67 @@ button.mdb-element {
     font-size: .9rem;
 }
 
+.mdb-copy-text-source {
+    display: inline !important;
+    width: auto !important;
+}
+
+.mdb-copy-text-control {
+    align-items: center;
+    display: inline-flex;
+    flex-direction: column;
+    margin-left: 6px;
+    position: relative;
+    vertical-align: middle;
+}
+
+.mdb-copy-text-button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 3px;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    height: 20px;
+    justify-content: center;
+    line-height: 1;
+    padding: 0 5px;
+}
+
+.mdb-copy-text-button:hover,
+.mdb-copy-text-button:focus {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
+.mdb-copy-text-feedback {
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 3px;
+    color: #fff;
+    font-family: sans-serif;
+    font-size: 12px;
+    left: 50%;
+    line-height: 1.3;
+    margin-top: 3px;
+    opacity: 0;
+    padding: 2px 5px;
+    pointer-events: none;
+    position: absolute;
+    top: 100%;
+    transform: translateX(-50%);
+    transition: opacity .2s ease;
+    visibility: hidden;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+.mdb-copy-text-feedback.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
 table.mdb-element {
     & th,
     & td {
