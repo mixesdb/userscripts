@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.08.13
+// @version      2026.06.09.1
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 18,
+var cacheVersion = 19,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -96,9 +96,10 @@ function isRaArtistPage() {
 }
 
 function appendRaMixesDbButton( sourceNode, options ) {
-    var settings = $.extend({
+    var iconDim = 28,
+        settings = $.extend({
             buttonClass: "mdb-ra-mixesdb-control",
-            iconWidth: 44,
+            iconWidth: iconDim*2,
             insertAfter: null,
             label: "Search on MixesDB"
         }, options || {}),
@@ -118,9 +119,9 @@ function appendRaMixesDbButton( sourceNode, options ) {
         .addClass( settings.buttonClass )
         .append( $( "<img>" ).attr({
             alt: "",
-            height: 22,
+            height: iconDim,
             src: getRaMixesDbIconUrl( settings.iconWidth ),
-            width: 22
+            width: iconDim
         }))
         .insertAfter( insertAfter );
 }
