@@ -193,7 +193,7 @@ button.mdb-element {
     align-items: center;
     display: inline-flex;
     flex-direction: column;
-    margin-left: 10px;
+    margin-left: 12px;
     position: relative;
     vertical-align: middle;
 }
