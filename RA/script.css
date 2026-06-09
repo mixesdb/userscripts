@@ -72,7 +72,7 @@
     display: inline-flex;
     height: 22px;
     justify-content: center;
-    margin-left: 6px;
+    margin-left: 10px;
     opacity: .85;
     text-decoration: none;
     transition: opacity .15s ease, transform .15s ease;
