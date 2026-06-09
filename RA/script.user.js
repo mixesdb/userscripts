@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.09.1
+// @version      2026.06.09.2
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 19,
+var cacheVersion = 20,
     scriptName = "RA";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -96,15 +96,16 @@ function isRaArtistPage() {
 }
 
 function appendRaMixesDbButton( sourceNode, options ) {
-    var iconDim = 28,
-        settings = $.extend({
+    var settings = $.extend({
             buttonClass: "mdb-ra-mixesdb-control",
-            iconWidth: iconDim*2,
+            iconSize: 22,
             insertAfter: null,
             label: "Search on MixesDB"
         }, options || {}),
         sourceText = $.trim( sourceNode.text() ),
-        insertAfter = settings.insertAfter ? $(settings.insertAfter) : sourceNode;
+        insertAfter = settings.insertAfter ? $(settings.insertAfter) : sourceNode,
+        iconSize = settings.iconSize,
+        iconSrcWidth = iconSize * 2;
 
     if( !sourceText || !insertAfter.length || insertAfter.next( "." + settings.buttonClass ).length ) return;
 
@@ -119,9 +120,9 @@ function appendRaMixesDbButton( sourceNode, options ) {
         .addClass( settings.buttonClass )
         .append( $( "<img>" ).attr({
             alt: "",
-            height: iconDim,
-            src: getRaMixesDbIconUrl( settings.iconWidth ),
-            width: iconDim
+            height: iconSize,
+            src: getRaMixesDbIconUrl( iconSrcWidth ),
+            width: iconSize
         }))
         .insertAfter( insertAfter );
 }
@@ -149,7 +150,8 @@ function appendRaInlineCopyAndMixesDbButtons( sourceNode, options ) {
         mixesDbLabel: "Search on MixesDB",
         processedClass: "mdb-copy-text-processed",
         rowClass: "mdb-ra-copy-row",
-        sourceClass: ""
+        sourceClass: "",
+        iconSize: 22
     }, options || {});
 
     appendMdbCopyTextButton( sourceNode, {
@@ -161,6 +163,7 @@ function appendRaInlineCopyAndMixesDbButtons( sourceNode, options ) {
     });
 
     appendRaMixesDbButton( sourceNode, {
+        iconSize: settings.iconSize,
         insertAfter: sourceNode.next( ".mdb-copy-text-control" ),
         label: settings.mixesDbLabel
     });
@@ -174,6 +177,7 @@ function appendRaEventVenueCopyButton( venueLink ) {
     if( !isRaEventPage() ) return;
 
     appendRaInlineCopyAndMixesDbButtons( venueLink, {
+        iconSize: 22,
         mixesDbLabel: "Search venue on MixesDB",
         rowClass: "mdb-ra-event-venue-copy-row",
         sourceClass: "mdb-copy-text-source-ra-event-venue"
@@ -191,6 +195,7 @@ function appendRaProfileNameCopyButton( profileName ) {
     if( profileHeader.find( ".mdb-ra-profile-name-copy-row" ).length ) return;
 
     appendRaInlineCopyAndMixesDbButtons( profileName, {
+        iconSize: 44,
         mixesDbLabel: isVenue ? "Search venue on MixesDB" : "Search artist on MixesDB",
         processedClass: "mdb-ra-profile-name-processed",
         rowClass: "mdb-ra-profile-name-copy-row",
