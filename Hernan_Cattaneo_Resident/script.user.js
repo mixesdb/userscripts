@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.7
+// @version      2026.07.02.8
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -24,7 +24,9 @@
     const sourceHost = 'podcast.hernancattaneo.com';
     const mixesdbHost = 'www.mixesdb.com';
     let existingEpisodes = new Set();
+    let removeExistingEpisodes = false;
     const debugFilter = '[MixesDB userscript]';
+    const removeExistingStorageKey = 'mdbResidentRemoveExistingEpisodes';
     const monthNumbers = {
         jan: '01', january: '01',
         feb: '02', february: '02',
@@ -256,6 +258,44 @@
         }
     }
 
+    function isRemoveExistingEnabled() {
+        return localStorage.getItem(removeExistingStorageKey) === 'true';
+    }
+
+    function setEpisodeVisibility(wrapper, episode) {
+        wrapper.classList.toggle('mdb-resident-existing-episode-hidden', removeExistingEpisodes && existingEpisodes.has(episode.episodeNumber));
+    }
+
+    function updateEpisodeVisibility() {
+        document.querySelectorAll('.container.list-container .list[data-mdb-resident-episode-number]').forEach(wrapper => {
+            setEpisodeVisibility(wrapper, { episodeNumber: Number(wrapper.dataset.mdbResidentEpisodeNumber) });
+        });
+    }
+
+    function createRemoveExistingToggle() {
+        const toggleWrapper = document.createElement('label');
+        toggleWrapper.className = 'mdb-resident-remove-existing-toggle';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = removeExistingEpisodes;
+        checkbox.addEventListener('change', () => {
+            removeExistingEpisodes = checkbox.checked;
+            localStorage.setItem(removeExistingStorageKey, removeExistingEpisodes ? 'true' : 'false');
+            updateEpisodeVisibility();
+        });
+
+        toggleWrapper.append(checkbox, document.createTextNode(' Remove episodes that exist on MixesDB'));
+        return toggleWrapper;
+    }
+
+    function addRemoveExistingToggle() {
+        if (document.querySelector('.mdb-resident-remove-existing-toggle')) return;
+
+        const listContainer = document.querySelector('.container.list-container') || document.body;
+        listContainer.insertAdjacentElement('afterbegin', createRemoveExistingToggle());
+    }
+
     function createMixesdbLink(heading, episode, wrapper) {
         const episodeLink = heading.querySelector('a') || heading.closest('a');
         const link = document.createElement('a');
@@ -287,6 +327,25 @@
                 color: #fff !important;
                 border: 1px solid #4d9f4d;
             }
+            .mdb-resident-remove-existing-toggle {
+                display: block;
+                margin: 0 0 1rem;
+                padding: 0.6em 0.8em;
+                border: 1px solid #4d9f4d;
+                border-radius: 4px;
+                background: #2ea70030;
+                color: #fff;
+                font-size: 0.95rem;
+                font-weight: 700;
+                line-height: 1.4;
+            }
+            .mdb-resident-remove-existing-toggle input {
+                margin-right: 0.35em;
+                vertical-align: middle;
+            }
+            .mdb-resident-existing-episode-hidden {
+                display: none !important;
+            }
             .mdb-resident-link.is-missing,
             .mdb-resident-link.is-pending {
                 background: #ff660050;
@@ -305,8 +364,10 @@
             const episode = parseEpisodeTitle(heading.textContent.trim());
             if (!episode) return;
 
+            wrapper.dataset.mdbResidentEpisodeNumber = String(episode.episodeNumber);
             heading.dataset.mdbResidentProcessed = 'true';
             heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode, wrapper));
+            setEpisodeVisibility(wrapper, episode);
         });
     }
 
@@ -345,11 +406,14 @@
 
     if (location.hostname !== sourceHost) return;
 
+    removeExistingEpisodes = isRemoveExistingEnabled();
     addStyles();
+    addRemoveExistingToggle();
     fetchExistingEpisodes()
         .then(episodeNumbers => {
             existingEpisodes = new Set(episodeNumbers);
             logExistingEpisodes();
+            addRemoveExistingToggle();
             addEpisodeLinks();
             startEpisodeObserver();
         })
