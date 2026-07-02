@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.4
+// @version      2026.07.02.5
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -96,8 +96,9 @@
 
     function normalizeTracklistLine(line) {
         return line
-            .replace(/^\s*\d+\s*[-.)–—:]\s*/, '')
+            .replace(/^\s*\d+\s*-\s*/, '')
             .replace(/\s+/g, ' ')
+            .replace(/\s*\/\s*$/, '')
             .trim();
     }
 
@@ -111,9 +112,10 @@
             .join('');
     }
 
-    function extractRawTracklist(wrapper) {
-        const description = wrapper.querySelector('p.e-description, .episode-description');
-        if (!description) return '';
+    function getFirstDescriptionParagraph(description) {
+        const firstChildParagraph = Array.from(description.children)
+            .find(child => child.matches('p'));
+        if (firstChildParagraph) return firstChildParagraph;
 
         const browserParsedFirstParagraph = description.matches('p.e-description')
             && !getNodeTextWithLinebreaks(description).trim()
@@ -121,10 +123,14 @@
             && description.nextElementSibling.matches('p')
             ? description.nextElementSibling
             : null;
-        const firstParagraph = description.matches('p.e-description')
-            ? browserParsedFirstParagraph || description.querySelector('p')
-            : description.querySelector('p');
-        const source = firstParagraph || description;
+        return browserParsedFirstParagraph || null;
+    }
+
+    function extractRawTracklist(wrapper) {
+        const description = wrapper.querySelector('p.e-description, .episode-description');
+        if (!description) return '';
+
+        const source = getFirstDescriptionParagraph(description) || description;
         return getNodeTextWithLinebreaks(source)
             .split('\n')
             .map(normalizeTracklistLine)
