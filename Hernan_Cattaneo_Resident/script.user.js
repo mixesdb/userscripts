@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.3
+// @version      2026.07.02.4
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -101,15 +101,31 @@
             .trim();
     }
 
+    function getNodeTextWithLinebreaks(node) {
+        return Array.from(node.childNodes)
+            .map(child => {
+                if (child.nodeName === 'BR') return '\n';
+                if (child.nodeType === Node.TEXT_NODE) return child.textContent;
+                return getNodeTextWithLinebreaks(child);
+            })
+            .join('');
+    }
+
     function extractRawTracklist(wrapper) {
-        const description = wrapper.querySelector('.episode-description');
+        const description = wrapper.querySelector('p.e-description, .episode-description');
         if (!description) return '';
 
-        const firstParagraph = description.querySelector('p');
+        const browserParsedFirstParagraph = description.matches('p.e-description')
+            && !getNodeTextWithLinebreaks(description).trim()
+            && description.nextElementSibling
+            && description.nextElementSibling.matches('p')
+            ? description.nextElementSibling
+            : null;
+        const firstParagraph = description.matches('p.e-description')
+            ? browserParsedFirstParagraph || description.querySelector('p')
+            : description.querySelector('p');
         const source = firstParagraph || description;
-        return Array.from(source.childNodes)
-            .map(node => node.nodeName === 'BR' ? '\n' : node.textContent)
-            .join('')
+        return getNodeTextWithLinebreaks(source)
             .split('\n')
             .map(normalizeTracklistLine)
             .filter(Boolean)
@@ -118,6 +134,8 @@
 
     async function formatTracklist(rawTracklist) {
         if (!rawTracklist) return '';
+
+        console.log('Hernan Cattaneo Resident tracklist before Tracklist Editor API:', rawTracklist);
 
         const body = new URLSearchParams({
             query: 'tracklistEditor',
@@ -136,7 +154,9 @@
         }
 
         const data = await response.json();
-        return data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
+        const formattedTracklist = data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
+        console.log('Hernan Cattaneo Resident tracklist after Tracklist Editor API:', formattedTracklist);
+        return formattedTracklist;
     }
 
     function buildMixPageText(episode, tracklist) {
