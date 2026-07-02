@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.5
+// @version      2026.07.02.6
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -24,6 +24,7 @@
     const sourceHost = 'podcast.hernancattaneo.com';
     const mixesdbHost = 'www.mixesdb.com';
     let existingEpisodes = new Set();
+    const debugFilter = '[MixesDB userscript]';
     const monthNumbers = {
         jan: '01', january: '01',
         feb: '02', february: '02',
@@ -40,6 +41,18 @@
     };
 
     const padEpisode = episodeNumber => String(episodeNumber).padStart(3, '0');
+
+    function log(text) {
+        console.log(`${debugFilter}: ${text}`);
+    }
+
+    function logVar(variable, string) {
+        if (string !== null && string !== undefined && string !== '') {
+            log(`${variable}: ${string}`);
+        } else {
+            log(`${variable} empty`);
+        }
+    }
 
     function parseEpisodeTitle(title) {
         const match = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
@@ -61,7 +74,7 @@
     }
 
     function logExistingEpisodes() {
-        console.log('Existing Hernan Cattaneo Resident MixesDB episodes:', Array.from(existingEpisodes).sort((a, b) => a - b));
+        logVar('Existing Hernan Cattaneo Resident MixesDB episodes', Array.from(existingEpisodes).sort((a, b) => a - b).join(', '));
     }
 
     async function fetchExistingEpisodes(cmcontinue = '') {
@@ -127,7 +140,7 @@
     }
 
     function extractRawTracklist(wrapper) {
-        const description = wrapper.querySelector('p.e-description, .episode-description');
+        const description = wrapper.querySelector('p.e-description, .episode-description > p');
         if (!description) return '';
 
         const source = getFirstDescriptionParagraph(description) || description;
@@ -138,10 +151,27 @@
             .join('\n');
     }
 
-    async function formatTracklist(rawTracklist) {
-        if (!rawTracklist) return '';
+    function hasTracklistForApi(rawTracklist) {
+        return rawTracklist.split('\n').filter(Boolean).length > 1;
+    }
 
-        console.log('Hernan Cattaneo Resident tracklist before Tracklist Editor API:', rawTracklist);
+    function getFeedbackTracklistStatus(feedback) {
+        if (!feedback) return 'incomplete';
+        if (feedback.warnings > 0 || feedback.hints > 0 || feedback.status === 'incomplete') return 'incomplete';
+        return 'complete';
+    }
+
+    function extractPlayerUrl(wrapper) {
+        const player = wrapper.querySelector('a[href*=".mp3"], audio[src*=".mp3"], audio source[src*=".mp3"]');
+        return player ? (player.href || player.src || '') : '';
+    }
+
+    async function formatTracklist(rawTracklist) {
+        if (!rawTracklist || !hasTracklistForApi(rawTracklist)) {
+            return { text: '<list>\n\n</list>', status: 'none' };
+        }
+
+        logVar('Hernan Cattaneo Resident tracklist before Tracklist Editor API', rawTracklist);
 
         const body = new URLSearchParams({
             query: 'tracklistEditor',
@@ -161,12 +191,16 @@
 
         const data = await response.json();
         const formattedTracklist = data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
-        console.log('Hernan Cattaneo Resident tracklist after Tracklist Editor API:', formattedTracklist);
-        return formattedTracklist;
+        logVar('Hernan Cattaneo Resident tracklist after Tracklist Editor API', formattedTracklist);
+        return { text: formattedTracklist, status: getFeedbackTracklistStatus(data.feedback) };
     }
 
-    function buildMixPageText(episode, tracklist) {
-        return `== File details ==\n\n{{StandardShow1h}}\n\n== Tracklist ==\n\n${tracklist}\n\n[[Category:${episode.year}]]\n[[Category:Hernan Cattaneo]]\n[[Category:Resident (Show)]]\n[[Category:Progressive House]]\n[[Category:Tracklist: complete]]`;
+    function buildPlayerText(playerUrl) {
+        return playerUrl ? `\n\n{{Player\n |${playerUrl}\n}}` : '';
+    }
+
+    function buildMixPageText(episode, tracklistResult, playerUrl = '') {
+        return `== File details ==\n\n{{StandardShow1h}}${buildPlayerText(playerUrl)}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n[[Category:${episode.year}]]\n[[Category:Hernan Cattaneo]]\n[[Category:Resident (Show)]]\n[[Category:Progressive House]]\n[[Category:Tracklist: ${tracklistResult.status}]]`;
     }
 
     function buildMixesdbUrl(title, episodeUrl, insertText = '') {
@@ -206,13 +240,17 @@
         setLinkPending(link, episode);
         try {
             const tracklist = await formatTracklist(extractRawTracklist(wrapper));
-            link.href = buildMixesdbUrl(title, episodeUrl, buildMixPageText(episode, tracklist));
+            link.href = buildMixesdbUrl(title, episodeUrl, buildMixPageText(episode, tracklist, extractPlayerUrl(wrapper)));
             link.className = 'mdb-resident-link is-missing';
             link.textContent = 'Copy to MixesDB';
         } catch (error) {
-            console.error('Failed to format Resident tracklist for MixesDB', error);
-            const fallbackTracklist = extractRawTracklist(wrapper).split('\n').filter(Boolean).map(line => `# ${line}`).join('\n');
-            link.href = buildMixesdbUrl(title, episodeUrl, buildMixPageText(episode, fallbackTracklist));
+            logVar('Failed to format Resident tracklist for MixesDB', error.message || error);
+            const rawTracklist = extractRawTracklist(wrapper);
+            const fallbackTracklist = hasTracklistForApi(rawTracklist)
+                ? rawTracklist.split('\n').filter(Boolean).map(line => `# ${line}`).join('\n')
+                : '<list>\n\n</list>';
+            const fallbackStatus = hasTracklistForApi(rawTracklist) ? 'incomplete' : 'none';
+            link.href = buildMixesdbUrl(title, episodeUrl, buildMixPageText(episode, { text: fallbackTracklist, status: fallbackStatus }, extractPlayerUrl(wrapper)));
             link.className = 'mdb-resident-link is-missing';
             link.textContent = 'Copy to MixesDB';
         }
@@ -316,7 +354,7 @@
             startEpisodeObserver();
         })
         .catch(error => {
-            console.error('Failed to load existing Resident episodes from MixesDB', error);
+            logVar('Failed to load existing Resident episodes from MixesDB', error.message || error);
             logExistingEpisodes();
             addEpisodeLinks();
             startEpisodeObserver();
