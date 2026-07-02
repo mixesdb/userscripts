@@ -1,0 +1,182 @@
+// ==UserScript==
+// @name         Hernan Cattaneo Resident (by MixesDB)
+// @author       User:Martin@MixesDB (Subfader@GitHub)
+// @version      2026.07.02.2
+// @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
+// @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
+// @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
+// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Hernan_Cattaneo_Resident/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Hernan_Cattaneo_Resident/script.user.js
+// @include      https://podcast.hernancattaneo.com*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
+// @noframes
+// @grant        none
+// @run-at       document-end
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    const mixesdbApiUrl = 'https://www.mixesdb.com/w/api.php';
+    const residentCategory = 'Category:Resident_(Show)';
+    let existingEpisodes = new Set();
+    const monthNumbers = {
+        jan: '01', january: '01',
+        feb: '02', february: '02',
+        mar: '03', march: '03',
+        apr: '04', april: '04',
+        may: '05',
+        jun: '06', june: '06',
+        jul: '07', july: '07',
+        aug: '08', august: '08',
+        sep: '09', sept: '09', september: '09',
+        oct: '10', october: '10',
+        nov: '11', november: '11',
+        dec: '12', december: '12',
+    };
+
+    const padEpisode = episodeNumber => String(episodeNumber).padStart(3, '0');
+
+    function parseEpisodeTitle(title) {
+        const match = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
+        if (!match) return null;
+
+        const episodeNumber = Number(match[1]);
+        const month = monthNumbers[match[2].toLowerCase()];
+        if (!month || !episodeNumber) return null;
+
+        return {
+            episodeNumber,
+            date: `${match[4]}-${month}-${String(match[3]).padStart(2, '0')}`,
+        };
+    }
+
+    function buildMixesdbTitle(episode) {
+        return `${episode.date} - Hernan Cattaneo - Resident ${padEpisode(episode.episodeNumber)}, Delta FM`;
+    }
+
+    async function fetchExistingEpisodes(cmcontinue = '') {
+        const url = new URL(mixesdbApiUrl);
+        url.searchParams.set('action', 'query');
+        url.searchParams.set('list', 'categorymembers');
+        url.searchParams.set('cmtitle', residentCategory);
+        url.searchParams.set('cmlimit', '500');
+        url.searchParams.set('format', 'json');
+        url.searchParams.set('origin', '*');
+
+        if (cmcontinue) {
+            url.searchParams.set('cmcontinue', cmcontinue);
+        }
+
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+            throw new Error(`MixesDB API responded with ${response.status}`);
+        }
+
+        const data = await response.json();
+        const episodeNumbers = data.query.categorymembers
+            .map(page => page.title.match(/Resident\s+(\d{3})\b/i))
+            .filter(Boolean)
+            .map(match => Number(match[1]));
+
+        const nextContinue = data.continue && data.continue.cmcontinue;
+        if (!nextContinue) return episodeNumbers;
+
+        return episodeNumbers.concat(await fetchExistingEpisodes(nextContinue));
+    }
+
+    function buildMixesdbUrl(title, episodeUrl, isExisting) {
+        const url = new URL('https://www.mixesdb.com/w/index.php');
+        url.searchParams.set('title', title);
+
+        if (!isExisting) {
+            url.searchParams.set('action', 'edit');
+            url.searchParams.set('redlink', '1');
+            url.searchParams.set('summary', `Create page from ${episodeUrl}`);
+        }
+
+        return url.toString();
+    }
+
+    function updateMixesdbLink(link, episode) {
+        const isExisting = existingEpisodes.has(episode.episodeNumber);
+        const title = buildMixesdbTitle(episode);
+        const episodeUrl = link.dataset.episodeUrl || location.href;
+
+        link.className = `mdb-resident-link ${isExisting ? 'is-existing' : 'is-missing'}`;
+        link.href = buildMixesdbUrl(title, episodeUrl, isExisting);
+        link.textContent = isExisting ? `MixesDB: ${padEpisode(episode.episodeNumber)}` : `Add to MixesDB: ${padEpisode(episode.episodeNumber)}`;
+        link.title = title;
+    }
+
+    function createMixesdbLink(heading, episode) {
+        const episodeLink = heading.closest('a') || heading.querySelector('a');
+        const link = document.createElement('a');
+
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.dataset.episodeNumber = String(episode.episodeNumber);
+        link.dataset.episodeUrl = episodeLink ? episodeLink.href : location.href;
+        updateMixesdbLink(link, episode);
+
+        return link;
+    }
+
+    function addStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .mdb-resident-link {
+                display: inline-block;
+                margin: 0.35em 0 0.75em;
+                padding: 0.25em 0.6em;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                line-height: 1.4;
+                text-decoration: none;
+            }
+            .mdb-resident-link.is-existing {
+                background: #eef7ee;
+                border: 1px solid #4d9f4d;
+                color: #236523;
+            }
+            .mdb-resident-link.is-missing {
+                background: #fff4e6;
+                border: 1px solid #ff9d33;
+                color: #a34f00;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function addEpisodeLinks() {
+        document.querySelectorAll('h2').forEach(heading => {
+            if (heading.dataset.mdbResidentProcessed === 'true') return;
+
+            const episode = parseEpisodeTitle(heading.textContent.trim());
+            if (!episode) return;
+
+            heading.dataset.mdbResidentProcessed = 'true';
+            heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode));
+        });
+    }
+
+    addStyles();
+
+    function startEpisodeObserver() {
+        const observer = new MutationObserver(addEpisodeLinks);
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    fetchExistingEpisodes()
+        .then(episodeNumbers => {
+            existingEpisodes = new Set(episodeNumbers);
+            addEpisodeLinks();
+            startEpisodeObserver();
+        })
+        .catch(error => {
+            console.error('Failed to load existing Resident episodes from MixesDB', error);
+            addEpisodeLinks();
+            startEpisodeObserver();
+        });
+}());
