@@ -171,7 +171,7 @@
             return { text: '<list>\n\n</list>', status: 'none' };
         }
 
-        logVar('Hernan Cattaneo Resident tracklist before Tracklist Editor API', rawTracklist);
+        logVar('Tracklist before Tracklist Editor API:\n', rawTracklist);
 
         const body = new URLSearchParams({
             query: 'tracklistEditor',
@@ -191,7 +191,7 @@
 
         const data = await response.json();
         const formattedTracklist = data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
-        logVar('Hernan Cattaneo Resident tracklist after Tracklist Editor API', formattedTracklist);
+        logVar('Tracklist after Tracklist Editor API:\n', formattedTracklist);
         return { text: formattedTracklist, status: getFeedbackTracklistStatus(data.feedback) };
     }
 
