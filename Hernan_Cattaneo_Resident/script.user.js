@@ -1,12 +1,15 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.8
+// @version      2026.07.02.9
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Hernan_Cattaneo_Resident/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Hernan_Cattaneo_Resident/script.user.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_1
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -43,18 +46,6 @@
     };
 
     const padEpisode = episodeNumber => String(episodeNumber).padStart(3, '0');
-
-    function log(text) {
-        console.log(`${debugFilter}: ${text}`);
-    }
-
-    function logVar(variable, string) {
-        if (string !== null && string !== undefined && string !== '') {
-            log(`${variable}: ${string}`);
-        } else {
-            log(`${variable} empty`);
-        }
-    }
 
     function parseEpisodeTitle(title) {
         const match = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
@@ -173,7 +164,7 @@
             return { text: '<list>\n\n</list>', status: 'none' };
         }
 
-        logVar('Tracklist before Tracklist Editor API:\n', rawTracklist);
+        log('Tracklist before Tracklist Editor API:\n' + rawTracklist);
 
         const body = new URLSearchParams({
             query: 'tracklistEditor',
@@ -193,7 +184,7 @@
 
         const data = await response.json();
         const formattedTracklist = data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
-        logVar('Tracklist after Tracklist Editor API:\n', formattedTracklist);
+        log('Tracklist after Tracklist Editor API:\n' + formattedTracklist);
         return { text: formattedTracklist, status: getFeedbackTracklistStatus(data.feedback) };
     }
 
@@ -222,7 +213,7 @@
     function setLinkPending(link, episode) {
         link.className = 'mdb-resident-link is-pending';
         link.removeAttribute('href');
-        link.textContent = `Preparing MixesDB copy link: ${padEpisode(episode.episodeNumber)}`;
+        link.textContent = `Checking episode ${padEpisode(episode.episodeNumber)}`;
     }
 
     async function updateMixesdbLink(link, episode, wrapper) {
@@ -285,7 +276,7 @@
             updateEpisodeVisibility();
         });
 
-        toggleWrapper.append(checkbox, document.createTextNode(' Remove episodes that exist on MixesDB'));
+        toggleWrapper.append(checkbox, document.createTextNode('Hide episodes that exist on MixesDB'));
         return toggleWrapper;
     }
 
@@ -351,6 +342,10 @@
                 background: #ff660050;
                 border: 1px solid #f60;
                 color: #ffffff !important;
+            }
+            /* Hide donation banner block */
+            .e-description table {
+                display: none;
             }
         `;
         document.head.appendChild(style);
