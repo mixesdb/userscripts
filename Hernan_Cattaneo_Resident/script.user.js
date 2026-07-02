@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.9
+// @version      2026.07.02.10
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -300,9 +300,58 @@
         return link;
     }
 
+    function createEpisodeCloseButton() {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'mdb-resident-close-button';
+        button.setAttribute('aria-label', 'Hide this episode');
+        button.title = 'Hide this episode';
+        button.textContent = '×';
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            button.closest('.list')?.remove();
+        });
+        return button;
+    }
+
+    function addEpisodeCloseButton(wrapper) {
+        if (wrapper.querySelector(':scope > .mdb-resident-close-button')) return;
+        wrapper.append(createEpisodeCloseButton());
+    }
+
     function addStyles() {
         const style = document.createElement('style');
         style.textContent = `
+            .container.list-container .list[data-mdb-resident-episode-number] {
+                position: relative;
+            }
+            .mdb-resident-close-button {
+                align-items: center;
+                background: #00000080;
+                border: 1px solid #ffffff80;
+                border-radius: 50%;
+                color: #fff;
+                cursor: pointer;
+                display: flex;
+                font-size: 1.25rem;
+                font-weight: 700;
+                height: 1.7rem;
+                justify-content: center;
+                line-height: 1;
+                padding: 0;
+                position: absolute;
+                right: 0.6rem;
+                top: 0.6rem;
+                width: 1.7rem;
+                z-index: 2;
+            }
+            .mdb-resident-close-button:hover,
+            .mdb-resident-close-button:focus {
+                background: #ff6600;
+                border-color: #ff6600;
+                outline: none;
+            }
             .mdb-resident-link {
                 display: inline-block;
                 margin: 0.35em 0 0.75em;
@@ -360,6 +409,7 @@
             if (!episode) return;
 
             wrapper.dataset.mdbResidentEpisodeNumber = String(episode.episodeNumber);
+            addEpisodeCloseButton(wrapper);
             heading.dataset.mdbResidentProcessed = 'true';
             heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode, wrapper));
             setEpisodeVisibility(wrapper, episode);
