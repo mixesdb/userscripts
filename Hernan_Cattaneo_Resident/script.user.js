@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.2
+// @version      2026.07.02.3
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Hernan_Cattaneo_Resident/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Hernan_Cattaneo_Resident/script.user.js
 // @include      https://podcast.hernancattaneo.com*
+// @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
 // @noframes
 // @grant        none
@@ -18,7 +19,10 @@
     'use strict';
 
     const mixesdbApiUrl = 'https://www.mixesdb.com/w/api.php';
+    const tracklistApiUrl = 'https://www.mixesdb.com/tools/api/api.php';
     const residentCategory = 'Category:Resident_(Show)';
+    const sourceHost = 'podcast.hernancattaneo.com';
+    const mixesdbHost = 'www.mixesdb.com';
     let existingEpisodes = new Set();
     const monthNumbers = {
         jan: '01', january: '01',
@@ -48,11 +52,16 @@
         return {
             episodeNumber,
             date: `${match[4]}-${month}-${String(match[3]).padStart(2, '0')}`,
+            year: match[4],
         };
     }
 
     function buildMixesdbTitle(episode) {
         return `${episode.date} - Hernan Cattaneo - Resident ${padEpisode(episode.episodeNumber)}, Delta FM`;
+    }
+
+    function logExistingEpisodes() {
+        console.log('Existing Hernan Cattaneo Resident MixesDB episodes:', Array.from(existingEpisodes).sort((a, b) => a - b));
     }
 
     async function fetchExistingEpisodes(cmcontinue = '') {
@@ -85,39 +94,113 @@
         return episodeNumbers.concat(await fetchExistingEpisodes(nextContinue));
     }
 
-    function buildMixesdbUrl(title, episodeUrl, isExisting) {
+    function normalizeTracklistLine(line) {
+        return line
+            .replace(/^\s*\d+\s*[-.)–—:]\s*/, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function extractRawTracklist(wrapper) {
+        const description = wrapper.querySelector('.episode-description');
+        if (!description) return '';
+
+        const firstParagraph = description.querySelector('p');
+        const source = firstParagraph || description;
+        return Array.from(source.childNodes)
+            .map(node => node.nodeName === 'BR' ? '\n' : node.textContent)
+            .join('')
+            .split('\n')
+            .map(normalizeTracklistLine)
+            .filter(Boolean)
+            .join('\n');
+    }
+
+    async function formatTracklist(rawTracklist) {
+        if (!rawTracklist) return '';
+
+        const body = new URLSearchParams({
+            query: 'tracklistEditor',
+            type: 'standard',
+            text: rawTracklist,
+        });
+
+        const response = await fetch(tracklistApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body,
+        });
+
+        if (!response.ok) {
+            throw new Error(`MixesDB Tracklist API responded with ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
+    }
+
+    function buildMixPageText(episode, tracklist) {
+        return `== File details ==\n\n{{StandardShow1h}}\n\n== Tracklist ==\n\n${tracklist}\n\n[[Category:${episode.year}]]\n[[Category:Hernan Cattaneo]]\n[[Category:Resident (Show)]]\n[[Category:Progressive House]]\n[[Category:Tracklist: complete]]`;
+    }
+
+    function buildMixesdbUrl(title, episodeUrl, insertText = '') {
         const url = new URL('https://www.mixesdb.com/w/index.php');
         url.searchParams.set('title', title);
 
-        if (!isExisting) {
+        if (insertText) {
             url.searchParams.set('action', 'edit');
             url.searchParams.set('redlink', '1');
+            url.searchParams.set('insertText', insertText);
             url.searchParams.set('summary', `Create page from ${episodeUrl}`);
         }
 
         return url.toString();
     }
 
-    function updateMixesdbLink(link, episode) {
+    function setLinkPending(link, episode) {
+        link.className = 'mdb-resident-link is-pending';
+        link.removeAttribute('href');
+        link.textContent = `Preparing MixesDB copy link: ${padEpisode(episode.episodeNumber)}`;
+    }
+
+    async function updateMixesdbLink(link, episode, wrapper) {
         const isExisting = existingEpisodes.has(episode.episodeNumber);
         const title = buildMixesdbTitle(episode);
         const episodeUrl = link.dataset.episodeUrl || location.href;
 
         link.className = `mdb-resident-link ${isExisting ? 'is-existing' : 'is-missing'}`;
-        link.href = buildMixesdbUrl(title, episodeUrl, isExisting);
-        link.textContent = isExisting ? `MixesDB: ${padEpisode(episode.episodeNumber)}` : `Add to MixesDB: ${padEpisode(episode.episodeNumber)}`;
         link.title = title;
+
+        if (isExisting) {
+            link.href = buildMixesdbUrl(title, episodeUrl);
+            link.textContent = 'See on MixesDB';
+            return;
+        }
+
+        setLinkPending(link, episode);
+        try {
+            const tracklist = await formatTracklist(extractRawTracklist(wrapper));
+            link.href = buildMixesdbUrl(title, episodeUrl, buildMixPageText(episode, tracklist));
+            link.className = 'mdb-resident-link is-missing';
+            link.textContent = 'Copy to MixesDB';
+        } catch (error) {
+            console.error('Failed to format Resident tracklist for MixesDB', error);
+            const fallbackTracklist = extractRawTracklist(wrapper).split('\n').filter(Boolean).map(line => `# ${line}`).join('\n');
+            link.href = buildMixesdbUrl(title, episodeUrl, buildMixPageText(episode, fallbackTracklist));
+            link.className = 'mdb-resident-link is-missing';
+            link.textContent = 'Copy to MixesDB';
+        }
     }
 
-    function createMixesdbLink(heading, episode) {
-        const episodeLink = heading.closest('a') || heading.querySelector('a');
+    function createMixesdbLink(heading, episode, wrapper) {
+        const episodeLink = heading.querySelector('a') || heading.closest('a');
         const link = document.createElement('a');
 
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.dataset.episodeNumber = String(episode.episodeNumber);
         link.dataset.episodeUrl = episodeLink ? episodeLink.href : location.href;
-        updateMixesdbLink(link, episode);
+        updateMixesdbLink(link, episode, wrapper);
 
         return link;
     }
@@ -140,7 +223,8 @@
                 border: 1px solid #4d9f4d;
                 color: #236523;
             }
-            .mdb-resident-link.is-missing {
+            .mdb-resident-link.is-missing,
+            .mdb-resident-link.is-pending {
                 background: #fff4e6;
                 border: 1px solid #ff9d33;
                 color: #a34f00;
@@ -150,32 +234,64 @@
     }
 
     function addEpisodeLinks() {
-        document.querySelectorAll('h2').forEach(heading => {
-            if (heading.dataset.mdbResidentProcessed === 'true') return;
+        document.querySelectorAll('.container.list-container .list').forEach(wrapper => {
+            const heading = wrapper.querySelector('h2.card-title.e-title');
+            if (!heading || heading.dataset.mdbResidentProcessed === 'true') return;
 
             const episode = parseEpisodeTitle(heading.textContent.trim());
             if (!episode) return;
 
             heading.dataset.mdbResidentProcessed = 'true';
-            heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode));
+            heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode, wrapper));
         });
     }
-
-    addStyles();
 
     function startEpisodeObserver() {
         const observer = new MutationObserver(addEpisodeLinks);
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
+    function insertMixesdbTextFromUrl() {
+        const params = new URLSearchParams(location.search);
+        const action = params.get('action');
+        const insertText = params.get('insertText');
+        if (!insertText || (action !== 'edit' && action !== 'submit')) return;
+
+        const insertTextWhenReady = () => {
+            const textbox = document.querySelector('textarea#wpTextbox1');
+            if (!textbox) return false;
+            textbox.value = insertText;
+            textbox.dispatchEvent(new Event('input', { bubbles: true }));
+            textbox.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        };
+
+        if (insertTextWhenReady()) return;
+
+        const observer = new MutationObserver(() => {
+            if (insertTextWhenReady()) observer.disconnect();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (location.hostname === mixesdbHost) {
+        insertMixesdbTextFromUrl();
+        return;
+    }
+
+    if (location.hostname !== sourceHost) return;
+
+    addStyles();
     fetchExistingEpisodes()
         .then(episodeNumbers => {
             existingEpisodes = new Set(episodeNumbers);
+            logExistingEpisodes();
             addEpisodeLinks();
             startEpisodeObserver();
         })
         .catch(error => {
             console.error('Failed to load existing Resident episodes from MixesDB', error);
+            logExistingEpisodes();
             addEpisodeLinks();
             startEpisodeObserver();
         });
