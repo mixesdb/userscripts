@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.06.10
+// @version      2026.07.06.11
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.06.9
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.06.10
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -50,6 +50,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         genres: ['Progressive House'],
         storageKey: 'mdbResidentRemoveExistingEpisodes',
         visitedLinksStorageKey: 'mdbResidentVisitedEpisodeLinks',
+        tleApiType: 'commaArtist',
         selectors: {
             listContainer: '.container.list-container',
             episodeWrapper: '.container.list-container .list',
@@ -246,7 +247,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         setLinkPending(link, episode);
         const rawTracklist = extractRawTracklist(wrapper);
         try {
-            const tracklist = await importer.formatTracklist(rawTracklist, 'thousandoneTl');
+            const tracklist = await importer.formatTracklist(rawTracklist, config.tleApiType);
             renderTracklistApiFeedback(wrapper, tracklist);
             link.href = importer.buildMixesdbUrl(title, episodeUrl, buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper)));
         } catch (error) {
