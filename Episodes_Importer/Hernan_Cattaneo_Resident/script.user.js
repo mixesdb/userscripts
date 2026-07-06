@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.06.03
+// @version      2026.07.06.04
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -18,6 +18,18 @@
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+var cacheVersion = 6,
+    scriptName = "hearthis.at";
+
+loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+
 
 /* global MixesDBEpisodesImporter, fixTLbox */
 (function () {
@@ -354,6 +366,12 @@
             /* Hide donation banner block */
             .e-description table {
                 display: none;
+            }
+
+            /* tracklist textarea */
+            .tlEditor textarea {
+                font-family: monospace;
+                font-size: 12px;
             }
         `;
         document.head.appendChild(style);
