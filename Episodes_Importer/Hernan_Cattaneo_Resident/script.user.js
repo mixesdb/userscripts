@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.06.04
+// @version      2026.07.06.05
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 6,
+var cacheVersion = 7,
     scriptName = "hearthis.at";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -182,6 +182,24 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.textContent = `Checking episode ${importer.padNumber(episode.episodeNumber)}`;
     }
 
+    function getDownloadLink(wrapper) {
+        return wrapper.querySelector('a[href*=".mp3"]');
+    }
+
+    function placeCopyLink(link, wrapper) {
+        const apiFeedback = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
+        const downloadLink = getDownloadLink(wrapper);
+
+        if (apiFeedback) {
+            apiFeedback.insertAdjacentElement('afterend', link);
+            return;
+        }
+
+        if (downloadLink) {
+            downloadLink.insertAdjacentElement('beforebegin', link);
+        }
+    }
+
     async function updateMixesdbLink(link, episode, wrapper) {
         const isExisting = existingEpisodes.has(episode.episodeNumber);
         const title = buildMixesdbTitle(episode);
@@ -213,6 +231,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         }
         link.className = `${config.classNames.link} is-missing`;
         link.textContent = 'Copy to MixesDB';
+        placeCopyLink(link, wrapper);
     }
 
     function setEpisodeVisibility(wrapper, episode) {
