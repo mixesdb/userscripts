@@ -95,16 +95,23 @@
         return 'complete';
     }
 
-    async function formatTracklist(rawTracklist) {
+    async function formatTracklist(rawTracklist, apiType = 'standard') {
         if (!rawTracklist || !hasTracklistForApi(rawTracklist)) {
             return { text: '<list>\n\n</list>', status: 'none', feedback: null };
         }
 
         logMessage('Tracklist before Tracklist Editor API:\n' + rawTracklist);
 
+        if (typeof apiTracklist === 'function') {
+            const apiResult = apiTracklist(rawTracklist, apiType);
+            const formattedTracklist = apiResult.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
+            logMessage('Tracklist after Tracklist Editor API:\n' + formattedTracklist);
+            return { text: formattedTracklist, status: getFeedbackTracklistStatus(apiResult.feedback), feedback: apiResult.feedback || null };
+        }
+
         const body = new URLSearchParams({
             query: 'tracklistEditor',
-            type: 'standard',
+            type: apiType,
             text: rawTracklist,
         });
 
