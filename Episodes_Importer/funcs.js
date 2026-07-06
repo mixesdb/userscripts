@@ -97,7 +97,7 @@
 
     async function formatTracklist(rawTracklist) {
         if (!rawTracklist || !hasTracklistForApi(rawTracklist)) {
-            return { text: '<list>\n\n</list>', status: 'none' };
+            return { text: '<list>\n\n</list>', status: 'none', feedback: null };
         }
 
         logMessage('Tracklist before Tracklist Editor API:\n' + rawTracklist);
@@ -121,7 +121,7 @@
         const data = await response.json();
         const formattedTracklist = data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
         logMessage('Tracklist after Tracklist Editor API:\n' + formattedTracklist);
-        return { text: formattedTracklist, status: getFeedbackTracklistStatus(data.feedback) };
+        return { text: formattedTracklist, status: getFeedbackTracklistStatus(data.feedback), feedback: data.feedback || null };
     }
 
     function buildPlayerText(playerUrl) {
