@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.11
+// @version      2026.07.06.01
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -95,9 +95,24 @@
             .join('\n');
     }
 
+    function isValidPlayerUrl(playerUrl) {
+        if (!playerUrl) return false;
+
+        try {
+            const url = new URL(playerUrl, location.href);
+            const host = url.hostname.toLowerCase();
+            return ['http:', 'https:'].includes(url.protocol)
+                && url.pathname.toLowerCase().endsWith('.mp3')
+                && host !== 'url-del-episodio.mp3';
+        } catch (error) {
+            return false;
+        }
+    }
+
     function extractPlayerUrl(wrapper) {
         const player = wrapper.querySelector(config.selectors.player);
-        return player ? (player.href || player.src || '') : '';
+        const playerUrl = player ? (player.href || player.src || '') : '';
+        return isValidPlayerUrl(playerUrl) ? new URL(playerUrl, location.href).toString() : '';
     }
 
     function buildEpisodePageText(episode, tracklistResult, playerUrl = '') {
