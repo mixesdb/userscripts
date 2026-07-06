@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.06.02
+// @version      2026.07.06.03
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.06.02
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.06.03
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -19,7 +19,7 @@
 // @run-at       document-end
 // ==/UserScript==
 
-/* global MixesDBEpisodesImporter */
+/* global MixesDBEpisodesImporter, fixTLbox */
 (function () {
     'use strict';
 
@@ -46,6 +46,7 @@
             toggle: 'mdb-resident-remove-existing-toggle',
             hidden: 'mdb-resident-existing-episode-hidden',
             apiFeedback: 'mdb-resident-tle-feedback',
+            apiTracklist: 'mdb-resident-tle-tracklist',
         },
     };
 
@@ -91,33 +92,33 @@
         return getFirstDescriptionParagraph(description) || description;
     }
 
-    function getTleFeedbackClass(feedback) {
-        if (!feedback) return '';
-        if (feedback.warnings > 0) return 'tlEditor-feedback-warning';
-        if (feedback.hints > 0 || feedback.status === 'incomplete') return 'tlEditor-feedback-hint';
-        return 'tlEditor-feedback-complete';
-    }
-
     function renderTracklistApiFeedback(wrapper, tracklistResult) {
         const source = getTracklistSourceNode(wrapper);
         if (!source) return;
 
-        let feedback = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
-        if (!tracklistResult.feedback || !tracklistResult.feedback.text) {
-            feedback?.remove();
+        let editor = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
+        const tlApi = tracklistResult && tracklistResult.text;
+        const feedback = tracklistResult && tracklistResult.feedback;
+
+        if (!tlApi || !feedback) {
+            editor?.remove();
             return;
         }
 
-        if (!feedback) {
-            feedback = document.createElement('div');
-            feedback.className = config.classNames.apiFeedback;
-            source.insertAdjacentElement('afterend', feedback);
+        if (!editor) {
+            editor = document.createElement('div');
+            editor.className = `tlEditor ${config.classNames.apiFeedback}`;
+            editor.innerHTML = `<textarea id="mixesdb-TLbox" class="mixesdb-TLbox ${config.classNames.apiTracklist}"></textarea>`;
+            source.insertAdjacentElement('afterend', editor);
         }
 
-        feedback.className = [config.classNames.apiFeedback, getTleFeedbackClass(tracklistResult.feedback)]
-            .filter(Boolean)
-            .join(' ');
-        feedback.innerHTML = tracklistResult.feedback.text;
+        editor.className = `tlEditor ${config.classNames.apiFeedback}`;
+        editor.querySelectorAll('#tlEditor-feedback, #tlEditor-feedback-topInfo, #tlEditor-feedback-topInfo-noList').forEach(node => node.remove());
+        editor.querySelector('textarea').value = tlApi;
+
+        if (typeof fixTLbox === 'function') {
+            fixTLbox(feedback, editor);
+        }
     }
 
     function extractRawTracklist(wrapper) {
@@ -186,7 +187,7 @@
         setLinkPending(link, episode);
         const rawTracklist = extractRawTracklist(wrapper);
         try {
-            const tracklist = await importer.formatTracklist(rawTracklist);
+            const tracklist = await importer.formatTracklist(rawTracklist, 'thousandoneTl');
             renderTracklistApiFeedback(wrapper, tracklist);
             link.href = importer.buildMixesdbUrl(title, episodeUrl, buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper)));
         } catch (error) {
@@ -345,29 +346,10 @@
             .${config.classNames.apiFeedback} {
                 margin: 0.6rem 0 1rem;
             }
-            .${config.classNames.apiFeedback} #tlEditor-feedback {
-                border-style: solid;
-                border-width: 1px;
-                padding: 0.65em 0.6em 0.5em;
-            }
-            .${config.classNames.apiFeedback}.tlEditor-feedback-complete #tlEditor-feedback {
-                background: #efd;
-                border-color: #090 !important;
-                color: #090;
-            }
-            .${config.classNames.apiFeedback}.tlEditor-feedback-hint #tlEditor-feedback {
-                background: #fffddf;
-                border-color: rgb(255, 170, 0) !important;
-                color: rgb(255, 170, 0);
-            }
-            .${config.classNames.apiFeedback}.tlEditor-feedback-warning #tlEditor-feedback {
-                background: #fee;
-                border-color: rgb(255, 0, 0) !important;
-                color: rgb(255, 0, 0);
-            }
-            .${config.classNames.apiFeedback} #tlEditor-feedback ul {
-                margin-bottom: 0;
-                margin-top: 0;
+            .${config.classNames.apiFeedback} .${config.classNames.apiTracklist} {
+                box-sizing: border-box;
+                min-height: 8rem;
+                width: 100%;
             }
             /* Hide donation banner block */
             .e-description table {
