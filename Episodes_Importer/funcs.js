@@ -95,7 +95,7 @@
         return 'complete';
     }
 
-    async function formatTracklist(rawTracklist, apiType = 'standard') {
+    async function formatTracklist(rawTracklist, apiType = 'commaArtists') {
         if (!rawTracklist || !hasTracklistForApi(rawTracklist)) {
             return { text: '<list>\n\n</list>', status: 'none', feedback: null };
         }
