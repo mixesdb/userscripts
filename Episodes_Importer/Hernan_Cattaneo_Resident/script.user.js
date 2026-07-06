@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.06.04
+// @version      2026.07.06.07
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 6,
+var cacheVersion = 7,
     scriptName = "hearthis.at";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -45,6 +45,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         showCategory: 'Resident (Show)',
         genres: ['Progressive House'],
         storageKey: 'mdbResidentRemoveExistingEpisodes',
+        visitedLinksStorageKey: 'mdbResidentVisitedEpisodeLinks',
         selectors: {
             listContainer: '.container.list-container',
             episodeWrapper: '.container.list-container .list',
@@ -63,7 +64,30 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     };
 
     let existingEpisodes = new Set();
+    let visitedEpisodeLinks = new Set();
     let removeExistingEpisodes = false;
+
+    function loadVisitedEpisodeLinks() {
+        try {
+            visitedEpisodeLinks = new Set(JSON.parse(localStorage.getItem(config.visitedLinksStorageKey) || '[]'));
+        } catch (error) {
+            visitedEpisodeLinks = new Set();
+        }
+    }
+
+    function saveVisitedEpisodeLinks() {
+        localStorage.setItem(config.visitedLinksStorageKey, JSON.stringify(Array.from(visitedEpisodeLinks)));
+    }
+
+    function setLinkVisitedState(link) {
+        link.classList.toggle('is-visited', visitedEpisodeLinks.has(link.dataset.episodeNumber));
+    }
+
+    function markLinkVisited(link) {
+        visitedEpisodeLinks.add(link.dataset.episodeNumber);
+        saveVisitedEpisodeLinks();
+        setLinkVisitedState(link);
+    }
 
     function parseEpisodeTitle(title) {
         const match = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
@@ -182,6 +206,24 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.textContent = `Checking episode ${importer.padNumber(episode.episodeNumber)}`;
     }
 
+    function getDownloadLink(wrapper) {
+        return wrapper.querySelector('a[href*=".mp3"]');
+    }
+
+    function placeCopyLink(link, wrapper) {
+        const apiFeedback = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
+        const downloadLink = getDownloadLink(wrapper);
+
+        if (apiFeedback) {
+            apiFeedback.insertAdjacentElement('afterend', link);
+            return;
+        }
+
+        if (downloadLink) {
+            downloadLink.insertAdjacentElement('beforebegin', link);
+        }
+    }
+
     async function updateMixesdbLink(link, episode, wrapper) {
         const isExisting = existingEpisodes.has(episode.episodeNumber);
         const title = buildMixesdbTitle(episode);
@@ -189,6 +231,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
         link.className = `${config.classNames.link} ${isExisting ? 'is-existing' : 'is-missing'}`;
         link.title = title;
+        setLinkVisitedState(link);
 
         if (isExisting) {
             link.href = importer.buildMixesdbUrl(title, episodeUrl);
@@ -213,6 +256,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         }
         link.className = `${config.classNames.link} is-missing`;
         link.textContent = 'Copy to MixesDB';
+        placeCopyLink(link, wrapper);
+        setLinkVisitedState(link);
     }
 
     function setEpisodeVisibility(wrapper, episode) {
@@ -257,6 +302,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.rel = 'noopener noreferrer';
         link.dataset.episodeNumber = String(episode.episodeNumber);
         link.dataset.episodeUrl = episodeLink ? episodeLink.href : location.href;
+        link.addEventListener('click', () => markLinkVisited(link));
         updateMixesdbLink(link, episode, wrapper);
 
         return link;
@@ -324,6 +370,9 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 line-height: 1.4;
                 text-decoration: none;
             }
+            .${config.classNames.link}.is-visited {
+                opacity: .62 !important;
+            }
             .${config.classNames.link}.is-existing {
                 background: #2ea70060;
                 color: #fff !important;
@@ -377,8 +426,19 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         document.head.appendChild(style);
     }
 
+    function removeEmptyEpisodeParagraphs(wrapper) {
+        wrapper.querySelectorAll('p').forEach(paragraph => {
+            const text = paragraph.textContent.replace(/\u00a0/g, ' ').trim();
+            if (!text && !paragraph.querySelector('img, audio, video, iframe, embed, object, input, textarea, select, button, a[href]')) {
+                paragraph.remove();
+            }
+        });
+    }
+
     function addEpisodeLinks() {
         document.querySelectorAll(config.selectors.episodeWrapper).forEach(wrapper => {
+            removeEmptyEpisodeParagraphs(wrapper);
+
             const heading = wrapper.querySelector(config.selectors.episodeHeading);
             if (!heading || heading.dataset.mdbImporterProcessed === 'true') return;
 
@@ -410,6 +470,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     if (location.hostname !== sourceHost) return;
 
     removeExistingEpisodes = localStorage.getItem(config.storageKey) === 'true';
+    loadVisitedEpisodeLinks();
     addStyles();
     addRemoveExistingToggle();
     importer.fetchExistingEpisodes(config)
