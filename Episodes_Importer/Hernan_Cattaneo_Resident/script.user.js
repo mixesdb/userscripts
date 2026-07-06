@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.02.11
+// @version      2026.07.06.03
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.02
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.06.03
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -19,7 +19,7 @@
 // @run-at       document-end
 // ==/UserScript==
 
-/* global MixesDBEpisodesImporter */
+/* global MixesDBEpisodesImporter, fixTLbox */
 (function () {
     'use strict';
 
@@ -45,6 +45,8 @@
             closeButton: 'mdb-resident-close-button',
             toggle: 'mdb-resident-remove-existing-toggle',
             hidden: 'mdb-resident-existing-episode-hidden',
+            apiFeedback: 'mdb-resident-tle-feedback',
+            apiTracklist: 'mdb-resident-tle-tracklist',
         },
     };
 
@@ -83,11 +85,47 @@
             : null;
     }
 
+
+    function getTracklistSourceNode(wrapper) {
+        const description = wrapper.querySelector(config.selectors.description);
+        if (!description) return null;
+        return getFirstDescriptionParagraph(description) || description;
+    }
+
+    function renderTracklistApiFeedback(wrapper, tracklistResult) {
+        const source = getTracklistSourceNode(wrapper);
+        if (!source) return;
+
+        let editor = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
+        const tlApi = tracklistResult && tracklistResult.text;
+        const feedback = tracklistResult && tracklistResult.feedback;
+
+        if (!tlApi || !feedback) {
+            editor?.remove();
+            return;
+        }
+
+        if (!editor) {
+            editor = document.createElement('div');
+            editor.className = `tlEditor ${config.classNames.apiFeedback}`;
+            editor.innerHTML = `<textarea id="mixesdb-TLbox" class="mixesdb-TLbox ${config.classNames.apiTracklist}"></textarea>`;
+            source.insertAdjacentElement('afterend', editor);
+        }
+
+        editor.className = `tlEditor ${config.classNames.apiFeedback}`;
+        editor.querySelectorAll('#tlEditor-feedback, #tlEditor-feedback-topInfo, #tlEditor-feedback-topInfo-noList').forEach(node => node.remove());
+        editor.querySelector('textarea').value = tlApi;
+
+        if (typeof fixTLbox === 'function') {
+            fixTLbox(feedback, editor);
+        }
+    }
+
     function extractRawTracklist(wrapper) {
         const description = wrapper.querySelector(config.selectors.description);
         if (!description) return '';
 
-        const source = getFirstDescriptionParagraph(description) || description;
+        const source = getTracklistSourceNode(wrapper);
         return importer.getNodeTextWithLinebreaks(source)
             .split('\n')
             .map(importer.normalizeTracklistLine)
@@ -95,9 +133,24 @@
             .join('\n');
     }
 
+    function isValidPlayerUrl(playerUrl) {
+        if (!playerUrl) return false;
+
+        try {
+            const url = new URL(playerUrl, location.href);
+            const host = url.hostname.toLowerCase();
+            return ['http:', 'https:'].includes(url.protocol)
+                && url.pathname.toLowerCase().endsWith('.mp3')
+                && host !== 'url-del-episodio.mp3';
+        } catch (error) {
+            return false;
+        }
+    }
+
     function extractPlayerUrl(wrapper) {
         const player = wrapper.querySelector(config.selectors.player);
-        return player ? (player.href || player.src || '') : '';
+        const playerUrl = player ? (player.href || player.src || '') : '';
+        return isValidPlayerUrl(playerUrl) ? new URL(playerUrl, location.href).toString() : '';
     }
 
     function buildEpisodePageText(episode, tracklistResult, playerUrl = '') {
@@ -134,7 +187,8 @@
         setLinkPending(link, episode);
         const rawTracklist = extractRawTracklist(wrapper);
         try {
-            const tracklist = await importer.formatTracklist(rawTracklist);
+            const tracklist = await importer.formatTracklist(rawTracklist, 'thousandoneTl');
+            renderTracklistApiFeedback(wrapper, tracklist);
             link.href = importer.buildMixesdbUrl(title, episodeUrl, buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper)));
         } catch (error) {
             importer.logValue('Failed to format Resident tracklist for MixesDB', error.message || error);
@@ -142,6 +196,7 @@
                 ? rawTracklist.split('\n').filter(Boolean).map(line => `# ${line}`).join('\n')
                 : '<list>\n\n</list>';
             const fallbackStatus = importer.hasTracklistForApi(rawTracklist) ? 'incomplete' : 'none';
+            renderTracklistApiFeedback(wrapper, { feedback: null });
             link.href = importer.buildMixesdbUrl(title, episodeUrl, buildEpisodePageText(episode, { text: fallbackTracklist, status: fallbackStatus }, extractPlayerUrl(wrapper)));
         }
         link.className = `${config.classNames.link} is-missing`;
@@ -286,6 +341,15 @@
                 background: #ff660050;
                 border: 1px solid #f60;
                 color: #ffffff !important;
+            }
+
+            .${config.classNames.apiFeedback} {
+                margin: 0.6rem 0 1rem;
+            }
+            .${config.classNames.apiFeedback} .${config.classNames.apiTracklist} {
+                box-sizing: border-box;
+                min-height: 8rem;
+                width: 100%;
             }
             /* Hide donation banner block */
             .e-description table {
