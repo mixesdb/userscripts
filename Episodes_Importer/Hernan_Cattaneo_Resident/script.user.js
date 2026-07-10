@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.12
+// @version      2026.07.10.13
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -253,10 +253,17 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             };
         }
 
-        return {
-            text: editorTracklist,
-            status: fallbackStatus,
-        };
+        try {
+            const updatedTracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
+            renderTracklistApiFeedback(wrapper, updatedTracklist);
+            return updatedTracklist;
+        } catch (error) {
+            importer.logValue('Failed to refresh Resident tracklist feedback for MixesDB', error.message || error);
+            return {
+                text: editorTracklist,
+                status: fallbackStatus,
+            };
+        }
     }
 
     function setCreateLinkHref(link, title, episodeUrl, insertText) {
@@ -270,19 +277,11 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.addEventListener('click', async event => {
             event.preventDefault();
             markLinkVisited(link);
-            const targetWindow = window.open('', link.target || '_blank');
             const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
             const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
             setCreateLinkHref(link, title, episodeUrl, insertText);
             showCreateLinkDelayFeedback(wrapper);
             await waitBeforeOpeningCreateLink();
-
-            if (targetWindow) {
-                targetWindow.opener = null;
-                targetWindow.location.replace(link.href);
-                return;
-            }
-
             window.open(link.href, link.target || '_blank', 'noopener,noreferrer');
         });
     }
