@@ -158,6 +158,25 @@
         return url.toString();
     }
 
+    function resolveValue(value, fallback = '') {
+        return typeof value === 'function' ? value() : (value || fallback);
+    }
+
+    function updateMixesdbCreateLinkOnClick(link, options = {}) {
+        if (!link || link.dataset.mdbCreateLinkTextUpdater === '1') return;
+
+        link.dataset.mdbCreateLinkTextUpdater = '1';
+        link.addEventListener('click', () => {
+            const title = resolveValue(options.title || options.getTitle);
+            const episodeUrl = resolveValue(options.episodeUrl || options.getEpisodeUrl, location.href);
+            const insertText = resolveValue(options.insertText || options.getInsertText);
+
+            if (!title || !insertText) return;
+
+            link.href = buildMixesdbUrl(title, episodeUrl, insertText);
+        });
+    }
+
     function insertMixesdbTextFromUrl() {
         const params = new URLSearchParams(location.search);
         const action = params.get('action');
@@ -190,6 +209,7 @@
         getNodeTextWithLinebreaks,
         hasTracklistForApi,
         insertMixesdbTextFromUrl,
+        updateMixesdbCreateLinkOnClick,
         logValue,
         normalizeTracklistLine,
         padNumber,
