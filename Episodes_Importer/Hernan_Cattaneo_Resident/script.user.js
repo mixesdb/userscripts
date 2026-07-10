@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.8
+// @version      2026.07.10.17
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.3
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 12,
+var cacheVersion = 17,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -65,10 +65,17 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             hidden: 'mdb-resident-existing-episode-hidden',
             apiFeedback: 'mdb-resident-tle-feedback',
             apiTracklist: 'mdb-resident-tle-tracklist',
+            copyWaiter: 'mdb-resident-copy-waiter',
         },
+        manualExistingEpisodes: [
+            714, 715, 716,
+            659, 660, 661, 662, 663, 664,
+            600,
+            346,
+        ],
     };
 
-    let existingEpisodes = new Set();
+    let existingEpisodes = new Set(config.manualExistingEpisodes);
     let visitedEpisodeLinks = new Set();
     let removeExistingEpisodes = false;
 
@@ -95,22 +102,36 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function parseEpisodeTitle(title) {
-        const match = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
-        if (!match) return null;
+        const slashTitleMatch = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
+        if (slashTitleMatch) {
+            const episodeNumber = Number(slashTitleMatch[1]);
+            const month = importer.getMonthNumber(slashTitleMatch[2]);
+            if (!month || !episodeNumber) return null;
 
-        const episodeNumber = Number(match[1]);
-        const month = importer.getMonthNumber(match[2]);
-        if (!month || !episodeNumber) return null;
+            return {
+                episodeNumber,
+                date: `${slashTitleMatch[4]}-${month}-${String(slashTitleMatch[3]).padStart(2, '0')}`,
+                year: slashTitleMatch[4],
+            };
+        }
 
-        return {
-            episodeNumber,
-            date: `${match[4]}-${month}-${String(match[3]).padStart(2, '0')}`,
-            year: match[4],
-        };
+        const podcastTitleMatch = title.match(/^(\d+)\s+Hernan\s+Cattaneo\s+podcast\s+-\s+(\d{4})-(\d{2})-(\d{2})\b/i);
+        if (podcastTitleMatch) {
+            const episodeNumber = Number(podcastTitleMatch[1]);
+            if (!episodeNumber) return null;
+
+            return {
+                episodeNumber,
+                date: `${podcastTitleMatch[2]}-${podcastTitleMatch[3]}-${podcastTitleMatch[4]}`,
+                year: podcastTitleMatch[2],
+            };
+        }
+
+        return null;
     }
 
     function buildMixesdbTitle(episode) {
-        return `${episode.date} - ${config.artist} - Resident ${importer.padNumber(episode.episodeNumber)}, Delta FM`;
+        return `${episode.date} - ${config.artist} - Resident ${importer.padNumber(episode.episodeNumber)}`;
     }
 
     function getFirstDescriptionParagraph(description) {
@@ -137,7 +158,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return line.replace(/^(.*?\S\s+-\s+)ID$/i, '$1?');
     }
 
-    function renderTracklistApiFeedback(wrapper, tracklistResult) {
+    function renderTracklistApiFeedback(wrapper, tracklistResult, options = {}) {
         const source = getTracklistSourceNode(wrapper);
         if (!source) return;
 
@@ -162,8 +183,20 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         editor.querySelector('textarea').value = tlApi;
 
         if (typeof fixTLbox === 'function') {
-            fixTLbox(feedback, editor);
+            const feedbackForDisplay = options.hideNoChangesFeedback
+                ? getFeedbackWithoutNoChangesMessage(feedback)
+                : feedback;
+            fixTLbox(feedbackForDisplay, editor);
         }
+    }
+
+    function getFeedbackWithoutNoChangesMessage(feedback) {
+        if (!feedback || !feedback.text || !feedback.text.includes('No changes were made.')) return feedback;
+
+        return {
+            ...feedback,
+            text: feedback.text.replace(/<[^>]*>[^<]*No changes were made\.[\s\S]*?<\/[^>]+>/i, '').replace(/No changes were made\./g, '').trim(),
+        };
     }
 
     function extractRawTracklist(wrapper) {
@@ -193,10 +226,21 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         }
     }
 
+    function getPlayerCandidateUrl(player) {
+        return player.href
+            || player.src
+            || player.getAttribute('href')
+            || player.getAttribute('src')
+            || '';
+    }
+
     function extractPlayerUrl(wrapper) {
-        const player = wrapper.querySelector(config.selectors.player);
-        const playerUrl = player ? (player.href || player.src || '') : '';
-        return isValidPlayerUrl(playerUrl) ? new URL(playerUrl, location.href).toString() : '';
+        const players = Array.from(wrapper.querySelectorAll(config.selectors.player));
+        const validPlayerUrl = players
+            .map(getPlayerCandidateUrl)
+            .find(isValidPlayerUrl);
+
+        return validPlayerUrl ? new URL(validPlayerUrl, location.href).toString() : '';
     }
 
     function buildEpisodePageText(episode, tracklistResult, playerUrl = '') {
@@ -214,25 +258,54 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || fallbackTracklist;
     }
 
+    function showCreateLinkWaiter(link) {
+        const waiter = document.createElement('waiter');
+        waiter.className = config.classNames.copyWaiter;
+        waiter.textContent = '…';
+        link.hidden = true;
+        link.setAttribute('aria-busy', 'true');
+        link.insertAdjacentElement('afterend', waiter);
+        return waiter;
+    }
+
+    function hideCreateLinkWaiter(link, waiter) {
+        waiter?.remove();
+        link.hidden = false;
+        link.removeAttribute('aria-busy');
+    }
+
+    function waitBeforeOpeningCreateLink() {
+        return new Promise(resolve => setTimeout(resolve, 1200));
+    }
+
     async function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
         const editorTracklist = getEditorTracklist(wrapper, fallbackTracklist);
 
         if (!editorTracklist || editorTracklist === fallbackTracklist) {
             return {
-                text: fallbackTracklist,
-                status: fallbackStatus,
+                tracklist: {
+                    text: fallbackTracklist,
+                    status: fallbackStatus,
+                },
+                refreshedFeedback: false,
             };
         }
 
         try {
-            const tracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
-            renderTracklistApiFeedback(wrapper, tracklist);
-            return tracklist;
-        } catch (error) {
-            importer.logValue('Failed to reformat edited Resident tracklist for MixesDB', error.message || error);
+            const updatedTracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
+            renderTracklistApiFeedback(wrapper, updatedTracklist, { hideNoChangesFeedback: true });
             return {
-                text: editorTracklist,
-                status: fallbackStatus,
+                tracklist: updatedTracklist,
+                refreshedFeedback: Boolean(updatedTracklist.feedback),
+            };
+        } catch (error) {
+            importer.logValue('Failed to refresh Resident tracklist feedback for MixesDB', error.message || error);
+            return {
+                tracklist: {
+                    text: editorTracklist,
+                    status: fallbackStatus,
+                },
+                refreshedFeedback: false,
             };
         }
     }
@@ -248,17 +321,18 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.addEventListener('click', async event => {
             event.preventDefault();
             markLinkVisited(link);
-            const targetWindow = window.open('about:blank', link.target || '_blank', 'noopener,noreferrer');
-            const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
-            const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
-            setCreateLinkHref(link, title, episodeUrl, insertText);
-
-            if (targetWindow) {
-                targetWindow.location.href = link.href;
-                return;
+            const waiter = showCreateLinkWaiter(link);
+            try {
+                const { tracklist, refreshedFeedback } = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
+                const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
+                setCreateLinkHref(link, title, episodeUrl, insertText);
+                if (refreshedFeedback) {
+                    await waitBeforeOpeningCreateLink();
+                }
+                window.open(link.href, link.target || '_blank', 'noopener,noreferrer');
+            } finally {
+                hideCreateLinkWaiter(link, waiter);
             }
-
-            window.open(link.href, link.target || '_blank', 'noopener,noreferrer');
         });
     }
 
@@ -269,7 +343,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function getDownloadLink(wrapper) {
-        return wrapper.querySelector('a[href*=".mp3"]');
+        return Array.from(wrapper.querySelectorAll('a[href*=".mp3"]'))
+            .find(link => isValidPlayerUrl(link.href || link.getAttribute('href')));
     }
 
     function placeCopyLink(link, wrapper) {
@@ -479,6 +554,15 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 min-height: 8rem;
                 width: 100%;
             }
+            .${config.classNames.copyWaiter} {
+                display: inline-block;
+                margin: 0.25em 0 0.75em 0.5em;
+                padding: 0.25em 0.6em;
+                color: #fff;
+                font-size: 0.85rem;
+                font-weight: 700;
+                line-height: 1.4;
+            }
             /* Hide donation banner block */
             .e-description table {
                 display: none;
@@ -542,7 +626,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     addRemoveExistingToggle();
     importer.fetchExistingEpisodes(config)
         .then(episodeNumbers => {
-            existingEpisodes = new Set(episodeNumbers);
+            existingEpisodes = new Set([...episodeNumbers, ...config.manualExistingEpisodes]);
             logExistingEpisodes();
             addRemoveExistingToggle();
             addEpisodeLinks();

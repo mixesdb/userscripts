@@ -1,4 +1,4 @@
-/* global log, logVar */
+/* global artistLocationCityNames, artistLocationCountryCodes, log, logVar */
 (function () {
     'use strict';
 
@@ -89,6 +89,33 @@
         return rawTracklist.split('\n').filter(Boolean).length >= minimumLines;
     }
 
+    function getArtistLocationQualifiers() {
+        const countryCodes = typeof artistLocationCountryCodes !== 'undefined' ? artistLocationCountryCodes : [];
+        const cityNames = typeof artistLocationCityNames !== 'undefined' ? artistLocationCityNames : [];
+        return new Set([...countryCodes, ...cityNames].map(qualifier => String(qualifier).toLowerCase()));
+    }
+
+    function removeArtistLocationQualifiers(line) {
+        const separator = line.match(/\s+-\s+/);
+        if (!separator) return line;
+
+        const artist = line.slice(0, separator.index);
+        const title = line.slice(separator.index);
+        const locationQualifiers = getArtistLocationQualifiers();
+        const sanitizedArtist = artist.replace(/\s*\(([^()]+)\)/g, (match, qualifier) => {
+            return locationQualifiers.has(String(qualifier).trim().toLowerCase()) ? '' : match;
+        });
+
+        return `${sanitizedArtist}${title}`.replace(/\s+/g, ' ').trim();
+    }
+
+    function removeTracklistArtistLocationQualifiers(rawTracklist) {
+        return rawTracklist
+            .split('\n')
+            .map(removeArtistLocationQualifiers)
+            .join('\n');
+    }
+
     function getFeedbackTracklistStatus(feedback) {
         if (!feedback) return 'incomplete';
         if (feedback.warnings > 0 || feedback.hints > 0 || feedback.status === 'incomplete') return 'incomplete';
@@ -100,11 +127,12 @@
             return { text: '<list>\n\n</list>', status: 'none', feedback: null };
         }
 
-        logMessage('Tracklist before Tracklist Editor API:\n' + rawTracklist);
+        const apiTracklistText = removeTracklistArtistLocationQualifiers(rawTracklist);
+        logMessage('Tracklist before Tracklist Editor API:\n' + apiTracklistText);
 
         if (typeof apiTracklist === 'function') {
-            const apiResult = apiTracklist(rawTracklist, apiType);
-            const formattedTracklist = apiResult.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
+            const apiResult = apiTracklist(apiTracklistText, apiType);
+            const formattedTracklist = apiResult.text || apiTracklistText.split('\n').map(line => `# ${line}`).join('\n');
             logMessage('Tracklist after Tracklist Editor API:\n' + formattedTracklist);
             return { text: formattedTracklist, status: getFeedbackTracklistStatus(apiResult.feedback), feedback: apiResult.feedback || null };
         }
@@ -112,7 +140,7 @@
         const body = new URLSearchParams({
             query: 'tracklistEditor',
             type: apiType,
-            text: rawTracklist,
+            text: apiTracklistText,
         });
 
         const response = await fetch(tracklistApiUrl, {
@@ -126,7 +154,7 @@
         }
 
         const data = await response.json();
-        const formattedTracklist = data.text || rawTracklist.split('\n').map(line => `# ${line}`).join('\n');
+        const formattedTracklist = data.text || apiTracklistText.split('\n').map(line => `# ${line}`).join('\n');
         logMessage('Tracklist after Tracklist Editor API:\n' + formattedTracklist);
         return { text: formattedTracklist, status: getFeedbackTracklistStatus(data.feedback), feedback: data.feedback || null };
     }
@@ -205,6 +233,8 @@
         buildMixesdbUrl,
         fetchExistingEpisodes,
         formatTracklist,
+        removeArtistLocationQualifiers,
+        removeTracklistArtistLocationQualifiers,
         getMonthNumber,
         getNodeTextWithLinebreaks,
         hasTracklistForApi,
