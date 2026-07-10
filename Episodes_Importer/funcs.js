@@ -85,8 +85,8 @@
             .join('');
     }
 
-    function hasTracklistForApi(rawTracklist) {
-        return rawTracklist.split('\n').filter(Boolean).length > 1;
+    function hasTracklistForApi(rawTracklist, minimumLines = 4) {
+        return rawTracklist.split('\n').filter(Boolean).length >= minimumLines;
     }
 
     function getFeedbackTracklistStatus(feedback) {
