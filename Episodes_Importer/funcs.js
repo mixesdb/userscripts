@@ -1,3 +1,79 @@
+/* global window, document */
+
+/**
+ * Add textarea contents to a MixesDB URL.
+ *
+ * The tracklist is read at call/click time (not when the button is built), so
+ * users can edit the textarea first and then open the final MixesDB URL with
+ * those latest edits included.
+ *
+ * @param {string} url - The MixesDB URL to update.
+ * @param {HTMLTextAreaElement|string|jQuery} tracklistSource - Textarea, selector, jQuery object, or raw text.
+ * @param {string} [paramName="tracklist"] - Query parameter that receives the tracklist.
+ * @returns {string} Updated URL with the encoded tracklist parameter.
+ */
+function addTracklistToMixesdbUrl(url, tracklistSource, paramName) {
+    var finalParamName = paramName || "tracklist",
+        finalUrl = new URL(url, window.location.href),
+        tracklist = getTracklistValue(tracklistSource);
+
+    if (tracklist !== "") {
+        finalUrl.searchParams.set(finalParamName, tracklist);
+    } else {
+        finalUrl.searchParams.delete(finalParamName);
+    }
+
+    return finalUrl.toString();
+}
+
+/**
+ * Attach click-time URL generation to a "Copy to MixesDB" link/button.
+ *
+ * @param {HTMLElement|string|jQuery} button - Click target.
+ * @param {HTMLTextAreaElement|string|jQuery} tracklistSource - Tracklist textarea/source.
+ * @param {string|Function} urlSource - URL string or callback returning a URL.
+ * @param {Object} [options]
+ * @param {string} [options.paramName="tracklist"] - Query parameter for the tracklist.
+ */
+function bindCopyToMixesdbTracklistUrl(button, tracklistSource, urlSource, options) {
+    var element = getFirstElement(button),
+        finalOptions = options || {};
+
+    if (!element) return;
+
+    element.addEventListener("click", function () {
+        var baseUrl = typeof urlSource === "function" ? urlSource() : urlSource;
+
+        if (!baseUrl) return;
+
+        element.setAttribute(
+            "href",
+            addTracklistToMixesdbUrl(baseUrl, tracklistSource, finalOptions.paramName)
+        );
+    });
+}
+
+function getTracklistValue(tracklistSource) {
+    var element;
+
+    if (!tracklistSource) return "";
+    if (typeof tracklistSource === "string") {
+        element = document.querySelector(tracklistSource);
+        return element ? element.value : tracklistSource;
+    }
+    if (typeof tracklistSource.val === "function") return tracklistSource.val();
+    if (typeof tracklistSource.value === "string") return tracklistSource.value;
+
+    return String(tracklistSource);
+}
+
+function getFirstElement(elementSource) {
+    if (!elementSource) return null;
+    if (typeof elementSource === "string") return document.querySelector(elementSource);
+    if (typeof elementSource.get === "function") return elementSource.get(0);
+    return elementSource;
+}
+
 /* global log, logVar */
 (function () {
     'use strict';
