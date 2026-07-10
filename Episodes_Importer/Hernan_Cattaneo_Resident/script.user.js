@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.14
+// @version      2026.07.10.15
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -102,18 +102,32 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function parseEpisodeTitle(title) {
-        const match = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
-        if (!match) return null;
+        const slashTitleMatch = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
+        if (slashTitleMatch) {
+            const episodeNumber = Number(slashTitleMatch[1]);
+            const month = importer.getMonthNumber(slashTitleMatch[2]);
+            if (!month || !episodeNumber) return null;
 
-        const episodeNumber = Number(match[1]);
-        const month = importer.getMonthNumber(match[2]);
-        if (!month || !episodeNumber) return null;
+            return {
+                episodeNumber,
+                date: `${slashTitleMatch[4]}-${month}-${String(slashTitleMatch[3]).padStart(2, '0')}`,
+                year: slashTitleMatch[4],
+            };
+        }
 
-        return {
-            episodeNumber,
-            date: `${match[4]}-${month}-${String(match[3]).padStart(2, '0')}`,
-            year: match[4],
-        };
+        const podcastTitleMatch = title.match(/^(\d+)\s+Hernan\s+Cattaneo\s+podcast\s+-\s+(\d{4})-(\d{2})-(\d{2})\b/i);
+        if (podcastTitleMatch) {
+            const episodeNumber = Number(podcastTitleMatch[1]);
+            if (!episodeNumber) return null;
+
+            return {
+                episodeNumber,
+                date: `${podcastTitleMatch[2]}-${podcastTitleMatch[3]}-${podcastTitleMatch[4]}`,
+                year: podcastTitleMatch[2],
+            };
+        }
+
+        return null;
     }
 
     function buildMixesdbTitle(episode) {
