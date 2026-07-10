@@ -117,7 +117,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function buildMixesdbTitle(episode) {
-        return `${episode.date} - ${config.artist} - Resident ${importer.padNumber(episode.episodeNumber)}, Delta FM`;
+        return `${episode.date} - ${config.artist} - Resident ${importer.padNumber(episode.episodeNumber)}`;
     }
 
     function getFirstDescriptionParagraph(description) {
