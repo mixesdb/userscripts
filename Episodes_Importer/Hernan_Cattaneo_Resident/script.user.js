@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.13
+// @version      2026.07.10.14
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 14,
+var cacheVersion = 15,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -65,7 +65,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             hidden: 'mdb-resident-existing-episode-hidden',
             apiFeedback: 'mdb-resident-tle-feedback',
             apiTracklist: 'mdb-resident-tle-tracklist',
-            apiFeedbackPreparing: 'mdb-resident-tle-feedback-preparing',
+            copyWaiter: 'mdb-resident-copy-waiter',
         },
         manualExistingEpisodes: [
             714, 715, 716,
@@ -117,7 +117,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function buildMixesdbTitle(episode) {
-        return `${episode.date} - ${config.artist} - Resident ${importer.padNumber(episode.episodeNumber)}`;
+        return `${importer.padNumber(episode.episodeNumber)} ${config.artist} podcast - ${episode.date}`;
     }
 
     function getFirstDescriptionParagraph(description) {
@@ -144,7 +144,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return line.replace(/^(.*?\S\s+-\s+)ID$/i, '$1?');
     }
 
-    function renderTracklistApiFeedback(wrapper, tracklistResult) {
+    function renderTracklistApiFeedback(wrapper, tracklistResult, options = {}) {
         const source = getTracklistSourceNode(wrapper);
         if (!source) return;
 
@@ -169,8 +169,20 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         editor.querySelector('textarea').value = tlApi;
 
         if (typeof fixTLbox === 'function') {
-            fixTLbox(feedback, editor);
+            const feedbackForDisplay = options.hideNoChangesFeedback
+                ? getFeedbackWithoutNoChangesMessage(feedback)
+                : feedback;
+            fixTLbox(feedbackForDisplay, editor);
         }
+    }
+
+    function getFeedbackWithoutNoChangesMessage(feedback) {
+        if (!feedback || !feedback.text || !feedback.text.includes('No changes were made.')) return feedback;
+
+        return {
+            ...feedback,
+            text: feedback.text.replace(/<[^>]*>[^<]*No changes were made\.[\s\S]*?<\/[^>]+>/i, '').replace(/No changes were made\./g, '').trim(),
+        };
     }
 
     function extractRawTracklist(wrapper) {
@@ -232,11 +244,20 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || fallbackTracklist;
     }
 
-    function showCreateLinkDelayFeedback(wrapper) {
-        const editor = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
-        if (!editor) return;
+    function showCreateLinkWaiter(link) {
+        const waiter = document.createElement('waiter');
+        waiter.className = config.classNames.copyWaiter;
+        waiter.textContent = '…';
+        link.hidden = true;
+        link.setAttribute('aria-busy', 'true');
+        link.insertAdjacentElement('afterend', waiter);
+        return waiter;
+    }
 
-        editor.classList.add(config.classNames.apiFeedbackPreparing);
+    function hideCreateLinkWaiter(link, waiter) {
+        waiter?.remove();
+        link.hidden = false;
+        link.removeAttribute('aria-busy');
     }
 
     function waitBeforeOpeningCreateLink() {
@@ -255,7 +276,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
         try {
             const updatedTracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
-            renderTracklistApiFeedback(wrapper, updatedTracklist);
+            renderTracklistApiFeedback(wrapper, updatedTracklist, { hideNoChangesFeedback: true });
             return updatedTracklist;
         } catch (error) {
             importer.logValue('Failed to refresh Resident tracklist feedback for MixesDB', error.message || error);
@@ -277,12 +298,16 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.addEventListener('click', async event => {
             event.preventDefault();
             markLinkVisited(link);
-            const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
-            const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
-            setCreateLinkHref(link, title, episodeUrl, insertText);
-            showCreateLinkDelayFeedback(wrapper);
-            await waitBeforeOpeningCreateLink();
-            window.open(link.href, link.target || '_blank', 'noopener,noreferrer');
+            const waiter = showCreateLinkWaiter(link);
+            try {
+                const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
+                const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
+                setCreateLinkHref(link, title, episodeUrl, insertText);
+                await waitBeforeOpeningCreateLink();
+                window.open(link.href, link.target || '_blank', 'noopener,noreferrer');
+            } finally {
+                hideCreateLinkWaiter(link, waiter);
+            }
         });
     }
 
@@ -504,16 +529,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 min-height: 8rem;
                 width: 100%;
             }
-            .${config.classNames.apiFeedback}.${config.classNames.apiFeedbackPreparing}::before {
-                background: #0057d850;
-                border: 1px solid #4d8fff;
-                border-radius: 4px;
+            .${config.classNames.copyWaiter} {
+                display: inline-block;
+                margin: 0.25em 0 0.75em 0.5em;
+                padding: 0.25em 0.6em;
                 color: #fff;
-                content: 'Preparing MixesDB copy link…';
-                display: block;
+                font-size: 0.85rem;
                 font-weight: 700;
-                margin: 0 0 0.5rem;
-                padding: 0.35em 0.6em;
+                line-height: 1.4;
             }
             /* Hide donation banner block */
             .e-description table {
