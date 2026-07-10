@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.11
+// @version      2026.07.10.12
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -65,6 +65,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             hidden: 'mdb-resident-existing-episode-hidden',
             apiFeedback: 'mdb-resident-tle-feedback',
             apiTracklist: 'mdb-resident-tle-tracklist',
+            apiFeedbackPreparing: 'mdb-resident-tle-feedback-preparing',
         },
         manualExistingEpisodes: [
             714, 715, 716,
@@ -231,6 +232,17 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || fallbackTracklist;
     }
 
+    function showCreateLinkDelayFeedback(wrapper) {
+        const editor = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
+        if (!editor) return;
+
+        editor.classList.add(config.classNames.apiFeedbackPreparing);
+    }
+
+    function waitBeforeOpeningCreateLink() {
+        return new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
     async function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
         const editorTracklist = getEditorTracklist(wrapper, fallbackTracklist);
 
@@ -241,17 +253,10 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             };
         }
 
-        try {
-            const tracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
-            renderTracklistApiFeedback(wrapper, tracklist);
-            return tracklist;
-        } catch (error) {
-            importer.logValue('Failed to reformat edited Resident tracklist for MixesDB', error.message || error);
-            return {
-                text: editorTracklist,
-                status: fallbackStatus,
-            };
-        }
+        return {
+            text: editorTracklist,
+            status: fallbackStatus,
+        };
     }
 
     function setCreateLinkHref(link, title, episodeUrl, insertText) {
@@ -269,6 +274,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
             const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
             setCreateLinkHref(link, title, episodeUrl, insertText);
+            showCreateLinkDelayFeedback(wrapper);
+            await waitBeforeOpeningCreateLink();
 
             if (targetWindow) {
                 targetWindow.opener = null;
@@ -497,6 +504,17 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 box-sizing: border-box;
                 min-height: 8rem;
                 width: 100%;
+            }
+            .${config.classNames.apiFeedback}.${config.classNames.apiFeedbackPreparing}::before {
+                background: #0057d850;
+                border: 1px solid #4d8fff;
+                border-radius: 4px;
+                color: #fff;
+                content: 'Preparing MixesDB copy link…';
+                display: block;
+                font-weight: 700;
+                margin: 0 0 0.5rem;
+                padding: 0.35em 0.6em;
             }
             /* Hide donation banner block */
             .e-description table {
