@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.5
+// @version      2026.07.10.7
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.2
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -30,18 +30,6 @@ var cacheVersion = 11,
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 
-
-(function () {
-    "use strict";
-
-    var copyButton = document.querySelector("#copy-to-mixesdb, .copy-to-mixesdb, [data-copy-to-mixesdb]"),
-        tracklistTextarea = document.querySelector("#mixesdb-tracklist, .mixesdb-tracklist, textarea"),
-        mixesdbUrl = copyButton && (copyButton.dataset.mixesdbUrl || copyButton.getAttribute("href"));
-
-    if (!copyButton || !tracklistTextarea || !mixesdbUrl) return;
-
-    bindCopyToMixesdbTracklistUrl(copyButton, tracklistTextarea, mixesdbUrl);
-}());
 
 /* global fixTLbox */
 (function () {
@@ -267,6 +255,18 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             const tracklist = await importer.formatTracklist(rawTracklist, config.tleApiType);
             renderTracklistApiFeedback(wrapper, tracklist);
             link.href = importer.buildMixesdbUrl(title, episodeUrl, buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper)));
+            importer.updateMixesdbCreateLinkOnClick(link, {
+                title,
+                episodeUrl,
+                getInsertText: () => buildEpisodePageText(
+                    episode,
+                    {
+                        text: wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || tracklist.text,
+                        status: tracklist.status,
+                    },
+                    extractPlayerUrl(wrapper)
+                ),
+            });
         } catch (error) {
             importer.logValue('Failed to format Resident tracklist for MixesDB', error.message || error);
             const fallbackTracklist = importer.hasTracklistForApi(rawTracklist)
@@ -275,6 +275,18 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             const fallbackStatus = importer.hasTracklistForApi(rawTracklist) ? 'incomplete' : 'none';
             renderTracklistApiFeedback(wrapper, { feedback: null });
             link.href = importer.buildMixesdbUrl(title, episodeUrl, buildEpisodePageText(episode, { text: fallbackTracklist, status: fallbackStatus }, extractPlayerUrl(wrapper)));
+            importer.updateMixesdbCreateLinkOnClick(link, {
+                title,
+                episodeUrl,
+                getInsertText: () => buildEpisodePageText(
+                    episode,
+                    {
+                        text: wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || fallbackTracklist,
+                        status: fallbackStatus,
+                    },
+                    extractPlayerUrl(wrapper)
+                ),
+            });
         }
         link.className = `${config.classNames.link} is-missing`;
         link.textContent = 'Copy to MixesDB';
