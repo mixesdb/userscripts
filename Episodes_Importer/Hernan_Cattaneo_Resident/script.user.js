@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.5
+// @version      2026.07.10.6
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -30,18 +30,6 @@ var cacheVersion = 11,
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 
-
-(function () {
-    "use strict";
-
-    var copyButton = document.querySelector("#copy-to-mixesdb, .copy-to-mixesdb, [data-copy-to-mixesdb]"),
-        tracklistTextarea = document.querySelector("#mixesdb-tracklist, .mixesdb-tracklist, textarea"),
-        mixesdbUrl = copyButton && (copyButton.dataset.mixesdbUrl || copyButton.getAttribute("href"));
-
-    if (!copyButton || !tracklistTextarea || !mixesdbUrl) return;
-
-    bindCopyToMixesdbTracklistUrl(copyButton, tracklistTextarea, mixesdbUrl);
-}());
 
 /* global fixTLbox */
 (function () {
