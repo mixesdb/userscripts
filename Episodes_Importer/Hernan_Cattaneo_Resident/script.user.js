@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.10
+// @version      2026.07.10.11
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 13,
+var cacheVersion = 14,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -199,10 +199,21 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         }
     }
 
+    function getPlayerCandidateUrl(player) {
+        return player.href
+            || player.src
+            || player.getAttribute('href')
+            || player.getAttribute('src')
+            || '';
+    }
+
     function extractPlayerUrl(wrapper) {
-        const player = wrapper.querySelector(config.selectors.player);
-        const playerUrl = player ? (player.href || player.src || '') : '';
-        return isValidPlayerUrl(playerUrl) ? new URL(playerUrl, location.href).toString() : '';
+        const players = Array.from(wrapper.querySelectorAll(config.selectors.player));
+        const validPlayerUrl = players
+            .map(getPlayerCandidateUrl)
+            .find(isValidPlayerUrl);
+
+        return validPlayerUrl ? new URL(validPlayerUrl, location.href).toString() : '';
     }
 
     function buildEpisodePageText(episode, tracklistResult, playerUrl = '') {
@@ -276,7 +287,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function getDownloadLink(wrapper) {
-        return wrapper.querySelector('a[href*=".mp3"]');
+        return Array.from(wrapper.querySelectorAll('a[href*=".mp3"]'))
+            .find(link => isValidPlayerUrl(link.href || link.getAttribute('href')));
     }
 
     function placeCopyLink(link, wrapper) {
