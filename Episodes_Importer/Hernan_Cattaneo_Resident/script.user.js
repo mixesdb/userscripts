@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.15
+// @version      2026.07.10.16
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 15,
+var cacheVersion = 16,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -131,7 +131,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function buildMixesdbTitle(episode) {
-        return `${importer.padNumber(episode.episodeNumber)} ${config.artist} podcast - ${episode.date}`;
+        return `${episode.date} - ${config.artist} - Resident ${importer.padNumber(episode.episodeNumber)}`;
     }
 
     function getFirstDescriptionParagraph(description) {
@@ -275,7 +275,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function waitBeforeOpeningCreateLink() {
-        return new Promise(resolve => setTimeout(resolve, 1500));
+        return new Promise(resolve => setTimeout(resolve, 1200));
     }
 
     async function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
@@ -283,20 +283,29 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
         if (!editorTracklist || editorTracklist === fallbackTracklist) {
             return {
-                text: fallbackTracklist,
-                status: fallbackStatus,
+                tracklist: {
+                    text: fallbackTracklist,
+                    status: fallbackStatus,
+                },
+                refreshedFeedback: false,
             };
         }
 
         try {
             const updatedTracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
             renderTracklistApiFeedback(wrapper, updatedTracklist, { hideNoChangesFeedback: true });
-            return updatedTracklist;
+            return {
+                tracklist: updatedTracklist,
+                refreshedFeedback: Boolean(updatedTracklist.feedback),
+            };
         } catch (error) {
             importer.logValue('Failed to refresh Resident tracklist feedback for MixesDB', error.message || error);
             return {
-                text: editorTracklist,
-                status: fallbackStatus,
+                tracklist: {
+                    text: editorTracklist,
+                    status: fallbackStatus,
+                },
+                refreshedFeedback: false,
             };
         }
     }
@@ -314,10 +323,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             markLinkVisited(link);
             const waiter = showCreateLinkWaiter(link);
             try {
-                const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
+                const { tracklist, refreshedFeedback } = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
                 const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
                 setCreateLinkHref(link, title, episodeUrl, insertText);
-                await waitBeforeOpeningCreateLink();
+                if (refreshedFeedback) {
+                    await waitBeforeOpeningCreateLink();
+                }
                 window.open(link.href, link.target || '_blank', 'noopener,noreferrer');
             } finally {
                 hideCreateLinkWaiter(link, waiter);
