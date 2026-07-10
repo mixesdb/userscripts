@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.8
+// @version      2026.07.10.9
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -66,9 +66,15 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             apiFeedback: 'mdb-resident-tle-feedback',
             apiTracklist: 'mdb-resident-tle-tracklist',
         },
+        manualExistingEpisodes: [
+            714, 715, 716,
+            659, 660, 661, 662, 663, 664,
+            600,
+            346,
+        ],
     };
 
-    let existingEpisodes = new Set();
+    let existingEpisodes = new Set(config.manualExistingEpisodes);
     let visitedEpisodeLinks = new Set();
     let removeExistingEpisodes = false;
 
@@ -542,7 +548,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     addRemoveExistingToggle();
     importer.fetchExistingEpisodes(config)
         .then(episodeNumbers => {
-            existingEpisodes = new Set(episodeNumbers);
+            existingEpisodes = new Set([...episodeNumbers, ...config.manualExistingEpisodes]);
             logExistingEpisodes();
             addRemoveExistingToggle();
             addEpisodeLinks();
