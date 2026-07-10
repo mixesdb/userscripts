@@ -231,13 +231,27 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || fallbackTracklist;
     }
 
-    function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
+    async function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
         const editorTracklist = getEditorTracklist(wrapper, fallbackTracklist);
 
-        return {
-            text: editorTracklist || fallbackTracklist,
-            status: fallbackStatus,
-        };
+        if (!editorTracklist || editorTracklist === fallbackTracklist) {
+            return {
+                text: fallbackTracklist,
+                status: fallbackStatus,
+            };
+        }
+
+        try {
+            const tracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
+            renderTracklistApiFeedback(wrapper, tracklist);
+            return tracklist;
+        } catch (error) {
+            importer.logValue('Failed to reformat edited Resident tracklist for MixesDB', error.message || error);
+            return {
+                text: editorTracklist,
+                status: fallbackStatus,
+            };
+        }
     }
 
     function setCreateLinkHref(link, title, episodeUrl, insertText) {
