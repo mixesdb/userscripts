@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.2
+// @version      2026.07.10.3
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -55,7 +55,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             listContainer: '.container.list-container',
             episodeWrapper: '.container.list-container .list',
             episodeHeading: 'h2.card-title.e-title',
-            description: 'p.e-description, .episode-description > p',
+            description: 'p.e-description, .episode-description > p, .episode-description',
             player: 'a[href*=".mp3"], audio[src*=".mp3"], audio source[src*=".mp3"]',
         },
         classNames: {
@@ -127,10 +127,29 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
 
+    function getLegacyTracklistNodes(wrapper) {
+        const description = wrapper.querySelector('.episode-description');
+        if (!description) return [];
+
+        return Array.from(description.children)
+            .filter(child => child.matches('div, p'))
+            .filter(child => importer.getNodeTextWithLinebreaks(child).trim());
+    }
+
     function getTracklistSourceNode(wrapper) {
+        const legacyTracklistNodes = getLegacyTracklistNodes(wrapper);
+        if (legacyTracklistNodes.length) return legacyTracklistNodes[0];
+
         const description = wrapper.querySelector(config.selectors.description);
         if (!description) return null;
         return getFirstDescriptionParagraph(description) || description;
+    }
+
+    function getTracklistInsertNode(wrapper) {
+        const legacyTracklistNodes = getLegacyTracklistNodes(wrapper);
+        if (legacyTracklistNodes.length) return legacyTracklistNodes[legacyTracklistNodes.length - 1];
+
+        return getTracklistSourceNode(wrapper);
     }
 
     function fixRawTracklistLine(line) {
@@ -138,7 +157,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function renderTracklistApiFeedback(wrapper, tracklistResult) {
-        const source = getTracklistSourceNode(wrapper);
+        const source = getTracklistInsertNode(wrapper);
         if (!source) return;
 
         let editor = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
@@ -170,8 +189,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         const description = wrapper.querySelector(config.selectors.description);
         if (!description) return '';
 
-        const source = getTracklistSourceNode(wrapper);
-        return importer.getNodeTextWithLinebreaks(source)
+        const legacyTracklistNodes = getLegacyTracklistNodes(wrapper);
+        const rawTracklist = legacyTracklistNodes.length
+            ? legacyTracklistNodes.map(node => importer.getNodeTextWithLinebreaks(node)).join('\n')
+            : importer.getNodeTextWithLinebreaks(getTracklistSourceNode(wrapper));
+
+        return rawTracklist
             .split('\n')
             .map(importer.normalizeTracklistLine)
             .filter(Boolean)
@@ -217,7 +240,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function getDownloadLink(wrapper) {
-        return wrapper.querySelector('a[href*=".mp3"]');
+        return wrapper.querySelector('a[href*=".mp3"], a[title="Download"], a[href*="download=1"]');
     }
 
     function placeCopyLink(link, wrapper) {
@@ -231,6 +254,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
         if (downloadLink) {
             downloadLink.insertAdjacentElement('beforebegin', link);
+            return;
+        }
+
+        const toolbar = wrapper.querySelector('.cc-post-toolbar');
+        if (toolbar) {
+            toolbar.insertAdjacentElement('beforebegin', link);
         }
     }
 
