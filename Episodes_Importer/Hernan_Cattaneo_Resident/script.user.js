@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.18
+// @version      2026.07.10.19
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_18
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.19
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 17,
+var cacheVersion = 19,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -347,17 +347,30 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             .find(link => isValidPlayerUrl(link.href || link.getAttribute('href')));
     }
 
+    function getDedicatedCopyLinkParagraph(link) {
+        const currentParagraph = link.closest('p');
+        if (currentParagraph && currentParagraph.children.length === 1 && currentParagraph.textContent.trim() === link.textContent.trim()) {
+            return currentParagraph;
+        }
+
+        const paragraph = document.createElement('p');
+        paragraph.append(link);
+        return paragraph;
+    }
+
     function placeCopyLink(link, wrapper) {
         const apiFeedback = wrapper.querySelector(`.${config.classNames.apiFeedback}`);
         const downloadLink = getDownloadLink(wrapper);
+        const paragraph = getDedicatedCopyLinkParagraph(link);
 
         if (apiFeedback) {
-            apiFeedback.insertAdjacentElement('afterend', link);
+            apiFeedback.insertAdjacentElement('afterend', paragraph);
             return;
         }
 
         if (downloadLink) {
-            downloadLink.insertAdjacentElement('beforebegin', link);
+            const downloadParagraph = downloadLink.closest('p');
+            (downloadParagraph || downloadLink).insertAdjacentElement('beforebegin', paragraph);
         }
     }
 
@@ -577,6 +590,28 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         document.head.appendChild(style);
     }
 
+    function removeDonationContent(wrapper) {
+        const description = wrapper.querySelector('.episode-description');
+        if (!description) return;
+
+        const walker = document.createTreeWalker(description, NodeFilter.SHOW_TEXT);
+        let markerNode = null;
+        while ((markerNode = walker.nextNode())) {
+            if (/Help me support/i.test(markerNode.textContent)) break;
+        }
+        if (!markerNode) return;
+
+        const firstDonationNode = markerNode.parentElement?.closest('p, a') || markerNode.parentElement;
+        if (!firstDonationNode) return;
+
+        let node = firstDonationNode;
+        while (node) {
+            const nextNode = node.nextSibling;
+            node.remove();
+            node = nextNode;
+        }
+    }
+
     function removeEmptyEpisodeParagraphs(wrapper) {
         wrapper.querySelectorAll('p').forEach(paragraph => {
             const text = paragraph.textContent.replace(/\u00a0/g, ' ').trim();
@@ -588,6 +623,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     function addEpisodeLinks() {
         document.querySelectorAll(config.selectors.episodeWrapper).forEach(wrapper => {
+            removeDonationContent(wrapper);
             removeEmptyEpisodeParagraphs(wrapper);
 
             const heading = wrapper.querySelector(config.selectors.episodeHeading);
