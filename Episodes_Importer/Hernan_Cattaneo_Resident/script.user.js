@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.1
+// @version      2026.07.10.2
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 10,
+var cacheVersion = 11,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -133,6 +133,10 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return getFirstDescriptionParagraph(description) || description;
     }
 
+    function fixRawTracklistLine(line) {
+        return line.replace(/^(.*?\S\s+-\s+)ID$/i, '$1?');
+    }
+
     function renderTracklistApiFeedback(wrapper, tracklistResult) {
         const source = getTracklistSourceNode(wrapper);
         if (!source) return;
@@ -171,6 +175,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             .split('\n')
             .map(importer.normalizeTracklistLine)
             .filter(Boolean)
+            .map(fixRawTracklistLine)
             .join('\n');
     }
 
