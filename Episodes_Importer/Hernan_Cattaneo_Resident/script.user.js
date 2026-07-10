@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.9
+// @version      2026.07.10.10
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 12,
+var cacheVersion = 13,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -254,13 +254,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.addEventListener('click', async event => {
             event.preventDefault();
             markLinkVisited(link);
-            const targetWindow = window.open('about:blank', link.target || '_blank', 'noopener,noreferrer');
+            const targetWindow = window.open('', link.target || '_blank');
             const tracklist = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
             const insertText = buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper));
             setCreateLinkHref(link, title, episodeUrl, insertText);
 
             if (targetWindow) {
-                targetWindow.location.href = link.href;
+                targetWindow.opener = null;
+                targetWindow.location.replace(link.href);
                 return;
             }
 
