@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.10
+// @version      2026.07.10.11
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -220,27 +220,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return wrapper.querySelector(`.${config.classNames.apiTracklist}`)?.value || fallbackTracklist;
     }
 
-    async function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
+    function getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus) {
         const editorTracklist = getEditorTracklist(wrapper, fallbackTracklist);
 
-        if (!editorTracklist || editorTracklist === fallbackTracklist) {
-            return {
-                text: fallbackTracklist,
-                status: fallbackStatus,
-            };
-        }
-
-        try {
-            const tracklist = await importer.formatTracklist(editorTracklist, config.tleApiType);
-            renderTracklistApiFeedback(wrapper, tracklist);
-            return tracklist;
-        } catch (error) {
-            importer.logValue('Failed to reformat edited Resident tracklist for MixesDB', error.message || error);
-            return {
-                text: editorTracklist,
-                status: fallbackStatus,
-            };
-        }
+        return {
+            text: editorTracklist || fallbackTracklist,
+            status: fallbackStatus,
+        };
     }
 
     function setCreateLinkHref(link, title, episodeUrl, insertText) {
