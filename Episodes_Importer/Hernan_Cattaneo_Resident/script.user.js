@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.10.20
+// @version      2026.07.11.1
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 19,
+var cacheVersion = 20,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -157,6 +157,18 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return line.replace(/^(.*?\S\s+-\s+)ID$/i, '$1?');
     }
 
+    function lowercaseTracklistLineArtist(line) {
+        const artistTitleSeparator = /\s+-\s+/;
+        const separatorMatch = line.match(artistTitleSeparator);
+        if (!separatorMatch || separatorMatch.index === undefined) return line;
+
+        const artist = line.slice(0, separatorMatch.index);
+        const title = line.slice(separatorMatch.index + separatorMatch[0].length);
+        if (!artist.trim() || !title.trim()) return line;
+
+        return `${artist.toLowerCase()}${separatorMatch[0]}${title}`;
+    }
+
     function renderTracklistApiFeedback(wrapper, tracklistResult, options = {}) {
         const source = getTracklistSourceNode(wrapper);
         if (!source) return;
@@ -208,6 +220,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             .map(importer.normalizeTracklistLine)
             .filter(Boolean)
             .map(fixRawTracklistLine)
+            .map(lowercaseTracklistLineArtist)
             .join('\n');
     }
 
