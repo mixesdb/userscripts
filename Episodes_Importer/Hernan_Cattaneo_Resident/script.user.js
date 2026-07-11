@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.3
+// @version      2026.07.11.11
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.11.1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_22
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.11.2
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 21,
+var cacheVersion = 22,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -67,17 +67,37 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             apiTracklist: 'mdb-resident-tle-tracklist',
             copyWaiter: 'mdb-resident-copy-waiter',
             copiedWrapper: 'mdb-resident-copied-wrapper',
+            autoLoadMoreWaiter: 'mdb-resident-auto-load-more-waiter',
         },
+        loadMoreSelector: '.load-more a[href]',
+        autoLoadMoreDelay: 700,
         manualExistingEpisodes: [
             714, 715, 716,
             659, 660, 661, 662, 663, 664, 610, 609, 608, 607, 600,
-            346,
+            400, 401, 402, 403, 451, 452, 453, 454, 455,
+            346, 388, 389, 398, 399,
+        ],
+        manualExistingEpisodeTitles: [
+            'Resident / Episode 502 / SunsetStream Eclipse Edition / Dec 19 2020',
+            'Resident #stayhome #quedateencasa special - Sunsetstrip Home Edition 4/4/2020',
+            'Resident #stayhome #quedateencasa special - Sunsetstrip 2020',
+            'Resident / Episode 346 - XMas Special / Dec 23 2017',
+            'Resident / Episode 004 / May 28th 2011',
+            'Resident / Episode 003 / May 21st 2011',
+            'Resident / Episode 002.2 / May 14th 2011',
+            'Resident / Episode 002.1 / May 14th 2011',
+            'Resident / Episode 001.2 / May 7th 2011',
+            'Resident / Episode 001.1 / May 7th 2011',
         ],
     };
 
     let existingEpisodes = new Set(config.manualExistingEpisodes);
+    const manualExistingEpisodeTitles = new Set(config.manualExistingEpisodeTitles.map(normalizeEpisodeTitle));
     let visitedEpisodeLinks = new Set();
     let removeExistingEpisodes = false;
+    let autoLoadMoreTimer = null;
+    let autoLoadMoreInProgress = false;
+    let lastAutoLoadVisibleMissingCount = 0;
 
     function loadVisitedEpisodeLinks() {
         try {
@@ -101,8 +121,32 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         setLinkVisitedState(link);
     }
 
+    function stringifyLogDetails(details) {
+        if (details === undefined || details === null || details === '') return details || '';
+        if (typeof details !== 'object') return details;
+
+        try {
+            return JSON.stringify(details);
+        } catch (error) {
+            return String(details);
+        }
+    }
+
     function logStep(step, details = '') {
-        importer.logValue(`Resident importer: ${step}`, details);
+        importer.logValue(`Resident importer: ${step}`, stringifyLogDetails(details));
+    }
+
+    function getResidentMonthNumber(monthName) {
+        const month = importer.getMonthNumber(monthName);
+        if (month) return month;
+
+        const residentMonthAliases = {
+            ene: '01', enero: '01',
+            abr: '04', abril: '04',
+            ago: '08', agosto: '08',
+            dic: '12', diciembre: '12',
+        };
+        return residentMonthAliases[String(monthName || '').toLowerCase()] || '';
     }
 
     function getWrapperLabel(wrapper) {
@@ -111,13 +155,25 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             || wrapper.textContent.trim().replace(/\s+/g, ' ').slice(0, 120);
     }
 
+    function normalizeEpisodeTitle(title) {
+        return String(title || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function isManualExistingEpisodeTitle(title) {
+        return manualExistingEpisodeTitles.has(normalizeEpisodeTitle(title));
+    }
+
+    function isExistingEpisode(episode, title = '') {
+        return existingEpisodes.has(episode.episodeNumber) || isManualExistingEpisodeTitle(title);
+    }
+
     function parseEpisodeTitle(title) {
         logStep('parseEpisodeTitle input', title);
-        const slashTitleMatch = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
+        const slashTitleMatch = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})(?:\s*\/)?\s+(\d{4})/i);
         if (slashTitleMatch) {
             const episodeNumber = Number(slashTitleMatch[1]);
             const monthName = slashTitleMatch[2];
-            const month = importer.getMonthNumber(monthName);
+            const month = getResidentMonthNumber(monthName);
             logStep('slash title match', { episodeNumber, monthName, month, day: slashTitleMatch[3], year: slashTitleMatch[4] });
             if (!month || !episodeNumber) {
                 logStep('slash title rejected', { title, episodeNumber, monthName, month });
@@ -423,7 +479,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     async function updateMixesdbLink(link, episode, wrapper) {
         logStep('updateMixesdbLink start', { episode, wrapper: getWrapperLabel(wrapper) });
-        const isExisting = existingEpisodes.has(episode.episodeNumber);
+        const sourceTitle = wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim() || '';
+        const isExisting = isExistingEpisode(episode, sourceTitle);
         const title = buildMixesdbTitle(episode);
         const episodeUrl = link.dataset.episodeUrl || location.href;
 
@@ -467,13 +524,81 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function setEpisodeVisibility(wrapper, episode) {
-        wrapper.classList.toggle(config.classNames.hidden, removeExistingEpisodes && existingEpisodes.has(episode.episodeNumber));
+        const sourceTitle = wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim() || '';
+        wrapper.classList.toggle(config.classNames.hidden, removeExistingEpisodes && isExistingEpisode(episode, sourceTitle));
+    }
+
+    function setManualExistingTitleVisibility(wrapper, title) {
+        wrapper.classList.toggle(config.classNames.hidden, removeExistingEpisodes && isManualExistingEpisodeTitle(title));
     }
 
     function updateEpisodeVisibility() {
         document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-episode-number]`).forEach(wrapper => {
             setEpisodeVisibility(wrapper, { episodeNumber: Number(wrapper.dataset.mdbEpisodeNumber) });
         });
+        document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-manual-existing-title="true"]`).forEach(wrapper => {
+            setManualExistingTitleVisibility(wrapper, wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim() || '');
+        });
+        scheduleAutoLoadMoreWhenNoNewEpisodes();
+    }
+
+    function getVisibleMissingEpisodeCount() {
+        return Array.from(document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-episode-number]`))
+            .filter(wrapper => !wrapper.classList.contains(config.classNames.hidden))
+            .filter(wrapper => !existingEpisodes.has(Number(wrapper.dataset.mdbEpisodeNumber)))
+            .length;
+    }
+
+    function getLoadMoreLink() {
+        return document.querySelector(config.loadMoreSelector);
+    }
+
+    function setAutoLoadMoreFeedback(isLoading) {
+        const loadMore = getLoadMoreLink();
+        if (!loadMore) return;
+
+        let waiter = loadMore.parentElement?.querySelector(`.${config.classNames.autoLoadMoreWaiter}`);
+        if (!isLoading) {
+            waiter?.remove();
+            return;
+        }
+
+        if (!waiter) {
+            waiter = document.createElement('span');
+            waiter.className = config.classNames.autoLoadMoreWaiter;
+            loadMore.insertAdjacentElement('afterend', waiter);
+        }
+        waiter.textContent = 'Loading hidden episodes…';
+    }
+
+    function scheduleAutoLoadMoreWhenNoNewEpisodes() {
+        clearTimeout(autoLoadMoreTimer);
+        if (!removeExistingEpisodes || autoLoadMoreInProgress) return;
+
+        autoLoadMoreTimer = setTimeout(autoLoadMoreWhenNoNewEpisodes, config.autoLoadMoreDelay);
+    }
+
+    function autoLoadMoreWhenNoNewEpisodes() {
+        if (!removeExistingEpisodes || autoLoadMoreInProgress) return;
+
+        const loadMore = getLoadMoreLink();
+        if (!loadMore) return;
+
+        const visibleMissingCount = getVisibleMissingEpisodeCount();
+        if (visibleMissingCount > 0 || visibleMissingCount > lastAutoLoadVisibleMissingCount) {
+            lastAutoLoadVisibleMissingCount = visibleMissingCount;
+            return;
+        }
+
+        autoLoadMoreInProgress = true;
+        setAutoLoadMoreFeedback(true);
+        logStep('auto load more: no new visible missing episodes', { visibleMissingCount, href: loadMore.href });
+        loadMore.click();
+        setTimeout(() => {
+            autoLoadMoreInProgress = false;
+            setAutoLoadMoreFeedback(false);
+            scheduleAutoLoadMoreWhenNoNewEpisodes();
+        }, config.autoLoadMoreDelay);
     }
 
     function createRemoveExistingToggle() {
@@ -486,6 +611,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         checkbox.addEventListener('change', () => {
             removeExistingEpisodes = checkbox.checked;
             localStorage.setItem(config.storageKey, removeExistingEpisodes ? 'true' : 'false');
+            lastAutoLoadVisibleMissingCount = getVisibleMissingEpisodeCount();
             updateEpisodeVisibility();
         });
 
@@ -644,6 +770,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 font-weight: 700;
                 line-height: 1.4;
             }
+            .${config.classNames.autoLoadMoreWaiter} {
+                display: inline-block;
+                margin-left: 0.5rem;
+                color: #fff;
+                font-size: 0.85rem;
+                font-weight: 700;
+            }
             /* Hide donation banner block */
             .e-description table {
                 display: none;
@@ -707,9 +840,20 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 return;
             }
 
-            const episode = parseEpisodeTitle(heading.textContent.trim());
+            const headingTitle = heading.textContent.trim();
+            const isManualExistingTitle = isManualExistingEpisodeTitle(headingTitle);
+
+            const episode = parseEpisodeTitle(headingTitle);
+            if (!episode && isManualExistingTitle) {
+                wrapper.dataset.mdbManualExistingTitle = 'true';
+                addEpisodeCloseButton(wrapper);
+                heading.dataset.mdbImporterProcessed = 'true';
+                setManualExistingTitleVisibility(wrapper, headingTitle);
+                logStep('episode treated as existing by title', { title: headingTitle, hidden: wrapper.classList.contains(config.classNames.hidden) });
+                return;
+            }
             if (!episode) {
-                logStep('episode skipped: title parse failed', heading.textContent.trim());
+                logStep('episode skipped: title parse failed', headingTitle);
                 return;
             }
             logStep('episode parsed', episode);
@@ -722,6 +866,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             setEpisodeVisibility(wrapper, episode);
             logStep('episode link inserted', { episodeNumber: episode.episodeNumber, hidden: wrapper.classList.contains(config.classNames.hidden) });
         });
+        scheduleAutoLoadMoreWhenNoNewEpisodes();
     }
 
     function startEpisodeObserver() {
