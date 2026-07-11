@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.7
+// @version      2026.07.11.8
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -77,13 +77,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             451, 452, 453, 454, 455,
             346,
         ],
-        ignoredEpisodeTitles: [
+        manualExistingEpisodeTitles: [
             'Resident #stayhome #quedateencasa special - Sunsetstrip Home Edition 4/4/2020',
             'Resident #stayhome #quedateencasa special - Sunsetstrip 2020',
         ],
     };
 
     let existingEpisodes = new Set(config.manualExistingEpisodes);
+    const manualExistingEpisodeTitles = new Set(config.manualExistingEpisodeTitles.map(normalizeEpisodeTitle));
     let visitedEpisodeLinks = new Set();
     let removeExistingEpisodes = false;
     let autoLoadMoreTimer = null;
@@ -150,9 +151,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return String(title || '').replace(/\s+/g, ' ').trim().toLowerCase();
     }
 
-    function shouldIgnoreEpisodeTitle(title) {
-        const normalizedTitle = normalizeEpisodeTitle(title);
-        return config.ignoredEpisodeTitles.some(ignoredTitle => normalizeEpisodeTitle(ignoredTitle) === normalizedTitle);
+    function isManualExistingEpisodeTitle(title) {
+        return manualExistingEpisodeTitles.has(normalizeEpisodeTitle(title));
+    }
+
+    function isExistingEpisode(episode, title = '') {
+        return existingEpisodes.has(episode.episodeNumber) || isManualExistingEpisodeTitle(title);
     }
 
     function parseEpisodeTitle(title) {
@@ -467,7 +471,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     async function updateMixesdbLink(link, episode, wrapper) {
         logStep('updateMixesdbLink start', { episode, wrapper: getWrapperLabel(wrapper) });
-        const isExisting = existingEpisodes.has(episode.episodeNumber);
+        const sourceTitle = wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim() || '';
+        const isExisting = isExistingEpisode(episode, sourceTitle);
         const title = buildMixesdbTitle(episode);
         const episodeUrl = link.dataset.episodeUrl || location.href;
 
@@ -511,12 +516,20 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function setEpisodeVisibility(wrapper, episode) {
-        wrapper.classList.toggle(config.classNames.hidden, removeExistingEpisodes && existingEpisodes.has(episode.episodeNumber));
+        const sourceTitle = wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim() || '';
+        wrapper.classList.toggle(config.classNames.hidden, removeExistingEpisodes && isExistingEpisode(episode, sourceTitle));
+    }
+
+    function setManualExistingTitleVisibility(wrapper, title) {
+        wrapper.classList.toggle(config.classNames.hidden, removeExistingEpisodes && isManualExistingEpisodeTitle(title));
     }
 
     function updateEpisodeVisibility() {
         document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-episode-number]`).forEach(wrapper => {
             setEpisodeVisibility(wrapper, { episodeNumber: Number(wrapper.dataset.mdbEpisodeNumber) });
+        });
+        document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-manual-existing-title="true"]`).forEach(wrapper => {
+            setManualExistingTitleVisibility(wrapper, wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim() || '');
         });
         scheduleAutoLoadMoreWhenNoNewEpisodes();
     }
@@ -820,13 +833,17 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             }
 
             const headingTitle = heading.textContent.trim();
-            if (shouldIgnoreEpisodeTitle(headingTitle)) {
-                heading.dataset.mdbImporterProcessed = 'true';
-                logStep('episode skipped: ignored title', headingTitle);
-                return;
-            }
+            const isManualExistingTitle = isManualExistingEpisodeTitle(headingTitle);
 
             const episode = parseEpisodeTitle(headingTitle);
+            if (!episode && isManualExistingTitle) {
+                wrapper.dataset.mdbManualExistingTitle = 'true';
+                addEpisodeCloseButton(wrapper);
+                heading.dataset.mdbImporterProcessed = 'true';
+                setManualExistingTitleVisibility(wrapper, headingTitle);
+                logStep('episode treated as existing by title', { title: headingTitle, hidden: wrapper.classList.contains(config.classNames.hidden) });
+                return;
+            }
             if (!episode) {
                 logStep('episode skipped: title parse failed', headingTitle);
                 return;
