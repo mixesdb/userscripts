@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.6
+// @version      2026.07.11.7
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -76,8 +76,9 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             659, 660, 661, 662, 663, 664, 610, 609, 608, 607, 600,
             346,
         ],
-        ignoredEpisodeTitlePatterns: [
-            /^Resident\s+#stayhome\s+#quedateencasa\s+special\s+-\s+Sunsetstrip\s+Home\s+Edition\s+4\/4\/2020$/i,
+        ignoredEpisodeTitles: [
+            'Resident #stayhome #quedateencasa special - Sunsetstrip Home Edition 4/4/2020',
+            'Resident #stayhome #quedateencasa special - Sunsetstrip 2020',
         ],
     };
 
@@ -144,8 +145,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             || wrapper.textContent.trim().replace(/\s+/g, ' ').slice(0, 120);
     }
 
+    function normalizeEpisodeTitle(title) {
+        return String(title || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
     function shouldIgnoreEpisodeTitle(title) {
-        return config.ignoredEpisodeTitlePatterns.some(pattern => pattern.test(title));
+        const normalizedTitle = normalizeEpisodeTitle(title);
+        return config.ignoredEpisodeTitles.some(ignoredTitle => normalizeEpisodeTitle(ignoredTitle) === normalizedTitle);
     }
 
     function parseEpisodeTitle(title) {
