@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.8
+// @version      2026.07.11.9
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -74,8 +74,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         manualExistingEpisodes: [
             714, 715, 716,
             659, 660, 661, 662, 663, 664, 610, 609, 608, 607, 600,
-            451, 452, 453, 454, 455,
-            346,
+            400, 401, 402, 403, 451, 452, 453, 454, 455,
+            346, 398, 399,
         ],
         manualExistingEpisodeTitles: [
             'Resident #stayhome #quedateencasa special - Sunsetstrip Home Edition 4/4/2020',
