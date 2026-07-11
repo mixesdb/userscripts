@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.4
+// @version      2026.07.11.5
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -67,7 +67,10 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             apiTracklist: 'mdb-resident-tle-tracklist',
             copyWaiter: 'mdb-resident-copy-waiter',
             copiedWrapper: 'mdb-resident-copied-wrapper',
+            autoLoadMoreWaiter: 'mdb-resident-auto-load-more-waiter',
         },
+        loadMoreSelector: '.load-more a[href]',
+        autoLoadMoreDelay: 700,
         manualExistingEpisodes: [
             714, 715, 716,
             659, 660, 661, 662, 663, 664, 610, 609, 608, 607, 600,
@@ -78,6 +81,9 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     let existingEpisodes = new Set(config.manualExistingEpisodes);
     let visitedEpisodeLinks = new Set();
     let removeExistingEpisodes = false;
+    let autoLoadMoreTimer = null;
+    let autoLoadMoreInProgress = false;
+    let lastAutoLoadVisibleMissingCount = 0;
 
     function loadVisitedEpisodeLinks() {
         try {
@@ -498,6 +504,66 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-episode-number]`).forEach(wrapper => {
             setEpisodeVisibility(wrapper, { episodeNumber: Number(wrapper.dataset.mdbEpisodeNumber) });
         });
+        scheduleAutoLoadMoreWhenNoNewEpisodes();
+    }
+
+    function getVisibleMissingEpisodeCount() {
+        return Array.from(document.querySelectorAll(`${config.selectors.episodeWrapper}[data-mdb-episode-number]`))
+            .filter(wrapper => !wrapper.classList.contains(config.classNames.hidden))
+            .filter(wrapper => !existingEpisodes.has(Number(wrapper.dataset.mdbEpisodeNumber)))
+            .length;
+    }
+
+    function getLoadMoreLink() {
+        return document.querySelector(config.loadMoreSelector);
+    }
+
+    function setAutoLoadMoreFeedback(isLoading) {
+        const loadMore = getLoadMoreLink();
+        if (!loadMore) return;
+
+        let waiter = loadMore.parentElement?.querySelector(`.${config.classNames.autoLoadMoreWaiter}`);
+        if (!isLoading) {
+            waiter?.remove();
+            return;
+        }
+
+        if (!waiter) {
+            waiter = document.createElement('span');
+            waiter.className = config.classNames.autoLoadMoreWaiter;
+            loadMore.insertAdjacentElement('afterend', waiter);
+        }
+        waiter.textContent = 'Loading hidden episodes…';
+    }
+
+    function scheduleAutoLoadMoreWhenNoNewEpisodes() {
+        clearTimeout(autoLoadMoreTimer);
+        if (!removeExistingEpisodes || autoLoadMoreInProgress) return;
+
+        autoLoadMoreTimer = setTimeout(autoLoadMoreWhenNoNewEpisodes, config.autoLoadMoreDelay);
+    }
+
+    function autoLoadMoreWhenNoNewEpisodes() {
+        if (!removeExistingEpisodes || autoLoadMoreInProgress) return;
+
+        const loadMore = getLoadMoreLink();
+        if (!loadMore) return;
+
+        const visibleMissingCount = getVisibleMissingEpisodeCount();
+        if (visibleMissingCount > 0 || visibleMissingCount > lastAutoLoadVisibleMissingCount) {
+            lastAutoLoadVisibleMissingCount = visibleMissingCount;
+            return;
+        }
+
+        autoLoadMoreInProgress = true;
+        setAutoLoadMoreFeedback(true);
+        logStep('auto load more: no new visible missing episodes', { visibleMissingCount, href: loadMore.href });
+        loadMore.click();
+        setTimeout(() => {
+            autoLoadMoreInProgress = false;
+            setAutoLoadMoreFeedback(false);
+            scheduleAutoLoadMoreWhenNoNewEpisodes();
+        }, config.autoLoadMoreDelay);
     }
 
     function createRemoveExistingToggle() {
@@ -510,6 +576,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         checkbox.addEventListener('change', () => {
             removeExistingEpisodes = checkbox.checked;
             localStorage.setItem(config.storageKey, removeExistingEpisodes ? 'true' : 'false');
+            lastAutoLoadVisibleMissingCount = getVisibleMissingEpisodeCount();
             updateEpisodeVisibility();
         });
 
@@ -668,6 +735,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 font-weight: 700;
                 line-height: 1.4;
             }
+            .${config.classNames.autoLoadMoreWaiter} {
+                display: inline-block;
+                margin-left: 0.5rem;
+                color: #fff;
+                font-size: 0.85rem;
+                font-weight: 700;
+            }
             /* Hide donation banner block */
             .e-description table {
                 display: none;
@@ -746,6 +820,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             setEpisodeVisibility(wrapper, episode);
             logStep('episode link inserted', { episodeNumber: episode.episodeNumber, hidden: wrapper.classList.contains(config.classNames.hidden) });
         });
+        scheduleAutoLoadMoreWhenNoNewEpisodes();
     }
 
     function startEpisodeObserver() {
