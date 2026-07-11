@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.1
+// @version      2026.07.11.2
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -66,6 +66,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             apiFeedback: 'mdb-resident-tle-feedback',
             apiTracklist: 'mdb-resident-tle-tracklist',
             copyWaiter: 'mdb-resident-copy-waiter',
+            copiedWrapper: 'mdb-resident-copied-wrapper',
         },
         manualExistingEpisodes: [
             714, 715, 716,
@@ -333,6 +334,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.addEventListener('click', async event => {
             event.preventDefault();
             markLinkVisited(link);
+            wrapper.classList.add(config.classNames.copiedWrapper);
             const waiter = showCreateLinkWaiter(link);
             try {
                 const { tracklist, refreshedFeedback } = await getTracklistForCreate(wrapper, fallbackTracklist, fallbackStatus);
@@ -492,11 +494,25 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         wrapper.append(createEpisodeCloseButton());
     }
 
+    function restoreCopiedWrapperOnClick(wrapper) {
+        if (wrapper.dataset.mdbResidentCopiedOpacityRestorer === '1') return;
+
+        wrapper.dataset.mdbResidentCopiedOpacityRestorer = '1';
+        wrapper.addEventListener('click', event => {
+            if (event.target.closest(`.${config.classNames.link}.is-missing`)) return;
+
+            wrapper.classList.remove(config.classNames.copiedWrapper);
+        });
+    }
+
     function addStyles() {
         const style = document.createElement('style');
         style.textContent = `
             ${config.selectors.episodeWrapper}[data-mdb-episode-number] {
                 position: relative;
+            }
+            ${config.selectors.episodeWrapper}.${config.classNames.copiedWrapper} {
+                opacity: 0.5;
             }
             .${config.classNames.closeButton} {
                 align-items: center;
@@ -645,6 +661,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             if (!episode) return;
 
             wrapper.dataset.mdbEpisodeNumber = String(episode.episodeNumber);
+            restoreCopiedWrapperOnClick(wrapper);
             addEpisodeCloseButton(wrapper);
             heading.dataset.mdbImporterProcessed = 'true';
             heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode, wrapper));
