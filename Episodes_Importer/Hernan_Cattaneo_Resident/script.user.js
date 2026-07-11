@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.3
+// @version      2026.07.11.4
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.11.1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_22
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.11.2
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 21,
+var cacheVersion = 22,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -101,8 +101,32 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         setLinkVisitedState(link);
     }
 
+    function stringifyLogDetails(details) {
+        if (details === undefined || details === null || details === '') return details || '';
+        if (typeof details !== 'object') return details;
+
+        try {
+            return JSON.stringify(details);
+        } catch (error) {
+            return String(details);
+        }
+    }
+
     function logStep(step, details = '') {
-        importer.logValue(`Resident importer: ${step}`, details);
+        importer.logValue(`Resident importer: ${step}`, stringifyLogDetails(details));
+    }
+
+    function getResidentMonthNumber(monthName) {
+        const month = importer.getMonthNumber(monthName);
+        if (month) return month;
+
+        const residentMonthAliases = {
+            ene: '01', enero: '01',
+            abr: '04', abril: '04',
+            ago: '08', agosto: '08',
+            dic: '12', diciembre: '12',
+        };
+        return residentMonthAliases[String(monthName || '').toLowerCase()] || '';
     }
 
     function getWrapperLabel(wrapper) {
@@ -117,7 +141,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         if (slashTitleMatch) {
             const episodeNumber = Number(slashTitleMatch[1]);
             const monthName = slashTitleMatch[2];
-            const month = importer.getMonthNumber(monthName);
+            const month = getResidentMonthNumber(monthName);
             logStep('slash title match', { episodeNumber, monthName, month, day: slashTitleMatch[3], year: slashTitleMatch[4] });
             if (!month || !episodeNumber) {
                 logStep('slash title rejected', { title, episodeNumber, monthName, month });
