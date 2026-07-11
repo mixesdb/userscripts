@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.5
+// @version      2026.07.11.6
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -76,6 +76,9 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             659, 660, 661, 662, 663, 664, 610, 609, 608, 607, 600,
             346,
         ],
+        ignoredEpisodeTitlePatterns: [
+            /^Resident\s+#stayhome\s+#quedateencasa\s+special\s+-\s+Sunsetstrip\s+Home\s+Edition\s+4\/4\/2020$/i,
+        ],
     };
 
     let existingEpisodes = new Set(config.manualExistingEpisodes);
@@ -139,6 +142,10 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim()
             || wrapper.querySelector("a[href*='/e/']")?.textContent.trim()
             || wrapper.textContent.trim().replace(/\s+/g, ' ').slice(0, 120);
+    }
+
+    function shouldIgnoreEpisodeTitle(title) {
+        return config.ignoredEpisodeTitlePatterns.some(pattern => pattern.test(title));
     }
 
     function parseEpisodeTitle(title) {
@@ -805,9 +812,16 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
                 return;
             }
 
-            const episode = parseEpisodeTitle(heading.textContent.trim());
+            const headingTitle = heading.textContent.trim();
+            if (shouldIgnoreEpisodeTitle(headingTitle)) {
+                heading.dataset.mdbImporterProcessed = 'true';
+                logStep('episode skipped: ignored title', headingTitle);
+                return;
+            }
+
+            const episode = parseEpisodeTitle(headingTitle);
             if (!episode) {
-                logStep('episode skipped: title parse failed', heading.textContent.trim());
+                logStep('episode skipped: title parse failed', headingTitle);
                 return;
             }
             logStep('episode parsed', episode);
