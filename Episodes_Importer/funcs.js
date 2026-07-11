@@ -14,7 +14,7 @@
         may: '05',
         jun: '06', june: '06',
         jul: '07', july: '07',
-        aug: '08', august: '08',
+        aug: '08', august: '08', ago: '08', agosto: '08',
         sep: '09', sept: '09', september: '09',
         oct: '10', october: '10',
         nov: '11', november: '11',

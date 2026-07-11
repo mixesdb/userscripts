@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.2
+// @version      2026.07.11.3
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.10.19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.11.1
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
@@ -25,7 +25,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 20,
+var cacheVersion = 21,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -101,12 +101,28 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         setLinkVisitedState(link);
     }
 
+    function logStep(step, details = '') {
+        importer.logValue(`Resident importer: ${step}`, details);
+    }
+
+    function getWrapperLabel(wrapper) {
+        return wrapper.querySelector(config.selectors.episodeHeading)?.textContent.trim()
+            || wrapper.querySelector("a[href*='/e/']")?.textContent.trim()
+            || wrapper.textContent.trim().replace(/\s+/g, ' ').slice(0, 120);
+    }
+
     function parseEpisodeTitle(title) {
+        logStep('parseEpisodeTitle input', title);
         const slashTitleMatch = title.match(/Resident\s*\/\s*Episode\s*(\d+)\s*\/\s*([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/i);
         if (slashTitleMatch) {
             const episodeNumber = Number(slashTitleMatch[1]);
-            const month = importer.getMonthNumber(slashTitleMatch[2]);
-            if (!month || !episodeNumber) return null;
+            const monthName = slashTitleMatch[2];
+            const month = importer.getMonthNumber(monthName);
+            logStep('slash title match', { episodeNumber, monthName, month, day: slashTitleMatch[3], year: slashTitleMatch[4] });
+            if (!month || !episodeNumber) {
+                logStep('slash title rejected', { title, episodeNumber, monthName, month });
+                return null;
+            }
 
             return {
                 episodeNumber,
@@ -118,7 +134,11 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         const podcastTitleMatch = title.match(/^(\d+)\s+Hernan\s+Cattaneo\s+podcast\s+-\s+(\d{4})-(\d{2})-(\d{2})\b/i);
         if (podcastTitleMatch) {
             const episodeNumber = Number(podcastTitleMatch[1]);
-            if (!episodeNumber) return null;
+            logStep('podcast title match', { episodeNumber, year: podcastTitleMatch[2], month: podcastTitleMatch[3], day: podcastTitleMatch[4] });
+            if (!episodeNumber) {
+                logStep('podcast title rejected', { title, episodeNumber });
+                return null;
+            }
 
             return {
                 episodeNumber,
@@ -127,6 +147,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             };
         }
 
+        logStep('parseEpisodeTitle no match', title);
         return null;
     }
 
@@ -150,7 +171,10 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     function getTracklistSourceNode(wrapper) {
         const description = wrapper.querySelector(config.selectors.description);
-        if (!description) return null;
+        if (!description) {
+            logStep('tracklist source missing description', getWrapperLabel(wrapper));
+            return null;
+        }
         return getFirstDescriptionParagraph(description) || description;
     }
 
@@ -213,16 +237,22 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     function extractRawTracklist(wrapper) {
         const description = wrapper.querySelector(config.selectors.description);
-        if (!description) return '';
+        if (!description) {
+            logStep('extractRawTracklist no description', getWrapperLabel(wrapper));
+            return '';
+        }
 
         const source = getTracklistSourceNode(wrapper);
-        return importer.getNodeTextWithLinebreaks(source)
+        logStep('extractRawTracklist source', { episode: getWrapperLabel(wrapper), sourceTag: source?.tagName || '', sourceClass: source?.className || '' });
+        const rawTracklist = importer.getNodeTextWithLinebreaks(source)
             .split('\n')
             .map(importer.normalizeTracklistLine)
             .filter(Boolean)
             .map(fixRawTracklistLine)
             .map(lowercaseTracklistLineArtist)
             .join('\n');
+        logStep('extractRawTracklist result', { episode: getWrapperLabel(wrapper), lines: rawTracklist.split('\n').filter(Boolean).length, rawTracklist });
+        return rawTracklist;
     }
 
     function isValidPlayerUrl(playerUrl) {
@@ -249,11 +279,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     function extractPlayerUrl(wrapper) {
         const players = Array.from(wrapper.querySelectorAll(config.selectors.player));
+        logStep('extractPlayerUrl candidates', { episode: getWrapperLabel(wrapper), count: players.length, urls: players.map(getPlayerCandidateUrl) });
         const validPlayerUrl = players
             .map(getPlayerCandidateUrl)
             .find(isValidPlayerUrl);
 
-        return validPlayerUrl ? new URL(validPlayerUrl, location.href).toString() : '';
+        const resolvedPlayerUrl = validPlayerUrl ? new URL(validPlayerUrl, location.href).toString() : '';
+        logStep('extractPlayerUrl result', { episode: getWrapperLabel(wrapper), resolvedPlayerUrl });
+        return resolvedPlayerUrl;
     }
 
     function buildEpisodePageText(episode, tracklistResult, playerUrl = '') {
@@ -389,6 +422,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     async function updateMixesdbLink(link, episode, wrapper) {
+        logStep('updateMixesdbLink start', { episode, wrapper: getWrapperLabel(wrapper) });
         const isExisting = existingEpisodes.has(episode.episodeNumber);
         const title = buildMixesdbTitle(episode);
         const episodeUrl = link.dataset.episodeUrl || location.href;
@@ -396,6 +430,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.className = `${config.classNames.link} ${isExisting ? 'is-existing' : 'is-missing'}`;
         link.title = title;
         setLinkVisitedState(link);
+
+        logStep('episode existing status', { episodeNumber: episode.episodeNumber, isExisting, title, episodeUrl });
 
         if (isExisting) {
             link.href = importer.buildMixesdbUrl(title, episodeUrl);
@@ -406,11 +442,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         setLinkPending(link, episode);
         const rawTracklist = extractRawTracklist(wrapper);
         try {
+            logStep('formatTracklist start', { episodeNumber: episode.episodeNumber, rawTracklistLines: rawTracklist.split('\n').filter(Boolean).length });
             const tracklist = await importer.formatTracklist(rawTracklist, config.tleApiType);
+            logStep('formatTracklist success', { episodeNumber: episode.episodeNumber, status: tracklist.status, textLength: tracklist.text?.length || 0, hasFeedback: Boolean(tracklist.feedback) });
             renderTracklistApiFeedback(wrapper, tracklist);
             setCreateLinkHref(link, title, episodeUrl, buildEpisodePageText(episode, tracklist, extractPlayerUrl(wrapper)));
             updateCreateLinkOnClick(link, title, episodeUrl, episode, wrapper, tracklist.text, tracklist.status);
         } catch (error) {
+            logStep('formatTracklist failed', { episodeNumber: episode.episodeNumber, error: error.message || error });
             importer.logValue('Failed to format Resident tracklist for MixesDB', error.message || error);
             const fallbackTracklist = importer.hasTracklistForApi(rawTracklist)
                 ? rawTracklist.split('\n').filter(Boolean).map(line => `# ${line}`).join('\n')
@@ -420,6 +459,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             setCreateLinkHref(link, title, episodeUrl, buildEpisodePageText(episode, { text: fallbackTracklist, status: fallbackStatus }, extractPlayerUrl(wrapper)));
             updateCreateLinkOnClick(link, title, episodeUrl, episode, wrapper, fallbackTracklist, fallbackStatus);
         }
+        logStep('updateMixesdbLink complete', { episodeNumber: episode.episodeNumber, linkText: 'Copy to MixesDB' });
         link.className = `${config.classNames.link} is-missing`;
         link.textContent = 'Copy to MixesDB';
         placeCopyLink(link, wrapper);
@@ -650,15 +690,29 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function addEpisodeLinks() {
-        document.querySelectorAll(config.selectors.episodeWrapper).forEach(wrapper => {
+        const wrappers = document.querySelectorAll(config.selectors.episodeWrapper);
+        logStep('addEpisodeLinks scan', { wrapperCount: wrappers.length });
+        wrappers.forEach(wrapper => {
+            logStep('episode wrapper found', getWrapperLabel(wrapper));
             removeDonationContent(wrapper);
             removeEmptyEpisodeParagraphs(wrapper);
 
             const heading = wrapper.querySelector(config.selectors.episodeHeading);
-            if (!heading || heading.dataset.mdbImporterProcessed === 'true') return;
+            if (!heading) {
+                logStep('episode skipped: missing heading', getWrapperLabel(wrapper));
+                return;
+            }
+            if (heading.dataset.mdbImporterProcessed === 'true') {
+                logStep('episode skipped: already processed', heading.textContent.trim());
+                return;
+            }
 
             const episode = parseEpisodeTitle(heading.textContent.trim());
-            if (!episode) return;
+            if (!episode) {
+                logStep('episode skipped: title parse failed', heading.textContent.trim());
+                return;
+            }
+            logStep('episode parsed', episode);
 
             wrapper.dataset.mdbEpisodeNumber = String(episode.episodeNumber);
             restoreCopiedWrapperOnClick(wrapper);
@@ -666,6 +720,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             heading.dataset.mdbImporterProcessed = 'true';
             heading.insertAdjacentElement('afterend', createMixesdbLink(heading, episode, wrapper));
             setEpisodeVisibility(wrapper, episode);
+            logStep('episode link inserted', { episodeNumber: episode.episodeNumber, hidden: wrapper.classList.contains(config.classNames.hidden) });
         });
     }
 
