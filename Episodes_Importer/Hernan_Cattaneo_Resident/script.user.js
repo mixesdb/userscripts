@@ -75,7 +75,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             714, 715, 716,
             659, 660, 661, 662, 663, 664, 610, 609, 608, 607, 600,
             400, 401, 402, 403, 451, 452, 453, 454, 455,
-            346, 398, 399,
+            346, 388, 389, 398, 399,
         ],
         manualExistingEpisodeTitles: [
             'Resident #stayhome #quedateencasa special - Sunsetstrip Home Edition 4/4/2020',
