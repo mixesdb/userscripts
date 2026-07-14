@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         YouTube Player URLs (private)
-// @version      2026.07.14.5
+// @version      2026.07.14.6
 // @description  Add YouTube player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_Player_URLs_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.14.1
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -177,92 +178,6 @@ var episodes_arr = {
     "474": "https://youtu.be/-eQenB-EZhA",
 };
 
-// addEditorButton
-function makeEditorButton( idName, buttonText, info ) {
-    var button = document.createElement( "span" ),
-        linkWrapper = document.createElement( "a" ),
-        icon = document.createElement( "span" ),
-        label = document.createElement( "span" );
-
-    button.className = "tool oo-ui-widget oo-ui-widget-enabled oo-ui-toggleWidget oo-ui-toggleWidget-off oo-ui-buttonElement oo-ui-buttonElement-frameless oo-ui-iconElement oo-ui-toggleButtonWidget";
-    button.id = idName;
-
-    linkWrapper.className = "oo-ui-buttonElement-button";
-    linkWrapper.title = info;
-    linkWrapper.accessKey = "y";
-
-    icon.className = "fa fa-lg fa-nothing has-label";
-
-    label.className = "oo-ui-labelElement-label";
-    label.textContent = buttonText;
-
-    linkWrapper.append( icon, label );
-    button.append( linkWrapper );
-
-    return button;
-}
-
-function playerHeaderWithVideoAudio( header ) {
-    if( header.indexOf( "video=" ) == -1 ) {
-        header = header.replace( /^{{Player((?:\|mode=[^|\n}]+)?)/, "{{Player$1|video=audio" );
-    }
-    return header;
-}
-
-function playerUrlLine( url, number ) {
-    return " |" + ( url.indexOf( "=" ) == -1 ? "" : number + "=" ) + url;
-}
-
-function playerUrlValue( line ) {
-    var match = line.match( /^ \|(?:\d+=)?(https?:\/\/.+)$/ );
-    return match ? match[1] : "";
-}
-
-function newPlayerTemplate( url ) {
-    return "{{Player|video=audio\n" + playerUrlLine( url, 1 ) + "\n}}";
-}
-
-function addYouTubeUrlToPlayer( text, url ) {
-    return text.replace( /{{Player[^}]*}}/, function( player ) {
-        var lines = player.split( "\n" ),
-            header = playerHeaderWithVideoAudio( lines.shift() ),
-            urlLines = [],
-            footerLines = [];
-
-        if( lines.length == 0 ) {
-            return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                var urls = [ url, oldUrl ];
-                if( options.indexOf( "mode=" ) == -1 ) {
-                    options = "|mode=mirrors" + options;
-                }
-                header = playerHeaderWithVideoAudio( templateStart + options );
-                return header + "\n" + urls.map(function( thisUrl, index ) {
-                    return playerUrlLine( thisUrl, index + 1 );
-                }).join( "\n" ) + "\n}}";
-            });
-        }
-
-        lines.forEach(function( line ) {
-            if( playerUrlValue( line ) ) {
-                urlLines.push( line );
-            } else {
-                footerLines.push( line );
-            }
-        });
-
-        if( header.indexOf( "mode=" ) == -1 && urlLines.length > 0 ) {
-            header = header.replace( /^{{Player/, "{{Player|mode=mirrors" );
-        }
-        header = playerHeaderWithVideoAudio( header );
-
-        urlLines = [ url ].concat( urlLines.map( playerUrlValue ) ).map(function( thisUrl, index ) {
-            return playerUrlLine( thisUrl, index + 1 );
-        });
-
-        return [ header ].concat( urlLines, footerLines ).join( "\n" );
-    });
-}
-
 // replaceAndSave
 function replaceAndSave( mode, url="" ) {
     logFunc( "replaceAndSave" );
@@ -301,12 +216,12 @@ function replaceAndSave( mode, url="" ) {
 
                 if( textReplaced == text ) {
                     textReplaced = text
-                        .replace( /\|}\n\n== (Notes|Tracklist) ==/, '|}\n\n' + newPlayerTemplate( url ) + '\n\n== $1 ==' ); // No URL after wikitable, add new player
+                        .replace( /\|}\n\n== (Notes|Tracklist) ==/, '|}\n\n' + newPlayerTemplate( url, true ) + '\n\n== $1 ==' ); // No URL after wikitable, add new player
                 }
 
                 if( textReplaced == text ) {
                     textReplaced = text
-                        .replace( /(\n\n)(== (Notes|Tracklist) ==)/, '\n\n' + newPlayerTemplate( url ) + '\n\n$2' ); // No URL or wikitable, add new player before section
+                        .replace( /(\n\n)(== (Notes|Tracklist) ==)/, '\n\n' + newPlayerTemplate( url, true ) + '\n\n$2' ); // No URL or wikitable, add new player before section
                 }
             }
             break;
