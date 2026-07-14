@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: ./youtube_ids.sh CHANNEL_OR_PLAYLIST_URL
+Usage: ./youtube_ids.sh CHANNEL_OR_PLAYLIST_URL [cleanup=true|false]
 
 Requires yt-dlp to be installed.
 
@@ -16,7 +16,10 @@ cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_id
 This file could be loaded in the userscript but requires a Commit and the work is done locally anyways…
 
 Fetches a YouTube channel or playlist with yt-dlp and writes episodes_arr.txt
-in this directory as a JavaScript object of normalized episode/date keys to youtu.be URLs.
+in this directory as a JavaScript object of episode/date keys to youtu.be URLs.
+
+By default, cleanup=true normalizes keys and sorts items by key ascending.
+Use cleanup=false to keep original titles and yt-dlp order.
 USAGE
 }
 
@@ -25,7 +28,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     exit 0
 fi
 
-if [[ $# -ne 1 ]]; then
+if [[ $# -lt 1 || $# -gt 2 ]]; then
     usage >&2
     exit 1
 fi
@@ -46,6 +49,21 @@ temp_json="$(mktemp)"
 trap 'rm -f "${temp_json}"' EXIT
 
 url="$1"
+cleanup_arg="${2:-true}"
+
+case "${cleanup_arg}" in
+    true|cleanup=true)
+        cleanup="true"
+        ;;
+    false|cleanup=false)
+        cleanup="false"
+        ;;
+    *)
+        echo "Error: cleanup must be true, false, cleanup=true, or cleanup=false." >&2
+        usage >&2
+        exit 1
+        ;;
+esac
 
 yt-dlp \
     --ignore-errors \
@@ -54,13 +72,14 @@ yt-dlp \
     --dump-single-json \
     "${url}" > "${temp_json}"
 
-python3 - "${temp_json}" "${output_file}" <<'PY'
+python3 - "${temp_json}" "${output_file}" "${cleanup}" <<'PY'
 import json
 import re
 import sys
 from datetime import date
 
-input_path, output_path = sys.argv[1:3]
+input_path, output_path, cleanup_arg = sys.argv[1:4]
+cleanup = cleanup_arg == "true"
 
 MONTHS = {
     "jan": 1,
@@ -142,22 +161,37 @@ with open(input_path, "r", encoding="utf-8") as handle:
 
 entries = data.get("entries") or []
 
+items = []
+for entry in entries:
+    if not entry:
+        continue
+
+    video_id = entry.get("id")
+    title = entry.get("title")
+
+    if not video_id or not title:
+        continue
+
+    key = normalize_title_key(title) if cleanup else title
+    items.append((key, f"https://youtu.be/{video_id}"))
+
+def item_sort_key(item):
+    key = item[0]
+    if key.isdigit():
+        return (0, int(key))
+
+    return (1, key.casefold())
+
+
+if cleanup:
+    items.sort(key=item_sort_key)
+
 with open(output_path, "w", encoding="utf-8") as handle:
     handle.write("var episodes_arr = {\n")
 
-    for entry in entries:
-        if not entry:
-            continue
-
-        video_id = entry.get("id")
-        title = entry.get("title")
-
-        if not video_id or not title:
-            continue
-
-        normalized_title = normalize_title_key(title)
-        title_json = json.dumps(normalized_title, ensure_ascii=False)
-        url_json = json.dumps(f"https://youtu.be/{video_id}", ensure_ascii=False)
+    for key, url in items:
+        title_json = json.dumps(key, ensure_ascii=False)
+        url_json = json.dumps(url, ensure_ascii=False)
         handle.write(f"    {title_json}: {url_json},\n")
 
     handle.write("};\n")
