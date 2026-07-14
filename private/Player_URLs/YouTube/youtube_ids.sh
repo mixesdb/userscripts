@@ -5,6 +5,8 @@ usage() {
     cat <<'USAGE'
 Usage: ./youtube_ids.sh CHANNEL_OR_PLAYLIST_URL
 
+Requires yt-dlp to be installed.
+
 Example usage:
 1) Run
 cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh \
