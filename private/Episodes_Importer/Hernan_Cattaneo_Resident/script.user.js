@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.11.11
+// @version      2026.07.14.1
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
-// @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
+// @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_22
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Episodes_Importer/funcs.js?v-2026.07.11.2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.14.1
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hernancattaneo.com
