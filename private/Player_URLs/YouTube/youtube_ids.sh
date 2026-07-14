@@ -7,7 +7,8 @@ Usage: ./youtube_ids.sh CHANNEL_OR_PLAYLIST_URL
 
 Example usage:
 1) Run
-cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh "https://www.youtube.com/playlist?list=PLbGMlxGYa2cPhwpMoyZeYUkoBNTZ8NYVq"
+cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh \
+"https://www.youtube.com/playlist?list=PLbGMlxGYa2cPhwpMoyZeYUkoBNTZ8NYVq"
 
 2) Copy episodes_arr.txt to the userscript
 This file could be loaded in the userscript but requires a Commit and the work is done locally anyways…
