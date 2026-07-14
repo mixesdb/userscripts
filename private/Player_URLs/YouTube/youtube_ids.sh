@@ -9,7 +9,7 @@ Requires yt-dlp to be installed.
 
 Example usage:
 1) Run
-cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh \
+cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh cleanup=true \
 "https://www.youtube.com/playlist?list=PLbGMlxGYa2cPhwpMoyZeYUkoBNTZ8NYVq"
 
 2) Copy episodes_arr.txt to the userscript
