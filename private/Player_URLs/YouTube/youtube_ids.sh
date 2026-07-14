@@ -5,7 +5,12 @@ usage() {
     cat <<'USAGE'
 Usage: ./youtube_ids.sh CHANNEL_OR_PLAYLIST_URL
 
-cd /Users/subfader/Documents/GitHub/Private-userscripts/YouTube_Player_URLs/ && bash youtube_ids.sh "https://www.youtube.com/playlist?list=PL3r9-f9fgL-aqmZVC_kYcAw_bL0exz3k6"
+Example usage:
+1) Run
+cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh "https://www.youtube.com/playlist?list=PLbGMlxGYa2cPhwpMoyZeYUkoBNTZ8NYVq"
+
+2) Copy episodes_arr.txt to the userscript
+This file could be loaded in the userscript but requires a Commit and the work is done locally anyways…
 
 Fetches a YouTube channel or playlist with yt-dlp and writes youtube_ids.txt
 in this directory as a JavaScript object of video titles to youtu.be URLs.
