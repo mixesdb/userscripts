@@ -354,14 +354,8 @@ if( location.hostname == "www.mixesdb.com" ) {
         /* On editing */
         if( ( wgAction=="edit" || wgAction=="submit" ) && ( wgNamespaceNumber==0 || wgNamespaceNumber==4 ) && wgTitle!="Main Page" ) {
             log("editing");
-
-            //var epId = wgTitle.replace( /^(.+ - .+ - )(?:Whitenoise|White Noise) (\d+)(, RTÉ 2FM)?( \(Best Of.+)?$/, "$2" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+)(?:\(|, )(DCR\d+)(?:\))$/, "$1" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+Transmissions )(\d+).*$/, "$1" ).trim().replace( /^(\d\d)$/, "0$1" );
-            //var epId = wgTitle.replace( /^(?:.+ - .+[ (]Purified )(\d\d\d)\)?$/, "$1" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+[ (]We Are The Brave (?:Radio )?)(\d+)\)?$/, "$1" ).trim().replace( /^(\d\d)$/, "0$1" ).replace( /^(\d)$/, "00$1" );
-            //var epId = wgTitle.replace( /^(?:.+ - .+ - )(SlothBoogie Guestmix \d+)$/, "$1" ).trim();
-            var epId = wgTitle.replace( /^(?:.+ - .+ - )Invite's Choice (\d+).*$/, "$1" ).trim();
+            // Regex to match mix page titles
+            var epId = wgTitle.replace( /^(?:.+ - .+ - )CLR Podcast (\d+).*$/, "$1" ).trim();
 
             var epUrl = episodes_arr[epId];
             logVar( "epId", epId +" "+ epUrl );
