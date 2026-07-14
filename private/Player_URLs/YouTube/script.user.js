@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Player URLs (private)
-// @version      2026.07.14.6
+// @version      2026.07.14.7
 // @description  Add YouTube player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
@@ -270,7 +270,7 @@ if( location.hostname == "www.mixesdb.com" ) {
         if( ( wgAction=="edit" || wgAction=="submit" ) && ( wgNamespaceNumber==0 || wgNamespaceNumber==4 ) && wgTitle!="Main Page" ) {
             log("editing");
             // Regex to match mix page titles
-            var epId = wgTitle.replace( /^(?:.+ - .+ - )CLR Podcast (\d+).*$/, "$1" ).trim();
+            var epId = wgTitle.replace( /^.*\bCLR Podcast (\d+)\b.*$/, "$1" ).trim();
 
             var epUrl = episodes_arr[epId];
             logVar( "epId", epId +" "+ epUrl );
