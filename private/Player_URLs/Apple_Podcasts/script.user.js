@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Apple Podcasts Player URLs (private)
-// @version      2026.07.14.1
+// @version      2026.07.14.2
 // @description  Add Apple Podcasts player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-MixesDB_Players_Helper_7
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.14.1
 // @match        https://www.mixesdb.com/*
 // @match        https://*podcasts.apple.com/*
 // @noframes
@@ -806,51 +807,6 @@ var episodes_arr = {
 "001.2": "https://podcasts.apple.com/de/podcast/resident-episode-001-2-may-7th-2011/id387385712?i=1000664916226",
 "001.1": "https://podcasts.apple.com/de/podcast/resident-episode-001-1-may-7th-2011/id387385712?i=1000664916085"
 };
-
-// addEditorButton
-function makeEditorButton( idName, buttonText, info ) {
-    var spanClass = "tool oo-ui-widget oo-ui-widget-enabled oo-ui-toggleWidget oo-ui-toggleWidget-off oo-ui-buttonElement oo-ui-buttonElement-frameless oo-ui-iconElement oo-ui-toggleButtonWidget",
-        linkWrapper = '<a class="oo-ui-buttonElement-button" title="'+info+'" accesskey="y"><span class="fa fa-lg fa-nothing has-label"></span><span class="oo-ui-labelElement-label">'+buttonText+'</span></a>',
-        button = '<span class="'+spanClass+'" id="'+idName+'">'+linkWrapper+'</span>';
-    return button;
-}
-
-function addApplePodcastUrlToPlayer( text, url ) {
-    return text.replace( /{{Player[^}]*}}/, function( player ) {
-        var lines = player.split( "\n" ),
-            header = lines.shift();
-
-        if( lines.length == 0 ) {
-            return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                if( options.indexOf( "mode=" ) == -1 ) {
-                    options = "|mode=mirrors" + options;
-                }
-                return templateStart + options + "\n |1=" + url + "\n |2=" + oldUrl + "\n}}";
-            });
-        }
-
-        if( header.indexOf( "mode=" ) == -1 && lines.length > 1 ) {
-            header = header.replace( /^{{Player/, "{{Player|mode=mirrors" );
-        }
-
-        var nextPlayerNumber = 2;
-        lines = lines.map(function( line ) {
-            return line
-                .replace( /^( \|)(\d+)(=https?:\/\/.+)$/, function( match, prefix, number, rest ) {
-                    var newNumber = parseInt( number, 10 ) + 1;
-                    nextPlayerNumber = Math.max( nextPlayerNumber, newNumber + 1 );
-                    return prefix + newNumber + rest;
-                })
-                .replace( /^( \|)(https?:\/\/.+)$/, function( match, prefix, rest ) {
-                    return prefix + ( nextPlayerNumber++ ) + "=" + rest;
-                });
-        });
-
-        lines.unshift( " |1="+url );
-        lines.unshift( header );
-        return lines.join( "\n" );
-    });
-}
 
 // replaceAndSave
 function replaceAndSave( mode, url="" ) {
