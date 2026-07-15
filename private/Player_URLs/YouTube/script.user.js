@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         YouTube Player URLs (private)
-// @version      2026.07.15.1
+// @version      2026.07.15.2
 // @description  Add YouTube player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_Player_URLs_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.15.1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.15.1x
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -15,8 +15,8 @@
 // @run-at       document-end
 // ==/UserScript==
 
-// Embedding manually is OK, since teh sh script is run locally anyways
-// Saves teh commit
+// Embedding manually is OK, since the sh script is run locally anyways
+// Saves the commit
 var episodes_arr = {
     "132": "https://youtu.be/hWl4-ndTynM",
     "133": "https://youtu.be/xdqfB9JQs_8",
