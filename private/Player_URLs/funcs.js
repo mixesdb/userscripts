@@ -5,6 +5,7 @@
 var preferredPlayerSiteOrder = [
     "Apple Podcasts",
     "SoundCloud",
+    "hearthis.at",
     "YouTube",
     "Mixcloud"
 ];
@@ -12,6 +13,7 @@ var preferredPlayerSiteOrder = [
 var playerSiteMatchers = {
     "Apple Podcasts": [ "podcasts.apple.com" ],
     "SoundCloud": [ "soundcloud.com" ],
+    "hearthis.at": [ "hearthis.at" ],
     "YouTube": [ "youtube.com", "youtu.be" ],
     "Mixcloud": [ "mixcloud.com" ]
 };
