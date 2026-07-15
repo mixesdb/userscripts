@@ -80,13 +80,23 @@ function playerHeaderWithVideoAudio( header ) {
     return header;
 }
 
-function playerUrlLine( url, number ) {
-    return " |" + ( url.indexOf( "=" ) == -1 ? "" : number + "=" ) + url;
+function playerUrlLine( url, number, forceNumbered ) {
+    return " |" + ( forceNumbered || url.indexOf( "=" ) != -1 ? number + "=" : "" ) + url;
 }
 
 function playerUrlValue( line ) {
     var match = line.match( /^ \|(?:\d+=)?(https?:\/\/.+)$/ );
     return match ? match[1] : "";
+}
+
+function playerUrlLineIsNumbered( line ) {
+    return /^ \|\d+=https?:\/\//.test( line );
+}
+
+function playerUrlsNeedNumberedLines( urls, urlLines ) {
+    return urls.some(function( thisUrl ) {
+        return thisUrl.indexOf( "=" ) != -1;
+    }) || ( urlLines || [] ).some( playerUrlLineIsNumbered );
 }
 
 function newPlayerTemplate( url, forceVideoAudio ) {
@@ -106,7 +116,8 @@ function addUrlToPlayer( text, url, forceVideoAudio ) {
 
         if( lines.length == 0 ) {
             return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                var urls = sortPlayerUrlsByPreferredOrder([ url, oldUrl ]);
+                var urls = sortPlayerUrlsByPreferredOrder([ url, oldUrl ]),
+                    forceNumbered = playerUrlsNeedNumberedLines( urls, [] );
                 if( options.indexOf( "mode=" ) == -1 ) {
                     options = "|mode=mirrors" + options;
                 }
@@ -115,7 +126,7 @@ function addUrlToPlayer( text, url, forceVideoAudio ) {
                     header = playerHeaderWithVideoAudio( header );
                 }
                 return header + "\n" + urls.map(function( thisUrl, index ) {
-                    return playerUrlLine( thisUrl, index + 1 );
+                    return playerUrlLine( thisUrl, index + 1, forceNumbered );
                 }).join( "\n" ) + "\n}}";
             });
         }
@@ -132,8 +143,11 @@ function addUrlToPlayer( text, url, forceVideoAudio ) {
             header = header.replace( /^{{Player/, "{{Player|mode=mirrors" );
         }
 
-        urlLines = sortPlayerUrlsByPreferredOrder([ url ].concat( urlLines.map( playerUrlValue ) )).map(function( thisUrl, index ) {
-            return playerUrlLine( thisUrl, index + 1 );
+        var urls = sortPlayerUrlsByPreferredOrder([ url ].concat( urlLines.map( playerUrlValue ) )),
+            forceNumbered = playerUrlsNeedNumberedLines( urls, urlLines );
+
+        urlLines = urls.map(function( thisUrl, index ) {
+            return playerUrlLine( thisUrl, index + 1, forceNumbered );
         });
 
         return [ header ].concat( urlLines, footerLines ).join( "\n" );
