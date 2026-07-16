@@ -94,6 +94,7 @@ var episodes_arr = {
     "1085": "https://youtu.be/jB30g-G9Ysc",
     "1086": "https://youtu.be/labW4wxBXzs",
     "1087": "https://youtu.be/KrrNM1Iz2GE",
+    "1088": "https://youtu.be/XXIG47exv54",
     "1089": "https://youtu.be/gLRj7ovxhZU",
     "1090": "https://youtu.be/HBayb_VN8EY",
     "1091": "https://youtu.be/n9lKk4wtO8M",
@@ -132,6 +133,5 @@ var episodes_arr = {
     "1125": "https://youtu.be/EgDFWu6b2Aw",
     "1126": "https://youtu.be/Po7Pus771UA",
     "1127": "https://youtu.be/2TcoICioKpM",
-    "2025": "https://youtu.be/MCawbfTj3JY",
-    "John Digweed - Transitions1088": "https://youtu.be/XXIG47exv54",
+    "Best of 2025 Extended Mix": "https://youtu.be/MCawbfTj3JY",
 };
