@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.09.3
+// @version      2026.07.16.1
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -381,8 +381,12 @@ function getRaArtworkSource( img ) {
     return candidates.length ? candidates[candidates.length - 1] : "";
 }
 
+function getRaEventArtworkWrapper( img ) {
+    return img.parent("[class*='FullWidthStyle']");
+}
+
 function isRaEventArtwork( img ) {
-    return img.parent("[class*='FullWidthStyle']").length > 0;
+    return getRaEventArtworkWrapper( img ).length > 0;
 }
 
 function isRaPodcastArtwork( img ) {
@@ -391,25 +395,36 @@ function isRaPodcastArtwork( img ) {
 }
 
 function appendRaArtworkInfo( img ) {
-    if( !isRaArtworkPage() ) return;
-    if( isRaEventPage() && !isRaEventArtwork( img ) ) return;
-    if( isRaPodcastEpisodePage() && !isRaPodcastArtwork( img ) ) return;
+    if( !isRaArtworkPage() ) return false;
+    if( isRaEventPage() && !isRaEventArtwork( img ) ) return false;
+    if( isRaPodcastEpisodePage() && !isRaPodcastArtwork( img ) ) return false;
 
     var imgproxyUrl = getRaArtworkSource( img );
-    if( !imgproxyUrl ) return;
+    if( !imgproxyUrl ) return false;
 
     var origUrl = raImgproxyToOriginal( imgproxyUrl ),
-        wrapper = createArtworkInfoWrapper( origUrl, {
+        insertAfter = isRaEventPage() ? getRaEventArtworkWrapper( img ) : img.closest("div"),
+        existingInfo = insertAfter.next( ".mdb-ra-artwork-info" );
+
+    if( existingInfo.find( ".mdb-ra-artwork-input" ).filter(function() {
+        return $(this).val() === origUrl;
+    }).length ) {
+        return true;
+    }
+
+    var wrapper = createArtworkInfoWrapper( origUrl, {
             wrapperClass: "mdb-ra-artwork-info",
             inputClass: "mdb-ra-artwork-input selectOnClick",
             infoClass: "mdb-ra-artwork-size",
             readonly: true
         });
 
-    img.closest("div").after( wrapper );
+    insertAfter.after( wrapper );
+    return true;
 }
 
 waitForKeyElements("div[class*='FullWidthStyle'] > img:not(.mdb-ra-artwork-processed), img[src*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed), img[srcset*='imgproxy.ra.co']:not(.mdb-ra-artwork-processed)", function( jNode ) {
-    jNode.addClass("mdb-ra-artwork-processed");
-    appendRaArtworkInfo( jNode );
+    if( appendRaArtworkInfo( jNode ) ) {
+        jNode.addClass("mdb-ra-artwork-processed");
+    }
 });
