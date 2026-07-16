@@ -1,11 +1,19 @@
+.mdb-ra-artwork-wrapper,
+img.mdb-ra-artwork-processed {
+    display: block;
+}
+
 .mdb-ra-artwork-info {
     background-color: #444;
+    clear: both;
     display: flex;
     font-size: 12px;
     line-height: 20px;
     min-height: 20px;
+    position: relative;
     width: 100%;
     font-family: sans-serif;
+    z-index: 1;
 }
 
 .mdb-ra-artwork-input,
