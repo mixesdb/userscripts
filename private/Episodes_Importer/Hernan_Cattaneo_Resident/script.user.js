@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Hernan Cattaneo Resident (by MixesDB)
+// @name         Hernan Cattaneo Resident (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
 // @version      2026.07.14.1
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
