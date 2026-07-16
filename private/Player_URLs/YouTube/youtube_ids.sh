@@ -10,7 +10,7 @@ Requires yt-dlp to be installed.
 Example usage:
 1) Run
 cd ~/Documents/GitHub/userscripts/private/Player_URLs/YouTube && bash youtube_ids.sh \
-"https://www.youtube.com/playlist?list=PLbGMlxGYa2cPhwpMoyZeYUkoBNTZ8NYVq" cleanup=true
+"https://www.youtube.com/playlist?list=PLDVfe6lWuhCsfgD6BJwbLdDlnr6i9dlWL" cleanup=true
 
 2) Copy episodes_arr.txt to the userscript
 This file could be loaded in the userscript but requires a Commit and the work is done locally anyways…
