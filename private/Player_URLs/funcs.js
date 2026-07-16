@@ -87,20 +87,20 @@ function playerHeaderWithVideoAudio( header ) {
     return header;
 }
 
-function playerTitleParam( title, number ) {
+function playerTitleParam( title, number, forceNumberedTitle ) {
     if( !title ) {
         return "";
     }
-    return "|t" + ( number > 1 ? number : "" ) + "=" + title;
+    return "|t" + ( forceNumberedTitle || number > 1 ? number : "" ) + "=" + title;
 }
 
-function playerUrlLine( url, number, forceNumbered, title ) {
-    return " |" + ( forceNumbered || url.indexOf( "=" ) != -1 ? number + "=" : "" ) + url + playerTitleParam( title, number );
+function playerUrlLine( url, number, forceNumbered, title, forceNumberedTitle ) {
+    return " |" + ( forceNumbered || url.indexOf( "=" ) != -1 ? number + "=" : "" ) + url + playerTitleParam( title, number, forceNumberedTitle );
 }
 
 function playerUrlParts( line ) {
-    var match = line.match( /^ \|(?:\d+=)?(https?:\/\/.*?)(?:\|t\d*=(.*))?$/ );
-    return match ? { url: match[1], title: match[2] || "" } : null;
+    var match = line.match( /^ \|(?:\d+=)?(https?:\/\/.*?)(?:\|t(\d*)=(.*))?$/ );
+    return match ? { url: match[1], title: match[3] || "", hasTitle: typeof match[2] != "undefined" } : null;
 }
 
 function playerUrlValue( line ) {
@@ -120,6 +120,24 @@ function playerUrlsNeedNumberedLines( urls, urlLines ) {
 
 function newPlayerTemplate( url, forceVideoAudio, title ) {
     return "{{Player" + ( forceVideoAudio ? "|video=audio" : "" ) + "\n" + playerUrlLine( url, 1, false, title ) + "\n}}";
+}
+
+function playerUrlItemsNeedTitles( items ) {
+    return items.some(function( item ) {
+        return item.title || item.hasTitle;
+    });
+}
+
+function titleMissingPlayerUrlItemsAsComplete( items ) {
+    if( playerUrlItemsNeedTitles( items ) ) {
+        items.forEach(function( item ) {
+            if( !item.title && !item.hasTitle ) {
+                item.title = "Complete";
+            }
+        });
+    }
+
+    return items;
 }
 
 function nextPlayerTitleNumber( urlLines ) {
@@ -148,8 +166,11 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
 
         if( lines.length == 0 ) {
             return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                var urls = title ? [ oldUrl, url ] : sortPlayerUrlsByPreferredOrder([ url, oldUrl ]),
+                var items = title ? [ { url: oldUrl }, { url: url, title: title, hasTitle: true } ] : sortPlayerUrlItemsByPreferredOrder([ { url: url }, { url: oldUrl } ]),
+                    forceTitles = playerUrlItemsNeedTitles( items ),
+                    urls = items.map(function( item ) { return item.url; }),
                     forceNumbered = playerUrlsNeedNumberedLines( urls, [] );
+                titleMissingPlayerUrlItemsAsComplete( items );
                 if( options.indexOf( "mode=" ) == -1 ) {
                     options = "|mode=mirrors" + options;
                 }
@@ -157,8 +178,8 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
                 if( forceVideoAudio ) {
                     header = playerHeaderWithVideoAudio( header );
                 }
-                return header + "\n" + urls.map(function( thisUrl, index ) {
-                    return playerUrlLine( thisUrl, index + 1, forceNumbered, title && thisUrl == url ? title : "" );
+                return header + "\n" + items.map(function( item, index ) {
+                    return playerUrlLine( item.url, index + 1, forceNumbered, item.title, forceTitles );
                 }).join( "\n" ) + "\n}}";
             });
         }
@@ -178,13 +199,21 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
         var urls, forceNumbered;
 
         if( title ) {
-            urlLines.push( playerUrlLine( url, nextPlayerTitleNumber( urlLines ), false, title ) );
-        } else {
-            urls = sortPlayerUrlItemsByPreferredOrder([ { url: url } ].concat( urlLines.map( playerUrlParts ) ));
+            urls = urlLines.map( playerUrlParts );
+            urls.push( { url: url, title: title, hasTitle: true } );
+            titleMissingPlayerUrlItemsAsComplete( urls );
             forceNumbered = playerUrlsNeedNumberedLines( urls.map(function( item ) { return item.url; }), urlLines );
 
             urlLines = urls.map(function( item, index ) {
-                return playerUrlLine( item.url, index + 1, forceNumbered, item.title );
+                return playerUrlLine( item.url, index + 1, forceNumbered, item.title, true );
+            });
+        } else {
+            urls = sortPlayerUrlItemsByPreferredOrder([ { url: url } ].concat( urlLines.map( playerUrlParts ) ));
+            titleMissingPlayerUrlItemsAsComplete( urls );
+            forceNumbered = playerUrlsNeedNumberedLines( urls.map(function( item ) { return item.url; }), urlLines );
+
+            urlLines = urls.map(function( item, index ) {
+                return playerUrlLine( item.url, index + 1, forceNumbered, item.title, playerUrlItemsNeedTitles( urls ) );
             });
         }
 
