@@ -35,20 +35,25 @@ function playerSiteOrderIndex( url ) {
     return preferredPlayerSiteOrder.length;
 }
 
-function sortPlayerUrlsByPreferredOrder( urls ) {
-    return urls
-        .map(function( url, index ) {
-            return { url: url, index: index, order: playerSiteOrderIndex( url ) };
+function sortPlayerUrlItemsByPreferredOrder( items ) {
+    return items
+        .map(function( item, index ) {
+            return { url: item.url, title: item.title || "", index: index, order: playerSiteOrderIndex( item.url ) };
         })
         .sort(function( a, b ) {
             if( a.order != b.order ) {
                 return a.order - b.order;
             }
             return a.index - b.index;
-        })
-        .map(function( item ) {
-            return item.url;
         });
+}
+
+function sortPlayerUrlsByPreferredOrder( urls ) {
+    return sortPlayerUrlItemsByPreferredOrder( urls.map(function( url ) {
+        return { url: url };
+    })).map(function( item ) {
+        return item.url;
+    });
 }
 
 function makeEditorButton( idName, buttonText, info ) {
@@ -82,13 +87,25 @@ function playerHeaderWithVideoAudio( header ) {
     return header;
 }
 
-function playerUrlLine( url, number, forceNumbered ) {
-    return " |" + ( forceNumbered || url.indexOf( "=" ) != -1 ? number + "=" : "" ) + url;
+function playerTitleParam( title, number ) {
+    if( !title ) {
+        return "";
+    }
+    return "|t" + ( number > 1 ? number : "" ) + "=" + title;
+}
+
+function playerUrlLine( url, number, forceNumbered, title ) {
+    return " |" + ( forceNumbered || url.indexOf( "=" ) != -1 ? number + "=" : "" ) + url + playerTitleParam( title, number );
+}
+
+function playerUrlParts( line ) {
+    var match = line.match( /^ \|(?:\d+=)?(https?:\/\/.*?)(?:\|t\d*=(.*))?$/ );
+    return match ? { url: match[1], title: match[2] || "" } : null;
 }
 
 function playerUrlValue( line ) {
-    var match = line.match( /^ \|(?:\d+=)?(https?:\/\/.+)$/ );
-    return match ? match[1] : "";
+    var parts = playerUrlParts( line );
+    return parts ? parts.url : "";
 }
 
 function playerUrlLineIsNumbered( line ) {
@@ -101,11 +118,24 @@ function playerUrlsNeedNumberedLines( urls, urlLines ) {
     }) || ( urlLines || [] ).some( playerUrlLineIsNumbered );
 }
 
-function newPlayerTemplate( url, forceVideoAudio ) {
-    return "{{Player" + ( forceVideoAudio ? "|video=audio" : "" ) + "\n" + playerUrlLine( url, 1 ) + "\n}}";
+function newPlayerTemplate( url, forceVideoAudio, title ) {
+    return "{{Player" + ( forceVideoAudio ? "|video=audio" : "" ) + "\n" + playerUrlLine( url, 1, false, title ) + "\n}}";
 }
 
-function addUrlToPlayer( text, url, forceVideoAudio ) {
+function nextPlayerTitleNumber( urlLines ) {
+    var highestNumber = 0;
+
+    urlLines.forEach(function( line ) {
+        var match = line.match( /\|t(\d*)=/ );
+        if( match ) {
+            highestNumber = Math.max( highestNumber, match[1] ? parseInt( match[1], 10 ) : 1 );
+        }
+    });
+
+    return highestNumber + 1;
+}
+
+function addUrlToPlayer( text, url, forceVideoAudio, title ) {
     return text.replace( /{{Player[^}]*}}/, function( player ) {
         var lines = player.split( "\n" ),
             header = lines.shift(),
@@ -118,7 +148,7 @@ function addUrlToPlayer( text, url, forceVideoAudio ) {
 
         if( lines.length == 0 ) {
             return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                var urls = sortPlayerUrlsByPreferredOrder([ url, oldUrl ]),
+                var urls = title ? [ oldUrl, url ] : sortPlayerUrlsByPreferredOrder([ url, oldUrl ]),
                     forceNumbered = playerUrlsNeedNumberedLines( urls, [] );
                 if( options.indexOf( "mode=" ) == -1 ) {
                     options = "|mode=mirrors" + options;
@@ -128,7 +158,7 @@ function addUrlToPlayer( text, url, forceVideoAudio ) {
                     header = playerHeaderWithVideoAudio( header );
                 }
                 return header + "\n" + urls.map(function( thisUrl, index ) {
-                    return playerUrlLine( thisUrl, index + 1, forceNumbered );
+                    return playerUrlLine( thisUrl, index + 1, forceNumbered, title && thisUrl == url ? title : "" );
                 }).join( "\n" ) + "\n}}";
             });
         }
@@ -145,12 +175,18 @@ function addUrlToPlayer( text, url, forceVideoAudio ) {
             header = header.replace( /^{{Player/, "{{Player|mode=mirrors" );
         }
 
-        var urls = sortPlayerUrlsByPreferredOrder([ url ].concat( urlLines.map( playerUrlValue ) )),
-            forceNumbered = playerUrlsNeedNumberedLines( urls, urlLines );
+        var urls, forceNumbered;
 
-        urlLines = urls.map(function( thisUrl, index ) {
-            return playerUrlLine( thisUrl, index + 1, forceNumbered );
-        });
+        if( title ) {
+            urlLines.push( playerUrlLine( url, nextPlayerTitleNumber( urlLines ), false, title ) );
+        } else {
+            urls = sortPlayerUrlItemsByPreferredOrder([ { url: url } ].concat( urlLines.map( playerUrlParts ) ));
+            forceNumbered = playerUrlsNeedNumberedLines( urls.map(function( item ) { return item.url; }), urlLines );
+
+            urlLines = urls.map(function( item, index ) {
+                return playerUrlLine( item.url, index + 1, forceNumbered, item.title );
+            });
+        }
 
         return [ header ].concat( urlLines, footerLines ).join( "\n" );
     });
@@ -160,6 +196,6 @@ function addApplePodcastUrlToPlayer( text, url ) {
     return addUrlToPlayer( text, url, false );
 }
 
-function addYouTubeUrlToPlayer( text, url ) {
-    return addUrlToPlayer( text, url, true );
+function addYouTubeUrlToPlayer( text, url, title ) {
+    return addUrlToPlayer( text, url, true, title );
 }

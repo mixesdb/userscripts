@@ -1,19 +1,22 @@
 // ==UserScript==
 // @name         YouTube Player URLs (private)
-// @version      2026.07.16.1
+// @version      2026.07.16.2
 // @description  Add YouTube player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_Player_URLs_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.15.5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.16.1
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
+
+// Add the YouTube URL with this title text; to unset use =""
+const addAsTitle = "";
 
 // Regex string for matching episode numbers in MixesDB page titles
 var epId_regex = /^.*\bTransitions (\d+)\b.*$/;
@@ -193,22 +196,22 @@ function replaceAndSave( mode, url="" ) {
                 $("#autoYTurls a").remove();
                 skipSave = true;
             } else {
-                textReplaced = addYouTubeUrlToPlayer( text, url );
+                textReplaced = addYouTubeUrlToPlayer( text, url, addAsTitle );
 
                 if( textReplaced == text ) {
                     textReplaced = text
-                        .replace( /\|}\n\n== (Notes|Tracklist) ==/, '|}\n\n' + newPlayerTemplate( url, true ) + '\n\n== $1 ==' ); // No URL after wikitable, add new player
+                        .replace( /\|}\n\n== (Notes|Tracklist) ==/, '|}\n\n' + newPlayerTemplate( url, true, addAsTitle ) + '\n\n== $1 ==' ); // No URL after wikitable, add new player
                 }
 
                 if( textReplaced == text ) {
                     textReplaced = text
-                        .replace( /(\n\n)(== (Notes|Tracklist) ==)/, '\n\n' + newPlayerTemplate( url, true ) + '\n\n$2' ); // No URL or wikitable, add new player before section
+                        .replace( /(\n\n)(== (Notes|Tracklist) ==)/, '\n\n' + newPlayerTemplate( url, true, addAsTitle ) + '\n\n$2' ); // No URL or wikitable, add new player before section
                 }
             }
             break;
     }
 
-    if( text.match(/{{Player.+\|t\d+=.+}}/) ) {
+    if( !addAsTitle && text.match(/{{Player.+\|t\d*=.+}}/) ) {
         warning += "t parameters found. Please renumber!";
     }
 
