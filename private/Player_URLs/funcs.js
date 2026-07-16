@@ -80,6 +80,14 @@ function makeEditorButton( idName, buttonText, info ) {
     return button;
 }
 
+function playerHeaderWithMode( header, mode ) {
+    if( header.indexOf( "mode=" ) == -1 ) {
+        return header.replace( /^{{Player/, "{{Player|mode=" + mode );
+    }
+
+    return header.replace( /\|mode=[^|\n}]+/, "|mode=" + mode );
+}
+
 function playerHeaderWithVideoAudio( header ) {
     if( header.indexOf( "video=" ) == -1 ) {
         header = header.replace( /^{{Player((?:\|mode=[^|\n}]+)?)/, "{{Player$1|video=audio" );
@@ -171,10 +179,14 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
                     urls = items.map(function( item ) { return item.url; }),
                     forceNumbered = playerUrlsNeedNumberedLines( urls, [] );
                 titleMissingPlayerUrlItemsAsComplete( items );
-                if( options.indexOf( "mode=" ) == -1 ) {
-                    options = "|mode=mirrors" + options;
+                if( title ) {
+                    header = playerHeaderWithMode( templateStart + options, "multi" );
+                } else {
+                    if( options.indexOf( "mode=" ) == -1 ) {
+                        options = "|mode=mirrors" + options;
+                    }
+                    header = templateStart + options;
                 }
-                header = templateStart + options;
                 if( forceVideoAudio ) {
                     header = playerHeaderWithVideoAudio( header );
                 }
@@ -192,8 +204,10 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
             }
         });
 
-        if( header.indexOf( "mode=" ) == -1 && urlLines.length > 0 ) {
-            header = header.replace( /^{{Player/, "{{Player|mode=mirrors" );
+        if( title && urlLines.length > 0 ) {
+            header = playerHeaderWithMode( header, "multi" );
+        } else if( header.indexOf( "mode=" ) == -1 && urlLines.length > 0 ) {
+            header = playerHeaderWithMode( header, "mirrors" );
         }
 
         var urls, forceNumbered;
