@@ -1,7 +1,7 @@
 /*
  * Prevent .mdb-ra-artwork-info overlappting the top of a second image
  * https://de.ra.co/events/2379819
-*/
+ */
 div [data-testid="full-width-image"] {
     margin-top: 30px !important;
 }
