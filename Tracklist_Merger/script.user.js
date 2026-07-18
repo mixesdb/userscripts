@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.05.29.4
+// @version      2026.07.18.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1249,6 +1249,37 @@ function normalizeTracklistCueFormat(tl_arr, targetFormat, options) {
     return tl_arr;
 }
 
+
+/*
+ * getUnknownCueForFormat
+ * Return an explicit unknown cue placeholder in the active cue style.
+ */
+function getUnknownCueForFormat(format) {
+    if( format && format.hasColon ) {
+        return String("?").repeat(format.minDigits) + ":" + String("?").repeat(format.secDigits);
+    }
+
+    return String("?").repeat(format && format.cueDigits ? format.cueDigits : 2);
+}
+
+/*
+ * ensureExplicitTrackCues
+ * The Tracklist Editor API treats unbracketed leading numbers as cue times.
+ * Add an explicit unknown cue to every merged track without a cue so artist
+ * names like "01100110 - Stumbling Blocks Of Humanity" remain track text.
+ */
+function ensureExplicitTrackCues(tl_arr, format) {
+    var unknownCue = getUnknownCueForFormat(format);
+
+    tl_arr.forEach(function(item){
+        if( item.type === "track" && (!item.cue || String(item.cue).trim() === "") ) {
+            item.cue = unknownCue;
+        }
+    });
+
+    return tl_arr;
+}
+
 /*
  * run_merge
  */
@@ -1287,6 +1318,11 @@ function run_merge( showDebug=false ) {
 
     // Keep merged cues in original format.
     normalizeTracklistCueFormat(tl_merged_arr, originalCueFormat, candidateCueNormalizationOptions);
+
+    // Add explicit unknown cues before sending the text through the Tracklist
+    // Editor API. Otherwise unbracketed numeric artist names may be mistaken
+    // for cue times by the API.
+    ensureExplicitTrackCues(tl_merged_arr, originalCueFormat);
 
     // If the merged list uses MM:SS cues, normalize unknown/missing cues
     // to "X:??" where X is the last known minute prefix.
