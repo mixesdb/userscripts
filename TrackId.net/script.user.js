@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.18.1
+// @version      2026.07.18.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -212,6 +212,41 @@ d.ready(function(){
  * checkTidIntegration
  * save action: the mix page reference takes params page_id, dbKey, title
  */
+
+function getMixesdbTrackIdPages( data ) {
+    var resultItems = ( data && Array.isArray( data.mixesdbtrackid ) ) ? data.mixesdbtrackid : [];
+
+    return ( resultItems[0] && Array.isArray( resultItems[0].mixesdbpages ) ) ? resultItems[0].mixesdbpages : [];
+}
+
+function getMixesdbTrackIdPageById( data, mdbPageId ) {
+    var pages = getMixesdbTrackIdPages( data ),
+        matchedPage = null;
+
+    $.each( pages, function( index, page ) {
+        if( String( page.page_id ) == String( mdbPageId ) ) {
+            matchedPage = page;
+            return false;
+        }
+    });
+
+    return matchedPage;
+}
+
+function markTidIntegrationWrapperIntegrated( wrapper, lastCheckedAgainstMixesDB ) {
+    if( $("input", wrapper).length > 0 ) {
+        $("input", wrapper).replaceWith(checkIcon);
+    }
+
+    if( lastCheckedAgainstMixesDB ) {
+        var checked_ago_text = toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+
+        if( checked_ago_text ) $("label", wrapper).next("span.mdb-tooltip").replaceWith( checked_ago_text );
+    }
+
+    wrapper.addClass("integrated").show();
+}
+
 function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper="", target="audiostream page" ) {
     logFunc( "checkTidIntegration" );
     logVar( "action", action );
@@ -265,22 +300,15 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                             }
                         // if no error
                         } else {
-                            var checked_pageId = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].page_id : "",
-                                checked_url = ( data.mixesdbtrackid && data.mixesdbtrackid[0].mixesdbpages[0] ) ? data.mixesdbtrackid[0].mixesdbpages[0].url : "";
+                            var checkedPage = getMixesdbTrackIdPageById( data, mdbPageId ),
+                                checked_pageId = checkedPage ? checkedPage.page_id : "";
 
-                            if( checked_pageId == mdbPageId ) {
-                                var lastCheckedAgainstMixesDB = data.mixesdbtrackid[0].mixesdbpages[0].lastCheckedAgainstMixesDB;
+                            if( checkedPage ) {
+                                var lastCheckedAgainstMixesDB = checkedPage.lastCheckedAgainstMixesDB;
 
                                 if( lastCheckedAgainstMixesDB != null ) {
                                     log( "Is marked as integrated (mdbPageId: " +mdbPageId+ ")" );
-                                    $("input", wrapper).replaceWith(checkIcon);
-
-                                    var checked_ago_text = toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
-
-                                    if( checked_ago_text ) $("label", wrapper).next("span.mdb-tooltip").replaceWith( checked_ago_text );
-
-                                    /* show */
-                                    wrapper.addClass("integrated").show();
+                                    markTidIntegrationWrapperIntegrated( wrapper, lastCheckedAgainstMixesDB );
                                 } else {
                                     wrapper.show();
                                 }
@@ -339,6 +367,9 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                         logVar( "save textStatus", textStatus );
                         logVar( "save httpStatus", jqXHR.status );
                         logVar( "save response", data );
+                        if( target == "audiostream page" ) {
+                            markTidIntegrationWrapperIntegrated( wrapper );
+                        }
                         checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper, target );
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
@@ -420,8 +451,7 @@ function renderTableTrackIdCheckResult( tidPlayerUrl, wrapper, data, waiter, opt
         dashText = '<span class="tooltip-title" title="Status is not ready">&ndash;</span>',
         notYetIntegratedText = '<span class="tooltip-title small" title="This tracklist is not intergated yet to the found mix page">not yet</span>',
         noPageFoundText = '<span class="tooltip-title small" title="No MixesDB mix page found using this player">not found</span>',
-        resultItems = Array.isArray( data.mixesdbtrackid ) ? data.mixesdbtrackid : [],
-        mixesdbPages = ( resultItems[0] && Array.isArray( resultItems[0].mixesdbpages ) ) ? resultItems[0].mixesdbpages : [],
+        mixesdbPages = getMixesdbTrackIdPages( data ),
         firstMixesdbPage = mixesdbPages[0] || null,
         checked_pageId = firstMixesdbPage ? firstMixesdbPage.page_id : "",
         checked_url = firstMixesdbPage ? firstMixesdbPage.url : "";
