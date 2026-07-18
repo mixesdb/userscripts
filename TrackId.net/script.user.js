@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.09.1
+// @version      2026.07.18.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -27,7 +27,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 99,
+var cacheVersion = 100,
     scriptName = "TrackId.net";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -216,6 +216,10 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
     logFunc( "checkTidIntegration" );
     logVar( "action", action );
     logVar( "tidPlayerUrl", tidPlayerUrl );
+    logVar( "mdbPageId", mdbPageId );
+    logVar( "target", target );
+    logVar( "wrapper.length", wrapper.length );
+    logVar( "wrapper.classes", wrapper.attr("class") );
     logVar( "wrapper", wrapper.html() );
 
     if( tidPlayerUrl && tidPlayerUrl != "" && typeof(tidPlayerUrl) !== "undefined" && tidPlayerUrl != "undefined" ) {
@@ -242,7 +246,14 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                     type: 'get', /* GET on checking */
                     dataType: 'json',
                     async: true,
-                    success: function(data) {
+                    beforeSend: function() {
+                        log( "mdbTrackidCheck check request started" );
+                    },
+                    success: function(data, textStatus, jqXHR) {
+                        log( "mdbTrackidCheck check request success" );
+                        logVar( "check textStatus", textStatus );
+                        logVar( "check httpStatus", jqXHR.status );
+                        logVar( "check response", data );
                         // avoid undefined error
                         if( data.error && data.error.code == "notfound" ) {
                             if( target == "audiostream page" ) {
@@ -290,6 +301,20 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                                 }
                             }
                         }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        log( "mdbTrackidCheck check request error" );
+                        logVar( "check textStatus", textStatus );
+                        logVar( "check errorThrown", errorThrown );
+                        logVar( "check httpStatus", jqXHR.status );
+                        logVar( "check responseText", jqXHR.responseText );
+                    },
+                    complete: function(jqXHR, textStatus) {
+                        log( "mdbTrackidCheck check request complete" );
+                        logVar( "check complete textStatus", textStatus );
+                        logVar( "check complete httpStatus", jqXHR.status );
+                        logVar( "wrapper.classes after check", wrapper.attr("class") );
+                        logVar( "wrapper after check", wrapper.html() );
                     }
                 });
                 break;
@@ -299,13 +324,36 @@ function checkTidIntegration( tidPlayerUrl="", mdbPageId="", action="", wrapper=
                 //logVar( "apiQueryUrl_save", apiQueryUrl_save );
 
                 // confirm, disable input
+                logVar( "apiQueryUrl_save", apiQueryUrl_save );
+
                 $.ajax({
                     url: apiQueryUrl_save,
                     type: 'post', /* POST on saving */
                     dataType: 'json',
                     async: true,
-                    success: function(data) {
+                    beforeSend: function() {
+                        log( "mdbTrackidCheck save request started" );
+                    },
+                    success: function(data, textStatus, jqXHR) {
+                        log( "mdbTrackidCheck save request success" );
+                        logVar( "save textStatus", textStatus );
+                        logVar( "save httpStatus", jqXHR.status );
+                        logVar( "save response", data );
                         checkTidIntegration( tidPlayerUrl, mdbPageId, "check", wrapper, target );
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        log( "mdbTrackidCheck save request error" );
+                        logVar( "save textStatus", textStatus );
+                        logVar( "save errorThrown", errorThrown );
+                        logVar( "save httpStatus", jqXHR.status );
+                        logVar( "save responseText", jqXHR.responseText );
+                    },
+                    complete: function(jqXHR, textStatus) {
+                        log( "mdbTrackidCheck save request complete" );
+                        logVar( "save complete textStatus", textStatus );
+                        logVar( "save complete httpStatus", jqXHR.status );
+                        logVar( "wrapper.classes after save", wrapper.attr("class") );
+                        logVar( "wrapper after save", wrapper.html() );
                     }
                 });
                 break;
