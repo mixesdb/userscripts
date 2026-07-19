@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.02.11.2
+// @version      2026.07.19.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -204,11 +204,16 @@ function wrapCueWithToggleLink(trackEl) {
     // 1) leading whitespace
     // 2) cue
     // 3) whatever after closing bracket (keep)
-    var m = val.match(/^(\s*)\[\s*([0-9\?:]+)\s*\]([\s\S]*)$/);
+    var m = val.match(/^(\s*)\[\s*([0-9\?:]+(?:\s*\|\s*[0-9\?:]+)?)\s*\]([\s\S]*)$/);
     if (!m) return false;
 
-    var cueKey = getCueFormatKey(m[2]);
+    var cueParts = getCueDisplayParts("[" + m[2] + "]");
+    var cueKey = getCueFormatKey(cueParts.originalCue);
+    var alternateKey = cueParts.alternateCue ? getCueFormatKey(cueParts.alternateCue) : null;
     if (!["NN", "NNN", "??", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(cueKey)) {
+        return false;
+    }
+    if (alternateKey && !["NN", "NNN", "??", "???", "N:NN", "NN:NN", "N:NN:NN"].includes(alternateKey)) {
         return false;
     }
 
@@ -230,8 +235,9 @@ function wrapCueWithToggleLink(trackEl) {
     link.href = "#";
     link.style.cssText = "color: inherit !important; text-decoration: none;"; // avoid flashing (CSS file sometimes fires after elements are created)
     link.textContent = "[" + m[2] + "]";
-    link.dataset.originalCue = m[2];
-    link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? m[2] : "";
+    link.dataset.originalCue = cueParts.originalCue;
+    link.dataset.alternateCue = cueParts.alternateCue;
+    link.dataset.lastMmCue = (cueKey === "NN" || cueKey === "NNN") ? cueParts.originalCue : "";
 
     var after = document.createTextNode(m[3]);
 
@@ -244,18 +250,26 @@ function wrapCueWithToggleLink(trackEl) {
     return true;
 }
 
-function getCueFromToggleText(value) {
+function getCueDisplayParts(value) {
     var s = String(value || "").trim();
 
     // Single cue: [000]
     var one = s.match(/^\[\s*([0-9\?:]+)\s*\]$/);
-    if (one) return one[1];
+    if (one) return { originalCue: one[1], alternateCue: "" };
 
-    // Dual cue display: [000] [0:00]
+    // Dual cue display: [000|0:00]
+    var pipe = s.match(/^\[\s*([0-9\?:]+)\s*\|\s*([0-9\?:]+)\s*\]$/);
+    if (pipe) return { originalCue: pipe[1], alternateCue: pipe[2] };
+
+    // Legacy dual cue display: [000] [0:00]
     var two = s.match(/^\[\s*([0-9\?:]+)\s*\]\s*\[\s*([0-9\?:]+)\s*\]$/);
-    if (two) return two[1];
+    if (two) return { originalCue: two[1], alternateCue: two[2] };
 
-    return s;
+    return { originalCue: s, alternateCue: "" };
+}
+
+function getCueFromToggleText(value) {
+    return getCueDisplayParts(value).originalCue;
 }
 
 // Add wrapping to a set of tracks
@@ -285,12 +299,12 @@ function getAlternateCueFromOriginal(cue, prevCue, nextCue, overNextCue, prevSta
 
 function getStoredPreferredCueFormat() {
     var value = String(localStorage.getItem(cuePreferredFormatStorageKey) || "").trim();
-    if (value === "MM" || value === "HMM") return value;
+    if (value === "MM" || value === "HMM" || value === "DUAL") return value;
     return null;
 }
 
 function storePreferredCueFormat(format) {
-    if (format !== "MM" && format !== "HMM") return;
+    if (format !== "MM" && format !== "HMM" && format !== "DUAL") return;
     localStorage.setItem(cuePreferredFormatStorageKey, format);
 }
 
@@ -314,6 +328,9 @@ function rememberTracklistPreferredFormatForMode($tracklist, mode) {
             cue = originalCue;
         } else if (mode === 1) {
             cue = alternateCue || originalCue;
+        } else if (mode === 2) {
+            selectedFormat = "DUAL";
+            return false;
         }
 
         if (!cue) return;
@@ -333,6 +350,12 @@ function applyStoredPreferredFormat($tracklist) {
 
     var $links = $tracklist.find("a.mdbCueToggle");
     if (!$links.length) return;
+
+    if (preferredFormat === "DUAL") {
+        applyTracklistCueMode($tracklist, 2);
+        $tracklist.data("cueDisplayMode", 2);
+        return;
+    }
 
     var changedAny = false;
 
