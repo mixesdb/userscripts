@@ -3,15 +3,15 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: ./soundcloud_urls.sh SOUNDCLOUD_OR_MIXCLOUD_URL [cleanup=true|false] [OUTPUT_FILE]
+Usage: ./get_urls.sh SOUNDCLOUD_OR_MIXCLOUD_URL [cleanup=true|false] [OUTPUT_FILE]
 
 Requires yt-dlp and python3 to be installed.
 
 Examples:
   cd private/Episodes_Importer
-  bash soundcloud_urls.sh "https://soundcloud.com/inverted-audio/sets/inverted-audio-mix-series"
-  bash soundcloud_urls.sh "https://www.mixcloud.com/inverted_audio/"
-  bash soundcloud_urls.sh "https://www.mixcloud.com/inverted_audio/" cleanup=false mixcloud_arr.txt
+  bash get_urls.sh "https://soundcloud.com/inverted-audio/sets/inverted-audio-mix-series"
+  bash get_urls.sh "https://www.mixcloud.com/inverted_audio/"
+  bash get_urls.sh "https://www.mixcloud.com/inverted_audio/" cleanup=false mixcloud_arr.txt
 
 Fetches a SoundCloud playlist/profile or Mixcloud profile/playlist with yt-dlp and
 writes a JavaScript object keyed only by the episode number:
@@ -74,37 +74,47 @@ yt-dlp \
     --dump-single-json \
     "${url}" > "${temp_json}"
 
-python3 - "${temp_json}" "${output_file}" "${cleanup}" <<'PY'
+python3 - "${temp_json}" "${output_file}" "${cleanup}" "${url}" <<'PY'
 import json
 import re
 import sys
 from urllib.parse import urlparse
 
-input_path, output_path, cleanup_arg = sys.argv[1:4]
+input_path, output_path, cleanup_arg, source_url = sys.argv[1:5]
 cleanup = cleanup_arg == "true"
 
 EPISODE_PATTERNS = [
-    re.compile(r"\bia\s*mix\s*(?:series\s*)?(?P<episode>\d{1,5})\b", re.I),
-    re.compile(r"\binverted\s+audio\s+mix\s*(?:series\s*)?(?P<episode>\d{1,5})\b", re.I),
-    re.compile(r"\b(?:episode|ep|mix|show|number|no\.?|#)\s*[-.:#]?\s*(?P<episode>\d{1,5})\b", re.I),
+    re.compile(r"\bia[\s_-]*mix(?:[\s_-]*series)?[\s_#.:/-]*(?P<episode>\d{1,5})\b", re.I),
+    re.compile(r"\binverted[\s_-]+audio[\s_-]+mix(?:[\s_-]*series)?[\s_#.:/-]*(?P<episode>\d{1,5})\b", re.I),
+    re.compile(r"\b(?:episode|ep|mix|show|number|no\.?|#)[\s_#.:/-]*(?P<episode>\d{1,5})\b", re.I),
 ]
 
 
-def parse_episode(title):
-    for pattern in EPISODE_PATTERNS:
-        match = pattern.search(title or "")
-        if match:
-            return match.group("episode")
+def parse_episode(*values):
+    for value in values:
+        for pattern in EPISODE_PATTERNS:
+            match = pattern.search(value or "")
+            if match:
+                return match.group("episode")
 
     return None
 
 
 def canonical_url(entry):
-    webpage_url = entry.get("webpage_url") or entry.get("url") or ""
-    if webpage_url.startswith("http://") or webpage_url.startswith("https://"):
+    permalink_url = entry.get("permalink_url") or ""
+    if permalink_url.startswith(("http://", "https://")):
+        return permalink_url
+
+    webpage_url = entry.get("webpage_url") or ""
+    url = entry.get("url") or ""
+    if webpage_url.startswith(("http://", "https://")) and "api.soundcloud.com" not in webpage_url:
         return webpage_url
+    if url.startswith(("http://", "https://")) and "api.soundcloud.com" not in url:
+        return url
 
     ie_key = (entry.get("ie_key") or entry.get("extractor_key") or "").lower()
+    if not ie_key:
+        ie_key = "soundcloud" if "soundcloud.com" in source_url else "mixcloud" if "mixcloud.com" in source_url else ""
     uploader = entry.get("uploader") or entry.get("channel") or entry.get("playlist_uploader") or ""
     display_id = entry.get("display_id") or entry.get("id") or ""
 
@@ -117,7 +127,11 @@ def canonical_url(entry):
             return display_id
         return f"https://www.mixcloud.com/{uploader}/{display_id.strip('/')}"
 
-    return webpage_url
+    for candidate in (webpage_url, url):
+        if candidate.startswith(("http://", "https://")):
+            return candidate
+
+    return webpage_url or url
 
 
 def walk_entries(items):
@@ -138,8 +152,15 @@ items = []
 seen = set()
 for entry in walk_entries(data.get("entries") or []):
     title = entry.get("title") or ""
-    key = parse_episode(title) if cleanup else title
     url = canonical_url(entry)
+    key = parse_episode(
+        title,
+        entry.get("display_id") or "",
+        entry.get("id") or "",
+        entry.get("webpage_url") or "",
+        entry.get("url") or "",
+        url,
+    ) if cleanup else title or url
 
     if not key or not url:
         continue
