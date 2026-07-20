@@ -16,10 +16,12 @@ Examples:
 Fetches a Mixcloud profile/playlist with Mixcloud's public API, or a
 SoundCloud playlist/profile with SoundCloud's public web API (or yt-dlp fallback), and writes a JavaScript object keyed only by the episode number:
 
-var arr = {
+const soundcloud = {
     "403": "https://...",
     "402": "https://..."
 };
+
+The variable name is selected from the source URL, for example const soundcloud = { ... }; or const mixcloud = { ... };
 
 By default, cleanup=true extracts episode numbers from titles and sorts items by
 episode number descending. Use cleanup=false to keep source titles as keys and
@@ -280,6 +282,7 @@ from urllib.parse import urlparse
 
 input_path, output_path, cleanup_arg, source_url = sys.argv[1:5]
 cleanup = cleanup_arg == "true"
+source_variable = "mixcloud" if "mixcloud.com" in source_url else "soundcloud" if "soundcloud.com" in source_url else "urls"
 
 EPISODE_PATTERNS = [
     re.compile(r"\bia[\s_-]*mix(?:[\s_-]*series)?[\s_#.:/-]*(?P<episode>\d{1,5})\b", re.I),
@@ -381,7 +384,7 @@ if cleanup:
     items.sort(key=lambda item: int(item[0]), reverse=True)
 
 with open(output_path, "w", encoding="utf-8") as handle:
-    handle.write("var arr = {\n")
+    handle.write(f"const {source_variable} = {{\n")
 
     for key, url in items:
         key_json = json.dumps(key, ensure_ascii=False)
