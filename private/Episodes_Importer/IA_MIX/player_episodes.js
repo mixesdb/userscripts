@@ -1,4 +1,5 @@
-var arr = {
+window.MixesDBIaMixPlayerEpisodes = (function () {
+const applePodcasts = {
 	"403": "https://podcasts.apple.com/us/podcast/ia-mix-403-eric-cloutier/id1518140453?i=1000777534657",
 	"402": "https://podcasts.apple.com/us/podcast/ia-mix-402-p-relief/id1518140453?i=1000775973369",
 	"401": "https://podcasts.apple.com/us/podcast/ia-mix-401-ulf-eriksson/id1518140453?i=1000768590336",
@@ -316,7 +317,9 @@ var arr = {
 	"84": "https://podcasts.apple.com/us/podcast/ia-mix-84-flako/id1518140453?i=1000477633757"
 };
 
-var arr = {
+const soundcloud = {};
+
+const mixcloud = {
     "403": "https://www.mixcloud.com/inverted_audio/ia-mix-403-eric-cloutier/",
     "402": "https://www.mixcloud.com/inverted_audio/ia-mix-402-p-relief/",
     "401": "https://www.mixcloud.com/inverted_audio/ia-mix-401-ulf-eriksson/",
@@ -715,3 +718,6 @@ var arr = {
     "2": "https://www.mixcloud.com/inverted_audio/ia-mix-02-christopher-rau/",
     "1": "https://www.mixcloud.com/inverted_audio/i-a-mix-01-singing-statues/",
 };
+
+    return { applePodcasts, mixcloud, soundcloud };
+}());
