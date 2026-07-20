@@ -180,6 +180,8 @@ def track_entry(track):
         'id': str(track.get('id') or ''),
         'display_id': track.get('permalink') or '',
         'uploader': user.get('permalink') or user.get('username') or '',
+        'duration': track.get('duration') or 0,
+        'duration_ms': track.get('duration') or 0,
         'ie_key': 'Soundcloud',
     }
 
@@ -339,6 +341,24 @@ def canonical_url(entry):
     return webpage_url or url
 
 
+def normalized_duration(entry):
+    raw_duration = entry.get("duration") or entry.get("audio_length") or entry.get("duration_ms") or 0
+    if not raw_duration:
+        return 0
+
+    try:
+        duration = float(raw_duration)
+    except (TypeError, ValueError):
+        return 0
+
+    if entry.get("duration_ms") and not entry.get("duration"):
+        duration = duration / 1000
+    elif source_variable == "soundcloud" and duration > 360000:
+        duration = duration / 1000
+
+    return round(duration)
+
+
 def walk_entries(items):
     for item in items or []:
         if not item:
@@ -358,6 +378,7 @@ seen = set()
 for entry in walk_entries(data.get("entries") or []):
     title = entry.get("title") or entry.get("name") or ""
     url = canonical_url(entry)
+    duration = normalized_duration(entry)
     key = parse_episode(
         title,
         entry.get("display_id") or "",
@@ -378,7 +399,7 @@ for entry in walk_entries(data.get("entries") or []):
         continue
 
     seen.add(key)
-    items.append((key, url))
+    items.append((key, url, duration))
 
 if cleanup:
     items.sort(key=lambda item: int(item[0]), reverse=True)
@@ -386,10 +407,13 @@ if cleanup:
 with open(output_path, "w", encoding="utf-8") as handle:
     handle.write(f"const {source_variable} = {{\n")
 
-    for key, url in items:
+    for key, url, duration in items:
         key_json = json.dumps(key, ensure_ascii=False)
-        url_json = json.dumps(url, ensure_ascii=False)
-        handle.write(f"    {key_json}: {url_json},\n")
+        value = {'url': url}
+        if duration:
+            value['duration'] = duration
+        value_json = json.dumps(value, ensure_ascii=False)
+        handle.write(f"    {key_json}: {value_json},\n")
 
     handle.write("};\n")
 PY
