@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.11
+// @version      2026.07.20.12
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,9 +10,9 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.11
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.20.11
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.20.12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.12
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -178,6 +178,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return typeof sortPlayerUrlsByPreferredOrder === 'function'
             ? sortPlayerUrlsByPreferredOrder(uniquePlayerUrls)
             : uniquePlayerUrls;
+    }
+
+    function getSoundCloudUrlForEpisode(episode, fetchedPlayerUrl = '') {
+        const episodeKey = String(episode.episodeNumber);
+        const configuredSoundCloudUrl = normalizePlayerEpisodeEntry(playerEpisodes.soundcloud?.[episodeKey]);
+        if (configuredSoundCloudUrl) return configuredSoundCloudUrl;
+
+        return String(fetchedPlayerUrl || '').includes('soundcloud.com') ? fetchedPlayerUrl : '';
     }
 
     function getEpisodeDurationSeconds(episode) {
@@ -442,8 +450,17 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.dataset.episodeUrl = episodeUrl;
         link.href = link.dataset.episodeUrl;
         link.addEventListener('click', () => {
+            const soundCloudUrl = getSoundCloudUrlForEpisode(episode, link.dataset.playerUrl || '');
             markLinkVisited(link);
             wrapper.classList.add(config.classNames.copiedWrapper);
+            if (!existingEpisodes.has(episode.episodeNumber) && soundCloudUrl) {
+                window.open(soundCloudUrl, '_blank', 'noopener,noreferrer');
+                logStep('opened SoundCloud URL on copy click', {
+                    episodeNumber: episode.episodeNumber,
+                    episodeUrl,
+                    soundCloudUrl,
+                });
+            }
         });
         updateMixesdbLink(link, episode, wrapper);
         waitForPostedOnDate(link, episode, wrapper);
