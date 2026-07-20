@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.5
+// @version      2026.07.20.7
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.7
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -51,6 +51,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             description: '.entry-content',
             nextPage: 'nav.posts-navigation a.next[href]',
             postedOn: '.posted-on',
+            postedOnTime: '.posted-on time.entry-date.published[datetime], .posted-on time[datetime]',
         },
         classNames: {
             link: 'mdb-ia-mix-link',
@@ -174,6 +175,40 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return Array.from(new Set(playerUrls));
     }
 
+    function getEpisodeDurationSeconds(episode) {
+        const episodeKey = String(episode.episodeNumber);
+        const entries = [
+            playerEpisodes.applePodcasts?.[episodeKey],
+            playerEpisodes.mixcloud?.[episodeKey],
+            playerEpisodes.soundcloud?.[episodeKey],
+        ];
+        const duration = entries
+            .map(entry => Number(entry?.duration))
+            .find(candidate => Number.isFinite(candidate) && candidate > 0);
+
+        return duration || null;
+    }
+
+    function formatDuration(seconds) {
+        const totalSeconds = Math.round(seconds);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const remainingSeconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+    }
+
+    function buildFileDetailsText(episode) {
+        const durationSeconds = getEpisodeDurationSeconds(episode);
+        const duration = durationSeconds ? formatDuration(durationSeconds) : '';
+
+        return `{|{{NormalTableFormat}}\n! dur\n! MB\n! kbps\n|-\n| ${duration}\n| \n| \n|}`;
+    }
+
     function buildPlayerText(playerUrls) {
         if (!playerUrls.length) return '';
 
@@ -201,7 +236,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         const imageReference = buildImageReference(episode);
         const imageText = imageReference ? `${imageReference}\n\n` : '';
 
-        return `${imageText}== File details ==\n\n{{StandardShow1h}}${buildPlayerText(getPlayerUrlsForEpisode(episode, fetchedPlayerUrl))}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n${categories}`;
+        return `${imageText}== File details ==\n\n${buildFileDetailsText(episode)}${buildPlayerText(getPlayerUrlsForEpisode(episode, fetchedPlayerUrl))}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n${categories}`;
     }
 
     function setCreateLinkHref(link, episode, episodeUrl, fetchedPlayerUrl = '') {
@@ -236,7 +271,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
         try {
             const details = await fetchEpisodeDetails(episodeUrl);
-            episode.date = details.date;
+            episode.date = details.date || episode.date;
             link.dataset.playerUrl = details.playerUrl || '';
             logStep('fetched episode details', { episodeNumber: episode.episodeNumber, episodeUrl, date: details.date, playerUrl: details.playerUrl });
             if (isExisting) {
@@ -358,11 +393,39 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function hydrateEpisodeDateFromWrapper(episode, wrapper) {
-        if (episode.date) return;
+        if (episode.date) return false;
 
         const postedOn = wrapper.querySelector(config.selectors.postedOn);
-        const datetime = postedOn?.querySelector('time.entry-date.published[datetime], time[datetime]')?.getAttribute('datetime');
+        const datetime = postedOn?.querySelector(config.selectors.postedOnTime)?.getAttribute('datetime');
         episode.date = normalizeDate(datetime) || normalizeDate(postedOn?.textContent);
+        return Boolean(episode.date);
+    }
+
+    function updateLinkDateFromPostedOn(link, episode, wrapper, postedOn) {
+        if (episode.date) return;
+
+        const datetime = postedOn.querySelector(config.selectors.postedOnTime)?.getAttribute('datetime');
+        const date = normalizeDate(datetime) || normalizeDate(postedOn.textContent);
+        if (!date) return;
+
+        episode.date = date;
+        setCreateLinkHref(link, episode, link.dataset.episodeUrl || location.href, link.dataset.playerUrl || '');
+        link.title = buildMixesdbTitle(episode);
+        logStep('hydrated detail page date from .posted-on', {
+            episodeNumber: episode.episodeNumber,
+            episodeUrl: link.dataset.episodeUrl || location.href,
+            date,
+        });
+    }
+
+    function waitForPostedOnDate(link, episode, wrapper) {
+        if (episode.date || typeof waitForKeyElements !== 'function') return;
+
+        const selector = `${config.selectors.episodeWrapper}[data-mdb-episode-number="${episode.episodeNumber}"] ${config.selectors.postedOn}`;
+        waitForKeyElements(selector, jNode => {
+            updateLinkDateFromPostedOn(link, episode, wrapper, jNode[0]);
+            return !episode.date;
+        }, true);
     }
 
     function createMixesdbLink(heading, episode, wrapper) {
@@ -380,6 +443,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             wrapper.classList.add(config.classNames.copiedWrapper);
         });
         updateMixesdbLink(link, episode, wrapper);
+        waitForPostedOnDate(link, episode, wrapper);
 
         return link;
     }
