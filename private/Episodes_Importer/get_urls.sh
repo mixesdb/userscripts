@@ -195,33 +195,64 @@ def paged_collection(first_url):
             next_url += ('&' if '?' in next_url else '?') + urlencode({'client_id': client_id})
     return entries
 
-page = fetch_text(source_url)
-client_id = find_client_id(page)
-resolved = fetch_json(api_url('/resolve', url=source_url))
-kind = resolved.get('kind')
-entries = []
 
-if kind == 'playlist':
-    playlist_id = resolved.get('id')
-    tracks = [track for track in resolved.get('tracks') or [] if track.get('permalink_url')]
-    track_count = resolved.get('track_count') or len(tracks)
-    if playlist_id and len(tracks) < track_count:
-        # SoundCloud embeds only a small preview of large playlists in /resolve.
-        # The playlist tracks endpoint is paginated and returns the full playlist.
-        tracks = paged_collection(api_url(f'/playlists/{playlist_id}/tracks', limit=200, linked_partitioning='1'))
-    entries = [track_entry(track) for track in tracks]
-elif kind == 'user':
-    user_id = resolved.get('id')
-    if not user_id:
-        raise SystemExit('Error: resolved SoundCloud user did not include an id.')
-    tracks = paged_collection(api_url(f'/users/{user_id}/tracks', limit=200, linked_partitioning='1'))
-    entries = [track_entry(track) for track in tracks]
-elif kind == 'track':
-    entries = [track_entry(resolved)]
-else:
-    raise SystemExit(f'Error: unsupported SoundCloud resource kind: {kind!r}')
+def hydrate_tracks(tracks):
+    hydrated = []
+    missing_ids = []
+    for track in tracks:
+        if track.get('permalink_url'):
+            hydrated.append(track)
+        elif track.get('id'):
+            missing_ids.append(str(track['id']))
 
-print(json.dumps({'entries': entries}))
+    for index in range(0, len(missing_ids), 50):
+        chunk = ','.join(missing_ids[index:index + 50])
+        hydrated.extend(fetch_json(api_url('/tracks', ids=chunk)))
+
+    return hydrated
+
+
+def main():
+    page = fetch_text(source_url)
+    global client_id
+    client_id = find_client_id(page)
+    resolved = fetch_json(api_url('/resolve', url=source_url))
+    kind = resolved.get('kind')
+    entries = []
+
+    if kind == 'playlist':
+        playlist_id = resolved.get('id')
+        tracks = hydrate_tracks(resolved.get('tracks') or [])
+        track_count = resolved.get('track_count') or len(tracks)
+        if playlist_id and len(tracks) < track_count:
+            # SoundCloud has intermittently returned 404 for this endpoint even
+            # when /resolve succeeds, so keep the resolved/hydrated tracks as a
+            # usable result instead of aborting with a Python traceback.
+            try:
+                tracks = paged_collection(api_url(f'/playlists/{playlist_id}/tracks', limit=200, linked_partitioning='1'))
+            except (HTTPError, URLError, TimeoutError, OSError) as exc:
+                print(f'Warning: SoundCloud playlist pagination failed; using resolved tracks: {exc}', file=sys.stderr)
+        entries = [track_entry(track) for track in tracks]
+    elif kind == 'user':
+        user_id = resolved.get('id')
+        if not user_id:
+            raise SystemExit('Error: resolved SoundCloud user did not include an id.')
+        tracks = paged_collection(api_url(f'/users/{user_id}/tracks', limit=200, linked_partitioning='1'))
+        entries = [track_entry(track) for track in tracks]
+    elif kind == 'track':
+        entries = [track_entry(resolved)]
+    else:
+        raise SystemExit(f'Error: unsupported SoundCloud resource kind: {kind!r}')
+
+    print(json.dumps({'entries': entries}))
+
+
+try:
+    main()
+except SystemExit:
+    raise
+except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+    raise SystemExit(f'Error: SoundCloud API fetch failed: {exc}')
 PYFETCH
     then
         :
