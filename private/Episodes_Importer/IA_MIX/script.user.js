@@ -34,7 +34,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     const sourceHost = 'inverted-audio.com';
-    let playerEpisodes = {};
+    let playerEpisodes = window.MixesDBIaMixPlayerEpisodes || {};
     const mixesdbHost = 'www.mixesdb.com';
     const config = {
         categoryTitle: 'Category:IA_MIX',
@@ -511,6 +511,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     async function loadPlayerEpisodes() {
+        if (Object.keys(playerEpisodes).length) return;
+
         const url = 'https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?fresh=' + Date.now();
         const response = await fetch(url, { cache: 'no-store' });
         if (!response.ok) throw new Error(`player_episodes.js responded with ${response.status}`);
