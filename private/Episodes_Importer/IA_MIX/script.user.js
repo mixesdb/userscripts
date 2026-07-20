@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.8
+// @version      2026.07.20.9
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.8
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.9
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -165,12 +165,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
 
     function getPlayerUrlsForEpisode(episode, fetchedPlayerUrl = '') {
         const episodeKey = String(episode.episodeNumber);
-        const playerUrls = [
+        const configuredPlayerUrls = [
             normalizePlayerEpisodeEntry(playerEpisodes.applePodcasts?.[episodeKey]),
             normalizePlayerEpisodeEntry(playerEpisodes.mixcloud?.[episodeKey]),
             normalizePlayerEpisodeEntry(playerEpisodes.soundcloud?.[episodeKey]),
-            fetchedPlayerUrl,
         ].filter(Boolean);
+        const playerUrls = configuredPlayerUrls.length ? configuredPlayerUrls : [fetchedPlayerUrl].filter(Boolean);
 
         return Array.from(new Set(playerUrls));
     }
@@ -227,7 +227,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return `[[File:${buildMixesdbTitle(episode)}.jpg|right|360px]]`;
     }
 
-    function buildEpisodePageText(episode, fetchedPlayerUrl = '') {
+    function buildEpisodePageText(episode, episodeUrl = '', fetchedPlayerUrl = '') {
         const tracklistResult = { text: '<list>\n\n</list>', status: 'none' };
         const categories = [episode.date ? episode.date.slice(0, 4) : '', episode.artist, config.showCategory, 'Techno', `Tracklist: ${tracklistResult.status}`]
             .filter(Boolean)
@@ -236,11 +236,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         const imageReference = buildImageReference(episode);
         const imageText = imageReference ? `${imageReference}\n\n` : '';
 
-        return `${imageText}== File details ==\n\n${buildFileDetailsText(episode)}${buildPlayerText(getPlayerUrlsForEpisode(episode, fetchedPlayerUrl))}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n${categories}`;
+        const notesText = episodeUrl ? `\n\n== Notes ==\n\n${episodeUrl}` : '';
+
+        return `${imageText}== File details ==\n\n${buildFileDetailsText(episode)}${buildPlayerText(getPlayerUrlsForEpisode(episode, fetchedPlayerUrl))}${notesText}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n${categories}`;
     }
 
     function setCreateLinkHref(link, episode, episodeUrl, fetchedPlayerUrl = '') {
-        link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, fetchedPlayerUrl));
+        link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, episodeUrl, fetchedPlayerUrl));
     }
 
     function bindCreateLinkRefreshOnClick(link, episode, episodeUrl) {
