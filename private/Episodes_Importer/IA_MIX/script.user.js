@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.1
+// @version      2026.07.20.2
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.2
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -34,6 +35,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     const sourceHost = 'inverted-audio.com';
+    const playerEpisodes = window.MixesDBIaMixPlayerEpisodes || {};
     const mixesdbHost = 'www.mixesdb.com';
     const config = {
         categoryTitle: 'Category:IA_MIX',
@@ -145,18 +147,41 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return `${prefix}${episode.artist} - IA MIX ${importer.padNumber(episode.episodeNumber)}`;
     }
 
-    function buildEpisodePageText(episode, playerUrl = '') {
-        return importer.buildMixPageText({
-            year: episode.date ? episode.date.slice(0, 4) : '',
-            artist: episode.artist,
-            showCategory: config.showCategory,
-            tracklistResult: { text: '<list>\n\n</list>', status: 'none' },
-            playerUrl,
-        });
+    function getPlayerUrlsForEpisode(episode, fetchedPlayerUrl = '') {
+        const episodeKey = String(episode.episodeNumber);
+        const playerUrls = [
+            playerEpisodes.applePodcasts?.[episodeKey],
+            playerEpisodes.mixcloud?.[episodeKey],
+            playerEpisodes.soundcloud?.[episodeKey],
+            fetchedPlayerUrl,
+        ].filter(Boolean);
+
+        return Array.from(new Set(playerUrls));
     }
 
-    function setCreateLinkHref(link, episode, episodeUrl, playerUrl = '') {
-        link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, playerUrl));
+    function buildPlayerText(playerUrls) {
+        if (!playerUrls.length) return '';
+
+        const playerLines = playerUrls.map((playerUrl, index) => {
+            const prefix = playerUrls.length > 1 || playerUrl.includes('=') ? `${index + 1}=` : '';
+            return ` |${prefix}${playerUrl}`;
+        });
+
+        return `\n\n{{Player\n${playerLines.join('\n')}\n}}`;
+    }
+
+    function buildEpisodePageText(episode, fetchedPlayerUrl = '') {
+        const tracklistResult = { text: '<list>\n\n</list>', status: 'none' };
+        const categories = [episode.date ? episode.date.slice(0, 4) : '', episode.artist, config.showCategory, `Tracklist: ${tracklistResult.status}`]
+            .filter(Boolean)
+            .map(category => `[[Category:${category}]]`)
+            .join('\n');
+
+        return `== File details ==\n\n{{StandardShow1h}}${buildPlayerText(getPlayerUrlsForEpisode(episode, fetchedPlayerUrl))}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n${categories}`;
+    }
+
+    function setCreateLinkHref(link, episode, episodeUrl, fetchedPlayerUrl = '') {
+        link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, fetchedPlayerUrl));
     }
 
     async function updateMixesdbLink(link, episode, wrapper) {
