@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.12
+// @version      2026.07.20.13
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,9 +10,9 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.20.12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.13
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.07.20.13
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.13
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -144,15 +144,57 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return selected?.normalized || '';
     }
 
+    function getTracklistHeadingParagraph(doc) {
+        return Array.from(doc.querySelectorAll(`${config.selectors.description} p`))
+            .find(paragraph => paragraph.textContent.trim().replace(/\s+/g, ' ').toUpperCase() === 'TRACKLIST');
+    }
+
+    function extractRawTracklistFromDocument(doc, episodeUrl = '') {
+        const tracklistHeading = getTracklistHeadingParagraph(doc);
+        const tracklistParagraph = tracklistHeading?.nextElementSibling;
+        if (!tracklistParagraph || tracklistParagraph.tagName !== 'P') {
+            logStep('detail tracklist paragraph not found', { episodeUrl, hasTracklistHeading: Boolean(tracklistHeading) });
+            return '';
+        }
+
+        const rawTracklist = importer.getNodeTextWithLinebreaks(tracklistParagraph)
+            .split('\n')
+            .map(importer.normalizeTracklistLine)
+            .filter(Boolean)
+            .join('\n');
+        logStep('detail tracklist extracted', { episodeUrl, lines: rawTracklist.split('\n').filter(Boolean).length, rawTracklist });
+        return rawTracklist;
+    }
+
+    async function formatTracklistForEpisode(rawTracklist, episodeUrl = '') {
+        try {
+            const tracklist = await importer.formatTracklist(rawTracklist, config.tleApiType);
+            logStep('formatTracklist success', { episodeUrl, status: tracklist.status, textLength: tracklist.text?.length || 0, hasFeedback: Boolean(tracklist.feedback) });
+            return tracklist;
+        } catch (error) {
+            logStep('formatTracklist failed', { episodeUrl, error: error.message || error });
+            const fallbackTracklist = importer.hasTracklistForApi(rawTracklist)
+                ? rawTracklist.split('\n').filter(Boolean).map(line => `# ${line}`).join('\n')
+                : '<list>\n\n</list>';
+            return {
+                text: fallbackTracklist,
+                status: importer.hasTracklistForApi(rawTracklist) ? 'incomplete' : 'none',
+                feedback: null,
+            };
+        }
+    }
+
     async function fetchEpisodeDetails(episodeUrl) {
         const response = await fetch(episodeUrl, { credentials: 'same-origin' });
         if (!response.ok) throw new Error(`Episode page responded with ${response.status}`);
 
         const html = await response.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
+        const rawTracklist = extractRawTracklistFromDocument(doc, episodeUrl);
         return {
             date: extractDateFromDocument(doc, episodeUrl),
             playerUrl: doc.querySelector('iframe[src*="soundcloud.com"], iframe[src*="mixcloud.com"], iframe[src*="hearthis.at"], audio[src], audio source[src]')?.src || '',
+            tracklist: await formatTracklistForEpisode(rawTracklist, episodeUrl),
         };
     }
 
@@ -236,8 +278,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return `[[File:${buildMixesdbTitle(episode)}.jpg|right|360px]]`;
     }
 
-    function buildEpisodePageText(episode, episodeUrl = '', fetchedPlayerUrl = '') {
-        const tracklistResult = { text: '<list>\n\n</list>', status: 'none' };
+    function buildEpisodePageText(episode, episodeUrl = '', fetchedPlayerUrl = '', tracklistResult = { text: '<list>\n\n</list>', status: 'none' }) {
         const categories = [episode.date ? episode.date.slice(0, 4) : '', episode.artist, config.showCategory, 'Techno', `Tracklist: ${tracklistResult.status}`]
             .filter(Boolean)
             .map(category => `[[Category:${category}]]`)
@@ -250,8 +291,8 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return `${imageText}== File details ==\n\n${buildFileDetailsText(episode)}${buildPlayerText(getPlayerUrlsForEpisode(episode, fetchedPlayerUrl))}${notesText}\n\n== Tracklist ==\n\n${tracklistResult.text}\n\n${categories}`;
     }
 
-    function setCreateLinkHref(link, episode, episodeUrl, fetchedPlayerUrl = '') {
-        link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, episodeUrl, fetchedPlayerUrl));
+    function setCreateLinkHref(link, episode, episodeUrl, fetchedPlayerUrl = '', tracklistResult) {
+        link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, episodeUrl, fetchedPlayerUrl, tracklistResult));
     }
 
     function bindCreateLinkRefreshOnClick(link, episode, episodeUrl) {
@@ -260,13 +301,14 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.dataset.mdbIaMixCreateLinkRefresh = '1';
         link.addEventListener('click', () => {
             if (existingEpisodes.has(episode.episodeNumber)) return;
-            setCreateLinkHref(link, episode, episodeUrl, link.dataset.playerUrl || '');
+            setCreateLinkHref(link, episode, episodeUrl, link.dataset.playerUrl || '', link.mdbIaMixTracklistResult);
             logStep('refreshed create link on click', {
                 episodeNumber: episode.episodeNumber,
                 episodeUrl,
                 title: buildMixesdbTitle(episode),
                 date: episode.date || '',
                 playerUrl: link.dataset.playerUrl || '',
+                tracklistStatus: link.mdbIaMixTracklistResult?.status || 'none',
             });
         }, { capture: true });
     }
@@ -284,11 +326,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             const details = await fetchEpisodeDetails(episodeUrl);
             episode.date = details.date || episode.date;
             link.dataset.playerUrl = details.playerUrl || '';
-            logStep('fetched episode details', { episodeNumber: episode.episodeNumber, episodeUrl, date: details.date, playerUrl: details.playerUrl });
+            link.mdbIaMixTracklistResult = details.tracklist;
+            logStep('fetched episode details', { episodeNumber: episode.episodeNumber, episodeUrl, date: details.date, playerUrl: details.playerUrl, tracklistStatus: details.tracklist?.status || 'none' });
             if (isExisting) {
                 link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl);
             } else {
-                setCreateLinkHref(link, episode, episodeUrl, details.playerUrl);
+                setCreateLinkHref(link, episode, episodeUrl, details.playerUrl, details.tracklist);
             }
         } catch (error) {
             logStep('failed to fetch episode details', { episodeUrl, error: error.message || error });
