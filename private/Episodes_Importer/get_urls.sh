@@ -47,7 +47,8 @@ url="$1"
 cleanup_arg="${2:-true}"
 output_file="${3:-${script_dir}/get_urls.txt}"
 temp_json="$(mktemp)"
-trap 'rm -f "${temp_json}"' EXIT
+temp_err="$(mktemp)"
+trap 'rm -f "${temp_json}" "${temp_err}"' EXIT
 
 case "${cleanup_arg}" in
     true|cleanup=true)
