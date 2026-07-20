@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.3
+// @version      2026.07.20.4
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,8 +10,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.3
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.3
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.4
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -119,19 +119,26 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return `${longDateMatch[3]}-${month}-${String(longDateMatch[2]).padStart(2, '0')}`;
     }
 
-    function extractDateFromDocument(doc) {
+    function extractDateFromDocument(doc, episodeUrl = '') {
         const postedOn = doc.querySelector('.posted-on');
         const candidates = [
-            postedOn?.querySelector('time.entry-date.published[datetime]')?.getAttribute('datetime'),
-            postedOn?.querySelector('time[datetime]')?.getAttribute('datetime'),
-            postedOn?.textContent,
-            doc.querySelector('time[datetime]')?.getAttribute('datetime'),
-            doc.querySelector('meta[property="article:published_time"]')?.content,
-            doc.querySelector('meta[name="date"]')?.content,
-            doc.querySelector('.entry-date, .entry-meta')?.textContent,
+            { source: '.posted-on time.entry-date.published[datetime]', value: postedOn?.querySelector('time.entry-date.published[datetime]')?.getAttribute('datetime') },
+            { source: '.posted-on time[datetime]', value: postedOn?.querySelector('time[datetime]')?.getAttribute('datetime') },
+            { source: '.posted-on text', value: postedOn?.textContent },
+            { source: 'time[datetime]', value: doc.querySelector('time[datetime]')?.getAttribute('datetime') },
+            { source: 'meta[property="article:published_time"]', value: doc.querySelector('meta[property="article:published_time"]')?.content },
+            { source: 'meta[name="date"]', value: doc.querySelector('meta[name="date"]')?.content },
+            { source: '.entry-date, .entry-meta text', value: doc.querySelector('.entry-date, .entry-meta')?.textContent },
         ];
+        const normalizedCandidates = candidates.map(candidate => ({
+            source: candidate.source,
+            value: String(candidate.value || '').trim(),
+            normalized: normalizeDate(candidate.value),
+        }));
+        const selected = normalizedCandidates.find(candidate => candidate.normalized);
+        logStep('date extraction candidates', { episodeUrl, candidates: normalizedCandidates, selected: selected || null });
 
-        return candidates.map(normalizeDate).find(Boolean) || '';
+        return selected?.normalized || '';
     }
 
     async function fetchEpisodeDetails(episodeUrl) {
@@ -141,7 +148,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         const html = await response.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
         return {
-            date: extractDateFromDocument(doc),
+            date: extractDateFromDocument(doc, episodeUrl),
             playerUrl: doc.querySelector('iframe[src*="soundcloud.com"], iframe[src*="mixcloud.com"], iframe[src*="hearthis.at"], audio[src], audio source[src]')?.src || '',
         };
     }
@@ -170,12 +177,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             const prefix = playerUrls.length > 1 || playerUrl.includes('=') ? `${index + 1}=` : '';
             return ` |${prefix}${playerUrl}`;
         });
+        const modeLine = playerUrls.length > 1 ? ' |mode=mirrors\n' : '';
 
-        return `\n\n{{Player\n${playerLines.join('\n')}\n}}`;
+        return `\n\n{{Player\n${modeLine}${playerLines.join('\n')}\n}}`;
     }
 
     function buildImageReference(episode) {
-        return episode.date ? `[[File:${buildMixesdbTitle(episode)}.jpg|right|360px]]` : '';
+        return `[[File:${buildMixesdbTitle(episode)}.jpg|right|360px]]`;
     }
 
     function buildEpisodePageText(episode, fetchedPlayerUrl = '') {
@@ -194,6 +202,23 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl, buildEpisodePageText(episode, fetchedPlayerUrl));
     }
 
+    function bindCreateLinkRefreshOnClick(link, episode, episodeUrl) {
+        if (link.dataset.mdbIaMixCreateLinkRefresh === '1') return;
+
+        link.dataset.mdbIaMixCreateLinkRefresh = '1';
+        link.addEventListener('click', () => {
+            if (existingEpisodes.has(episode.episodeNumber)) return;
+            setCreateLinkHref(link, episode, episodeUrl, link.dataset.playerUrl || '');
+            logStep('refreshed create link on click', {
+                episodeNumber: episode.episodeNumber,
+                episodeUrl,
+                title: buildMixesdbTitle(episode),
+                date: episode.date || '',
+                playerUrl: link.dataset.playerUrl || '',
+            });
+        }, { capture: true });
+    }
+
     async function updateMixesdbLink(link, episode, wrapper) {
         const episodeUrl = link.dataset.episodeUrl || location.href;
         const isExisting = existingEpisodes.has(episode.episodeNumber);
@@ -201,10 +226,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.className = `${config.classNames.link} ${isExisting ? 'is-existing' : 'is-pending'}`;
         link.textContent = isExisting ? 'See on MixesDB' : `Checking IA MIX ${importer.padNumber(episode.episodeNumber)}`;
         setLinkVisitedState(link);
+        bindCreateLinkRefreshOnClick(link, episode, episodeUrl);
 
         try {
             const details = await fetchEpisodeDetails(episodeUrl);
             episode.date = details.date;
+            link.dataset.playerUrl = details.playerUrl || '';
+            logStep('fetched episode details', { episodeNumber: episode.episodeNumber, episodeUrl, date: details.date, playerUrl: details.playerUrl });
             if (isExisting) {
                 link.href = importer.buildMixesdbUrl(buildMixesdbTitle(episode), episodeUrl);
             } else {
