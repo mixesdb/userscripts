@@ -105,11 +105,10 @@ for api_url in api_urls:
 print(json.dumps({'entries': entries}))
 PYFETCH
 elif [[ "${url}" == *"soundcloud.com"* ]]; then
-    if python3 - "${url}" > "${temp_json}" 2> "${temp_err}" <<'PYFETCH'
+    if python3 - "${url}" > "${temp_json}" <<'PYFETCH'
 import json
 import re
 import sys
-sys.tracebacklimit = 0
 from html import unescape
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -183,29 +182,6 @@ def track_entry(track):
     }
 
 
-def fetch_track_by_id(track_id):
-    return fetch_json(api_url(f'/tracks/{track_id}'))
-
-
-def hydrate_playlist_tracks(tracks):
-    hydrated = []
-    for track in tracks or []:
-        if not isinstance(track, dict):
-            continue
-        if track.get('permalink_url'):
-            hydrated.append(track)
-            continue
-        track_id = track.get('id')
-        if not track_id:
-            continue
-        try:
-            hydrated.append(fetch_track_by_id(track_id))
-        except HTTPError as error:
-            if error.code != 404:
-                raise
-    return hydrated
-
-
 def paged_collection(first_url):
     entries = []
     next_url = first_url
@@ -227,21 +203,12 @@ entries = []
 
 if kind == 'playlist':
     playlist_id = resolved.get('id')
-    resolved_tracks = resolved.get('tracks') or []
-    tracks = [track for track in resolved_tracks if track.get('permalink_url')]
-    track_count = resolved.get('track_count') or len(resolved_tracks)
-    if resolved_tracks:
-        # /resolve keeps playlist order but often includes only IDs for most
-        # tracks. Hydrate those ID-only items one-by-one; SoundCloud's batch
-        # `/tracks?ids=...` search endpoint may return an empty collection, and
-        # `/playlists/{id}/tracks` can 404 for normal public playlists.
-        tracks = hydrate_playlist_tracks(resolved_tracks)
-    elif playlist_id and len(tracks) < track_count:
-        try:
-            tracks = paged_collection(api_url(f'/playlists/{playlist_id}/tracks', limit=200, linked_partitioning='1'))
-        except HTTPError as error:
-            if error.code != 404:
-                raise
+    tracks = [track for track in resolved.get('tracks') or [] if track.get('permalink_url')]
+    track_count = resolved.get('track_count') or len(tracks)
+    if playlist_id and len(tracks) < track_count:
+        # SoundCloud embeds only a small preview of large playlists in /resolve.
+        # The playlist tracks endpoint is paginated and returns the full playlist.
+        tracks = paged_collection(api_url(f'/playlists/{playlist_id}/tracks', limit=200, linked_partitioning='1'))
     entries = [track_entry(track) for track in tracks]
 elif kind == 'user':
     user_id = resolved.get('id')
@@ -259,24 +226,14 @@ PYFETCH
     then
         :
     elif command -v yt-dlp >/dev/null 2>&1; then
-        api_error="$(tail -n 1 "${temp_err}" 2>/dev/null || true)"
-        if [[ -n "${api_error}" ]]; then
-            echo "Warning: SoundCloud API fetch failed (${api_error}); falling back to yt-dlp." >&2
-        else
-            echo "Warning: SoundCloud API fetch failed; falling back to yt-dlp." >&2
-        fi
+        echo "Warning: SoundCloud API fetch failed; falling back to yt-dlp." >&2
         yt-dlp \
             --ignore-errors \
             --flat-playlist \
             --dump-single-json \
             "${url}" > "${temp_json}"
     else
-        api_error="$(tail -n 1 "${temp_err}" 2>/dev/null || true)"
-        if [[ -n "${api_error}" ]]; then
-            echo "Error: SoundCloud API fetch failed (${api_error}) and yt-dlp is not installed for fallback." >&2
-        else
-            echo "Error: SoundCloud API fetch failed and yt-dlp is not installed for fallback." >&2
-        fi
+        echo "Error: SoundCloud API fetch failed and yt-dlp is not installed for fallback." >&2
         exit 1
     fi
 else
