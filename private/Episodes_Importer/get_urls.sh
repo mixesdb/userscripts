@@ -5,7 +5,7 @@ usage() {
     cat <<'USAGE'
 Usage: ./get_urls.sh SOUNDCLOUD_OR_MIXCLOUD_URL [cleanup=true|false] [OUTPUT_FILE]
 
-Requires python3 to be installed. SoundCloud URLs also require yt-dlp.
+Requires python3 to be installed. SoundCloud URLs use SoundCloud's public web API, with yt-dlp as a fallback when available.
 
 Examples:
   cd private/Episodes_Importer
@@ -14,7 +14,7 @@ Examples:
   bash get_urls.sh "https://www.mixcloud.com/inverted_audio/" cleanup=false mixcloud_arr.txt
 
 Fetches a Mixcloud profile/playlist with Mixcloud's public API, or a
-SoundCloud playlist/profile with yt-dlp, and writes a JavaScript object keyed only by the episode number:
+SoundCloud playlist/profile with SoundCloud's public web API (or yt-dlp fallback), and writes a JavaScript object keyed only by the episode number:
 
 var arr = {
     "403": "https://...",
@@ -47,7 +47,8 @@ url="$1"
 cleanup_arg="${2:-true}"
 output_file="${3:-${script_dir}/get_urls.txt}"
 temp_json="$(mktemp)"
-trap 'rm -f "${temp_json}"' EXIT
+temp_err="$(mktemp)"
+trap 'rm -f "${temp_json}" "${temp_err}"' EXIT
 
 case "${cleanup_arg}" in
     true|cleanup=true)
@@ -104,16 +105,180 @@ for api_url in api_urls:
 print(json.dumps({'entries': entries}))
 PYFETCH
 elif [[ "${url}" == *"soundcloud.com"* ]]; then
-    if ! command -v yt-dlp >/dev/null 2>&1; then
-        echo "Error: yt-dlp is required for SoundCloud URLs but was not found in PATH." >&2
+    if python3 - "${url}" > "${temp_json}" 2> "${temp_err}" <<'PYFETCH'
+import json
+import re
+import sys
+sys.tracebacklimit = 0
+from html import unescape
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+source_url = sys.argv[1]
+headers = {'User-Agent': 'Mozilla/5.0'}
+
+
+def fetch_text(url):
+    request = Request(url, headers=headers)
+    with urlopen(request, timeout=30) as response:
+        return response.read().decode('utf-8', 'replace')
+
+
+def fetch_json(url):
+    request = Request(url, headers={**headers, 'Accept': 'application/json'})
+    with urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def find_client_id(page_html):
+    patterns = [
+        r'client_id\s*[:=]\s*["\']([A-Za-z0-9_-]{20,})["\']',
+        r'client_id=([A-Za-z0-9_-]{20,})',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, page_html)
+        if match:
+            return match.group(1)
+
+    scripts = re.findall(r'<script[^>]+src=["\']([^"\']+\.js)["\']', page_html)
+    for script_url in reversed(scripts):
+        if script_url.startswith('//'):
+            script_url = 'https:' + script_url
+        elif script_url.startswith('/'):
+            script_url = 'https://soundcloud.com' + script_url
+        try:
+            script = fetch_text(unescape(script_url))
+        except (HTTPError, URLError, TimeoutError):
+            continue
+        for pattern in patterns:
+            match = re.search(pattern, script)
+            if match:
+                return match.group(1)
+
+    raise SystemExit('Error: could not locate SoundCloud client_id.')
+
+
+def api_url(path, **params):
+    params = {key: value for key, value in params.items() if value is not None}
+    params['client_id'] = client_id
+    return 'https://api-v2.soundcloud.com' + path + '?' + urlencode(params)
+
+
+def permalink(track):
+    return track.get('permalink_url') or track.get('uri') or track.get('url') or ''
+
+
+def track_entry(track):
+    user = track.get('user') or {}
+    return {
+        'title': track.get('title') or '',
+        'permalink_url': permalink(track),
+        'webpage_url': permalink(track),
+        'url': permalink(track),
+        'id': str(track.get('id') or ''),
+        'display_id': track.get('permalink') or '',
+        'uploader': user.get('permalink') or user.get('username') or '',
+        'ie_key': 'Soundcloud',
+    }
+
+
+def fetch_track_by_id(track_id):
+    return fetch_json(api_url(f'/tracks/{track_id}'))
+
+
+def hydrate_playlist_tracks(tracks):
+    hydrated = []
+    for track in tracks or []:
+        if not isinstance(track, dict):
+            continue
+        if track.get('permalink_url'):
+            hydrated.append(track)
+            continue
+        track_id = track.get('id')
+        if not track_id:
+            continue
+        try:
+            hydrated.append(fetch_track_by_id(track_id))
+        except HTTPError as error:
+            if error.code != 404:
+                raise
+    return hydrated
+
+
+def paged_collection(first_url):
+    entries = []
+    next_url = first_url
+    while next_url:
+        payload = fetch_json(next_url)
+        collection = payload.get('collection') if isinstance(payload, dict) else payload
+        if isinstance(collection, list):
+            entries.extend(collection)
+        next_url = payload.get('next_href') if isinstance(payload, dict) else None
+        if next_url and 'client_id=' not in next_url:
+            next_url += ('&' if '?' in next_url else '?') + urlencode({'client_id': client_id})
+    return entries
+
+page = fetch_text(source_url)
+client_id = find_client_id(page)
+resolved = fetch_json(api_url('/resolve', url=source_url))
+kind = resolved.get('kind')
+entries = []
+
+if kind == 'playlist':
+    playlist_id = resolved.get('id')
+    resolved_tracks = resolved.get('tracks') or []
+    tracks = [track for track in resolved_tracks if track.get('permalink_url')]
+    track_count = resolved.get('track_count') or len(resolved_tracks)
+    if resolved_tracks:
+        # /resolve keeps playlist order but often includes only IDs for most
+        # tracks. Hydrate those ID-only items one-by-one; SoundCloud's batch
+        # `/tracks?ids=...` search endpoint may return an empty collection, and
+        # `/playlists/{id}/tracks` can 404 for normal public playlists.
+        tracks = hydrate_playlist_tracks(resolved_tracks)
+    elif playlist_id and len(tracks) < track_count:
+        try:
+            tracks = paged_collection(api_url(f'/playlists/{playlist_id}/tracks', limit=200, linked_partitioning='1'))
+        except HTTPError as error:
+            if error.code != 404:
+                raise
+    entries = [track_entry(track) for track in tracks]
+elif kind == 'user':
+    user_id = resolved.get('id')
+    if not user_id:
+        raise SystemExit('Error: resolved SoundCloud user did not include an id.')
+    tracks = paged_collection(api_url(f'/users/{user_id}/tracks', limit=200, linked_partitioning='1'))
+    entries = [track_entry(track) for track in tracks]
+elif kind == 'track':
+    entries = [track_entry(resolved)]
+else:
+    raise SystemExit(f'Error: unsupported SoundCloud resource kind: {kind!r}')
+
+print(json.dumps({'entries': entries}))
+PYFETCH
+    then
+        :
+    elif command -v yt-dlp >/dev/null 2>&1; then
+        api_error="$(tail -n 1 "${temp_err}" 2>/dev/null || true)"
+        if [[ -n "${api_error}" ]]; then
+            echo "Warning: SoundCloud API fetch failed (${api_error}); falling back to yt-dlp." >&2
+        else
+            echo "Warning: SoundCloud API fetch failed; falling back to yt-dlp." >&2
+        fi
+        yt-dlp \
+            --ignore-errors \
+            --flat-playlist \
+            --dump-single-json \
+            "${url}" > "${temp_json}"
+    else
+        api_error="$(tail -n 1 "${temp_err}" 2>/dev/null || true)"
+        if [[ -n "${api_error}" ]]; then
+            echo "Error: SoundCloud API fetch failed (${api_error}) and yt-dlp is not installed for fallback." >&2
+        else
+            echo "Error: SoundCloud API fetch failed and yt-dlp is not installed for fallback." >&2
+        fi
         exit 1
     fi
-
-    yt-dlp \
-        --ignore-errors \
-        --flat-playlist \
-        --dump-single-json \
-        "${url}" > "${temp_json}"
 else
     echo "Error: only SoundCloud and Mixcloud URLs are supported." >&2
     exit 1
