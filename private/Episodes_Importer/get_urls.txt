@@ -1,0 +1,7 @@
+var arr = {
+    "403": "https://soundcloud.com/inverted-audio/ia-mix-403-eric-cloutier",
+    "402": "https://soundcloud.com/inverted-audio/ia-mix-402-p-relief",
+    "401": "https://soundcloud.com/inverted-audio/ia-mix-401-ulf-eriksson",
+    "400": "https://soundcloud.com/inverted-audio/ia-mix-400-hoavi",
+    "399": "https://soundcloud.com/inverted-audio/ia-mix-399-rob-clouth",
+};
