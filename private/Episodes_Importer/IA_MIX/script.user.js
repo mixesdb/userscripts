@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.20.4
+// @version      2026.07.20.5
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,8 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-IA_MIX_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?v-2026.07.20.4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.20.5
 // @include      https://inverted-audio.com/mix*
 // @include      https://www.mixesdb.com/w/index.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=inverted-audio.com
@@ -35,7 +34,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     const sourceHost = 'inverted-audio.com';
-    const playerEpisodes = window.MixesDBIaMixPlayerEpisodes || {};
+    let playerEpisodes = {};
     const mixesdbHost = 'www.mixesdb.com';
     const config = {
         categoryTitle: 'Category:IA_MIX',
@@ -51,6 +50,7 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             episodeLink: '.entry-title a[href], .entry-img a[href]',
             description: '.entry-content',
             nextPage: 'nav.posts-navigation a.next[href]',
+            postedOn: '.posted-on',
         },
         classNames: {
             link: 'mdb-ia-mix-link',
@@ -158,12 +158,16 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         return `${prefix}${episode.artist} - IA MIX ${importer.padNumber(episode.episodeNumber)}`;
     }
 
+    function normalizePlayerEpisodeEntry(entry) {
+        return typeof entry === 'object' && entry !== null ? entry.url : entry;
+    }
+
     function getPlayerUrlsForEpisode(episode, fetchedPlayerUrl = '') {
         const episodeKey = String(episode.episodeNumber);
         const playerUrls = [
-            playerEpisodes.applePodcasts?.[episodeKey],
-            playerEpisodes.mixcloud?.[episodeKey],
-            playerEpisodes.soundcloud?.[episodeKey],
+            normalizePlayerEpisodeEntry(playerEpisodes.applePodcasts?.[episodeKey]),
+            normalizePlayerEpisodeEntry(playerEpisodes.mixcloud?.[episodeKey]),
+            normalizePlayerEpisodeEntry(playerEpisodes.soundcloud?.[episodeKey]),
             fetchedPlayerUrl,
         ].filter(Boolean);
 
@@ -177,9 +181,11 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             const prefix = playerUrls.length > 1 || playerUrl.includes('=') ? `${index + 1}=` : '';
             return ` |${prefix}${playerUrl}`;
         });
-        const modeLine = playerUrls.length > 1 ? ' |mode=mirrors\n' : '';
+        if (playerUrls.length > 1) {
+            return `\n\n{{Player|mode=mirrors\n${playerLines.join('\n')}\n}}`;
+        }
 
-        return `\n\n{{Player\n${modeLine}${playerLines.join('\n')}\n}}`;
+        return `\n\n{{Player\n${playerLines.join('\n')}\n}}`;
     }
 
     function buildImageReference(episode) {
@@ -345,14 +351,29 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         listContainer.insertAdjacentElement('beforebegin', createRemoveExistingToggle());
     }
 
+    function getEpisodeUrl(wrapper) {
+        const episodeLink = wrapper.querySelector(config.selectors.episodeLink)
+            || wrapper.querySelector('a[rel=\"bookmark\"][href*=\"/mix/\"], a[href*=\"/mix/\"]');
+        return episodeLink ? episodeLink.href : location.href;
+    }
+
+    function hydrateEpisodeDateFromWrapper(episode, wrapper) {
+        if (episode.date) return;
+
+        const postedOn = wrapper.querySelector(config.selectors.postedOn);
+        const datetime = postedOn?.querySelector('time.entry-date.published[datetime], time[datetime]')?.getAttribute('datetime');
+        episode.date = normalizeDate(datetime) || normalizeDate(postedOn?.textContent);
+    }
+
     function createMixesdbLink(heading, episode, wrapper) {
-        const episodeLink = wrapper.querySelector(config.selectors.episodeLink);
+        hydrateEpisodeDateFromWrapper(episode, wrapper);
+        const episodeUrl = getEpisodeUrl(wrapper);
         const link = document.createElement('a');
 
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.dataset.episodeNumber = String(episode.episodeNumber);
-        link.dataset.episodeUrl = episodeLink ? episodeLink.href : location.href;
+        link.dataset.episodeUrl = episodeUrl;
         link.href = link.dataset.episodeUrl;
         link.addEventListener('click', () => {
             markLinkVisited(link);
@@ -423,6 +444,15 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         scheduleAutoLoadMoreWhenNoNewEpisodes();
     }
 
+    async function loadPlayerEpisodes() {
+        const url = 'https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/player_episodes.js?fresh=' + Date.now();
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`player_episodes.js responded with ${response.status}`);
+        const code = await response.text();
+        (0, eval)(code);
+        playerEpisodes = window.MixesDBIaMixPlayerEpisodes || {};
+    }
+
     function startEpisodeObserver() {
         const observer = new MutationObserver(addEpisodeLinks);
         observer.observe(document.body, { childList: true, subtree: true });
@@ -439,7 +469,9 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     loadVisitedEpisodeLinks();
     addStyles();
     addRemoveExistingToggle();
-    importer.fetchExistingEpisodes(config)
+    loadPlayerEpisodes()
+        .catch(error => importer.logValue('Failed to load fresh IA MIX player episodes', error.message || error))
+        .then(() => importer.fetchExistingEpisodes(config))
         .then(episodeNumbers => {
             existingEpisodes = new Set(episodeNumbers);
             addRemoveExistingToggle();
