@@ -50,7 +50,7 @@ fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 url="$1"
 cleanup_arg="${2:-true}"
-output_file="${3:-${script_dir}/episodes_arr.txt}"
+output_file="${3:-${script_dir}/get_urls.txt}"
 temp_json="$(mktemp)"
 trap 'rm -f "${temp_json}"' EXIT
 
