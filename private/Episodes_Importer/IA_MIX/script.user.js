@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.21.1
+// @version      2026.07.21.2
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -222,12 +222,12 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
             : uniquePlayerUrls;
     }
 
-    function getSoundCloudUrlForEpisode(episode, fetchedPlayerUrl = '') {
+    function getMixcloudUrlForEpisode(episode, fetchedPlayerUrl = '') {
         const episodeKey = String(episode.episodeNumber);
-        const configuredSoundCloudUrl = normalizePlayerEpisodeEntry(playerEpisodes.soundcloud?.[episodeKey]);
-        if (configuredSoundCloudUrl) return configuredSoundCloudUrl;
+        const configuredMixcloudUrl = normalizePlayerEpisodeEntry(playerEpisodes.mixcloud?.[episodeKey]);
+        if (configuredMixcloudUrl) return configuredMixcloudUrl;
 
-        return String(fetchedPlayerUrl || '').includes('soundcloud.com') ? fetchedPlayerUrl : '';
+        return String(fetchedPlayerUrl || '').includes('mixcloud.com') ? fetchedPlayerUrl : '';
     }
 
     function getEpisodeDurationSeconds(episode) {
@@ -279,10 +279,13 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
     }
 
     function buildEpisodePageText(episode, episodeUrl = '', fetchedPlayerUrl = '', tracklistResult = { text: '<list>\n\n</list>', status: 'none' }) {
-        const categories = [episode.date ? episode.date.slice(0, 4) : '', episode.artist, config.showCategory, 'Techno', `Tracklist: ${tracklistResult.status}`]
-            .filter(Boolean)
-            .map(category => `[[Category:${category}]]`)
-            .join('\n');
+        const categories = [
+            ...[episode.date ? episode.date.slice(0, 4) : '', episode.artist, config.showCategory]
+                .filter(Boolean)
+                .map(category => `[[Category:${category}]]`),
+            '[[Category:]]',
+            `[[Category:Tracklist: ${tracklistResult.status}]]`,
+        ].join('\n');
         const imageReference = buildImageReference(episode);
         const imageText = imageReference ? `${imageReference}\n\n` : '';
 
@@ -493,15 +496,15 @@ loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cache
         link.dataset.episodeUrl = episodeUrl;
         link.href = link.dataset.episodeUrl;
         link.addEventListener('click', () => {
-            const soundCloudUrl = getSoundCloudUrlForEpisode(episode, link.dataset.playerUrl || '');
+            const mixcloudUrl = getMixcloudUrlForEpisode(episode, link.dataset.playerUrl || '');
             markLinkVisited(link);
             wrapper.classList.add(config.classNames.copiedWrapper);
-            if (!existingEpisodes.has(episode.episodeNumber) && soundCloudUrl) {
-                window.open(soundCloudUrl, '_blank', 'noopener,noreferrer');
-                logStep('opened SoundCloud URL on copy click', {
+            if (!existingEpisodes.has(episode.episodeNumber) && mixcloudUrl) {
+                window.open(mixcloudUrl, '_blank', 'noopener,noreferrer');
+                logStep('opened Mixcloud URL on copy click', {
                     episodeNumber: episode.episodeNumber,
                     episodeUrl,
-                    soundCloudUrl,
+                    mixcloudUrl,
                 });
             }
         });
