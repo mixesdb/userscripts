@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.18.2
+// @version      2026.08.05.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -27,7 +27,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 100,
+var cacheVersion = 101,
     scriptName = "TrackId.net";
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -957,11 +957,11 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             startTime_Sec = durToSec(startTime),
             endTime = $(".endTime", this).text(),
             endTime_Sec = durToSec(endTime),
-            previousTrack = $(".MuiDataGrid-row:eq(" + (i - 2) + ")"), // eq starts at 0
-            endTimePrevious = $(".MuiDataGrid-cell[data-field='endTime']", previousTrack).text(),
+            previousTrack = $("tr:eq(" + (i - 2) + ")", tlWrapper), // eq starts at 0
+            endTimePrevious = $(".endTime", previousTrack).text(),
             endTimePrevious_Sec = durToSec(endTimePrevious),
-            nextTrack = $(".MuiDataGrid-row:eq(" + (i) + ")"), // eq starts at 0
-            startTimeNext = $(".MuiDataGrid-cell[data-field='startTime']", nextTrack).text(),
+            nextTrack = $("tr:eq(" + (i) + ")", tlWrapper), // eq starts at 0
+            startTimeNext = $(".startTime", nextTrack).text(),
             startTimeNext_Sec = durToSec(startTimeNext);
 
         artist = stripCountryCodes( artist );
@@ -1335,7 +1335,9 @@ if( !skipReplacingTables ) {
     waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.processed)", function( jNode ) {
         jNode.addClass("processed");
         setTimeout(function () {
-            funcTidTables( jNode.closest(".MuiDataGrid-main") );
+            loadTidPaginatedGridRows( jNode.closest(".MuiDataGrid-main"), function( gridMain ) {
+                funcTidTables( gridMain );
+            });
         }, timeoutDelay);
     });
     $(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on("change", function() {
@@ -1344,6 +1346,89 @@ if( !skipReplacingTables ) {
             funcTidTables( $(this).closest(".MuiDataGrid-main") );
         }, timeoutDelay);
     });
+}
+
+
+function parseTidPaginationText( text ) {
+    var match = String( text || "" ).trim().match( /(\d+)\s*[–-]\s*(\d+)\s+of\s+(\d+)/i );
+
+    return match ? { first: Number( match[1] ), last: Number( match[2] ), total: Number( match[3] ) } : null;
+}
+
+function getTidGridRowClones( gridMain ) {
+    return $(".MuiDataGrid-row", gridMain).clone( true, true ).toArray();
+}
+
+function getTidGridRowsForTable( grid, gridMain ) {
+    var paginatedRows = grid.data( "mdbTidPaginatedRows" ) || gridMain.data( "mdbTidPaginatedRows" );
+
+    return paginatedRows && paginatedRows.length ? $( paginatedRows ) : $( ".MuiDataGrid-row", grid );
+}
+
+function waitForTidPaginationChange( gridMain, previousText, callback ) {
+    var attempts = 0,
+        timer = setInterval(function() {
+            var currentText = $(".MuiTablePagination-displayedRows", gridMain.closest(".MuiDataGrid-root").add($(document))).first().text();
+
+            attempts++;
+            if( currentText && currentText != previousText ) {
+                clearInterval( timer );
+                setTimeout( callback, timeoutDelay );
+            }
+
+            if( attempts > 40 ) {
+                clearInterval( timer );
+                callback();
+            }
+        }, 100 );
+}
+
+function loadTidPaginatedGridRows( gridMain, callback ) {
+    var gridRoot = gridMain.closest( ".MuiDataGrid-root" ),
+        paginationTextNode = $(".MuiTablePagination-displayedRows", gridRoot),
+        pagination = parseTidPaginationText( paginationTextNode.text() ),
+        nextButton = $("button[aria-label='Go to next page']:not(:disabled)", gridRoot);
+
+    if( !pagination || pagination.total <= pagination.last || !nextButton.length || gridRoot.data("mdbTidPaginationLoaded") ) {
+        callback( gridMain );
+        return;
+    }
+
+    log( "TrackId.net paginated grid detected: " + paginationTextNode.text() );
+
+    var collectedRows = getTidGridRowClones( gridMain );
+
+    function collectNextPage() {
+        var previousText = paginationTextNode.text(),
+            button = $("button[aria-label='Go to next page']:not(:disabled)", gridRoot);
+
+        if( !button.length ) {
+            gridRoot.data( "mdbTidPaginatedRows", collectedRows );
+            gridMain.data( "mdbTidPaginatedRows", collectedRows );
+            gridRoot.data( "mdbTidPaginationLoaded", true );
+            callback( gridMain );
+            return;
+        }
+
+        button.trigger( "click" );
+
+        waitForTidPaginationChange( gridMain, previousText, function() {
+            collectedRows = collectedRows.concat( getTidGridRowClones( gridMain ) );
+
+            var currentPagination = parseTidPaginationText( paginationTextNode.text() );
+            if( !currentPagination || currentPagination.last >= currentPagination.total ) {
+                gridRoot.data( "mdbTidPaginatedRows", collectedRows );
+                gridMain.data( "mdbTidPaginatedRows", collectedRows );
+                gridRoot.data( "mdbTidPaginationLoaded", true );
+                callback( gridMain );
+                return;
+            }
+
+            collectNextPage();
+        });
+    }
+
+    collectNextPage();
 }
 
 // funcTidTables
@@ -1376,7 +1461,7 @@ function funcTidTables(jNode) {
 
         tbody.append('<th class="mdbTrackidCheck">MixesDB<br />integration</th>');
 
-        $(".MuiDataGrid-row").each(function () {
+        getTidGridRowsForTable( grid, jNode ).each(function () {
             //log("get urls" + $(this).html());
 
             var rowId = $(this).attr("data-id"),
