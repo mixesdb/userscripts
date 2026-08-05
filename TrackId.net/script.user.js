@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.05.1
+// @version      2026.08.05.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1365,6 +1365,12 @@ function getTidGridRowsForTable( grid, gridMain ) {
     return paginatedRows && paginatedRows.length ? $( paginatedRows ) : $( ".MuiDataGrid-row", grid );
 }
 
+function isTidAudiostreamTracklistGrid( gridMain ) {
+    return urlPath_noParams( 1 ) == "audiostreams"
+        && urlPath_noParams( 2 )
+        && $( ".MuiDataGrid-virtualScrollerRenderZone", gridMain ).length;
+}
+
 function waitForTidPaginationChange( gridMain, previousText, callback ) {
     var attempts = 0,
         timer = setInterval(function() {
@@ -1384,6 +1390,11 @@ function waitForTidPaginationChange( gridMain, previousText, callback ) {
 }
 
 function loadTidPaginatedGridRows( gridMain, callback ) {
+    if( !isTidAudiostreamTracklistGrid( gridMain ) ) {
+        callback( gridMain );
+        return;
+    }
+
     var gridRoot = gridMain.closest( ".MuiDataGrid-root" ),
         paginationTextNode = $(".MuiTablePagination-displayedRows", gridRoot),
         pagination = parseTidPaginationText( paginationTextNode.text() ),
