@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.5
+// @version      2026.08.06.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 47,
+var cacheVersion = 48,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -535,10 +535,12 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
 
                 if( scAccessToken != "null" ) {
                     // Call API on current page
-                    var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
-                    logVar( "currentTrack_id", currentTrack_id );
-                    var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
-                    //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
+                    // The redesigned track page no longer consistently exposes
+                    // the al:ios track-id meta tag. Resolve the canonical URL
+                    // instead, which works for both the old and current markup.
+                    var canonicalUrl = $('link[rel="canonical"]').attr("href") ||
+                            location.protocol + '//' + location.host + location.pathname,
+                        scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( canonicalUrl );
 
                     logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
 
@@ -699,13 +701,43 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
  * flag on a node, so another selector can prevent this integration from ever
  * receiving SoundCloud's reused React elements.
  */
+function findMaterialTrackHeader() {
+    var explicitHeader = $('[aria-label="Track header"], [data-testid="track-page-header"]').first();
+    if( explicitHeader.length ) return explicitHeader;
+
+    // SoundCloud changes its generated MUI class names frequently. Locate the
+    // track hero structurally instead: the page heading and artwork belong to
+    // the same nearby section/article/card. Keep the old classes only as hints.
+    var heading = $('main h1, [role="main"] h1, h1').filter(function() {
+        return $(this).text().trim().length > 0;
+    }).first();
+    if( !heading.length ) return $();
+
+    var structuralHeader = heading.closest('section, article, header, .MuiCard-root');
+    if( structuralHeader.length ) return structuralHeader.first();
+
+    return heading.parent();
+}
+
+function findMaterialArtwork( trackHeader ) {
+    var artwork = trackHeader.find('img.MuiCardMedia-img, img[src*="sndcdn.com"]');
+
+    if( !artwork.length ) {
+        artwork = $('main img[src*="sndcdn.com"], [role="main"] img[src*="sndcdn.com"]');
+    }
+
+    return artwork.filter(':not(.mdb-processed-artwork)').first();
+}
+
 function initMaterialTrackHeader() {
     if( !urlPath(2) || urlPath(2) == "sets" ) return;
 
-    var trackHeader = $('section[aria-label="Track header"]').first();
+    var trackHeader = findMaterialTrackHeader();
     if( !trackHeader.length ) return;
 
-    var artworkImg = trackHeader.find('img.MuiCardMedia-img:not(.mdb-processed-artwork)').first();
+    trackHeader.addClass("mdb-material-track-header");
+
+    var artworkImg = findMaterialArtwork( trackHeader );
     if( artworkImg.length ) {
         artworkImg.addClass("mdb-processed-artwork");
         append_artwork( artworkImg.attr("src"), artworkImg );
