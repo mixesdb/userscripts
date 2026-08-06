@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.8
+// @version      2026.08.06.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 48,
+var cacheVersion = 49,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -204,7 +204,9 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
 
 // Artwork link to original (new Material "Track header" layout, since ~Aug 2026 redesign)
 // SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters
-waitForKeyElements('section[aria-label="Track header"]:visible img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
+// NOTE: images in this layout carry no class names at all, so the artwork <img> is identified by its
+// CDN URL pattern (/artworks-...) instead - avatar images use /avatars- and must not match
+waitForKeyElements('section[aria-label="Track header"]:visible img[src*="/artworks-"]:not(.mdb-processed-artwork)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-artwork");
 
