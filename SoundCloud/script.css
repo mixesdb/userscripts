@@ -153,6 +153,27 @@ a.sc_button-mdb:active {
     }
 }
 
+/*
+ * New Material "Track header" layout (since ~Aug 2026 redesign)
+ * API/file-details buttons + toolkit live in their own full-width wrapper below the box
+ */
+#mdb-sc-trackExtras {
+    width: 100%;
+    margin-top: 10px;
+}
+
+#mdb-sc-trackExtras #mdb-fileInfo,
+#mdb-sc-trackExtras #apiText-toggleButton {
+    margin-right: 7px;
+}
+
+/* Artwork info bar sits directly under the (small) Track header thumbnail, not overlaid */
+.mdb-artwork-input-wrapper-trackHeader {
+    display: block;
+    max-width: 100%;
+    margin-top: 4px;
+}
+
 .userStream h3 {
     margin: 0 0 10px;
 }

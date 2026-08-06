@@ -35,5 +35,8 @@ function addApiErrorNote( reason="" ) {
     if( reason != "" ) {
         reasonAdd = ' ('+reason+')';
     }
-    $(".listenDetails").prepend('<p class="mdb-warning">The API is currently not responding'+reasonAdd+'. Please check back later.</p>');
+
+    // New Material "Track header" layout (since ~Aug 2026 redesign) has no .listenDetails anymore
+    var noteTarget = $("#mdb-sc-trackExtras").length ? $("#mdb-sc-trackExtras") : $(".listenDetails");
+    noteTarget.prepend('<p class="mdb-warning">The API is currently not responding'+reasonAdd+'. Please check back later.</p>');
 }
