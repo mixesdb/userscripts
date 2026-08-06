@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.15
+// @version      2026.08.06.16
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -103,7 +103,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 54,
+var cacheVersion = 55,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -781,17 +781,13 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
                                     }
 
-                                    // new layout: the create date shares one row with the buttons
-                                    // (DL, duration, API), so move it over there before they are added.
-                                    // It loses the grey of the header <p> on the way - add it back.
+                                    // new layout: the dates share one row with the buttons
+                                    // (DL, duration, API), so move them over there before they are
+                                    // added. Move the whole #mdb-trackHeader-releaseInfo paragraph
+                                    // instead of the single spans - the grey and the date.highlight
+                                    // styles are scoped to that wrapper.
                                     if( isNewSoundCloudLayout ) {
-                                        $("#mdb-trackHeader-releaseInfo-createDate").addClass("sc-text-grey").prependTo( buttonTarget );
-
-                                        // drop the now possibly empty header paragraph to avoid its spacing
-                                        var releaseInfo = $("#mdb-trackHeader-releaseInfo");
-                                        if( releaseInfo.children().length === 0 ) {
-                                            releaseInfo.remove();
-                                        }
+                                        $("#mdb-trackHeader-releaseInfo").prependTo( buttonTarget );
                                     }
                                 }
 
