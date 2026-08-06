@@ -103,6 +103,49 @@ a.sc_button-mdb:active {
     line-height: 1.4em;
 }
 
+section[aria-label="Track header"] + .mdb-track-header-extension {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.mdb-track-header-extension .mdb-track-actions {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    min-height: 26px;
+}
+
+.mdb-track-header-extension .mdb-track-actions:empty {
+    display: none;
+}
+
+.mdb-track-header-extension .mdb-track-toolkit,
+.mdb-track-header-extension .mdb-track-toolkit > * {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+}
+
+section[aria-label="Track header"] #mdb-artwork-wrapper {
+    position: relative;
+}
+
+section[aria-label="Track header"] #mdb-artwork-input-wrapper {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+}
+
+section[aria-label="Track header"] .mdb-artwork-img,
+section[aria-label="Track header"] .mdb-artwork-img > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 #mdb-artwork-input,
 #mdb-artwork-info {
     height: 20px;

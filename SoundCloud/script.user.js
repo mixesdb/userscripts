@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.3
+// @version      2026.08.06.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_24
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_25
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 44,
+var cacheVersion = 45,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -110,7 +110,7 @@ const getSlugFromSoundItem = (soundItem) => {
 };
 
 const hideIfXed = (soundItem) => {
-    if (!isHideXedEnabled()) return;
+    if (isSetsTab || !isHideXedEnabled()) return;
 
     const slug = getSlugFromSoundItem(soundItem);
     if (slug && isXed(slug)) {
@@ -152,8 +152,16 @@ logVar( "getHideXed", getHideXed );
 
 // On set pages show only some filter options and hide list items, not players
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
-const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false;
+const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false,
+      isSetsTab = isSetPage && !urlPath_noParams(3);
 logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
+logVar( "isSetsTab", isSetsTab );
+
+// The sets tab only shows an informational placeholder instead of filter
+// controls, so no persisted hide option may remove its playlist entries.
+if( isSetsTab ) {
+    getHidePl = getHideReposts = getHideFav = getHideUsed = getHideXed = "false";
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -188,6 +196,14 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
         if( typeof artwork_url !== "undefined" && artwork_url !== styleAttr ) {
             append_artwork( artwork_url );
         }
+    }
+});
+
+// Artwork in the current Material UI track header.
+waitForKeyElements('section[aria-label="Track header"] img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        jNode.addClass("mdb-processed-artwork");
+        append_artwork( jNode.attr("src"), jNode );
     }
 });
 
@@ -365,24 +381,21 @@ function lazyLoadingList(jNode) {
 
         // Display filter options per tab type
         saHide.append('<span class="mdb-darkorange">Hide:</span>');
-        if( !isSetPage ) {
-            saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
-            saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
-            saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
-        }
-        // Not on Playlists tab, e.g. https://soundcloud.com/resident-advisor/sets
-        // but allow on playlist page, e.g. https://soundcloud.com/resident-advisor/sets/ra-podcast
-        if( !isSetPage || isSetPage && typeof( urlPath(3) ) != "undefined" ) {
-             saHide.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
-        } else {
+        if( isSetsTab ) {
             saHide.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
+        } else {
+            if( !isSetPage ) {
+                saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
+                saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
+                saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
+            }
+            saHide.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
+            saHide.append('<label class="pointer" title="Hide items you previously removed with the X button"><input type="checkbox" id="hideXed" name="hideXed" '+checkedXed+' value="">X\'ed items</label>');
         }
-
-        saHide.append('<label class="pointer" title="Hide items you previously removed with the X button"><input type="checkbox" id="hideXed" name="hideXed" '+checkedXed+' value="">X\'ed items</label>');
     }
 
     // Filter row
-    if( urlPath(2) !== "sets" ) {
+    if( !isSetsTab ) {
         installNetworkHooks();
         mountUI();
         attachIO();
@@ -516,7 +529,7 @@ waitForKeyElements(".soundActions", function( jNode ) {
 // run all this only once
 var RUN_sc_button_group = true;
 
-waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group", function( jNode ) {
+waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, .mdb-track-actions", function( jNode ) {
     if( RUN_sc_button_group ) {
         RUN_sc_button_group = false;
 
@@ -612,7 +625,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                             durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
                                             dur = convertHMS( dur_sec );
 
-                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                        soundActions.append('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
 
                                         $("#mdb-toggle-target").append( durToggleWrapper );
                                     }
@@ -685,6 +698,32 @@ waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", fu
 waitForKeyElements(".l-listen-hero", function( jNode ) {
     var trackHeader = '<div id="mdb-trackHeader"></div>';
     jNode.before( trackHeader );
+});
+
+/*
+ * The current track page is a single Material UI "Track header" box. Add one
+ * full-width extension below it for the API/file controls and toolkit instead
+ * of depending on the removed legacy listenDetails columns.
+ */
+waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-track-header)', function( jNode ) {
+    if( !urlPath(2) || urlPath(2) == "sets" ) return;
+
+    jNode.addClass("mdb-processed-track-header");
+    if( $(".mdb-track-header-extension").length ) return;
+
+    var extension = $('<div class="mdb-track-header-extension">' +
+        '<div id="mdb-trackHeader"></div>' +
+        '<div class="mdb-track-actions"></div>' +
+        '<div id="mdb-toggle-target"></div>' +
+        '<div class="mdb-track-toolkit"></div>' +
+    '</div>');
+
+    jNode.after( extension );
+
+    var titleText = $('section[aria-label="Track header"] h1').first().text(),
+        playerUrl = location.protocol + '//' + location.host + location.pathname;
+
+    getToolkit( playerUrl, "playerUrl", "detail page", extension.find(".mdb-track-toolkit"), "append", titleText, "", 1, playerUrl );
 });
 
 
