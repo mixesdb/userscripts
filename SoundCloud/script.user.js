@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.4
+// @version      2026.08.06.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 46,
+var cacheVersion = 47,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -198,17 +198,6 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
         }
     }
 });
-
-// Artwork in the current Material UI track header. SoundCloud currently uses
-// a MuiCard without the former aria-label, so do not require a specific tag or
-// accessible label here.
-waitForKeyElements('.MuiCard-root img.MuiCardMedia-img:not(.mdb-processed-artwork), [aria-label="Track header"] img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
-    if( urlPath(2) && urlPath(2) != "sets" ) {
-        jNode.addClass("mdb-processed-artwork");
-        append_artwork( jNode.attr("src"), jNode );
-    }
-});
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -705,16 +694,24 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 /*
  * The current track page is a single Material UI "Track header" box. Add one
  * full-width extension below it for the API/file controls and toolkit instead
- * of depending on the removed legacy listenDetails columns.
+ * of depending on the removed legacy listenDetails columns. This deliberately
+ * uses a native observer: waitForKeyElements stores one shared "alreadyFound"
+ * flag on a node, so another selector can prevent this integration from ever
+ * receiving SoundCloud's reused React elements.
  */
-waitForKeyElements('.MuiCard-root h1:not(.mdb-processed-track-heading), [aria-label="Track header"] h1:not(.mdb-processed-track-heading)', function( jNode ) {
+function initMaterialTrackHeader() {
     if( !urlPath(2) || urlPath(2) == "sets" ) return;
 
-    jNode.addClass("mdb-processed-track-heading");
-    if( $(".mdb-track-header-extension").length ) return;
-
-    var trackHeader = jNode.closest('.MuiCard-root, [aria-label="Track header"]');
+    var trackHeader = $('section[aria-label="Track header"]').first();
     if( !trackHeader.length ) return;
+
+    var artworkImg = trackHeader.find('img.MuiCardMedia-img:not(.mdb-processed-artwork)').first();
+    if( artworkImg.length ) {
+        artworkImg.addClass("mdb-processed-artwork");
+        append_artwork( artworkImg.attr("src"), artworkImg );
+    }
+
+    if( trackHeader.hasClass("mdb-processed-track-header") || $(".mdb-track-header-extension").length ) return;
 
     var extension = $('<div class="mdb-track-header-extension">' +
         '<div id="mdb-trackHeader"></div>' +
@@ -723,13 +720,16 @@ waitForKeyElements('.MuiCard-root h1:not(.mdb-processed-track-heading), [aria-la
         '<div class="mdb-track-toolkit"></div>' +
     '</div>');
 
-    trackHeader.after( extension );
+    trackHeader.addClass("mdb-processed-track-header").after( extension );
 
-    var titleText = jNode.text(),
+    var titleText = trackHeader.find("h1").first().text(),
         playerUrl = location.protocol + '//' + location.host + location.pathname;
 
     getToolkit( playerUrl, "playerUrl", "detail page", extension.find(".mdb-track-toolkit"), "append", titleText, "", 1, playerUrl );
-});
+}
+
+initMaterialTrackHeader();
+new MutationObserver( initMaterialTrackHeader ).observe( document.body, { childList: true, subtree: true } );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

@@ -103,8 +103,7 @@ a.sc_button-mdb:active {
     line-height: 1.4em;
 }
 
-.MuiCard-root + .mdb-track-header-extension,
-[aria-label="Track header"] + .mdb-track-header-extension {
+section[aria-label="Track header"] + .mdb-track-header-extension {
     box-sizing: border-box;
     width: 100%;
     margin-top: 10px;
@@ -128,13 +127,11 @@ a.sc_button-mdb:active {
     max-width: none;
 }
 
-.MuiCard-root #mdb-artwork-wrapper,
-[aria-label="Track header"] #mdb-artwork-wrapper {
+section[aria-label="Track header"] #mdb-artwork-wrapper {
     position: relative;
 }
 
-.MuiCard-root #mdb-artwork-input-wrapper,
-[aria-label="Track header"] #mdb-artwork-input-wrapper {
+section[aria-label="Track header"] #mdb-artwork-input-wrapper {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -142,10 +139,8 @@ a.sc_button-mdb:active {
     z-index: 2;
 }
 
-.MuiCard-root .mdb-artwork-img,
-.MuiCard-root .mdb-artwork-img > img,
-[aria-label="Track header"] .mdb-artwork-img,
-[aria-label="Track header"] .mdb-artwork-img > img {
+section[aria-label="Track header"] .mdb-artwork-img,
+section[aria-label="Track header"] .mdb-artwork-img > img {
     display: block;
     width: 100%;
     height: 100%;
