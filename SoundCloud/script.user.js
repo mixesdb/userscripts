@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.12
+// @version      2026.08.06.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -847,9 +847,9 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackh
             // the wrapper itself would push them below whatever an expanded toggle prints out
             jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-sc-trackButtons"></div><div id="mdb-toggle-target"></div></div>' );
 
-            // toolkit goes full-width below that wrapper, instead of being squeezed
-            // into the old sidebar column
-            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "after", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
+            // toolkit goes full-width right below #mdb-trackHeader (above the buttons/toggle
+            // target), instead of being squeezed into the old sidebar column
+            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-trackHeader"), "after", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
         }
     }
 });
