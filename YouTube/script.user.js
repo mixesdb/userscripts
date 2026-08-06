@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.04.27.1
+// @version      2026.08.06.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,6 +17,8 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @run-at       document-end
 // ==/UserScript==
+
+(function() {
 
 console.log( "YouTube userscript init" );
 
@@ -41,6 +43,7 @@ redirectOnUrlChange( 200 );
 
 var cacheVersion = 13,
     scriptName = "YouTube";
+window.scriptName = scriptName; // toolkit.js reads this global directly
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -221,3 +224,5 @@ var youtubeInitAttempts = 0,
             clearInterval( youtubeInitTimer );
         }
     }, 500 );
+
+})();

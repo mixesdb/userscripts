@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.1
+// @version      2026.08.06.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -17,6 +17,8 @@
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
+
+(function() {
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -70,6 +72,7 @@ const applePodcasts_addSearchIcons = 1; // default: 1
 
 var cacheVersion = 11,
     scriptName = "MixesDB_Userscripts_Helper";
+window.scriptName = scriptName; // toolkit.js reads this global directly
 
 //loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -471,3 +474,5 @@ d.ready(function () { // needs mw.config
         $(".mixesdb-edit-format-review-help").hide();
     }
 });
+
+})();

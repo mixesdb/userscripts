@@ -8,7 +8,7 @@ log( "script.funcs.js loaded" );
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // append_artwork()
-function append_artwork( artwork_url, artworkImg ) {
+function append_artwork( artwork_url ) {
     logFunc( "append_artwork" );
 
     // also change for upload form [?]
@@ -20,19 +20,7 @@ function append_artwork( artwork_url, artworkImg ) {
     logVar( "origUrl", origUrl );
 
     if( $("#mdb-artwork-wrapper").length === 0 ) {
-        if( artworkImg && artworkImg.length ) {
-            var currentImg = artworkImg.first(),
-                currentWrapper = currentImg.parent();
-
-            currentWrapper.attr("id", "mdb-artwork-wrapper");
-            currentImg.wrap('<a class="mdb-artwork-img" href="'+origUrl+'" target="_blank"></a>');
-            currentWrapper.append( createArtworkInfoWrapper( origUrl, {
-                wrapperId: "mdb-artwork-input-wrapper",
-                inputId: "mdb-artwork-input",
-                inputClass: "selectOnClick",
-                infoId: "mdb-artwork-info"
-            }) );
-        } else if( $(".listenArtworkWrapper").length ) {
+        if( $(".listenArtworkWrapper").length ) {
             $(".listenArtworkWrapper").replaceWith('<div id="mdb-artwork-wrapper"></div>');
             var imgWrapper = $("#mdb-artwork-wrapper");
 
