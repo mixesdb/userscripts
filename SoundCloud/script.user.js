@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.1
+// @version      2026.08.06.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -110,7 +110,7 @@ const getSlugFromSoundItem = (soundItem) => {
 };
 
 const hideIfXed = (soundItem) => {
-    if (!isHideXedEnabled()) return;
+    if (isSetsTab || !isHideXedEnabled()) return;
 
     const slug = getSlugFromSoundItem(soundItem);
     if (slug && isXed(slug)) {
@@ -156,6 +156,12 @@ const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false,
       isSetsTab = isSetPage && !urlPath_noParams(3);
 logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
 logVar( "isSetsTab", isSetsTab );
+
+// The sets tab only shows an informational placeholder instead of filter
+// controls, so no persisted hide option may remove its playlist entries.
+if( isSetsTab ) {
+    getHidePl = getHideReposts = getHideFav = getHideUsed = getHideXed = "false";
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
