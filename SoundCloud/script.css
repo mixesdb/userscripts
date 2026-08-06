@@ -160,7 +160,7 @@ a.sc_button-mdb:active {
  */
 #mdb-sc-trackExtras {
     width: 100%;
-    margin-top: 6px;
+    margin-top: -20px;
 }
 
 /*
@@ -207,10 +207,6 @@ a.sc_button-mdb:active {
     margin: 0;
 }
 
-#mdb-sc-trackButtons #mdb-trackHeader-releaseInfo-createDate {
-    margin-right: 3px;
-}
-
 /*
  * The new layout renders into its own document, which carries none of SoundCloud's
  * legacy .sc-button-* styles - our fake soundAction buttons need their own look there.
@@ -250,7 +246,7 @@ a.sc_button-mdb:active {
     display: block;
     flex: 0 1 340px; /* width of the artwork column in the Track header box */
     max-width: 100%;
-    margin: -30px 18px 0 0;
+    margin: 0 18px 0 0;
 }
 
 .userStream h3 {
