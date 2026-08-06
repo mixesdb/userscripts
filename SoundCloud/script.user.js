@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.9
+// @version      2026.08.06.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 49,
+var cacheVersion = 50,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -206,8 +206,14 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
 // SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters
 // NOTE: images in this layout carry no class names at all, so the artwork <img> is identified by its
 // CDN URL pattern (/artworks-...) instead - avatar images use /avatars- and must not match
-waitForKeyElements('section[aria-label="Track header"]:visible img[src*="/artworks-"]:not(.mdb-processed-artwork)', function( jNode ) {
+waitForKeyElements('section[aria-label="Track header"] img[src*="/artworks-"]:not(.mdb-processed-artwork)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
+        // filtering by :visible in the selector itself is untested with an attribute selector
+        // in this codebase - check it as a separate runtime condition instead (proven pattern)
+        if( !jNode.closest('section[aria-label="Track header"]').is(':visible') ) {
+            return;
+        }
+
         jNode.addClass("mdb-processed-artwork");
 
         var artwork_url = jNode.attr("src");
@@ -541,17 +547,25 @@ waitForKeyElements(".soundActions", function( jNode ) {
 // run all this only once
 var RUN_sc_button_group = true;
 
-waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, section[aria-label="Track header"]:visible', function( jNode ) {
+waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, section[aria-label="Track header"]', function( jNode ) {
     if( RUN_sc_button_group ) {
+        // New Material "Track header" layout (since ~Aug 2026 redesign) has no button-group
+        // with room for extra buttons, so API/file-details buttons go into #mdb-sc-trackExtras
+        var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
+
+        // SC renders the track header twice (responsive variants). Filtering by :visible in the
+        // selector itself is untested with an attribute selector in this codebase - check it as a
+        // separate runtime condition instead (proven pattern), and bail out BEFORE consuming the
+        // run-once flag so the visible copy still gets a chance on a later poll tick.
+        if( isNewSoundCloudLayout && !jNode.is(':visible') ) {
+            return;
+        }
+
         RUN_sc_button_group = false;
 
         if( urlPath(2) != "sets" ) {
 
             logFunc( "Player page / sound action buttons" );
-
-            // New Material "Track header" layout (since ~Aug 2026 redesign) has no button-group
-            // with room for extra buttons, so API/file-details buttons go into #mdb-sc-trackExtras
-            var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
             logVar( "isNewSoundCloudLayout", isNewSoundCloudLayout );
 
             // API call
@@ -738,8 +752,14 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 // API/file-details buttons + toolkit go into a dedicated wrapper below the box,
 // since the new box has no room for extra buttons and its layout is not ours to change.
 // SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters.
-waitForKeyElements('section[aria-label="Track header"]:visible:not(.mdb-processed-trackheader)', function( jNode ) {
+waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackheader)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
+        // filtering by :visible in the selector itself is untested with an attribute selector
+        // in this codebase - check it as a separate runtime condition instead (proven pattern)
+        if( !jNode.is(':visible') ) {
+            return;
+        }
+
         jNode.addClass("mdb-processed-trackheader");
 
         if( $("#mdb-sc-trackExtras").length === 0 ) {
@@ -757,14 +777,21 @@ waitForKeyElements('section[aria-label="Track header"]:visible:not(.mdb-processe
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit), section[aria-label="Track header"]:visible:not(.mdb-processed-toolkit)', function( jNode ) {
+waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit), section[aria-label="Track header"]:not(.mdb-processed-toolkit)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
-        jNode.addClass("mdb-processed-toolkit");
-
         var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
 
+        // SC renders the track header twice (responsive variants). Filtering by :visible in the
+        // selector itself is untested with an attribute selector in this codebase - check it as a
+        // separate runtime condition instead (proven pattern).
+        if( isNewSoundCloudLayout && !jNode.is(':visible') ) {
+            return;
+        }
+
+        jNode.addClass("mdb-processed-toolkit");
+
         //var titleText = $('meta[property="og:title"]').text();
-        var titleText = $("h1.soundTitle__title").text() || $('section[aria-label="Track header"]:visible h1').first().text();
+        var titleText = $("h1.soundTitle__title").text() || jNode.find("h1").first().text();
 
         // get the player URL
         // DO NOT use location.href as this includes parameters
