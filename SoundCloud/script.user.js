@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.2
+// @version      2026.08.06.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_24
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_25
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 44,
+var cacheVersion = 45,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -196,6 +196,14 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
         if( typeof artwork_url !== "undefined" && artwork_url !== styleAttr ) {
             append_artwork( artwork_url );
         }
+    }
+});
+
+// Artwork in the current Material UI track header.
+waitForKeyElements('section[aria-label="Track header"] img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        jNode.addClass("mdb-processed-artwork");
+        append_artwork( jNode.attr("src"), jNode );
     }
 });
 
@@ -521,7 +529,7 @@ waitForKeyElements(".soundActions", function( jNode ) {
 // run all this only once
 var RUN_sc_button_group = true;
 
-waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group", function( jNode ) {
+waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, .mdb-track-actions", function( jNode ) {
     if( RUN_sc_button_group ) {
         RUN_sc_button_group = false;
 
@@ -617,7 +625,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                             durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
                                             dur = convertHMS( dur_sec );
 
-                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                        soundActions.append('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
 
                                         $("#mdb-toggle-target").append( durToggleWrapper );
                                     }
@@ -690,6 +698,32 @@ waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", fu
 waitForKeyElements(".l-listen-hero", function( jNode ) {
     var trackHeader = '<div id="mdb-trackHeader"></div>';
     jNode.before( trackHeader );
+});
+
+/*
+ * The current track page is a single Material UI "Track header" box. Add one
+ * full-width extension below it for the API/file controls and toolkit instead
+ * of depending on the removed legacy listenDetails columns.
+ */
+waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-track-header)', function( jNode ) {
+    if( !urlPath(2) || urlPath(2) == "sets" ) return;
+
+    jNode.addClass("mdb-processed-track-header");
+    if( $(".mdb-track-header-extension").length ) return;
+
+    var extension = $('<div class="mdb-track-header-extension">' +
+        '<div id="mdb-trackHeader"></div>' +
+        '<div class="mdb-track-actions"></div>' +
+        '<div id="mdb-toggle-target"></div>' +
+        '<div class="mdb-track-toolkit"></div>' +
+    '</div>');
+
+    jNode.after( extension );
+
+    var titleText = $('section[aria-label="Track header"] h1').first().text(),
+        playerUrl = location.protocol + '//' + location.host + location.pathname;
+
+    getToolkit( playerUrl, "playerUrl", "detail page", extension.find(".mdb-track-toolkit"), "append", titleText, "", 1, playerUrl );
 });
 
 
