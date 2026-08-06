@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.3
+// @version      2026.08.06.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 45,
+var cacheVersion = 46,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -199,8 +199,10 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
     }
 });
 
-// Artwork in the current Material UI track header.
-waitForKeyElements('section[aria-label="Track header"] img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
+// Artwork in the current Material UI track header. SoundCloud currently uses
+// a MuiCard without the former aria-label, so do not require a specific tag or
+// accessible label here.
+waitForKeyElements('.MuiCard-root img.MuiCardMedia-img:not(.mdb-processed-artwork), [aria-label="Track header"] img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-artwork");
         append_artwork( jNode.attr("src"), jNode );
@@ -705,11 +707,14 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
  * full-width extension below it for the API/file controls and toolkit instead
  * of depending on the removed legacy listenDetails columns.
  */
-waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-track-header)', function( jNode ) {
+waitForKeyElements('.MuiCard-root h1:not(.mdb-processed-track-heading), [aria-label="Track header"] h1:not(.mdb-processed-track-heading)', function( jNode ) {
     if( !urlPath(2) || urlPath(2) == "sets" ) return;
 
-    jNode.addClass("mdb-processed-track-header");
+    jNode.addClass("mdb-processed-track-heading");
     if( $(".mdb-track-header-extension").length ) return;
+
+    var trackHeader = jNode.closest('.MuiCard-root, [aria-label="Track header"]');
+    if( !trackHeader.length ) return;
 
     var extension = $('<div class="mdb-track-header-extension">' +
         '<div id="mdb-trackHeader"></div>' +
@@ -718,9 +723,9 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-track-
         '<div class="mdb-track-toolkit"></div>' +
     '</div>');
 
-    jNode.after( extension );
+    trackHeader.after( extension );
 
-    var titleText = $('section[aria-label="Track header"] h1').first().text(),
+    var titleText = jNode.text(),
         playerUrl = location.protocol + '//' + location.host + location.pathname;
 
     getToolkit( playerUrl, "playerUrl", "detail page", extension.find(".mdb-track-toolkit"), "append", titleText, "", 1, playerUrl );
