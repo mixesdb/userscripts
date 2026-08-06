@@ -543,6 +543,11 @@ textarea.mono {
     font-size: .875rem;
 }
 
+/* soundcloud.com */
+.mdb-toolkit.soundcloud-com {
+    margin-bottom: 5px !important;
+}
+
 /* toxicfamily.de */
 .mdb-toolkit.toxicfamily-de {
     margin: -10px 0 40px;

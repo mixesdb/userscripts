@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.17
+// @version      2026.08.06.19
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_52
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_53
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
@@ -103,7 +103,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 56,
+var cacheVersion = 57,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -975,13 +975,39 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackh
  * it by its exact label - "Show more comments" and friends must not be clicked.
  */
 if( isWebiFrame ) {
-    waitForKeyElements('button:contains("Show more"):not(.mdb-processed-showMore)', function( jNode ) {
-        jNode.addClass("mdb-processed-showMore");
+    // One click attempt is not enough: the button ships in the server-rendered HTML of the
+    // frame, so a click that lands before React has hydrated it is swallowed without effect -
+    // and the old ":not(.mdb-processed-showMore)" selector made sure we never came back to it.
+    // Keep the node in waitForKeyElements' watch list instead (callback returns true) and click
+    // again on every poll. Once the description is expanded the label turns into "Show less",
+    // the selector stops matching and the retries end on their own; the counter is only the
+    // safety net for the case where clicking never takes effect at all.
+    const showMoreMaxClicks = 20;
 
-        if( jNode.text().trim() == "Show more" && jNode.is(':visible') ) {
-            log( "Expanding the truncated description" );
-            jNode.get(0).click();
+    waitForKeyElements('button:contains("Show more")', function( jNode ) {
+        // "Show more comments" and friends must not be clicked - drop those nodes for good
+        if( jNode.text().trim() != "Show more" ) {
+            return false;
         }
+
+        // not rendered yet - do not give up on it, it is the description button
+        if( !jNode.is(':visible') ) {
+            return true;
+        }
+
+        const clicks = ( jNode.data("mdbShowMoreClicks") || 0 ) + 1;
+
+        if( clicks > showMoreMaxClicks ) {
+            log( "Giving up on expanding the truncated description after " + showMoreMaxClicks + " clicks" );
+            return false;
+        }
+
+        jNode.data("mdbShowMoreClicks", clicks).addClass("mdb-processed-showMore");
+
+        log( "Expanding the truncated description, click " + clicks );
+        jNode.get(0).click();
+
+        return true;
     });
 }
 
