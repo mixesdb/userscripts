@@ -211,22 +211,51 @@ a.sc_button-mdb:active {
 /*
  * The new layout renders into its own document, which carries none of SoundCloud's
  * legacy .sc-button-* styles - our fake soundAction buttons need their own look there.
+ * They copy the round icon buttons of the Track header box (MuiIconButton "colorContrast",
+ * .mui-163v5oj): 40px high, 1.5px ring, no fill, same hover. The MUI palette vars live on
+ * that document's :root, so we can reuse them - the fallbacks are their current values, in
+ * case SoundCloud renames them.
+ * Two deviations from those buttons:
+ * - the ring is a border, not their outline + outline-offset: -1.5px. With border-box both
+ *   draw the same 1.5px line inside the 40px box, but the border leaves :focus outlines alone.
+ * - they hold a 24px icon and stay square, ours hold text of varying length (DL, API,
+ *   2:06:21). border-radius: 50% would turn the wider ones into ellipses, so the radius is a
+ *   large pixel value instead: short labels come out as circles (they stop at min-width =
+ *   height), longer ones grow into a pill with the same round caps.
  */
 #mdb-sc-trackButtons .sc_button-mdb {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    height: 40px;
+    min-width: 40px;
     margin: 0; /* spacing comes from the row's gap */
-    padding: 3px 12px;
+    padding: 0 10px;
     font: inherit;
     font-size: 14px;
-    line-height: 24px;
-    color: inherit;
-    background: transparent;
-    border: 1px solid #555;
-    border-radius: 4px;
+    line-height: normal;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    color: var(--mui-palette-contrast-contrastText, #fafafa);
+    background-color: transparent;
+    border: 1.5px solid var(--mui-palette-contrast-outlinedBorder, rgba(250, 250, 250, 0.24));
+    border-radius: 999px;
+    transition: background-color 300ms ease-out, color 300ms ease-out, border-color 300ms ease-out;
+    appearance: none;
+    user-select: none;
     cursor: pointer;
 }
 #mdb-sc-trackButtons .sc_button-mdb:hover {
-    border-color: #f60;
+    border-color: var(--mui-palette-contrast-hover, rgba(250, 250, 250, 0.16));
+    background-color: var(--mui-palette-contrast-hoverFill, rgba(18, 18, 18, 0.4));
+}
+/* buy/purchase link: the anchor inside must not bring its own link look */
+#mdb-sc-trackButtons .sc_button-mdb a {
+    color: inherit;
+    text-decoration: none;
 }
 /* the DL button forwards the click to SoundCloud's own download button */
 #mdb-sc-trackButtons #mdb-dlInfo {
@@ -238,7 +267,8 @@ a.sc_button-mdb:active {
     text-decoration: line-through;
 }
 #mdb-sc-trackButtons #mdb-dlInfo.mdb-dlInfo-failed:hover {
-    border-color: #555;
+    border-color: var(--mui-palette-contrast-outlinedBorder, rgba(250, 250, 250, 0.24));
+    background-color: transparent;
 }
 
 /* Artwork info bar is its own block here, not an overlay on the artwork:
