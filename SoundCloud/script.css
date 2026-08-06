@@ -156,10 +156,53 @@ a.sc_button-mdb:active {
 /*
  * New Material "Track header" layout (since ~Aug 2026 redesign)
  * API/file-details buttons + toolkit live in their own full-width wrapper below the box
+ * Order: head row (title + artwork info) > buttons > toggle target > toolkit
  */
 #mdb-sc-trackExtras {
     width: 100%;
-    margin-top: 10px;
+    margin-top: 6px;
+}
+
+/*
+ * Head row: title floats left, the artwork info bar sits right - below the artwork of the
+ * Track header box. wrap-reverse makes the artwork bar stay on top once the row wraps on
+ * small window widths, so it keeps sitting right below the (then stacked) artwork.
+ * Note: wrap-reverse flips the cross axis, so flex-end is the visual top here.
+ */
+#mdb-sc-trackHead {
+    display: flex;
+    flex-wrap: wrap-reverse;
+    align-items: flex-end;
+    column-gap: 20px;
+}
+
+#mdb-sc-trackHead #mdb-trackHeader {
+    flex: 1 1 320px;
+    min-width: 0; /* let long titles wrap instead of stretching the row */
+}
+
+/* tighter headline spacing */
+#mdb-sc-trackExtras #mdb-trackHeader h1 {
+    margin: 0 0 2px;
+    line-height: 1.25;
+}
+
+#mdb-sc-trackExtras #mdb-trackHeader-releaseInfo {
+    margin-bottom: 4px;
+}
+
+/*
+ * One row: create date, DL button, duration (#mdb-fileInfo) and the API toggle
+ */
+#mdb-sc-trackButtons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+}
+
+#mdb-sc-trackButtons #mdb-trackHeader-releaseInfo-createDate {
+    margin-right: 3px;
 }
 
 /*
@@ -168,7 +211,7 @@ a.sc_button-mdb:active {
  */
 #mdb-sc-trackButtons .sc_button-mdb {
     display: inline-block;
-    margin: 0 7px 7px 0;
+    margin: 0; /* spacing comes from the row's gap */
     padding: 3px 12px;
     font: inherit;
     font-size: 14px;
@@ -182,19 +225,25 @@ a.sc_button-mdb:active {
 #mdb-sc-trackButtons .sc_button-mdb:hover {
     border-color: #f60;
 }
-/* the DL hint is a marker, not something to click */
+/* the DL button forwards the click to SoundCloud's own download button */
 #mdb-sc-trackButtons #mdb-dlInfo {
-    cursor: default;
     color: #f60;
 }
-#mdb-sc-trackButtons #mdb-dlInfo:hover {
+#mdb-sc-trackButtons #mdb-dlInfo.mdb-dlInfo-failed {
+    color: #999;
+    cursor: default;
+    text-decoration: line-through;
+}
+#mdb-sc-trackButtons #mdb-dlInfo.mdb-dlInfo-failed:hover {
     border-color: #555;
 }
 
-/* Artwork info bar is a row of its own here, not an overlay on the artwork */
+/* Artwork info bar is its own block here, not an overlay on the artwork:
+   right of the title on wide windows, above it once the head row wraps */
 #mdb-sc-trackExtras .mdb-artwork-input-wrapper-trackHeader {
     display: block;
-    max-width: 500px;
+    flex: 0 1 340px; /* width of the artwork column in the Track header box */
+    max-width: 100%;
     margin-bottom: 10px;
 }
 
