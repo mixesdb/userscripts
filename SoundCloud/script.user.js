@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.20
+// @version      2026.08.06.21
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -941,17 +941,19 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 // its "alreadyFound" state in a single jQuery data key per element, so a second handler on the
 // same element would never get called. Everything else for this layout therefore hangs off
 // #mdb-sc-trackExtras - including the toolkit, which is kicked off right here.
-waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackheader)', function( jNode ) {
+// No ":not(.mdb-processed-trackheader)" guard and no permanent "done" marker here on purpose:
+// #mdb-sc-trackExtras is a plain DOM sibling React knows nothing about, and SC's app wipes it
+// whenever an ancestor of the Track header section re-renders - e.g. when the description
+// below gets expanded/collapsed, which changes the page layout height. A one-shot guard would
+// leave the toolkit gone for good the first time that happens, so this keeps re-checking
+// forever (return true) and recreates the wrapper whenever it goes missing.
+waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
         // in this codebase - check it as a separate runtime condition instead (proven pattern).
-        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
-        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
         if( !jNode.is(':visible') ) {
             return true;
         }
-
-        jNode.addClass("mdb-processed-trackheader");
 
         if( $("#mdb-sc-trackExtras").length === 0 ) {
             // #mdb-sc-trackHead is the row that holds the title (left) and the artwork info bar
@@ -965,6 +967,10 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackh
             getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
         }
     }
+
+    // must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
+    // stops calling back on it forever unless the callback returns a truthy "keep watching" value
+    return true;
 });
 
 /*
@@ -984,7 +990,26 @@ if( isWebiFrame ) {
     // safety net for the case where clicking never takes effect at all.
     const showMoreMaxClicks = 20;
 
+    // Force-expand only the FIRST time the description shows up collapsed. Without this flag,
+    // a user who manually clicks "Show less" afterwards gets fought forever: the button's label
+    // flips back to "Show more", the selector below matches it again, and per-node state (the
+    // click counter/class) is no help - React swaps in a fresh button element on every toggle,
+    // so each re-collapse looks like a brand-new, never-clicked button to us.
+    let descriptionExpandedOnce = false;
+
+    // Confirms the expand actually took effect (not just that we clicked). Once SC ever shows
+    // "Show less", the description has been opened for this page view - after that, leave the
+    // user free to collapse/expand at will.
+    waitForKeyElements('button:contains("Show less")', function() {
+        descriptionExpandedOnce = true;
+        return false;
+    });
+
     waitForKeyElements('button:contains("Show more")', function( jNode ) {
+        if( descriptionExpandedOnce ) {
+            return false;
+        }
+
         // "Show more comments" and friends must not be clicked - drop those nodes for good
         if( jNode.text().trim() != "Show more" ) {
             return false;
