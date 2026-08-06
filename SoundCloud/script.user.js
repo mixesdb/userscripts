@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.06.07.3
+// @version      2026.08.06.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -152,8 +152,10 @@ logVar( "getHideXed", getHideXed );
 
 // On set pages show only some filter options and hide list items, not players
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
-const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false;
+const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false,
+      isSetsTab = isSetPage && !urlPath_noParams(3);
 logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
+logVar( "isSetsTab", isSetsTab );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -365,24 +367,21 @@ function lazyLoadingList(jNode) {
 
         // Display filter options per tab type
         saHide.append('<span class="mdb-darkorange">Hide:</span>');
-        if( !isSetPage ) {
-            saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
-            saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
-            saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
-        }
-        // Not on Playlists tab, e.g. https://soundcloud.com/resident-advisor/sets
-        // but allow on playlist page, e.g. https://soundcloud.com/resident-advisor/sets/ra-podcast
-        if( !isSetPage || isSetPage && typeof( urlPath(3) ) != "undefined" ) {
-             saHide.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
-        } else {
+        if( isSetsTab ) {
             saHide.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
+        } else {
+            if( !isSetPage ) {
+                saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
+                saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
+                saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
+            }
+            saHide.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
+            saHide.append('<label class="pointer" title="Hide items you previously removed with the X button"><input type="checkbox" id="hideXed" name="hideXed" '+checkedXed+' value="">X\'ed items</label>');
         }
-
-        saHide.append('<label class="pointer" title="Hide items you previously removed with the X button"><input type="checkbox" id="hideXed" name="hideXed" '+checkedXed+' value="">X\'ed items</label>');
     }
 
     // Filter row
-    if( urlPath(2) !== "sets" ) {
+    if( !isSetsTab ) {
         installNetworkHooks();
         mountUI();
         attachIO();
