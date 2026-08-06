@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.10
+// @version      2026.08.06.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 50,
+var cacheVersion = 51,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -209,9 +209,11 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
 waitForKeyElements('section[aria-label="Track header"] img[src*="/artworks-"]:not(.mdb-processed-artwork)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
-        // in this codebase - check it as a separate runtime condition instead (proven pattern)
+        // in this codebase - check it as a separate runtime condition instead (proven pattern).
+        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
+        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
         if( !jNode.closest('section[aria-label="Track header"]').is(':visible') ) {
-            return;
+            return true;
         }
 
         jNode.addClass("mdb-processed-artwork");
@@ -557,8 +559,10 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
         // selector itself is untested with an attribute selector in this codebase - check it as a
         // separate runtime condition instead (proven pattern), and bail out BEFORE consuming the
         // run-once flag so the visible copy still gets a chance on a later poll tick.
+        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
+        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
         if( isNewSoundCloudLayout && !jNode.is(':visible') ) {
-            return;
+            return true;
         }
 
         RUN_sc_button_group = false;
@@ -755,9 +759,11 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackheader)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
-        // in this codebase - check it as a separate runtime condition instead (proven pattern)
+        // in this codebase - check it as a separate runtime condition instead (proven pattern).
+        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
+        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
         if( !jNode.is(':visible') ) {
-            return;
+            return true;
         }
 
         jNode.addClass("mdb-processed-trackheader");
@@ -784,8 +790,10 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         // SC renders the track header twice (responsive variants). Filtering by :visible in the
         // selector itself is untested with an attribute selector in this codebase - check it as a
         // separate runtime condition instead (proven pattern).
+        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
+        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
         if( isNewSoundCloudLayout && !jNode.is(':visible') ) {
-            return;
+            return true;
         }
 
         jNode.addClass("mdb-processed-toolkit");
