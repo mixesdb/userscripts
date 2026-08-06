@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.13
+// @version      2026.08.06.15
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -103,7 +103,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 52,
+var cacheVersion = 54,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -589,6 +589,96 @@ waitForKeyElements(".soundActions", function( jNode ) {
 });
 
 /*
+ * SoundCloud's own download button (new layout)
+ *
+ * The redesign renders it as an unlabelled MUI icon button - its mui-* class names are
+ * generated per build and useless as a selector, so the aria-label is the only stable hook:
+ * <button ... aria-label="Download track"><svg>...</svg></button>
+ *
+ * We cannot download the file ourselves (the API's download_url needs the OAuth token as a
+ * header, so it cannot just be put into an <a href>), so #mdb-dlInfo forwards the click to
+ * that button instead.
+ */
+
+// The track page lives in the webi frame, but the header can also come from the top
+// document - search both, and only ever take a visible match: the header is rendered twice
+// (responsive mobile/desktop variants) and clicking the hidden copy does nothing.
+function findScVisibleElement( selector ) {
+    var docs = ( metaDoc !== document ) ? [ document, metaDoc ] : [ document ];
+
+    for( var i = 0; i < docs.length; i++ ) {
+        var found = $( selector, docs[i] ).filter(':visible').first();
+        if( found.length !== 0 ) {
+            return found;
+        }
+    }
+    return $();
+}
+
+// Selectors are tried one after the other, not as one comma list: a comma list returns
+// whatever comes first in the document, which could be an unrelated "Download the app"
+// button, while the exact aria-label is the one we actually want.
+function getScDownloadButton() {
+    var selectors = [ 'button[aria-label="Download track"]',
+                      '[role="menuitem"][aria-label^="Download track"]',
+                      'button[aria-label^="Download track"]' ];
+
+    for( var i = 0; i < selectors.length; i++ ) {
+        var found = findScVisibleElement( selectors[i] );
+        if( found.length !== 0 ) {
+            return found;
+        }
+    }
+    return $();
+}
+
+/*
+ * triggerScDownload
+ * Must be called straight from the click handler, never out of a timer: browsers only let
+ * the download through while the user gesture is still active.
+ * onFail() is called if the button cannot be found at all.
+ */
+function triggerScDownload( onFail ) {
+    logFunc( "triggerScDownload" );
+
+    var dlButton = getScDownloadButton();
+
+    if( dlButton.length !== 0 ) {
+        log( "Clicking SoundCloud's own download button" );
+        dlButton.get(0).click();
+        return;
+    }
+
+    // Not in the DOM: on narrow layouts the download sits in the header's overflow menu,
+    // and MUI only renders menu items once the menu is open.
+    var moreButton = findScVisibleElement( 'button[aria-label^="More"]' );
+
+    if( moreButton.length === 0 ) {
+        onFail();
+        return;
+    }
+
+    log( "No download button - opening the overflow menu" );
+    moreButton.get(0).click();
+
+    // The menu renders async, so poll for it - but briefly: the click still has to land
+    // inside the transient user activation window (~5s in Chrome).
+    var tries = 0,
+        poll = setInterval(function(){
+            var menuButton = getScDownloadButton();
+
+            if( menuButton.length !== 0 ) {
+                clearInterval( poll );
+                log( "Clicking the download entry of the overflow menu" );
+                menuButton.get(0).click();
+            } else if( ++tries > 20 ) {
+                clearInterval( poll );
+                onFail();
+            }
+        }, 50);
+}
+
+/*
  * Call API
  * .listen-content .soundActions > for premium account layout (?), e.g. https://soundcloud.com/grabthegroove/gtg-pdcst-046-pyramidal-decode
  */
@@ -664,7 +754,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // in the new layout jNode is #mdb-sc-trackExtras itself, which already
                                 // brings its own #mdb-trackHeader, #mdb-sc-trackButtons and #mdb-toggle-target
                                 var soundActions = jNode,
-                                    trackHeader = $("#mdb-trackHeader"),
+                                    trackHeader = isNewSoundCloudLayout ? $("#mdb-sc-trackHead #mdb-trackHeader") : $("#mdb-trackHeader"),
                                     buttonTarget = isNewSoundCloudLayout ? $("#mdb-sc-trackButtons") : jNode;
 
                                 if( $("h1", trackHeader).length === 0 ) {
@@ -690,6 +780,19 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     } else {
                                         $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
                                     }
+
+                                    // new layout: the create date shares one row with the buttons
+                                    // (DL, duration, API), so move it over there before they are added.
+                                    // It loses the grey of the header <p> on the way - add it back.
+                                    if( isNewSoundCloudLayout ) {
+                                        $("#mdb-trackHeader-releaseInfo-createDate").addClass("sc-text-grey").prependTo( buttonTarget );
+
+                                        // drop the now possibly empty header paragraph to avoid its spacing
+                                        var releaseInfo = $("#mdb-trackHeader-releaseInfo");
+                                        if( releaseInfo.children().length === 0 ) {
+                                            releaseInfo.remove();
+                                        }
+                                    }
                                 }
 
                                 // add toggleTarget
@@ -700,12 +803,23 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // indicate download is available
                                 // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
                                 // therefor rename the dropdown to "DL"
-                                // The new layout has no such dropdown to rename, so the hint gets its
-                                // own (non-clickable) marker next to the other trackExtras buttons.
+                                // In the new layout the hint gets its own button next to the other
+                                // trackExtras buttons, which forwards the click to SoundCloud's own
+                                // download button - see triggerScDownload().
                                 if( downloadable ) {
                                     if( isNewSoundCloudLayout ) {
                                         if( $("#mdb-dlInfo").length === 0 ) {
-                                            buttonTarget.append('<span id="mdb-dlInfo" class="'+soundActionFakeButtonClass+'" title="A download is offered for this track (use SoundCloud\'s own download button)">DL</span>');
+                                            buttonTarget.append('<button id="mdb-dlInfo" class="'+soundActionFakeButtonClass+'" title="Download this track (triggers SoundCloud\'s own download button)">DL</button>');
+
+                                            $("#mdb-dlInfo").click(function(){
+                                                var dlInfoButton = $(this);
+
+                                                triggerScDownload(function(){
+                                                    log( "SoundCloud's own download button was not found" );
+                                                    dlInfoButton.addClass("mdb-dlInfo-failed")
+                                                                .attr( "title", "SoundCloud's own download button could not be found - please use it directly" );
+                                                });
+                                            });
                                         }
                                     } else {
                                         $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
@@ -723,8 +837,9 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 }
 
                                 // artwork: link to the original plus its dimensions/file type
+                                // goes into the head row (right of the title), not into the button row
                                 if( isNewSoundCloudLayout && apiArtworkUrl && $("#mdb-artwork-input-wrapper").length === 0 ) {
-                                    append_artwork_trackExtras( buttonTarget, apiArtworkUrl );
+                                    append_artwork_trackExtras( $("#mdb-sc-trackHead"), apiArtworkUrl );
                                 }
 
                                 // file details
@@ -843,13 +958,15 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackh
         jNode.addClass("mdb-processed-trackheader");
 
         if( $("#mdb-sc-trackExtras").length === 0 ) {
+            // #mdb-sc-trackHead is the row that holds the title (left) and the artwork info bar
+            // (right, below the artwork of the Track header box) - see script.css.
             // #mdb-sc-trackButtons keeps the buttons above #mdb-toggle-target - appending them to
             // the wrapper itself would push them below whatever an expanded toggle prints out
-            jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-sc-trackButtons"></div><div id="mdb-toggle-target"></div></div>' );
+            jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-sc-trackHead"><div id="mdb-trackHeader"></div></div><div id="mdb-sc-trackButtons"></div><div id="mdb-toggle-target"></div></div>' );
 
-            // toolkit goes full-width right below #mdb-trackHeader (above the buttons/toggle
+            // toolkit goes full-width at the very end of the wrapper (below buttons and toggle
             // target), instead of being squeezed into the old sidebar column
-            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-trackHeader"), "after", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
+            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
         }
     }
 });
