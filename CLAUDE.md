@@ -9,24 +9,26 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 - `<script-name-with-underscores>/` - one .user.js file per userscript, named `script.user.js`
 - No shared build system; each script must work standalone when copy-pasted into a userscript manager
 - Each script can has own script.css files in the same folder
-- Each script can use include files for shared code, e.g. /includes/global.js
+- Each script can use include files for shared code, e.g. /includes/global.js. 
+- If an includes script changes, update the version number in its @require URL of each userscript (and the @version of each userscript)
 
 ## Userscript Header Conventions
 Every script must start with a complete `==UserScript==` metadata block:
 - `@name` - short, descriptive, in English
 - `@namespace` - use `https://github.com/<user>/<repo>`
-- `@version` - semver, bump on every functional change
+- `@version` - YYYY.MM.DD.N, bump on every functional change
 - `@description` - one line, English
 - `@match` / `@include` - as narrow as possible, never `*://*/*` unless truly required
+- `@require` - Update version paramters in other script URLs of they got changes
 - `@grant` - list only what's actually used, default to `none` if no GM_* API is needed
 - `@author` - keep consistent across scripts
 
 ## Code Style
-- Indentation: tabs (equivalent to 4 spaces)
+- Indentation: 4 spaces
 - Comments: English, explain *why* not just *what*
 - Prefer plain JS, but do not change existing jQuery code
 - Wrap script body in an IIFE: `(function() { 'use strict'; ... })();`
-- No console.log left in production code — use a `DEBUG` flag if logging is needed during development
+- Use the custo log() function and a `DEBUG` flag if logging is needed during development
 
 ## Testing / Verification
 - No automated test suite. Manual verification steps:

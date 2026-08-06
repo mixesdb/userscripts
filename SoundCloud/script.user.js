@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_25
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_27
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -35,7 +35,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 48,
+var cacheVersion = 47,
     scriptName = "SoundCloud";
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
@@ -198,6 +198,7 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
         }
     }
 });
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -520,7 +521,7 @@ waitForKeyElements(".soundActions", function( jNode ) {
 // run all this only once
 var RUN_sc_button_group = true;
 
-waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, .mdb-track-actions", function( jNode ) {
+waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group", function( jNode ) {
     if( RUN_sc_button_group ) {
         RUN_sc_button_group = false;
 
@@ -535,12 +536,10 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
 
                 if( scAccessToken != "null" ) {
                     // Call API on current page
-                    // The redesigned track page no longer consistently exposes
-                    // the al:ios track-id meta tag. Resolve the canonical URL
-                    // instead, which works for both the old and current markup.
-                    var canonicalUrl = $('link[rel="canonical"]').attr("href") ||
-                            location.protocol + '//' + location.host + location.pathname,
-                        scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( canonicalUrl );
+                    var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
+                    logVar( "currentTrack_id", currentTrack_id );
+                    var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
+                    //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
 
                     logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
 
@@ -618,7 +617,7 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                             durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
                                             dur = convertHMS( dur_sec );
 
-                                        soundActions.append('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
+                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
 
                                         $("#mdb-toggle-target").append( durToggleWrapper );
                                     }
@@ -692,76 +691,6 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
     var trackHeader = '<div id="mdb-trackHeader"></div>';
     jNode.before( trackHeader );
 });
-
-/*
- * The current track page is a single Material UI "Track header" box. Add one
- * full-width extension below it for the API/file controls and toolkit instead
- * of depending on the removed legacy listenDetails columns. This deliberately
- * uses a native observer: waitForKeyElements stores one shared "alreadyFound"
- * flag on a node, so another selector can prevent this integration from ever
- * receiving SoundCloud's reused React elements.
- */
-function findMaterialTrackHeader() {
-    var explicitHeader = $('[aria-label="Track header"], [data-testid="track-page-header"]').first();
-    if( explicitHeader.length ) return explicitHeader;
-
-    // SoundCloud changes its generated MUI class names frequently. Locate the
-    // track hero structurally instead: the page heading and artwork belong to
-    // the same nearby section/article/card. Keep the old classes only as hints.
-    var heading = $('main h1, [role="main"] h1, h1').filter(function() {
-        return $(this).text().trim().length > 0;
-    }).first();
-    if( !heading.length ) return $();
-
-    var structuralHeader = heading.closest('section, article, header, .MuiCard-root');
-    if( structuralHeader.length ) return structuralHeader.first();
-
-    return heading.parent();
-}
-
-function findMaterialArtwork( trackHeader ) {
-    var artwork = trackHeader.find('img.MuiCardMedia-img, img[src*="sndcdn.com"]');
-
-    if( !artwork.length ) {
-        artwork = $('main img[src*="sndcdn.com"], [role="main"] img[src*="sndcdn.com"]');
-    }
-
-    return artwork.filter(':not(.mdb-processed-artwork)').first();
-}
-
-function initMaterialTrackHeader() {
-    if( !urlPath(2) || urlPath(2) == "sets" ) return;
-
-    var trackHeader = findMaterialTrackHeader();
-    if( !trackHeader.length ) return;
-
-    trackHeader.addClass("mdb-material-track-header");
-
-    var artworkImg = findMaterialArtwork( trackHeader );
-    if( artworkImg.length ) {
-        artworkImg.addClass("mdb-processed-artwork");
-        append_artwork( artworkImg.attr("src"), artworkImg );
-    }
-
-    if( trackHeader.hasClass("mdb-processed-track-header") || $(".mdb-track-header-extension").length ) return;
-
-    var extension = $('<div class="mdb-track-header-extension">' +
-        '<div id="mdb-trackHeader"></div>' +
-        '<div class="mdb-track-actions"></div>' +
-        '<div id="mdb-toggle-target"></div>' +
-        '<div class="mdb-track-toolkit"></div>' +
-    '</div>');
-
-    trackHeader.addClass("mdb-processed-track-header").after( extension );
-
-    var titleText = trackHeader.find("h1").first().text(),
-        playerUrl = location.protocol + '//' + location.host + location.pathname;
-
-    getToolkit( playerUrl, "playerUrl", "detail page", extension.find(".mdb-track-toolkit"), "append", titleText, "", 1, playerUrl );
-}
-
-initMaterialTrackHeader();
-new MutationObserver( initMaterialTrackHeader ).observe( document.body, { childList: true, subtree: true } );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
