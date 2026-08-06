@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.7
+// @version      2026.08.06.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,8 +11,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_27
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_28
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @noframes
@@ -37,7 +37,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 47,
+var cacheVersion = 48,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -198,6 +198,21 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
 
         if( typeof artwork_url !== "undefined" && artwork_url !== styleAttr ) {
             append_artwork( artwork_url );
+        }
+    }
+});
+
+// Artwork link to original (new Material "Track header" layout, since ~Aug 2026 redesign)
+// SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters
+waitForKeyElements('section[aria-label="Track header"]:visible img.MuiCardMedia-img:not(.mdb-processed-artwork)', function( jNode ) {
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        jNode.addClass("mdb-processed-artwork");
+
+        var artwork_url = jNode.attr("src");
+        logVar( "artwork_url (Track header)", artwork_url );
+
+        if( artwork_url ) {
+            append_artwork_trackHeader( jNode, artwork_url );
         }
     }
 });
@@ -524,13 +539,18 @@ waitForKeyElements(".soundActions", function( jNode ) {
 // run all this only once
 var RUN_sc_button_group = true;
 
-waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group", function( jNode ) {
+waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, section[aria-label="Track header"]:visible', function( jNode ) {
     if( RUN_sc_button_group ) {
         RUN_sc_button_group = false;
 
         if( urlPath(2) != "sets" ) {
 
             logFunc( "Player page / sound action buttons" );
+
+            // New Material "Track header" layout (since ~Aug 2026 redesign) has no button-group
+            // with room for extra buttons, so API/file-details buttons go into #mdb-sc-trackExtras
+            var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
+            logVar( "isNewSoundCloudLayout", isNewSoundCloudLayout );
 
             // API call
             getScAccessTokenFromApi(function(output){
@@ -571,7 +591,16 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
                             if( kind == "track" ) {
                                 // trackHeader
                                 var soundActions = jNode,
+                                    trackHeader = $("#mdb-trackHeader"),
+                                    buttonTarget = isNewSoundCloudLayout ? $("#mdb-sc-trackExtras") : soundActions;
+
+                                // defensive: create trackExtras here too, in case the API responded
+                                // before the dedicated waitForKeyElements(section[aria-label="Track header"]) handler ran
+                                if( isNewSoundCloudLayout && buttonTarget.length === 0 ) {
+                                    jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-toggle-target"></div></div>' );
                                     trackHeader = $("#mdb-trackHeader");
+                                    buttonTarget = $("#mdb-sc-trackExtras");
+                                }
 
                                 if( $("h1", trackHeader).length === 0 ) {
                                     var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span></h1>';
@@ -620,7 +649,11 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                             durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
                                             dur = convertHMS( dur_sec );
 
-                                        soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                        if( isNewSoundCloudLayout ) {
+                                            buttonTarget.append('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                        } else {
+                                            soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                        }
 
                                         $("#mdb-toggle-target").append( durToggleWrapper );
                                     }
@@ -659,7 +692,11 @@ waitForKeyElements(".l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         apiTextLinkified = linkify( apiText );
                                     //logVar( "apiText", apiText );
 
-                                    soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
+                                    if( isNewSoundCloudLayout ) {
+                                        buttonTarget.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
+                                    } else {
+                                        soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
+                                    }
                                     $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
                                 }
                             }
@@ -695,6 +732,20 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
     jNode.before( trackHeader );
 });
 
+// New Material "Track header" layout (since ~Aug 2026 redesign)
+// API/file-details buttons + toolkit go into a dedicated wrapper below the box,
+// since the new box has no room for extra buttons and its layout is not ours to change.
+// SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters.
+waitForKeyElements('section[aria-label="Track header"]:visible:not(.mdb-processed-trackheader)', function( jNode ) {
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        jNode.addClass("mdb-processed-trackheader");
+
+        if( $("#mdb-sc-trackExtras").length === 0 ) {
+            jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-toggle-target"></div></div>' );
+        }
+    }
+});
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -704,19 +755,31 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit)", function( jNode ) {
+waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit), section[aria-label="Track header"]:visible:not(.mdb-processed-toolkit)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-toolkit");
 
+        var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
+
         //var titleText = $('meta[property="og:title"]').text();
-        var titleText = $("h1.soundTitle__title").text();
+        var titleText = $("h1.soundTitle__title").text() || $('section[aria-label="Track header"]:visible h1').first().text();
 
         // get the player URL
         // DO NOT use location.href as this includes parameters
         // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
         var playerUrl = location.protocol + '//' + location.host + location.pathname;
 
-        getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", 1, playerUrl );
+        // New layout: toolkit goes full-width below the API/file-details wrapper (or the box itself
+        // if that wrapper hasn't been created yet), instead of being squeezed inside the old sidebar column
+        var toolkitWrapper = jNode,
+            toolkitInsertType = "before";
+
+        if( isNewSoundCloudLayout ) {
+            toolkitWrapper = $("#mdb-sc-trackExtras").length ? $("#mdb-sc-trackExtras") : jNode;
+            toolkitInsertType = "after";
+        }
+
+        getToolkit( playerUrl, "playerUrl", "detail page", toolkitWrapper, toolkitInsertType, titleText, "", 1, playerUrl );
     }
 });
 
