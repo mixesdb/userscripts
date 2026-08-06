@@ -27,8 +27,9 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Indentation: 4 spaces
 - Comments: English, explain *why* not just *what*
 - Prefer plain JS, but do not change existing jQuery code
-- Wrap script body in an IIFE: `(function() { 'use strict'; ... })();`
-- Use the custo log() function and a `DEBUG` flag if logging is needed during development
+- Wrap script body in an IIFE: `(function() { ... })();` right after `// ==/UserScript==`, closed at end of file. No `'use strict'` — too risky to audit every implicit global across this much legacy jQuery code; a silent bug would become a hard `ReferenceError`.
+- If the script declares `scriptName`, add `window.scriptName = scriptName;` right after — `includes/toolkit.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
+- Use the log()/logVar()/logFunc() helpers from global.js and a `DEBUG` flag if logging is needed during development
 
 ## Testing / Verification
 - No automated test suite. Manual verification steps:

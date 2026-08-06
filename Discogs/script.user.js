@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.03.20.4
+// @version      2026.08.06.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -18,6 +18,8 @@
 // @run-at       document-end
 // ==/UserScript==
 
+(function() {
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
@@ -27,6 +29,7 @@
 
 var cacheVersion = 2;
 var scriptName = "Discogs";
+window.scriptName = scriptName; // toolkit.js reads this global directly
 var ta = '<div id="tlEditor"><textarea id="mixesdb-fileDetails" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
@@ -646,3 +649,5 @@ function scheduleDiscogsTLBuild(){
 waitForKeyElements("#release-tracklist table", function(){
 	scheduleDiscogsTLBuild();
 });
+
+})();

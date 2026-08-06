@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RA (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.16.3
+// @version      2026.08.06.1
 // @description  Change the look and behaviour of ra.co to help contributing to MixesDB, e.g. add player checks and artwork URLs.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -19,6 +19,8 @@
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
+
+(function() {
 
 
 /*
@@ -39,6 +41,7 @@ https://de.ra.co/events/2232716
 
 var cacheVersion = 23,
     scriptName = "RA";
+window.scriptName = scriptName; // toolkit.js reads this global directly
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
@@ -428,3 +431,5 @@ waitForKeyElements("div[class*='FullWidthStyle'] > img:not(.mdb-ra-artwork-proce
         jNode.addClass("mdb-ra-artwork-processed");
     }
 });
+
+})();

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.6
+// @version      2026.08.06.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -20,6 +20,8 @@
 // @run-at       document-end
 // ==/UserScript==
 
+(function() {
+
 
 /*
  * Before anythings starts: Reload the page
@@ -37,6 +39,7 @@ redirectOnUrlChange( 60 );
 
 var cacheVersion = 47,
     scriptName = "SoundCloud";
+window.scriptName = scriptName; // toolkit.js reads this global directly
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
       hideXedItemsKey = 'mdb-soundcloud-hide-xed',
@@ -716,3 +719,5 @@ waitForKeyElements(".l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         getToolkit( playerUrl, "playerUrl", "detail page", jNode, "before", titleText, "", 1, playerUrl );
     }
 });
+
+})();
