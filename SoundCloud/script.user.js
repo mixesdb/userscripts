@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.11
+// @version      2026.08.06.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,11 +11,10 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_28
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
-// @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
@@ -23,11 +22,78 @@
 (function() {
 
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Frame handling
+ *
+ * Since the ~Aug 2026 redesign SoundCloud no longer renders track pages into the main
+ * document: the whole track page lives in a same-origin iframe (iframe.webiIframe, id
+ * #__WEBI_IFRAME_PRELOADED__) whose path is the address bar path prefixed with "/n/".
+ * Everything we add to a track page has to be added inside that document, so @noframes
+ * had to go - which in turn means the script now also starts in every other
+ * soundcloud.com frame (widget players, upload target, ...) and has to opt out there.
+ *
+ * Stream/profile/playlist pages are unaffected and still render into the top document.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// The frame is only ours if we can actually reach the embedding page - a soundcloud.com
+// page embedded somewhere else entirely is none of our business either.
+function canAccessTopFrame() {
+    try {
+        return typeof window.top.location.pathname === "string";
+    } catch( e ) {
+        return false;
+    }
+}
+
+const isTopFrame = ( window.self === window.top ),
+      isWebiFrame = ( !isTopFrame && /^\/n\//.test( location.pathname ) && canAccessTopFrame() );
+
+if( !isTopFrame && !isWebiFrame ) {
+    return; // not a frame we have anything to do in
+}
+
+// Inside the webi frame it is the address bar - not location.href - that holds the URL
+// MixesDB works with: the frame's own path carries the "/n/" prefix plus SoundCloud's
+// internal query string. Re-point global.js' urlPath() at the address bar so every
+// urlPath()/urlPath_noParams() call in global.js, toolkit.js and this script keeps
+// seeing /user/track instead of /n/user/track.
+const pageLocation = isWebiFrame ? window.top.location : window.location,
+      pagePathname = pageLocation.pathname,
+      pageHref = pageLocation.protocol + "//" + pageLocation.host + pagePathname + pageLocation.search;
+
+if( isWebiFrame ) {
+    urlPath = function(n) {
+        return pageHref.split('/')[n+2];
+    };
+}
+
+// The OpenGraph/app-link meta tags (needed for the track ID) only exist in the top
+// document - the webi frame ships a near-empty <head>.
+const metaDoc = isWebiFrame ? window.top.document : document;
+
+/*
+ * getScPlayerUrl
+ * The player URL as MixesDB embeds it.
+ * DO NOT build it from location.href: that carries parameters, and inside the webi frame
+ * it is not even the URL of this track.
+ * Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
+ */
+function getScPlayerUrl() {
+    return pageLocation.protocol + '//' + pageLocation.host + pagePathname;
+}
+
+
 /*
  * Before anythings starts: Reload the page
  * A tiny delay is needed, otherwise there's constant reloading.
+ * Only the top frame owns the address bar; hooking history inside the webi frame as
+ * well would only fight with the top frame's reload.
  */
-redirectOnUrlChange( 60 );
+if( isTopFrame ) {
+    redirectOnUrlChange( 60 );
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -37,7 +103,7 @@ redirectOnUrlChange( 60 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 51,
+var cacheVersion = 52,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -203,29 +269,9 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
 });
 
 // Artwork link to original (new Material "Track header" layout, since ~Aug 2026 redesign)
-// SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters
-// NOTE: images in this layout carry no class names at all, so the artwork <img> is identified by its
-// CDN URL pattern (/artworks-...) instead - avatar images use /avatars- and must not match
-waitForKeyElements('section[aria-label="Track header"] img[src*="/artworks-"]:not(.mdb-processed-artwork)', function( jNode ) {
-    if( urlPath(2) && urlPath(2) != "sets" ) {
-        // filtering by :visible in the selector itself is untested with an attribute selector
-        // in this codebase - check it as a separate runtime condition instead (proven pattern).
-        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
-        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
-        if( !jNode.closest('section[aria-label="Track header"]').is(':visible') ) {
-            return true;
-        }
-
-        jNode.addClass("mdb-processed-artwork");
-
-        var artwork_url = jNode.attr("src");
-        logVar( "artwork_url (Track header)", artwork_url );
-
-        if( artwork_url ) {
-            append_artwork_trackHeader( jNode, artwork_url );
-        }
-    }
-});
+// is not done from the DOM: the artwork box clips its overflow, so an info bar placed next to
+// the <img> is invisible, and tracks with a "visuals" banner have no artwork <img> in the
+// visible header at all. It is added from the API artwork_url instead, see the API call below.
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -549,21 +595,15 @@ waitForKeyElements(".soundActions", function( jNode ) {
 // run all this only once
 var RUN_sc_button_group = true;
 
-waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, section[aria-label="Track header"]', function( jNode ) {
+// New Material "Track header" layout (since ~Aug 2026 redesign) has no button-group with room
+// for extra buttons, so API/file-details buttons go into #mdb-sc-trackExtras - and that wrapper
+// is what this handler waits for there.
+// It must NOT wait for the Track header section itself: waitForKeyElements keeps its
+// "alreadyFound" flag in one jQuery data key per element, so several handlers watching the same
+// element starve each other - whichever runs first flags it and the rest never see it.
+waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, #mdb-sc-trackExtras', function( jNode ) {
     if( RUN_sc_button_group ) {
-        // New Material "Track header" layout (since ~Aug 2026 redesign) has no button-group
-        // with room for extra buttons, so API/file-details buttons go into #mdb-sc-trackExtras
-        var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
-
-        // SC renders the track header twice (responsive variants). Filtering by :visible in the
-        // selector itself is untested with an attribute selector in this codebase - check it as a
-        // separate runtime condition instead (proven pattern), and bail out BEFORE consuming the
-        // run-once flag so the visible copy still gets a chance on a later poll tick.
-        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
-        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
-        if( isNewSoundCloudLayout && !jNode.is(':visible') ) {
-            return true;
-        }
+        var isNewSoundCloudLayout = jNode.is('#mdb-sc-trackExtras');
 
         RUN_sc_button_group = false;
 
@@ -579,8 +619,16 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
 
                 if( scAccessToken != "null" ) {
                     // Call API on current page
-                    var currentTrack_id = $('meta[property="al:ios:url"]').attr("content").replace( "soundcloud://sounds:", "" ); // e.g. 2007615367
+                    // metaDoc: in the new layout this meta only exists in the top document
+                    var iosUrlMeta = $('meta[property="al:ios:url"]', metaDoc),
+                        currentTrack_id = iosUrlMeta.length ? iosUrlMeta.attr("content").replace( "soundcloud://sounds:", "" ) : ""; // e.g. 2007615367
                     logVar( "currentTrack_id", currentTrack_id );
+
+                    if( !currentTrack_id ) {
+                        log( "No track ID meta found!" );
+                        addApiErrorNote( "no track ID" );
+                        return;
+                    }
                     var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
                     //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
 
@@ -602,7 +650,10 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 last_modified = formatScDate( t.last_modified ),
                                 dur_ms = t.duration,
                                 downloadable = t.downloadable,
-                                download_url = t.download_url;
+                                download_url = t.download_url,
+                                apiArtworkUrl = t.artwork_url,
+                                purchase_url = t.purchase_url,
+                                purchase_title = t.purchase_title;
 
                             logVar( "kind", kind );
                             logVar( "title", title );
@@ -610,17 +661,11 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
 
                             if( kind == "track" ) {
                                 // trackHeader
+                                // in the new layout jNode is #mdb-sc-trackExtras itself, which already
+                                // brings its own #mdb-trackHeader, #mdb-sc-trackButtons and #mdb-toggle-target
                                 var soundActions = jNode,
                                     trackHeader = $("#mdb-trackHeader"),
-                                    buttonTarget = isNewSoundCloudLayout ? $("#mdb-sc-trackExtras") : soundActions;
-
-                                // defensive: create trackExtras here too, in case the API responded
-                                // before the dedicated waitForKeyElements(section[aria-label="Track header"]) handler ran
-                                if( isNewSoundCloudLayout && buttonTarget.length === 0 ) {
-                                    jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-toggle-target"></div></div>' );
-                                    trackHeader = $("#mdb-trackHeader");
-                                    buttonTarget = $("#mdb-sc-trackExtras");
-                                }
+                                    buttonTarget = isNewSoundCloudLayout ? $("#mdb-sc-trackButtons") : jNode;
 
                                 if( $("h1", trackHeader).length === 0 ) {
                                     var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span></h1>';
@@ -655,13 +700,36 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // indicate download is available
                                 // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
                                 // therefor rename the dropdown to "DL"
+                                // The new layout has no such dropdown to rename, so the hint gets its
+                                // own (non-clickable) marker next to the other trackExtras buttons.
                                 if( downloadable ) {
-                                    $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
+                                    if( isNewSoundCloudLayout ) {
+                                        if( $("#mdb-dlInfo").length === 0 ) {
+                                            buttonTarget.append('<span id="mdb-dlInfo" class="'+soundActionFakeButtonClass+'" title="A download is offered for this track (use SoundCloud\'s own download button)">DL</span>');
+                                        }
+                                    } else {
+                                        $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
+                                    }
+                                }
+
+                                // buy/purchase link
+                                // The old layout offered it as .soundActions__purchaseLink in the DOM, the
+                                // new one hides it away - take it from the API response instead.
+                                if( isNewSoundCloudLayout && purchase_url && $("#mdb-purchaseLink").length === 0 ) {
+                                    var purchase_href = /^https?:\/\/gate\.sc\//.test( purchase_url ) ? fixScRedirectUrl( purchase_url ) : purchase_url,
+                                        purchase_text = purchase_title ? purchase_title : "Buy";
+
+                                    buttonTarget.append( '<button id="mdb-purchaseLink" class="'+soundActionFakeButtonClass+'"><a href="'+purchase_href+'" target="_blank">Link: '+purchase_text+'</a></button>' );
+                                }
+
+                                // artwork: link to the original plus its dimensions/file type
+                                if( isNewSoundCloudLayout && apiArtworkUrl && $("#mdb-artwork-input-wrapper").length === 0 ) {
+                                    append_artwork_trackExtras( buttonTarget, apiArtworkUrl );
                                 }
 
                                 // file details
                                 // TODO: get bytes from download url
-                                if( dur_sec !== null ) {
+                                if( dur_ms ) {
                                     if( $("#mdb-fileInfo").length === 0 ) {
                                         //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
                                         var bytes = "",
@@ -684,8 +752,9 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 if( $("#apiText-toggleButton").length === 0 ) {
                                     // remove artwork_url
                                     // add modified artwork url for -original.ext
+                                    // tracks without an artwork return null here
                                     var artwork_url = t.artwork_url,
-                                        artwork_url_original_try = artwork_url.replace("-large.", "-original.");
+                                        artwork_url_original_try = artwork_url ? artwork_url.replace("-large.", "-original.") : "";
                                     delete t["artwork_url"];
 
                                     // move description to end of t array
@@ -756,6 +825,11 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 // API/file-details buttons + toolkit go into a dedicated wrapper below the box,
 // since the new box has no room for extra buttons and its layout is not ours to change.
 // SC renders the track header twice (responsive mobile/desktop variants), only the :visible one matters.
+//
+// This is the ONLY handler allowed to watch the Track header section: waitForKeyElements keeps
+// its "alreadyFound" state in a single jQuery data key per element, so a second handler on the
+// same element would never get called. Everything else for this layout therefore hangs off
+// #mdb-sc-trackExtras - including the toolkit, which is kicked off right here.
 waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackheader)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
@@ -769,10 +843,34 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackh
         jNode.addClass("mdb-processed-trackheader");
 
         if( $("#mdb-sc-trackExtras").length === 0 ) {
-            jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-toggle-target"></div></div>' );
+            // #mdb-sc-trackButtons keeps the buttons above #mdb-toggle-target - appending them to
+            // the wrapper itself would push them below whatever an expanded toggle prints out
+            jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-trackHeader"></div><div id="mdb-sc-trackButtons"></div><div id="mdb-toggle-target"></div></div>' );
+
+            // toolkit goes full-width below that wrapper, instead of being squeezed
+            // into the old sidebar column
+            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "after", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
         }
     }
 });
+
+/*
+ * Force full description
+ * The old layout was handled by CSS (.truncatedAudioInfo__wrapper), but the new one
+ * collapses the description via React state, so the "Show more" button has to be
+ * clicked. Its class names are generated (mui-*) and useless as a selector, so match
+ * it by its exact label - "Show more comments" and friends must not be clicked.
+ */
+if( isWebiFrame ) {
+    waitForKeyElements('button:contains("Show more"):not(.mdb-processed-showMore)', function( jNode ) {
+        jNode.addClass("mdb-processed-showMore");
+
+        if( jNode.text().trim() == "Show more" && jNode.is(':visible') ) {
+            log( "Expanding the truncated description" );
+            jNode.get(0).click();
+        }
+    });
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -783,40 +881,16 @@ waitForKeyElements('section[aria-label="Track header"]:not(.mdb-processed-trackh
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit), section[aria-label="Track header"]:not(.mdb-processed-toolkit)', function( jNode ) {
+// The new layout fires its own getToolkit() from the Track header handler above - see the note
+// there on why it must not add a second watcher on that section.
+waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit)', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
-        var isNewSoundCloudLayout = jNode.is('[aria-label="Track header"]');
-
-        // SC renders the track header twice (responsive variants). Filtering by :visible in the
-        // selector itself is untested with an attribute selector in this codebase - check it as a
-        // separate runtime condition instead (proven pattern).
-        // Must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
-        // stops calling back on it forever unless the callback returns a truthy "keep watching" value.
-        if( isNewSoundCloudLayout && !jNode.is(':visible') ) {
-            return true;
-        }
-
         jNode.addClass("mdb-processed-toolkit");
 
         //var titleText = $('meta[property="og:title"]').text();
-        var titleText = $("h1.soundTitle__title").text() || jNode.find("h1").first().text();
+        var titleText = $("h1.soundTitle__title").text();
 
-        // get the player URL
-        // DO NOT use location.href as this includes parameters
-        // Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
-        var playerUrl = location.protocol + '//' + location.host + location.pathname;
-
-        // New layout: toolkit goes full-width below the API/file-details wrapper (or the box itself
-        // if that wrapper hasn't been created yet), instead of being squeezed inside the old sidebar column
-        var toolkitWrapper = jNode,
-            toolkitInsertType = "before";
-
-        if( isNewSoundCloudLayout ) {
-            toolkitWrapper = $("#mdb-sc-trackExtras").length ? $("#mdb-sc-trackExtras") : jNode;
-            toolkitInsertType = "after";
-        }
-
-        getToolkit( playerUrl, "playerUrl", "detail page", toolkitWrapper, toolkitInsertType, titleText, "", 1, playerUrl );
+        getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
     }
 });
 

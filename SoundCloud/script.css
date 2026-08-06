@@ -162,16 +162,40 @@ a.sc_button-mdb:active {
     margin-top: 10px;
 }
 
-#mdb-sc-trackExtras #mdb-fileInfo,
-#mdb-sc-trackExtras #apiText-toggleButton {
-    margin-right: 7px;
+/*
+ * The new layout renders into its own document, which carries none of SoundCloud's
+ * legacy .sc-button-* styles - our fake soundAction buttons need their own look there.
+ */
+#mdb-sc-trackButtons .sc_button-mdb {
+    display: inline-block;
+    margin: 0 7px 7px 0;
+    padding: 3px 12px;
+    font: inherit;
+    font-size: 14px;
+    line-height: 24px;
+    color: inherit;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#mdb-sc-trackButtons .sc_button-mdb:hover {
+    border-color: #f60;
+}
+/* the DL hint is a marker, not something to click */
+#mdb-sc-trackButtons #mdb-dlInfo {
+    cursor: default;
+    color: #f60;
+}
+#mdb-sc-trackButtons #mdb-dlInfo:hover {
+    border-color: #555;
 }
 
-/* Artwork info bar sits directly under the (small) Track header thumbnail, not overlaid */
-.mdb-artwork-input-wrapper-trackHeader {
+/* Artwork info bar is a row of its own here, not an overlay on the artwork */
+#mdb-sc-trackExtras .mdb-artwork-input-wrapper-trackHeader {
     display: block;
-    max-width: 100%;
-    margin-top: 4px;
+    max-width: 500px;
+    margin-bottom: 10px;
 }
 
 .userStream h3 {
