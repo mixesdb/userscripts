@@ -45,27 +45,26 @@ function append_artwork( artwork_url ) {
     }
 }
 
-// append_artwork_trackHeader()
-// New Material "Track header" layout (since ~Aug 2026 redesign): the artwork <img> is
-// a React-managed node, so it must not be replaced/removed (would risk React reconciliation
-// errors) - the info bar is inserted as a sibling right after it instead.
-function append_artwork_trackHeader( imgNode, artwork_url ) {
-    logFunc( "append_artwork_trackHeader" );
+// append_artwork_trackExtras()
+// New Material "Track header" layout (since ~Aug 2026 redesign): the artwork <img> is a
+// React-managed node inside a box that clips its overflow, and tracks showing a "visuals"
+// banner have no artwork <img> in the visible header at all. So the info bar is not attached
+// to the artwork but added to the trackExtras wrapper, built from the API's artwork_url.
+function append_artwork_trackExtras( wrapper, artwork_url ) {
+    logFunc( "append_artwork_trackExtras" );
 
     var thumbURL = artwork_url.replace(/-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-t500x500"),
         origUrl = thumbURL.replace("-t500x500", "-original");
 
     logVar( "origUrl", origUrl );
 
-    if( $("#mdb-artwork-input-wrapper").length === 0 ) {
-        imgNode.after( createArtworkInfoWrapper( origUrl, {
-            wrapperId: "mdb-artwork-input-wrapper",
-            wrapperClass: "mdb-artwork-input-wrapper-trackHeader",
-            inputId: "mdb-artwork-input",
-            inputClass: "selectOnClick",
-            infoId: "mdb-artwork-info"
-        }) );
-    }
+    wrapper.append( createArtworkInfoWrapper( origUrl, {
+        wrapperId: "mdb-artwork-input-wrapper",
+        wrapperClass: "mdb-artwork-input-wrapper-trackHeader",
+        inputId: "mdb-artwork-input",
+        inputClass: "selectOnClick",
+        infoId: "mdb-artwork-info"
+    }) );
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
