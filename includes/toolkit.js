@@ -621,6 +621,12 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
             toolkitOutput += '<legend>Toolkit</legend>';
             toolkitOutput += '<div id="mdb-toolkit_waiter" style="display:none"></div>';
             toolkitOutput += '<ul style="display:none">';
+        } else if( $("#mdb-toolkit").length === 0 ) {
+            // toolboxIteration is a module-global counter that never resets, so the #mdb-toolkit
+            // shell is only ever built on the very first call in this whole page load. If the
+            // wrapper it was appended into gets wiped later (e.g. SoundCloud's own re-render),
+            // this call will silently do nothing below - #mdb-toolkit stays gone for good.
+            log( "getToolkit_run: toolboxIteration is " + toolboxIteration + " (not 1) and #mdb-toolkit is NOT in the DOM - the toolkit shell will NOT be (re)created this call." );
         }
 
         if( toolboxIteration == 1 ) {

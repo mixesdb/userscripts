@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.1
+// @version      2026.08.07.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_36
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_54
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_55
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
@@ -978,6 +978,15 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                 }
             });
         }
+    } else {
+        // RUN_sc_button_group only ever flips true->false once per page load. If SoundCloud's
+        // own React re-render wipes #mdb-sc-trackExtras (see the Track header handler below,
+        // which DOES recreate the empty wrapper div) this branch is why the buttons/dates/API
+        // toggle never come back: this guard has no idea the wrapper was rebuilt from scratch.
+        log( "sc-button-group/#mdb-sc-trackExtras matched again but RUN_sc_button_group is false - " +
+             "buttons/dates/API toggle will NOT be (re)built. If this fires after the wrapper was " +
+             "just recreated, that is the bug: SoundCloud wiped the DOM and this once-only guard " +
+             "is blocking the rebuild." );
     }
 });
 
@@ -1015,21 +1024,68 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 // below gets expanded/collapsed, which changes the page layout height. A one-shot guard would
 // leave the toolkit gone for good the first time that happens, so this keeps re-checking
 // forever (return true) and recreates the wrapper whenever it goes missing.
-waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
-    log( "Track header handler fired. urlPath(2): " + urlPath(2) + ", #mdb-sc-trackExtras exists: " + ( $("#mdb-sc-trackExtras").length !== 0 ) );
+// Diagnostic only (does not change behaviour): proves/times whether #mdb-sc-trackExtras is
+// really getting wiped by SoundCloud's own re-render, as opposed to never having been created
+// in the first place. Logged distinctly from a first-time creation below.
+var trackExtrasEverCreated = false;
+var trackExtrasRemovalObserver = null;
 
+function watchTrackExtrasForRemoval( node ) {
+    if( trackExtrasRemovalObserver ) {
+        trackExtrasRemovalObserver.disconnect();
+        trackExtrasRemovalObserver = null;
+    }
+
+    var parent = node && node.parentNode;
+    if( !parent ) {
+        log( "watchTrackExtrasForRemoval: #mdb-sc-trackExtras has no parentNode - cannot observe removal." );
+        return;
+    }
+
+    trackExtrasRemovalObserver = new MutationObserver(function() {
+        if( !document.contains(node) ) {
+            log( "#mdb-sc-trackExtras was REMOVED from the DOM after creation (most likely SoundCloud's own " +
+                 "React re-render wiping it, not our code - we never remove it ourselves). Watching whether " +
+                 "the Track header handler recreates it, and whether RUN_sc_button_group/toolboxIteration " +
+                 "then block the content from coming back." );
+            trackExtrasRemovalObserver.disconnect();
+            trackExtrasRemovalObserver = null;
+        }
+    });
+    trackExtrasRemovalObserver.observe( parent, { childList: true } );
+}
+
+// This handler intentionally polls forever (see "return true" below), and it is invoked once
+// per poll for BOTH the visible Track header and its permanently-hidden responsive duplicate -
+// so logging on every call floods the console within seconds and buries the one log line that
+// actually matters (a state change). trackHeaderLastLoggedState dedupes: only log when the
+// observable state (visible vs not, #mdb-sc-trackExtras present vs not) actually changes.
+var trackHeaderLastLoggedState = null;
+
+waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
         // in this codebase - check it as a separate runtime condition instead (proven pattern).
+        // The hidden responsive duplicate polls forever too but is never worth logging.
         if( !jNode.is(':visible') ) {
-            log( "Track header section matched but not :visible yet - keep watching (likely the hidden responsive duplicate)." );
             return true;
         }
 
-        log( "Track header section is visible." );
+        var trackExtrasExists = $("#mdb-sc-trackExtras").length !== 0,
+            state = trackExtrasExists ? "present" : "missing";
 
-        if( $("#mdb-sc-trackExtras").length === 0 ) {
-            log( "#mdb-sc-trackExtras missing - creating buttons/toolkit wrapper now." );
+        if( state !== trackHeaderLastLoggedState ) {
+            log( "Track header handler: #mdb-sc-trackExtras is now " + state + " (urlPath(2): " + urlPath(2) + ")." );
+            trackHeaderLastLoggedState = state;
+        }
+
+        if( !trackExtrasExists ) {
+            if( trackExtrasEverCreated ) {
+                log( "#mdb-sc-trackExtras missing AGAIN - it existed before and was removed. RECREATING the wrapper now (empty shell only - see RUN_sc_button_group/toolboxIteration logs for whether its content comes back)." );
+            } else {
+                log( "#mdb-sc-trackExtras missing - creating buttons/toolkit wrapper now (first time)." );
+            }
+            trackExtrasEverCreated = true;
 
             // #mdb-sc-trackHead is the row that holds the title (left) and the artwork info bar
             // (right, below the artwork of the Track header box) - see script.css.
@@ -1039,15 +1095,16 @@ waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
 
             logVar( "#mdb-sc-trackExtras created, now in DOM", $("#mdb-sc-trackExtras").length !== 0 );
 
+            watchTrackExtrasForRemoval( $("#mdb-sc-trackExtras").get(0) );
+
             // toolkit goes full-width at the very end of the wrapper (below buttons and toggle
             // target), instead of being squeezed into the old sidebar column
             log( "Calling getToolkit() for #mdb-sc-trackExtras." );
             getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
-        } else {
-            log( "#mdb-sc-trackExtras already present - leaving it alone." );
         }
-    } else {
+    } else if( trackHeaderLastLoggedState !== "not-track-page" ) {
         log( "Not a track detail page (urlPath(2): '" + urlPath(2) + "') - skipping trackExtras wrapper." );
+        trackHeaderLastLoggedState = "not-track-page";
     }
 
     // must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
