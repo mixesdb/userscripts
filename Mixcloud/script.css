@@ -75,9 +75,13 @@
 	color: #ddd;
 	font-size: 12px;
 	margin-right: 10px;
-	width: calc( 100% - 7.5em - 10px - 34px ); /* 34px reserved for the copy button below */
+	width: calc( 100% - 7.5em - 10px - 39px ); /* 39px reserved for the copy button incl. margin-right */
 	height: 20px;
 	box-sizing: border-box;
+}
+
+..mdb-artwork-input-wrapper .mdb-copy-text-button {
+	margin-right: 10px;
 }
 
 /* small copy button behind the artwork URL input */
