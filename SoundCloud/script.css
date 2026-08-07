@@ -132,11 +132,20 @@ a.sc_button-mdb:active {
     }
 }
 
+/* Fix artwork info elemets being treated as block elements */
+#mdb-artwork-input-wrapper,
+#mdb-artwork-input-wrapper *,
+#mdb-artwork-info,
+#mdb-artwork-info * {
+  width: auto !important;
+}
+
 #mdb-artwork-input {
     overflow: hidden;
     width: calc( 100% - 113px - 3px - 3px - 34px ); /* 34px reserved for the copy button below */
     padding-left: 3px;
     padding-right: 3px;
+    font-size: 13px;
 
     &::selection {
         background-color: #fc0 !important;
