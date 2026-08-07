@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.7
+// @version      2026.08.07.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -320,7 +320,13 @@ var trackPageDiagnosticSelectors = [
 ];
 
 function logTrackPageSnapshot( label ) {
-    logFunc( "Track page DOM snapshot: " + label );
+    // Both the top frame and the webi frame run their own copy of this diagnostic (each
+    // sets up its own 'load'/timeout checkpoints), and both log under the same unlabeled
+    // text - without the frame tag, two near-identical "Track page DOM snapshot" blocks
+    // show up back to back and can only be told apart by eyeballing which values are
+    // non-zero. Confirmed against a known-good log: this is expected/harmless there, but
+    // for a broken report it needs to be unambiguous at a glance.
+    logFunc( "Track page DOM snapshot: " + label + " (" + ( isWebiFrame ? "webi frame" : "top frame" ) + ")" );
     logVar( "document.readyState", document.readyState );
     logVar( "urlPath(2)", urlPath(2) );
 
@@ -1292,6 +1298,14 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.07.8
+ * logTrackPageSnapshot now tags each snapshot with "(webi frame)"/"(top frame)".
+ * Verified against a known-good macOS/Chrome log: the top frame and webi frame each run
+ * their own copy of the diagnostic and log under identical unlabeled text, so every
+ * checkpoint appeared twice - only distinguishable by eyeballing which values were
+ * non-zero. Fine when everything works, but ambiguous for a broken report (e.g. "webi
+ * frame never loaded" vs. "webi frame loaded, selectors just don't match").
  *
  * 2026.08.07.7
  * Added "Track page diagnostics" (logTrackPageSnapshot): an unconditional DOM snapshot
