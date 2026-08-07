@@ -123,10 +123,36 @@ function getArtworkInfoText( artworkUrl, imageWidth, imageHeight ) {
     return imageWidth +'&thinsp;x&thinsp;'+ imageHeight + ( imageType ? ' '+ imageType : '' );
 }
 
-function loadArtworkInfo( artworkUrl, callback ) {
+// getArtworkAltExtensionUrl
+// SoundCloud's API artwork_url always claims a .jpg extension, but the file actually stored
+// for "-original" (and sometimes other sizes) can be a PNG - requesting it as .jpg then 403s.
+// Swap jpg<->png so loadArtworkInfo can retry with the extension that actually exists.
+function getArtworkAltExtensionUrl( artworkUrl ) {
+    if( /\.jpe?g$/i.test( artworkUrl ) ) {
+        return artworkUrl.replace( /\.jpe?g$/i, ".png" );
+    } else if( /\.png$/i.test( artworkUrl ) ) {
+        return artworkUrl.replace( /\.png$/i, ".jpg" );
+    }
+    return null;
+}
+
+// loadArtworkInfo
+// callback( artworkInfoText, resolvedUrl ) - artworkInfoText is null/undefined if the image
+// could not be loaded under any tried extension, so callers can stop showing "loading…".
+function loadArtworkInfo( artworkUrl, callback, isAltAttempt ) {
     var img = new Image();
     img.onload = function() {
-        callback( getArtworkInfoText( artworkUrl, this.width, this.height ) );
+        callback( getArtworkInfoText( artworkUrl, this.width, this.height ), artworkUrl );
+    };
+    img.onerror = function() {
+        var altUrl = !isAltAttempt && getArtworkAltExtensionUrl( artworkUrl );
+        if( altUrl ) {
+            logVar( "loadArtworkInfo: " + artworkUrl + " failed to load, retrying with", altUrl );
+            loadArtworkInfo( altUrl, callback, true );
+        } else {
+            logVar( "loadArtworkInfo: giving up, could not load", artworkUrl );
+            callback( null, artworkUrl );
+        }
     };
     img.src = artworkUrl;
 }
@@ -158,8 +184,17 @@ function createArtworkInfoWrapper( artworkUrl, options ) {
 
     wrapper.append( input, info );
 
-    loadArtworkInfo( artworkUrl, function( artworkInfo ) {
-        link.html( artworkInfo );
+    loadArtworkInfo( artworkUrl, function( artworkInfo, resolvedUrl ) {
+        if( artworkInfo ) {
+            if( resolvedUrl !== artworkUrl ) {
+                // the requested extension 403'd - point the input/link at the URL that actually loaded
+                input.val( resolvedUrl );
+                link.attr( "href", resolvedUrl );
+            }
+            link.html( artworkInfo );
+        } else {
+            link.text( "artwork unavailable" ).addClass( "mdb-warning" );
+        }
     });
 
     return wrapper;
