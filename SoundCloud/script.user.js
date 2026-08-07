@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.6
+// @version      2026.08.07.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -278,6 +278,81 @@ logVar( "isSetsTab", isSetsTab );
 // controls, so no persisted hide option may remove its playlist entries.
 if( isSetsTab ) {
     getHidePl = getHideReposts = getHideFav = getHideUsed = getHideXed = "false";
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Track page diagnostics
+ *
+ * Every handler below (Toolkit, Track header, sc-button-group, artwork, ...) is driven
+ * by waitForKeyElements, which - by design - only logs once a watched selector actually
+ * matches. If a browser/layout combination exists where NONE of our selectors ever match
+ * (SoundCloud markup changed further, an extension mangled the DOM, the frame never
+ * finished hydrating, ...), that produces total silence: no error, no "not found" log,
+ * nothing - which is exactly the "userscript ran fine but no MixesDB elements appeared"
+ * reports we cannot currently diagnose from a log alone.
+ *
+ * This takes an unconditional snapshot of which key selectors exist (and are :visible)
+ * in the DOM, at fixed checkpoints, independent of whether any waitForKeyElements
+ * callback ever fires. A user's next log - even if it gets cut off before any handler
+ * result appears - will still show exactly what markup was/wasn't there and when.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// selector -> which document to check it in ("frame" = this frame's own document, which
+// is the webi iframe's document on new-layout track pages; "meta" = metaDoc, since e.g.
+// al:ios:url only ever exists in the top document even inside the webi frame)
+var trackPageDiagnosticSelectors = [
+    [ 'section[aria-label="Track header"]',                             "frame" ], // new layout container (Aug 2026 redesign)
+    [ '#mdb-sc-trackExtras',                                            "frame" ], // our new-layout wrapper, if already built
+    [ '.l-listen-hero',                                                 "frame" ], // old layout header trigger
+    [ '.l-listen__mainContent .listenDetails__partialInfo',             "frame" ], // old layout toolkit selector A
+    [ '.listen-about .listenDetails',                                    "frame" ], // old layout toolkit selector B
+    [ '.soundActions',                                                  "frame" ],
+    [ '.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group', "frame" ],
+    [ '.listenArtworkWrapper',                                          "frame" ], // old artwork wrapper
+    [ '.listenInfo .image span.sc-artwork[style*="background-image"]',  "frame" ], // newer artwork wrapper
+    [ 'h1.soundTitle__title',                                           "frame" ],
+    [ 'button[aria-label="Download track"]',                            "frame" ],
+    [ 'meta[property="al:ios:url"]',                                    "meta"  ], // track ID source for the API call
+    [ 'meta[property="og:title"]',                                      "meta"  ]
+];
+
+function logTrackPageSnapshot( label ) {
+    logFunc( "Track page DOM snapshot: " + label );
+    logVar( "document.readyState", document.readyState );
+    logVar( "urlPath(2)", urlPath(2) );
+
+    $.each( trackPageDiagnosticSelectors, function( i, entry ) {
+        var selector = entry[0],
+            docTarget = ( entry[1] === "meta" ) ? metaDoc : document,
+            matches = $( selector, docTarget ),
+            visibleCount = matches.filter(':visible').length;
+
+        log( "  [" + matches.length + " found, " + visibleCount + " visible] " + selector );
+    });
+}
+
+// Only meaningful on an actual track page - urlPath(2) already accounts for the webi
+// frame's urlPath() override (reads the address bar) done further up this file.
+if( urlPath(2) && urlPath(2) != "sets" ) {
+    logTrackPageSnapshot( "at script start" );
+
+    if( document.readyState !== "complete" ) {
+        window.addEventListener( "load", function() {
+            logTrackPageSnapshot( "on window 'load' event" );
+        });
+    }
+
+    // React/webi content can keep hydrating well after document-end and 'load' - these
+    // fixed, one-shot checkpoints catch that without logging forever (unlike a
+    // MutationObserver/interval, which would flood the console on every re-render).
+    [ 3000, 8000, 15000 ].forEach(function( delay ) {
+        setTimeout(function() {
+            logTrackPageSnapshot( delay + "ms after script start" );
+        }, delay );
+    });
 }
 
 
@@ -1214,3 +1289,15 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
 log( "script.user.js IIFE finished - all handlers registered." );
 
 })();
+
+/*
+ * Changelog
+ *
+ * 2026.08.07.7
+ * Added "Track page diagnostics" (logTrackPageSnapshot): an unconditional DOM snapshot
+ * of the key track-page selectors (new + old layout), logged at script start, on
+ * window 'load', and 3s/8s/15s afterwards. Every existing track-page log line is gated
+ * behind a waitForKeyElements match, so a report of "userscript loaded, no elements at
+ * all on the new layout" produced zero diagnosable signal. This closes that gap without
+ * changing any behaviour.
+ */
