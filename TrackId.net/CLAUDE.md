@@ -1,3 +1,3 @@
 # CLAUDE.md
 
-Script name aias in prompts: `TID`
+Script name alias in prompts: `TID`

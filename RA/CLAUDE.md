@@ -1,3 +1,3 @@
 # CLAUDE.md
 
-Script name aias in prompts: `Resident Advisor`
+Script name aöias in prompts: `Resident Advisor`
