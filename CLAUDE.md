@@ -47,6 +47,7 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Don't use broad `@match` patterns that could break other sites
 - Don't add remote `@require`/`@resource` from untrusted or unpinned sources
 - Don't commit personal API keys or tokens into script files
+- When solving problems on a certain userscript: When you change non-functional things like logging in shared scripts like global.js: Avoid version bumps for other userscripts (it has no effect on them when they still load the old global.js version from cache).
 
 ## Docs
 @docs/**

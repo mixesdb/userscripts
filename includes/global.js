@@ -505,12 +505,19 @@ function array_unique( arrayWithDuplicates ) {
  * and embed the CSS text in a scripttag
  */
 function loadRawCss( urlVar ) {
+    logFunc( "loadRawCss" );
+    logVar( "urlVar", urlVar );
+
     $.ajax({
         url: urlVar,
         dataType: "text",
         success: function(fileText) {
             // cssText will be a string containing the text of the file
+            log( "loadRawCss: loaded ok (" + fileText.length + " chars): " + urlVar );
             $('head').append( '<style>'+fileText+'</style>' );
+        },
+        error: function( jqXHR, textStatus, errorThrown ) {
+            log( "loadRawCss: FAILED to load CSS (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + "): " + urlVar );
         }
     });
 }

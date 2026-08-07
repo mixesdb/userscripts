@@ -16,15 +16,17 @@ function getScAccessTokenFromApi(handleData) {
         url: "https://www.mixesdb.com/tools/api/api.php",
         data: { query: "getScAccessToken" }
     })
-    .fail(function() {
-        console.log( "Cannot access MixesDB API or error!" );
+    .fail(function( jqXHR, textStatus, errorThrown ) {
+        log( "getScAccessTokenFromApi: FAILED to reach MixesDB API (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")" );
     })
     .done(function(data) {
-        log( "API called. data: " + data );
+        log( "getScAccessTokenFromApi: API responded. data: " + data );
         var dataParsed = jQuery.parseJSON( data );
-        log( "data parsed: " + data.access_token );
+        log( "getScAccessTokenFromApi: data parsed, access_token: " + ( dataParsed ? dataParsed.access_token : "null" ) );
         if( dataParsed !== null ) {
             handleData( dataParsed.access_token );
+        } else {
+            log( "getScAccessTokenFromApi: dataParsed is null - handleData() not called, caller will hang waiting for scAccessToken." );
         }
     });
 }

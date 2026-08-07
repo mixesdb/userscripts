@@ -375,12 +375,21 @@ function wireUI(root) {
 }
 
 function mountUI() {
+    logFunc( "mountUI" );
+
     // ONLY attach via waitForKeyElements
     /* global waitForKeyElements */
     waitForKeyElements('#mdb-streamActions', ($c) => {
         const node = $c instanceof Element ? $c : $c[0];
-        if (!node) return;
-        if (node.querySelector('#' + UI_ID)) return; // already mounted
+        if (!node) {
+            log( "mountUI: #mdb-streamActions callback fired but node is empty - bailing." );
+            return;
+        }
+        if (node.querySelector('#' + UI_ID)) {
+            log( "mountUI: filter UI already mounted - skipping." );
+            return; // already mounted
+        }
+        log( "mountUI: mounting filter UI into #mdb-streamActions." );
         const el = buildUI();
         node.appendChild(el);
         refreshVisible();
@@ -442,7 +451,11 @@ function getFavoritesCount(card) {
 }
 
 // ---------- Network hooks (sniff client_id + harvest JSON durations) ----------
+let installNetworkHooksCallCount = 0;
 function installNetworkHooks() {
+    installNetworkHooksCallCount++;
+    log( "installNetworkHooks: patching fetch/XHR (call #" + installNetworkHooksCallCount + ")" );
+
     const of = window.fetch;
     window.fetch = async function(input, init) {
         try {
