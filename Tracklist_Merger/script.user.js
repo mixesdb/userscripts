@@ -28,7 +28,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 5,
+var cacheVersion = 6,
     scriptName = "Tracklist_Merger";
 window.scriptName = scriptName; // in case other includes rely on this global
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );

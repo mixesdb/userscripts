@@ -39,7 +39,7 @@ https://de.ra.co/events/2232716
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 23,
+var cacheVersion = 24,
     scriptName = "RA";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

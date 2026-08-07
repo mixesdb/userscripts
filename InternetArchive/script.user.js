@@ -29,7 +29,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 7,
+var cacheVersion = 8,
     scriptName = "InternetArchive";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

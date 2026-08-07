@@ -27,7 +27,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 2,
+var cacheVersion = 3,
     scriptName = "Tracklist_Cue_Switcher";
 window.scriptName = scriptName; // in case other includes rely on this global
 

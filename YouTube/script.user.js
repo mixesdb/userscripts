@@ -41,7 +41,7 @@ redirectOnUrlChange( 200 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 13,
+var cacheVersion = 14,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

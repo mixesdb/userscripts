@@ -26,7 +26,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 4,
+var cacheVersion = 5,
     scriptName = "TheLotRadio";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

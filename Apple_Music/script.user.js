@@ -13,7 +13,7 @@
 // @match        https://*music.apple.com/*
 // @match        https://*beta.music.apple.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=music.apple.com
-// @resource     IMPORTED_CSS_1 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.css?v-Apple_Music_2
+// @resource     IMPORTED_CSS_1 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.css?v-Apple_Music_3
 // @resource     IMPORTED_CSS_2 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css
 // @resource     IMPORTED_CSS_3 https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.css?v-Apple_Music_3
 // @grant        GM_getResourceText

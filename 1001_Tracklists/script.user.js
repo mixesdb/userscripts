@@ -29,7 +29,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 17,
+var cacheVersion = 18,
     scriptName = "1001_Tracklists";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

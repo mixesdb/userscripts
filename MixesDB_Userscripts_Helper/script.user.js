@@ -70,7 +70,7 @@ const applePodcasts_addSearchIcons = 1; // default: 1
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 11,
+var cacheVersion = 12,
     scriptName = "MixesDB_Userscripts_Helper";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

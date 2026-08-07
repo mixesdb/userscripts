@@ -51,7 +51,7 @@ https://wearesoundspace.com/in-focus-008-break-3000-dirt-crew-recordings/
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 15,
+var cacheVersion = 16,
     scriptName = "Player_Checker";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

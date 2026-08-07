@@ -18,7 +18,7 @@
 
 (function() {
 
-var cacheVersion = 1,
+var cacheVersion = 2,
     scriptName = "radioeins";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

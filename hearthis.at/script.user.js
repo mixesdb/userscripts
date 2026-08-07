@@ -27,7 +27,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 6,
+var cacheVersion = 7,
     scriptName = "hearthis.at";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

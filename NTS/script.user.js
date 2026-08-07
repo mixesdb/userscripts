@@ -27,7 +27,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 2,
+var cacheVersion = 3,
     scriptName = "NTS";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

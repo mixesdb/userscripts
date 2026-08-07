@@ -27,7 +27,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 2;
+var cacheVersion = 3;
 var scriptName = "Discogs";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 var ta = '<div id="tlEditor"><textarea id="mixesdb-fileDetails" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
