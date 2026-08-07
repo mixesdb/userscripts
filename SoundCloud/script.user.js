@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.4
+// @version      2026.08.07.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_38
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_56
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
@@ -979,14 +979,14 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
             });
         }
     } else {
-        // RUN_sc_button_group only ever flips true->false once per page load. If SoundCloud's
-        // own React re-render wipes #mdb-sc-trackExtras (see the Track header handler below,
-        // which DOES recreate the empty wrapper div) this branch is why the buttons/dates/API
-        // toggle never come back: this guard has no idea the wrapper was rebuilt from scratch.
+        // RUN_sc_button_group flips true->false once per successful build, but the Track header
+        // handler below resets it back to true whenever it has to recreate #mdb-sc-trackExtras
+        // from scratch (SoundCloud's own React re-render wipes the old node). So this branch is
+        // expected/harmless UNLESS it fires right after a recreation - that would mean the reset
+        // didn't happen and the buttons/dates/API toggle are stuck missing again.
         log( "sc-button-group/#mdb-sc-trackExtras matched again but RUN_sc_button_group is false - " +
-             "buttons/dates/API toggle will NOT be (re)built. If this fires after the wrapper was " +
-             "just recreated, that is the bug: SoundCloud wiped the DOM and this once-only guard " +
-             "is blocking the rebuild." );
+             "buttons/dates/API toggle will NOT be (re)built this time (expected: already built for " +
+             "the current wrapper instance)." );
     }
 });
 
@@ -1045,9 +1045,8 @@ function watchTrackExtrasForRemoval( node ) {
     trackExtrasRemovalObserver = new MutationObserver(function() {
         if( !document.contains(node) ) {
             log( "#mdb-sc-trackExtras was REMOVED from the DOM after creation (most likely SoundCloud's own " +
-                 "React re-render wiping it, not our code - we never remove it ourselves). Watching whether " +
-                 "the Track header handler recreates it, and whether RUN_sc_button_group/toolboxIteration " +
-                 "then block the content from coming back." );
+                 "React re-render wiping it, not our code - we never remove it ourselves). The Track header " +
+                 "handler recreates it and resets RUN_sc_button_group so the content gets rebuilt too." );
             trackExtrasRemovalObserver.disconnect();
             trackExtrasRemovalObserver = null;
         }
@@ -1081,7 +1080,14 @@ waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
 
         if( !trackExtrasExists ) {
             if( trackExtrasEverCreated ) {
-                log( "#mdb-sc-trackExtras missing AGAIN - it existed before and was removed. RECREATING the wrapper now (empty shell only - see RUN_sc_button_group/toolboxIteration logs for whether its content comes back)." );
+                log( "#mdb-sc-trackExtras missing AGAIN - it existed before and was removed. RECREATING the wrapper now, and resetting RUN_sc_button_group so its content gets rebuilt too (see below)." );
+
+                // The wrapper being recreated means SoundCloud's React re-render wiped the old
+                // DOM node entirely - the new #mdb-sc-trackExtras is empty, so the one-shot
+                // RUN_sc_button_group guard (further up this file) must be allowed to fire once
+                // more for it, otherwise the buttons/dates/API toggle never come back (this was
+                // the actual bug: the guard used to stay false forever after the first build).
+                RUN_sc_button_group = true;
             } else {
                 log( "#mdb-sc-trackExtras missing - creating buttons/toolkit wrapper now (first time)." );
             }
