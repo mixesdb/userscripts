@@ -134,9 +134,9 @@ a.sc_button-mdb:active {
 
 /* Fix artwork info elemets being treated as block elements */
 #mdb-artwork-input-wrapper,
-#mdb-artwork-input-wrapper *,
+#mdb-artwork-input-wrapper .mdb-copy-text-button,
 #mdb-artwork-info,
-#mdb-artwork-info * {
+#mdb-artwork-info .mdb-copy-text-button {
   width: auto !important;
 }
 
@@ -171,6 +171,7 @@ a.sc_button-mdb:active {
     height: 20px;
     line-height: 1;
     padding: 0 6px;
+    margin-right: 4px;
 }
 
 .listenInfo {
