@@ -132,14 +132,6 @@ a.sc_button-mdb:active {
     }
 }
 
-/* Fix artwork info elemets being treated as block elements */
-#mdb-artwork-input-wrapper,
-#mdb-artwork-input-wrapper .mdb-copy-text-button,
-#mdb-artwork-info,
-#mdb-artwork-info .mdb-copy-text-button {
-  width: auto !important;
-}
-
 #mdb-artwork-input {
     overflow: hidden;
     width: calc( 100% - 113px - 3px - 3px - 34px ); /* 34px reserved for the copy button below */
