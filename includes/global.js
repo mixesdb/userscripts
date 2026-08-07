@@ -184,6 +184,16 @@ function createArtworkInfoWrapper( artworkUrl, options ) {
 
     wrapper.append( input, info );
 
+    // small copy button right behind the URL input, in front of the width/type info
+    appendMdbCopyTextButton( input, {
+        ariaLabel: "Copy the artwork URL",
+        buttonTitle: "Copy the artwork URL",
+        copiedMessage: function() {
+            return "Artwork URL copied!";
+        },
+        processedClass: "mdb-artwork-input-copy-processed"
+    });
+
     loadArtworkInfo( artworkUrl, function( artworkInfo, resolvedUrl ) {
         if( artworkInfo ) {
             if( resolvedUrl !== artworkUrl ) {
@@ -845,6 +855,12 @@ function showMdbCopyTextFeedback( button, message ) {
     }, 2200));
 }
 
+// getMdbCopySourceText
+// <input>/<textarea> hold their text in .val(), everything else (links, spans, …) in .text().
+function getMdbCopySourceText( sourceNode ) {
+    return $.trim( sourceNode.is( "input, textarea" ) ? sourceNode.val() : sourceNode.text() );
+}
+
 // appendMdbCopyTextButton
 function appendMdbCopyTextButton( source, options ) {
     var settings = $.extend({
@@ -863,7 +879,7 @@ function appendMdbCopyTextButton( source, options ) {
 
     if( !sourceNode.length || sourceNode.hasClass( settings.processedClass ) ) return;
 
-    var sourceText = $.trim( sourceNode.text() );
+    var sourceText = getMdbCopySourceText( sourceNode );
     if( !sourceText ) return;
 
     sourceNode.addClass( settings.processedClass + " mdb-copy-text-source" );
@@ -891,7 +907,7 @@ function appendMdbCopyTextButton( source, options ) {
         event.preventDefault();
         event.stopPropagation();
 
-        var currentText = $.trim( sourceNode.text() );
+        var currentText = getMdbCopySourceText( sourceNode );
 
         if( !currentText ) {
             showMdbCopyTextFeedback( button, settings.emptyMessage );

@@ -670,6 +670,18 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         }
 
         $("#mdb-toolkit > ul").append( toolkitOutput_li );
+
+        // small copy button behind the Embed URL input
+        $("#mdb-toolkit > ul > li.mdb-toolkit-embedUrl.filled input").each(function() {
+            appendMdbCopyTextButton( $(this), {
+                ariaLabel: "Copy the embed URL",
+                buttonTitle: "Copy the embed URL",
+                copiedMessage: function() {
+                    return "Embed URL copied!";
+                },
+                processedClass: "mdb-toolkit-embedUrl-copy-processed"
+            });
+        });
     }
 
     /*
