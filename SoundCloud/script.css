@@ -302,10 +302,16 @@ a.sc_button-mdb:active {
 /* Artwork info bar is its own block here, not an overlay on the artwork:
    right of the title on wide windows, above it once the head row wraps */
 #mdb-sc-trackExtras .mdb-artwork-input-wrapper-trackHeader {
-    display: block;
-    flex: 0 1 340px; /* width of the artwork column in the Track header box */
-    max-width: 100%;
-    margin: 0 18px 0 0;
+  display: flex;
+  align-items: center;
+  width: 336px;
+  margin-right: 24px;
+}
+
+#mdb-sc-trackExtras .mdb-artwork-input-wrapper-trackHeader input {
+  flex: 1 1 auto;
+  min-width: 0; /* without this the input won't shrink below its content/intrinsic size and will overflow the 336px box */
+  width: auto;
 }
 
 .userStream h3 {
