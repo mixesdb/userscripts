@@ -103,6 +103,10 @@ a.sc_button-mdb:active {
     line-height: 1.4em;
 }
 
+.mdb-copy-text-source:not(input):not(textarea) {
+    min-width: 200px !important;
+}
+
 #mdb-artwork-input,
 #mdb-artwork-info {
     height: 20px;

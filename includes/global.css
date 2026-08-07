@@ -189,7 +189,6 @@ button.mdb-element {
 .mdb-copy-text-source:not(input):not(textarea) {
     display: inline !important;
     width: auto !important;
-    min-width: 200px !important;
 }
 
 .mdb-copy-text-control {
