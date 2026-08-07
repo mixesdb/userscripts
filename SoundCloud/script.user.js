@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.14
+// @version      2026.08.07.15
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -304,7 +304,7 @@ if( isSetsTab ) {
 // is the webi iframe's document on new-layout track pages; "meta" = metaDoc, since e.g.
 // al:ios:url only ever exists in the top document even inside the webi frame)
 var trackPageDiagnosticSelectors = [
-    [ 'section[aria-label="Track header"]',                             "frame" ], // new layout container (Aug 2026 redesign)
+    [ 'section[aria-label="Track header" i], section[aria-label="Track-Header" i]', "frame" ], // new layout container (Aug 2026 redesign) - SoundCloud serves "Track header" OR "Track-Header" depending on account/rollout bucket, confirmed via a live cross-check against a reporter's session where only the hyphenated form was present
     [ '#mdb-sc-trackExtras',                                            "frame" ], // our new-layout wrapper, if already built
     [ '.l-listen-hero',                                                 "frame" ], // old layout header trigger
     [ '.l-listen__mainContent .listenDetails__partialInfo',             "frame" ], // old layout toolkit selector A
@@ -1211,7 +1211,14 @@ function watchTrackExtrasForRemoval( node ) {
 // observable state (visible vs not, #mdb-sc-trackExtras present vs not) actually changes.
 var trackHeaderLastLoggedState = null;
 
-waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
+// SoundCloud serves this section with aria-label either "Track header" (space) or
+// "Track-Header" (hyphen, capital H) depending on account/rollout bucket - confirmed by
+// having a reporter's browser reach directly into its own webi iframe and report back
+// the literal attribute value, after an exact-string match against "Track header" alone
+// left his session completely silent (no elements, no error) while ours matched fine.
+// The case-insensitive "i" flag additionally guards against further capitalization
+// variants of either form.
+waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Track-Header" i]', function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
         // in this codebase - check it as a separate runtime condition instead (proven pattern).
@@ -1367,6 +1374,17 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.07.15
+ * ROOT CAUSE FOUND for "userscript loads fine, no elements on the new layout" reports:
+ * the Track header selector required an exact match against the literal string
+ * "Track header", but a reporter's own webi iframe cross-check (added in .14) showed
+ * SoundCloud serving "Track-Header" (hyphen, capital H) there instead - a different
+ * literal string depending on account/rollout bucket, not a locale or browser issue as
+ * earlier suspected. Since #mdb-sc-trackExtras and the entire toolkit are gated behind
+ * this one selector via waitForKeyElements, an exact-string mismatch meant total silence:
+ * no error, no "not found" log, nothing. Both the diagnostic selector and the real
+ * handler now match "Track header" OR "Track-Header", case-insensitively.
  *
  * 2026.08.07.14
  * Added logWebiIframeCrossCheck() and logAuthSignals(), both run from the top frame
