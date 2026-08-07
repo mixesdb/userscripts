@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.13
+// @version      2026.08.07.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -340,14 +340,83 @@ function logTrackPageSnapshot( label ) {
     });
 }
 
+// Reaches directly into the webi iframe's own contentDocument from the TOP frame, i.e.
+// it bakes in the manual "run this snippet in DevTools" check we kept having to ask
+// testers for by hand while chasing a report where the webi frame's OWN script instance
+// reported 0 matches for everything. Only the top frame can do this (it owns the iframe
+// element); running it there means every future log already contains the answer instead
+// of needing a live back-and-forth with whoever can reproduce the bug.
+// If this ever disagrees with the webi frame's own self-reported snapshot above, that
+// points to a bug/race in OUR diagnostic rather than in SoundCloud's markup - currently
+// indistinguishable without this cross-check.
+function logWebiIframeCrossCheck( label ) {
+    if( !isTopFrame ) return; // only the top frame can reach the iframe element itself
+
+    logFunc( "Webi iframe cross-check (from top frame): " + label );
+
+    var iframe = document.getElementById( "__WEBI_IFRAME_PRELOADED__" ) ||
+                 Array.prototype.filter.call( document.querySelectorAll( "iframe" ), function( f ) {
+                     try {
+                         return /^\/n\//.test( new URL( f.src, location.href ).pathname );
+                     } catch( e ) {
+                         return false;
+                     }
+                 })[0];
+
+    if( !iframe ) {
+        log( "No webi iframe (#__WEBI_IFRAME_PRELOADED__ or iframe[src^=\"/n/\"]) found in the top document." );
+        return;
+    }
+
+    logVar( "iframe.src", iframe.src );
+
+    var doc;
+    try {
+        doc = iframe.contentDocument;
+    } catch( e ) {
+        log( "Webi iframe found but reading contentDocument threw (cross-origin?): " + e );
+        return;
+    }
+
+    if( !doc ) {
+        log( "Webi iframe found but contentDocument is null (not yet accessible)." );
+        return;
+    }
+
+    var labels = $( "section[aria-label]", doc ).map(function() { return $(this).attr("aria-label"); }).get();
+    logVar( "section[aria-label] values seen directly inside the webi iframe", JSON.stringify( labels ) );
+    logVar( "#mdb-sc-trackExtras present inside the webi iframe (cross-check)", $("#mdb-sc-trackExtras", doc).length !== 0 );
+}
+
+// Logged-in vs logged-out has repeatedly turned out to matter for reproducing layout
+// bugs, but asking someone what account state they were in after the fact is unreliable.
+// These are matched by href/src PATTERN, not by translated button text (the same trap
+// that made the original "Track header" aria-label investigation take several rounds) -
+// so they hold regardless of the page's locale. Logged as raw signals rather than a
+// single yes/no verdict since we do not have a confirmed ground truth for every account
+// state yet; interpret alongside everything else rather than trusting this in isolation.
+function logAuthSignals( label ) {
+    if( !isTopFrame ) return; // metaDoc central here too, no need to run from both frames
+
+    logFunc( "Auth signals: " + label );
+    logVar( "a[href*=\"/signin\"] count (seen when logged out)", $('a[href*="/signin"]', metaDoc).length );
+    logVar( "iframe[src*=\"web-auth\"] count (prefetched sign-in modal, seen when logged out)", $('iframe[src*="web-auth"]', metaDoc).length );
+}
+
+function runTrackPageDiagnostics( label ) {
+    logTrackPageSnapshot( label );
+    logWebiIframeCrossCheck( label );
+    logAuthSignals( label );
+}
+
 // Only meaningful on an actual track page - urlPath(2) already accounts for the webi
 // frame's urlPath() override (reads the address bar) done further up this file.
 if( urlPath(2) && urlPath(2) != "sets" ) {
-    logTrackPageSnapshot( "at script start" );
+    runTrackPageDiagnostics( "at script start" );
 
     if( document.readyState !== "complete" ) {
         window.addEventListener( "load", function() {
-            logTrackPageSnapshot( "on window 'load' event" );
+            runTrackPageDiagnostics( "on window 'load' event" );
         });
     }
 
@@ -356,7 +425,7 @@ if( urlPath(2) && urlPath(2) != "sets" ) {
     // MutationObserver/interval, which would flood the console on every re-render).
     [ 3000, 8000, 15000 ].forEach(function( delay ) {
         setTimeout(function() {
-            logTrackPageSnapshot( delay + "ms after script start" );
+            runTrackPageDiagnostics( delay + "ms after script start" );
         }, delay );
     });
 }
@@ -1298,6 +1367,18 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.07.14
+ * Added logWebiIframeCrossCheck() and logAuthSignals(), both run from the top frame
+ * alongside the existing DOM snapshot at every checkpoint. logWebiIframeCrossCheck
+ * bakes in the manual "run this snippet in DevTools" check (find the webi iframe by
+ * #__WEBI_IFRAME_PRELOADED__ or iframe[src^="/n/"], read its contentDocument directly)
+ * that we kept having to ask a live tester for by hand while chasing a report where the
+ * webi frame's own script instance reported 0 matches for everything - now every future
+ * log already contains that answer. logAuthSignals logs locale-independent (href/src
+ * pattern, not translated button text) signals for logged-in vs logged-out, since that
+ * turned out to matter for reproducing this bug and is unreliable to reconstruct after
+ * the fact from memory alone.
  *
  * 2026.08.07.8
  * logTrackPageSnapshot now tags each snapshot with "(webi frame)"/"(top frame)".
