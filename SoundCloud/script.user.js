@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.06.21
+// @version      2026.08.07.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,8 +9,8 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_35
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_53
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_36
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
@@ -20,6 +20,16 @@
 // ==/UserScript==
 
 (function() {
+
+log( "script.user.js IIFE started. location.href: " + location.href );
+
+// Safety net: some users report the script doing nothing with no red console error at all
+// (e.g. Win11+Chrome, "Firefox mobile app PC version" - see CLAUDE.md/support chat history).
+// A require that fails to fetch, or an exception swallowed by a browser/extension, would
+// otherwise leave zero trace. This guarantees at least one log line naming the exact file/line.
+window.addEventListener( "error", function( e ) {
+    log( "UNCAUGHT ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno + ":" + e.colno );
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -40,19 +50,42 @@
 // The frame is only ours if we can actually reach the embedding page - a soundcloud.com
 // page embedded somewhere else entirely is none of our business either.
 function canAccessTopFrame() {
+    logFunc( "canAccessTopFrame" );
+
     try {
-        return typeof window.top.location.pathname === "string";
+        var result = typeof window.top.location.pathname === "string";
+        logVar( "canAccessTopFrame result", result );
+        return result;
     } catch( e ) {
+        logVar( "canAccessTopFrame result", "false (threw: " + e + ")" );
         return false;
     }
 }
 
-const isTopFrame = ( window.self === window.top ),
-      isWebiFrame = ( !isTopFrame && /^\/n\//.test( location.pathname ) && canAccessTopFrame() );
+logFunc( "Frame handling" );
+logVar( "location.href", location.href );
+logVar( "location.pathname", location.pathname );
+logVar( "window.self === window.top", window.self === window.top );
+
+const isTopFrame = ( window.self === window.top );
+let isWebiFrame = false;
+
+if( !isTopFrame ) {
+    var pathLooksLikeWebiFrame = /^\/n\//.test( location.pathname );
+    logVar( "pathLooksLikeWebiFrame (/^\\/n\\//.test(location.pathname))", pathLooksLikeWebiFrame );
+
+    isWebiFrame = pathLooksLikeWebiFrame && canAccessTopFrame();
+}
+
+logVar( "isTopFrame", isTopFrame );
+logVar( "isWebiFrame", isWebiFrame );
 
 if( !isTopFrame && !isWebiFrame ) {
+    log( "STOPPING: this frame is neither the top frame nor a recognized webi frame - nothing to do here. (" + location.href + ")" );
     return; // not a frame we have anything to do in
 }
+
+log( "Frame accepted, continuing in " + ( isTopFrame ? "top frame" : "webi frame" ) + "." );
 
 // Inside the webi frame it is the address bar - not location.href - that holds the URL
 // MixesDB works with: the frame's own path carries the "/n/" prefix plus SoundCloud's
@@ -63,15 +96,20 @@ const pageLocation = isWebiFrame ? window.top.location : window.location,
       pagePathname = pageLocation.pathname,
       pageHref = pageLocation.protocol + "//" + pageLocation.host + pagePathname + pageLocation.search;
 
+logVar( "pageLocation source", isWebiFrame ? "window.top.location (address bar)" : "window.location" );
+logVar( "pageHref", pageHref );
+
 if( isWebiFrame ) {
     urlPath = function(n) {
         return pageHref.split('/')[n+2];
     };
+    log( "urlPath() overridden to read from the address bar (webi frame mode)." );
 }
 
 // The OpenGraph/app-link meta tags (needed for the track ID) only exist in the top
 // document - the webi frame ships a near-empty <head>.
 const metaDoc = isWebiFrame ? window.top.document : document;
+logVar( "metaDoc source", isWebiFrame ? "window.top.document" : "document" );
 
 /*
  * getScPlayerUrl
@@ -92,6 +130,7 @@ function getScPlayerUrl() {
  * well would only fight with the top frame's reload.
  */
 if( isTopFrame ) {
+    log( "Setting up redirectOnUrlChange (top frame only)." );
     redirectOnUrlChange( 60 );
 }
 
@@ -106,6 +145,8 @@ if( isTopFrame ) {
 var cacheVersion = 58,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
+logVar( "scriptName", scriptName );
+logVar( "cacheVersion", cacheVersion );
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
       hideXedItemsKey = 'mdb-soundcloud-hide-xed',
@@ -187,8 +228,15 @@ const hideIfXed = (soundItem) => {
     }
 };
 
-loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+// Note: loadRawCss() (in global.js) does not log success/error itself - if styling ever looks
+// broken, check the Network tab for these two URLs, since a failed fetch here fails silently.
+logFunc( "Loading CSS" );
+var globalCssUrl = githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion,
+    scriptCssUrl = githubPath_raw + scriptName + "/script.css?v-" + cacheVersion;
+logVar( "globalCssUrl", globalCssUrl );
+logVar( "scriptCssUrl", scriptCssUrl );
+loadRawCss( globalCssUrl );
+loadRawCss( scriptCssUrl );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -239,6 +287,8 @@ if( isSetsTab ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+log( "Registering handlers: Artwork" );
+
 waitForKeyElements(".listenArtworkWrapper", function( jNode ) {
     if( urlPath(2) && urlPath(2) != "sets" ) {
         //log( location.href );
@@ -283,6 +333,8 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+log( "Registering handlers: Favorite button" );
+
 // soundList__item
 waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
     // is favorited
@@ -307,6 +359,8 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
  * Links in playlist sets
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+log( "Registering handlers: Links in playlist sets" );
 
 // player links and link buttons
 // https://soundcloud.com/resident-advisor/sets/ra-podcast
@@ -363,6 +417,8 @@ waitForKeyElements(".listenDetails__trackList li button.sc-button-copylink", fun
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+log( "Registering handlers: Favorited buttons" );
+
 // if favorited before, show hidden soundActions
 waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", function( jNode ) {
     jNode.css('margin-left','.5rem').show();
@@ -374,6 +430,8 @@ waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", functi
  * [X] remove button
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+log( "Registering handlers: [X] remove button" );
 
 // if favorited before, show hidden soundActions
 waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
@@ -419,6 +477,8 @@ waitForKeyElements('.soundList__item:not(.mdb-xed-checked)', function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+log( "Registering handlers: Hide options" );
+
 // lazy loading lists (streams and feed)
 waitForKeyElements(".stream__list .lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
@@ -462,11 +522,14 @@ function lazyLoadingList(jNode) {
 
     // Filter row
     if( !isSetsTab ) {
+        log( "lazyLoadingList: setting up filter row (installNetworkHooks, mountUI, attachIO, observeDOM, refreshVisible)." );
         installNetworkHooks();
         mountUI();
         attachIO();
         observeDOM();
         refreshVisible();
+    } else {
+        log( "lazyLoadingList: isSetsTab - skipping filter row setup." );
     }
 
     // reload
@@ -570,6 +633,8 @@ waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
  * like soundAactions buttons and upload date
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+log( "Registering handlers: Player page / SC API features (soundActions, download button, sc-button-group, trackHeader, description expand)" );
 
 /*
  * fixDefaultSoundActions
@@ -692,6 +757,8 @@ var RUN_sc_button_group = true;
 // "alreadyFound" flag in one jQuery data key per element, so several handlers watching the same
 // element starve each other - whichever runs first flags it and the rest never see it.
 waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-content .soundActions .sc-button-group, #mdb-sc-trackExtras', function( jNode ) {
+    log( "sc-button-group/#mdb-sc-trackExtras matched. RUN_sc_button_group: " + RUN_sc_button_group + ", matched selector on: " + ( jNode.attr("id") || jNode.attr("class") ) );
+
     if( RUN_sc_button_group ) {
         var isNewSoundCloudLayout = jNode.is('#mdb-sc-trackExtras');
 
@@ -928,6 +995,7 @@ waitForKeyElements(".soundActions a.mdb-tidSubmit.sc_button-mdb:not(.moved)", fu
 // Add header from API call
 // Add here instead of after API call for less flashing
 waitForKeyElements(".l-listen-hero", function( jNode ) {
+    log( "Old layout: .l-listen-hero found - adding #mdb-trackHeader before it." );
     var trackHeader = '<div id="mdb-trackHeader"></div>';
     jNode.before( trackHeader );
 });
@@ -948,24 +1016,38 @@ waitForKeyElements(".l-listen-hero", function( jNode ) {
 // leave the toolkit gone for good the first time that happens, so this keeps re-checking
 // forever (return true) and recreates the wrapper whenever it goes missing.
 waitForKeyElements('section[aria-label="Track header"]', function( jNode ) {
+    log( "Track header handler fired. urlPath(2): " + urlPath(2) + ", #mdb-sc-trackExtras exists: " + ( $("#mdb-sc-trackExtras").length !== 0 ) );
+
     if( urlPath(2) && urlPath(2) != "sets" ) {
         // filtering by :visible in the selector itself is untested with an attribute selector
         // in this codebase - check it as a separate runtime condition instead (proven pattern).
         if( !jNode.is(':visible') ) {
+            log( "Track header section matched but not :visible yet - keep watching (likely the hidden responsive duplicate)." );
             return true;
         }
 
+        log( "Track header section is visible." );
+
         if( $("#mdb-sc-trackExtras").length === 0 ) {
+            log( "#mdb-sc-trackExtras missing - creating buttons/toolkit wrapper now." );
+
             // #mdb-sc-trackHead is the row that holds the title (left) and the artwork info bar
             // (right, below the artwork of the Track header box) - see script.css.
             // #mdb-sc-trackButtons keeps the buttons above #mdb-toggle-target - appending them to
             // the wrapper itself would push them below whatever an expanded toggle prints out
             jNode.after( '<div id="mdb-sc-trackExtras"><div id="mdb-sc-trackHead"><div id="mdb-trackHeader"></div></div><div id="mdb-sc-trackButtons"></div><div id="mdb-toggle-target"></div></div>' );
 
+            logVar( "#mdb-sc-trackExtras created, now in DOM", $("#mdb-sc-trackExtras").length !== 0 );
+
             // toolkit goes full-width at the very end of the wrapper (below buttons and toggle
             // target), instead of being squeezed into the old sidebar column
+            log( "Calling getToolkit() for #mdb-sc-trackExtras." );
             getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
+        } else {
+            log( "#mdb-sc-trackExtras already present - leaving it alone." );
         }
+    } else {
+        log( "Not a track detail page (urlPath(2): '" + urlPath(2) + "') - skipping trackExtras wrapper." );
     }
 
     // must return true (not just bail) - waitForKeyElements marks a node "alreadyFound" and
@@ -1045,17 +1127,27 @@ if( isWebiFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+log( "Registering handlers: Toolkit (old layout)" );
+
 // The new layout fires its own getToolkit() from the Track header handler above - see the note
 // there on why it must not add a second watcher on that section.
 waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-processed-toolkit), .listen-about .listenDetails:not(.mdb-processed-toolkit)', function( jNode ) {
+    log( "Old layout toolkit handler fired (.listenDetails__partialInfo / .listenDetails). urlPath(2): " + urlPath(2) );
+
     if( urlPath(2) && urlPath(2) != "sets" ) {
         jNode.addClass("mdb-processed-toolkit");
 
         //var titleText = $('meta[property="og:title"]').text();
         var titleText = $("h1.soundTitle__title").text();
+        logVar( "titleText", titleText );
 
+        log( "Calling getToolkit() for old layout .listenDetails." );
         getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
+    } else {
+        log( "Not a track detail page - skipping old layout toolkit." );
     }
 });
+
+log( "script.user.js IIFE finished - all handlers registered." );
 
 })();

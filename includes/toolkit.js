@@ -4,6 +4,8 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+log( "includes/toolkit.js: started executing" );
+
 // regExp
 //const regExp_numbers = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/; // https://stackoverflow.com/questions/1272696
 
@@ -107,9 +109,13 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
                 url: scUrl_api,
                 success: function( data ) {
                     var playerUrl = data.permalink_url;
+                    log( "getToolkit_fromScUrl_api: resolved playerUrl: " + playerUrl );
                     if( playerUrl != "" ) {
                         getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl, playerOrder );
                     }
+                },
+                error: function( jqXHR, textStatus, errorThrown ) {
+                    log( "getToolkit_fromScUrl_api: FAILED to resolve SC API URL (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + "): " + scUrl_api );
                 }
             });
         });
@@ -697,12 +703,20 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         var apiQueryUrl = apiUrl_searchKeywords_fromUrl( thisUrl_forApi );
         logVar( "apiQueryUrl", apiQueryUrl );
 
+        // async:false (synchronous XHR) is deprecated by browsers and can be silently blocked/
+        // throw without a "red" console error in some environments (seen more on mobile browsers) -
+        // if the toolkit never appears, check whether this log line and the matching
+        // "MixesDB API search FAILED"/success log below ever show up at all.
+        log( "getToolkit_run: calling MixesDB API search (synchronous XHR): " + apiQueryUrl );
+
         $.ajax({
             url: apiQueryUrl,
             type: 'get',
             dataType: 'json',
             async: false,
             success: function(data) {
+                log( "getToolkit_run: MixesDB API search responded." );
+
                 var resultsArr = data["mixesdb_player_search"],
                     resultNum = resultsArr.length,
                     showPlayerUrls = false,
@@ -906,6 +920,9 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                         varLog( "addOutput", addOutput );
                     }
                 }
+            },
+            error: function( jqXHR, textStatus, errorThrown ) {
+                log( "getToolkit_run: MixesDB API search FAILED (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + "): " + apiQueryUrl );
             }
         }).done(function(data) {
             /*
@@ -1208,6 +1225,9 @@ function toolkit_addTidLink( playerUrl, title ) {
                 }
 
                 reorderToolkitItems();
+            },
+            error: function( jqXHR, textStatus, errorThrown ) {
+                log( "toolkit_addTidLink: FAILED to check TrackId.net integration (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + "): " + apiQueryUrl_check );
             }
         }); // END ajax
     }); // END wait "#mdb-toolkit > ul"
