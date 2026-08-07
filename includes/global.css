@@ -184,7 +184,9 @@ button.mdb-element {
     font-size: .9rem;
 }
 
-.mdb-copy-text-source {
+/* forces text-node sources (links, spans, …) to stay inline next to their copy button -
+   inputs/textareas keep their own layout, see the per-context rules further below */
+.mdb-copy-text-source:not(input):not(textarea) {
     display: inline !important;
     width: auto !important;
 }
@@ -452,7 +454,25 @@ textarea.mono {
     margin: -1px 0 -1px;
     padding: 1px 2px;
     line-height: 1em;
-    max-width: calc( 100% - 7em );
+    max-width: calc( 100% - 9em ); /* leaves room for the copy button added below */
+    vertical-align: middle;
+}
+
+.mdb-toolkit-embedUrl .mdb-copy-text-control {
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.mdb-toolkit-embedUrl input,
+.mdb-toolkit-embedUrl .mdb-copy-text-button {
+    height: 20px;
+    box-sizing: border-box;
+}
+
+.mdb-toolkit-embedUrl .mdb-copy-text-button {
+    padding: 0 6px;
+    font-size: 11px;
+    line-height: 1;
 }
 
 /*

@@ -615,21 +615,28 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
     // output wrapper with empty list
     // fill list with later results
     // allow multiple iterations to add list items
+    //
+    // Build the shell whenever it is actually missing from the DOM, not just on the very first
+    // call (toolboxIteration == 1). toolboxIteration is a module-global counter that never
+    // resets, so gating on it alone used to mean the #mdb-toolkit shell was only ever built once
+    // per whole page load - if the wrapper it lived in got wiped later (e.g. SoundCloud's own
+    // React re-render tearing down and recreating #mdb-sc-trackExtras), every later call saw
+    // toolboxIteration != 1 and silently did nothing, leaving the toolkit gone for good. Checking
+    // live DOM presence instead still lets multiple iframes on one page share a single shell
+    // (present -> just append <li> items below) while also recovering when a previous shell was
+    // destroyed (missing -> rebuild it, regardless of iteration count).
+    var toolkitShellMissing = $("#mdb-toolkit").length === 0;
+
     if( addOutput ) {
-        if( toolboxIteration == 1 ) {
+        if( toolkitShellMissing ) {
+            if( toolboxIteration != 1 ) {
+                log( "getToolkit_run: toolboxIteration is " + toolboxIteration + " (not 1) but #mdb-toolkit is NOT in the DOM - (re)creating the toolkit shell now anyway." );
+            }
+
             toolkitOutput += '<fieldset id="mdb-toolkit" class="mdb-toolkit '+domain_cssSafe+'">';
             toolkitOutput += '<legend>Toolkit</legend>';
             toolkitOutput += '<div id="mdb-toolkit_waiter" style="display:none"></div>';
             toolkitOutput += '<ul style="display:none">';
-        } else if( $("#mdb-toolkit").length === 0 ) {
-            // toolboxIteration is a module-global counter that never resets, so the #mdb-toolkit
-            // shell is only ever built on the very first call in this whole page load. If the
-            // wrapper it was appended into gets wiped later (e.g. SoundCloud's own re-render),
-            // this call will silently do nothing below - #mdb-toolkit stays gone for good.
-            log( "getToolkit_run: toolboxIteration is " + toolboxIteration + " (not 1) and #mdb-toolkit is NOT in the DOM - the toolkit shell will NOT be (re)created this call." );
-        }
-
-        if( toolboxIteration == 1 ) {
             toolkitOutput += '</ul>';
             toolkitOutput += '</fieldset>';
 
@@ -670,6 +677,18 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         }
 
         $("#mdb-toolkit > ul").append( toolkitOutput_li );
+
+        // small copy button behind the Embed URL input
+        $("#mdb-toolkit > ul > li.mdb-toolkit-embedUrl.filled input").each(function() {
+            appendMdbCopyTextButton( $(this), {
+                ariaLabel: "Copy the embed URL",
+                buttonTitle: "Copy the embed URL",
+                copiedMessage: function() {
+                    return "Embed URL copied!";
+                },
+                processedClass: "mdb-toolkit-embedUrl-copy-processed"
+            });
+        });
     }
 
     /*

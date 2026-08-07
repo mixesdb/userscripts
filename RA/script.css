@@ -53,6 +53,20 @@ img.mdb-ra-artwork-processed {
     text-align: right;
 }
 
+/* small copy button behind the artwork URL input */
+.mdb-ra-artwork-info .mdb-copy-text-control {
+    flex: 0 0 auto;
+    margin-left: 4px;
+}
+
+.mdb-ra-artwork-info .mdb-copy-text-button {
+    box-sizing: border-box;
+    font-size: 11px;
+    height: 20px;
+    line-height: 1;
+    padding: 0 6px;
+}
+
 .mdb-ra-artwork-size a {
     color: #fff;
     text-decoration: underline;

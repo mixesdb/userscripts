@@ -130,10 +130,10 @@ a.sc_button-mdb:active {
 
 #mdb-artwork-input {
     overflow: hidden;
-    width: calc( 100% - 113px - 3px - 3px );
+    width: calc( 100% - 113px - 3px - 3px - 34px ); /* 34px reserved for the copy button below */
     padding-left: 3px;
     padding-right: 3px;
-    
+
     &::selection {
         background-color: #fc0 !important;
         color: #fff;
@@ -144,6 +144,20 @@ a.sc_button-mdb:active {
 #mdb-artwork-info {
     width: 113px;
     text-align: right;
+}
+
+/* small copy button behind the artwork URL input */
+#mdb-artwork-input-wrapper .mdb-copy-text-control {
+    margin-left: 4px;
+    vertical-align: top;
+}
+
+#mdb-artwork-input-wrapper .mdb-copy-text-button {
+    box-sizing: border-box;
+    font-size: 11px;
+    height: 20px;
+    line-height: 1;
+    padding: 0 6px;
 }
 
 .listenInfo {
