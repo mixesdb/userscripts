@@ -12,7 +12,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_38
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_31
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com

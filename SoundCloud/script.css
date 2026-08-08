@@ -71,6 +71,12 @@
     padding-left: 5px;
 }
 
+/* opens MixesDB's "Add a new mix" form prefilled with the (possibly edited) title */
+#mdb-mixesdbTitle-create {
+    padding-left: 5px;
+    white-space: nowrap;
+}
+
 /* grey, so it reads as a warning label and not as part of the title */
 #mdb-mixesdbTitle-beta {
     padding-left: 5px;
