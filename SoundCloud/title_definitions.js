@@ -21,7 +21,8 @@ log( "/SoundCloud/title_definitions.js loaded" );
  *     YYYY-MM-DD - Artist - Entity
  *
  * Everything read out of a SoundCloud title has to end up inside one of them. A 4th group is
- * always a parsing mistake, never a richer title. Two ways one used to appear:
+ * always a parsing mistake, never a richer title. Every way one has appeared so far, and all
+ * of them are a NUMBER or a NAME that was cut loose from the group it belongs to:
  *
  * - An episode NUMBER given its own group:
  *       "Planet Melis - Techno Germany Podcast 226"
@@ -37,6 +38,19 @@ log( "/SoundCloud/title_definitions.js loaded" );
  *       RIGHT: 2019-03-07 - Slowciety, Asa 808 - Rinse France Show
  *   They belong INTO the artist group - see scExtraArtistConnectors below.
  *
+ * - The entity split in half at the word before its number:
+ *       "SEVEN Mix 084 - Theo Scuera"    (channel "SEVEN")
+ *       WRONG: 2026-07-13 - SEVEN - Mix 084 - Theo Scuera (Promo Mix)
+ *       RIGHT: 2026-07-13 - Theo Scuera - SEVEN Mix 084
+ *   "SEVEN Mix" is the entity, see scShowSuffixWords. Two perfect groups in the wrong order
+ *   is the easy case - do not take them apart, swap them.
+ *
+ * - The number written ONTO the entity, cut off as a stray ".251":
+ *       "Trommel.251 - Arno"    (channel "trommel")
+ *       WRONG: 2026-08-06 - trommel - .251 - Arno (Promo Mix)
+ *       RIGHT: 2026-08-06 - Arno - trommel.251
+ *   The channel name confirms the entity, and the channel's spelling is the one used.
+ *
  * A suggestion that still comes out with more than three groups takes a big confidence hit,
  * because it means part of the SoundCloud title was not understood.
  */
@@ -45,15 +59,15 @@ log( "/SoundCloud/title_definitions.js loaded" );
 /*
  * Group 1: the date
  *
- * Two sources may be used, the SoundCloud title and the upload/release date, and the EARLIER
- * one wins - a mix is recorded before it is uploaded, never after.
+ * Two sources may be used, the SoundCloud title and the upload/release date.
  *
- * - A date written in the title wins over the upload date, because the two legitimately
- *   differ: radio shows get uploaded days later, old sets years later.
- * - Unless it lies AFTER the upload date. Then it is a misread and the upload date is used.
+ * - A date written in the title ALWAYS wins, including when the upload date is the earlier of
+ *   the two. The two legitimately differ - radio shows get uploaded days later, old sets years
+ *   later - and the title is the only one of the two that names the mix's own date.
  * - When the digits in the title read several ways ("07/03/2019" as 7 March or 3 July,
- *   "030426" as DDMMYY/MMDDYY/YYMMDD), the upload date decides: the reading closest to it
- *   wins, and on a tie the earlier one does.
+ *   "030426" as DDMMYY/MMDDYY/YYMMDD), the upload date decides between those readings: the one
+ *   closest to it wins, and on a tie the earlier one does, since a mix is normally recorded
+ *   before it is uploaded.
  * - No date in the title at all -> the upload date, which is a guess and says so in the
  *   confidence reasons.
  *
@@ -138,6 +152,28 @@ var scExtraArtistJoiner = ", ";
 
 
 /*
+ * scShowSuffixWords
+ *
+ * Words that turn a bare channel name into the show name MixesDB uses, when the SoundCloud
+ * title spells it out. The channel name alone is not the entity if the title says otherwise:
+ *
+ *     channel "HATE"  + "HATE Podcast 496 - Fadi Mohem"  ->  entity "HATE Podcast", no. 496
+ *     channel "SEVEN" + "SEVEN Mix 084 - Theo Scuera"    ->  entity "SEVEN Mix", no. 084
+ *
+ * "SEVEN Mix" is what the second one is about: the word in front of the number belongs to the
+ * entity, it is never split off into a group of its own ("SEVEN - Mix 084 - Theo Scuera"),
+ * and what is left over after it is the artist.
+ *
+ * Only used for channels WITHOUT an entry in scUsernameConversions - a mapped name is the
+ * curated one and must not be extended behind the editor's back.
+ */
+var scShowSuffixWords = [
+    "podcast", "radio", "radioshow", "show", "mixshow", "mix", "mixtape", "mixseries",
+    "series", "sessions", "session", "cast", "fm"
+];
+
+
+/*
  * scNormalCaseKeepUpper / scNormalCaseKeepLower
  *
  * MixesDB writes titles in Normal Case, so a bit read out of the title that is SHOUTED in
@@ -146,8 +182,12 @@ var scExtraArtistJoiner = ", ";
  * (the artist there is spelled by the channel name, only "NO SIGNAL" came from the title).
  *
  * Only bits that are cased UNIFORMLY are touched. Anything mixing upper and lower case is a
- * deliberate spelling and stays verbatim: "Nina ØDB", "UηκηΘωN", "Hit the Breaks". Words
- * containing digits are left alone too, since those are IDs, not words: "XLR8R700", "808".
+ * deliberate spelling and stays verbatim: "Nina ØDB", "UηκηΘωN", "Hit the Breaks", and so is
+ * "SEVEN Mix 084". Two kinds of word are left alone even inside a bit that is re-cased:
+ * - words containing digits, which are IDs and not words: "XLR8R700", "808"
+ * - words without a vowel, which cannot be words either, so they are abbreviations and keep
+ *   their caps: "DSS 139" stays "DSS 139", never "Dss 139". That is what covers the acronyms
+ *   not worth listing below one by one.
  *
  * The catch, and why re-casing costs confidence: an artist really spelled in caps ("DJ MARIA.")
  * reads exactly like a shouted one, so it gets re-cased as well. Nothing in a SoundCloud title
