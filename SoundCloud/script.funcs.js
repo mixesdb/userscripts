@@ -168,6 +168,12 @@ var mdbTitle_monthNames = {
     dec: 12, december: 12, dez: 12, dezember: 12
 };
 
+// Characters SoundCloud titles use to separate the parts of a title, as a regex class body.
+// Doubled runs ("//", "||", "\\") are covered by the "+" quantifiers wherever this is used.
+// The comma is deliberately NOT in here: on MixesDB "," joins artists who played after each
+// other ("ANA, Johnny D, DJ Koze"), so it must never split a title into artist and show.
+var mdbTitle_sepInner = "\\-–—|:/\\\\";
+
 // Words that only ever introduce an episode NUMBER, so "Vol.5" must not be mistaken for an
 // episode ID like "RA.971" just because it is also "letters, dot, digits".
 var mdbTitle_episodeWords = [
@@ -439,15 +445,32 @@ function mdbTitle_findEpisode( text ) {
         };
     }
 
-    // a number left at the very front once the show name was cut out of the title,
-    // e.g. "HATE Podcast 496 - Fadi Mohem" -> " 496 - Fadi Mohem"
-    m = /^[\s\-–—|:]*(\d{1,5})(?!\d)\s*[-–—|:]/.exec( text );
+    // "SSP176", "XLR8R700" - digits glued straight onto letters, so the letters belong to the
+    // episode ID the same way "RA." does in "RA.971". Tightly guarded: at least two letters and
+    // two digits, nothing wordy on either side - otherwise "b2b" would read as the ID "b2".
+    var gluedRe = /(^|[^\w])([A-Za-z]{2,8})(\d{2,5})(?![\w])/g;
+    while( ( m = gluedRe.exec( text ) ) !== null ) {
+        if( mdbTitle_episodeWords.indexOf( m[2].toLowerCase() ) === -1 ) {
+            var gluedLead = m[1] ? m[1].length : 0;
+            return {
+                text: m[2] + m[3],
+                kind: "id",
+                index: m.index + gluedLead,
+                length: m[0].length - gluedLead
+            };
+        }
+    }
+
+    // A number left over once the show name was cut out of the title, e.g.
+    // "Sweet Space Podcast 176 // Yazan Sarayrah" -> " 176 // Yazan Sarayrah".
+    // The whole separator run is consumed, doubled ones ("//", "||") included.
+    m = new RegExp( "^[\\s" + mdbTitle_sepInner + "]*(\\d{1,5})(?!\\d)\\s*[" + mdbTitle_sepInner + "]+\\s*" ).exec( text );
     if( m ) {
         return {
             text: String( parseInt( m[1], 10 ) ),
             kind: "number",
             index: 0,
-            length: m[0].length - 1 // keep the trailing separator, cleanup strips it
+            length: m[0].length
         };
     }
 
@@ -693,13 +716,69 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // the channel name was NOT found in the title (if it was, we already have the show).
         if( episode && episode.word && !taken.taken ) {
             var showFromTitle = mdbTitle_cleanArtist( beforeEpisode ),
-                artistAfter = /^\s*[-–—|:,]\s*(.+)$/.exec( afterEpisode );
+                artistAfter = new RegExp( "^\\s*[" + mdbTitle_sepInner + ",]+\\s*(.+)$" ).exec( afterEpisode );
 
             if( showFromTitle && artistAfter && mdbTitle_cleanArtist( artistAfter[1] ) ) {
                 show = ( showFromTitle + " " + episode.word ).replace( /\s+/g, " " );
                 rest = artistAfter[1];
                 showFromEpisodeRule = true;
                 logVar( "buildMixesdbTitle: show taken from the title instead of the channel", show );
+            }
+        }
+
+        // 5c) The title already reads "<part> - <part>" and the channel is nowhere in it, e.g.
+        // "UηκηΘωN - Hit the Breaks" on the channel "SILENCE! Records". The title alone then
+        // carries artist AND entity, so appending the channel would invent a third group
+        // ("- UηκηΘωN - Hit the Breaks - SILENCE! Records"). Which side is which:
+        // the side carrying a number or a series word is the show ("ALFOS 1 - Weatherall"),
+        // and when neither does, the first side is the artist and the second the mix's own
+        // name - which makes it a self-released mix, hence (Promo Mix).
+        //
+        // Conditions are deliberately narrow, since this overrides the channel entirely:
+        // - not a mapped channel and the channel name not found in the title (4b/5b own those)
+        // - EXACTLY one separator run, with whitespace on both sides, so hyphenated words
+        //   ("пo-русски") and multi-part titles are left alone
+        // - no "@" anywhere: that is a venue/event title, where the joiner rules differ
+        if( !isMappedChannel && !taken.taken && !showFromEpisodeRule && !episode &&
+            rest.indexOf( "@" ) === -1 ) {
+
+            var splitRe = new RegExp( "\\s+[" + mdbTitle_sepInner + "]+\\s+", "g" ),
+                splitParts = rest.split( splitRe );
+
+            if( splitParts.length === 2 ) {
+                var leftPart = mdbTitle_cleanArtist( splitParts[0] ),
+                    rightPart = mdbTitle_cleanArtist( splitParts[1] ),
+                    seriesRe = /\d|\b(podcast|radio|radioshow|show|sessions|series|cast|fm|mix|mixtape)\b/i,
+                    leftIsShow = seriesRe.test( leftPart ),
+                    rightIsShow = seriesRe.test( rightPart );
+
+                if( leftPart && rightPart ) {
+                    var splitArtist, splitEntity, splitPromo;
+
+                    if( leftIsShow !== rightIsShow ) {
+                        // exactly one side looks like a series - that one is the show
+                        splitArtist = leftIsShow ? rightPart : leftPart;
+                        splitEntity = leftIsShow ? leftPart : rightPart;
+                        splitPromo = false;
+                    } else {
+                        splitArtist = leftPart;
+                        splitEntity = rightPart;
+                        splitPromo = !/promo\s*mix/i.test( splitEntity );
+                    }
+
+                    logVar( "buildMixesdbTitle: title splits into artist/entity, channel not used", splitArtist + " | " + splitEntity );
+
+                    conf.drop( 10, "artist and mix name were told apart by the title's own separator" );
+                    if( splitPromo ) {
+                        conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
+                    }
+
+                    return {
+                        title: mdbTitle_assemble( date, splitArtist, splitEntity, null, splitPromo ),
+                        confidence: conf.percent(),
+                        reasons: conf.reasons
+                    };
+                }
             }
         }
 
@@ -835,9 +914,23 @@ function mdbTitleInput_syncCreateHref( input, link ) {
     link.attr( "href", mdbTitle_addNewMixUrl + "?title=" + encodeURIComponent( $.trim( input.val() ) ) );
 }
 
+// Help:File_Details#Minimum_duration - MixesDB does not take recordings under 20 minutes, so
+// there is no page to create for a shorter track and no point offering a title for one.
+var mdbTitle_minDurationMs = 20 * 60 * 1000;
+
 // mdbTitleInput_setSuggestion
-// Takes the { title, confidence, reasons } object from buildMixesdbTitle()
-function mdbTitleInput_setSuggestion( suggestion ) {
+// Takes the { title, confidence, reasons } object from buildMixesdbTitle(), plus the track
+// duration in ms (the API's t.duration - the same value #mdb-fileInfo shows).
+function mdbTitleInput_setSuggestion( suggestion, durationMs ) {
+    // only skip on a duration we actually know: a missing/zero value means the API gave us
+    // nothing, and dropping the suggestion over that would be worse than offering it
+    if( durationMs && durationMs < mdbTitle_minDurationMs ) {
+        log( "mdbTitleInput_setSuggestion: track is " + Math.round( durationMs / 1000 ) + "s, under the " +
+             ( mdbTitle_minDurationMs / 60000 ) + " min MixesDB minimum - no title suggested." );
+        mdbTitle_suggestion = "";
+        return;
+    }
+
     mdbTitle_suggestion = ( suggestion && suggestion.title ) || "";
     mdbTitle_confidencePercent = ( suggestion && suggestion.confidence ) || 0;
     mdbTitle_confidenceReasons = ( suggestion && suggestion.reasons ) || [];
@@ -956,7 +1049,14 @@ function mdbTitleInput_add() {
         mdbTitleInput_syncCreateHref( input, create );
     });
 
-    wrapper.append( score, create, beta );
+    // "beta" belongs under the score, and a plain <br> cannot do that here: the row is a flex
+    // container, where a <br> becomes a flex item of its own instead of breaking the line.
+    // A small column wrapper stacks the two and keeps them as one item in the row.
+    var confidence = $("<span>")
+            .attr( "id", "mdb-mixesdbTitle-confidence" )
+            .append( score, beta );
+
+    wrapper.append( confidence, create );
     headline.after( wrapper );
 }
 

@@ -72,11 +72,22 @@
 }
 
 /*
+ * Score with "beta" stacked underneath it. A <br> cannot do that inside the flex row above -
+ * it would become a flex item instead of breaking the line - so the two share this column.
+ */
+#mdb-mixesdbTitle-confidence {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding-left: 5px;
+    line-height: 1.15;
+}
+
+/*
  * Confidence that the title needs no changes. Colours picked to stay readable on BOTH the
  * white old layout and the dark new one, so no plain "green"/"red" (too dark on black).
  */
 #mdb-mixesdbTitle-score {
-    padding-left: 5px;
     font-size: 0.8rem;
     font-weight: bold;
     cursor: help;
@@ -103,7 +114,6 @@
 
 /* grey, so it reads as a warning label and not as part of the title */
 #mdb-mixesdbTitle-beta {
-    padding-left: 5px;
     color: #999;
     font-size: 0.8rem;
     cursor: help;
@@ -279,13 +289,21 @@ a.sc_button-mdb:active {
     column-gap: 20px;
 }
 
+/*
+ * The headline is lifted OUT of this row (see script.user.js) so it gets the full wrapper
+ * width. #mdb-trackHeader stays as the empty left column, which is what still pushes the
+ * artwork info bar over to the right - so it keeps its flex sizing even though it is empty.
+ */
 #mdb-sc-trackHead #mdb-trackHeader {
     flex: 1 1 320px;
     min-width: 0; /* let long titles wrap instead of stretching the row */
 }
 
-/* tighter headline spacing */
-#mdb-sc-trackExtras #mdb-trackHeader h1 {
+/*
+ * Tighter headline spacing. Matched on the ID, not as "#mdb-trackHeader h1": in the new layout
+ * the headline is no longer inside #mdb-trackHeader, so the descendant selector would miss it.
+ */
+#mdb-sc-trackExtras #mdb-trackHeader-headline {
     margin: 0 0 5px;
     line-height: 1.25;
 }
