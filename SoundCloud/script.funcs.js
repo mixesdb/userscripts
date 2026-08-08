@@ -1213,17 +1213,23 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // Where the show name ultimately came from decides how much it can be trusted.
         // One branch only - taken.extended implies taken.taken, so an if/else chain keeps the
         // same fact from being charged twice.
+        //
+        // The spread here is deliberately SMALL. scUsernameConversions is a patch list of
+        // channels that earlier versions got wrong, not a register of everything that is a
+        // real show - so a channel missing from it says nothing much, and a big penalty for
+        // that would mostly measure how far the list has been filled in rather than how well
+        // the title was read. Being listed still confirms the entity, so it stays the best of
+        // the branches, just barely.
         if( isMappedChannel ) {
             // curated by hand in title_definitions.js - nothing to doubt
         } else if( showFromEpisodeRule ) {
             // "<Show> <Word> <Number> - <Artist>" was READ off the title, not guessed at: the
             // number and the separator say which part is which. Costs nothing.
-        } else if( taken.extended ) {
-            conf.drop( 5, "the show name was completed from the title (\"" + show + "\")" );
-        } else if( taken.taken ) {
-            conf.drop( 5, "the show name comes from the channel name found in the title" );
+        } else if( taken.extended || taken.taken ) {
+            // the channel name is in the title too, which is confirmation from the title
+            // itself - as good as finding the channel in the list
         } else if( show ) {
-            conf.drop( 20, "the channel \"" + show + "\" is not in the known-shows list - it may not be a show name at all" );
+            conf.drop( 5, "the channel \"" + show + "\" is not in the known-shows list - it may not be a show name at all" );
         }
 
         // 5d) The channel hosting its own party: "Adriana Lopez @ RAW x Monnom Black" on the
