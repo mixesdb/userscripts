@@ -16,7 +16,7 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 Every script must start with a complete `==UserScript==` metadata block:
 - `@name` - short, descriptive, in English
 - `@namespace` - use `https://github.com/<user>/<repo>`
-- `@version` - YYYY.MM.DD.N, bump on every functional change. At the end of a task, always tell me which version you bumped to.
+- `@version` - YYYY.MM.DD.N, bump on every functional change. `N` starts at `1` on each new calendar date (not a running total across dates) and increments for further changes that same date - so the first change on a new day is `.1`, not a continuation of the previous day's last `N`. At the end of a task, always tell me which version you bumped to.
 - `@description` - one line, English
 - `@match` / `@include` - as narrow as possible, never `*://*/*` unless truly required
 - `@require` - Update version paramters in other script URLs of they got changes
