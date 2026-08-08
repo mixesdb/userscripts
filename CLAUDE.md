@@ -54,5 +54,8 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Don't commit personal API keys or tokens into script files
 - When solving problems on a certain userscript: When you change non-functional things like logging in shared scripts like global.js: Avoid version bumps for other userscripts (it has no effect on them when they still load the old global.js version from cache).
 
+## Discord Summary
+- Don't write one unprompted. I decide when a session is done and then type `/discord`, which returns the paste-ready summary of the whole session's fix (no headline). The format rules live in that skill, not here.
+
 ## Docs
 @docs/**
