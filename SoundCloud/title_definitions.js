@@ -71,12 +71,15 @@ log( "/SoundCloud/title_definitions.js loaded" );
  * - No date in the title at all -> the upload date, which is a guess and says so in the
  *   confidence reasons.
  *
- * A month and year make a date ONLY as a group of their own, and the day is then unknown, so
- * MixesDB's "XX" stands in for it:
- *     "Adriana Lopez at RAW x Monnom Black | Mar 2026"  ->  2026-03-XX
+ * A month and year make a date ONLY as a group of their own. A part of the date that is not
+ * known is LEFT OFF, never padded: "2026-03", and "2026" if even the month is missing - not
+ * "2026-03-XX" or "2026-XX-XX".
+ *     "Adriana Lopez at RAW x Monnom Black | Mar 2026"  ->  2026-03
  *     "House Set August 2026 - Simeon Sarfati"          ->  the upload date; "August 2026" is
  *                                                           part of the mix's NAME, not a date
- * A year on its own ("1998") is never a date for the same reason.
+ * A year on its own ("1998") is still never read as a date, for the same reason - it is part
+ * of a name far more often than it is the year of the mix, and there is an exact upload date
+ * to fall back to. The "YYYY" spelling above is what to use if that ever changes.
  */
 
 
@@ -126,6 +129,17 @@ var scTitleNoise = [
  * Words that introduce FURTHER artists, e.g. "Slowciety w/ Asa 808". Everything from the
  * connector up to the next separator is taken out of the title and appended to the artist
  * group with scExtraArtistJoiner - it is never a group of its own.
+ *
+ * What stands in FRONT of the connector decides whether there is a first artist at all:
+ *
+ *     "Rinse France Show - Slowciety w/ Asa 808"   ->  artist "Slowciety, Asa 808"
+ *     "Yoyaku Instore Sessions with TONTON & TATA" ->  artist "Tonton & Tata"
+ *
+ * The first names an artist, the second a series ("Sessions"), and only the first one joins
+ * the artist group. A channel name at the start of a series title is part of that title and
+ * is NOT an artist - "yoyaku" does not belong in front of "Tonton & Tata" just because the
+ * mix was uploaded by it. A bit is read as a series by the same test the title's own split
+ * uses: a series word beats a bare number beats nothing.
  *
  * Deliberately NOT listed here:
  * - "presents" / "pres." - the name in front of it is the PRESENTER (the show), not a second

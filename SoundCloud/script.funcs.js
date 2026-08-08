@@ -331,7 +331,7 @@ function mdbTitle_findDate( text, refIso ) {
         // or the end of the title on both sides. That is the whole difference between
         //   "Adriana Lopez at RAW x Monnom Black | Mar 2026"  -> the date, 2026-03-XX
         //   "House Set August 2026 - Simeon Sarfati"          -> part of the mix's NAME
-        // The day is unknown, so the title carries MixesDB's "XX" for it while the scoring
+        // An unknown day is simply left off ("2026-03", never "2026-03-XX"), while the scoring
         // uses the 1st - that is what the iso/out split in a candidate is for.
         {
             name: "monthYearGroup",
@@ -342,7 +342,7 @@ function mdbTitle_findDate( text, refIso ) {
 
                 return [ {
                     iso: m[3] + "-" + mdbTitle_pad( month ) + "-01",
-                    out: m[3] + "-" + mdbTitle_pad( month ) + "-XX"
+                    out: m[3] + "-" + mdbTitle_pad( month )
                 } ];
             }
         }
@@ -645,7 +645,7 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
 // artist ("w/ Ruf Dug"), which mdbTitle_cleanArtist strips on its own.
 function mdbTitle_takeExtraArtists( text ) {
     var list = ( typeof scExtraArtistConnectors !== "undefined" && scExtraArtistConnectors ) ? scExtraArtistConnectors : [],
-        result = { text: text, artists: [] };
+        result = { text: text, artists: [], before: "" };
 
     if( !list.length ) return result;
 
@@ -667,6 +667,14 @@ function mdbTitle_takeExtraArtists( text ) {
     // one occurrence per pass - each pass shortens the text, so this always terminates
     while( ( m = re.exec( result.text ) ) !== null ) {
         var names = mdbTitle_cleanArtist( m[1] );
+
+        // What stands immediately in front of the FIRST connector decides whose name it is:
+        // "Slowciety w/ Asa 808" makes Slowciety the first artist, while
+        // "Yoyaku Instore Sessions with TONTON & TATA" names a show, not an artist.
+        if( !result.before ) {
+            var bits = result.text.slice( 0, m.index ).split( mdbTitle_bitSplitRe() );
+            result.before = mdbTitle_cleanArtist( bits[ bits.length - 1 ] );
+        }
 
         result.text = mdbTitle_cut( result.text, m.index, m[0].length );
         if( names ) result.artists.push( names );
@@ -999,8 +1007,7 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         rest = extra.text;
 
         if( extraArtists.length ) {
-            logVar( "extra artists", extraArtists.join( " | " ) );
-            conf.drop( 5, "the artists behind \"w/\" were joined with \",\" (played after another) - use \" & \" if they played together" );
+            logVar( "extra artists", extraArtists.join( " | " ) + " (behind: " + extra.before + ")" );
         }
 
         // 3c) MixesDB joiners: "x" between artists becomes "&", "at" in front of a place
@@ -1021,6 +1028,21 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
 
         if( guestArtist ) {
             logVar( "guest artist", guestArtist );
+        }
+
+        // 3e) "<show> with <artists>" - what stands in front of the connector names a SERIES,
+        // so it is the entity and the named artists are the only artists there are. The
+        // channel name is not one of them, even when it starts that bit:
+        //   "Yoyaku Instore Sessions with TONTON & TATA" on the channel "yoyaku"
+        //   -> 2026-08-05 - Tonton & Tata - Yoyaku Instore Sessions
+        // The entity is taken from the TITLE here, so it keeps the title's spelling - unlike
+        // an entity that IS the channel name, which keeps the channel's ("trommel.251").
+        if( extraArtists.length && extra.before && mdbTitle_seriesScore( extra.before ) > 0 ) {
+            logVar( "buildMixesdbTitle: the bit in front of \"with\" is the show", extra.before );
+
+            conf.drop( 10, "the artists were read from behind \"with\", and the title in front of it taken as the show" );
+
+            return mdbTitle_result( date, extraArtists[0], extra.before, null, false, extraArtists.slice( 1 ), conf );
         }
 
         // 4) take the show name out of the title before looking for an episode, so
@@ -1313,6 +1335,12 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
     var title = mdbTitle_assemble( date, mdbTitle_joinArtists( artist, extraArtists ), entity, episode, promoMix );
 
     if( title ) {
+        // charged here rather than where the names were found, because only a join that really
+        // happened had to guess the joiner
+        if( artist && extraArtists && extraArtists.length ) {
+            conf.drop( 5, "the artists behind \"w/\" were joined with \",\" (played after another) - use \" & \" if they played together" );
+        }
+
         if( mdbTitle_reCased ) {
             conf.drop( 5, "the title was written in one case throughout and was put into Normal Case - check names that really are spelled in caps" );
         }
