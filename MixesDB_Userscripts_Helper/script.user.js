@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.08.1
+// @version      2026.08.09.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -553,6 +553,17 @@ d.ready(function () { // needs mw.config
             shadowInput.value = prefillTitle;
             shadowInput.dispatchEvent( new Event( "input", { bubbles: true, composed: true } ) );
             shadowInput.dispatchEvent( new Event( "change", { bubbles: true, composed: true } ) );
+
+            // hand the form over ready to type in: focused (so the field shows its focus outline)
+            // with the caret behind the prefilled title, not selecting it - the prefill is meant
+            // to be edited, and a select-all would make the next keystroke wipe it.
+            shadowInput.focus();
+            try {
+                shadowInput.setSelectionRange( shadowInput.value.length, shadowInput.value.length );
+            } catch( e ) {
+                // setSelectionRange throws on input types that don't support selection; harmless here
+                log( "Add a new mix: could not place the caret: " + e.message );
+            }
 
             log( "Add a new mix: title prefilled after " + tries + " polls." );
         }, 100);
