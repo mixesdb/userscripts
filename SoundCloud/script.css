@@ -71,6 +71,30 @@
     padding-left: 5px;
 }
 
+/*
+ * Confidence that the title needs no changes. Colours picked to stay readable on BOTH the
+ * white old layout and the dark new one, so no plain "green"/"red" (too dark on black).
+ */
+#mdb-mixesdbTitle-score {
+    padding-left: 5px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+}
+
+#mdb-mixesdbTitle-score.mdb-mixesdbTitle-score-high {
+    color: #2eb82e;
+}
+
+#mdb-mixesdbTitle-score.mdb-mixesdbTitle-score-mid {
+    color: #e8930c;
+}
+
+#mdb-mixesdbTitle-score.mdb-mixesdbTitle-score-low {
+    color: #ef4444;
+}
+
 /* opens MixesDB's "Add a new mix" form prefilled with the (possibly edited) title */
 #mdb-mixesdbTitle-create {
     padding-left: 5px;
