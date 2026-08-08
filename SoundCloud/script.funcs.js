@@ -141,7 +141,7 @@ function fixScRedirectUrl( url ) {
  * A plain episode NUMBER is appended to the show name, an alphanumeric episode ID goes into
  * brackets - that is how both are written on MixesDB.
  *
- * This is a guess and labelled "beta" in the UI on purpose: SoundCloud titles are free text,
+ * This is a guess and labelled "BETA" in the UI on purpose: SoundCloud titles are free text,
  * and the mix date regularly is NOT the upload date (radio shows get uploaded days later, old
  * sets years later), so nothing here can be used without a look.
  *
@@ -541,7 +541,9 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
     }
 
     if( allowExtend && m[2] ) {
-        result.show = ( show + " " + m[2].trim() ).replace( /\s+/g, " " );
+        // the channel name keeps its own spelling, the word taken from the title does not:
+        // "HATE" + "PODCAST" -> "HATE Podcast"
+        result.show = ( show + " " + mdbTitle_toNormalCase( m[2].trim() ) ).replace( /\s+/g, " " );
         result.extended = true;
     }
     result.text = mdbTitle_cut( text, index, length );
@@ -598,6 +600,65 @@ function mdbTitle_joinArtists( artist, extraArtists ) {
     return [ artist ].concat( extraArtists ).join( joiner );
 }
 
+// mdbTitle_capitalizeFirst
+// Uppercases the first CASED character, so "(no" becomes "(No" and a leading bracket or
+// quote does not swallow the capital. Works on any alphabet - a character is a letter when
+// its upper and lower form differ.
+function mdbTitle_capitalizeFirst( word ) {
+    for( var i = 0; i < word.length; i++ ) {
+        var c = word.charAt( i );
+
+        if( c.toLowerCase() !== c.toUpperCase() ) {
+            return word.slice( 0, i ) + c.toUpperCase() + word.slice( i + 1 );
+        }
+    }
+    return word;
+}
+
+// mdbTitle_toNormalCase
+// "NO SIGNAL" -> "No Signal". A bit of the title written entirely in caps (or entirely in
+// lowercase) is a typing habit, not a spelling - MixesDB writes titles in Normal Case.
+// Anything MIXING both cases is left verbatim: that is how the name is really spelled
+// ("Nina ØDB", "UηκηΘωN"). Word lists in title_definitions.js.
+function mdbTitle_toNormalCase( s ) {
+    s = String( s || "" );
+
+    // toUpperCase/toLowerCase are unicode-aware, so this also sees "Ø" and "η" as letters
+    var hasLower = s.toUpperCase() !== s,
+        hasUpper = s.toLowerCase() !== s;
+
+    // mixed case = a deliberate spelling; no case at all = no letters to fix
+    if( hasLower === hasUpper ) return s;
+
+    var keepUpper = ( typeof scNormalCaseKeepUpper !== "undefined" && scNormalCaseKeepUpper ) ? scNormalCaseKeepUpper : [],
+        keepLower = ( typeof scNormalCaseKeepLower !== "undefined" && scNormalCaseKeepLower ) ? scNormalCaseKeepLower : [],
+        keepUpperCmp = [],
+        keepLowerCmp = [],
+        i;
+
+    for( i = 0; i < keepUpper.length; i++ ) keepUpperCmp.push( mdbTitle_normalizeCompare( keepUpper[i] ) );
+    for( i = 0; i < keepLower.length; i++ ) keepLowerCmp.push( mdbTitle_normalizeCompare( keepLower[i] ) );
+
+    return s.replace( /\S+/g, function( word, offset ) {
+        // "XLR8R700", "808", "2026" - an ID or a number, not a word to re-case
+        if( /\d/.test( word ) ) return word;
+
+        var cmp = mdbTitle_normalizeCompare( word );
+
+        if( keepUpperCmp.indexOf( cmp ) !== -1 ) return word.toUpperCase();
+
+        // small words stay lowercase, but never as the first word of the bit
+        if( offset > 0 && keepLowerCmp.indexOf( cmp ) !== -1 ) return word.toLowerCase();
+
+        return mdbTitle_capitalizeFirst( word.toLowerCase() );
+    });
+}
+
+// Set by mdbTitle_cleanArtist when it had to re-case a bit of the title. Read once per
+// suggestion in mdbTitle_result - a name deliberately spelled in caps looks exactly like a
+// shouted one, so having re-cased anything is worth a confidence drop.
+var mdbTitle_reCased = false;
+
 // mdbTitle_cleanArtist
 function mdbTitle_cleanArtist( s ) {
     s = String( s || "" ).replace( /\s+/g, " " );
@@ -615,6 +676,14 @@ function mdbTitle_cleanArtist( s ) {
     s = s.replace( /[\s\-–—_|\/\\:,@~•·<«]+$/, "" );
 
     s = s.replace( /\s+/g, " " ).trim();
+
+    // Normal Case for a bit that was shouted in caps or typed all lowercase
+    var normalCased = mdbTitle_toNormalCase( s );
+    if( normalCased !== s ) {
+        logVar( "mdbTitle_cleanArtist: re-cased", s + " -> " + normalCased );
+        mdbTitle_reCased = true;
+        s = normalCased;
+    }
 
     // Help:Add_a_new_mix_page: "DJ not Dj"
     s = s.replace( /\bdj\b/gi, "DJ" );
@@ -661,6 +730,8 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
     var conf = mdbTitle_confidence(),
         nothing = { title: "", confidence: 0, reasons: [] };
 
+    mdbTitle_reCased = false;
+
     try {
         var rest = String( scTitle || "" ).replace( /\s+/g, " " ).trim();
         if( !rest ) return nothing;
@@ -702,6 +773,15 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             // also looks exactly like a misread, so it is worth flagging
             if( found.score > 60 ) {
                 conf.drop( 10, "the date in the title is far from the upload date" );
+            }
+
+            // Earlier date wins: a mix is recorded before it is uploaded, never after, so a
+            // title date lying in the future of the upload is a misread rather than a mix date.
+            var uploadDate = releaseDate || createdAt || "";
+            if( uploadDate && date > uploadDate ) {
+                logVar( "buildMixesdbTitle: title date is after the upload date, using the upload date", uploadDate );
+                conf.drop( 20, "the date in the title (" + date + ") lies after the upload date - the earlier upload date was used instead" );
+                date = uploadDate;
             }
         } else {
             // same preference the header's highlighted date uses: release date wins
@@ -968,6 +1048,10 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
     var title = mdbTitle_assemble( date, mdbTitle_joinArtists( artist, extraArtists ), entity, episode, promoMix );
 
     if( title ) {
+        if( mdbTitle_reCased ) {
+            conf.drop( 5, "the title was written in one case throughout and was put into Normal Case - check names that really are spelled in caps" );
+        }
+
         // the date's own hyphens carry no spaces, so this only counts real groups
         var groups = title.split( " - " ).length;
 
@@ -1117,7 +1201,7 @@ function mdbTitleInput_add() {
         beta = $("<span>")
             .attr( "id", "mdb-mixesdbTitle-beta" )
             .attr( "title", "Guessed from the SoundCloud title, date and channel name - it can be wrong. See Help:Add a new mix page." )
-            .text( "beta" );
+            .text( "BETA" );
 
     // .val() instead of a value attribute so the title text is never parsed as HTML
     input.val( mdbTitle_suggestion );
