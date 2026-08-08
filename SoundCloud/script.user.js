@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.08.16
+// @version      2026.08.08.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1394,7 +1394,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
- * 2026.08.08.16
+ * 2026.08.08.1
  * ROOT CAUSE FOUND for "description does not auto-expand" report from a German-locale
  * Windows user (worked fine for other testers): the description force-expand matched the
  * "Show more"/"Show less" button by its exact English label text, but SoundCloud
