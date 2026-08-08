@@ -27,6 +27,48 @@
     font-weight: bold;
 }
 
+/*
+ * MixesDB mix page title suggestion, below the headline.
+ * Only added when the toolkit found no MixesDB page for this player - see
+ * mdbTitleInput_add() in script.funcs.js.
+ *
+ * Deliberately theme-neutral (inherited colour, translucent background/border): the same
+ * markup is used in the light old layout and in the dark new "Track header" one.
+ */
+#mdb-mixesdbTitle-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 10px;
+}
+
+#mdb-mixesdbTitle {
+    /* content-box so the size attribute really is the character count of the suggestion */
+    box-sizing: content-box;
+    max-width: 100%;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-size: 1.5rem;
+    line-height: 1.3;
+    color: inherit;
+    background-color: rgba(127, 127, 127, 0.12);
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+}
+
+#mdb-mixesdbTitle::selection {
+    background-color: #fc0;
+    color: #fff;
+}
+
+/* grey, so it reads as a warning label and not as part of the title */
+#mdb-mixesdbTitle-beta {
+    color: #999;
+    font-size: 0.8rem;
+    cursor: help;
+}
+
 .listenEngagement {
     padding-bottom: 6px;
 }
