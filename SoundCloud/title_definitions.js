@@ -71,8 +71,12 @@ log( "/SoundCloud/title_definitions.js loaded" );
  * - No date in the title at all -> the upload date, which is a guess and says so in the
  *   confidence reasons.
  *
- * A month or a year on its own ("August 2026", "1998") is NOT read as a date: it is part of
- * the mix's name, and we already have an exact upload date to fall back to.
+ * A month and year make a date ONLY as a group of their own, and the day is then unknown, so
+ * MixesDB's "XX" stands in for it:
+ *     "Adriana Lopez at RAW x Monnom Black | Mar 2026"  ->  2026-03-XX
+ *     "House Set August 2026 - Simeon Sarfati"          ->  the upload date; "August 2026" is
+ *                                                           part of the mix's NAME, not a date
+ * A year on its own ("1998") is never a date for the same reason.
  */
 
 
@@ -152,6 +156,60 @@ var scExtraArtistJoiner = ", ";
 
 
 /*
+ * scTogetherArtistJoiners
+ *
+ * Words that join artists who played TOGETHER, and are replaced by the " & " that
+ * Help:Add_a_new_mix_page uses for exactly that: "Surgeon x Erika" -> "Surgeon & Erika".
+ * Matched in either case ("x" and "X"), and only inside the artist group - an "x" between two
+ * brands in a venue name ("RAW x Monnom Black") is a collaboration of promoters, not of DJs.
+ *
+ * "b2b" is NOT here: MixesDB writes it out ("Ruf Dug b2b Daniel John Willis"), so it stays.
+ */
+var scTogetherArtistJoiners = [
+    "x"
+];
+
+
+/*
+ * scVenueConnectors
+ *
+ * Words that put a VENUE or EVENT behind the artist, replaced by the "@" joiner of
+ * Help:Add_a_new_mix_page#Joiners:_Live_/_@_/_-
+ *
+ *     "Adriana Lopez at RAW x Monnom Black"  ->  "Adriana Lopez @ Monnom Black"
+ *
+ * Careful: "at" is an ordinary English word, so it misfires on an ordinary phrase the same way
+ * "with" does in scExtraArtistConnectors. It is here because a mix title naming a place is far
+ * more common than one using "at" as a preposition, but it is the entry to remove first if
+ * that turns out wrong.
+ */
+var scVenueConnectors = [
+    "at"
+];
+
+
+/*
+ * scGuestMarkers
+ *
+ * Phrases that say the words in FRONT of them are the guest artist, not part of the show:
+ *
+ *     "Hot To The Touch 321 | RAW-ARTES GUEST MIX"
+ *     ->  2026-08-05 - Raw-Artes - Hot To The Touch 321
+ *
+ * Without this the bit would look like a series of its own (it ends in "Mix"), and the show
+ * and the artist would swap places. The phrase itself is dropped: MixesDB has no "Guest Mix"
+ * in a title, the guest simply IS the artist.
+ */
+var scGuestMarkers = [
+    "guest mix",
+    "guestmix",
+    "guest set",
+    "guest podcast",
+    "guest show"
+];
+
+
+/*
  * The number is the border between entity and artist
  *
  * A SoundCloud title does not need a separator to be readable. The EPISODE NUMBER marks where
@@ -172,6 +230,25 @@ var scExtraArtistJoiner = ", ";
  * A word may only join the entity this way together with its number. Anything else needs the
  * curated lists (scUsernameConversions, scShowSuffixWords), because a bare word next to the
  * channel name is far more often the artist.
+ */
+
+
+/*
+ * Which spelling of the channel name to use
+ *
+ * The channel name is normally the better source: it is the brand's own account name, which
+ * is why "Trommel.251" on the channel "trommel" comes out as "trommel.251" and not
+ * "Trommel.251". Lowercase branding is a real style and is kept.
+ *
+ * The one exception is a channel name in ALL CAPS. Caps are a typing habit, exactly as in a
+ * shouted title, so they say nothing about how the name is spelled - if the title spells it
+ * differently, the title wins:
+ *
+ *     channel "DIRTYBIRD" + "Dirtybird Radio 540 - Mitch Dodge"
+ *     ->  2026-08-07 - Mitch Dodge - Dirtybird Radio 540
+ *
+ * A channel whose title spells it the same way is unaffected, which is why "SEVEN Mix 084"
+ * and "HATE Podcast 496" keep their caps.
  */
 
 
