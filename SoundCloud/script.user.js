@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.08.6
+// @version      2026.08.08.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,7 +12,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_38
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_33
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_34
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -143,7 +143,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 67,
+var cacheVersion = 68,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1006,6 +1006,17 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     // styles are scoped to that wrapper.
                                     if( isNewSoundCloudLayout ) {
                                         $("#mdb-trackHeader-releaseInfo").prependTo( buttonTarget );
+
+                                        // #mdb-trackHeader is one column of the #mdb-sc-trackHead
+                                        // flex row (the artwork info bar is the other), so a
+                                        // headline left in there only gets part of the width, and
+                                        // long titles wrap early. Lift it out to be a direct child
+                                        // of the wrapper, above that row, where it spans everything.
+                                        // #mdb-trackHeader stays behind as the flex spacer that
+                                        // keeps the artwork bar over on the right.
+                                        // The title suggestion below is inserted AFTER the headline,
+                                        // so it follows it out here and gets the full width too.
+                                        $("#mdb-trackHeader-headline").prependTo( $("#mdb-sc-trackExtras") );
                                     }
                                 }
 
@@ -1013,8 +1024,10 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // Outside the h1 guard above: the input is only added once the
                                 // toolkit reported "not on MixesDB yet", which can land long
                                 // after the header was built (and the other way round).
+                                // dur_ms gates it: MixesDB does not take recordings under 20 min.
                                 mdbTitleInput_setSuggestion(
-                                    buildMixesdbTitle( title, ( t.user && t.user.username ) ? t.user.username : "", created_at, release_date )
+                                    buildMixesdbTitle( title, ( t.user && t.user.username ) ? t.user.username : "", created_at, release_date ),
+                                    dur_ms
                                 );
 
                                 // add toggleTarget
