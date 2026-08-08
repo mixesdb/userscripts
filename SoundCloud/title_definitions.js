@@ -43,6 +43,26 @@ log( "/SoundCloud/title_definitions.js loaded" );
 
 
 /*
+ * Group 1: the date
+ *
+ * Two sources may be used, the SoundCloud title and the upload/release date, and the EARLIER
+ * one wins - a mix is recorded before it is uploaded, never after.
+ *
+ * - A date written in the title wins over the upload date, because the two legitimately
+ *   differ: radio shows get uploaded days later, old sets years later.
+ * - Unless it lies AFTER the upload date. Then it is a misread and the upload date is used.
+ * - When the digits in the title read several ways ("07/03/2019" as 7 March or 3 July,
+ *   "030426" as DDMMYY/MMDDYY/YYMMDD), the upload date decides: the reading closest to it
+ *   wins, and on a tie the earlier one does.
+ * - No date in the title at all -> the upload date, which is a guess and says so in the
+ *   confidence reasons.
+ *
+ * A month or a year on its own ("August 2026", "1998") is NOT read as a date: it is part of
+ * the mix's name, and we already have an exact upload date to fall back to.
+ */
+
+
+/*
  * scUsernameConversions
  *
  * SoundCloud channel/profile name (API field "username") -> the show/podcast entity a
@@ -115,3 +135,33 @@ var scExtraArtistConnectors = [
  * confidence reasons, since only the recording itself can settle it.
  */
 var scExtraArtistJoiner = ", ";
+
+
+/*
+ * scNormalCaseKeepUpper / scNormalCaseKeepLower
+ *
+ * MixesDB writes titles in Normal Case, so a bit read out of the title that is SHOUTED in
+ * caps (or typed all in lowercase) is re-cased:
+ *     "NINA ØDB - NO SIGNAL"  ->  "2026-06-14 - Nina ØDB - No Signal (Promo Mix)"
+ * (the artist there is spelled by the channel name, only "NO SIGNAL" came from the title).
+ *
+ * Only bits that are cased UNIFORMLY are touched. Anything mixing upper and lower case is a
+ * deliberate spelling and stays verbatim: "Nina ØDB", "UηκηΘωN", "Hit the Breaks". Words
+ * containing digits are left alone too, since those are IDs, not words: "XLR8R700", "808".
+ *
+ * The catch, and why re-casing costs confidence: an artist really spelled in caps ("DJ MARIA.")
+ * reads exactly like a shouted one, so it gets re-cased as well. Nothing in a SoundCloud title
+ * tells the two apart - the suggestion is editable for that reason.
+ *
+ * scNormalCaseKeepUpper: words that stay in caps, i.e. acronyms rather than words.
+ * scNormalCaseKeepLower: small words that stay lowercase inside a title, but not as its first
+ * word ("NO SIGNAL FROM THE VOID" -> "No Signal from the Void").
+ */
+var scNormalCaseKeepUpper = [
+    "DJ", "MC", "NTS", "RA", "BBC", "FM", "AM", "EP", "LP", "VA", "UK", "USA", "EU", "NYC", "ADE"
+];
+
+var scNormalCaseKeepLower = [
+    "a", "an", "and", "at", "b2b", "by", "for", "from", "in", "of", "on", "or", "the", "to",
+    "vs", "with"
+];
