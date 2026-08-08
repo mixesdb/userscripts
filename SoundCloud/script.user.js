@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.08.2
+// @version      2026.08.08.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,8 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_38
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_29
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_30
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -142,7 +143,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 63,
+var cacheVersion = 64,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1008,6 +1009,14 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     }
                                 }
 
+                                // MixesDB mix page title suggestion, below the headline.
+                                // Outside the h1 guard above: the input is only added once the
+                                // toolkit reported "not on MixesDB yet", which can land long
+                                // after the header was built (and the other way round).
+                                mdbTitleInput_setSuggestion(
+                                    buildMixesdbTitle( title, ( t.user && t.user.username ) ? t.user.username : "", created_at, release_date )
+                                );
+
                                 // add toggleTarget
                                 if( $("#mdb-toggle-target").length === 0 ) {
                                     $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
@@ -1264,6 +1273,9 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
             // target), instead of being squeezed into the old sidebar column
             log( "Calling getToolkit() for #mdb-sc-trackExtras." );
             getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
+
+            // the title suggestion is gated behind that toolkit's usage verdict
+            mdbTitleInput_watchToolkit();
         }
     } else if( trackHeaderLastLoggedState !== "not-track-page" ) {
         log( "Not a track detail page (urlPath(2): '" + urlPath(2) + "') - skipping trackExtras wrapper." );
@@ -1382,6 +1394,9 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
 
         log( "Calling getToolkit() for old layout .listenDetails." );
         getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
+
+        // the title suggestion is gated behind that toolkit's usage verdict
+        mdbTitleInput_watchToolkit();
     } else {
         log( "Not a track detail page - skipping old layout toolkit." );
     }
