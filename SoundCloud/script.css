@@ -79,7 +79,6 @@
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    padding-left: 5px;
     line-height: 1.15;
 }
 
@@ -125,6 +124,11 @@
 
 .listenEngagement__actions {
     padding-bottom: 8px;
+}
+
+#mdb-mixesdbTitle-confidence,
+#mdb-mixesdbTitle-create {
+    padding-left: 10px;
 }
 
 button.mdb-toggle.selected,
@@ -273,29 +277,36 @@ a.sc_button-mdb:active {
 #mdb-sc-trackExtras {
     width: 100%;
     margin-top: -20px;
+    /* contains the floated #mdb-sc-trackHead, so the artwork bar can never spill out of the
+       wrapper on a track whose content below happens to be shorter than the bar */
+    display: flow-root;
 }
 
 
 /*
- * Head row: title floats left, the artwork info bar sits right - below the artwork of the
- * Track header box. wrap-reverse makes the artwork bar stay on top once the row wraps on
- * small window widths, so it keeps sitting right below the (then stacked) artwork.
- * Note: wrap-reverse flips the cross axis, so flex-end is the visual top here.
+ * The artwork info bar sits top right, directly below the artwork of the Track header box.
+ *
+ * A real float, not a flex row: as a flex item it would be a row of its own, and every line
+ * below - headline, title suggestion, buttons - would start BELOW the bar, wasting a whole
+ * bar's height of empty space on the left. Floated, the bar is out of normal flow: the
+ * headline starts at the very top and only its first line has to make room for the bar,
+ * everything past the bar's ~26px gets the full wrapper width.
+ *
+ * #mdb-sc-trackHead must stay the FIRST child of the wrapper for this - a float only pushes
+ * aside content that comes after it in the source.
  */
 #mdb-sc-trackHead {
-    display: flex;
-    flex-wrap: wrap-reverse;
-    align-items: flex-end;
-    column-gap: 20px;
+    float: right;
+    max-width: 100%;
+    margin-left: 20px;
 }
 
 /*
- * The headline is lifted OUT of this row (see script.user.js) so it gets the full wrapper
- * width. #mdb-trackHeader stays as the empty left column, which is what still pushes the
- * artwork info bar over to the right - so it keeps its flex sizing even though it is empty.
+ * The headline is lifted OUT of here (see script.user.js) so it gets the full wrapper width.
+ * What is left is an empty block, which is why it needs no sizing of its own any more - the
+ * float above is sized by the artwork bar alone.
  */
 #mdb-sc-trackHead #mdb-trackHeader {
-    flex: 1 1 320px;
     min-width: 0; /* let long titles wrap instead of stretching the row */
 }
 
