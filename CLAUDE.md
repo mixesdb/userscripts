@@ -23,6 +23,11 @@ Every script must start with a complete `==UserScript==` metadata block:
 - `@grant` - list only what's actually used, default to `none` if no GM_* API is needed
 - `@author` - keep consistent across scripts
 
+## Links We Add
+- Open in the **same tab by default** - leave the new-tab decision to the user (cmd/ctrl/middle-click). Don't reach for `target="_blank"` just because a link leads off-site.
+- Always set an **explicit `target`** on generated links, and default it to `_top`, not `_self`/nothing. Some pages render our HTML inside a nested browsing context (e.g. SoundCloud's `iframe#__WEBI_IFRAME_PRELOADED__` since the ~Aug 2026 redesign), where a target-less link replaces the frame instead of the page: the address bar keeps the old URL, the page can't be bookmarked or shared, and once that frame goes cross-origin the userscript loses access to it. `_top` leaves the frame while staying in the same tab, and is identical to `_self` on unframed pages, so it is always safe.
+- `target="_blank"` only where the user is expected to keep working on the source page while the link is open (e.g. the toolkit's EDIT/HIST links).
+
 ## Code Style
 - Indentation: 4 spaces
 - Comments: English, explain *why* not just *what*
