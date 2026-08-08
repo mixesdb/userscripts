@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.08.7
+// @version      2026.08.08.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -143,7 +143,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 68,
+var cacheVersion = 70,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1011,12 +1011,17 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         // flex row (the artwork info bar is the other), so a
                                         // headline left in there only gets part of the width, and
                                         // long titles wrap early. Lift it out to be a direct child
-                                        // of the wrapper, above that row, where it spans everything.
-                                        // #mdb-trackHeader stays behind as the flex spacer that
-                                        // keeps the artwork bar over on the right.
-                                        // The title suggestion below is inserted AFTER the headline,
-                                        // so it follows it out here and gets the full width too.
-                                        $("#mdb-trackHeader-headline").prependTo( $("#mdb-sc-trackExtras") );
+                                        // of the wrapper, where it spans everything.
+                                        // It goes AFTER #mdb-sc-trackHead, not before it: that row
+                                        // has to stay the first thing in the wrapper so the artwork
+                                        // info bar keeps sitting directly below SoundCloud's own
+                                        // artwork. Putting the headline above it would push the bar
+                                        // down by the height of the headline plus the title row.
+                                        // #mdb-trackHeader stays behind as the empty flex spacer
+                                        // that keeps the artwork bar over on the right.
+                                        // The title suggestion is inserted AFTER the headline, so it
+                                        // follows it out here and gets the full width too.
+                                        $("#mdb-trackHeader-headline").insertAfter( $("#mdb-sc-trackHead") );
                                     }
                                 }
 
