@@ -152,6 +152,30 @@ var scExtraArtistJoiner = ", ";
 
 
 /*
+ * The number is the border between entity and artist
+ *
+ * A SoundCloud title does not need a separator to be readable. The EPISODE NUMBER marks where
+ * the entity ends, so whatever follows it is the artist, even when only a space stands there:
+ *
+ *     "EG AFTER.188 Matt Hauser"        (channel "EG")
+ *     -> 2026-08-05 - Matt Hauser - EG AFTER.188
+ *     "HATE Podcast 496 Fadi Mohem"     (channel "HATE")
+ *     -> 2026-04-03 - Fadi Mohem - HATE Podcast 496
+ *
+ * The other way round is the same rule: with nothing behind the number, the entity ends the
+ * title and the artist is in front of it ("Planet Melis - Techno Germany Podcast 226").
+ *
+ * This is also what tells a series name from an artist name without knowing either: a word
+ * carrying a number belongs to the entity. "AFTER" is only recognisable as part of the show
+ * because ".188" hangs on it - on its own it would read as the start of the artist name.
+ *
+ * A word may only join the entity this way together with its number. Anything else needs the
+ * curated lists (scUsernameConversions, scShowSuffixWords), because a bare word next to the
+ * channel name is far more often the artist.
+ */
+
+
+/*
  * scShowSuffixWords
  *
  * Words that turn a bare channel name into the show name MixesDB uses, when the SoundCloud

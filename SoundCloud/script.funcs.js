@@ -493,6 +493,19 @@ function mdbTitle_findEpisode( text, entityKnown ) {
                 length: m[0].length
             };
         }
+
+        // The number ends the entity, and a SPACE is all that separates it from the artist:
+        // "HATE Podcast 496 Fadi Mohem" leaves " 496 Fadi Mohem" once the show name is cut.
+        // Anchored at the start, because that is what says the number sat behind the entity.
+        m = /^\s*(\d{1,5})(?!\d)\s+/.exec( text );
+        if( m ) {
+            return {
+                text: m[1],
+                kind: "number",
+                index: 0,
+                length: m[0].length
+            };
+        }
     }
 
     return null;
@@ -521,13 +534,33 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
 
     if( !show ) return result;
 
-    var re = new RegExp(
-            "(^|[^\\w])" + mdbTitle_escapeRe( show ) +
-            ( allowExtend ? "(\\s+(?:" + mdbTitle_showSuffixWords().join("|") + "))?" : "" ) +
-            // a number written straight onto the name: "Trommel.251" is the show "trommel"
-            // with its episode number, not a name plus a stray ".251"
-            "(?:\\.(\\d{1,5}))?" +
-            "(?![\\w])", "i" ),
+    // The pattern differs between a mapped and an unmapped channel, so the group numbers are
+    // tracked as they are built - a hard-coded m[2]/m[3] would silently read the wrong group.
+    var pattern = "(^|[^\\w])" + mdbTitle_escapeRe( show ),
+        suffixGroup = 0,
+        wordGroup = 0,
+        numberGroup = 0,
+        groups = 1;
+
+    if( allowExtend ) {
+        // "HATE" + " Podcast" -> the show is "HATE Podcast"
+        pattern += "(\\s+(?:" + mdbTitle_showSuffixWords().join("|") + "))?";
+        suffixGroup = ++groups;
+
+        // "EG" + " AFTER.188" -> the show is "EG AFTER", numbered 188. ANY word is allowed
+        // here, but only together with the number behind it: the number is what says the word
+        // belongs to the series name rather than being the start of the artist.
+        pattern += "(?:(?:\\s+([A-Za-z][A-Za-z0-9]*))?\\.(\\d{1,5}))?";
+        wordGroup = ++groups;
+        numberGroup = ++groups;
+    } else {
+        // a mapped channel name is curated and never gains a word from the title, but a
+        // number written onto it is still its episode number
+        pattern += "(?:\\.(\\d{1,5}))?";
+        numberGroup = ++groups;
+    }
+
+    var re = new RegExp( pattern + "(?![\\w])", "i" ),
         m = re.exec( text );
 
     if( !m ) return result;
@@ -545,17 +578,26 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
         return result;
     }
 
-    if( allowExtend && m[2] ) {
+    if( suffixGroup && m[suffixGroup] ) {
         // the channel name keeps its own spelling, the word taken from the title does not:
-        // "HATE" + "PODCAST" -> "HATE Podcast"
-        result.show = ( show + " " + mdbTitle_toNormalCase( m[2].trim() ) ).replace( /\s+/g, " " );
+        // "HATE" + "PODCAST" -> "HATE Podcast". It is a common noun off a curated list, so
+        // Normal Case is safe for it.
+        result.show = ( result.show + " " + mdbTitle_toNormalCase( m[suffixGroup].trim() ) ).replace( /\s+/g, " " );
         result.extended = true;
     }
 
     // "Trommel.251" on the channel "trommel" -> "trommel.251": the channel spelling wins, the
     // dot and the number are kept as written. The digits stay verbatim, "084" is not "84".
-    if( m[3] ) {
-        result.episode = { text: m[3], kind: "dotted" };
+    if( m[numberGroup] ) {
+        // The word in front of the number is part of the series name and is NOT re-cased:
+        // unlike a suffix word it is a name we know nothing about, so "EG AFTER" must not
+        // turn into "EG After".
+        if( wordGroup && m[wordGroup] ) {
+            result.show = ( result.show + " " + m[wordGroup] ).replace( /\s+/g, " " );
+            result.extended = true;
+        }
+
+        result.episode = { text: m[numberGroup], kind: "dotted" };
     }
 
     result.text = mdbTitle_cut( text, index, length );
