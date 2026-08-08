@@ -403,6 +403,8 @@ function mdbTitle_confidence() {
 
 // mdbTitle_findEpisode
 // Returns { text, kind: "id"|"number", index, length } or null.
+// The digits are kept exactly as the title writes them - "SEVEN Mix 084" is episode "084",
+// not "84": the padding is part of how the series numbers its episodes.
 // entityKnown says the entity is already settled (its name was found in the title, or the
 // channel is mapped) - a number standing alone between separators is then its episode number
 // and not a group of its own. See the "three groups" block in title_definitions.js.
@@ -429,7 +431,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     m = wordRe.exec( text );
     if( m ) {
         return {
-            text: String( parseInt( m[3], 10 ) ),
+            text: m[3],
             kind: "number",
             word: m[2], // the keyword as spelled in the title - part of the show name, see below
             index: m.index + ( m[1] ? m[1].length : 0 ),
@@ -441,7 +443,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     m = /(^|[^\w])#\s?(\d{1,5})(?!\d)/.exec( text );
     if( m ) {
         return {
-            text: String( parseInt( m[2], 10 ) ),
+            text: m[2],
             kind: "number",
             index: m.index + ( m[1] ? m[1].length : 0 ),
             length: m[0].length - ( m[1] ? m[1].length : 0 )
@@ -470,7 +472,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     m = new RegExp( "^[\\s" + mdbTitle_sepInner + "]*(\\d{1,5})(?!\\d)\\s*[" + mdbTitle_sepInner + "]+\\s*" ).exec( text );
     if( m ) {
         return {
-            text: String( parseInt( m[1], 10 ) ),
+            text: m[1],
             kind: "number",
             index: 0,
             length: m[0].length
@@ -485,7 +487,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
         m = new RegExp( "(^|[" + mdbTitle_sepInner + "]+)\\s*(\\d{1,5})(?!\\d)\\s*(?:[" + mdbTitle_sepInner + "]+|$)" ).exec( text );
         if( m ) {
             return {
-                text: String( parseInt( m[2], 10 ) ),
+                text: m[2],
                 kind: "number",
                 index: m.index,
                 length: m[0].length
@@ -502,26 +504,29 @@ function mdbTitle_cut( text, index, length ) {
     return text.slice( 0, index ) + " " + text.slice( index + length );
 }
 
-// Words that turn a bare channel name into the show name MixesDB actually uses, when the
-// SoundCloud title spells it out: channel "HATE" + title "HATE Podcast 496" -> "HATE Podcast".
-// Only used for channels without an entry in scUsernameConversions - an explicit mapping is
-// the curated name and must not be extended behind the editor's back.
-var mdbTitle_showSuffixWords = [
-    "podcast", "radio", "radioshow", "show", "mixshow", "mixtape", "mixseries", "series",
-    "sessions", "session", "cast", "fm"
-];
+// mdbTitle_showSuffixWords
+// The curated list lives in title_definitions.js, so the words can be extended without
+// reading the parser. The fallback keeps the parser working on its own.
+function mdbTitle_showSuffixWords() {
+    return ( typeof scShowSuffixWords !== "undefined" && scShowSuffixWords ) ? scShowSuffixWords : [
+        "podcast", "radio", "show", "mix", "series", "session", "cast", "fm"
+    ];
+}
 
 // mdbTitle_takeShowOutOfTitle
 // Removes one occurrence of the show name from the title, so an episode number behind it can
 // be found on its own. Returns the shortened text and the (possibly extended) show name.
 function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
-    var result = { text: text, show: show, taken: false, extended: false };
+    var result = { text: text, show: show, taken: false, extended: false, episode: null };
 
     if( !show ) return result;
 
     var re = new RegExp(
             "(^|[^\\w])" + mdbTitle_escapeRe( show ) +
-            ( allowExtend ? "(\\s+(?:" + mdbTitle_showSuffixWords.join("|") + "))?" : "" ) +
+            ( allowExtend ? "(\\s+(?:" + mdbTitle_showSuffixWords().join("|") + "))?" : "" ) +
+            // a number written straight onto the name: "Trommel.251" is the show "trommel"
+            // with its episode number, not a name plus a stray ".251"
+            "(?:\\.(\\d{1,5}))?" +
             "(?![\\w])", "i" ),
         m = re.exec( text );
 
@@ -546,6 +551,13 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
         result.show = ( show + " " + mdbTitle_toNormalCase( m[2].trim() ) ).replace( /\s+/g, " " );
         result.extended = true;
     }
+
+    // "Trommel.251" on the channel "trommel" -> "trommel.251": the channel spelling wins, the
+    // dot and the number are kept as written. The digits stay verbatim, "084" is not "84".
+    if( m[3] ) {
+        result.episode = { text: m[3], kind: "dotted" };
+    }
+
     result.text = mdbTitle_cut( text, index, length );
     result.taken = true;
 
@@ -615,6 +627,14 @@ function mdbTitle_capitalizeFirst( word ) {
     return word;
 }
 
+// mdbTitle_hasVowel
+// Whether a word can be pronounced as a word at all. "DSS", "NTS", "ØDB" cannot, so they are
+// abbreviations and keep their spelling. "Ø" and "Æ" are deliberately NOT counted as vowels:
+// they turn up in stylised names, where keeping the caps is the safer bet.
+function mdbTitle_hasVowel( word ) {
+    return /[aeiouyàáâãäåèéêëìíîïòóôõöùúûü]/i.test( word );
+}
+
 // mdbTitle_toNormalCase
 // "NO SIGNAL" -> "No Signal". A bit of the title written entirely in caps (or entirely in
 // lowercase) is a typing habit, not a spelling - MixesDB writes titles in Normal Case.
@@ -642,6 +662,11 @@ function mdbTitle_toNormalCase( s ) {
     return s.replace( /\S+/g, function( word, offset ) {
         // "XLR8R700", "808", "2026" - an ID or a number, not a word to re-case
         if( /\d/.test( word ) ) return word;
+
+        // No vowel, so it cannot be a word - it is an abbreviation and keeps its spelling:
+        // "DSS 139" stays "DSS 139", and "NINA ØDB" becomes "Nina ØDB" rather than "Nina Ødb".
+        // This is what saves the acronyms that are not worth listing one by one.
+        if( !mdbTitle_hasVowel( word ) ) return word;
 
         var cmp = mdbTitle_normalizeCompare( word );
 
@@ -774,15 +799,6 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             if( found.score > 60 ) {
                 conf.drop( 10, "the date in the title is far from the upload date" );
             }
-
-            // Earlier date wins: a mix is recorded before it is uploaded, never after, so a
-            // title date lying in the future of the upload is a misread rather than a mix date.
-            var uploadDate = releaseDate || createdAt || "";
-            if( uploadDate && date > uploadDate ) {
-                logVar( "buildMixesdbTitle: title date is after the upload date, using the upload date", uploadDate );
-                conf.drop( 20, "the date in the title (" + date + ") lies after the upload date - the earlier upload date was used instead" );
-                date = uploadDate;
-            }
         } else {
             // same preference the header's highlighted date uses: release date wins
             date = releaseDate || createdAt || "";
@@ -822,7 +838,9 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // has to stay verbatim ("Weekly Mix 12" must not become "Weekly 12").
         // "fabric presents Bonobo" is the exception: a connector right behind the channel name
         // makes it the PRESENTER, not the artist - the artist is what follows it.
-        if( taken.taken && !taken.extended && !isMappedChannel &&
+        // A number written onto the channel name ("Trommel.251") rules this branch out as
+        // well: a name that carries an episode number is a series, not the artist.
+        if( taken.taken && !taken.extended && !taken.episode && !isMappedChannel &&
             !/^\s*(?:presents?|pres\.?|w\/|with|feat\.?|ft\.?)\b/i.test( taken.text ) ) {
 
             var entity = mdbTitle_cleanArtist( taken.text );
@@ -853,16 +871,22 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
 
         // 5) episode. The entity is settled whenever its name was found in the title or the
         // channel is mapped - a number left over on its own is then its episode number.
-        var episode = mdbTitle_findEpisode( rest, taken.taken || isMappedChannel ),
+        // A number written onto the show name ("trommel.251") is the episode itself and left
+        // the title together with the name, so there is nothing left to look for or to cut.
+        var foundEpisode = taken.episode ? null : mdbTitle_findEpisode( rest, taken.taken || isMappedChannel ),
+            episode = taken.episode || foundEpisode,
             showFromEpisodeRule = false,
             beforeEpisode = "",
             afterEpisode = "";
 
         if( episode ) {
             logVar( "episode (" + episode.kind + ")", episode.text );
-            beforeEpisode = rest.slice( 0, episode.index );
-            afterEpisode = rest.slice( episode.index + episode.length );
-            rest = mdbTitle_cut( rest, episode.index, episode.length );
+        }
+
+        if( foundEpisode ) {
+            beforeEpisode = rest.slice( 0, foundEpisode.index );
+            afterEpisode = rest.slice( foundEpisode.index + foundEpisode.length );
+            rest = mdbTitle_cut( rest, foundEpisode.index, foundEpisode.length );
         }
 
         // 5b) "Truancy Volume 300: Sunju Hargun" - the channel name ("truantsblog") is nowhere
@@ -1021,9 +1045,16 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
         out += " - " + show;
 
         if( episode ) {
-            // plain number appended ("HATE Podcast 496"), alphanumeric ID bracketed
-            // ("RA Podcast (RA.971)") - both taken from how MixesDB spells them
-            out += episode.kind === "number" ? " " + episode.text : " (" + episode.text + ")";
+            // plain number appended ("HATE Podcast 496"), a number written onto the name kept
+            // that way ("trommel.251"), alphanumeric ID bracketed ("RA Podcast (RA.971)") -
+            // all three taken from how MixesDB spells them
+            if( episode.kind === "number" ) {
+                out += " " + episode.text;
+            } else if( episode.kind === "dotted" ) {
+                out += "." + episode.text;
+            } else {
+                out += " (" + episode.text + ")";
+            }
         }
     } else if( episode && episode.kind === "id" ) {
         out += " (" + episode.text + ")";
