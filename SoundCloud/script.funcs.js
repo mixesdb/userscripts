@@ -760,18 +760,29 @@ function mdbTitle_takeGuestMarker( text ) {
         alternatives.push( mdbTitle_escapeRe( list[i] ).replace( /\s+/g, "\\s*" ) );
     }
 
-    var re = new RegExp( "\\s*\\b(?:" + alternatives.join( "|" ) + ")\\b\\s*", "i" ),
+    // A ":" or a "by" behind the phrase turns it around: the guest is then named AFTER it
+    // ("Guest of the Week: buyArt", "Guest mix by buyArt") instead of in front of it
+    // ("RAW-ARTES GUEST MIX"). Case is ignored throughout.
+    var re = new RegExp( "\\s*\\b(?:" + alternatives.join( "|" ) + ")\\b\\s*(:|by\\b)?\\s*", "i" ),
         m = re.exec( text );
 
     if( !m ) return result;
 
-    // The artist is the BIT the phrase sits in, not the word in front of it: a hyphen counts
-    // as a separator everywhere else, and cutting at it would leave "RAW-" and "ARTES".
     var before = text.slice( 0, m.index ),
-        bits = before.split( mdbTitle_bitSplitRe() );
+        after = text.slice( m.index + m[0].length ),
+        bits;
 
-    result.artist = mdbTitle_cleanArtist( bits[ bits.length - 1 ] );
-    result.text = before + " " + text.slice( m.index + m[0].length );
+    // The artist is the whole BIT, not the word next to the phrase: a hyphen counts as a
+    // separator everywhere else, and cutting at it would leave "RAW-" and "ARTES".
+    if( m[1] ) {
+        bits = after.split( mdbTitle_bitSplitRe() );
+        result.artist = mdbTitle_cleanArtist( bits[0] );
+    } else {
+        bits = before.split( mdbTitle_bitSplitRe() );
+        result.artist = mdbTitle_cleanArtist( bits[ bits.length - 1 ] );
+    }
+
+    result.text = before + " " + after;
 
     return result;
 }
@@ -991,7 +1002,10 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         } else {
             // same preference the header's highlighted date uses: release date wins
             date = releaseDate || createdAt || "";
-            conf.drop( 35, "no date in the SoundCloud title - using the upload date, which is often not the mix date" );
+            // The upload date is right for most of what gets uploaded - a podcast episode goes
+            // up on its release day. It is wrong for an old set or a radio show uploaded later,
+            // which is worth a real drop but not the biggest one in the file.
+            conf.drop( 15, "no date in the SoundCloud title - using the upload date, which is not the mix date for an older recording" );
             logVar( "buildMixesdbTitle: no date in the title, falling back to", date );
         }
 
@@ -1171,19 +1185,22 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                     }
 
                     if( leftScore !== rightScore ) {
-                        // the side that looks more like a series is the show
+                        // the side that looks more like a series is the show. Told apart by
+                        // the title itself, so nothing was guessed and nothing is charged -
+                        // swapping the two groups around is not a doubt about the result.
                         splitArtist = leftScore > rightScore ? rightPart : leftPart;
                         splitEntity = leftScore > rightScore ? leftPart : rightPart;
                         splitPromo = false;
                     } else {
+                        // neither side looks like a series, so this is the order alone
                         splitArtist = leftPart;
                         splitEntity = rightPart;
                         splitPromo = !/promo\s*mix/i.test( splitEntity );
+
+                        conf.drop( 10, "nothing in the title says which half is the artist - it was read in the order they stand" );
                     }
 
                     logVar( "buildMixesdbTitle: title splits into artist/entity, channel not used", splitArtist + " | " + splitEntity );
-
-                    conf.drop( 10, "artist and mix name were told apart by the title's own separator" );
                     if( splitPromo ) {
                         conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
                     }
@@ -1199,7 +1216,8 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         if( isMappedChannel ) {
             // curated by hand in title_definitions.js - nothing to doubt
         } else if( showFromEpisodeRule ) {
-            conf.drop( 10, "the show name was read out of the title, not from a known channel" );
+            // "<Show> <Word> <Number> - <Artist>" was READ off the title, not guessed at: the
+            // number and the separator say which part is which. Costs nothing.
         } else if( taken.extended ) {
             conf.drop( 5, "the show name was completed from the title (\"" + show + "\")" );
         } else if( taken.taken ) {
@@ -1271,6 +1289,17 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             logVar( "buildMixesdbTitle: dropping the show, it is the artist itself", show );
             show = "";
             conf.drop( 5, "the channel is the artist, so no show/venue was added" );
+
+        } else if( show && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
+                   mdbTitle_bitSplitRe().test( artist ) ) {
+            // The title already split into two groups of its own, so it did not leave an
+            // entity to fill in - appending the raw channel name would only make a fourth
+            // group ("MOLTO IN THE MIX - Guest of the Week: buyArt - Molto Recordings Group").
+            // Only for a channel name that is a pure guess anyway: one that is mapped, or that
+            // was found in the title, has earned its place.
+            logVar( "buildMixesdbTitle: dropping the channel, the title already has two groups", show );
+            show = "";
+            conf.drop( 5, "the channel was not added - the title already carries an artist and a name of its own" );
 
         } else if( show && artist.indexOf( "@" ) !== -1 ) {
             // The venue is already IN the artist group, so the channel must not be added as a

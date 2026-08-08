@@ -45,6 +45,13 @@ log( "/SoundCloud/title_definitions.js loaded" );
  *   "SEVEN Mix" is the entity, see scShowSuffixWords. Two perfect groups in the wrong order
  *   is the easy case - do not take them apart, swap them.
  *
+ * - The channel name added although the title already carried both groups:
+ *       "MOLTO IN THE MIX - Guest of the Week: buyArt"   (channel "Molto Recordings Group")
+ *       WRONG: 2026-07-24 - MOLTO IN THE MIX - Guest of the Week: buyArt - Molto Recordings Group
+ *       RIGHT: 2026-07-24 - buyArt - Molto In The Mix
+ *   Nothing was missing, so nothing had to be filled in. A channel name that is neither
+ *   mapped nor found in the title is a guess, and a guess never earns a fourth group.
+ *
  * - The number written ONTO the entity, cut off as a stray ".251":
  *       "Trommel.251 - Arno"    (channel "trommel")
  *       WRONG: 2026-08-06 - trommel - .251 - Arno (Promo Mix)
@@ -205,21 +212,26 @@ var scVenueConnectors = [
 /*
  * scGuestMarkers
  *
- * Phrases that say the words in FRONT of them are the guest artist, not part of the show:
+ * Phrases that mark the guest artist, so the words next to them are a name and not part of
+ * the show. Matched in any case, and read in both directions - a ":" or a "by" behind the
+ * phrase means the guest is named AFTER it, otherwise in FRONT of it:
  *
  *     "Hot To The Touch 321 | RAW-ARTES GUEST MIX"
  *     ->  2026-08-05 - Raw-Artes - Hot To The Touch 321
+ *     "MOLTO IN THE MIX - Guest of the Week: buyArt"
+ *     ->  2026-07-24 - buyArt - Molto In The Mix
  *
- * Without this the bit would look like a series of its own (it ends in "Mix"), and the show
- * and the artist would swap places. The phrase itself is dropped: MixesDB has no "Guest Mix"
- * in a title, the guest simply IS the artist.
+ * Without this, a bit ending in "Mix" looks like a series of its own and the show and the
+ * artist swap places. The phrase itself is dropped: MixesDB has no "Guest Mix" in a title,
+ * the guest simply IS the artist.
  */
 var scGuestMarkers = [
     "guest mix",
     "guestmix",
     "guest set",
     "guest podcast",
-    "guest show"
+    "guest show",
+    "guest of the week"
 ];
 
 
@@ -310,13 +322,12 @@ var scShowSuffixWords = [
  *
  * scNormalCaseKeepUpper: words that stay in caps, i.e. acronyms rather than words.
  * scNormalCaseKeepLower: small words that stay lowercase inside a title, but not as its first
- * word ("NO SIGNAL FROM THE VOID" -> "No Signal from the Void").
+ *   word. EMPTY on purpose: MixesDB capitalises every word, so "MOLTO IN THE MIX" becomes
+ *   "Molto In The Mix" and not "Molto in the Mix". The mechanism is kept because it is one
+ *   list entry away if a word ever does need to stay down.
  */
 var scNormalCaseKeepUpper = [
     "DJ", "MC", "NTS", "RA", "BBC", "FM", "AM", "EP", "LP", "VA", "UK", "USA", "EU", "NYC", "ADE"
 ];
 
-var scNormalCaseKeepLower = [
-    "a", "an", "and", "at", "b2b", "by", "for", "from", "in", "of", "on", "or", "the", "to",
-    "vs", "with"
-];
+var scNormalCaseKeepLower = [];
