@@ -6,6 +6,24 @@
 
 log( "includes/toolkit.js: started executing" );
 
+/*
+ * Link targets in toolkit HTML
+ *
+ * Every link we generate must carry an explicit target="_top".
+ *
+ * Since the ~Aug 2026 SoundCloud redesign the toolkit is rendered *inside* a nested
+ * browsing context (iframe#__WEBI_IFRAME_PRELOADED__, see SoundCloud/script.user.js
+ * "Frame handling"). A link without a target defaults to _self, so it replaced the
+ * SoundCloud frame's content with MixesDB while the address bar kept showing the
+ * soundcloud.com track URL - the page could not be bookmarked or shared, and because
+ * the frame then became cross-origin the userscript lost all access to it.
+ *
+ * _top navigates the tab itself, i.e. it leaves the frame while still opening in the
+ * same tab, which keeps the new-tab decision with the user (cmd/ctrl/middle-click).
+ * Outside a frame _top is identical to _self, so this is a no-op for every other site
+ * the toolkit runs on.
+ */
+
 // regExp
 //const regExp_numbers = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/; // https://stackoverflow.com/questions/1272696
 
@@ -361,7 +379,7 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
     // https://www.mixesdb.com/w/?curid=613340
     var editSummary = "",
         mixesdbUrl = makeMixesdbPageUrl_fromId( mdbPageId ),
-        output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'">'+title+'</a>';
+        output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'" target="_top">'+title+'</a>';
 
     if( lastEditTimestamp != "" ) {
         var localDate_long = convertUTCDateToLocalDate( new Date(lastEditTimestamp) ),
@@ -439,8 +457,8 @@ function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_so
 
     var domainIcon = '<img class="mdb-domainIcon" src="https://www.google.com/s2/favicons?sz=64&domain='+playerUrl_domain+'">';
 
-    link += '<a href="'+playerUrl_clean+'" class="mdb-domainIconLink">'+domainIcon+'</a>';
-    link += '<a href="'+playerUrl_clean+'" class="mdb-actualPlayerLink" data-urlwithvariant="'+playerUrl+'">' + playerUrl_clean + '</a>'; // do not shorten link text (for copy-paste)
+    link += '<a href="'+playerUrl_clean+'" class="mdb-domainIconLink" target="_top">'+domainIcon+'</a>';
+    link += '<a href="'+playerUrl_clean+'" class="mdb-actualPlayerLink" data-urlwithvariant="'+playerUrl+'" target="_top">' + playerUrl_clean + '</a>'; // do not shorten link text (for copy-paste)
 
     log( "urlIsTidSubmitCompatible( playerUrl ): " + urlIsTidSubmitCompatible( playerUrl ) )
 
@@ -1234,7 +1252,7 @@ function toolkit_addTidLink( playerUrl, title ) {
                     logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                     if( trackidurl ) {
-                        li_tidLink_out += '<a href="'+trackidurl+'">This player exists on TrackId.net</a>';
+                        li_tidLink_out += '<a href="'+trackidurl+'" target="_top">This player exists on TrackId.net</a>';
                     }
 
                     if( lastCheckedAgainstMixesDB ) {
