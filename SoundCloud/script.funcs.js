@@ -327,10 +327,28 @@ function mdbTitle_findDate( text, refIso ) {
                 ];
             }
         },
-        // Deliberately NO month-only ("August 2026") or year-only ("1998") patterns here.
-        // Those are not dates in a SoundCloud title, they are part of the mix's NAME
-        // ("House Set August 2026"), and we have an exact upload date to use instead. Reading
-        // them as the date would both lose a day and cut a word out of the title.
+        // "Mar 2026" / "March 2026" - but ONLY as a group of its own, i.e. with a separator
+        // or the end of the title on both sides. That is the whole difference between
+        //   "Adriana Lopez at RAW x Monnom Black | Mar 2026"  -> the date, 2026-03-XX
+        //   "House Set August 2026 - Simeon Sarfati"          -> part of the mix's NAME
+        // The day is unknown, so the title carries MixesDB's "XX" for it while the scoring
+        // uses the 1st - that is what the iso/out split in a candidate is for.
+        {
+            name: "monthYearGroup",
+            re: new RegExp( "(^|[" + mdbTitle_sepInner + "]+\\s*)([a-zäöü]{3,9})\\.?\\s+((?:19|20)\\d{2})(?!\\d)\\s*(?=[" + mdbTitle_sepInner + "]|$)", "gi" ),
+            build: function( m ) {
+                var month = mdbTitle_monthFromName( m[2] );
+                if( !month || !mdbTitle_isValidYmd( +m[3], month, 1 ) ) return [];
+
+                return [ {
+                    iso: m[3] + "-" + mdbTitle_pad( month ) + "-01",
+                    out: m[3] + "-" + mdbTitle_pad( month ) + "-XX"
+                } ];
+            }
+        }
+        // Deliberately NO year-only ("1998") pattern here, and no month-year inside a bit of
+        // the title: those are part of the mix's NAME, and we have an exact upload date to use
+        // instead. Reading them as the date would both lose a day and cut a word out.
     ];
 
     for( var p = 0; p < patterns.length; p++ ) {
@@ -569,6 +587,18 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
         index = m.index + lead,
         length = m[0].length - lead;
 
+    // How the TITLE spells the channel name. A channel name in ALL CAPS is shouted the same
+    // way a title is, so it says nothing about the spelling: the title wins there.
+    //   channel "DIRTYBIRD" + "Dirtybird Radio 540"  ->  "Dirtybird Radio 540"
+    // Any other channel spelling is the brand's own and keeps its case, which is what makes
+    // "Trommel.251" on the channel "trommel" come out as "trommel.251".
+    var shownAs = text.substr( index, show.length );
+
+    if( shownAs !== show && show === show.toUpperCase() && show !== show.toLowerCase() ) {
+        logVar( "mdbTitle_takeShowOutOfTitle: channel is all caps, title spelling wins", show + " -> " + shownAs );
+        result.show = shownAs;
+    }
+
     // Both sides of an "@" are off limits, because there the name is not a show:
     // - "Ruf Dug @ Somewhere" on the channel "Ruf Dug" - the channel name is the ARTIST,
     //   cutting it would promote the venue to artist ("- Somewhere - Ruf Dug")
@@ -645,6 +675,107 @@ function mdbTitle_takeExtraArtists( text ) {
     return result;
 }
 
+// mdbTitle_seriesScore
+// How much a bit of the title looks like a series rather than an artist name. A series WORD
+// outweighs a bare number, which is what tells "IT.podcast.s15e06" (podcast + digits) from
+// "Surgeon & Erika closing Return to the Source 2026" (digits only, and a year at that).
+function mdbTitle_seriesScore( part ) {
+    var score = 0;
+
+    if( /\b(podcast|radio|radioshow|show|sessions|series|cast|fm|mix|mixtape)\b/i.test( part ) ) score += 2;
+    if( /\d/.test( part ) ) score += 1;
+
+    return score;
+}
+
+// mdbTitle_wordListAlternation
+// "at"/"x"/... -> the escaped "at|x" body of a regex alternation.
+function mdbTitle_wordListAlternation( list ) {
+    var alternatives = [];
+
+    for( var i = 0; i < list.length; i++ ) {
+        alternatives.push( mdbTitle_escapeRe( list[i] ) );
+    }
+
+    return alternatives.join( "|" );
+}
+
+// mdbTitle_applyJoiners
+// Rewrites the joiners of Help:Add_a_new_mix_page into the spelling MixesDB uses:
+//   "Surgeon x Erika"            -> "Surgeon & Erika"   (played together)
+//   "Adriana Lopez at Monnom"    -> "Adriana Lopez @ Monnom"
+// Done on the whole title before anything is split up, so the "@" is already in place when
+// the venue rules further down look for it.
+function mdbTitle_applyJoiners( text ) {
+    var venue = ( typeof scVenueConnectors !== "undefined" && scVenueConnectors ) ? scVenueConnectors : [],
+        together = ( typeof scTogetherArtistJoiners !== "undefined" && scTogetherArtistJoiners ) ? scTogetherArtistJoiners : [];
+
+    // The venue first: an "x" behind an "@" belongs to the venue name and must not become "&".
+    // Two words have to stand in front of the connector, inside its own bit of the title -
+    // that is what makes it a NAME at a place ("Adriana Lopez at RAW") rather than an ordinary
+    // English phrase ("Look at Me", "Live at Berghain", where "at" is just a preposition).
+    if( venue.length ) {
+        var word = "[^\\s" + mdbTitle_sepInner + "]+",
+            venueRe = new RegExp( "(" + word + "\\s+" + word + ")\\s+(?:" +
+                                  mdbTitle_wordListAlternation( venue ) + ")(?=\\s)", "i" );
+
+        text = text.replace( venueRe, "$1 @" );
+    }
+
+    if( together.length ) {
+        var re = new RegExp( "(^|\\s)(?:" + mdbTitle_wordListAlternation( together ) + ")(?=\\s)", "gi" ),
+            at = text.indexOf( "@" );
+
+        // only in front of the venue - "RAW x Monnom Black" is two promoters, not two DJs
+        if( at === -1 ) {
+            text = text.replace( re, "$1&" );
+        } else {
+            text = text.slice( 0, at ).replace( re, "$1&" ) + text.slice( at );
+        }
+    }
+
+    return text;
+}
+
+// mdbTitle_takeGuestMarker
+// "RAW-ARTES GUEST MIX" -> the phrase is dropped and "RAW-ARTES" is remembered as the artist.
+// Returns { text, artist }. See scGuestMarkers in title_definitions.js.
+function mdbTitle_takeGuestMarker( text ) {
+    var list = ( typeof scGuestMarkers !== "undefined" && scGuestMarkers ) ? scGuestMarkers : [],
+        result = { text: text, artist: "" };
+
+    if( !list.length ) return result;
+
+    var alternatives = [];
+    for( var i = 0; i < list.length; i++ ) {
+        // "guest mix" also spelled "guest  mix" or "guestmix"
+        alternatives.push( mdbTitle_escapeRe( list[i] ).replace( /\s+/g, "\\s*" ) );
+    }
+
+    var re = new RegExp( "\\s*\\b(?:" + alternatives.join( "|" ) + ")\\b\\s*", "i" ),
+        m = re.exec( text );
+
+    if( !m ) return result;
+
+    // The artist is the BIT the phrase sits in, not the word in front of it: a hyphen counts
+    // as a separator everywhere else, and cutting at it would leave "RAW-" and "ARTES".
+    var before = text.slice( 0, m.index ),
+        bits = before.split( mdbTitle_bitSplitRe() );
+
+    result.artist = mdbTitle_cleanArtist( bits[ bits.length - 1 ] );
+    result.text = before + " " + text.slice( m.index + m[0].length );
+
+    return result;
+}
+
+// mdbTitle_bitSplitRe
+// Splits a title into the bits its separators mark out. A separator run needs whitespace on
+// both sides, so hyphenated names ("RAW-ARTES", "пo-русски") stay in one piece. The colon is
+// the exception: it is written onto the word in front of it and never turns up inside one.
+function mdbTitle_bitSplitRe() {
+    return new RegExp( "(?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+", "g" );
+}
+
 // mdbTitle_joinArtists
 // First artist + the ones found behind "w/", with the joiner from title_definitions.js.
 function mdbTitle_joinArtists( artist, extraArtists ) {
@@ -658,15 +789,23 @@ function mdbTitle_joinArtists( artist, extraArtists ) {
 // Uppercases the first CASED character, so "(no" becomes "(No" and a leading bracket or
 // quote does not swallow the capital. Works on any alphabet - a character is a letter when
 // its upper and lower form differ.
+// A hyphen starts a new part of the name, so both halves are capitalised: "RAW-ARTES" is
+// "Raw-Artes", never "Raw-artes".
 function mdbTitle_capitalizeFirst( word ) {
-    for( var i = 0; i < word.length; i++ ) {
-        var c = word.charAt( i );
+    var parts = word.split( "-" );
 
-        if( c.toLowerCase() !== c.toUpperCase() ) {
-            return word.slice( 0, i ) + c.toUpperCase() + word.slice( i + 1 );
+    for( var p = 0; p < parts.length; p++ ) {
+        for( var i = 0; i < parts[p].length; i++ ) {
+            var c = parts[p].charAt( i );
+
+            if( c.toLowerCase() !== c.toUpperCase() ) {
+                parts[p] = parts[p].slice( 0, i ) + c.toUpperCase() + parts[p].slice( i + 1 );
+                break;
+            }
         }
     }
-    return word;
+
+    return parts.join( "-" );
 }
 
 // mdbTitle_hasVowel
@@ -864,6 +1003,26 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             conf.drop( 5, "the artists behind \"w/\" were joined with \",\" (played after another) - use \" & \" if they played together" );
         }
 
+        // 3c) MixesDB joiners: "x" between artists becomes "&", "at" in front of a place
+        // becomes "@". Both change what the rest of the parser sees, so they run early.
+        var joined = mdbTitle_applyJoiners( rest );
+
+        if( joined !== rest ) {
+            logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined );
+            conf.drop( 5, "a joiner was read out of the title (\"x\" as \"&\", \"at\" as \"@\") - check it against the recording" );
+            rest = joined;
+        }
+
+        // 3d) "<name> guest mix" - the name in front of it is the artist, and the phrase goes
+        var guest = mdbTitle_takeGuestMarker( rest ),
+            guestArtist = guest.artist;
+
+        rest = guest.text;
+
+        if( guestArtist ) {
+            logVar( "guest artist", guestArtist );
+        }
+
         // 4) take the show name out of the title before looking for an episode, so
         // "HATE Podcast 496 - Fadi Mohem" leaves "496 - Fadi Mohem" and not "HATE - ..."
         var restWithShow = rest, // kept for the "title was nothing but the show" fallback below
@@ -881,8 +1040,9 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // "fabric presents Bonobo" is the exception: a connector right behind the channel name
         // makes it the PRESENTER, not the artist - the artist is what follows it.
         // A number written onto the channel name ("Trommel.251") rules this branch out as
-        // well: a name that carries an episode number is a series, not the artist.
-        if( taken.taken && !taken.extended && !taken.episode && !isMappedChannel &&
+        // well: a name that carries an episode number is a series, not the artist. So does a
+        // guest marker, which already named the artist and it is not the channel.
+        if( taken.taken && !taken.extended && !taken.episode && !guestArtist && !isMappedChannel &&
             !/^\s*(?:presents?|pres\.?|w\/|with|feat\.?|ft\.?)\b/i.test( taken.text ) ) {
 
             var entity = mdbTitle_cleanArtist( taken.text );
@@ -901,7 +1061,8 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                 conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
             }
 
-            return mdbTitle_result( date, show, entity, null, promoMix, extraArtists, conf );
+            // taken.show, not show: the title may spell an all-caps channel name better
+            return mdbTitle_result( date, taken.show, entity, null, promoMix, extraArtists, conf );
         }
 
         rest = taken.text;
@@ -960,29 +1121,37 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         //
         // Conditions are deliberately narrow, since this overrides the channel entirely:
         // - not a mapped channel and the channel name not found in the title (4b/5b own those)
-        // - EXACTLY one separator run, with whitespace on both sides, so hyphenated words
-        //   ("пo-русски") and multi-part titles are left alone
+        // - EXACTLY one separator run, so hyphenated words and multi-part titles are left
+        //   alone. A run needs whitespace on both sides, with the colon as the exception:
+        //   it is written onto the word in front of it ("IT.podcast.s15e06: Surgeon x Erika")
+        //   and never turns up inside one.
         // - no "@" anywhere: that is a venue/event title, where the joiner rules differ
         if( !isMappedChannel && !taken.taken && !showFromEpisodeRule && !episode &&
             rest.indexOf( "@" ) === -1 ) {
 
-            var splitRe = new RegExp( "\\s+[" + mdbTitle_sepInner + "]+\\s+", "g" ),
-                splitParts = rest.split( splitRe );
+            var splitParts = rest.split( mdbTitle_bitSplitRe() );
 
             if( splitParts.length === 2 ) {
                 var leftPart = mdbTitle_cleanArtist( splitParts[0] ),
                     rightPart = mdbTitle_cleanArtist( splitParts[1] ),
-                    seriesRe = /\d|\b(podcast|radio|radioshow|show|sessions|series|cast|fm|mix|mixtape)\b/i,
-                    leftIsShow = seriesRe.test( leftPart ),
-                    rightIsShow = seriesRe.test( rightPart );
+                    leftScore = mdbTitle_seriesScore( leftPart ),
+                    rightScore = mdbTitle_seriesScore( rightPart );
 
                 if( leftPart && rightPart ) {
                     var splitArtist, splitEntity, splitPromo;
 
-                    if( leftIsShow !== rightIsShow ) {
-                        // exactly one side looks like a series - that one is the show
-                        splitArtist = leftIsShow ? rightPart : leftPart;
-                        splitEntity = leftIsShow ? leftPart : rightPart;
+                    // A bit named as the guest artist is the artist, whatever else it looks
+                    // like: "RAW-ARTES GUEST MIX" would otherwise read as a series of its own.
+                    if( guestArtist && mdbTitle_normalizeCompare( leftPart ) === mdbTitle_normalizeCompare( guestArtist ) ) {
+                        leftScore = -1;
+                    } else if( guestArtist && mdbTitle_normalizeCompare( rightPart ) === mdbTitle_normalizeCompare( guestArtist ) ) {
+                        rightScore = -1;
+                    }
+
+                    if( leftScore !== rightScore ) {
+                        // the side that looks more like a series is the show
+                        splitArtist = leftScore > rightScore ? rightPart : leftPart;
+                        splitEntity = leftScore > rightScore ? leftPart : rightPart;
                         splitPromo = false;
                     } else {
                         splitArtist = leftPart;
@@ -1015,6 +1184,21 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             conf.drop( 5, "the show name comes from the channel name found in the title" );
         } else if( show ) {
             conf.drop( 20, "the channel \"" + show + "\" is not in the known-shows list - it may not be a show name at all" );
+        }
+
+        // 5d) The channel hosting its own party: "Adriana Lopez @ RAW x Monnom Black" on the
+        // channel "RAW". The channel is the promoter, which the "@" already says, so its name
+        // is dropped from the venue and only the place it names is kept.
+        if( show && rest.indexOf( "@" ) !== -1 ) {
+            var promoterRe = new RegExp(
+                    "(@\\s*)" + mdbTitle_escapeRe( show ) + "\\s*(?:&|x)\\s+", "i" ),
+                withoutPromoter = rest.replace( promoterRe, "$1" );
+
+            if( withoutPromoter !== rest ) {
+                logVar( "buildMixesdbTitle: channel is the promoter of the venue, dropped", show );
+                conf.drop( 5, "the channel was dropped from the venue name - it is the promoter, which \"@\" already says" );
+                rest = withoutPromoter;
+            }
         }
 
         // 6) whatever is left is the artist
@@ -1065,6 +1249,14 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             logVar( "buildMixesdbTitle: dropping the show, it is the artist itself", show );
             show = "";
             conf.drop( 5, "the channel is the artist, so no show/venue was added" );
+
+        } else if( show && artist.indexOf( "@" ) !== -1 ) {
+            // The venue is already IN the artist group, so the channel must not be added as a
+            // third one: "Adriana Lopez @ Monnom Black" needs no "- RAW" behind it. Unlike the
+            // containment test above this holds however short the channel name is.
+            logVar( "buildMixesdbTitle: dropping the show, the venue is already in the artist", show );
+            show = "";
+            conf.drop( 5, "the title names a venue with \"@\", so the channel was not added as a show" );
         }
 
         // 7) assemble
