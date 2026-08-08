@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.15
+// @version      2026.08.08.16
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1281,7 +1281,17 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
  * collapses the description via React state, so the "Show more" button has to be
  * clicked. Its class names are generated (mui-*) and useless as a selector, so match
  * it by its exact label - "Show more comments" and friends must not be clicked.
+ *
+ * The label is UI text, not an aria-label, so unlike "Track header" it IS translated by
+ * SoundCloud's own i18n - a German-locale account renders "Mehr anzeigen"/"Weniger
+ * anzeigen" instead of "Show more"/"Show less". A reporter on German Windows saw the
+ * description never auto-expand; their screenshot showed the untranslated button text,
+ * confirming the exact-English-string match was the cause. Both label lists below need a
+ * new entry for every additional locale MixesDB wants supported.
  */
+var showMoreLabels = [ "Show more", "Mehr anzeigen" ];
+var showLessLabels = [ "Show less", "Weniger anzeigen" ];
+
 if( isWebiFrame ) {
     // One click attempt is not enough: the button ships in the server-rendered HTML of the
     // frame, so a click that lands before React has hydrated it is swallowed without effect -
@@ -1300,20 +1310,29 @@ if( isWebiFrame ) {
     let descriptionExpandedOnce = false;
 
     // Confirms the expand actually took effect (not just that we clicked). Once SC ever shows
-    // "Show less", the description has been opened for this page view - after that, leave the
-    // user free to collapse/expand at will.
-    waitForKeyElements('button:contains("Show less")', function() {
+    // "Show less"/"Weniger anzeigen", the description has been opened for this page view -
+    // after that, leave the user free to collapse/expand at will.
+    var showLessSelector = showLessLabels.map(function( label ) {
+        return 'button:contains("' + label + '")';
+    }).join(", ");
+
+    waitForKeyElements( showLessSelector, function() {
         descriptionExpandedOnce = true;
         return false;
     });
 
-    waitForKeyElements('button:contains("Show more")', function( jNode ) {
+    var showMoreSelector = showMoreLabels.map(function( label ) {
+        return 'button:contains("' + label + '")';
+    }).join(", ");
+
+    waitForKeyElements( showMoreSelector, function( jNode ) {
         if( descriptionExpandedOnce ) {
             return false;
         }
 
-        // "Show more comments" and friends must not be clicked - drop those nodes for good
-        if( jNode.text().trim() != "Show more" ) {
+        // "Show more comments"/"Mehr anzeigen" (of comments) and friends must not be
+        // clicked - drop those nodes for good unless the label is an exact match
+        if( showMoreLabels.indexOf( jNode.text().trim() ) === -1 ) {
             return false;
         }
 
@@ -1374,6 +1393,16 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.08.16
+ * ROOT CAUSE FOUND for "description does not auto-expand" report from a German-locale
+ * Windows user (worked fine for other testers): the description force-expand matched the
+ * "Show more"/"Show less" button by its exact English label text, but SoundCloud
+ * translates that visible label per account locale - German renders "Mehr anzeigen"/
+ * "Weniger anzeigen" instead. Unlike the "Track header" aria-label (an internal,
+ * untranslated attribute - see .15 below), this is real UI copy and IS localized. Added
+ * showMoreLabels/showLessLabels arrays and match against either language; see CLAUDE.md
+ * for the standing rule this establishes.
  *
  * 2026.08.07.15
  * ROOT CAUSE FOUND for "userscript loads fine, no elements on the new layout" reports:
