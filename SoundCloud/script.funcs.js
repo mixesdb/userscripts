@@ -211,23 +211,13 @@ function mdbTitle_expandYear( yy ) {
     return n <= cutoff ? 2000 + n : 1900 + n;
 }
 
-// mdbTitle_candidateYmd / _candidateYm / _candidateY
-// A candidate carries both the string that goes into the title (out) and a full date used
-// only for scoring (iso), so YYYY-MM and YYYY can be scored against the creation date too.
+// mdbTitle_candidateYmd
+// A candidate carries the date twice - once for scoring, once for the title. They are the
+// same today, but keeping them apart leaves room for coarser precisions later on.
 function mdbTitle_candidateYmd( y, m, d ) {
     if( !mdbTitle_isValidYmd( y, m, d ) ) return null;
     var iso = y + "-" + mdbTitle_pad( m ) + "-" + mdbTitle_pad( d );
     return { iso: iso, out: iso };
-}
-
-function mdbTitle_candidateYm( y, m ) {
-    if( !y || m < 1 || m > 12 || y < 1950 || y > new Date().getFullYear() + 1 ) return null;
-    return { iso: y + "-" + mdbTitle_pad( m ) + "-01", out: y + "-" + mdbTitle_pad( m ) };
-}
-
-function mdbTitle_candidateY( y ) {
-    if( !y || y < 1950 || y > new Date().getFullYear() + 1 ) return null;
-    return { iso: y + "-07-01", out: String( y ) };
 }
 
 // mdbTitle_monthFromName
@@ -331,30 +321,10 @@ function mdbTitle_findDate( text, refIso ) {
                 ];
             }
         },
-        // April 2026 -> month precision, which MixesDB allows as YYYY-MM
-        {
-            name: "textualMY",
-            re: /(^|[^\w])([a-zäöü]{3,9})\.?\s+((?:19|20)\d{2})(?!\d)/gi,
-            build: function( m ) {
-                return [ mdbTitle_candidateYm( +m[3], mdbTitle_monthFromName( m[2] ) ) ];
-            }
-        },
-        // 2026-04
-        {
-            name: "isoYM",
-            re: /(^|[^\d])((?:19|20)\d{2})[-.\/](\d{1,2})(?!\d)/g,
-            build: function( m ) {
-                return [ mdbTitle_candidateYm( +m[2], +m[3] ) ];
-            }
-        },
-        // bare year. The [^\w.#] guard keeps it off episode numbers like "RA.2024" or "#1998"
-        {
-            name: "year",
-            re: /(^|[^\w.#])((?:19|20)\d{2})(?!\d)/g,
-            build: function( m ) {
-                return [ mdbTitle_candidateY( +m[2] ) ];
-            }
-        }
+        // Deliberately NO month-only ("August 2026") or year-only ("1998") patterns here.
+        // Those are not dates in a SoundCloud title, they are part of the mix's NAME
+        // ("House Set August 2026"), and we have an exact upload date to use instead. Reading
+        // them as the date would both lose a day and cut a word out of the title.
     ];
 
     for( var p = 0; p < patterns.length; p++ ) {
@@ -475,7 +445,7 @@ var mdbTitle_showSuffixWords = [
 // Removes one occurrence of the show name from the title, so an episode number behind it can
 // be found on its own. Returns the shortened text and the (possibly extended) show name.
 function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
-    var result = { text: text, show: show, taken: false };
+    var result = { text: text, show: show, taken: false, extended: false };
 
     if( !show ) return result;
 
@@ -502,6 +472,7 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
 
     if( allowExtend && m[2] ) {
         result.show = ( show + " " + m[2].trim() ).replace( /\s+/g, " " );
+        result.extended = true;
     }
     result.text = mdbTitle_cut( text, index, length );
     result.taken = true;
@@ -610,7 +581,35 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // 4) take the show name out of the title before looking for an episode, so
         // "HATE Podcast 496 - Fadi Mohem" leaves "496 - Fadi Mohem" and not "HATE - ..."
         var restWithShow = rest, // kept for the "title was nothing but the show" fallback below
-            taken = mdbTitle_takeShowOutOfTitle( rest, show, !isMappedChannel );
+            taken = mdbTitle_takeShowOutOfTitle( rest, show, !isMappedChannel ),
+            promoMix = false;
+
+        // 4b) The channel name is in the title, but PLAIN - no "Podcast"/"Radio"/... behind it
+        // and no entry in scUsernameConversions saying it is a show. Then the channel is the
+        // ARTIST and the remaining title is the mix's own name:
+        //   "House Set August 2026 - Simeon Sarfati" on the channel "Simeon Sarfati"
+        //   -> 2026-08-03 - Simeon Sarfati - House Set August 2026 (Promo Mix)
+        // Reading it the other way round would make "House Set" the artist and the person the
+        // show. The episode step is skipped here on purpose: the entity is the mix's name and
+        // has to stay verbatim ("Weekly Mix 12" must not become "Weekly 12").
+        // "fabric presents Bonobo" is the exception: a connector right behind the channel name
+        // makes it the PRESENTER, not the artist - the artist is what follows it.
+        if( taken.taken && !taken.extended && !isMappedChannel &&
+            !/^\s*(?:presents?|pres\.?|w\/|with|feat\.?|ft\.?)\b/i.test( taken.text ) ) {
+
+            var entity = mdbTitle_cleanArtist( taken.text );
+
+            logVar( "buildMixesdbTitle: channel name is the artist, entity from the title", entity );
+
+            // a self-released mix under its own name is a promo mix - but not when the entity
+            // names a venue/event (@) or is recognisably a series
+            promoMix = !!entity &&
+                       entity.indexOf( "@" ) === -1 &&
+                       !/\b(podcast|radio|radioshow|show|sessions|series|cast|fm)\b/i.test( entity ) &&
+                       !/promo\s*mix/i.test( entity );
+
+            return mdbTitle_assemble( date, show, entity, null, promoMix );
+        }
 
         rest = taken.text;
         show = taken.show;
@@ -684,27 +683,41 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         }
 
         // 7) assemble
-        var out = date + " - " + artist;
-
-        if( show ) {
-            out += " - " + show;
-
-            if( episode ) {
-                // plain number appended ("HATE Podcast 496"), alphanumeric ID bracketed
-                // ("RA Podcast (RA.971)") - both taken from how MixesDB spells them
-                out += episode.kind === "number" ? " " + episode.text : " (" + episode.text + ")";
-            }
-        } else if( episode && episode.kind === "id" ) {
-            out += " (" + episode.text + ")";
-        }
-
-        logVar( "buildMixesdbTitle result", out );
-        return out;
+        return mdbTitle_assemble( date, artist, show, episode, false );
 
     } catch( e ) {
         log( "buildMixesdbTitle FAILED: " + e );
         return "";
     }
+}
+
+// mdbTitle_assemble
+// "YYYY-MM-DD - Artist[ - Show[ NNN|(ID)]][ (Promo Mix)]"
+function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
+    if( !date || !artist ) return "";
+
+    var out = date + " - " + artist;
+
+    if( show ) {
+        out += " - " + show;
+
+        if( episode ) {
+            // plain number appended ("HATE Podcast 496"), alphanumeric ID bracketed
+            // ("RA Podcast (RA.971)") - both taken from how MixesDB spells them
+            out += episode.kind === "number" ? " " + episode.text : " (" + episode.text + ")";
+        }
+    } else if( episode && episode.kind === "id" ) {
+        out += " (" + episode.text + ")";
+    }
+
+    // Help:Add_a_new_mix_page - a homemade/self-released mix goes into Category:Promo Mix,
+    // and the title marks it: "2025-12-09 - Tau Car - Printemps 66 (Promo Mix)"
+    if( promoMix ) {
+        out += " (Promo Mix)";
+    }
+
+    logVar( "mdbTitle_assemble result", out );
+    return out;
 }
 
 
@@ -782,6 +795,8 @@ function mdbTitleInput_add() {
 
     logFunc( "mdbTitleInput_add" );
 
+    // No .mono class here on purpose: global.css sets ".mono { font-size: 12px !important }",
+    // which no ID selector can beat. The monospace font comes from #mdb-mixesdbTitle instead.
     var wrapper = $("<div>").attr( "id", "mdb-mixesdbTitle-wrapper" ),
         input = $("<input>", {
             type: "text",
@@ -789,7 +804,7 @@ function mdbTitleInput_add() {
             spellcheck: "false",
             autocomplete: "off",
             title: "Suggested MixesDB mix page title - editable, please check it before using it"
-        }).addClass( "mono" ),
+        }),
         beta = $("<span>")
             .attr( "id", "mdb-mixesdbTitle-beta" )
             .attr( "title", "Guessed from the SoundCloud title, date and channel name - it can be wrong. See Help:Add a new mix page." )
@@ -802,7 +817,20 @@ function mdbTitleInput_add() {
     // visible without a horizontal scroll. Floored, an empty-looking 1-char box is useless.
     input.attr( "size", Math.max( 20, mdbTitle_suggestion.length ) );
 
-    wrapper.append( input, beta );
+    // input first, so appendMdbCopyTextButton() has a parent to insert the button into -
+    // it uses .after(), which is a no-op on a detached node. Order: input, copy, beta.
+    wrapper.append( input );
+
+    appendMdbCopyTextButton( input, {
+        ariaLabel: "Copy the suggested MixesDB page title",
+        buttonTitle: "Copy the suggested MixesDB page title",
+        copiedMessage: function() {
+            return "Page title copied!";
+        },
+        processedClass: "mdb-mixesdbTitle-copy-processed"
+    });
+
+    wrapper.append( beta );
     headline.after( wrapper );
 }
 
