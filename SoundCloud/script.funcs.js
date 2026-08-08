@@ -403,7 +403,10 @@ function mdbTitle_confidence() {
 
 // mdbTitle_findEpisode
 // Returns { text, kind: "id"|"number", index, length } or null.
-function mdbTitle_findEpisode( text ) {
+// entityKnown says the entity is already settled (its name was found in the title, or the
+// channel is mapped) - a number standing alone between separators is then its episode number
+// and not a group of its own. See the "three groups" block in title_definitions.js.
+function mdbTitle_findEpisode( text, entityKnown ) {
     var m;
 
     // "RA.971", "RA. 971" - letters, dot, digits. Episode words are excluded, so "Vol.5"
@@ -474,6 +477,22 @@ function mdbTitle_findEpisode( text ) {
         };
     }
 
+    // The same number, but at the END of what is left, e.g. "Planet Melis - Techno Germany
+    // Podcast 226" leaves "Planet Melis -  226" once the show name is cut out. Only with a
+    // known entity, since without one a lone number group can just as well be a year
+    // ("Some Mix - 1998"), and turning that into an episode would be worse than leaving it.
+    if( entityKnown ) {
+        m = new RegExp( "(^|[" + mdbTitle_sepInner + "]+)\\s*(\\d{1,5})(?!\\d)\\s*(?:[" + mdbTitle_sepInner + "]+|$)" ).exec( text );
+        if( m ) {
+            return {
+                text: String( parseInt( m[2], 10 ) ),
+                kind: "number",
+                index: m.index,
+                length: m[0].length
+            };
+        }
+    }
+
     return null;
 }
 
@@ -529,6 +548,54 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
     result.taken = true;
 
     return result;
+}
+
+// mdbTitle_takeExtraArtists
+// Pulls "w/ ..."/"with ..." out of the title: those are further artists and belong into the
+// ARTIST group, not into a group of their own (see title_definitions.js).
+//   "Rinse France Show - Slowciety w/ Asa 808"
+//   -> { text: "Rinse France Show - Slowciety", artists: ["Asa 808"] }
+// A connector at the very START of the text is left alone - there it introduces the first
+// artist ("w/ Ruf Dug"), which mdbTitle_cleanArtist strips on its own.
+function mdbTitle_takeExtraArtists( text ) {
+    var list = ( typeof scExtraArtistConnectors !== "undefined" && scExtraArtistConnectors ) ? scExtraArtistConnectors : [],
+        result = { text: text, artists: [] };
+
+    if( !list.length ) return result;
+
+    var alternatives = [];
+    for( var i = 0; i < list.length; i++ ) {
+        // a connector ending in a letter needs a word boundary ("with" must not match
+        // "without"); one ending in "/" or "." is its own boundary
+        alternatives.push( mdbTitle_escapeRe( list[i] ) + ( /\w$/.test( list[i] ) ? "\\b" : "" ) );
+    }
+
+    // <connector> <names>, up to the next separator, the next connector or the end of the
+    // text. The next connector has to end the capture explicitly: "w/" carries a "/", which
+    // IS a separator, so "Asa 808 w/ Third Guy" would otherwise capture "Asa 808 w".
+    // The leading \s+ is what keeps a connector at position 0 out of it.
+    var connectors = alternatives.join( "|" ),
+        re = new RegExp( "\\s+(?:" + connectors + ")\\s*((?:(?!\\s+(?:" + connectors + "))[^" + mdbTitle_sepInner + "])+)", "i" ),
+        m;
+
+    // one occurrence per pass - each pass shortens the text, so this always terminates
+    while( ( m = re.exec( result.text ) ) !== null ) {
+        var names = mdbTitle_cleanArtist( m[1] );
+
+        result.text = mdbTitle_cut( result.text, m.index, m[0].length );
+        if( names ) result.artists.push( names );
+    }
+
+    return result;
+}
+
+// mdbTitle_joinArtists
+// First artist + the ones found behind "w/", with the joiner from title_definitions.js.
+function mdbTitle_joinArtists( artist, extraArtists ) {
+    if( !artist || !extraArtists || !extraArtists.length ) return artist;
+
+    var joiner = ( typeof scExtraArtistJoiner !== "undefined" && scExtraArtistJoiner ) ? scExtraArtistJoiner : ", ";
+    return [ artist ].concat( extraArtists ).join( joiner );
 }
 
 // mdbTitle_cleanArtist
@@ -645,6 +712,20 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
 
         if( !date ) return nothing;
 
+        // 3b) further artists behind "w/"/"with". Taken out here, before anything decides what
+        // is artist and what is entity, so they cannot end up as a group of their own:
+        //   "Rinse France Show - Slowciety w/ Asa 808 - 07/03/2019"
+        //   -> artist "Slowciety, Asa 808", entity "Rinse France Show"
+        var extra = mdbTitle_takeExtraArtists( rest ),
+            extraArtists = extra.artists;
+
+        rest = extra.text;
+
+        if( extraArtists.length ) {
+            logVar( "extra artists", extraArtists.join( " | " ) );
+            conf.drop( 5, "the artists behind \"w/\" were joined with \",\" (played after another) - use \" & \" if they played together" );
+        }
+
         // 4) take the show name out of the title before looking for an episode, so
         // "HATE Podcast 496 - Fadi Mohem" leaves "496 - Fadi Mohem" and not "HATE - ..."
         var restWithShow = rest, // kept for the "title was nothing but the show" fallback below
@@ -680,11 +761,7 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                 conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
             }
 
-            return {
-                title: mdbTitle_assemble( date, show, entity, null, promoMix ),
-                confidence: conf.percent(),
-                reasons: conf.reasons
-            };
+            return mdbTitle_result( date, show, entity, null, promoMix, extraArtists, conf );
         }
 
         rest = taken.text;
@@ -694,8 +771,9 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             rest = mdbTitle_takeShowOutOfTitle( rest, username, false ).text;
         }
 
-        // 5) episode
-        var episode = mdbTitle_findEpisode( rest ),
+        // 5) episode. The entity is settled whenever its name was found in the title or the
+        // channel is mapped - a number left over on its own is then its episode number.
+        var episode = mdbTitle_findEpisode( rest, taken.taken || isMappedChannel ),
             showFromEpisodeRule = false,
             beforeEpisode = "",
             afterEpisode = "";
@@ -773,11 +851,7 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                         conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
                     }
 
-                    return {
-                        title: mdbTitle_assemble( date, splitArtist, splitEntity, null, splitPromo ),
-                        confidence: conf.percent(),
-                        reasons: conf.reasons
-                    };
+                    return mdbTitle_result( date, splitArtist, splitEntity, null, splitPromo, extraArtists, conf );
                 }
             }
         }
@@ -848,11 +922,7 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         }
 
         // 7) assemble
-        return {
-            title: mdbTitle_assemble( date, artist, show, episode, false ),
-            confidence: conf.percent(),
-            reasons: conf.reasons
-        };
+        return mdbTitle_result( date, artist, show, episode, false, extraArtists, conf );
 
     } catch( e ) {
         log( "buildMixesdbTitle FAILED: " + e );
@@ -887,6 +957,31 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
 
     logVar( "mdbTitle_assemble result", out );
     return out;
+}
+
+// mdbTitle_result
+// The single exit of buildMixesdbTitle: appends the extra artists, assembles, and enforces
+// the three-group rule "Date - Artist - Entity" (see title_definitions.js). A 4th group is
+// never a richer title, it always means a part of the SoundCloud title was misread - it
+// cannot be repaired blindly here, so it is flagged hard instead.
+function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists, conf ) {
+    var title = mdbTitle_assemble( date, mdbTitle_joinArtists( artist, extraArtists ), entity, episode, promoMix );
+
+    if( title ) {
+        // the date's own hyphens carry no spaces, so this only counts real groups
+        var groups = title.split( " - " ).length;
+
+        if( groups > 3 ) {
+            logVar( "mdbTitle_result: too many groups", groups + " in \"" + title + "\"" );
+            conf.drop( 25, "the suggestion has " + groups + " groups instead of \"Date - Artist - Entity\" - part of the title was not understood" );
+        }
+    }
+
+    return {
+        title: title,
+        confidence: conf.percent(),
+        reasons: conf.reasons
+    };
 }
 
 
