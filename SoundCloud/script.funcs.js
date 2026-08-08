@@ -938,8 +938,8 @@ function mdbTitleInput_add() {
     // visible without a horizontal scroll. Floored, an empty-looking 1-char box is useless.
     input.attr( "size", Math.max( 20, mdbTitle_suggestion.length ) );
 
-    // input first, so appendMdbCopyTextButton() has a parent to insert the button into -
-    // it uses .after(), which is a no-op on a detached node. Order: input, copy, beta.
+    // input first, so appendMdbCopyTextButton() has a parent to insert the button into - it
+    // uses .after(), which is a no-op on a detached node. Order: input, copy, score, Create, beta.
     wrapper.append( input );
 
     appendMdbCopyTextButton( input, {
