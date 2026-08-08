@@ -795,6 +795,75 @@ function mdbTitle_bitSplitRe() {
     return new RegExp( "(?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+", "g" );
 }
 
+// mdbTitle_takeEventTitle
+// A live recording at an event: "<artists> | <event> <year> | Part 2 | <stage>".
+// Returns { artist, event, year, dropped } or null when the title is not one.
+function mdbTitle_takeEventTitle( text ) {
+    var eventWords = ( typeof scEventWords !== "undefined" && scEventWords ) ? scEventWords : [],
+        droppedPatterns = ( typeof scDroppedBitPatterns !== "undefined" && scDroppedBitPatterns ) ? scDroppedBitPatterns : [],
+        bits = text.split( mdbTitle_bitSplitRe() ),
+        kept = [],
+        dropped = 0,
+        i, j;
+
+    // one bit cannot hold both an artist and an event
+    if( !eventWords.length || bits.length < 2 ) return null;
+
+    for( i = 0; i < bits.length; i++ ) {
+        var bit = mdbTitle_cleanArtist( bits[i] ),
+            skip = false;
+
+        if( !bit ) continue;
+
+        for( j = 0; j < droppedPatterns.length; j++ ) {
+            droppedPatterns[j].lastIndex = 0;
+            if( droppedPatterns[j].test( bit ) ) { skip = true; break; }
+        }
+
+        if( skip ) {
+            dropped++;
+        } else {
+            kept.push( bit );
+        }
+    }
+
+    // "open air" is also written "open  air" - the replacement string is inserted verbatim,
+    // so it has to read "\s+" and not an escaped backslash
+    var eventRe = new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( eventWords ).replace( /\s+/g, "\\s+" ) + ")\\b", "i" ),
+        eventIndex = -1;
+
+    for( i = 0; i < kept.length; i++ ) {
+        if( eventRe.test( kept[i] ) ) { eventIndex = i; break; }
+    }
+
+    if( eventIndex === -1 ) return null;
+
+    // the first bit that is not the event names the artists
+    var artist = "";
+    for( i = 0; i < kept.length; i++ ) {
+        if( i !== eventIndex ) { artist = kept[i]; break; }
+    }
+
+    if( !artist ) return null;
+
+    // "Landjuweel Festival 2026" -> the event is "Landjuweel Festival", the year is the date
+    var event = kept[eventIndex],
+        year = "",
+        m = /^\s*((?:19|20)\d{2})\b\s*|\s*\b((?:19|20)\d{2})\s*$/.exec( event );
+
+    if( m ) {
+        year = m[1] || m[2];
+        event = ( event.slice( 0, m.index ) + " " + event.slice( m.index + m[0].length ) ).replace( /\s+/g, " " ).trim();
+    }
+
+    // An event is a PLACE, not a series. "Festival Mix 12 - Some DJ" carries the word but is a
+    // podcast: once the year is off, an event name has neither a series word nor a number left
+    // in it, while "Festival Mix 12" has both.
+    if( !event || mdbTitle_seriesScore( event ) > 0 ) return null;
+
+    return { artist: artist, event: event, year: year, dropped: dropped + ( kept.length - 2 ) };
+}
+
 // mdbTitle_joinArtists
 // First artist + the ones found behind "w/", with the joiner from title_definitions.js.
 function mdbTitle_joinArtists( artist, extraArtists ) {
@@ -982,7 +1051,11 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // carries none, since mix dates legitimately differ from the upload date.
         var refDate = createdAt || releaseDate || "",
             found = mdbTitle_findDate( rest, refDate ),
-            date = "";
+            date = "",
+            dateFromUpload = false,
+            // The upload date is right for most of what gets uploaded - a podcast episode goes
+            // up on its release day. It is wrong for an old set or a radio show uploaded later.
+            uploadDateReason = "no date in the SoundCloud title - using the upload date, which is not the mix date for an older recording";
 
         if( found ) {
             date = found.out;
@@ -1002,10 +1075,9 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         } else {
             // same preference the header's highlighted date uses: release date wins
             date = releaseDate || createdAt || "";
-            // The upload date is right for most of what gets uploaded - a podcast episode goes
-            // up on its release day. It is wrong for an old set or a radio show uploaded later,
-            // which is worth a real drop but not the biggest one in the file.
-            conf.drop( 15, "no date in the SoundCloud title - using the upload date, which is not the mix date for an older recording" );
+            // Charged further down, not here: an event title may still replace the upload date
+            // with the year it names, and would leave a reason behind that is not true.
+            dateFromUpload = true;
             logVar( "buildMixesdbTitle: no date in the title, falling back to", date );
         }
 
@@ -1059,6 +1131,35 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             return mdbTitle_result( date, extraArtists[0], extra.before, null, false, extraArtists.slice( 1 ), conf );
         }
 
+        // 3f) A live recording at an event: the event is the venue, the artists are the bit
+        // next to it, and "Part 2"/stage names are none of a mix page title's business.
+        // Runs before the channel is touched at all - "Leon Row & Shimon" must keep the
+        // "Shimon" that the channel of the same name would otherwise cut out of it.
+        var eventTitle = mdbTitle_takeEventTitle( rest );
+
+        if( eventTitle ) {
+            logVar( "buildMixesdbTitle: event title", eventTitle.artist + " @ " + eventTitle.event + " (" + eventTitle.year + ")" );
+
+            if( eventTitle.year && dateFromUpload ) {
+                // a festival set is uploaded whenever the recording is ready, so the upload
+                // date says nothing about when it was played - only the year is claimed
+                date = eventTitle.year;
+                conf.drop( 10, "only the year is known - the title names an event but no day, and the upload date is not when it was played" );
+            } else if( dateFromUpload ) {
+                conf.drop( 15, uploadDateReason );
+            } else if( eventTitle.year && date.slice( 0, 4 ) !== eventTitle.year ) {
+                conf.drop( 15, "the date in the title and the year of the event (" + eventTitle.year + ") do not match - one of them is misread" );
+            }
+
+            conf.drop( 10, "read as a live recording at an event - anything the title said about parts or stages was left out" );
+
+            return mdbTitle_result( date, eventTitle.artist + " @ " + eventTitle.event, "", null, false, [], conf );
+        }
+
+        if( dateFromUpload ) {
+            conf.drop( 15, uploadDateReason );
+        }
+
         // 4) take the show name out of the title before looking for an episode, so
         // "HATE Podcast 496 - Fadi Mohem" leaves "496 - Fadi Mohem" and not "HATE - ..."
         var restWithShow = rest, // kept for the "title was nothing but the show" fallback below
@@ -1092,9 +1193,16 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                        !/\b(podcast|radio|radioshow|show|sessions|series|cast|fm)\b/i.test( entity ) &&
                        !/promo\s*mix/i.test( entity );
 
-            conf.drop( 10, "artist and mix name were told apart by the channel name, not by the title itself" );
+            // No penalty for the split itself: the uploader's own name standing verbatim in
+            // their own title is the strongest confirmation of an artist there is - two
+            // independent sources agreeing - so this is the opposite of a guess. Which half is
+            // the artist is settled, which is exactly what the 5c split below has to guess at.
+            //
+            // That also carries the "(Promo Mix)" call: someone's own channel putting out a mix
+            // under a name of its own is the textbook case for it, so it costs half of what the
+            // same assumption costs in 5c, where the artist itself was only inferred.
             if( promoMix ) {
-                conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
+                conf.drop( 5, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
             }
 
             // taken.show, not show: the title may spell an all-caps channel name better

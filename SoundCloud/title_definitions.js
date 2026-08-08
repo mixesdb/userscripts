@@ -301,6 +301,48 @@ var scShowSuffixWords = [
 
 
 /*
+ * Live recordings at an event
+ *
+ * A festival title is not built like a podcast title. It lists things, bit by bit, and most of
+ * them are not part of a MixesDB title at all:
+ *
+ *     "Leon Row x Shimon | Landjuweel Festival 2026 | Part 2 | Bon Bon Vivant Stage"
+ *     ->  2026 - Leon Row & Shimon @ Landjuweel Festival
+ *
+ * - the bit naming an event (scEventWords) is the VENUE, so it joins the artist with "@" and
+ *   there is no third group - the same shape as "Adriana Lopez @ Monnom Black"
+ * - the first bit that is not the event names the artists
+ * - the YEAR is taken off the event name and used as the date (see below)
+ * - "Part 2", stage names and the like are dropped (scDroppedBitPatterns) - they say where in
+ *   a recording or where on a site something was played, which a mix page title does not
+ *
+ * The DATE of a festival gig is the one thing the upload date cannot give: a set played at a
+ * festival is uploaded whenever the recording is ready, days or months later. So when the
+ * title names no day, only the YEAR it does name is claimed - "2026", not "2026-08-07".
+ * A precise date written in the title still wins, and the event's year is then only used to
+ * check it: the two disagreeing means one of them was misread.
+ */
+var scEventWords = [
+    "festival", "fest", "open air", "openair", "weekender"
+];
+
+
+/*
+ * scDroppedBitPatterns
+ *
+ * Bits of an event title that never make it into a MixesDB title. Matched against a whole bit,
+ * so they cannot eat part of a name.
+ */
+var scDroppedBitPatterns = [
+    /^part\s*\.?\s*\d+$/i,
+    /^pt\s*\.?\s*\d+$/i,
+    /^day\s*\d+$/i,
+    /\bstage$/i,
+    /\bfloor$/i
+];
+
+
+/*
  * scNormalCaseKeepUpper / scNormalCaseKeepLower
  *
  * MixesDB writes titles in Normal Case, so a bit read out of the title that is SHOUTED in
