@@ -732,6 +732,17 @@ var mdbTitle_suggestion = "",
     mdbTitle_toolkitVerdict = null,
     mdbTitle_toolkitPoll = null;
 
+// The "Create" link target. MixesDB_Userscripts_Helper picks the title parameter up there and
+// fills it into the "Add a new mix" form - see its "Add a new mix: prefill" section.
+var mdbTitle_addNewMixUrl = "https://www.mixesdb.com/w/MixesDB:Add_a_new_mix";
+
+// mdbTitleInput_syncCreateHref
+// The input is editable, so the link has to carry whatever is in it AT CLICK TIME. Kept in a
+// real href (rather than built in a click handler) so cmd/ctrl/middle-click still open a tab.
+function mdbTitleInput_syncCreateHref( input, link ) {
+    link.attr( "href", mdbTitle_addNewMixUrl + "?title=" + encodeURIComponent( $.trim( input.val() ) ) );
+}
+
 // mdbTitleInput_setSuggestion
 function mdbTitleInput_setSuggestion( suggestion ) {
     mdbTitle_suggestion = suggestion || "";
@@ -805,6 +816,14 @@ function mdbTitleInput_add() {
             autocomplete: "off",
             title: "Suggested MixesDB mix page title - editable, please check it before using it"
         }),
+        // _blank, not the usual _top: the point of this link is to fill in the MixesDB form
+        // while still reading duration/artwork URL/API data off this SoundCloud page - the
+        // same "keep working on the source page" case as the toolkit's EDIT/HIST links.
+        create = $("<a>")
+            .attr( "id", "mdb-mixesdbTitle-create" )
+            .attr( "target", "_blank" )
+            .attr( "title", "Create this mix page on MixesDB - opens the \"Add a new mix\" form with the title above" )
+            .text( "Create" ),
         beta = $("<span>")
             .attr( "id", "mdb-mixesdbTitle-beta" )
             .attr( "title", "Guessed from the SoundCloud title, date and channel name - it can be wrong. See Help:Add a new mix page." )
@@ -830,7 +849,12 @@ function mdbTitleInput_add() {
         processedClass: "mdb-mixesdbTitle-copy-processed"
     });
 
-    wrapper.append( beta );
+    mdbTitleInput_syncCreateHref( input, create );
+    input.on( "input change", function() {
+        mdbTitleInput_syncCreateHref( input, create );
+    });
+
+    wrapper.append( create, beta );
     headline.after( wrapper );
 }
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.2
+// @version      2026.08.08.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -473,6 +473,89 @@ d.ready(function () { // needs mw.config
             .insertBefore("label.mixesdb-edit-format-review-opt-in");
         $(".mixesdb-edit-format-review-help").hide();
     }
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Add a new mix: prefill the title from the URL
+ *
+ * Lets other userscripts hand a ready-made page title over to the form, e.g. the SoundCloud
+ * script's "Create" link next to its title suggestion:
+ *     https://www.mixesdb.com/w/MixesDB:Add_a_new_mix?title=2026-04-03 - Ruf Dug - NTS Radio
+ *
+ * Two things make this more than a one-liner:
+ *
+ * 1. form#addANewMix has NO input#title in the light DOM. The field is <add-a-mix-input>, a
+ *    form-associated custom element that keeps its <input id="title"> in an OPEN shadow root,
+ *    which CSS/jQuery selectors cannot cross - $("form#addANewMix input#title") finds nothing.
+ *    So we go through element.shadowRoot. Setting the value takes BOTH steps below, and the
+ *    second one is not optional - verified against the live page:
+ *      - setAttribute("value", ...) runs the element's attributeChangedCallback ("value" is
+ *        one of its observedAttributes) and fills the input the user SEES, but it leaves the
+ *        form value alone: new FormData(form).get("title") is still null afterwards.
+ *      - only writing the shadow input and firing a real "input" event runs the element's own
+ *        handleInput(), which is what reports the value to the form via ElementInternals.
+ *    Skipping the event would submit an EMPTY title from a field that looks correctly filled.
+ *
+ * 2. The element is defined by the ResourceLoader module ext.mixesdb.add-a-new-mix, which
+ *    loads async and can take seconds. waitForKeyElements() is no help (it is blind to shadow
+ *    DOM and the element exists in the DOM long before it upgrades), so this polls for the
+ *    shadow input itself.
+ *
+ * MediaWiki does not mind the "title" parameter on the /w/ path - wgPageName stays
+ * MixesDB:Add_a_new_mix and the parameter survives in location.search.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+d.ready(function () { // needs mw.config
+
+    if( mw.config.get("wgPageName") != "MixesDB:Add_a_new_mix" ) return;
+
+    var prefillTitle = getURLParameter("title");
+
+    if( !prefillTitle ) {
+        log( "Add a new mix: no title parameter - nothing to prefill." );
+        return;
+    }
+
+    logFunc( "Add a new mix: prefill" );
+    logVar( "prefillTitle", prefillTitle );
+
+    var tries = 0,
+        maxTries = 100, // 100 * 100ms = 10s, the module is slow on a cold cache
+        poll = setInterval(function() {
+            var el = document.querySelector("form#addANewMix add-a-mix-input"),
+                shadowInput = ( el && el.shadowRoot ) ? el.shadowRoot.querySelector("input#title") : null;
+
+            if( !shadowInput ) {
+                if( ++tries >= maxTries ) {
+                    clearInterval( poll );
+                    log( "Add a new mix: gave up waiting for add-a-mix-input to upgrade after " + maxTries + " tries. " +
+                         "Element in DOM: " + !!el + ", custom element defined: " + !!customElements.get("add-a-mix-input") );
+                }
+                return;
+            }
+
+            clearInterval( poll );
+
+            // don't overwrite something the user already typed (e.g. after a back navigation)
+            if( $.trim( shadowInput.value ) !== "" ) {
+                log( "Add a new mix: field is not empty - leaving it alone." );
+                return;
+            }
+
+            // the element's own public API first ("value" is an observedAttribute) ...
+            el.setAttribute( "value", prefillTitle );
+
+            // ... then the same path a typing user takes, so handleInput() syncs the value the
+            // form actually submits. Harmless if the attribute already did the job.
+            shadowInput.value = prefillTitle;
+            shadowInput.dispatchEvent( new Event( "input", { bubbles: true, composed: true } ) );
+            shadowInput.dispatchEvent( new Event( "change", { bubbles: true, composed: true } ) );
+
+            log( "Add a new mix: title prefilled after " + tries + " polls." );
+        }, 100);
 });
 
 })();

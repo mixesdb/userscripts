@@ -52,7 +52,7 @@
     max-width: 100%;
     padding: 2px 6px;
     font-family: Consolas, monospace;
-    font-size: 1.5rem;
+    font-size: 1rem;
     line-height: 1.3;
     color: inherit;
     background-color: rgba(127, 127, 127, 0.12);
@@ -69,6 +69,12 @@
 #mdb-mixesdbTitle-wrapper .mdb-copy-text-control {
     margin-left: 0; /* global.css sets 12px - the spacing here comes from padding-left */
     padding-left: 5px;
+}
+
+/* opens MixesDB's "Add a new mix" form prefilled with the (possibly edited) title */
+#mdb-mixesdbTitle-create {
+    padding-left: 5px;
+    white-space: nowrap;
 }
 
 /* grey, so it reads as a warning label and not as part of the title */
