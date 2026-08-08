@@ -330,6 +330,7 @@ function mdbTitle_findDate( text, refIso ) {
     for( var p = 0; p < patterns.length; p++ ) {
         var pat = patterns[p],
             best = null,
+            runnerUp = null, // best score of a DIFFERENT reading - feeds the confidence score
             m;
 
         pat.re.lastIndex = 0;
@@ -348,23 +349,50 @@ function mdbTitle_findDate( text, refIso ) {
                 var score = mdbTitle_scoreCandidate( cands[c].iso, refIso ) + c * 0.001;
 
                 if( best === null || score < best.score ) {
+                    if( best !== null && best.out !== cands[c].out ) runnerUp = best.score;
                     best = {
                         out: cands[c].out,
                         score: score,
                         index: m.index + lead,
                         length: m[0].length - lead
                     };
+                } else if( cands[c].out !== best.out && ( runnerUp === null || score < runnerUp ) ) {
+                    runnerUp = score;
                 }
             }
         }
 
         if( best ) {
+            best.pattern = pat.name;
+            best.runnerUp = runnerUp;
             logVar( "mdbTitle_findDate: matched by " + pat.name, best.out );
             return best;
         }
     }
 
     return null;
+}
+
+/*
+ * Confidence
+ *
+ * Every guess the builder has to make lowers the score, so the number next to the input says
+ * how much of the title was READ off the source and how much was inferred. Capped at 95: this
+ * is a suggestion, and claiming certainty about a free-text SoundCloud title would be wrong.
+ */
+function mdbTitle_confidence() {
+    return {
+        score: 100,
+        reasons: [],
+        drop: function( points, reason ) {
+            this.score -= points;
+            this.reasons.push( reason );
+            return this;
+        },
+        percent: function() {
+            return Math.max( 10, Math.min( 95, Math.round( this.score ) ) );
+        }
+    };
 }
 
 // mdbTitle_findEpisode
@@ -536,13 +564,16 @@ function mdbTitle_showFromUsername( username ) {
 }
 
 // buildMixesdbTitle
-// Returns the suggested page title, or "" when there is not enough to work with.
+// Returns { title, confidence, reasons }. title is "" when there is not enough to work with.
 function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
     logFunc( "buildMixesdbTitle" );
 
+    var conf = mdbTitle_confidence(),
+        nothing = { title: "", confidence: 0, reasons: [] };
+
     try {
         var rest = String( scTitle || "" ).replace( /\s+/g, " " ).trim();
-        if( !rest ) return "";
+        if( !rest ) return nothing;
 
         logVar( "scTitle", rest );
         logVar( "username", username );
@@ -570,13 +601,26 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         if( found ) {
             date = found.out;
             rest = mdbTitle_cut( rest, found.index, found.length );
+
+            // a rival reading of the same digits lands almost as close to the upload date -
+            // e.g. 03/04 could be the 3rd or the 4th, and nothing here can settle it
+            if( found.runnerUp !== null && found.runnerUp - found.score < 2 ) {
+                conf.drop( 15, "the date in the title reads two ways (day/month order)" );
+            }
+
+            // the title date being far from the upload date is normal for an old set, but it
+            // also looks exactly like a misread, so it is worth flagging
+            if( found.score > 60 ) {
+                conf.drop( 10, "the date in the title is far from the upload date" );
+            }
         } else {
             // same preference the header's highlighted date uses: release date wins
             date = releaseDate || createdAt || "";
+            conf.drop( 35, "no date in the SoundCloud title - using the upload date, which is often not the mix date" );
             logVar( "buildMixesdbTitle: no date in the title, falling back to", date );
         }
 
-        if( !date ) return "";
+        if( !date ) return nothing;
 
         // 4) take the show name out of the title before looking for an episode, so
         // "HATE Podcast 496 - Fadi Mohem" leaves "496 - Fadi Mohem" and not "HATE - ..."
@@ -608,7 +652,16 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                        !/\b(podcast|radio|radioshow|show|sessions|series|cast|fm)\b/i.test( entity ) &&
                        !/promo\s*mix/i.test( entity );
 
-            return mdbTitle_assemble( date, show, entity, null, promoMix );
+            conf.drop( 10, "artist and mix name were told apart by the channel name, not by the title itself" );
+            if( promoMix ) {
+                conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
+            }
+
+            return {
+                title: mdbTitle_assemble( date, show, entity, null, promoMix ),
+                confidence: conf.percent(),
+                reasons: conf.reasons
+            };
         }
 
         rest = taken.text;
@@ -620,6 +673,7 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
 
         // 5) episode
         var episode = mdbTitle_findEpisode( rest ),
+            showFromEpisodeRule = false,
             beforeEpisode = "",
             afterEpisode = "";
 
@@ -644,8 +698,24 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             if( showFromTitle && artistAfter && mdbTitle_cleanArtist( artistAfter[1] ) ) {
                 show = ( showFromTitle + " " + episode.word ).replace( /\s+/g, " " );
                 rest = artistAfter[1];
+                showFromEpisodeRule = true;
                 logVar( "buildMixesdbTitle: show taken from the title instead of the channel", show );
             }
+        }
+
+        // Where the show name ultimately came from decides how much it can be trusted.
+        // One branch only - taken.extended implies taken.taken, so an if/else chain keeps the
+        // same fact from being charged twice.
+        if( isMappedChannel ) {
+            // curated by hand in title_definitions.js - nothing to doubt
+        } else if( showFromEpisodeRule ) {
+            conf.drop( 10, "the show name was read out of the title, not from a known channel" );
+        } else if( taken.extended ) {
+            conf.drop( 5, "the show name was completed from the title (\"" + show + "\")" );
+        } else if( taken.taken ) {
+            conf.drop( 5, "the show name comes from the channel name found in the title" );
+        } else if( show ) {
+            conf.drop( 20, "the channel \"" + show + "\" is not in the known-shows list - it may not be a show name at all" );
         }
 
         // 6) whatever is left is the artist
@@ -662,10 +732,25 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
                 fallback = mdbTitle_cut( fallback, fallbackEpisode.index, fallbackEpisode.length );
             }
             artist = mdbTitle_cleanArtist( fallback );
+            conf.drop( 15, "nothing was left over for the artist - reusing the whole title" );
         }
 
         logVar( "artist", artist );
-        if( !artist ) return "";
+        if( !artist ) return nothing;
+
+        // leftovers in the artist mean the title was not fully understood
+        if( /[|\/:]|\[|\]/.test( artist ) ) {
+            conf.drop( 10, "the artist still contains separators - part of the title may belong elsewhere" );
+        }
+        if( /\d/.test( artist ) ) {
+            conf.drop( 5, "the artist still contains numbers - possibly a leftover date or episode" );
+        }
+        if( artist.indexOf( "@" ) !== -1 ) {
+            conf.drop( 10, "there is a venue/event in the title - check the joiner and the city/country info" );
+        }
+        if( artist.length > 60 ) {
+            conf.drop( 5, "the artist is unusually long" );
+        }
 
         // an artist channel uploading its own sets would otherwise give "Artist - Artist".
         // Containment (not just equality) catches "Ruf Dug @ Somewhere" on the channel
@@ -680,14 +765,19 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
               ( shorter >= 4 && ( artistCmp.indexOf( showCmp ) !== -1 || showCmp.indexOf( artistCmp ) !== -1 ) ) ) ) {
             logVar( "buildMixesdbTitle: dropping the show, it is the artist itself", show );
             show = "";
+            conf.drop( 5, "the channel is the artist, so no show/venue was added" );
         }
 
         // 7) assemble
-        return mdbTitle_assemble( date, artist, show, episode, false );
+        return {
+            title: mdbTitle_assemble( date, artist, show, episode, false ),
+            confidence: conf.percent(),
+            reasons: conf.reasons
+        };
 
     } catch( e ) {
         log( "buildMixesdbTitle FAILED: " + e );
-        return "";
+        return nothing;
     }
 }
 
@@ -729,6 +819,8 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
  * Both just store their piece and call mdbTitleInput_add() - whichever finishes last adds it.
  */
 var mdbTitle_suggestion = "",
+    mdbTitle_confidencePercent = 0,
+    mdbTitle_confidenceReasons = [],
     mdbTitle_toolkitVerdict = null,
     mdbTitle_toolkitPoll = null;
 
@@ -744,8 +836,11 @@ function mdbTitleInput_syncCreateHref( input, link ) {
 }
 
 // mdbTitleInput_setSuggestion
+// Takes the { title, confidence, reasons } object from buildMixesdbTitle()
 function mdbTitleInput_setSuggestion( suggestion ) {
-    mdbTitle_suggestion = suggestion || "";
+    mdbTitle_suggestion = ( suggestion && suggestion.title ) || "";
+    mdbTitle_confidencePercent = ( suggestion && suggestion.confidence ) || 0;
+    mdbTitle_confidenceReasons = ( suggestion && suggestion.reasons ) || [];
     mdbTitleInput_add();
 }
 
@@ -816,6 +911,13 @@ function mdbTitleInput_add() {
             autocomplete: "off",
             title: "Suggested MixesDB mix page title - editable, please check it before using it"
         }),
+        // how much of the title was read off the source vs. inferred - the tooltip names
+        // every guess that cost points, so it says WHAT to check, not just that something is off
+        score = $("<span>")
+            .attr( "id", "mdb-mixesdbTitle-score" )
+            .addClass( "mdb-mixesdbTitle-score-" + mdbTitleInput_confidenceBand( mdbTitle_confidencePercent ) )
+            .attr( "title", mdbTitleInput_confidenceTitle() )
+            .text( mdbTitle_confidencePercent + "%" ),
         // _blank, not the usual _top: the point of this link is to fill in the MixesDB form
         // while still reading duration/artwork URL/API data off this SoundCloud page - the
         // same "keep working on the source page" case as the toolkit's EDIT/HIST links.
@@ -836,8 +938,8 @@ function mdbTitleInput_add() {
     // visible without a horizontal scroll. Floored, an empty-looking 1-char box is useless.
     input.attr( "size", Math.max( 20, mdbTitle_suggestion.length ) );
 
-    // input first, so appendMdbCopyTextButton() has a parent to insert the button into -
-    // it uses .after(), which is a no-op on a detached node. Order: input, copy, beta.
+    // input first, so appendMdbCopyTextButton() has a parent to insert the button into - it
+    // uses .after(), which is a no-op on a detached node. Order: input, copy, score, Create, beta.
     wrapper.append( input );
 
     appendMdbCopyTextButton( input, {
@@ -854,8 +956,28 @@ function mdbTitleInput_add() {
         mdbTitleInput_syncCreateHref( input, create );
     });
 
-    wrapper.append( create, beta );
+    wrapper.append( score, create, beta );
     headline.after( wrapper );
+}
+
+// mdbTitleInput_confidenceBand
+// Drives the colour. The thresholds are about what the reader should DO: green = read off the
+// source, amber = one guess worth checking, red = the title was largely inferred.
+function mdbTitleInput_confidenceBand( percent ) {
+    if( percent >= 80 ) return "high";
+    if( percent >= 55 ) return "mid";
+    return "low";
+}
+
+// mdbTitleInput_confidenceTitle
+function mdbTitleInput_confidenceTitle() {
+    var intro = "Confidence that this title needs no changes.";
+
+    if( !mdbTitle_confidenceReasons.length ) {
+        return intro + "\nEverything was read straight off the SoundCloud title, date and channel.";
+    }
+
+    return intro + "\n\nWhat lowered it:\n- " + mdbTitle_confidenceReasons.join( "\n- " );
 }
 
 
