@@ -94,6 +94,24 @@ a.mdb-tidSubmit img.tidSubmit-icon {
     padding: 0 5px;
 }
 
+/* "Submit this set/playlist to TrackId.net" - sits inside each site's own page header
+   (SoundCloud's hero, Mixcloud's title row, YouTube's playlist header), so it inherits
+   whatever link color that header uses and has to state its own. */
+.mdb-tidSubmit-playlist-wrapper {
+    margin: 8px 0;
+}
+a.mdb-tidSubmit-playlist {
+    color: #f60 !important;
+    /* px, not rem: YouTube sets the root font-size to 10px, which turns any rem value here
+       into unreadably small text while looking fine on SoundCloud and Mixcloud. */
+    font-size: 13px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+a.mdb-tidSubmit-playlist:hover {
+    color: #f90 !important;
+}
+
 /*
  * Waiter animation
  */

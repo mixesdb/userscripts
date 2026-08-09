@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.1
+// @version      2026.08.09.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_20
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-YouTube_16
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
@@ -41,7 +41,7 @@ redirectOnUrlChange( 200 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 15,
+var cacheVersion = 16,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -224,5 +224,29 @@ var youtubeInitAttempts = 0,
             clearInterval( youtubeInitTimer );
         }
     }, 500 );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Playlist pages
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Submit the whole playlist to TrackId.net
+ * Last item of the header's headline block, i.e. below title and metadata line and above
+ * the "Play all" buttons.
+ * YouTube ships the page header markup several times over (a permanently hidden copy in
+ * ytd-tabbed-page-header, plus a second headline block holding only the "Play all" row),
+ * so only the visible one may be used.
+ * https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI
+ */
+waitForKeyElements(".ytPageHeaderViewModelHeadlineInfo", function( jNode ) {
+    if( !getPlaylistPageInfo() ) return; // watch/channel pages have page headers too
+
+    if( !jNode.is(":visible") ) return true; // hidden duplicate, or not hydrated yet
+
+    addTidPlaylistSubmitLink( jNode, "append" );
+});
 
 })();

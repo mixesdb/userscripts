@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.1
+// @version      2026.08.09.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_28
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_198
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
@@ -28,7 +28,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 19,
+var cacheVersion = 20,
     scriptName = "Mixcloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -208,6 +208,31 @@ if( urlPath(2) == "uploads" || urlPath(2).replace(/\?.+$/,"") == "" ) { // https
             getToolkit(playerUrl, "hide if used", "lazy loading list", $wrapper);
         }
     });
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Playlist pages
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * Submit the whole playlist to TrackId.net
+ * Below the playlist title row (play button, title, share), above the first player.
+ * Mixcloud's class names are generated, so the row can only be reached from the play-all
+ * button: button-wrapper > row with the h1 > row that also holds the share button.
+ * https://www.mixcloud.com/spartacus/playlists/jazz/
+ */
+waitForKeyElements('div[data-testid="play-all"]', function( jNode ) {
+    if( !getPlaylistPageInfo() ) return; // profile pages have a play-all button too
+
+    // Mixcloud renders the row more than once (responsive variants), only the visible one counts
+    if( !jNode.is(":visible") ) return true;
+
+    var titleRow = jNode.closest('div[data-testid="button-wrapper"]').parent().parent();
+
+    addTidPlaylistSubmitLink( titleRow, "after" );
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
