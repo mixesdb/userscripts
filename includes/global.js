@@ -103,6 +103,53 @@ function logArr( name, arr ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Trusted Types
+ *
+ * YouTube sends "require-trusted-types-for 'script'", and Firefox enforces it since v135.
+ * Under that header every assignment to innerHTML throws
+ *   TypeError: Element.innerHTML setter: Sink type mismatch violation blocked by CSP
+ * instead of writing markup - and jQuery builds every fragment through innerHTML, so
+ * .html()/.append()/.after()/.before() with an HTML *string* stop working across the board:
+ * no CSS, no toolkit, no thumbnail, no TrackId.net submit link. Nothing looks broken in the
+ * console either, because inside jQuery's ajax callbacks it surfaces only as an unhandled
+ * promise rejection with jQuery, not our script, in the stack.
+ *
+ * A policy named "default" is the escape hatch the spec provides: once it exists, the browser
+ * routes every string that reaches a sink through it, so all the existing jQuery code keeps
+ * working untouched. It is installable only while the page does not restrict policy names
+ * with a "trusted-types" directive (YouTube does not send one) and while nobody has claimed
+ * the name yet - so it can legitimately fail, and code that must work regardless builds real
+ * DOM nodes instead of HTML strings (see loadRawCss and addTidPlaylistSubmitLink).
+ *
+ * Only createHTML is defined: that is the sink jQuery needs. Script/script-URL sinks stay
+ * blocked exactly as they are now, so this does not hand the page a way to run new code.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+function installTrustedTypesPassthrough() {
+    if( typeof window.trustedTypes === "undefined" ) {
+        return "not needed (no Trusted Types in this browser)";
+    }
+
+    if( window.trustedTypes.defaultPolicy ) {
+        return "not installed (the page already has a default policy)";
+    }
+
+    try {
+        window.trustedTypes.createPolicy( "default", {
+            createHTML: function( html ) { return html; }
+        });
+        return "installed - jQuery HTML strings work again";
+    } catch( e ) {
+        return "FAILED (" + e.message + ") - HTML strings handed to jQuery will be blocked on this page";
+    }
+}
+
+logVar( "Trusted Types passthrough policy", installTrustedTypesPassthrough() );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Artwork funcs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -415,18 +462,37 @@ function getPlaylistPageInfo( pageUrl ) {
 /*
  * makeTidPlaylistSubmitLink
  * Takes the object getPlaylistPageInfo() returned (not a URL - the caller has to have
- * checked for a playlist page anyway) and returns the link HTML.
+ * checked for a playlist page anyway) and returns the link as a DOM element.
+ *
+ * An element, not an HTML string, because this link's main home is YouTube: handing jQuery
+ * a string makes it parse the markup through innerHTML, which Trusted Types blocks there
+ * (see installTrustedTypesPassthrough). Inserting a ready-made node never touches that sink,
+ * so the link also appears when the default policy could not be installed.
  */
 function makeTidPlaylistSubmitLink( playlistPageInfo ) {
-    var text = "Submit this " + playlistPageInfo.term + " to TrackId.net",
-        // favicon_TID asks Google's favicon service for 64px; drawn at 16 CSS px (see
-        // global.css) that is 4x, so it stays sharp on retina/HiDPI screens.
-        // alt="" on purpose: the link text right next to it already says the same thing.
-        icon = '<img class="tidSubmit-icon" src="'+ favicon_TID +'" alt="" width="16" height="16">';
+    var link = document.createElement( "a" );
 
+    link.href = makeTidSubmitUrl( playlistPageInfo.url );
+    link.className = "mdb-tidSubmit mdb-tidSubmit-playlist";
     // target="_blank" instead of our usual _top: you keep working through the playlist page
     // itself while the submission runs in the other tab.
-    return '<a href="'+ makeTidSubmitUrl( playlistPageInfo.url ) +'" class="mdb-tidSubmit mdb-tidSubmit-playlist" target="_blank" title="'+ playlistPageInfo.url +' (opens in a new tab)">'+ icon + text +'</a>';
+    link.target = "_blank";
+    link.title = playlistPageInfo.url + " (opens in a new tab)";
+
+    // favicon_TID asks Google's favicon service for 64px; drawn at 16 CSS px (see
+    // global.css) that is 4x, so it stays sharp on retina/HiDPI screens.
+    // alt="" on purpose: the link text right next to it already says the same thing.
+    var icon = document.createElement( "img" );
+    icon.className = "tidSubmit-icon";
+    icon.src = favicon_TID;
+    icon.alt = "";
+    icon.width = 16;
+    icon.height = 16;
+
+    link.appendChild( icon );
+    link.appendChild( document.createTextNode( "Submit this " + playlistPageInfo.term + " to TrackId.net" ) );
+
+    return link;
 }
 
 /*
@@ -456,7 +522,9 @@ function addTidPlaylistSubmitLink( targetNode, position, pageUrl ) {
         return false;
     }
 
-    var wrapper = '<div class="mdb-tidSubmit-playlist-wrapper">'+ makeTidPlaylistSubmitLink( playlistPageInfo ) +'</div>';
+    var wrapper = document.createElement( "div" );
+    wrapper.className = "mdb-tidSubmit-playlist-wrapper";
+    wrapper.appendChild( makeTidPlaylistSubmitLink( playlistPageInfo ) );
 
     switch( position ) {
         case "before":
@@ -681,7 +749,14 @@ function loadRawCss( urlVar ) {
         success: function(fileText) {
             // cssText will be a string containing the text of the file
             log( "loadRawCss: loaded ok (" + fileText.length + " chars): " + urlVar );
-            $('head').append( '<style>'+fileText+'</style>' );
+
+            // Plain DOM on purpose: $('head').append('<style>...</style>') routes the markup
+            // through innerHTML, which Trusted Types blocks on YouTube (see
+            // installTrustedTypesPassthrough). textContent is not a Trusted Types sink, so the
+            // CSS lands with or without the default policy.
+            var styleNode = document.createElement( "style" );
+            styleNode.textContent = fileText;
+            document.head.appendChild( styleNode );
         },
         error: function( jqXHR, textStatus, errorThrown ) {
             log( "loadRawCss: FAILED to load CSS (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + "): " + urlVar );

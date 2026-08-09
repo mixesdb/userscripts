@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.3
+// @version      2026.08.10.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_21
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-YouTube_16
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
@@ -49,6 +49,15 @@ function ytLog( text ) {
 // (same safety net as the SoundCloud script, added there for the same kind of report).
 window.addEventListener( "error", function( e ) {
     ytLog( "UNCAUGHT ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno + ":" + e.colno );
+});
+
+// Same safety net for rejected promises, which the "error" event does not cover. Worth its
+// own listener: everything we insert from an ajax callback (loadRawCss, the toolkit's API
+// lookups) fails exactly this way, and the console then shows jQuery's stack with no hint
+// that it was our script - which is how the Trusted Types breakage stayed invisible.
+window.addEventListener( "unhandledrejection", function( e ) {
+    var reason = e.reason;
+    ytLog( "UNHANDLED PROMISE REJECTION: " + ( reason && reason.message ? reason.message : reason ) );
 });
 
 ytLog( "location.href: " + location.href );
