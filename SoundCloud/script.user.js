@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.5
+// @version      2026.08.09.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -51,7 +51,7 @@ logVar( "cacheVersion", cacheVersion );
 // hidden and the title it would have built cannot be compared with the page that exists.
 // With this on, the row is shown for used players too, marked "used" and without the "Create"
 // link (which would only start a duplicate page).
-window.mdbTitle_showForUsedPlayers = false;
+window.mdbTitle_showForUsedPlayers = true; // True as default for the beta phase
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
