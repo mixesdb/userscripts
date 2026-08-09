@@ -107,8 +107,11 @@ a.mdb-tidSubmit-playlist {
     text-decoration: underline;
 }
 /* overrides the generic tidSubmit-icon rule above: no left padding (the icon starts the
-   link) and a fixed 16px box, which the 64px favicon renders into at 4x for retina */
+   link) and a fixed 16px box, which the 64px favicon renders into at 4x for retina.
+   display must be stated: Mixcloud's CSS reset makes every img display:block, which would
+   put the icon on its own line above the link text. */
 a.mdb-tidSubmit-playlist img.tidSubmit-icon {
+    display: inline-block;
     width: 16px;
     height: 16px;
     padding: 0 5px 0 0;
