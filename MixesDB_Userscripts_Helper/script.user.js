@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.1
+// @version      2026.08.09.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -377,6 +377,24 @@ if (!String.prototype.clearTracklist) {
     };
 }
 
+if (!String.prototype.clearFileDetails) {
+    // Empty every value cell of the File details table (dur, MB, kbps, ...).
+    // A clone describes a different file, so it must not inherit the source mix's data.
+    String.prototype.clearFileDetails = function () {
+        return this.replace(
+            /==\s*File details\s*==\s*\n\{\|[\s\S]*?\n\|\}/,
+            function (table) {
+                // Only lines starting with a single "|" hold values. "|-", "|}" and "|+" are
+                // table syntax and "!" lines are headers, so all of those stay untouched.
+                return table.replace(/^\|(?![-}+])([^\r\n]*)/gm, function (_line, cells) {
+                    // keep the cell count of inline rows ("| a || b") intact
+                    return "|" + cells.split("||").map(() => " ").join("||");
+                });
+            }
+        );
+    };
+}
+
 if (!String.prototype.removeUrlsInNotes) {
     // Remove bare URL tokens in Notes, keep all line breaks/templates intact.
     String.prototype.removeUrlsInNotes = function () {
@@ -442,6 +460,7 @@ d.ready(function () { // needs mw.config
 
         const text_clean = textbox.val()
         .replaceFileLine(wgTitle)
+        .clearFileDetails()
         .clearTracklist()
         .cleanPlayerUrls()
         .removeUrlsInNotes()

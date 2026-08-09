@@ -221,10 +221,11 @@ button.mdb-element {
 }
 
 /*
- * URL sources render the copy button as a real <a href> so the URL can be dragged out of the
- * page (see getMdbCopyLinkUrl() in global.js). It must still look like the <button> variant,
- * hence: no link styling from the host site, and "normal" to match a <button>'s UA line-height.
- * The .mdb-toolkit selector is needed to beat that block's own "a:hover { underline }" rule.
+ * Copy buttons behind an input are an <a> so their value can be dragged out of the page (see
+ * appendMdbCopyTextButton() in global.js), with an href only when that value is a URL. Either
+ * way it must still look like the <button> variant, hence: no link styling from the host site,
+ * and "normal" to match a <button>'s UA line-height. The .mdb-toolkit selector is needed to
+ * beat that block's own "a:hover { underline }" rule.
  */
 a.mdb-copy-text-button {
     line-height: normal;

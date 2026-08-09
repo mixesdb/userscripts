@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.3
+// @version      2026.08.09.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_39
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_40
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_44
@@ -1444,6 +1444,18 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.09.4
+ * Extends .1 to EVERY copy button behind an input, not just the ones holding a URL - the
+ * button behind the created MixesDB title dragged nothing at all. All of them are now an <a>
+ * (draggable="true" plus a dragstart that writes the input's current value), and only a URL
+ * additionally gets an href, so a title drags as plain text while a URL still drags as a
+ * link. <button> cannot do this job: it is a form control, and Firefox refuses to start a
+ * drag on those whatever draggable says - it would have looked fine in Chrome and silently
+ * done nothing for Firefox users. The hrefless <a> gets role="button", tabindex="0" and
+ * Enter/Space handling, since an <a> without href is neither focusable nor key-activatable.
+ * Copy sources that are not inputs (RA venue/artist names) stay <button>s - their text sits
+ * in the page and can be dragged directly.
  *
  * 2026.08.09.2
  * Debugging the title creator meant never seeing what it builds for a player that IS on
