@@ -146,7 +146,7 @@ if( typeof redirectOnUrlChange === "function" ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 20,
+var cacheVersion = 24,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
