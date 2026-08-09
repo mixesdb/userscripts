@@ -550,12 +550,14 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
 
 log( "Registering handlers: Set submit link" );
 
-// Into the hero's title stack, below set title and channel - the first thing on the page.
+// Below the filter row of #mdb-streamActions, i.e. the last of our own controls above the
+// set's track list. That row is built by mountUI() in script.funcs.js, which only runs for
+// !isSetsTab - exactly the set pages this link is for.
 // Set pages still use the old layout, so no webi frame handling is needed here, but
 // pageHref is passed anyway since it is the address bar URL in either frame.
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
-waitForKeyElements(".fullListenHero .soundTitle__usernameTitleContainer", function( jNode ) {
-    addTidPlaylistSubmitLink( jNode, "append", pageHref );
+waitForKeyElements("#mdb-streamActions-filter", function( jNode ) {
+    addTidPlaylistSubmitLink( jNode, "after", pageHref );
 });
 
 
