@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.4
+// @version      2026.08.09.5
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -535,6 +535,12 @@ d.ready(function () {
     }
 
     textbox.val( insertText );
+
+    // Filling .val() leaves the cursor at the end of the text, which drags the textarea's
+    // scroll position down with it - the user lands on the last line instead of the top of
+    // what they're about to review. Reset both explicitly.
+    textbox.scrollTop( 0 );
+    textbox[0].setSelectionRange( 0, 0 );
 
     log( "Edit: insert - filled the edit box with the " + insertText.length + " characters from the URL." );
 });
