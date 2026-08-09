@@ -127,7 +127,6 @@
  */
 #mdb-mixesdbTitle-usedNote {
     padding-left: 10px;
-    color: #f60;
     font-size: 0.8rem;
     font-weight: bold;
     cursor: help;
@@ -163,9 +162,13 @@
     padding-left: 0;
 }
 
+#mdb-mixesdbTitle-promoCategory,
+#mdb-mixesdbTitle-usedNote {
+    color: #999;
+}
+
 /* grey and small, the same "this is a side note" as #mdb-mixesdbTitle-beta */
 #mdb-mixesdbTitle-promoCategory {
-    color: #999;
     font-size: 0.8rem;
     cursor: help;
     white-space: nowrap;

@@ -107,12 +107,22 @@ a.mdb-tidSubmit-playlist {
     text-decoration: underline;
 }
 /* overrides the generic tidSubmit-icon rule above: no left padding (the icon starts the
-   link) and a fixed 16px box, which the 64px favicon renders into at 4x for retina */
+   link) and a fixed 16px box, which the 64px favicon renders into at 4x for retina.
+   display must be stated: Mixcloud's CSS reset makes every img display:block, which would
+   put the icon on its own line above the link text. */
 a.mdb-tidSubmit-playlist img.tidSubmit-icon {
+    display: inline-block;
     width: 16px;
     height: 16px;
     padding: 0 5px 0 0;
     vertical-align: -3px;
+}
+/* SoundCloud and Mixcloud style plain links site-wide, YouTube does not - it colors links
+   per component, so ours falls back to the browser default blue, unreadable on the playlist
+   header. That header sits on a cinematic background image which is dark in BOTH themes,
+   which is why YouTube's own title and metadata there are white regardless of light/dark. */
+.ytPageHeaderViewModelHeadlineInfo a.mdb-tidSubmit-playlist {
+    color: #fff;
 }
 
 /*
