@@ -136,19 +136,24 @@ body.soundcloud-com .mdb-tidSubmit-playlist-wrapper {
     margin: 8px 0 0;
 }
 
-/* Mixcloud: bigger icon next to its larger UI text */
-body.mixcloud-com a.mdb-tidSubmit-playlist img.tidSubmit-icon {
-    width: 20px;
-    height: 20px;
-    vertical-align: -6px;
-}
-
 /* YouTube styles no plain links at all - it colors them per component, so ours falls back
    to the browser default blue, unreadable on the playlist header. That header sits on a
    cinematic background image which is dark in BOTH themes, which is why YouTube's own title
    and metadata there are white regardless of light/dark. */
 .ytPageHeaderViewModelHeadlineInfo a.mdb-tidSubmit-playlist {
     color: #fff;
+}
+
+body.soundcloud-com .mdb-tidSubmit-playlist-wrapper {
+    margin: 20px 0;
+}
+
+/* Mixcloud & YouTube: bigger icon next to its larger UI text */
+body.mixcloud-com a.mdb-tidSubmit-playlist img.tidSubmit-icon,
+body.youtube-com a.mdb-tidSubmit-playlist img.tidSubmit-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: -4px;
 }
 
 /*
