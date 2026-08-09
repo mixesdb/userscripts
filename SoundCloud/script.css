@@ -51,7 +51,7 @@
 #mdb-mixesdbTitle {
     /* content-box so the size attribute really is the character count of the suggestion */
     box-sizing: content-box;
-    max-width: 100%;
+    max-width: calc(100% - 44px) !important; /* incl. space for copy button */
     padding: 2px 6px;
     font-family: Consolas, monospace;
     font-size: 1rem;

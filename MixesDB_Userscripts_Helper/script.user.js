@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.2
+// @version      2026.08.09.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -497,11 +497,59 @@ d.ready(function () { // needs mw.config
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Edit: insert a page text handed over in the URL
+ *
+ * Lets another userscript open a mix page ready to finish instead of ready to type, e.g. the
+ * SoundCloud script's "Create" link next to its title suggestion, which knows the duration,
+ * the player URL and most of the categories before the page exists:
+ *     https://www.mixesdb.com/w/index.php?title=2019-03-07 - Slowciety, Asa 808 - Rinse France Show&action=edit&insert=<page text>
+ *
+ * Only ever fills an EMPTY edit box. The parameter says what a page could START as, which is
+ * worth nothing against text that is already there - an existing page, a preload, or a form
+ * the user came back to. Nothing is saved here either way: what opens is the normal edit form,
+ * for the user to check and submit.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+d.ready(function () {
+
+    if( getURLParameter("action") != "edit" ) return;
+
+    var insertText = getURLParameter("insert");
+
+    if( !insertText ) return;
+
+    logFunc( "Edit: insert" );
+
+    var textbox = $("#wpTextbox1");
+
+    if( !textbox.length ) {
+        log( "Edit: insert - no #wpTextbox1 on this page, so there is nothing to fill. " +
+             "(Not logged in, or the page is protected?)" );
+        return;
+    }
+
+    if( $.trim( textbox.val() ) !== "" ) {
+        log( "Edit: insert - the edit box already has text in it - leaving it alone." );
+        return;
+    }
+
+    textbox.val( insertText );
+
+    log( "Edit: insert - filled the edit box with the " + insertText.length + " characters from the URL." );
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Add a new mix: prefill the title from the URL
  *
- * Lets other userscripts hand a ready-made page title over to the form, e.g. the SoundCloud
- * script's "Create" link next to its title suggestion:
+ * Lets other userscripts hand a ready-made page title over to the form:
  *     https://www.mixesdb.com/w/MixesDB:Add_a_new_mix?title=2026-04-03 - Ruf Dug - NTS Radio
+ *
+ * (The SoundCloud script's "Create" link used to come in here. It now goes straight to the
+ * edit form of the new page instead - see the "insert" section above - because it has a whole
+ * page text to hand over, not only a title.)
  *
  * Two things make this more than a one-liner:
  *

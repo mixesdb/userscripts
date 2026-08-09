@@ -1792,6 +1792,11 @@ var mdbTitle_suggestion = "",
     mdbTitle_confidencePercent = 0,
     mdbTitle_confidenceReasons = [],
     mdbTitle_promoCategory = false,
+    // what the "Create" link puts on the new page besides the title - both come from the same
+    // API response the suggestion is built from, so they are taken in through mdbTitle_suggest()
+    // rather than read off the DOM (see getScPlayerUrl(), which lives in the userscript's IIFE)
+    mdbTitle_playerUrl = "",
+    mdbTitle_durationMs = 0,
     mdbTitle_toolkitVerdict = null,
     mdbTitle_toolkitPoll = null;
 
@@ -1800,8 +1805,10 @@ var mdbTitle_suggestion = "",
 // the title alone, so there is something on screen without waiting for a network round trip,
 // and once more when MixesDB has said what it knows about the names in it. The second pass is
 // what turns a channel into an artist and a bit of the title into an "@ venue".
-function mdbTitle_suggest( scTitle, username, createdAt, releaseDate, durationMs ) {
+function mdbTitle_suggest( scTitle, username, createdAt, releaseDate, durationMs, playerUrl ) {
     logFunc( "mdbTitle_suggest" );
+
+    mdbTitle_playerUrl = playerUrl || "";
 
     var first = buildMixesdbTitle( scTitle, username, createdAt, releaseDate, mdbTitle_categoryCache );
 
@@ -1827,15 +1834,127 @@ function mdbTitle_showForUsed() {
     return window.mdbTitle_showForUsedPlayers === true;
 }
 
-// The "Create" link target. MixesDB_Userscripts_Helper picks the title parameter up there and
-// fills it into the "Add a new mix" form - see its "Add a new mix: prefill" section.
-var mdbTitle_addNewMixUrl = "https://www.mixesdb.com/w/MixesDB:Add_a_new_mix";
+// The "Create" link target: the edit form of the new page itself, not the "Add a new mix" form
+// that only takes a title. Everything this page already knows about the mix rides along in the
+// "insert" parameter - MixesDB_Userscripts_Helper puts it into the edit box, see its
+// "Edit: insert a page text handed over in the URL" section.
+var mdbTitle_editUrl = "https://www.mixesdb.com/w/index.php";
 
 // mdbTitleInput_syncCreateHref
 // The input is editable, so the link has to carry whatever is in it AT CLICK TIME. Kept in a
 // real href (rather than built in a click handler) so cmd/ctrl/middle-click still open a tab.
 function mdbTitleInput_syncCreateHref( input, link ) {
-    link.attr( "href", mdbTitle_addNewMixUrl + "?title=" + encodeURIComponent( $.trim( input.val() ) ) );
+    var title = $.trim( input.val() );
+
+    link.attr( "href", mdbTitle_editUrl +
+                       "?title=" + encodeURIComponent( title ) +
+                       "&action=edit" +
+                       "&insert=" + encodeURIComponent( mdbTitle_pageText( title ) ) );
+}
+
+// mdbTitle_pageText
+// The wikitext a new mix page starts as. Only what this SoundCloud page can actually answer for
+// is filled in: the file details, the player, and the categories the title itself spells out.
+// The tracklist and the styles are the editor's work and are left as the empty shapes they have
+// on every mix page, so nothing here has to be undone before it can be finished.
+function mdbTitle_pageText( title ) {
+    return "== File details ==\n\n" +
+           mdbTitle_fileDetails() + "\n\n" +
+           "{{Player\n |" + mdbTitle_playerUrl + "\n}}\n\n" +
+           "== Tracklist ==\n\n" +
+           "<list>\n\n</list>\n\n" +
+           mdbTitle_pageCategories( title );
+}
+
+// mdbTitle_fileDetails
+// #mdb-fileDetails already holds the table in wiki syntax - it is what the duration button
+// copies out - so the page text takes it from there rather than building a second version of
+// it, and picks up MB/kbps the day those are read off the file.
+// It is built from the same API response as the suggestion but a moment later (see the "file
+// details" block in script.user.js), so for the window in between the duration that came in
+// with the suggestion stands in for it.
+function mdbTitle_fileDetails() {
+    var fromPage = $.trim( $("#mdb-fileDetails textarea").val() || "" );
+
+    if( fromPage ) return fromPage;
+
+    return getFileDetails_wikitext( mdbTitle_durationMs ? Math.floor( mdbTitle_durationMs / 1000 ) : 0 );
+}
+
+// mdbTitle_pageCategories
+// Read out of the title in the input, not out of what the parser had in mind: the input is
+// editable, and a corrected title has to take its categories with it.
+//
+// "Date - Artist - Entity" gives the year, one category per artist, and the entity. The two
+// empty slots are the styles - nothing on a SoundCloud page says what a mix sounds like, and a
+// guess there is worse than a blank the editor cannot miss. "Tracklist: none" is what a page
+// without a tracklist is filed as; the wiki's own editor swaps it once one is added.
+function mdbTitle_pageCategories( title ) {
+    var bits = String( title || "" ).split( mdbTitle_bitSplitRe() ),
+        year = ( String( title || "" ).match( /^\s*(\d{4})/ ) || [ "", "" ] )[1],
+        artistField = bits[1] || "",
+        entity = bits[2] || "",
+        cats = [],
+        i;
+
+    if( year ) cats.push( year );
+
+    // A live recording has no third bit: what stands behind the "@" is the entity there. The
+    // city behind the venue is not a category of its own - "... @ Wire Club, Leeds" is filed
+    // under Wire Club alone - so only the part in front of the comma is taken.
+    var atParts = artistField.split( /\s+@\s+/ );
+
+    if( atParts.length > 1 ) {
+        artistField = atParts[0];
+
+        if( !entity ) {
+            entity = atParts.slice( 1 ).join( " @ " ).split( "," )[0];
+        }
+    }
+
+    // the separators MixesDB writes between artists - "," for one after another, "&" for
+    // together - both mean one category each
+    var artists = artistField.split( /\s*(?:,|&)\s*/ );
+
+    for( i = 0; i < artists.length; i++ ) {
+        // no episode stripping on an artist: "Asa 808" is a name, and the number belongs to it
+        var artist = $.trim( artists[i].replace( /\s*\(Promo Mix\)\s*$/, "" ) );
+
+        if( artist ) cats.push( artist );
+    }
+
+    // Help:Add_a_new_mix_page - a self-released mix is filed under Promo Mix, and what stands in
+    // the entity slot there is the mix's OWN name, which is no category at all: "1975 - Bob
+    // Marley & The Wailers - Secret Santana Tapes (Promo Mix)" is filed under the two artists
+    // and Promo Mix, never under "Secret Santana Tapes". The flag covers the titles that leave
+    // the suffix off because the name already says it (see mdbTitleInput_syncPromoNote).
+    var isPromoMix = mdbTitle_promoCategory || /\(Promo Mix\)\s*$/.test( title ),
+        entityCategory = isPromoMix ? "Promo Mix" : mdbTitle_entityCategory( entity );
+
+    if( entityCategory ) cats.push( entityCategory );
+
+    cats.push( "", "" ); // styles - the editor's call
+    cats.push( "Tracklist: none" );
+
+    var out = "";
+
+    for( i = 0; i < cats.length; i++ ) {
+        out += "[[Category:" + cats[i] + "]]\n";
+    }
+
+    return out;
+}
+
+// mdbTitle_entityCategory
+// MixesDB files every episode of a series under the series itself: "HATE Podcast 173" and
+// "Trommel.038" are both [[Category:HATE Podcast]] / [[Category:Trommel]], and an event keeps
+// its name without the edition ("Sunwaves 31" -> Sunwaves). The bracketed tail a title can
+// carry - "(RA.971)", "(Promo Mix)" - is never part of a category name either.
+function mdbTitle_entityCategory( entity ) {
+    return String( entity || "" )
+        .replace( /\s*\([^()]*\)\s*$/, "" )
+        .replace( /[\s.]+\d+$/, "" )
+        .trim();
 }
 
 // Help:File_Details#Minimum_duration - MixesDB does not take recordings under 20 minutes, so
@@ -1846,6 +1965,10 @@ var mdbTitle_minDurationMs = 20 * 60 * 1000;
 // Takes the { title, confidence, reasons } object from buildMixesdbTitle(), plus the track
 // duration in ms (the API's t.duration - the same value #mdb-fileInfo shows).
 function mdbTitleInput_setSuggestion( suggestion, durationMs ) {
+    // kept for the page text behind the "Create" link, in case it is built before
+    // #mdb-fileDetails exists - see mdbTitle_fileDetails()
+    mdbTitle_durationMs = durationMs || 0;
+
     // only skip on a duration we actually know: a missing/zero value means the API gave us
     // nothing, and dropping the suggestion over that would be worse than offering it
     if( durationMs && durationMs < mdbTitle_minDurationMs ) {
@@ -1954,7 +2077,7 @@ function mdbTitleInput_syncPromoNote( wrapper ) {
         wrapper.find( "#mdb-mixesdbTitle-createColumn" ).append(
             $("<span>")
                 .attr( "id", "mdb-mixesdbTitle-promoCategory" )
-                .attr( "title", "A self-released mix - put the page into Category:Promo Mix.\nThe title itself does not say so because its name already does (\"Mix\", \"Vol.\", ...)." )
+                .attr( "title", "A self-released mix - the page belongs in Category:Promo Mix, and the \"Create\" link already writes that category into it.\nThe title itself does not say so because its name already does (\"Mix\", \"Vol.\", ...)." )
                 .text( "Category:Promo Mix" )
         );
     }
@@ -2038,9 +2161,9 @@ function mdbTitleInput_add() {
 
     if( isUsed ) {
         // No "Create" link for a used player: the mix HAS a page, and the link would open the
-        // "Add a new mix" form for a second one. The toolkit right below links to the existing
-        // page - that is what the suggestion is to be compared against. The marker keeps the
-        // debug row from ever passing as the normal "not on MixesDB yet" one.
+        // edit form of a second one. The toolkit right below links to the existing page - that
+        // is what the suggestion is to be compared against. The marker keeps the debug row from
+        // ever passing as the normal "not on MixesDB yet" one.
         wrapper.addClass( "mdb-mixesdbTitle-used" )
                .append( $("<span>")
                    .attr( "id", "mdb-mixesdbTitle-usedNote" )
@@ -2053,11 +2176,19 @@ function mdbTitleInput_add() {
         var create = $("<a>")
                 .attr( "id", "mdb-mixesdbTitle-create" )
                 .attr( "target", "_blank" )
-                .attr( "title", "Create this mix page on MixesDB - opens the \"Add a new mix\" form with the title above" )
+                .attr( "title", "Create this mix page on MixesDB - opens its edit form, filled with the file details, the player and the categories the title gives away" )
                 .text( "Create" );
 
         mdbTitleInput_syncCreateHref( input, create );
         input.on( "input change", function() {
+            mdbTitleInput_syncCreateHref( input, create );
+        });
+
+        // The page text is more than the title: the file details table lands in the DOM a
+        // moment after this row is built, and nothing about that fires an input event. So the
+        // href is refreshed once more on the way into the click - mousedown covers left,
+        // middle and cmd/ctrl-click alike, focus covers reaching the link by keyboard.
+        create.on( "mousedown focus", function() {
             mdbTitleInput_syncCreateHref( input, create );
         });
 
