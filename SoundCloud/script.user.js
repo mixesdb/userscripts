@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.4
+// @version      2026.08.09.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -22,15 +22,18 @@
 
 (function() {
 
-log( "script.user.js IIFE started. location.href: " + location.href );
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// Safety net: some users report the script doing nothing with no red console error at all
-// (e.g. Win11+Chrome, "Firefox mobile app PC version" - see CLAUDE.md/support chat history).
-// A require that fails to fetch, or an exception swallowed by a browser/extension, would
-// otherwise leave zero trace. This guarantees at least one log line naming the exact file/line.
-window.addEventListener( "error", function( e ) {
-    log( "UNCAUGHT ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno + ":" + e.colno );
-});
+var cacheVersion = 74,
+    scriptName = "SoundCloud";
+window.scriptName = scriptName; // toolkit.js reads this global directly
+logVar( "scriptName", scriptName );
+logVar( "cacheVersion", cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -49,6 +52,23 @@ window.addEventListener( "error", function( e ) {
 // With this on, the row is shown for used players too, marked "used" and without the "Create"
 // link (which would only start a duplicate page).
 window.mdbTitle_showForUsedPlayers = false;
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * IIFE logging
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+log( "script.user.js IIFE started. location.href: " + location.href );
+
+// Safety net: some users report the script doing nothing with no red console error at all
+// (e.g. Win11+Chrome, "Firefox mobile app PC version" - see CLAUDE.md/support chat history).
+// A require that fails to fetch, or an exception swallowed by a browser/extension, would
+// otherwise leave zero trace. This guarantees at least one log line naming the exact file/line.
+window.addEventListener( "error", function( e ) {
+    log( "UNCAUGHT ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno + ":" + e.colno );
+});
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -156,12 +176,11 @@ if( isTopFrame ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Load @ressource files with variables
- * global.js URL needs to be changed manually
+ * Constants
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 73,
+var cacheVersion = 74,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
