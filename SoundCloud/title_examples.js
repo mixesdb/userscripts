@@ -177,6 +177,13 @@ var scTitleExamples = [
         date: "2026-08-05",
         expect: "2026-08-05 - Solma - DSS 139"
     },
+    {
+        url: "https://soundcloud.com/groove-magazin/anja-schneider-live-at-docklands-smirnoff-sound-collective-camp",
+        title: "Anja Schneider - Live at Docklands (Smirnoff Sound Collective Camp)",
+        channel: "Groove Magazin",
+        date: "2016-07-14",
+        expect: "2016-07-14 - Anja Schneider @ Docklands"
+    },
 
     // Reported before the URLs were kept
     {
@@ -300,5 +307,17 @@ var scTitleExamples = [
         channel: "Some Label",
         date: "2026-08-05",
         expect: "2026-08-05 - Look at Me - Some Artist (Promo Mix)"
+    },
+    {
+        title: "Live at Docklands",
+        channel: "Anja Schneider",
+        date: "2016-07-14",
+        expect: "2016-07-14 - Anja Schneider @ Docklands"
+    },
+    {
+        title: "Some DJ - Live at Berghain (Part 2)",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Some DJ @ Berghain"
     }
 ];

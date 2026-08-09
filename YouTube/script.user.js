@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.1
+// @version      2026.08.10.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -41,7 +41,7 @@ redirectOnUrlChange( 200 );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 17,
+var cacheVersion = 18,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -234,22 +234,20 @@ var youtubeInitAttempts = 0,
 
 /*
  * Submit the whole playlist to TrackId.net
- * Appended to the header's headline block, i.e. below title and metadata line and above the
- * "Play all" buttons.
- * YouTube ships the playlist header markup several times over, and which copy is the visible
- * one differs: a permanently hidden copy lives in ytd-tabbed-page-header, a second headline
- * block holds only the "Play all" row, and the pre-2024 sidebar layout is still shipped
- * (hidden) alongside the current one. So: several candidate anchors, first VISIBLE one wins.
+ * Below the header's action row (the "Play all" button and friends).
+ * YouTube ships the playlist header markup twice over - a permanently hidden copy alongside
+ * the live one - and still ships the pre-2024 sidebar layout (hidden) next to the current
+ * one, so: candidate anchors, first VISIBLE one wins.
  * https://www.youtube.com/playlist?list=PL3r9-f9fgL-aqmZVC_kYcAw_bL0exz3k6
  */
-var playlistAnchorSelector = ".ytPageHeaderViewModelHeadlineInfo, ytd-playlist-sidebar-primary-info-renderer #stats";
+var playlistAnchorSelector = ".ytPageHeaderViewModelFlexibleActions, ytd-playlist-sidebar-primary-info-renderer #stats";
 
 waitForKeyElements( playlistAnchorSelector, function( jNode ) {
     if( !getPlaylistPageInfo() ) return; // watch/channel pages have page headers too
 
     if( !jNode.is(":visible") ) return true; // hidden duplicate, or not hydrated yet
 
-    addTidPlaylistSubmitLink( jNode, "append" );
+    addTidPlaylistSubmitLink( jNode, "after" );
 });
 
 /*
