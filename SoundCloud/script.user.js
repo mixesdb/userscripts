@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.08.18
+// @version      2026.08.09.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,10 +9,10 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_38
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_39
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_9
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_43
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -31,6 +31,24 @@ log( "script.user.js IIFE started. location.href: " + location.href );
 window.addEventListener( "error", function( e ) {
     log( "UNCAUGHT ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno + ":" + e.colno );
 });
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Debug settings
+ *
+ * All off in the shipped script - flip one to true while working on a feature.
+ * They sit on window because the code reading them lives in the @require'd script.funcs.js,
+ * which cannot see this IIFE's scope (same reason as window.scriptName further down).
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// Title creator: normally the suggested MixesDB page title is only offered for players that
+// are NOT on MixesDB yet - for a used player there is nothing to create, so the row stays
+// hidden and the title it would have built cannot be compared with the page that exists.
+// With this on, the row is shown for used players too, marked "used" and without the "Create"
+// link (which would only start a duplicate page).
+window.mdbTitle_showForUsedPlayers = false;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -143,7 +161,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 70,
+var cacheVersion = 73,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1426,6 +1444,24 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.09.2
+ * Debugging the title creator meant never seeing what it builds for a player that IS on
+ * MixesDB - exactly the cases where the correct title is already known and the suggestion
+ * could be judged. New "Debug settings" block at the top of this file with
+ * window.mdbTitle_showForUsedPlayers (off by default): with it on, the title row is added
+ * for used players too, marked "used" in MixesDB orange and without the "Create" link, which
+ * would only start a duplicate page. Everything else is unchanged, including the 20 min
+ * minimum duration - a track too short for MixesDB still gets no suggestion.
+ *
+ * 2026.08.09.1
+ * Copy buttons next to URL inputs (artwork URL, toolkit Embed URL) are now real <a href>
+ * elements instead of <button>s, so the URL can be dragged out of the page into another
+ * window/app - a <button> cannot be dragged at all. A plain click still copies and never
+ * navigates; only an explicit modifier click (cmd/ctrl/shift) opens the link. The href and
+ * the drag payload are re-read from the input on every interaction, so an edited or
+ * rewritten URL (e.g. the artwork extension fix) is always what gets dragged. Inputs whose
+ * value is not an http(s) URL - the MixesDB page title input - stay <button>s.
  *
  * 2026.08.08.1
  * ROOT CAUSE FOUND for "description does not auto-expand" report from a German-locale

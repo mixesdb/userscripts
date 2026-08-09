@@ -861,6 +861,20 @@ function getMdbCopySourceText( sourceNode ) {
     return $.trim( sourceNode.is( "input, textarea" ) ? sourceNode.val() : sourceNode.text() );
 }
 
+// getMdbCopyLinkUrl
+// The copy button is rendered as a real <a href> whenever the source is an input/textarea
+// holding an absolute http(s) URL, so the URL can be DRAGGED out of the page into another
+// window/app (an <a> is natively draggable, a <button> is not). Anything else - most
+// importantly the editable MixesDB page title input - stays a <button>: an href built from
+// arbitrary text would resolve as a relative URL and offer a link that goes nowhere sane.
+// Returns "" when the source does not qualify.
+function getMdbCopyLinkUrl( sourceNode ) {
+    if( !sourceNode.is( "input, textarea" ) ) return "";
+
+    var text = getMdbCopySourceText( sourceNode );
+    return /^https?:\/\/\S+$/i.test( text ) ? text : "";
+}
+
 // appendMdbCopyTextButton
 function appendMdbCopyTextButton( source, options ) {
     var settings = $.extend({
@@ -872,6 +886,8 @@ function appendMdbCopyTextButton( source, options ) {
             },
             emptyMessage: "Nothing to copy.",
             failedMessage: "Copy failed.",
+            // only used for the <a> variant, see getMdbCopyLinkUrl()
+            linkTitleSuffix: " - or drag it into another window",
             processedClass: "mdb-copy-text-processed",
             sourceClass: ""
         }, options || {}),
@@ -888,14 +904,13 @@ function appendMdbCopyTextButton( source, options ) {
         sourceNode.addClass( settings.sourceClass );
     }
 
-    var control = $("<span>")
+    var linkUrl = getMdbCopyLinkUrl( sourceNode ),
+        control = $("<span>")
             .addClass( "mdb-copy-text-control" ),
-        button = $("<button>")
-            .attr({
-                "aria-label": settings.ariaLabel,
-                title: settings.buttonTitle,
-                type: "button"
-            })
+        // URL sources become a real <a href> so the URL can be dragged out of the page,
+        // everything else stays a plain <button> - see getMdbCopyLinkUrl()
+        button = ( linkUrl ? $("<a>") : $("<button>") )
+            .attr( "aria-label", settings.ariaLabel )
             .addClass( "mdb-copy-text-button" )
             .text( settings.buttonText ),
         feedback = $("<span>")
@@ -903,7 +918,51 @@ function appendMdbCopyTextButton( source, options ) {
             .attr( "role", "status" )
             .attr( "aria-live", "polite" );
 
+    if( linkUrl ) {
+        button.attr({
+            draggable: "true", // the default for <a href>, but some sites kill it via -webkit-user-drag
+            href: linkUrl,
+            target: "_top", // only reached via modifier click, see the click handler below
+            title: settings.buttonTitle + settings.linkTitleSuffix
+        });
+
+        // The href has to follow the input: the artwork URL is rewritten once the real
+        // extension is known, and users can edit these inputs. Sync on every interaction
+        // that could act on it - mousedown/focus run before click and dragstart - plus on
+        // edits, since a programmatic .val() fires no event.
+        var syncLinkHref = function() {
+            var currentUrl = getMdbCopyLinkUrl( sourceNode );
+            if( currentUrl ) button.attr( "href", currentUrl );
+        };
+
+        sourceNode.on( "input change", syncLinkHref );
+        button.on( "mousedown focus", syncLinkHref );
+
+        // Browsers fill the drag payload from the href before dragstart fires, so a stale
+        // href would be dragged even after syncing above - write the payload ourselves.
+        button.on( "dragstart", function( event ) {
+            var currentUrl = getMdbCopyLinkUrl( sourceNode ),
+                dataTransfer = event.originalEvent && event.originalEvent.dataTransfer;
+
+            if( !currentUrl || !dataTransfer ) return;
+
+            dataTransfer.setData( "text/uri-list", currentUrl );
+            dataTransfer.setData( "text/plain", currentUrl );
+        });
+    } else {
+        button.attr({
+            title: settings.buttonTitle,
+            type: "button"
+        });
+    }
+
     button.on( "click", function( event ) {
+        // A plain click copies and never navigates - that stays true for both variants. On the
+        // <a> variant a modifier click is the user explicitly asking for the link instead
+        // (cmd/ctrl = new tab, shift = new window), so let those through to the browser;
+        // middle-click already bypasses this handler as an auxclick.
+        if( linkUrl && ( event.which > 1 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ) ) return;
+
         event.preventDefault();
         event.stopPropagation();
 

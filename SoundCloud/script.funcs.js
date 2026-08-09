@@ -1518,6 +1518,15 @@ var mdbTitle_suggestion = "",
     mdbTitle_toolkitVerdict = null,
     mdbTitle_toolkitPoll = null;
 
+// mdbTitle_showForUsed
+// The "Debug settings" block at the top of script.user.js sets the flag. Read through a
+// helper (and off window - this file is a @require and cannot see the userscript's IIFE
+// scope), so a cached script.user.js from before the setting existed just means "off"
+// instead of a ReferenceError.
+function mdbTitle_showForUsed() {
+    return window.mdbTitle_showForUsedPlayers === true;
+}
+
 // The "Create" link target. MixesDB_Userscripts_Helper picks the title parameter up there and
 // fills it into the "Add a new mix" form - see its "Add a new mix: prefill" section.
 var mdbTitle_addNewMixUrl = "https://www.mixesdb.com/w/MixesDB:Add_a_new_mix";
@@ -1554,7 +1563,9 @@ function mdbTitleInput_setSuggestion( suggestion, durationMs ) {
 
 // mdbTitleInput_watchToolkit
 // The suggestion is only useful for mixes that are NOT on MixesDB yet, so it waits for the
-// toolkit's verdict instead of showing up right away.
+// toolkit's verdict instead of showing up right away. (The debug setting
+// mdbTitle_showForUsedPlayers takes the used ones too - it still waits for the verdict, it
+// just does not throw them away.)
 //
 // Polling, not waitForKeyElements, on purpose: waitForKeyElements stores its "alreadyFound"
 // flag in ONE jQuery data key per ELEMENT, and toolkit.js already watches these very <li>s -
@@ -1580,7 +1591,10 @@ function mdbTitleInput_watchToolkit() {
             unused = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.unused.filled").length;
 
         if( used ) {
-            log( "mdbTitleInput_watchToolkit: this player is already used on MixesDB - no title suggestion needed." );
+            log( "mdbTitleInput_watchToolkit: this player is already used on MixesDB - " +
+                 ( mdbTitle_showForUsed()
+                   ? "showing the title anyway (debug setting mdbTitle_showForUsedPlayers)."
+                   : "no title suggestion needed." ) );
             mdbTitle_toolkitVerdict = "used";
         } else if( unused ) {
             log( "mdbTitleInput_watchToolkit: not on MixesDB yet - offering a page title." );
@@ -1600,7 +1614,11 @@ function mdbTitleInput_watchToolkit() {
 
 // mdbTitleInput_add
 function mdbTitleInput_add() {
-    if( mdbTitle_toolkitVerdict !== "unused" ) return;
+    // A used player normally has no row at all - the debug setting is the only way it gets one,
+    // and it still waits for a verdict (null = the toolkit has not answered yet).
+    var isUsed = ( mdbTitle_toolkitVerdict === "used" );
+
+    if( mdbTitle_toolkitVerdict !== "unused" && !( isUsed && mdbTitle_showForUsed() ) ) return;
     if( !mdbTitle_suggestion ) return;
 
     var headline = $("#mdb-trackHeader-headline");
@@ -1608,6 +1626,7 @@ function mdbTitleInput_add() {
     if( $("#mdb-mixesdbTitle-wrapper").length ) return;
 
     logFunc( "mdbTitleInput_add" );
+    logVar( "mdbTitleInput_add: toolkit verdict", mdbTitle_toolkitVerdict );
 
     // No .mono class here on purpose: global.css sets ".mono { font-size: 12px !important }",
     // which no ID selector can beat. The monospace font comes from #mdb-mixesdbTitle instead.
@@ -1626,14 +1645,6 @@ function mdbTitleInput_add() {
             .addClass( "mdb-mixesdbTitle-score-" + mdbTitleInput_confidenceBand( mdbTitle_confidencePercent ) )
             .attr( "title", mdbTitleInput_confidenceTitle() )
             .text( mdbTitle_confidencePercent + "%" ),
-        // _blank, not the usual _top: the point of this link is to fill in the MixesDB form
-        // while still reading duration/artwork URL/API data off this SoundCloud page - the
-        // same "keep working on the source page" case as the toolkit's EDIT/HIST links.
-        create = $("<a>")
-            .attr( "id", "mdb-mixesdbTitle-create" )
-            .attr( "target", "_blank" )
-            .attr( "title", "Create this mix page on MixesDB - opens the \"Add a new mix\" form with the title above" )
-            .text( "Create" ),
         beta = $("<span>")
             .attr( "id", "mdb-mixesdbTitle-beta" )
             .attr( "title", "Guessed from the SoundCloud title, date and channel name - it can be wrong. See Help:Add a new mix page." )
@@ -1647,7 +1658,8 @@ function mdbTitleInput_add() {
     input.attr( "size", Math.max( 20, mdbTitle_suggestion.length ) );
 
     // input first, so appendMdbCopyTextButton() has a parent to insert the button into - it
-    // uses .after(), which is a no-op on a detached node. Order: input, copy, score, Create, beta.
+    // uses .after(), which is a no-op on a detached node.
+    // Order: input, copy, confidence (score over beta), then "Create" - or "used" in its place.
     wrapper.append( input );
 
     appendMdbCopyTextButton( input, {
@@ -1659,11 +1671,6 @@ function mdbTitleInput_add() {
         processedClass: "mdb-mixesdbTitle-copy-processed"
     });
 
-    mdbTitleInput_syncCreateHref( input, create );
-    input.on( "input change", function() {
-        mdbTitleInput_syncCreateHref( input, create );
-    });
-
     // "beta" belongs under the score, and a plain <br> cannot do that here: the row is a flex
     // container, where a <br> becomes a flex item of its own instead of breaking the line.
     // A small column wrapper stacks the two and keeps them as one item in the row.
@@ -1671,7 +1678,36 @@ function mdbTitleInput_add() {
             .attr( "id", "mdb-mixesdbTitle-confidence" )
             .append( score, beta );
 
-    wrapper.append( confidence, create );
+    wrapper.append( confidence );
+
+    if( isUsed ) {
+        // No "Create" link for a used player: the mix HAS a page, and the link would open the
+        // "Add a new mix" form for a second one. The toolkit right below links to the existing
+        // page - that is what the suggestion is to be compared against. The marker keeps the
+        // debug row from ever passing as the normal "not on MixesDB yet" one.
+        wrapper.addClass( "mdb-mixesdbTitle-used" )
+               .append( $("<span>")
+                   .attr( "id", "mdb-mixesdbTitle-usedNote" )
+                   .attr( "title", "This player is already used on MixesDB - see the toolkit below.\nThe title is only shown because the debug setting mdbTitle_showForUsedPlayers is on at the top of script.user.js. No \"Create\" link, since that would start a duplicate page." )
+                   .text( "used" ) );
+    } else {
+        // _blank, not the usual _top: the point of this link is to fill in the MixesDB form
+        // while still reading duration/artwork URL/API data off this SoundCloud page - the
+        // same "keep working on the source page" case as the toolkit's EDIT/HIST links.
+        var create = $("<a>")
+                .attr( "id", "mdb-mixesdbTitle-create" )
+                .attr( "target", "_blank" )
+                .attr( "title", "Create this mix page on MixesDB - opens the \"Add a new mix\" form with the title above" )
+                .text( "Create" );
+
+        mdbTitleInput_syncCreateHref( input, create );
+        input.on( "input change", function() {
+            mdbTitleInput_syncCreateHref( input, create );
+        });
+
+        wrapper.append( create );
+    }
+
     headline.after( wrapper );
 }
 

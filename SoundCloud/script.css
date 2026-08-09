@@ -29,8 +29,10 @@
 
 /*
  * MixesDB mix page title suggestion, below the headline.
- * Only added when the toolkit found no MixesDB page for this player - see
- * mdbTitleInput_add() in script.funcs.js.
+ * Only added when the toolkit found no MixesDB page for this player - or, with the debug
+ * setting mdbTitle_showForUsedPlayers on, for a used one as well: that row gets the class
+ * .mdb-mixesdbTitle-used and the #mdb-mixesdbTitle-usedNote marker styled further down.
+ * Both in mdbTitleInput_add() in script.funcs.js.
  *
  * Deliberately theme-neutral (inherited colour, translucent background/border): the same
  * markup is used in the light old layout and in the dark new "Track header" one.
@@ -78,7 +80,6 @@
 #mdb-mixesdbTitle-confidence {
     display: inline-flex;
     flex-direction: column;
-    align-items: center;
     line-height: 1.15;
 }
 
@@ -116,6 +117,20 @@
     color: #999;
     font-size: 0.8rem;
     cursor: help;
+}
+
+/*
+ * Debug only (mdbTitle_showForUsedPlayers, top of script.user.js): the row for a player that
+ * already has a MixesDB page. Takes the "Create" link's place - MixesDB orange and bold, so a
+ * debug row is never read as the normal "nothing on MixesDB yet" one at a glance.
+ */
+#mdb-mixesdbTitle-usedNote {
+    padding-left: 10px;
+    color: #f60;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
 }
 
 .listenEngagement {
