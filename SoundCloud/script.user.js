@@ -1445,6 +1445,15 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
+ * 2026.08.09.2
+ * Debugging the title creator meant never seeing what it builds for a player that IS on
+ * MixesDB - exactly the cases where the correct title is already known and the suggestion
+ * could be judged. New "Debug settings" block at the top of this file with
+ * window.mdbTitle_showForUsedPlayers (off by default): with it on, the title row is added
+ * for used players too, marked "used" in MixesDB orange and without the "Create" link, which
+ * would only start a duplicate page. Everything else is unchanged, including the 20 min
+ * minimum duration - a track too short for MixesDB still gets no suggestion.
+ *
  * 2026.08.09.1
  * Copy buttons next to URL inputs (artwork URL, toolkit Embed URL) are now real <a href>
  * elements instead of <button>s, so the URL can be dragged out of the page into another
