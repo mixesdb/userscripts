@@ -418,11 +418,15 @@ function getPlaylistPageInfo( pageUrl ) {
  * checked for a playlist page anyway) and returns the link HTML.
  */
 function makeTidPlaylistSubmitLink( playlistPageInfo ) {
-    var text = "Submit this " + playlistPageInfo.term + " to TrackId.net";
+    var text = "Submit this " + playlistPageInfo.term + " to TrackId.net",
+        // favicon_TID asks Google's favicon service for 64px; drawn at 16 CSS px (see
+        // global.css) that is 4x, so it stays sharp on retina/HiDPI screens.
+        // alt="" on purpose: the link text right next to it already says the same thing.
+        icon = '<img class="tidSubmit-icon" src="'+ favicon_TID +'" alt="" width="16" height="16">';
 
     // target="_blank" instead of our usual _top: you keep working through the playlist page
     // itself while the submission runs in the other tab.
-    return '<a href="'+ makeTidSubmitUrl( playlistPageInfo.url ) +'" class="mdb-tidSubmit mdb-tidSubmit-playlist" target="_blank" title="'+ playlistPageInfo.url +' (opens in a new tab)">'+ text +'</a>';
+    return '<a href="'+ makeTidSubmitUrl( playlistPageInfo.url ) +'" class="mdb-tidSubmit mdb-tidSubmit-playlist" target="_blank" title="'+ playlistPageInfo.url +' (opens in a new tab)">'+ icon + text +'</a>';
 }
 
 /*

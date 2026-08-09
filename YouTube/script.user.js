@@ -234,19 +234,53 @@ var youtubeInitAttempts = 0,
 
 /*
  * Submit the whole playlist to TrackId.net
- * Last item of the header's headline block, i.e. below title and metadata line and above
- * the "Play all" buttons.
- * YouTube ships the page header markup several times over (a permanently hidden copy in
- * ytd-tabbed-page-header, plus a second headline block holding only the "Play all" row),
- * so only the visible one may be used.
- * https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI
+ * Appended to the header's headline block, i.e. below title and metadata line and above the
+ * "Play all" buttons.
+ * YouTube ships the playlist header markup several times over, and which copy is the visible
+ * one differs: a permanently hidden copy lives in ytd-tabbed-page-header, a second headline
+ * block holds only the "Play all" row, and the pre-2024 sidebar layout is still shipped
+ * (hidden) alongside the current one. So: several candidate anchors, first VISIBLE one wins.
+ * https://www.youtube.com/playlist?list=PL3r9-f9fgL-aqmZVC_kYcAw_bL0exz3k6
  */
-waitForKeyElements(".ytPageHeaderViewModelHeadlineInfo", function( jNode ) {
+var playlistAnchorSelector = ".ytPageHeaderViewModelHeadlineInfo, ytd-playlist-sidebar-primary-info-renderer #stats";
+
+waitForKeyElements( playlistAnchorSelector, function( jNode ) {
     if( !getPlaylistPageInfo() ) return; // watch/channel pages have page headers too
 
     if( !jNode.is(":visible") ) return true; // hidden duplicate, or not hydrated yet
 
     addTidPlaylistSubmitLink( jNode, "append" );
+});
+
+/*
+ * Playlist page diagnostics
+ * The header is generated markup whose class names carry no meaning, and YouTube serves
+ * several layouts in parallel per account/rollout bucket. waitForKeyElements by design only
+ * logs once a selector actually matches, so a "the link is not there" report produces total
+ * silence and cannot be diagnosed from a log alone (same problem as the SoundCloud track
+ * page, see SoundCloud/script.user.js). These unconditional snapshots always show which
+ * anchors existed, how many were visible, and whether the link ended up in the DOM.
+ */
+function logPlaylistPageSnapshot( label ) {
+    if( !getPlaylistPageInfo() ) return;
+
+    logFunc( "Playlist page DOM snapshot: " + label );
+    logVar( "document.readyState", document.readyState );
+
+    $.each( playlistAnchorSelector.split(", "), function( i, selector ) {
+        var matches = $( selector );
+        log( "  [" + matches.length + " found, " + matches.filter(":visible").length + " visible] " + selector );
+    });
+
+    logVar( "submit link present", $(".mdb-tidSubmit-playlist").length !== 0 );
+}
+
+logPlaylistPageSnapshot( "at script start" );
+
+[ 3000, 8000, 15000 ].forEach(function( delay ) {
+    setTimeout(function() {
+        logPlaylistPageSnapshot( delay + "ms after script start" );
+    }, delay );
 });
 
 })();
