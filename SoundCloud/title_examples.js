@@ -27,6 +27,47 @@ var scTitleExamples = [
 
     // Reported from SoundCloud
     {
+        url: "https://soundcloud.com/limbpromo/limb-podcast-yuka-09",
+        title: "LIMB #9 – Yuka",
+        channel: "LIMB",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Yuka - LIMB 9"
+    },
+    {
+        url: "https://soundcloud.com/rauschendisko/rausch06",
+        title: "RAUSCH#6 – Daniel Bortz",
+        channel: "RAUSCHEN",
+        date: "2018-10-12",
+        expect: "2018-10-12 - Daniel Bortz - RAUSCH 6"
+    },
+    {
+        url: "https://soundcloud.com/danielbortz/vintage-vinyl-session-004",
+        title: "Vintage Vinyl Session 004",
+        channel: "Daniel Bortz",
+        date: "2026-08-09",
+        // needs the wiki: only Category:Daniel Bortz being an Artist says the channel is the
+        // person and the whole title the name of their series
+        known: { "Daniel Bortz": "artist" },
+        expect: "2026-08-09 - Daniel Bortz - Vintage Vinyl Session 004"
+    },
+    {
+        url: "https://soundcloud.com/brisboys/brisboys-summer-2026-mix",
+        title: "Brisboys - Summer 2026 Mix",
+        channel: "Brisboys",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Brisboys - Summer 2026 Mix"
+    },
+    {
+        url: "https://soundcloud.com/toninomusik/tonino-lanka-ritter-butzke",
+        title: "Tonino & Lanka | Ritter Butzke | Berlin",
+        channel: "Tonino",
+        date: "2026-07-20",
+        // needs the wiki: Category:Ritter Butzke is a Venue, which is what makes this a live
+        // recording and the bit behind it the city
+        known: { "Ritter Butzke": "venue", "Berlin": "other" },
+        expect: "2026-07-20 - Tonino & Lanka @ Ritter Butzke, Berlin"
+    },
+    {
         url: "https://soundcloud.com/shimon-earthly/leon-row-x-shimon-landjuweel",
         title: "Leon Row x Shimon | Landjuweel Festival 2026 | Part 2 | Bon Bon Vivant Stage",
         channel: "shimon",

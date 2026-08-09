@@ -24,14 +24,22 @@ const source = [ "title_definitions.js", "script.funcs.js", "title_examples.js" 
     .map( file => Deno.readTextFileSync( dir + file ) )
     .join( "\n" );
 
-const [ buildMixesdbTitle, scTitleExamples ] =
-    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, scTitleExamples ]" );
+const [ buildMixesdbTitle, mdbTitle_normalizeCompare, scTitleExamples ] =
+    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, scTitleExamples ]" );
 
 let failed = 0;
 
 for( const example of scTitleExamples ) {
+    // A case's "known" stands in for the MixesDB category lookup, which runs over the network
+    // in the browser: name -> "artist" | "venue" | "other", exactly what the API answered when
+    // the case was added. Without it the examples could not test anything the wiki knows.
+    const known = {};
+    for( const name in ( example.known || {} ) ) {
+        known[ mdbTitle_normalizeCompare( name ) ] = example.known[name];
+    }
+
     // createdAt, releaseDate - the same two the track page passes in
-    const got = buildMixesdbTitle( example.title, example.channel, example.date, "" ),
+    const got = buildMixesdbTitle( example.title, example.channel, example.date, "", known ),
           ok = got.title === example.expect;
 
     if( !ok ) failed++;

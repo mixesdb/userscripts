@@ -64,6 +64,38 @@ log( "/SoundCloud/title_definitions.js loaded" );
 
 
 /*
+ * Characters a wiki title cannot hold
+ *
+ * MixesDB is a MediaWiki, and a page title may not contain # < > [ ] | { }. They are replaced
+ * by a space, so the words on either side survive: "RAUSCH#6" -> "RAUSCH 6".
+ *
+ * "|" is worth a word of its own: SoundCloud titles use it as a separator all the time, and it
+ * turning up in a suggestion never means "this title has a pipe in it" - it means a bit of the
+ * title was not split up and not understood. It is replaced anyway, but the parse is what has
+ * to be fixed when one appears.
+ */
+var scWikiIllegalChars = /[#<>\[\]|{}]+/g;
+
+
+/*
+ * scPromoMixImpliedWords
+ *
+ * " (Promo Mix)" is written behind a title to say the name in front of it is NOT a podcast or
+ * radio show. A name that already carries one of these words says so by itself, so the suffix
+ * would only repeat it:
+ *
+ *     "Brisboys - Summer 2026 Mix"  ->  2026-08-07 - Brisboys - Summer 2026 Mix
+ *                                       and NOT "... Summer 2026 Mix (Promo Mix)"
+ *
+ * The mix is still a promo mix - the suggestion says so under the "Create" link instead, as
+ * the category to put the page in.
+ */
+var scPromoMixImpliedWords = [
+    "mix", "mixtape", "volume", "vol"
+];
+
+
+/*
  * Group 1: the date
  *
  * Two sources may be used, the SoundCloud title and the upload/release date.
@@ -298,6 +330,36 @@ var scShowSuffixWords = [
     "podcast", "radio", "radioshow", "show", "mixshow", "mix", "mixtape", "mixseries",
     "series", "sessions", "session", "cast", "fm"
 ];
+
+
+/*
+ * What MixesDB is asked about every title
+ *
+ * The shape of a SoundCloud title runs out of answers quickly, and the wiki has the rest. One
+ * API request per track asks whether the channel name and each bit of the title exist as a
+ * Category, and what they are:
+ *
+ *     Category:Daniel Bortz  -> Category:Artist
+ *     Category:Ritter Butzke -> Category:Venue
+ *     Category:Brisboys      -> missing
+ *
+ * Two things follow from that, and neither can be read off a title alone:
+ *
+ * - The CHANNEL is a known artist and the title never names them: then the person is the
+ *   artist and the whole title is what they called it.
+ *       "Vintage Vinyl Session 004" on the channel "Daniel Bortz"
+ *       ->  2026-08-09 - Daniel Bortz - Vintage Vinyl Session 004
+ *   By shape alone this comes out backwards, with the series as the artist.
+ *
+ * - A BIT of the title is a known venue: then this was played there rather than made for a
+ *   feed, so it is an "@", and the bit behind the venue is the city.
+ *       "Tonino & Lanka | Ritter Butzke | Berlin" on the channel "Tonino"
+ *       ->  2026-07-20 - Tonino & Lanka @ Ritter Butzke, Berlin
+ *
+ * The lookup is asynchronous, so the suggestion is built twice: once off the title alone, so
+ * something is on screen at once, and again when the answer arrives. Anything typed into the
+ * input by then is left alone. A failed request costs nothing but the wiki's help.
+ */
 
 
 /*

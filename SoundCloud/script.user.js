@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.7
+// @version      2026.08.09.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_40
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_9
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
@@ -1067,8 +1067,14 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // toolkit reported "not on MixesDB yet", which can land long
                                 // after the header was built (and the other way round).
                                 // dur_ms gates it: MixesDB does not take recordings under 20 min.
-                                mdbTitleInput_setSuggestion(
-                                    buildMixesdbTitle( title, ( t.user && t.user.username ) ? t.user.username : "", created_at, release_date ),
+                                // mdbTitle_suggest, not buildMixesdbTitle: it shows the guess
+                                // straight away and then asks MixesDB what it knows about the
+                                // names in the title, refreshing the row if that changes it.
+                                mdbTitle_suggest(
+                                    title,
+                                    ( t.user && t.user.username ) ? t.user.username : "",
+                                    created_at,
+                                    release_date,
                                     dur_ms
                                 );
 

@@ -608,6 +608,15 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
         return result;
     }
 
+    // A joiner right behind the name makes it the FIRST ARTIST of a group, not a show:
+    // "Tonino & Lanka" on the channel "Tonino" is two artists who played together, and cutting
+    // the channel out of it would leave the nonsense "& Lanka". The channel name being there
+    // CONFIRMS the group, it does not overwrite it.
+    if( /^\s*(?:&|,|\bb2b\b|\band\b)/i.test( text.slice( index + length ) ) ) {
+        logVar( "mdbTitle_takeShowOutOfTitle: a joiner follows the channel name, so it is an artist", show );
+        return result;
+    }
+
     if( suffixGroup && m[suffixGroup] ) {
         // the channel name keeps its own spelling, the word taken from the title does not:
         // "HATE" + "PODCAST" -> "HATE Podcast". It is a common noun off a curated list, so
@@ -793,6 +802,169 @@ function mdbTitle_takeGuestMarker( text ) {
 // the exception: it is written onto the word in front of it and never turns up inside one.
 function mdbTitle_bitSplitRe() {
     return new RegExp( "(?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+", "g" );
+}
+
+/*
+ * What MixesDB already knows
+ *
+ * The wiki is the authority on which names are artists and which are places, and it answers
+ * for free. Without it the parser can only go by the shape of a title, which cannot tell
+ * "Vintage Vinyl Session 004" on the channel "Daniel Bortz" (an artist uploading his own
+ * series) from a podcast called "Vintage Vinyl" - or know that "Ritter Butzke" is a club and
+ * therefore an "@".
+ *
+ * One request per track, for every name in the title at once. The answers are cached for the
+ * life of the page, so the same channel is never asked about twice.
+ */
+var mdbTitle_categoryCache = {},
+    mdbTitle_categoryApiUrl = "https://www.mixesdb.com/w/api.php";
+
+// mdbTitle_knownAs
+// "artist" | "venue" | "other" | "" - "" is both "never asked" and "MixesDB has no such
+// category", which are the same thing to a caller: no help from here.
+function mdbTitle_knownAs( known, name ) {
+    if( !known || !name ) return "";
+
+    var key = mdbTitle_normalizeCompare( name );
+    return Object.prototype.hasOwnProperty.call( known, key ) ? known[key] : "";
+}
+
+// mdbTitle_categoryCandidates
+// The names worth asking about: the channel, and every bit the title splits into.
+function mdbTitle_categoryCandidates( scTitle, username ) {
+    var names = [],
+        bits = String( scTitle || "" ).split( mdbTitle_bitSplitRe() ),
+        i;
+
+    if( username ) names.push( username );
+
+    for( i = 0; i < bits.length; i++ ) {
+        var bit = mdbTitle_cleanArtist( bits[i] );
+
+        // a page title that long is not a name, and asking wastes the request
+        if( bit && bit.length <= 80 ) names.push( bit );
+    }
+
+    return names;
+}
+
+// mdbTitle_lookupCategories
+// Asks MixesDB what its Category: pages say about these names, all in ONE request, then calls
+// back with the cache. Always calls back - a failed or blocked request just means the parser
+// carries on with what the title alone says, which is what it did before this existed.
+function mdbTitle_lookupCategories( names, callback ) {
+    logFunc( "mdbTitle_lookupCategories" );
+
+    var wanted = [],
+        titles = [],
+        i, key;
+
+    for( i = 0; i < names.length; i++ ) {
+        key = mdbTitle_normalizeCompare( names[i] );
+
+        if( !key || Object.prototype.hasOwnProperty.call( mdbTitle_categoryCache, key ) ) continue;
+
+        wanted.push( names[i] );
+        titles.push( "Category:" + names[i] );
+    }
+
+    if( !titles.length ) {
+        callback( mdbTitle_categoryCache );
+        return;
+    }
+
+    logVar( "mdbTitle_lookupCategories: asking about", titles.join( " | " ) );
+
+    // everything asked about counts as answered even if the request dies, so a dead API is
+    // asked once per page and not once per rebuild
+    for( i = 0; i < wanted.length; i++ ) {
+        mdbTitle_categoryCache[ mdbTitle_normalizeCompare( wanted[i] ) ] = "";
+    }
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: {
+            action: "query",
+            prop: "categories",
+            cllimit: "max",
+            format: "json",
+            origin: "*", // MediaWiki's CORS switch for an anonymous cross-origin read
+            titles: titles.join( "|" )
+        },
+        success: function( data ) {
+            var pages = ( data && data.query && data.query.pages ) || {},
+                id;
+
+            for( id in pages ) {
+                if( !Object.prototype.hasOwnProperty.call( pages, id ) ) continue;
+
+                var page = pages[id],
+                    name = String( page.title || "" ).replace( /^Category:/, "" ),
+                    cats = page.categories || [],
+                    kind = "",
+                    c;
+
+                // "missing" on the page means MixesDB has no category of that name at all
+                if( page.missing === undefined ) {
+                    kind = "other";
+
+                    for( c = 0; c < cats.length; c++ ) {
+                        var parent = String( cats[c].title || "" ).replace( /^Category:/, "" ).toLowerCase();
+
+                        if( parent === "artist" ) { kind = "artist"; break; }
+                        if( parent === "venue" || parent === "club" ) { kind = "venue"; break; }
+                    }
+                }
+
+                mdbTitle_categoryCache[ mdbTitle_normalizeCompare( name ) ] = kind;
+                if( kind ) logVar( "mdbTitle_lookupCategories: " + name, kind );
+            }
+
+            callback( mdbTitle_categoryCache );
+        },
+        error: function( xhr, status ) {
+            log( "mdbTitle_lookupCategories FAILED (" + status + ") - carrying on with the title alone." );
+            callback( mdbTitle_categoryCache );
+        }
+    });
+}
+
+// mdbTitle_takeVenueTitle
+// A bit of the title is a place MixesDB knows: then this is a live recording, the place is an
+// "@", and the bit behind it is the city. Returns { artist, venue, city } or null.
+function mdbTitle_takeVenueTitle( text, known ) {
+    var bits = text.split( mdbTitle_bitSplitRe() ),
+        cleaned = [],
+        venueIndex = -1,
+        i;
+
+    if( bits.length < 2 ) return null;
+
+    for( i = 0; i < bits.length; i++ ) {
+        cleaned.push( mdbTitle_cleanArtist( bits[i] ) );
+    }
+
+    for( i = 0; i < cleaned.length; i++ ) {
+        if( cleaned[i] && mdbTitle_knownAs( known, cleaned[i] ) === "venue" ) { venueIndex = i; break; }
+    }
+
+    if( venueIndex === -1 ) return null;
+
+    var artist = "";
+    for( i = 0; i < cleaned.length; i++ ) {
+        if( i !== venueIndex && cleaned[i] ) { artist = cleaned[i]; break; }
+    }
+
+    if( !artist ) return null;
+
+    return {
+        artist: artist,
+        venue: cleaned[venueIndex],
+        // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue
+        city: cleaned[ venueIndex + 1 ] || ""
+    };
 }
 
 // mdbTitle_takeEventTitle
@@ -1018,7 +1190,9 @@ function mdbTitle_showFromUsername( username ) {
 
 // buildMixesdbTitle
 // Returns { title, confidence, reasons }. title is "" when there is not enough to work with.
-function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
+// known is the { name -> "artist"|"venue"|"other" } map from mdbTitle_lookupCategories(), or
+// nothing on the first pass, before MixesDB has answered.
+function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
     logFunc( "buildMixesdbTitle" );
 
     var conf = mdbTitle_confidence(),
@@ -1156,6 +1330,25 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
             return mdbTitle_result( date, eventTitle.artist + " @ " + eventTitle.event, "", null, false, [], conf );
         }
 
+        // 3g) MixesDB knows one of the bits as a venue, so this was played somewhere rather
+        // than made for a feed: "Tonino & Lanka | Ritter Butzke | Berlin" is a live recording
+        // at a Berlin club, which the title itself gives no way of telling.
+        var venueTitle = mdbTitle_takeVenueTitle( rest, known );
+
+        if( venueTitle ) {
+            logVar( "buildMixesdbTitle: venue known to MixesDB", venueTitle.venue );
+
+            if( dateFromUpload ) {
+                conf.drop( 15, uploadDateReason );
+            }
+
+            return mdbTitle_result(
+                date,
+                venueTitle.artist + " @ " + venueTitle.venue + ( venueTitle.city ? ", " + venueTitle.city : "" ),
+                "", null, false, [], conf
+            );
+        }
+
         if( dateFromUpload ) {
             conf.drop( 15, uploadDateReason );
         }
@@ -1165,6 +1358,24 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         var restWithShow = rest, // kept for the "title was nothing but the show" fallback below
             taken = mdbTitle_takeShowOutOfTitle( rest, show, !isMappedChannel ),
             promoMix = false;
+
+        // 4a) MixesDB knows the CHANNEL as an artist, and the title never names them: then the
+        // person is the artist and everything the title says is the name of what they made.
+        //   "Vintage Vinyl Session 004" on the channel "Daniel Bortz"
+        //   -> 2026-08-09 - Daniel Bortz - Vintage Vinyl Session 004
+        // Read off the shape alone this comes out backwards, with the series as the artist and
+        // the artist as the show, and no way of telling which of the two the channel is.
+        // No "(Promo Mix)": a name like that is a series of the artist's own, and the marker is
+        // better left off than wrongly put on.
+        if( !taken.taken && mdbTitle_knownAs( known, username ) === "artist" ) {
+            var ownEntity = mdbTitle_cleanArtist( rest );
+
+            if( ownEntity ) {
+                logVar( "buildMixesdbTitle: MixesDB knows the channel as an artist", username );
+
+                return mdbTitle_result( date, username, ownEntity, null, false, extraArtists, conf );
+            }
+        }
 
         // 4b) The channel name is in the title, but PLAIN - no "Podcast"/"Radio"/... behind it
         // and no entry in scUsernameConversions saying it is a show. Then the channel is the
@@ -1179,7 +1390,11 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate ) {
         // A number written onto the channel name ("Trommel.251") rules this branch out as
         // well: a name that carries an episode number is a series, not the artist. So does a
         // guest marker, which already named the artist and it is not the channel.
+        // An episode number anywhere in what is left rules it out too: a numbered thing is a
+        // series, so the channel is its name and not the artist. "LIMB #9 – Yuka" is episode 9
+        // of LIMB by Yuka, not a mix by LIMB called "#9 – Yuka".
         if( taken.taken && !taken.extended && !taken.episode && !guestArtist && !isMappedChannel &&
+            !mdbTitle_findEpisode( taken.text, true ) &&
             !/^\s*(?:presents?|pres\.?|w\/|with|feat\.?|ft\.?)\b/i.test( taken.text ) ) {
 
             var entity = mdbTitle_cleanArtist( taken.text );
@@ -1475,7 +1690,33 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
 // never a richer title, it always means a part of the SoundCloud title was misread - it
 // cannot be repaired blindly here, so it is flagged hard instead.
 function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists, conf ) {
-    var title = mdbTitle_assemble( date, mdbTitle_joinArtists( artist, extraArtists ), entity, episode, promoMix );
+    artist = mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) );
+    entity = mdbTitle_wikiSafe( entity );
+
+    // " (Promo Mix)" only where the name does not already say it - the page still goes into
+    // the category either way, which is what promoCategory carries out to the UI
+    var promoCategory = !!promoMix,
+        promoInTitle = promoMix && !mdbTitle_saysPromoMix( entity );
+
+    var title = mdbTitle_assemble( date, artist, entity, episode, promoInTitle );
+
+    if( title ) {
+        // THE strict rule: three groups, and no group holding a separator that reads as a
+        // fourth. "2026-08-07 - LIMB - #9 - Yuka" is four groups however it is punctuated, and
+        // a title that comes out like that was not understood - so the separators inside the
+        // groups are flattened to keep the promise, and the score is capped low enough that
+        // nobody pastes it without looking.
+        var groups = mdbTitle_countGroups( title );
+
+        if( groups > 3 ) {
+            logVar( "mdbTitle_result: too many groups", groups + " in \"" + title + "\"" );
+
+            title = mdbTitle_assemble( date, mdbTitle_flattenSeparators( artist ),
+                                       mdbTitle_flattenSeparators( entity ), episode, promoInTitle );
+
+            conf.drop( 100, "the title came out as " + groups + " groups instead of \"Date - Artist - Entity\" - a part of it was not understood and had to be flattened, so read it before using it" );
+        }
+    }
 
     if( title ) {
         // charged here rather than where the names were found, because only a join that really
@@ -1487,21 +1728,56 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         if( mdbTitle_reCased ) {
             conf.drop( 5, "the title was written in one case throughout and was put into Normal Case - check names that really are spelled in caps" );
         }
-
-        // the date's own hyphens carry no spaces, so this only counts real groups
-        var groups = title.split( " - " ).length;
-
-        if( groups > 3 ) {
-            logVar( "mdbTitle_result: too many groups", groups + " in \"" + title + "\"" );
-            conf.drop( 25, "the suggestion has " + groups + " groups instead of \"Date - Artist - Entity\" - part of the title was not understood" );
-        }
     }
 
     return {
         title: title,
         confidence: conf.percent(),
-        reasons: conf.reasons
+        reasons: conf.reasons,
+        // the page still belongs in Category:Promo Mix even when the title does not say so
+        promoCategory: promoCategory
     };
+}
+
+// mdbTitle_wikiSafe
+// Takes out what a MediaWiki page title cannot hold (see title_definitions.js). A space, not
+// nothing, so "RAUSCH#6" reads as "RAUSCH 6" and not "RAUSCH6".
+function mdbTitle_wikiSafe( s ) {
+    var illegal = ( typeof scWikiIllegalChars !== "undefined" && scWikiIllegalChars ) ? scWikiIllegalChars : /[#<>\[\]|{}]+/g;
+
+    illegal.lastIndex = 0;
+
+    return String( s || "" ).replace( illegal, " " ).replace( /\s+/g, " " ).trim();
+}
+
+// mdbTitle_countGroups
+// Groups as a READER counts them, not as the assembler joined them: any separator run with
+// whitespace around it breaks a title in two on sight, whether it is the " - " we wrote or a
+// "–" that came out of the SoundCloud title.
+function mdbTitle_countGroups( title ) {
+    // the date's own hyphens carry no spaces, so they are not separator runs
+    return title.split( mdbTitle_bitSplitRe() ).length;
+}
+
+// mdbTitle_flattenSeparators
+// Last resort for a group that still holds a separator: the separator goes, the words stay.
+// Leaves a bad title, but never a title that reads as four groups.
+function mdbTitle_flattenSeparators( s ) {
+    return String( s || "" )
+        .replace( mdbTitle_bitSplitRe(), " " )
+        .replace( /\s+/g, " " )
+        .trim();
+}
+
+// mdbTitle_saysPromoMix
+// Whether a name already says it is not a podcast or radio show, so " (Promo Mix)" behind it
+// would only repeat what it says. See scPromoMixImpliedWords in title_definitions.js.
+function mdbTitle_saysPromoMix( entity ) {
+    var words = ( typeof scPromoMixImpliedWords !== "undefined" && scPromoMixImpliedWords ) ? scPromoMixImpliedWords : [];
+
+    if( !entity || !words.length ) return false;
+
+    return new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( words ) + ")\\b\\.?", "i" ).test( entity );
 }
 
 
@@ -1515,8 +1791,32 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
 var mdbTitle_suggestion = "",
     mdbTitle_confidencePercent = 0,
     mdbTitle_confidenceReasons = [],
+    mdbTitle_promoCategory = false,
     mdbTitle_toolkitVerdict = null,
     mdbTitle_toolkitPoll = null;
+
+// mdbTitle_suggest
+// The entry point the track page calls. Builds the suggestion TWICE: once straight away off
+// the title alone, so there is something on screen without waiting for a network round trip,
+// and once more when MixesDB has said what it knows about the names in it. The second pass is
+// what turns a channel into an artist and a bit of the title into an "@ venue".
+function mdbTitle_suggest( scTitle, username, createdAt, releaseDate, durationMs ) {
+    logFunc( "mdbTitle_suggest" );
+
+    var first = buildMixesdbTitle( scTitle, username, createdAt, releaseDate, mdbTitle_categoryCache );
+
+    mdbTitleInput_setSuggestion( first, durationMs );
+
+    mdbTitle_lookupCategories( mdbTitle_categoryCandidates( scTitle, username ), function( known ) {
+        var second = buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known );
+
+        if( second.title !== first.title ) {
+            logVar( "mdbTitle_suggest: MixesDB knew better", first.title + "  ->  " + second.title );
+        }
+
+        mdbTitleInput_setSuggestion( second, durationMs );
+    });
+}
 
 // mdbTitle_showForUsed
 // The "Debug settings" block at the top of script.user.js sets the flag. Read through a
@@ -1558,6 +1858,7 @@ function mdbTitleInput_setSuggestion( suggestion, durationMs ) {
     mdbTitle_suggestion = ( suggestion && suggestion.title ) || "";
     mdbTitle_confidencePercent = ( suggestion && suggestion.confidence ) || 0;
     mdbTitle_confidenceReasons = ( suggestion && suggestion.reasons ) || [];
+    mdbTitle_promoCategory = !!( suggestion && suggestion.promoCategory );
     mdbTitleInput_add();
 }
 
@@ -1612,6 +1913,53 @@ function mdbTitleInput_watchToolkit() {
     }, 300);
 }
 
+// mdbTitleInput_refresh
+// Second thoughts from the MixesDB lookup, put into a row that is already on screen. Anything
+// typed into the input wins: a refined guess is still a guess, and the editor's own text is
+// the one thing here that is not.
+function mdbTitleInput_refresh( wrapper ) {
+    logFunc( "mdbTitleInput_refresh" );
+
+    var input = wrapper.find( "#mdb-mixesdbTitle" );
+
+    if( input.length && !input.data( "mdb-edited" ) && input.val() !== mdbTitle_suggestion ) {
+        input.val( mdbTitle_suggestion )
+             .attr( "size", Math.max( 20, mdbTitle_suggestion.length ) )
+             .trigger( "change" ); // keeps the "Create" href in step with the new title
+    }
+
+    wrapper.find( "#mdb-mixesdbTitle-score" )
+        .attr( "class", "mdb-mixesdbTitle-score-" + mdbTitleInput_confidenceBand( mdbTitle_confidencePercent ) )
+        .attr( "title", mdbTitleInput_confidenceTitle() )
+        .text( mdbTitle_confidencePercent + "%" );
+
+    mdbTitleInput_syncPromoNote( wrapper );
+}
+
+// mdbTitleInput_syncPromoNote
+// Help:Add_a_new_mix_page puts a self-released mix into Category:Promo Mix. Where the title
+// itself already says so (" (Promo Mix)") there is nothing to add; where the name carries the
+// word anyway ("Summer 2026 Mix") the suffix is left off, and THEN the category still has to
+// be named somewhere - here, under the "Create" link.
+function mdbTitleInput_syncPromoNote( wrapper ) {
+    var note = wrapper.find( "#mdb-mixesdbTitle-promoCategory" ),
+        wanted = mdbTitle_promoCategory && mdbTitle_suggestion.indexOf( "(Promo Mix)" ) === -1;
+
+    if( !wanted ) {
+        note.remove();
+        return;
+    }
+
+    if( !note.length ) {
+        wrapper.find( "#mdb-mixesdbTitle-createColumn" ).append(
+            $("<span>")
+                .attr( "id", "mdb-mixesdbTitle-promoCategory" )
+                .attr( "title", "A self-released mix - put the page into Category:Promo Mix.\nThe title itself does not say so because its name already does (\"Mix\", \"Vol.\", ...)." )
+                .text( "Category:Promo Mix" )
+        );
+    }
+}
+
 // mdbTitleInput_add
 function mdbTitleInput_add() {
     // A used player normally has no row at all - the debug setting is the only way it gets one,
@@ -1623,7 +1971,15 @@ function mdbTitleInput_add() {
 
     var headline = $("#mdb-trackHeader-headline");
     if( !headline.length ) return;
-    if( $("#mdb-mixesdbTitle-wrapper").length ) return;
+
+    // The row is built once and refreshed after that: the MixesDB lookup lands a moment after
+    // the first suggestion is on screen, and rebuilding the whole row would take the input
+    // (and anything typed into it) away under the editor's hands.
+    var existing = $("#mdb-mixesdbTitle-wrapper");
+    if( existing.length ) {
+        mdbTitleInput_refresh( existing );
+        return;
+    }
 
     logFunc( "mdbTitleInput_add" );
     logVar( "mdbTitleInput_add: toolkit verdict", mdbTitle_toolkitVerdict );
@@ -1705,7 +2061,16 @@ function mdbTitleInput_add() {
             mdbTitleInput_syncCreateHref( input, create );
         });
 
-        wrapper.append( create );
+        // Only a REAL keystroke marks the input as the editor's. A refresh sets .val() and
+        // fires "change" itself, which must not count as editing.
+        input.on( "input", function() {
+            input.data( "mdb-edited", true );
+        });
+
+        // A column, so the promo category note can sit under the link the way "BETA" sits
+        // under the score
+        wrapper.append( $("<span>").attr( "id", "mdb-mixesdbTitle-createColumn" ).append( create ) );
+        mdbTitleInput_syncPromoNote( wrapper );
     }
 
     headline.after( wrapper );
