@@ -273,7 +273,7 @@ a.sc_button-mdb:active {
     font-size: 11px;
     height: 20px;
     line-height: 1;
-    padding: 0 6px;
+    padding: 1px 6px !important;
     margin-right: 4px;
 }
 
