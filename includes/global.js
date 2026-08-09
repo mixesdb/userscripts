@@ -773,6 +773,19 @@ waitForKeyElements(".mdb-toggle", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// getFileDetails_wikitext
+// The File details table as it goes onto a mix page. Split out of the toggle below so a caller
+// that wants the wiki syntax itself - e.g. the SoundCloud script's "Create" link, which sends a
+// whole page text along - does not have to scrape it back out of an HTML string.
+// An unknown duration leaves the cell empty instead of dropping the table: the page needs the
+// table either way and the value is typed in by hand then.
+function getFileDetails_wikitext( dur_sec, bytes="" ) {
+    var dur = dur_sec ? convertHMS( dur_sec ) : "",
+        mb = bytes ? ( parseInt( bytes, 10 ) / 1048576 ).toFixed( 2 ) : "";
+
+    return '{|{{NormalTableFormat}}\n! dur\n! MB\n! kbps\n|-\n| '+dur+'\n| '+mb+'\n| \n|}';
+}
+
 // getFileDetails_forToggle
 function getFileDetails_forToggle( dur_sec, bytes="" ) {
     logFunc( "getFileDetails_forToggle" );
@@ -781,8 +794,7 @@ function getFileDetails_forToggle( dur_sec, bytes="" ) {
     logVar( "dur", dur );
 
     if( dur !== null ) {
-       var mb = bytes ? ( parseInt( bytes, 10 ) / 1048576 ).toFixed( 2 ) : "";
-       return '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">{|{{NormalTableFormat}}\n! dur\n! MB\n! kbps\n|-\n| '+dur+'\n| '+mb+'\n| \n|}</textarea></div>';
+       return '<div id="mdb-fileDetails" style="display:none"><textarea class="mdb-selectOnClick" rows="9">'+getFileDetails_wikitext( dur_sec, bytes )+'</textarea></div>';
     }
 }
 
