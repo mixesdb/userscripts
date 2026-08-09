@@ -212,11 +212,31 @@ button.mdb-element {
     justify-content: center;
     padding: 4px 6px;
     color: #fff;
+    user-select: none; /* a drag of the <a> variant must not select its glyph instead */
 }
 
 .mdb-copy-text-button:hover,
 .mdb-copy-text-button:focus {
     background: #f90;
+}
+
+/*
+ * URL sources render the copy button as a real <a href> so the URL can be dragged out of the
+ * page (see getMdbCopyLinkUrl() in global.js). It must still look like the <button> variant,
+ * hence: no link styling from the host site, and "normal" to match a <button>'s UA line-height.
+ * The .mdb-toolkit selector is needed to beat that block's own "a:hover { underline }" rule.
+ */
+a.mdb-copy-text-button {
+    line-height: normal;
+    -webkit-user-drag: element;
+}
+
+a.mdb-copy-text-button,
+a.mdb-copy-text-button:hover,
+a.mdb-copy-text-button:focus,
+.mdb-toolkit a.mdb-copy-text-button:hover {
+    color: #fff !important;
+    text-decoration: none !important;
 }
 
 .mdb-copy-text-feedback {
