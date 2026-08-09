@@ -128,6 +128,7 @@ a.mdb-tidSubmit-playlist img.tidSubmit-icon {
    keeps the browser's default purple out. */
 body.soundcloud-com a.mdb-tidSubmit-playlist,
 body.soundcloud-com a.mdb-tidSubmit-playlist:visited {
+    font-weight: 300 !important;
     color: var(--link-standard-color, #044dd2) !important;
 }
 
