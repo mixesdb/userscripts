@@ -131,6 +131,10 @@ body.soundcloud-com a.mdb-tidSubmit-playlist:visited {
     color: var(--link-standard-color, #044dd2) !important;
 }
 
+body.soundcloud-com .mdb-tidSubmit-playlist-wrapper {
+    margin: 8px 0 0;
+}
+
 /* Mixcloud: bigger icon next to its larger UI text */
 body.mixcloud-com a.mdb-tidSubmit-playlist img.tidSubmit-icon {
     width: 20px;
