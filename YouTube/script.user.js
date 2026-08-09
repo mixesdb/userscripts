@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.2
+// @version      2026.08.10.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -22,6 +22,96 @@
 
 console.log( "YouTube userscript init" );
 
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Startup diagnostics
+ *
+ * Reports of "the change is not there" on YouTube have so far produced logs with no line of
+ * ours in them at all, which is ambiguous in the worst way: the script may never have run,
+ * may have died on its first statement, or may have run fine while only the DOM part failed.
+ * Everything here is deliberately dependency-free - plain console.log, no jQuery, no
+ * global.js helpers - because a @require that failed to fetch is one of the causes it has to
+ * be able to report. Nothing below may throw, or it takes the whole script down with it.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// ytLog: log() lives in global.js, so it is not available when that require is the problem
+function ytLog( text ) {
+    if( typeof log === "function" ) {
+        log( text );
+    } else {
+        console.log( "[MixesDB userscript]: " + text );
+    }
+}
+
+// Names an uncaught error with its exact file/line instead of leaving a silent dead script
+// (same safety net as the SoundCloud script, added there for the same kind of report).
+window.addEventListener( "error", function( e ) {
+    ytLog( "UNCAUGHT ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno + ":" + e.colno );
+});
+
+ytLog( "location.href: " + location.href );
+ytLog( "top frame: " + ( window.self === window.top ) + ", hostname: " + location.hostname );
+
+/*
+ * Reload-burst counter
+ * redirectOnUrlChange() below turns every history.pushState/replaceState into a full page
+ * reload, and YouTube rewrites its own URL while the page is loading. If that ever ends in a
+ * reload loop, nothing we register survives long enough to do anything - and the console
+ * looks empty because every reload clears it. sessionStorage survives reloads, so a count
+ * far above 1 here is the proof. Counts only reloads of the SAME url within 30s of each
+ * other, so ordinary navigation always reads 1.
+ */
+var mdbLoadCount = "unknown (sessionStorage unavailable)";
+try {
+    var mdbLoadKey = "mdb-yt-loadcount",
+        mdbLoadState = JSON.parse( sessionStorage.getItem( mdbLoadKey ) || "null" ),
+        mdbLoadNow = Date.now();
+
+    if( !mdbLoadState || mdbLoadState.href !== location.href || mdbLoadNow - mdbLoadState.at > 30000 ) {
+        mdbLoadState = { href: location.href, at: mdbLoadNow, count: 0 };
+    }
+
+    mdbLoadState.count++;
+    mdbLoadState.at = mdbLoadNow;
+    sessionStorage.setItem( mdbLoadKey, JSON.stringify( mdbLoadState ) );
+    mdbLoadCount = mdbLoadState.count;
+} catch( e ) {}
+
+ytLog( "loads of this URL in the last 30s: " + mdbLoadCount + " (a number climbing on every check means a redirectOnUrlChange reload loop)" );
+
+/*
+ * @require check
+ * Each @require is a separate network fetch that can fail on its own - and when it does, the
+ * first call into it throws a bare ReferenceError naming a function, with nothing saying
+ * which file was supposed to provide it. typeof on an undeclared name is safe.
+ */
+var mdbRequires = [
+    [ "jquery-3.7.1.min.js", "$", typeof $ ],
+    [ "waitForKeyElements.js", "waitForKeyElements", typeof waitForKeyElements ],
+    [ "youtube_funcs.js", "normalizeYoutubeTitle", typeof normalizeYoutubeTitle ],
+    [ "global.js", "redirectOnUrlChange", typeof redirectOnUrlChange ],
+    [ "global.js", "getPlaylistPageInfo", typeof getPlaylistPageInfo ],
+    [ "global.js", "addTidPlaylistSubmitLink", typeof addTidPlaylistSubmitLink ],
+    [ "toolkit.js", "getToolkit", typeof getToolkit ]
+];
+
+var mdbRequiresMissing = 0;
+for( var mdbR = 0; mdbR < mdbRequires.length; mdbR++ ) {
+    var mdbEntry = mdbRequires[ mdbR ],
+        mdbOk = ( mdbEntry[2] === "function" );
+
+    if( !mdbOk ) mdbRequiresMissing++;
+    ytLog( "  [" + ( mdbOk ? "OK" : "MISSING" ) + "] " + mdbEntry[0] + " -> " + mdbEntry[1] + " (typeof: " + mdbEntry[2] + ")" );
+}
+
+if( mdbRequiresMissing ) {
+    ytLog( "STOP READING HERE: " + mdbRequiresMissing + " @require(s) did not load. Nothing below can work. " +
+           "Check the Network tab for the raw.githubusercontent.com/cdn.rawgit.com URLs in the header, " +
+           "and re-save the script in the userscript manager so it re-fetches them." );
+}
+
 if( !/(^|\.)youtube\.com$/.test( window.location.hostname ) && window.location.hostname !== "youtu.be" ) {
     console.log( "YouTube userscript: skip non-YouTube host", window.location.hostname );
     return;
@@ -31,7 +121,11 @@ if( !/(^|\.)youtube\.com$/.test( window.location.hostname ) && window.location.h
  * Before anythings starts: Reload the page
  * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
  */
-redirectOnUrlChange( 200 );
+// guarded so that a failed global.js produces the full diagnostic report above and below
+// instead of a ReferenceError that cuts the script off right here
+if( typeof redirectOnUrlChange === "function" ) {
+    redirectOnUrlChange( 200 );
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -242,13 +336,25 @@ var youtubeInitAttempts = 0,
  */
 var playlistAnchorSelector = ".ytPageHeaderViewModelFlexibleActions, ytd-playlist-sidebar-primary-info-renderer #stats";
 
-waitForKeyElements( playlistAnchorSelector, function( jNode ) {
-    if( !getPlaylistPageInfo() ) return; // watch/channel pages have page headers too
+// Dependency-free copy of the URL test. getPlaylistPageInfo() (global.js) stays the single
+// source of truth for building the link, but the diagnostics below must keep working when
+// global.js is exactly what failed - which is one of the things they exist to reveal.
+var isPlaylistPage = location.pathname.replace( /\/+$/, "" ) === "/playlist" && /[?&]list=/.test( location.search );
 
-    if( !jNode.is(":visible") ) return true; // hidden duplicate, or not hydrated yet
+ytLog( "playlist page (by URL): " + isPlaylistPage );
 
-    addTidPlaylistSubmitLink( jNode, "after" );
-});
+if( typeof waitForKeyElements !== "function" ) {
+    ytLog( "waitForKeyElements is not available - the playlist submit link cannot be registered at all." );
+} else {
+    waitForKeyElements( playlistAnchorSelector, function( jNode ) {
+        if( !getPlaylistPageInfo() ) return; // watch/channel pages have page headers too
+
+        if( !jNode.is(":visible") ) return true; // hidden duplicate, or not hydrated yet
+
+        ytLog( "Anchor matched and visible - adding the submit link now." );
+        addTidPlaylistSubmitLink( jNode, "after" );
+    });
+}
 
 /*
  * Playlist page diagnostics
@@ -258,19 +364,34 @@ waitForKeyElements( playlistAnchorSelector, function( jNode ) {
  * silence and cannot be diagnosed from a log alone (same problem as the SoundCloud track
  * page, see SoundCloud/script.user.js). These unconditional snapshots always show which
  * anchors existed, how many were visible, and whether the link ended up in the DOM.
+ * Plain DOM, no jQuery: see the note on ytLog above.
  */
 function logPlaylistPageSnapshot( label ) {
-    if( !getPlaylistPageInfo() ) return;
+    if( !isPlaylistPage ) return;
 
-    logFunc( "Playlist page DOM snapshot: " + label );
-    logVar( "document.readyState", document.readyState );
+    ytLog( "### Playlist page DOM snapshot: " + label + " (readyState: " + document.readyState + ")" );
 
-    $.each( playlistAnchorSelector.split(", "), function( i, selector ) {
-        var matches = $( selector );
-        log( "  [" + matches.length + " found, " + matches.filter(":visible").length + " visible] " + selector );
+    playlistAnchorSelector.split( ", " ).forEach(function( selector ) {
+        var matches = document.querySelectorAll( selector ),
+            visible = 0;
+
+        Array.prototype.forEach.call( matches, function( node ) {
+            var rect = node.getBoundingClientRect();
+            if( rect.width > 0 && rect.height > 0 ) visible++;
+        });
+
+        ytLog( "  [" + matches.length + " found, " + visible + " visible] " + selector );
     });
 
-    logVar( "submit link present", $(".mdb-tidSubmit-playlist").length !== 0 );
+    // Reference points that must exist on any playlist page whatsoever. All three at 0 means
+    // the page had not rendered yet (or is a layout none of our selectors know), which is a
+    // different problem than our specific anchor missing.
+    [ "yt-page-header-view-model", "ytd-browse", "#contents" ].forEach(function( selector ) {
+        ytLog( "  [" + document.querySelectorAll( selector ).length + " found] " + selector + " (reference point)" );
+    });
+
+    var link = document.querySelector( ".mdb-tidSubmit-playlist" );
+    ytLog( "  submit link in the DOM: " + !!link + ( link ? ", visible: " + ( link.getBoundingClientRect().height > 0 ) : "" ) );
 }
 
 logPlaylistPageSnapshot( "at script start" );
