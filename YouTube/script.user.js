@@ -1,16 +1,17 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.4
+// @version      2026.08.10.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/YouTube/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/YouTube/script.user.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/trustedTypes.js?v-YouTube_1
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_22
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_23
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-YouTube_16
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
@@ -97,6 +98,7 @@ ytLog( "loads of this URL in the last 30s: " + mdbLoadCount + " (a number climbi
  * which file was supposed to provide it. typeof on an undeclared name is safe.
  */
 var mdbRequires = [
+    [ "trustedTypes.js", "getTrustedTypesStatus", typeof getTrustedTypesStatus ],
     [ "jquery-3.7.1.min.js", "$", typeof $ ],
     [ "waitForKeyElements.js", "waitForKeyElements", typeof waitForKeyElements ],
     [ "youtube_funcs.js", "normalizeYoutubeTitle", typeof normalizeYoutubeTitle ],
