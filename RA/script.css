@@ -30,15 +30,30 @@ img.mdb-ra-artwork-processed {
     box-sizing: border-box;
     color: #fff;
     height: 20px;
+}
+
+.mdb-ra-artwork-size {
     opacity: .75;
 }
 
+/*
+ * Keep the URL field recognizable as an input: borderless and dimmed it looked like
+ * plain text on the info bar, so nobody expects to be able to click into it.
+ */
 .mdb-ra-artwork-input {
-    border: 0;
+    background-color: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 2px;
+    cursor: text;
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     padding: 0 3px;
+}
+
+.mdb-ra-artwork-input:focus {
+    border-color: #fc0;
+    outline: 0;
 }
 
 .mdb-ra-artwork-input::selection {
