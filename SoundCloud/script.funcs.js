@@ -45,6 +45,17 @@ function append_artwork( artwork_url ) {
     }
 }
 
+// scArtworkOriginalUrl
+// SoundCloud writes the size into the artwork's file name ("-t500x500", "-large", ...) and
+// serves the same picture in a dozen of them. MixesDB wants the biggest one there is, so
+// whichever size the API named is swapped for "-original". Whether that one really exists is
+// a separate question - loadArtworkInfo() here, and MixesDB's own upload form over there,
+// both fall back to a size that loads.
+function scArtworkOriginalUrl( artwork_url ) {
+    return String( artwork_url || "" )
+        .replace( /-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-original" );
+}
+
 // append_artwork_trackExtras()
 // New Material "Track header" layout (since ~Aug 2026 redesign): the artwork <img> is a
 // React-managed node inside a box that clips its overflow, and tracks showing a "visuals"
@@ -53,8 +64,7 @@ function append_artwork( artwork_url ) {
 function append_artwork_trackExtras( wrapper, artwork_url ) {
     logFunc( "append_artwork_trackExtras" );
 
-    var thumbURL = artwork_url.replace(/-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-t500x500"),
-        origUrl = thumbURL.replace("-t500x500", "-original");
+    var origUrl = scArtworkOriginalUrl( artwork_url );
 
     logVar( "origUrl", origUrl );
 
@@ -1792,11 +1802,12 @@ var mdbTitle_suggestion = "",
     mdbTitle_confidencePercent = 0,
     mdbTitle_confidenceReasons = [],
     mdbTitle_promoCategory = false,
-    // what the "Create" link puts on the new page besides the title - both come from the same
-    // API response the suggestion is built from, so they are taken in through mdbTitle_suggest()
+    // what the "Create" link sends along besides the title - all three come from the same API
+    // response the suggestion is built from, so they are taken in through mdbTitle_suggest()
     // rather than read off the DOM (see getScPlayerUrl(), which lives in the userscript's IIFE)
     mdbTitle_playerUrl = "",
     mdbTitle_durationMs = 0,
+    mdbTitle_artworkUrl = "",
     mdbTitle_toolkitVerdict = null,
     mdbTitle_toolkitPoll = null;
 
@@ -1805,10 +1816,11 @@ var mdbTitle_suggestion = "",
 // the title alone, so there is something on screen without waiting for a network round trip,
 // and once more when MixesDB has said what it knows about the names in it. The second pass is
 // what turns a channel into an artist and a bit of the title into an "@ venue".
-function mdbTitle_suggest( scTitle, username, createdAt, releaseDate, durationMs, playerUrl ) {
+function mdbTitle_suggest( scTitle, username, createdAt, releaseDate, durationMs, playerUrl, artworkUrl ) {
     logFunc( "mdbTitle_suggest" );
 
     mdbTitle_playerUrl = playerUrl || "";
+    mdbTitle_artworkUrl = scArtworkOriginalUrl( artworkUrl );
 
     var first = buildMixesdbTitle( scTitle, username, createdAt, releaseDate, mdbTitle_categoryCache );
 
@@ -1844,12 +1856,33 @@ var mdbTitle_editUrl = "https://www.mixesdb.com/w/index.php";
 // The input is editable, so the link has to carry whatever is in it AT CLICK TIME. Kept in a
 // real href (rather than built in a click handler) so cmd/ctrl/middle-click still open a tab.
 function mdbTitleInput_syncCreateHref( input, link ) {
-    var title = $.trim( input.val() );
+    var title = $.trim( input.val() ),
+        artwork = mdbTitle_artwork(),
+        href = mdbTitle_editUrl +
+               "?title=" + encodeURIComponent( title ) +
+               "&action=edit" +
+               "&insert=" + encodeURIComponent( mdbTitle_pageText( title ) );
 
-    link.attr( "href", mdbTitle_editUrl +
-                       "?title=" + encodeURIComponent( title ) +
-                       "&action=edit" +
-                       "&insert=" + encodeURIComponent( mdbTitle_pageText( title ) ) );
+    // Not part of the page text: whether the mix page gets a picture at all is the editor's
+    // decision, and they make it over there by writing the [[File:...]] line themselves. The
+    // URL only rides along so that, once they have, MixesDB's upload form knows where the
+    // picture is - see the Helper's "Edit: remember an image URL" section.
+    if( artwork ) {
+        href += "&img1url=" + encodeURIComponent( artwork );
+    }
+
+    link.attr( "href", href );
+}
+
+// mdbTitle_artwork
+// The artwork URL to hand over. #mdb-artwork-input holds the one that has been tried against
+// the server - loadArtworkInfo() puts whatever actually loaded in there, which is not always
+// the "-original" that was asked for - so it beats the URL built from the API response. That
+// input only exists in the new layout, and it is filled in asynchronously, hence the fallback.
+function mdbTitle_artwork() {
+    var fromPage = $.trim( $("#mdb-artwork-input").val() || "" );
+
+    return fromPage || mdbTitle_artworkUrl;
 }
 
 // mdbTitle_pageText
