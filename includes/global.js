@@ -335,7 +335,10 @@ function makeTidSubmitUrl( playerUrl, keywords="" ) {
         playerUrl = "https://www.youtube.com/watch?v=" + youtubeId;
     }
 
-    return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+'&keywords='+encodeURIComponent( keywords );
+    // no empty &keywords= - a playlist/set submission has no keywords to send at all
+    var keywordsParam = keywords ? '&keywords='+encodeURIComponent( keywords ) : '';
+
+    return 'https://trackid.net/submiturl?requestUrl='+encodeURIComponent( playerUrl )+keywordsParam;
 }
 
 // makeTidSubmitLink
@@ -353,6 +356,121 @@ function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text" ) {
         tidLinkOut = tidLink;
 
     return tidLinkOut;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Submit a whole playlist/set to TrackId.net
+ *
+ * TrackId.net takes a playlist/set URL as well as a single player URL, which saves
+ * submitting every player of a set by hand. Everything except "where does the link go on
+ * this site" is shared here; the site scripts only pass their own anchor element.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * getPlaylistPageInfo
+ * Recognizes the playlist/set URL scheme of the supported sites, false for any other page:
+ *   https://soundcloud.com/[channel]/sets/[set-name]
+ *   https://www.mixcloud.com/[channel]/playlists/[playlist-name]/
+ *   https://www.youtube.com/playlist?list=[playlist_id]
+ * Returns:
+ *   url  - the page URL reduced to what identifies the playlist and rebuilt on the canonical
+ *          host, so tracking/session parameters (?si=, ?utm_*, SoundCloud's ?in=, ...) and
+ *          host variants (m./music., missing www) never reach TrackId.net as different
+ *          submissions of the same playlist.
+ *   term - what the site itself calls it, for the link text.
+ */
+function getPlaylistPageInfo( pageUrl ) {
+    var parsedUrl;
+
+    try {
+        parsedUrl = new URL( pageUrl || location.href );
+    } catch( e ) {
+        return false;
+    }
+
+    var host = parsedUrl.hostname,
+        path = parsedUrl.pathname.split("/").filter(Boolean); // filter drops the empty parts leading/trailing slashes produce
+
+    // SoundCloud sets
+    if( /(^|\.)soundcloud\.com$/i.test( host ) && path[1] == "sets" && path[2] ) {
+        return { url: "https://soundcloud.com/" + path[0] + "/sets/" + path[2], term: "set" };
+    }
+
+    // Mixcloud playlists - the trailing slash is part of the canonical URL there
+    if( /(^|\.)mixcloud\.com$/i.test( host ) && path[1] == "playlists" && path[2] ) {
+        return { url: "https://www.mixcloud.com/" + path[0] + "/playlists/" + path[2] + "/", term: "playlist" };
+    }
+
+    // YouTube playlists - "list" is not just a parameter here, it IS the page, so it stays
+    if( /(^|\.)youtube\.com$/i.test( host ) && path[0] == "playlist" && parsedUrl.searchParams.get("list") ) {
+        return { url: "https://www.youtube.com/playlist?list=" + parsedUrl.searchParams.get("list"), term: "playlist" };
+    }
+
+    return false;
+}
+
+/*
+ * makeTidPlaylistSubmitLink
+ * Takes the object getPlaylistPageInfo() returned (not a URL - the caller has to have
+ * checked for a playlist page anyway) and returns the link HTML.
+ */
+function makeTidPlaylistSubmitLink( playlistPageInfo ) {
+    var text = "Submit this " + playlistPageInfo.term + " to TrackId.net";
+
+    // target="_blank" instead of our usual _top: you keep working through the playlist page
+    // itself while the submission runs in the other tab.
+    return '<a href="'+ makeTidSubmitUrl( playlistPageInfo.url ) +'" class="mdb-tidSubmit mdb-tidSubmit-playlist" target="_blank" title="'+ playlistPageInfo.url +' (opens in a new tab)">'+ text +'</a>';
+}
+
+/*
+ * addTidPlaylistSubmitLink
+ * Adds that link relative to targetNode, once per page, and does nothing at all when the
+ * page is not one of the playlist/set URLs - so a site script can hand over any header
+ * element it finds without checking the URL itself first.
+ * position: "after" (default), "before", "append" or "prepend", relative to targetNode.
+ * pageUrl: only needed where location.href is not the address bar URL (SoundCloud's webi frame).
+ */
+function addTidPlaylistSubmitLink( targetNode, position, pageUrl ) {
+    var playlistPageInfo = getPlaylistPageInfo( pageUrl );
+
+    if( !playlistPageInfo ) return false; // not a playlist/set page, stay quiet - runs on every page
+
+    logFunc( "addTidPlaylistSubmitLink" );
+
+    var target = $( targetNode );
+
+    if( !target.length ) {
+        log( "No target node to add the playlist submit link to." );
+        return false;
+    }
+
+    if( $(".mdb-tidSubmit-playlist").length ) {
+        log( "Playlist submit link is already on the page." );
+        return false;
+    }
+
+    var wrapper = '<div class="mdb-tidSubmit-playlist-wrapper">'+ makeTidPlaylistSubmitLink( playlistPageInfo ) +'</div>';
+
+    switch( position ) {
+        case "before":
+            target.before( wrapper );
+            break;
+        case "append":
+            target.append( wrapper );
+            break;
+        case "prepend":
+            target.prepend( wrapper );
+            break;
+        default:
+            target.after( wrapper );
+    }
+
+    logVar( "Playlist submit link added for", playlistPageInfo.url );
+
+    return true;
 }
 
 /*

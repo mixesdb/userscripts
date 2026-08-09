@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.10
+// @version      2026.08.09.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_41
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_42
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_46
@@ -29,7 +29,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 75,
+var cacheVersion = 76,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -180,7 +180,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 74,
+var cacheVersion = 76,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -539,6 +539,23 @@ waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorite
 
     // mark as processed
     jNode.addClass("mdb-processed-favorited");
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Submit the whole set to TrackId.net
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+log( "Registering handlers: Set submit link" );
+
+// Into the hero's title stack, below set title and channel - the first thing on the page.
+// Set pages still use the old layout, so no webi frame handling is needed here, but
+// pageHref is passed anyway since it is the address bar URL in either frame.
+// https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
+waitForKeyElements(".fullListenHero .soundTitle__usernameTitleContainer", function( jNode ) {
+    addTidPlaylistSubmitLink( jNode, "append", pageHref );
 });
 
 
