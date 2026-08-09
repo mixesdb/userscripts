@@ -105,47 +105,16 @@ function logArr( name, arr ) {
  *
  * Trusted Types
  *
- * YouTube sends "require-trusted-types-for 'script'", and Firefox enforces it since v135.
- * Under that header every assignment to innerHTML throws
- *   TypeError: Element.innerHTML setter: Sink type mismatch violation blocked by CSP
- * instead of writing markup - and jQuery builds every fragment through innerHTML, so
- * .html()/.append()/.after()/.before() with an HTML *string* stop working across the board:
- * no CSS, no toolkit, no thumbnail, no TrackId.net submit link. Nothing looks broken in the
- * console either, because inside jQuery's ajax callbacks it surfaces only as an unhandled
- * promise rejection with jQuery, not our script, in the stack.
- *
- * A policy named "default" is the escape hatch the spec provides: once it exists, the browser
- * routes every string that reaches a sink through it, so all the existing jQuery code keeps
- * working untouched. It is installable only while the page does not restrict policy names
- * with a "trusted-types" directive (YouTube does not send one) and while nobody has claimed
- * the name yet - so it can legitimately fail, and code that must work regardless builds real
- * DOM nodes instead of HTML strings (see loadRawCss and addTidPlaylistSubmitLink).
- *
- * Only createHTML is defined: that is the sink jQuery needs. Script/script-URL sinks stay
- * blocked exactly as they are now, so this does not hand the page a way to run new code.
+ * Only the report survives here. The policy that keeps jQuery loadable under
+ * "require-trusted-types-for 'script'" has to exist before jQuery is parsed, so it lives in
+ * includes/trustedTypes.js and is @require'd ahead of it - by the time global.js runs, the
+ * outcome is already decided. See that file for the whole story.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function installTrustedTypesPassthrough() {
-    if( typeof window.trustedTypes === "undefined" ) {
-        return "not needed (no Trusted Types in this browser)";
-    }
-
-    if( window.trustedTypes.defaultPolicy ) {
-        return "not installed (the page already has a default policy)";
-    }
-
-    try {
-        window.trustedTypes.createPolicy( "default", {
-            createHTML: function( html ) { return html; }
-        });
-        return "installed - jQuery HTML strings work again";
-    } catch( e ) {
-        return "FAILED (" + e.message + ") - HTML strings handed to jQuery will be blocked on this page";
-    }
-}
-
-logVar( "Trusted Types passthrough policy", installTrustedTypesPassthrough() );
+logVar( "Trusted Types", typeof getTrustedTypesStatus === "function"
+        ? getTrustedTypesStatus()
+        : "unguarded - this script does not @require includes/trustedTypes.js before jQuery (only matters on sites sending require-trusted-types-for)" );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
