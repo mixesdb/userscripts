@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.09.3
+// @version      2026.08.09.4
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -537,6 +537,117 @@ d.ready(function () {
     textbox.val( insertText );
 
     log( "Edit: insert - filled the edit box with the " + insertText.length + " characters from the URL." );
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Edit: remember an image URL handed over in the URL
+ *
+ * Companion to the "insert" section above: a userscript that knows where the mix's artwork
+ * lives can name it in the same link, e.g. the SoundCloud script's "Create" link:
+ *     ...&action=edit&insert=<page text>&img1url=https://i1.sndcdn.com/artworks-....-original.jpg
+ *
+ * Nothing is written into the page text for it. Whether a mix page gets a picture is the
+ * editor's decision, and MixesDB's own inline upload form is where it happens: write the
+ * [[File:...]] line, hit Preview, and the red file link grows an upload form whose "Source
+ * URL" field is exactly what the remembered URL is for. Filling that field is all this does -
+ * the upload itself stays a deliberate click on MixesDB's own Upload button.
+ *
+ * Why remember it at all: Preview POSTs the form, so by the time the upload form exists the
+ * query string that carried the URL is long gone. sessionStorage, not localStorage, and with
+ * an age limit on top: the URL belongs to one tab working on one page, and a leftover from
+ * yesterday pointing at the wrong artwork would be worse than no help at all. It is kept (not
+ * consumed) while it is valid, so a second and third preview still find it.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var imgUrl_storageKey = "mdb-helper-img1url",
+    imgUrl_maxAgeMs = 6 * 60 * 60 * 1000; // long enough for a page left open over lunch
+
+// imgUrl_remember
+function imgUrl_remember( url ) {
+    try {
+        sessionStorage.setItem( imgUrl_storageKey, JSON.stringify({
+            url: url,
+            page: mw.config.get("wgPageName"),
+            savedAt: Date.now()
+        }));
+        log( "Edit: img1url - remembered for this tab: " + url );
+    } catch( e ) {
+        // private mode / storage full - the field just stays empty, nothing breaks
+        log( "Edit: img1url - could not be remembered: " + e.message );
+    }
+}
+
+// imgUrl_remembered
+// "" whenever there is the slightest doubt: another page, too old, or unreadable storage.
+function imgUrl_remembered() {
+    var raw, stored;
+
+    try {
+        raw = sessionStorage.getItem( imgUrl_storageKey );
+    } catch( e ) {
+        return "";
+    }
+
+    if( !raw ) return "";
+
+    try {
+        stored = JSON.parse( raw );
+    } catch( e ) {
+        return "";
+    }
+
+    if( !stored || !stored.url ) return "";
+
+    if( stored.page !== mw.config.get("wgPageName") ) {
+        log( "Edit: img1url - the remembered URL belongs to " + stored.page + ", not to this page - ignoring it." );
+        return "";
+    }
+
+    if( Date.now() - stored.savedAt > imgUrl_maxAgeMs ) {
+        log( "Edit: img1url - the remembered URL is older than " + ( imgUrl_maxAgeMs / 3600000 ) + "h - forgetting it." );
+        try { sessionStorage.removeItem( imgUrl_storageKey ); } catch( e ) {}
+        return "";
+    }
+
+    return stored.url;
+}
+
+d.ready(function () { // needs mw.config
+
+    var imgUrl = getURLParameter("img1url");
+
+    if( imgUrl ) imgUrl_remember( imgUrl );
+});
+
+// The upload form is built by MixesDB's own ext.mixesdb.inline-upload once a [[File:...]] in
+// the page text renders as a red link - so it turns up on Preview, long after page load, and
+// only when the editor asked for a picture. waitForKeyElements is what catches that.
+waitForKeyElements( 'form.ajaxUpload-Form input[name="ajaxUpload-URL"]', function( jNode ) {
+
+    // Only the first one: a mix page's first image is its artwork, and that is the one the URL
+    // was handed over for. Anything below it (tracklist shots, ...) is another picture entirely.
+    if( $('form.ajaxUpload-Form input[name="ajaxUpload-URL"]').index( jNode ) !== 0 ) return;
+
+    if( $.trim( jNode.val() ) !== "" ) {
+        log( "Edit: img1url - the Source URL field already has a value - leaving it alone." );
+        return;
+    }
+
+    var imgUrl = imgUrl_remembered();
+
+    if( !imgUrl ) return;
+
+    logFunc( "Edit: img1url fill" );
+
+    // "input" is not cosmetic here: MixesDB's own handler on that field hangs off it, and it is
+    // what upgrades a SoundCloud artwork URL to the biggest size that loads and corrects the
+    // upload's file extension. Setting .val() alone would skip all of that.
+    jNode.val( imgUrl ).trigger("input").trigger("change");
+
+    log( "Edit: img1url - filled the Source URL field with " + imgUrl );
 });
 
 
