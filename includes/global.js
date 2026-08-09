@@ -862,15 +862,12 @@ function getMdbCopySourceText( sourceNode ) {
 }
 
 // getMdbCopyLinkUrl
-// The copy button is rendered as a real <a href> whenever the source is an input/textarea
-// holding an absolute http(s) URL, so the URL can be DRAGGED out of the page into another
-// window/app (an <a> is natively draggable, a <button> is not). Anything else - most
-// importantly the editable MixesDB page title input - stays a <button>: an href built from
-// arbitrary text would resolve as a relative URL and offer a link that goes nowhere sane.
-// Returns "" when the source does not qualify.
+// Only an absolute http(s) URL gets a real href on the copy button - see the <a> vs <button>
+// note in appendMdbCopyTextButton(). An href built from arbitrary text (a page title, an
+// artist name) would resolve against the current page as a relative URL and offer a link
+// that goes nowhere sane, so those drag as plain text instead.
+// Returns "" when the source text is not a URL.
 function getMdbCopyLinkUrl( sourceNode ) {
-    if( !sourceNode.is( "input, textarea" ) ) return "";
-
     var text = getMdbCopySourceText( sourceNode );
     return /^https?:\/\/\S+$/i.test( text ) ? text : "";
 }
@@ -886,8 +883,8 @@ function appendMdbCopyTextButton( source, options ) {
             },
             emptyMessage: "Nothing to copy.",
             failedMessage: "Copy failed.",
-            // only used for the <a> variant, see getMdbCopyLinkUrl()
-            linkTitleSuffix: " - or drag it into another window",
+            // only appended for input sources, i.e. the draggable ones
+            dragTitleSuffix: " - or drag it into another window",
             processedClass: "mdb-copy-text-processed",
             sourceClass: ""
         }, options || {}),
@@ -904,12 +901,17 @@ function appendMdbCopyTextButton( source, options ) {
         sourceNode.addClass( settings.sourceClass );
     }
 
-    var linkUrl = getMdbCopyLinkUrl( sourceNode ),
+    // Every input/textarea source gets a DRAGGABLE copy button, so its value can be pulled
+    // straight into another window/app. That rules out <button>: it is a form control, and
+    // Firefox refuses to start a drag on those no matter what draggable="true" says, which
+    // would silently break the drag for a whole browser. An <a> drags everywhere. Sources
+    // that are not inputs (a venue name, an artist name, …) keep the plain <button> - their
+    // text sits in the page and can be selected and dragged directly.
+    var isInputSource = sourceNode.is( "input, textarea" ),
+        linkUrl = isInputSource ? getMdbCopyLinkUrl( sourceNode ) : "",
         control = $("<span>")
             .addClass( "mdb-copy-text-control" ),
-        // URL sources become a real <a href> so the URL can be dragged out of the page,
-        // everything else stays a plain <button> - see getMdbCopyLinkUrl()
-        button = ( linkUrl ? $("<a>") : $("<button>") )
+        button = ( isInputSource ? $("<a>") : $("<button>") )
             .attr( "aria-label", settings.ariaLabel )
             .addClass( "mdb-copy-text-button" )
             .text( settings.buttonText ),
@@ -918,54 +920,9 @@ function appendMdbCopyTextButton( source, options ) {
             .attr( "role", "status" )
             .attr( "aria-live", "polite" );
 
-    if( linkUrl ) {
-        button.attr({
-            draggable: "true", // the default for <a href>, but some sites kill it via -webkit-user-drag
-            href: linkUrl,
-            target: "_top", // only reached via modifier click, see the click handler below
-            title: settings.buttonTitle + settings.linkTitleSuffix
-        });
-
-        // The href has to follow the input: the artwork URL is rewritten once the real
-        // extension is known, and users can edit these inputs. Sync on every interaction
-        // that could act on it - mousedown/focus run before click and dragstart - plus on
-        // edits, since a programmatic .val() fires no event.
-        var syncLinkHref = function() {
-            var currentUrl = getMdbCopyLinkUrl( sourceNode );
-            if( currentUrl ) button.attr( "href", currentUrl );
-        };
-
-        sourceNode.on( "input change", syncLinkHref );
-        button.on( "mousedown focus", syncLinkHref );
-
-        // Browsers fill the drag payload from the href before dragstart fires, so a stale
-        // href would be dragged even after syncing above - write the payload ourselves.
-        button.on( "dragstart", function( event ) {
-            var currentUrl = getMdbCopyLinkUrl( sourceNode ),
-                dataTransfer = event.originalEvent && event.originalEvent.dataTransfer;
-
-            if( !currentUrl || !dataTransfer ) return;
-
-            dataTransfer.setData( "text/uri-list", currentUrl );
-            dataTransfer.setData( "text/plain", currentUrl );
-        });
-    } else {
-        button.attr({
-            title: settings.buttonTitle,
-            type: "button"
-        });
-    }
-
-    button.on( "click", function( event ) {
-        // A plain click copies and never navigates - that stays true for both variants. On the
-        // <a> variant a modifier click is the user explicitly asking for the link instead
-        // (cmd/ctrl = new tab, shift = new window), so let those through to the browser;
-        // middle-click already bypasses this handler as an auxclick.
-        if( linkUrl && ( event.which > 1 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ) ) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-
+    // copyNow
+    // The copy itself, shared by the click and the keyboard handler below.
+    var copyNow = function() {
         var currentText = getMdbCopySourceText( sourceNode );
 
         if( !currentText ) {
@@ -978,6 +935,83 @@ function appendMdbCopyTextButton( source, options ) {
         }).catch(function() {
             showMdbCopyTextFeedback( button, settings.failedMessage );
         });
+    };
+
+    if( isInputSource ) {
+        button.attr({
+            draggable: "true", // implicit for <a href>, explicit for the hrefless variant
+            title: settings.buttonTitle + settings.dragTitleSuffix
+        });
+
+        if( linkUrl ) {
+            // A URL additionally becomes a real link, so it drops into other windows AS a
+            // link and can still be opened deliberately - see the click handler below.
+            button.attr({
+                href: linkUrl,
+                target: "_top"
+            });
+
+            // The href has to follow the input: the artwork URL is rewritten once the real
+            // extension is known, and users can edit these inputs. Sync on every interaction
+            // that could act on it - mousedown/focus run before click and dragstart - plus on
+            // edits, since a programmatic .val() fires no event.
+            var syncLinkHref = function() {
+                var currentUrl = getMdbCopyLinkUrl( sourceNode );
+                if( currentUrl ) button.attr( "href", currentUrl );
+            };
+
+            sourceNode.on( "input change", syncLinkHref );
+            button.on( "mousedown focus", syncLinkHref );
+        } else {
+            // Without an href an <a> is neither focusable nor activatable by keyboard, so
+            // the <button> behaviour it replaces has to be restored by hand.
+            button.attr({
+                role: "button",
+                tabindex: "0"
+            });
+
+            button.on( "keydown", function( event ) {
+                if( event.which != 13 && event.which != 32 ) return; // Enter, Space
+
+                event.preventDefault(); // Space would scroll the page
+                copyNow();
+            });
+        }
+
+        // Browsers fill the drag payload from the href before dragstart fires, and fill it
+        // with nothing at all when there is no href - so write the payload ourselves, from
+        // the value the input holds right now.
+        button.on( "dragstart", function( event ) {
+            var currentText = getMdbCopySourceText( sourceNode ),
+                currentUrl = getMdbCopyLinkUrl( sourceNode ),
+                dataTransfer = event.originalEvent && event.originalEvent.dataTransfer;
+
+            if( !currentText || !dataTransfer ) return;
+
+            // text/uri-list is what makes a drop target treat it as a link rather than as
+            // text - only correct while the value really is a URL.
+            if( currentUrl ) dataTransfer.setData( "text/uri-list", currentUrl );
+
+            dataTransfer.setData( "text/plain", currentText );
+        });
+    } else {
+        button.attr({
+            title: settings.buttonTitle,
+            type: "button"
+        });
+    }
+
+    button.on( "click", function( event ) {
+        // A plain click copies and never navigates - that stays true for every variant. Only
+        // on the linked variant a modifier click is the user explicitly asking for the link
+        // instead (cmd/ctrl = new tab, shift = new window), so let those through to the
+        // browser; middle-click already bypasses this handler as an auxclick.
+        if( linkUrl && ( event.which > 1 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ) ) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        copyNow();
     });
 
     control.append( button, feedback );
