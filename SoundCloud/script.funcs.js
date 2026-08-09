@@ -2201,7 +2201,7 @@ function mdbTitleInput_add() {
                .append( $("<span>")
                    .attr( "id", "mdb-mixesdbTitle-usedNote" )
                    .attr( "title", "This player is already used on MixesDB - see the toolkit below.\nThe title is only shown because the debug setting mdbTitle_showForUsedPlayers is on at the top of script.user.js. No \"Create\" link, since that would start a duplicate page." )
-                   .text( "used" ) );
+                   .text( "Exists" ) );
     } else {
         // _blank, not the usual _top: the point of this link is to fill in the MixesDB form
         // while still reading duration/artwork URL/API data off this SoundCloud page - the
