@@ -143,8 +143,32 @@
 }
 
 #mdb-mixesdbTitle-confidence,
+#mdb-mixesdbTitle-createColumn,
 #mdb-mixesdbTitle-create {
     padding-left: 10px;
+}
+
+/*
+ * "Create" with the promo category under it - same column trick as the score with its "BETA",
+ * so the note reads as belonging to the link and not as another item in the row.
+ */
+#mdb-mixesdbTitle-createColumn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+}
+
+#mdb-mixesdbTitle-createColumn > #mdb-mixesdbTitle-create {
+    padding-left: 0;
+}
+
+/* grey and small, the same "this is a side note" as #mdb-mixesdbTitle-beta */
+#mdb-mixesdbTitle-promoCategory {
+    color: #999;
+    font-size: 0.8rem;
+    cursor: help;
+    white-space: nowrap;
 }
 
 button.mdb-toggle.selected,

@@ -37,7 +37,10 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Use the log()/logVar()/logFunc() helpers from global.js and a `DEBUG` flag if logging is needed during development
 
 ## Testing / Verification
-- No automated test suite. Manual verification steps:
+- No automated test suite, with one exception: the SoundCloud mix page title suggestion has
+  `SoundCloud/title_examples.js` (reported titles + what they should produce) and a deno
+  runner. See SoundCloud/CLAUDE.md. Use deno, not node - node is not installed here.
+- Manual verification steps:
   1. Load script in Tampermonkey (dev mode / local file URL)
   2. Confirm `@match` triggers only on intended pages
   3. Check browser console for errors on page load
