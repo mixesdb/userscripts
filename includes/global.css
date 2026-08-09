@@ -94,8 +94,8 @@ a.mdb-tidSubmit img.tidSubmit-icon {
     padding: 0 5px;
 }
 
-/* "Submit this set/playlist to TrackId.net" - the color is deliberately left to the site,
-   so the link reads as one of that page's own links. */
+/* "Submit this set/playlist to TrackId.net" - the color is left to the site wherever the
+   site actually has one for plain links; the two exceptions are noted per site below. */
 .mdb-tidSubmit-playlist-wrapper {
     margin: 8px 0;
 }
@@ -107,20 +107,41 @@ a.mdb-tidSubmit-playlist {
     text-decoration: underline;
 }
 /* overrides the generic tidSubmit-icon rule above: no left padding (the icon starts the
-   link) and a fixed 16px box, which the 64px favicon renders into at 4x for retina.
+   link) and an explicit box the 64px favicon renders into, oversampled for retina.
    display must be stated: Mixcloud's CSS reset makes every img display:block, which would
-   put the icon on its own line above the link text. */
+   put the icon on its own line above the link text.
+   max-height must be dropped: the generic rule caps it at 1.3em !important, which would
+   silently clip any icon set larger than the text (see Mixcloud below). */
 a.mdb-tidSubmit-playlist img.tidSubmit-icon {
     display: inline-block;
+    max-height: none !important;
     width: 16px;
     height: 16px;
     padding: 0 5px 0 0;
     vertical-align: -3px;
 }
-/* SoundCloud and Mixcloud style plain links site-wide, YouTube does not - it colors links
-   per component, so ours falls back to the browser default blue, unreadable on the playlist
-   header. That header sits on a cinematic background image which is dark in BOTH themes,
-   which is why YouTube's own title and metadata there are white regardless of light/dark. */
+
+/* SoundCloud: our link sits in #mdb-streamActions, which is .sc-text-grey, and SoundCloud
+   lets links inherit their color - so it would render grey rather than as a link. Take the
+   site's own link color. SoundCloud has no visited color of its own (it does not
+   distinguish the state anywhere), so :visited is pinned to the same value, which is what
+   keeps the browser's default purple out. */
+body.soundcloud-com a.mdb-tidSubmit-playlist,
+body.soundcloud-com a.mdb-tidSubmit-playlist:visited {
+    color: var(--link-standard-color, #044dd2);
+}
+
+/* Mixcloud: bigger icon next to its larger UI text */
+body.mixcloud-com a.mdb-tidSubmit-playlist img.tidSubmit-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: -6px;
+}
+
+/* YouTube styles no plain links at all - it colors them per component, so ours falls back
+   to the browser default blue, unreadable on the playlist header. That header sits on a
+   cinematic background image which is dark in BOTH themes, which is why YouTube's own title
+   and metadata there are white regardless of light/dark. */
 .ytPageHeaderViewModelHeadlineInfo a.mdb-tidSubmit-playlist {
     color: #fff;
 }

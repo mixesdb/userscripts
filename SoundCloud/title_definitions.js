@@ -78,6 +78,26 @@ var scWikiIllegalChars = /[#<>\[\]|{}]+/g;
 
 
 /*
+ * Brackets are a chunk of their own
+ *
+ * "(...)", "[...]" and "{...}" separate a title exactly the way a "|" does - a SoundCloud title
+ * puts an aside in brackets and the next thing in a new chunk, and which of the two an uploader
+ * reaches for says nothing about the content:
+ *
+ *     "Anja Schneider - Live at Docklands (Smirnoff Sound Collective Camp)"
+ *     is read as "Anja Schneider | Live at Docklands | Smirnoff Sound Collective Camp"
+ *
+ * So they are rewritten to "|" before anything else looks at the title, and every rule that
+ * splits a title into chunks gets the bracketed one for free, without knowing about brackets.
+ * The chunk then lives or dies by the same rules as any other: here the last one names a camp,
+ * which scDroppedBitPatterns drops, and the title comes out as
+ * "2016-07-14 - Anja Schneider @ Docklands".
+ *
+ * Decoration in brackets is gone by then - scTitleNoise runs first.
+ */
+
+
+/*
  * scPromoMixImpliedWords
  *
  * " (Promo Mix)" is written behind a title to say the name in front of it is NOT a podcast or
@@ -234,10 +254,36 @@ var scTogetherArtistJoiners = [
  * Careful: "at" is an ordinary English word, so it misfires on an ordinary phrase the same way
  * "with" does in scExtraArtistConnectors. It is here because a mix title naming a place is far
  * more common than one using "at" as a preposition, but it is the entry to remove first if
- * that turns out wrong.
+ * that turns out wrong. Two words have to stand in front of it for that reason, which is what
+ * keeps "Look at Me" a mix name - see scLiveAtWords for the case that overrules the count.
  */
 var scVenueConnectors = [
     "at"
+];
+
+
+/*
+ * scLiveAtWords
+ *
+ * "Live at <place>" says outright what the rest of the parser can only guess at: this was
+ * RECORDED SOMEWHERE, at an event, a club or a radio station. So it is an "@", however few
+ * words stand in front of it - one name is enough, and the two-word count that keeps ordinary
+ * English out of scVenueConnectors does not apply:
+ *
+ *     "Anja Schneider - Live at Docklands"  ->  "2016-07-14 - Anja Schneider @ Docklands"
+ *
+ * The separator in front goes with it: the artist and the place they played at are ONE group
+ * ("Anja Schneider @ Docklands"), never two. The word "Live" itself is dropped - MixesDB says
+ * that with the joiner alone, see Help:Add_a_new_mix_page#Joiners:_Live_/_@_/_-
+ *
+ * "at" and "@" both count as the connector behind the word, so "Live @ Docklands" is the same
+ * title. Longest entry first: they are tried in order and "live" would otherwise swallow the
+ * start of "live set".
+ */
+var scLiveAtWords = [
+    "recorded live",
+    "live set",
+    "live"
 ];
 
 
@@ -392,15 +438,28 @@ var scEventWords = [
 /*
  * scDroppedBitPatterns
  *
- * Bits of an event title that never make it into a MixesDB title. Matched against a whole bit,
- * so they cannot eat part of a name.
+ * Chunks that never make it into a MixesDB title. Matched against a WHOLE chunk, so they
+ * cannot eat part of a name, and applied to every title rather than only to one read as an
+ * event: what they name - which part of a recording, which stage, which side event - is none
+ * of a mix page title's business wherever it turns up. Bracketed chunks included, since those
+ * are chunks like any other by then:
+ *
+ *     "Anja Schneider - Live at Docklands (Smirnoff Sound Collective Camp)"
+ *     ->  the camp goes, "2016-07-14 - Anja Schneider @ Docklands" stays
+ *
+ * A camp is a festival's own side programme, named after its sponsor as often as not, so it
+ * belongs with the stages rather than with the venue the set was played at.
+ *
+ * Never applied to the LAST chunk standing: a title made of nothing but these would come out
+ * empty, and something wrong beats nothing.
  */
 var scDroppedBitPatterns = [
     /^part\s*\.?\s*\d+$/i,
     /^pt\s*\.?\s*\d+$/i,
     /^day\s*\d+$/i,
     /\bstage$/i,
-    /\bfloor$/i
+    /\bfloor$/i,
+    /\bcamp$/i
 ];
 
 

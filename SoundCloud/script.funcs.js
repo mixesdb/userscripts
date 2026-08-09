@@ -729,18 +729,43 @@ function mdbTitle_wordListAlternation( list ) {
 
 // mdbTitle_applyJoiners
 // Rewrites the joiners of Help:Add_a_new_mix_page into the spelling MixesDB uses:
-//   "Surgeon x Erika"            -> "Surgeon & Erika"   (played together)
-//   "Adriana Lopez at Monnom"    -> "Adriana Lopez @ Monnom"
+//   "Surgeon x Erika"                 -> "Surgeon & Erika"   (played together)
+//   "Adriana Lopez at Monnom"         -> "Adriana Lopez @ Monnom"
+//   "Anja Schneider - Live at Docks"  -> "Anja Schneider @ Docks"
 // Done on the whole title before anything is split up, so the "@" is already in place when
 // the venue rules further down look for it.
 function mdbTitle_applyJoiners( text ) {
-    var venue = ( typeof scVenueConnectors !== "undefined" && scVenueConnectors ) ? scVenueConnectors : [],
+    var live = ( typeof scLiveAtWords !== "undefined" && scLiveAtWords ) ? scLiveAtWords : [],
+        venue = ( typeof scVenueConnectors !== "undefined" && scVenueConnectors ) ? scVenueConnectors : [],
         together = ( typeof scTogetherArtistJoiners !== "undefined" && scTogetherArtistJoiners ) ? scTogetherArtistJoiners : [];
 
-    // The venue first: an "x" behind an "@" belongs to the venue name and must not become "&".
+    // "Live at <place>" first, because it says outright what the two rules below can only read
+    // off the shape of a title. One name in front of it is enough - unlike the bare "at" below
+    // it cannot be an ordinary English phrase - and the separator in front is swallowed with
+    // it, since the artist and the place they played at are ONE group. What has to stand there
+    // is the end of a NAME (not a space, not another separator), so "Anja Schneider - Live at
+    // Docklands" joins up.
+    // A title that OPENS with it names no artist at all ("Live at Docklands"): the "@" is put
+    // at the front, where buildMixesdbTitle reads it as "the channel is the artist".
+    if( live.length ) {
+        // "Live @ <place>" is the same title as "Live at <place>", so the "@" counts as a
+        // connector of its own next to the words from scVenueConnectors
+        var sep = "[" + mdbTitle_sepInner + "]",
+            connectors = venue.length ? mdbTitle_wordListAlternation( venue ) + "|@" : "@",
+            liveRe = new RegExp(
+                "(^|[^\\s" + mdbTitle_sepInner + "])\\s*" + sep + "*\\s*\\b(?:" +
+                mdbTitle_wordListAlternation( live ).replace( /\s+/g, "\\s+" ) +
+                ")\\b\\s+(?:" + connectors + ")\\s+", "i" );
+
+        text = text.replace( liveRe, function( all, before ) {
+            return before ? before + " @ " : "@ ";
+        } );
+    }
+
+    // The venue next: an "x" behind an "@" belongs to the venue name and must not become "&".
     // Two words have to stand in front of the connector, inside its own bit of the title -
     // that is what makes it a NAME at a place ("Adriana Lopez at RAW") rather than an ordinary
-    // English phrase ("Look at Me", "Live at Berghain", where "at" is just a preposition).
+    // English phrase ("Look at Me", where "at" is just a preposition).
     if( venue.length ) {
         var word = "[^\\s" + mdbTitle_sepInner + "]+",
             venueRe = new RegExp( "(" + word + "\\s+" + word + ")\\s+(?:" +
@@ -812,6 +837,86 @@ function mdbTitle_takeGuestMarker( text ) {
 // the exception: it is written onto the word in front of it and never turns up inside one.
 function mdbTitle_bitSplitRe() {
     return new RegExp( "(?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+", "g" );
+}
+
+// mdbTitle_bracketsToSeparators
+// "(...)"/"[...]"/"{...}" -> "| ... |": a bracketed chunk is a chunk of its own, exactly like a
+// "|"-separated one (see title_definitions.js). Rewritten rather than parsed, so every rule
+// that splits a title into bits sees it without knowing brackets exist.
+function mdbTitle_bracketsToSeparators( text ) {
+    text = String( text || "" );
+
+    // Innermost pair first, so a bracket inside a bracket cannot pair up with the wrong one -
+    // and repeated until nothing changes, or the outer pair of a nested one would stay behind
+    var out = text,
+        before;
+
+    do {
+        before = out;
+        out = out.replace( /[\(\[\{]([^\(\)\[\]\{\}]*)[\)\]\}]/g, " | $1 | " );
+    } while( out !== before );
+
+    if( out === text ) return text;
+
+    // The "|" goes in blind, so a bracket at either end of the title, or one standing next to
+    // another separator, leaves an empty chunk behind. Two separator runs with nothing between
+    // them are one separator, and one at either end is none.
+    var sep = "[" + mdbTitle_sepInner + "]";
+
+    out = out.replace( new RegExp( "\\s*" + sep + "+\\s*(?:" + sep + "+\\s*)+", "g" ), " | " )
+             .replace( new RegExp( "^\\s*" + sep + "+\\s*" ), "" )
+             .replace( new RegExp( "\\s*" + sep + "+\\s*$" ), "" );
+
+    return out.replace( /\s+/g, " " ).trim();
+}
+
+// mdbTitle_dropBits
+// Takes the chunks out that never make it into a MixesDB title - "Part 2", a stage, a camp
+// (scDroppedBitPatterns). Returns { text, dropped }. The separator runs are kept along with
+// the chunks they belong to, so what stays reads exactly as the uploader wrote it.
+function mdbTitle_dropBits( text ) {
+    var patterns = ( typeof scDroppedBitPatterns !== "undefined" && scDroppedBitPatterns ) ? scDroppedBitPatterns : [],
+        result = { text: String( text || "" ), dropped: 0 };
+
+    if( !patterns.length ) return result;
+
+    // the separator is captured, so parts reads [ chunk, sep, chunk, sep, chunk, ... ]
+    var parts = result.text.split( new RegExp( "((?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+)" ) ),
+        kept = [],
+        i, j;
+
+    // one chunk is the whole title - there is nothing to drop it in favour of
+    if( parts.length < 3 ) return result;
+
+    for( i = 0; i < parts.length; i += 2 ) {
+        // trimmed, not cleaned: whether a chunk is a stage is a question, and cleanArtist
+        // would answer it by re-casing the title on the way
+        var bit = mdbTitle_trimSeparators( parts[i] ),
+            drop = false;
+
+        for( j = 0; bit && j < patterns.length; j++ ) {
+            patterns[j].lastIndex = 0;
+            if( patterns[j].test( bit ) ) { drop = true; break; }
+        }
+
+        // each chunk carries the separator that stood in FRONT of it, so dropping a chunk
+        // drops that separator with it and never leaves a dangling " | " behind
+        if( drop ) {
+            result.dropped++;
+        } else {
+            kept.push( { sep: i ? parts[i - 1] : "", text: parts[i] } );
+        }
+    }
+
+    // a title made of nothing but dropped chunks stays as it is - something wrong beats nothing
+    if( !kept.length ) return { text: result.text, dropped: 0 };
+
+    result.text = "";
+    for( i = 0; i < kept.length; i++ ) {
+        result.text += ( i ? kept[i].sep : "" ) + kept[i].text;
+    }
+
+    return result;
 }
 
 /*
@@ -978,35 +1083,23 @@ function mdbTitle_takeVenueTitle( text, known ) {
 }
 
 // mdbTitle_takeEventTitle
-// A live recording at an event: "<artists> | <event> <year> | Part 2 | <stage>".
-// Returns { artist, event, year, dropped } or null when the title is not one.
+// A live recording at an event: "<artists> | <event> <year>".
+// Returns { artist, event, year } or null when the title is not one.
+// The "Part 2"/stage chunks such a title carries are already gone - mdbTitle_dropBits takes
+// them out of every title, not just out of this one.
 function mdbTitle_takeEventTitle( text ) {
     var eventWords = ( typeof scEventWords !== "undefined" && scEventWords ) ? scEventWords : [],
-        droppedPatterns = ( typeof scDroppedBitPatterns !== "undefined" && scDroppedBitPatterns ) ? scDroppedBitPatterns : [],
         bits = text.split( mdbTitle_bitSplitRe() ),
         kept = [],
-        dropped = 0,
-        i, j;
+        i;
 
     // one bit cannot hold both an artist and an event
     if( !eventWords.length || bits.length < 2 ) return null;
 
     for( i = 0; i < bits.length; i++ ) {
-        var bit = mdbTitle_cleanArtist( bits[i] ),
-            skip = false;
+        var bit = mdbTitle_cleanArtist( bits[i] );
 
-        if( !bit ) continue;
-
-        for( j = 0; j < droppedPatterns.length; j++ ) {
-            droppedPatterns[j].lastIndex = 0;
-            if( droppedPatterns[j].test( bit ) ) { skip = true; break; }
-        }
-
-        if( skip ) {
-            dropped++;
-        } else {
-            kept.push( bit );
-        }
+        if( bit ) kept.push( bit );
     }
 
     // "open air" is also written "open  air" - the replacement string is inserted verbatim,
@@ -1043,7 +1136,7 @@ function mdbTitle_takeEventTitle( text ) {
     // in it, while "Festival Mix 12" has both.
     if( !event || mdbTitle_seriesScore( event ) > 0 ) return null;
 
-    return { artist: artist, event: event, year: year, dropped: dropped + ( kept.length - 2 ) };
+    return { artist: artist, event: event, year: year };
 }
 
 // mdbTitle_joinArtists
@@ -1135,6 +1228,20 @@ function mdbTitle_toNormalCase( s ) {
 // shouted one, so having re-cased anything is worth a confidence drop.
 var mdbTitle_reCased = false;
 
+// mdbTitle_trimSeparators
+// The separators and whitespace a bit of the title is left with once its neighbours were cut
+// away. The trailing DOT is deliberately kept - artist names like "DJ MARIA." end in one and
+// MixesDB spells them that way.
+// Split out of mdbTitle_cleanArtist so a bit can be LOOKED at (is it a stage? a camp?) without
+// cleanArtist's Normal Case, which is a side effect (mdbTitle_reCased) and not a question.
+function mdbTitle_trimSeparators( s ) {
+    return String( s || "" )
+        .replace( /\s+/g, " " )
+        .replace( /^[\s\-–—_|\/\\:,@~•·>»]+/, "" )
+        .replace( /[\s\-–—_|\/\\:,@~•·<«]+$/, "" )
+        .trim();
+}
+
 // mdbTitle_cleanArtist
 function mdbTitle_cleanArtist( s ) {
     s = String( s || "" ).replace( /\s+/g, " " );
@@ -1143,15 +1250,10 @@ function mdbTitle_cleanArtist( s ) {
     s = s.replace( /\(\s*\)|\[\s*\]|\{\s*\}/g, " " );
 
     // leading connectors: "w/ Ruf Dug", "presents Ruf Dug", ...
-    s = s.replace( /^[\s\-–—_|\/\\:,@~•·>»]+/, "" );
+    s = mdbTitle_trimSeparators( s );
     s = s.replace( /^(?:w\/|with|feat\.?|ft\.?|presents?|pres\.?|by)\s+/i, "" );
 
-    // trailing separators. The trailing DOT is deliberately kept - artist names like
-    // "DJ MARIA." end in one and MixesDB spells them that way.
-    s = s.replace( /^[\s\-–—_|\/\\:,@~•·>»]+/, "" );
-    s = s.replace( /[\s\-–—_|\/\\:,@~•·<«]+$/, "" );
-
-    s = s.replace( /\s+/g, " " ).trim();
+    s = mdbTitle_trimSeparators( s );
 
     // Normal Case for a bit that was shouted in caps or typed all lowercase
     var normalCased = mdbTitle_toNormalCase( s );
@@ -1225,6 +1327,27 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
             }
         }
 
+        // 1b) brackets are a chunk of their own, exactly like a "|" - written out as one here,
+        // so that every rule below splits the title without having to know about brackets.
+        // After the noise, whose patterns are written WITH their brackets.
+        var unbracketed = mdbTitle_bracketsToSeparators( rest );
+
+        if( unbracketed !== rest ) {
+            logVar( "buildMixesdbTitle: brackets read as separators", rest + " -> " + unbracketed );
+            rest = unbracketed;
+        }
+
+        // 1c) chunks a mix page title does not carry - "Part 2", a stage, a camp. Done on the
+        // whole title and this early because it is the same answer wherever such a chunk sits:
+        // it names a piece of a recording or a corner of a site, not the mix.
+        var withoutDropped = mdbTitle_dropBits( rest );
+
+        if( withoutDropped.dropped ) {
+            logVar( "buildMixesdbTitle: chunks dropped", rest + " -> " + withoutDropped.text );
+            conf.drop( 5, "a part of the title was left out - it named a part, a stage or the like, which a mix page title does not carry" );
+            rest = withoutDropped.text;
+        }
+
         // 2) the show entity comes from the channel, not from the title
         var isMappedChannel = mdbTitle_usernameConversionKey( username ) !== "",
             show = mdbTitle_showFromUsername( username );
@@ -1286,8 +1409,16 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
 
         if( joined !== rest ) {
             logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined );
-            conf.drop( 5, "a joiner was read out of the title (\"x\" as \"&\", \"at\" as \"@\") - check it against the recording" );
+            conf.drop( 5, "a joiner was read out of the title (\"x\" as \"&\", \"at\"/\"Live at\" as \"@\") - check it against the recording" );
             rest = joined;
+        }
+
+        // A title that is nothing but the place ("Live at Docklands") names no artist, so the
+        // channel is the one who played there and belongs in front of the "@". Written into the
+        // title rather than handled at the end, so the venue rules below see the usual shape.
+        if( username && /^\s*@/.test( rest ) ) {
+            logVar( "buildMixesdbTitle: the title names only the place, so the channel is the artist", username );
+            rest = username + " " + rest.replace( /^\s*/, "" );
         }
 
         // 3d) "<name> guest mix" - the name in front of it is the artist, and the phrase goes
@@ -1335,7 +1466,7 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
                 conf.drop( 15, "the date in the title and the year of the event (" + eventTitle.year + ") do not match - one of them is misread" );
             }
 
-            conf.drop( 10, "read as a live recording at an event - anything the title said about parts or stages was left out" );
+            conf.drop( 10, "read as a live recording at an event - the event name was taken as the place it was played at" );
 
             return mdbTitle_result( date, eventTitle.artist + " @ " + eventTitle.event, "", null, false, [], conf );
         }
