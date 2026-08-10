@@ -4,8 +4,9 @@
 MixesDB have a category of that name, and what kind of thing is it* — matched
 **case-insensitively**.
 
-Everything below is the reasoning and the exact contract. Section 4 is the only part that needs
-implementing; the rest is context and can be skimmed.
+Everything below is the reasoning and the exact contract. Sections 4 to 6 are the parts that need
+implementing; the rest is context and can be skimmed. The table at the end of section 3 shows how
+small the gap actually is — one capability, everything else already exists.
 
 Measurements in this document were taken against the live API on 2026-08-10, MediaWiki 1.44.0.
 
@@ -102,6 +103,26 @@ anonymous limit, costs 3.6 KB, and resolved 9 of 10. It works, but it is guesswo
 the payload, and it silently fails on any spelling we did not guess (`Category:ASA 808` is only
 found because we happened to try the all-caps variant).
 
+### Summary: what already works and what does not
+
+To be clear about how small the actual gap is — everything we want from the API is available
+today **except one thing**:
+
+| What we need | Available today? | How |
+| --- | --- | --- |
+| Type (Artist / Podcast / Venue / …) | ✅ | `prop=categories` — the type is always a direct parent |
+| Mix count per category | ✅ | `prop=categoryinfo` — **same call**, no extra cost |
+| Canonical wiki spelling | ✅ | the found page's `title` |
+| Category redirects resolved | ✅ | `redirects=1` (`Dekmantel` → `Dekmantel Festival`) |
+| Both `fabric` and `Fabric` returned separately | ✅ | ask both casings explicitly |
+| Recent mix titles of a category (section 6) | ✅ | `list=categorymembers` — but one category per call |
+| Match `Autonomic` → `Autonomic (Show)` | ⚠️ | `list=prefixsearch` finds it, but one name per call |
+| **Case-insensitive lookup of N names in ONE call** | ❌ | **no route exists** |
+
+So what we are asking for is essentially today's `prop=categories|categoryinfo` batch call with a
+**case-insensitive title index in front of it**. That is the whole delta — the length of this
+document is context, not scope.
+
 ## 4. What we would like added
 
 One module, e.g. `action=mdbnames`:
@@ -113,7 +134,11 @@ GET /w/api.php
     &names=Fadi Mohem|HATE Podcast|trommel|fabric|Autonomic
 ```
 
-- `names` — pipe-separated, same convention as `titles`. A limit of 30 is plenty for us.
+- `names` — pipe-separated, same convention as `titles`. **A limit of 10 is enough**; please cap
+  it there rather than higher. Measured over the 47 player titles in our test set, our candidate
+  rules produce a median of 3 names and a maximum of 8 — a title that wanted more than 10 would
+  mean our own parse went wrong, and we would rather find out through an error than have you
+  serve the mistake.
 - Namespace is fixed to 14 (Category); no parameter needed.
 
 Response:
@@ -122,8 +147,14 @@ Response:
 {
   "mdbnames": {
     "Fadi Mohem":   [ { "title": "Fadi Mohem",   "type": "artist",  "mixes": 15,  "exactCase": false } ],
-    "HATE Podcast": [ { "title": "HATE Podcast", "type": "podcast", "mixes": 498, "exactCase": true  } ],
-    "trommel":      [ { "title": "Trommel",      "type": "podcast", "mixes": 29,  "exactCase": false } ],
+    "HATE Podcast": [ { "title": "HATE Podcast", "type": "podcast", "mixes": 498, "exactCase": true,
+                        "recent": [ "2026-08-02 - Kameliia - HATE Podcast 498",
+                                    "2026-07-26 - Paula Koski - HATE Podcast 497",
+                                    "2026-07-19 - Fadi Mohem - HATE Podcast 496" ] } ],
+    "trommel":      [ { "title": "Trommel",      "type": "podcast", "mixes": 29,  "exactCase": false,
+                        "recent": [ "2025-12-12 - Idriss D - Trommel.234",
+                                    "2025-10-31 - Cinthie - Trommel.231",
+                                    "2025-10-17 - OCB - Trommel.230" ] } ],
     "fabric":       [ { "title": "fabric",       "type": "venue",   "mixes": 395, "exactCase": true  },
                       { "title": "Fabric",       "type": "artist",  "mixes": 2,   "exactCase": false } ],
     "Autonomic":    []
@@ -135,13 +166,18 @@ Per field:
 
 - **`title`** — the canonical category title, in the wiki's own spelling. We use this verbatim in
   the suggested page title, so `trommel` in a SoundCloud title becomes `Trommel` in the
-  suggestion. This is the second-biggest win after case-insensitive matching: right now we guess
-  capitalisation with a heuristic, and the wiki simply knows.
+  suggestion. Today we only learn this when we happen to guess the right casing, and otherwise
+  fall back to guessing capitalisation with a heuristic — the wiki simply knows.
 - **`type`** — one of `artist`, `podcast`, `show`, `venue`, `event`, `radio`, `internetradio`,
   `recordlabel`. Derived from the direct parent categories in section 2.
 - **`mixes`** — the category's page count (what `prop=categoryinfo` returns). See section 5 for
   why we need it.
 - **`exactCase`** — `true` when the input matched the canonical title byte-for-byte.
+- **`recent`** — *optional, see section 6.* The titles of the N most recently added mix pages
+  (ns 0) in that category, newest first, for non-artist types only. This is the one field that is
+  a genuine addition rather than a rearrangement of what `prop=categories` already returns, and
+  the one we would understand being dropped — we can fetch it ourselves at one extra call per
+  entity.
 
 **Returning *all* matches per name, rather than picking one, is the important part.** `fabric`
 (the London club, a Venue) and `Fabric` (an Artist) are different entities that only case tells
@@ -182,27 +218,82 @@ Mitch   → Artist, 1 mix
 The page count is not decisive on its own — `Leon` is a real artist with 69 mixes and still the
 wrong reading of "Leon Row x Shimon", which is why we prefer the longest match first. But it is
 what separates a real hit from a near-empty coincidence in everything else, and it feeds the
-confidence score we show under the suggestion. It comes from `categoryinfo`, which we can request
-today — we would just rather not pay a second call for it.
+confidence score we show under the suggestion.
 
-## 6. What stays on our side
+To be clear, this one costs you nothing new: `prop=categories|categoryinfo` already returns the
+type and the count together in a single call today. We are only asking that the new endpoint keep
+doing so.
+
+## 6. The `recent` field: letting existing pages dictate the format
+
+Once a name resolves to a **non-artist** category, MixesDB already contains the answer to the
+hardest remaining question — *how is a mix page in this series actually named?* We would like to
+read the last few page titles in that category and copy their format instead of guessing it.
+
+We can do this today with one extra call per entity:
+
+```
+list=categorymembers & cmtitle=Category:Trommel & cmnamespace=0
+                     & cmsort=timestamp & cmdir=desc & cmlimit=8
+```
+
+`cmnamespace=0` is important — without it the response is half `File:` pages. Eight titles cost
+790 bytes. The reason we mention it here at all is that `cmtitle` takes exactly **one** category
+per call, so folding these titles into the `mdbnames` response as `recent` would keep the whole
+lookup at a single request.
+
+Why it is worth it — every one of these is something our parser currently has to guess, and gets
+wrong often enough to be reported:
+
+| Category | Recent page titles | What it settles |
+| --- | --- | --- |
+| `HATE Podcast` | `2026-08-02 - Kameliia - HATE Podcast 498` | plain number, no padding |
+| `Zenaari Mix` | `2026-06-04 - Chris SSG - Zenaari Mix 025` | zero-padded to 3 digits |
+| `Trommel` | `2025-12-12 - Idriss D - Trommel.234` | `.` separator **and** padding **and** the capital `T` |
+| `RA Podcast` | `2026-08-07 - Mietze Conte - RA Podcast (RA.1051)` | a format no heuristic would ever invent |
+| `Essential Mix` | `2026-08-08 - Max Styler - Essential Mix` | no episode number at all |
+| `Ritter Butzke` | `2025-09-27 - audiosport @ SommerSafari, Ritter Butzke, Berlin` | the city, for free |
+| `Landjuweel Festival` | `2018-07-24 - Palo Santo b2b Jorge Madera @ Landjuweel Festival, Amsterdam` | the city, for free |
+
+The city is a genuine bonus we had not expected: for a venue or an event we currently take it
+from whatever chunk of the player title sits behind the place, which is frequently just absent.
+Sibling pages have it every time.
+
+**Recent, not all** — deliberately. `Category:Slave To The Rhythm` shows why:
+
+```
+2025-07-05 - Joe T. Vannelli - Slave To The Rhythm 716      ← recent
+2013-03-02 - Joe T Vannelli - Slave To The Rhythm Ep.393    ← older, different format
+```
+
+The naming convention changed over the years, so the newest handful is the reliable sample and a
+full listing would actively mislead. `cmlimit=5`–`10` is the right size; there is no need for
+pagination and we would never ask for more.
+
+## 7. What stays on our side
 
 So there is no doubt about the boundary: we are **not** asking you to parse titles. Candidate
 generation (splitting the player title, stripping trailing episode numbers, handling `@`, `x`,
-`w/`, `presents`), ranking the answers, and assembling the final page title all stay in the
-userscript, where the test suite for it lives. The endpoint is a pure name → type lookup.
+`w/`, `presents`), inferring the format from the `recent` titles, ranking the answers, and
+assembling the final page title all stay in the userscript, where the test suite for it lives.
+The endpoint stays a pure name → type lookup that happens to hand us a few sample titles.
 
-## 7. Load
+## 8. Load
 
 Roughly 10 userscript users, one call per opened track page, cached for the life of the page.
-We currently make **1** request per track and would like to stay at 1. Happy to add a
-`User-Agent`/`maxage` or anything else that makes this easier to see and rate-limit on your side.
+We currently make **1** request per track. With `recent` included we stay at 1; without it we
+go to 2–3 (one lookup, plus one `categorymembers` call per matched non-artist entity, of which
+there is normally one). Happy to add a `User-Agent`/`maxage` or anything else that makes this
+easier to see and rate-limit on your side.
 
-## 8. If this is not possible
+## 9. If this is not possible
 
-We will ship the casing-variant workaround from section 3. It is one call and it works well
-enough, so nothing is blocked — the custom endpoint is simply the correct version of it, and it
-would also give us the canonical spelling and the type vocabulary without guessing.
+We will ship the casing-variant workaround from section 3 and fetch the section 6 titles with
+plain `categorymembers` calls. That lands at 2–3 requests per track and works well enough, so
+nothing is blocked — the custom endpoint is simply the correct version of it, without the casing
+guesswork and at one request instead of three.
 
-Anything in section 4 or 5 can be dropped or renamed to suit how MixesDB is actually built;
-case-insensitive matching and the canonical title are the two things that carry the value.
+Anything in sections 4 to 6 can be dropped or renamed to suit how MixesDB is actually built.
+**Case-insensitive matching is the one thing we cannot build ourselves**, and the canonical
+spelling is the one that most improves the result. The `recent` titles are a convenience — very
+valuable to us, but we can get them without you.
