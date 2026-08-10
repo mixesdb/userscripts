@@ -681,25 +681,57 @@ function mdbTitle_takeExtraArtists( text ) {
     // The leading \s+ is what keeps a connector at position 0 out of it.
     var connectors = alternatives.join( "|" ),
         re = new RegExp( "\\s+(?:" + connectors + ")\\s*((?:(?!\\s+(?:" + connectors + "))[^" + mdbTitle_sepInner + "])+)", "i" ),
+        from = 0,
         m;
 
-    // one occurrence per pass - each pass shortens the text, so this always terminates
-    while( ( m = re.exec( result.text ) ) !== null ) {
-        var names = mdbTitle_cleanArtist( m[1] );
+    // one occurrence per pass - each pass either shortens the text or moves "from" past the
+    // match it turned down, so this always terminates
+    while( ( m = re.exec( result.text.slice( from ) ) ) !== null ) {
+        var index = from + m.index,
+            names = mdbTitle_cleanArtist( m[1] );
+
+        var bits = result.text.slice( 0, index ).split( mdbTitle_bitSplitRe() ),
+            lastBit = bits[ bits.length - 1 ];
+
+        // A series NUMBER behind the connector says it stands INSIDE a name and introduces
+        // nobody: "From Paris With Hope Vol.14" is one mix name, there is no "Hope" who played
+        // it. Only an episode KEYWORD counts, so "Slowciety w/ Asa 808" still names Asa 808.
+        // Unless what stands in FRONT is already a series - then the number belongs to THAT and
+        // the connector introduces a guest as usual ("Some Show w/ DJ Koze Vol.3").
+        // Trimmed, not cleaned: seriesScore ignores case anyway, and cleanArtist would re-case
+        // the title as a side effect of a question that may well be answered with "no".
+        if( mdbTitle_hasKeywordEpisode( m[1] ) &&
+            mdbTitle_seriesScore( mdbTitle_trimSeparators( lastBit ) ) === 0 ) {
+
+            logVar( "mdbTitle_takeExtraArtists: a series number stands behind the connector, so it is part of the name", m[1] );
+            from = index + m[0].length;
+            continue;
+        }
 
         // What stands immediately in front of the FIRST connector decides whose name it is:
         // "Slowciety w/ Asa 808" makes Slowciety the first artist, while
         // "Yoyaku Instore Sessions with TONTON & TATA" names a show, not an artist.
         if( !result.before ) {
-            var bits = result.text.slice( 0, m.index ).split( mdbTitle_bitSplitRe() );
-            result.before = mdbTitle_cleanArtist( bits[ bits.length - 1 ] );
+            result.before = mdbTitle_cleanArtist( lastBit );
         }
 
-        result.text = mdbTitle_cut( result.text, m.index, m[0].length );
+        result.text = mdbTitle_cut( result.text, index, m[0].length );
         if( names ) result.artists.push( names );
+
+        // the text just changed under us, so the next pass starts over
+        from = 0;
     }
 
     return result;
+}
+
+// mdbTitle_hasKeywordEpisode
+// Whether a bit carries an episode number introduced by a KEYWORD ("Vol.14", "Episode 72"), as
+// opposed to a name that merely has digits in it ("Asa 808").
+function mdbTitle_hasKeywordEpisode( text ) {
+    var found = mdbTitle_findEpisode( text );
+
+    return !!( found && found.word );
 }
 
 // mdbTitle_seriesScore
@@ -1616,6 +1648,10 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
         var foundEpisode = taken.episode ? null : mdbTitle_findEpisode( rest, taken.taken || isMappedChannel ),
             episode = taken.episode || foundEpisode,
             showFromEpisodeRule = false,
+            // the title as it stands BEFORE the number is cut out of it, for 6b: when the whole
+            // title turns out to be the series name, it keeps how the series writes its own
+            // number ("From Paris With Hope Vol.14", not "... Hope Vol 14" reassembled)
+            restWithEpisode = rest,
             beforeEpisode = "",
             afterEpisode = "";
 
@@ -1633,9 +1669,10 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
         // in the title, but the title itself spells out "<show> <word> <number> - <artist>",
         // which is how a lot of podcast series title their uploads. Taking the show from
         // there beats falling back to the raw channel name.
-        // Guarded tightly so a plain "Some DJ Vol.5" is not turned inside out: only for a
-        // keyword episode, and only when the channel name was NOT found in the title (if it
-        // was, we already have the show).
+        // Guarded tightly, since it overrides the channel: only for a keyword episode, and only
+        // when the channel name was NOT found in the title (if it was, we already have the
+        // show). A title with nothing but a name and a number in it is not this rule's business
+        // - 6b reads that one, with the whole title as the series.
         // The keyword itself joins the show name unless it only counts ("Episode"), see
         // scCounterWords - "Truancy Volume 300" keeps its "Volume".
         if( episode && episode.word && !taken.taken ) {
@@ -1801,23 +1838,33 @@ function buildMixesdbTitle( scTitle, username, createdAt, releaseDate, known ) {
         // ENTITY - and the channel is then the one who played it. Read off the order alone this
         // comes out backwards ("Mixing-Diaries 041 - LX-F"), with the series as the artist.
         //
-        // Anything found behind "with" goes into the entity too: it was never a further artist,
-        // it is the rest of the series name ("From Paris, Hope Vol.14").
+        // The WHOLE title becomes the entity, verbatim: a number found inside it was never an
+        // episode hanging off a show name, it is how this series writes itself, so it is put
+        // back rather than reassembled ("Vol.14", not "Vol 14"). Anything found behind "with"
+        // goes in with it for the same reason.
         //
         // Before the leftover checks below, not after: a number is exactly what a series name
         // is expected to carry, so charging for one in the artist would be charging for the
         // very thing this rule reads. See title_definitions.js for the two guards.
-        var artistWithExtras = mdbTitle_joinArtists( artist, extraArtists );
+        var seriesName = mdbTitle_joinArtists( mdbTitle_cleanArtist( restWithEpisode ), extraArtists );
 
-        if( show && !isMappedChannel && !taken.taken && !showFromEpisodeRule && !episode &&
-            artistWithExtras.indexOf( "@" ) === -1 &&
+        if( show && seriesName && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
+            seriesName.indexOf( "@" ) === -1 &&
             mdbTitle_seriesScore( show ) === 0 &&
-            mdbTitle_looksNumberedSeries( artistWithExtras ) ) {
+            ( !!foundEpisode || mdbTitle_looksNumberedSeries( seriesName ) ) ) {
+
+            // A numbered series on a channel that is not a show is someone putting out their
+            // own mixes, so it belongs in Category:Promo Mix - but only when the name SAYS so
+            // ("Vol.14", "Mix"). The artist here was inferred rather than read off the title,
+            // and writing " (Promo Mix)" into the title on top of that would stack a guess on a
+            // guess. mdbTitle_result keeps the category and leaves the title alone for exactly
+            // the names that already say it.
+            var seriesPromo = mdbTitle_saysPromoMix( seriesName );
 
             logVar( "buildMixesdbTitle: the title is a numbered series, so the channel is the artist", show );
             conf.drop( 5, "the title reads as a numbered series and names nobody, so the channel was taken as the artist" );
 
-            return mdbTitle_result( date, show, artistWithExtras, null, false, [], conf );
+            return mdbTitle_result( date, show, seriesName, null, seriesPromo, [], conf );
         }
 
         // leftovers in the artist mean the title was not fully understood

@@ -210,6 +210,20 @@ var scTitleNoise = [
  * "with" is in the list because it is the far more common case on a mix title, but it is the
  * one entry worth removing if that turns out to be the wrong trade. Shorthands like "w/"
  * carry no such risk, so prefer them when extending the list.
+ *
+ * One shape is known to misfire and is ruled out: a connector with the series NUMBER behind it
+ * stands INSIDE a name and introduces nobody.
+ *
+ *     "From Paris With Hope Vol.14"  ->  the whole title is the mix name, there is no "Hope"
+ *                                        who played it
+ *
+ * The number is what settles it. A name behind the connector is an artist as usual, digits in
+ * it or not - "Slowciety w/ Asa 808" still names Asa 808 - because only an episode KEYWORD
+ * ("Vol.14", "Episode 72") says the series name goes on past the connector.
+ *
+ * And only when what stands in FRONT of the connector is not a series already: in
+ * "Some Show w/ DJ Koze Vol.3" the number belongs to the show in front, and DJ Koze is its
+ * guest like anybody else behind a "w/".
  */
 var scExtraArtistConnectors = [
     "w/",

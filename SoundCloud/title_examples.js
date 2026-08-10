@@ -196,11 +196,7 @@ var scTitleExamples = [
         title: "From Paris With Hope Vol.14",
         channel: "ZÆINO",
         date: "2026-08-02",
-        // "From Paris, Hope" is the reported expectation verbatim: the "With" is eaten by
-        // scExtraArtistConnectors, which was not what the report was about. Say the word and the
-        // entity becomes "From Paris With Hope Vol.14" - a connector with the series NUMBER
-        // behind it ("Vol.14") stands inside a name, it does not introduce an artist.
-        expect: "2026-08-02 - ZÆINO - From Paris, Hope Vol.14"
+        expect: "2026-08-02 - ZÆINO - From Paris With Hope Vol.14"
     },
     {
         url: "https://soundcloud.com/sweetspace/joetvannelli-slavetotherhythmepisode72",
