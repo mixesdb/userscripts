@@ -35,6 +35,17 @@ log( "/includes/page_creator/page_creator.js loaded" );
  *
  *     mdbPageCreator_watchToolkit();  // whenever the toolkit is (re)built
  *
+ * A site whose player pages carry a description hands that over too, in a second call - it puts
+ * the tracklist the uploader wrote into an editable box and onto the created page. See the
+ * "Tracklist" section at the bottom of this file:
+ *
+ *     mdbPageCreator_addTracklist({
+ *         description:  "01. Artist - Title\n02. ...",
+ *         loadComments: function( done ) { ... },   // optional
+ *         target:       "#mdb-toggle-target",
+ *         placement:    "after"
+ *     });
+ *
  * target is best given as a SELECTOR STRING: these sites re-render under the script's feet,
  * and a string is looked up again on every render, where a captured jQuery object would be a
  * detached node by then. A jQuery object or a DOM element is accepted too.
@@ -49,7 +60,8 @@ log( "/includes/page_creator/page_creator.js loaded" );
  * or API, and any URL fixing they need (SoundCloud's "-original" artwork URL, say).
  *
  * Files: title_builder.js builds the title, title_definitions.js holds the word lists it uses,
- * page_creator.css styles the row. All three are @require'd/loaded next to this one.
+ * tracklist_detector.js finds the tracklist in a description, page_creator.css styles the row.
+ * All of them are @require'd/loaded next to this one.
  *
  *
  *
@@ -69,7 +81,16 @@ var mdbPageCreator_title = "",
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
     mdbPageCreator_toolkitVerdict = null,
-    mdbPageCreator_toolkitPoll = null;
+    mdbPageCreator_toolkitPoll = null,
+    // the tracklist box (see the "Tracklist" section at the bottom of this file)
+    mdbPageCreator_tracklistTarget = null,
+    mdbPageCreator_tracklistPlacement = "after",
+    mdbPageCreator_tracklistSource = "",
+    mdbPageCreator_tracklistFormatted = "",
+    mdbPageCreator_tracklistLive = "",
+    mdbPageCreator_tracklistStatus = "",
+    mdbPageCreator_tracklistValidated = null,
+    mdbPageCreator_tracklistChecked = false;
 
 // mdbPageCreator_add
 // The entry point a site script calls. Builds the suggestion TWICE: once straight away off the
@@ -190,15 +211,16 @@ function mdbPageCreator_artwork() {
 
 // mdbPageCreator_pageText
 // The wikitext a new mix page starts as. Only what the site page can actually answer for is
-// filled in: the file details, the player, and the categories the title itself spells out.
-// The tracklist and the styles are the editor's work and are left as the empty shapes they have
-// on every mix page, so nothing here has to be undone before it can be finished.
+// filled in: the file details, the player, the tracklist the description gave away and the
+// categories the title itself spells out. The styles are the editor's work and are left as the
+// empty shape they have on every mix page, so nothing here has to be undone before it can be
+// finished.
 function mdbPageCreator_pageText( title ) {
     return "== File details ==\n\n" +
            mdbPageCreator_fileDetails() + "\n\n" +
            "{{Player\n |" + mdbPageCreator_playerUrl + "\n}}\n\n" +
            "== Tracklist ==\n\n" +
-           "<list>\n\n</list>\n\n" +
+           mdbPageCreator_tracklistWikitext() + "\n\n" +
            mdbPageCreator_pageCategories( title );
 }
 
@@ -222,8 +244,8 @@ function mdbPageCreator_fileDetails() {
 //
 // "Date - Artist - Entity" gives the year, one category per artist, and the entity. The two
 // empty slots are the styles - nothing on a player page says what a mix sounds like, and a
-// guess there is worse than a blank the editor cannot miss. "Tracklist: none" is what a page
-// without a tracklist is filed as; the wiki's own editor swaps it once one is added.
+// guess there is worse than a blank the editor cannot miss. The "Tracklist:" filing is whatever
+// the Tracklist Editor API last said about the box - "none" when there is no tracklist at all.
 function mdbPageCreator_pageCategories( title ) {
     var bits = String( title || "" ).split( mdbTitle_bitSplitRe() ),
         year = ( String( title || "" ).match( /^\s*(\d{4})/ ) || [ "", "" ] )[1],
@@ -269,7 +291,7 @@ function mdbPageCreator_pageCategories( title ) {
     if( entityCategory ) cats.push( entityCategory );
 
     cats.push( "", "" ); // styles - the editor's call
-    cats.push( "Tracklist: none" );
+    cats.push( "Tracklist: " + mdbPageCreator_tracklistFiling() );
 
     var out = "";
 
@@ -514,7 +536,7 @@ function mdbPageCreator_render() {
         var create = $("<a>")
                 .attr( "id", "mdb-pageCreator-create" )
                 .attr( "target", "_blank" )
-                .attr( "title", "Create this mix page on MixesDB - opens its edit form, filled with the file details, the player and the categories the title gives away" )
+                .attr( "title", "Create this mix page on MixesDB - opens its edit form, filled with the file details, the player, the tracklist box below and the categories the title gives away" )
                 .text( "Create" );
 
         mdbPageCreator_syncCreateHref( input, create );
@@ -526,7 +548,11 @@ function mdbPageCreator_render() {
         // moment after this row is built, and nothing about that fires an input event. So the
         // href is refreshed once more on the way into the click - mousedown covers left,
         // middle and cmd/ctrl-click alike, focus covers reaching the link by keyboard.
+        // The tracklist is re-checked in the same breath, since the box is editable and the
+        // "Tracklist:" category has to describe what is about to be written, not what the API
+        // said about the version nobody kept.
         create.on( "mousedown focus", function() {
+            mdbPageCreator_validateTracklist();
             mdbPageCreator_syncCreateHref( input, create );
         });
 
@@ -563,4 +589,245 @@ function mdbPageCreator_confidenceTitle() {
     }
 
     return intro + "\n\nWhat lowered it:\n- " + mdbPageCreator_confidenceReasons.join( "\n- " );
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Tracklist
+ *
+ * Uploaders write the tracklist into the description, and it was being retyped by hand into
+ * every mix page created from one. tracklist_detector.js finds it in that description (or, when
+ * there is none there, in a comment), MixesDB's Tracklist Editor API turns it into wiki syntax,
+ * and it lands in an editable box next to the player - the same #tlEditor box TrackId.net and RA
+ * use, so it looks and behaves like the tracklist boxes contributors already know.
+ *
+ * What is in that box at the moment "Create" is clicked is what goes onto the page - not what
+ * was detected. The box is there to be corrected, and a tracklist nobody checked is exactly the
+ * kind that needs to be.
+ *
+ * Which also decides the "Tracklist:" category: the box is asked of the API once more on the way
+ * into the click, and only the FEEDBACK of that answer is used (the colour, the category). The
+ * text stays the editor's - re-formatting what someone just typed, under their hands, at the
+ * moment they click away, would be the worst possible time for it.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// the box, wherever the site script put it - looked up by selector for the same reason the row's
+// target is (these pages re-render, a captured node would be the detached old one)
+var mdbPageCreator_tracklistBoxSelector = "#mdb-pageCreator-tracklist #mixesdb-TLbox",
+    mdbPageCreator_tracklistFeedback = null;
+
+// mdbPageCreator_addTracklist
+// The second entry point a site script calls, next to mdbPageCreator_add():
+//
+//     mdbPageCreator_addTracklist({
+//         description:  track.description,       // the description text, as the site's API gives it
+//         loadComments: function( done ) { ... }, // optional, see below
+//         target:       "#mdb-toggle-target",     // where the box goes - above the description
+//         placement:    "after"                   // after|before|append|prepend
+//     });
+//
+// loadComments is only ever called when the description held no tracklist, and it is called with
+// a callback that takes an array of comment BODIES (plain strings). Fetching them is the site
+// script's job - it owns the API token and knows the endpoint - deciding whether they are worth
+// fetching is this file's.
+function mdbPageCreator_addTracklist( options ) {
+    logFunc( "mdbPageCreator_addTracklist" );
+
+    var o = options || {};
+
+    if( o.target ) mdbPageCreator_tracklistTarget = o.target;
+    if( o.placement ) mdbPageCreator_tracklistPlacement = o.placement;
+
+    // A site that re-renders under us calls this again after every rebuild. Nothing is detected
+    // or asked of the API a second time then - the box is simply put back, with whatever the
+    // editor had typed into it before the re-render took it away.
+    if( mdbPageCreator_tracklistFormatted ) {
+        log( "mdbPageCreator_addTracklist: tracklist already known - re-rendering the box only." );
+        mdbPageCreator_renderTracklist();
+        return;
+    }
+
+    // Looked once, found nothing. Without this a page that re-renders often would ask the site
+    // for its comments again on every single rebuild - one request each, for an answer that
+    // cannot have changed.
+    if( mdbPageCreator_tracklistChecked ) return;
+    mdbPageCreator_tracklistChecked = true;
+
+    var found = mdbTracklist_detectInText( o.description );
+
+    if( found ) {
+        mdbPageCreator_useTracklist( found, "description" );
+        return;
+    }
+
+    if( typeof o.loadComments !== "function" ) {
+        log( "mdbPageCreator_addTracklist: nothing in the description and this site cannot read comments." );
+        return;
+    }
+
+    log( "mdbPageCreator_addTracklist: nothing in the description - asking the site for the comments." );
+
+    o.loadComments(function( comments ) {
+        var fromComments = mdbTracklist_detectInComments( comments );
+
+        if( fromComments ) mdbPageCreator_useTracklist( fromComments, "comments" );
+    });
+}
+
+// mdbPageCreator_useTracklist
+// Everything the detector found goes through the Tracklist Editor API before anyone sees it:
+// "standard" is the same conversion the wiki's own editor runs, so what lands in the box is
+// already wiki syntax and already judged complete or not.
+function mdbPageCreator_useTracklist( found, source ) {
+    logVar( "mdbPageCreator_useTracklist: source", source );
+    log( "mdbPageCreator_useTracklist: " + found.lines + " lines before the API:\n" + found.text );
+
+    var res = apiTracklist( found.text, "standard" );
+
+    if( !res || !res.text ) {
+        log( "mdbPageCreator_useTracklist: the Tracklist Editor API returned nothing - no box." );
+        return;
+    }
+
+    mdbPageCreator_tracklistSource = source;
+    mdbPageCreator_tracklistFormatted = res.text;
+    mdbPageCreator_tracklistLive = res.text;
+    mdbPageCreator_tracklistValidated = res.text;
+    mdbPageCreator_tracklistFeedback = res.feedback || null;
+    mdbPageCreator_tracklistStatus = ( res.feedback && res.feedback.status ) || "";
+
+    logVar( "mdbPageCreator_useTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
+
+    mdbPageCreator_renderTracklist();
+}
+
+// mdbPageCreator_renderTracklist
+// Builds the box, or puts it back after a re-render wiped it. Not gated behind the toolkit
+// verdict the way the row is: a tracklist next to a player is worth having whether or not the mix
+// already has a page - on a page that exists it is what the existing tracklist is compared with.
+function mdbPageCreator_renderTracklist() {
+    if( !mdbPageCreator_tracklistFormatted ) return;
+    if( $("#mdb-pageCreator-tracklist").length ) return; // still on the page
+
+    // .first(): a site whose layout renders the target twice (SoundCloud ships a hidden
+    // responsive duplicate of its track header) would otherwise get a box next to each of them.
+    var target = mdbPageCreator_tracklistTarget ? $( mdbPageCreator_tracklistTarget ).first() : $();
+    if( !target.length ) {
+        log( "mdbPageCreator_renderTracklist: the target for the tracklist box is not on the page (yet)." );
+        return;
+    }
+
+    logFunc( "mdbPageCreator_renderTracklist" );
+
+    var fromComments = ( mdbPageCreator_tracklistSource == "comments" ),
+        wrapper = $("<div>").attr( "id", "mdb-pageCreator-tracklist" ),
+        headline = $("<strong>")
+            .addClass( "mdb-highlight" )
+            .text( fromComments ? "Tracklist (from a comment)" : "Tracklist (from the description)" )
+            .attr( "title", fromComments
+                ? "Found in a comment under this track, because the description had none, and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first."
+                : "Found in this track's description and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first." );
+
+    wrapper.append( headline ).append( $( ta ) );
+
+    switch( mdbPageCreator_tracklistPlacement ) {
+        case "before":  target.before( wrapper ); break;
+        case "append":  target.append( wrapper ); break;
+        case "prepend": target.prepend( wrapper ); break;
+        default:        target.after( wrapper );
+    }
+
+    var box = wrapper.find("#mixesdb-TLbox").val( mdbPageCreator_tracklistLive );
+
+    // false: the box must NOT select itself here. Everywhere else a tracklist box appears
+    // because the user asked for one and wants to copy it; this one appears on its own next to a
+    // track they are listening to, and taking the caret and scrolling the page to it would be a
+    // nuisance rather than a service.
+    fixTLbox( mdbPageCreator_tracklistFeedback, wrapper, false );
+
+    // the live value, so a re-render can put the editor's own version back rather than the
+    // detected one - and so the "Create" link has something to read before the box is rebuilt
+    box.on( "input change", function() {
+        mdbPageCreator_tracklistLive = box.val();
+    });
+}
+
+// mdbPageCreator_tracklistText
+// What is in the box right now. Falls back to the last value seen, for the moment between a
+// re-render wiping the box and mdbPageCreator_renderTracklist() putting it back.
+function mdbPageCreator_tracklistText() {
+    var box = $( mdbPageCreator_tracklistBoxSelector );
+
+    if( box.length ) return $.trim( box.val() || "" );
+
+    return $.trim( mdbPageCreator_tracklistLive || "" );
+}
+
+// mdbPageCreator_validateTracklist
+// Asks the API what it makes of the box AS IT STANDS, on the way into the "Create" click.
+// Only the feedback is taken from the answer - see the section header on why the text is not.
+function mdbPageCreator_validateTracklist() {
+    var tl = mdbPageCreator_tracklistText();
+
+    if( !tl ) {
+        mdbPageCreator_tracklistStatus = "";
+        return;
+    }
+
+    if( tl === mdbPageCreator_tracklistValidated ) return; // unchanged since the last answer
+
+    logFunc( "mdbPageCreator_validateTracklist" );
+
+    var res = apiTracklist( tl, "standard" );
+
+    if( !res || !res.feedback ) {
+        log( "mdbPageCreator_validateTracklist: no feedback from the API - keeping the last one." );
+        return;
+    }
+
+    mdbPageCreator_tracklistValidated = tl;
+    mdbPageCreator_tracklistFeedback = res.feedback;
+    mdbPageCreator_tracklistStatus = res.feedback.status || "";
+
+    logVar( "mdbPageCreator_validateTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
+
+    // re-colours the box and replaces the printed feedback, and leaves the text alone
+    fixTLbox( mdbPageCreator_tracklistFeedback, "#mdb-pageCreator-tracklist", false );
+
+    mdbPageCreator_tracklistLive = mdbPageCreator_tracklistText();
+}
+
+// mdbPageCreator_tracklistFiling
+// The "Tracklist:" category of the page being created. Only the API's own "complete" earns
+// Tracklist: complete - a tracklist it had a warning or a hint about, or one it called
+// incomplete, is filed as incomplete, which is the value that costs nothing if it is wrong.
+function mdbPageCreator_tracklistFiling() {
+    if( !mdbPageCreator_tracklistText() ) return "none";
+
+    return mdbPageCreator_tracklistStatus == "complete" ? "complete" : "incomplete";
+}
+
+// mdbPageCreator_tracklistWikitext
+// MixesDB writes a tracklist either as a "#" numbered list - one line per track, every track
+// named - or as plain lines inside <list> tags, which is what a tracklist with "?" tracks and
+// "..." gaps needs, since a gap is no list item. The Tracklist Editor already decided which of
+// the two this is; the "#" in its answer are that decision, so they are what is read here rather
+// than the status.
+function mdbPageCreator_tracklistWikitext() {
+    var tl = mdbPageCreator_tracklistText();
+
+    if( !tl ) return "<list>\n\n</list>";
+
+    var lines = tl.split("\n"),
+        i;
+
+    for( i = 0; i < lines.length; i++ ) {
+        var line = $.trim( lines[i] );
+
+        if( line && line.indexOf("#") !== 0 ) return "<list>\n" + tl + "\n</list>";
+    }
+
+    return tl;
 }

@@ -1203,8 +1203,31 @@ function appendMdbCopyTextButton( source, options ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// tlEditorFeedbackClass
+// Which colour a Tracklist Editor answer gives the box: red for a warning, orange for a hint or
+// a tracklist that is merely incomplete, green only for one that is valid AND complete.
+// Its own function because the feedback is not only printed once - the page creator re-asks the
+// API for the tracklist the editor has since changed and has to re-colour the same box.
+function tlEditorFeedbackClass( feedback ) {
+    if( !feedback ) return "";
+
+    if( feedback.warnings > 0 ) return "tlEditor-feedback-warning";
+    if( feedback.hints > 0 ) return "tlEditor-feedback-hint";
+    if( feedback.status == "incomplete" ) return "tlEditor-feedback-hint";
+
+    return "tlEditor-feedback-complete";
+}
+
+// tlEditorFeedbackClasses
+// All of them, for removing the previous one before the next is set.
+var tlEditorFeedbackClasses = "tlEditor-feedback-warning tlEditor-feedback-hint tlEditor-feedback-complete";
+
 // fixTLbox
-function fixTLbox( feedback, target ) {
+// focus: the box selects itself so the tracklist can be copied straight out of it. That is the
+// point of it where the user ASKED for a tracklist (TrackId.net, RA), and a nuisance where one
+// merely appeared next to a player they were listening to - it takes the caret and scrolls the
+// page to the box. Those callers pass false.
+function fixTLbox( feedback, target, focus=true ) {
     var targetNode = target ? $(target).first() : $();
     var tls = targetNode.length
         ? ( targetNode.is("textarea") ? targetNode : targetNode.find("#mixesdb-TLbox, textarea.mixesdb-TLbox") )
@@ -1223,7 +1246,8 @@ function fixTLbox( feedback, target ) {
             count = lines.length;
         tl.attr('rows', count);
 
-        tl.show().select().addClass("fixed");
+        tl.show().addClass("fixed");
+        if( focus ) tl.select();
     });
 
     if( feedback != null && feedback.text ) {
@@ -1239,19 +1263,10 @@ function fixTLbox( feedback, target ) {
         tle.addClass("bot10");
         tl.addClass( "tlEditor-textarea" );
 
-        if( feedback.warnings > 0 ) {
-            tle.addClass( "tlEditor-feedback-warning" );
-        } else {
-            if( feedback.hints > 0 ) {
-                tle.addClass( "tlEditor-feedback-hint" );
-            } else {
-                if( feedback.status == "incomplete" ) {
-                    tle.addClass( "tlEditor-feedback-hint" );
-                } else {
-                    tle.addClass( "tlEditor-feedback-complete" );
-                }
-            }
-        }
+        tle.removeClass( tlEditorFeedbackClasses ).addClass( tlEditorFeedbackClass( feedback ) );
+
+        // a re-run replaces the previous answer instead of stacking a second box under the first
+        tl.nextAll("#tlEditor-feedback").remove();
         tl.after( feedback.text );
     }
     loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css" );
@@ -1274,9 +1289,15 @@ function apiTracklist( tl, type, genType ) {
         async: false
     });
 
-    var res = JSON.parse(jqXHR.responseText);
-
-    return res;
+    // An empty tracklist answers with an empty body, and an API that is down answers with
+    // anything but JSON - both used to throw out of here and take the caller's whole handler
+    // with them. Every caller already checks res.text, so give them a res to check.
+    try {
+        return JSON.parse( jqXHR.responseText );
+    } catch( e ) {
+        log( "apiTracklist: the API did not answer with JSON (status " + jqXHR.status + "): " + e );
+        return { text: "", rows: 0, feedback: null };
+    }
 }
 
 /*

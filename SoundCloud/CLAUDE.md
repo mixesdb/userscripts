@@ -16,6 +16,15 @@ SoundCloud-only bits that must stay on this side, not move into the page creator
 - `getScPlayerUrl()` - the URL MixesDB embeds is not `location.href` here
 - the `target` selector, and the fact that it must be a **string**: SoundCloud re-renders the
   track header repeatedly, and a captured node would be detached by the next render
+- `getScTrackComments()` in `api_funcs.js` - the endpoint and the OAuth token are ours. The
+  page creator decides WHETHER the comments are worth fetching (only when the description held
+  no tracklist) and calls this through the `loadComments` callback of
+  `mdbPageCreator_addTracklist()`; it never learns where they came from.
+
+The tracklist box goes after `#mdb-toggle-target`, which is the last thing we own above
+SoundCloud's own description in **both** layouts: in the new one it is part of
+`#mdb-sc-trackExtras` (right under the Track header), in the old one it is prepended to
+`.listenDetails`, whose `.listenDetails__partialInfo` holds the description further down.
 
 ## Locale: aria-labels vs. visible element text
 

@@ -14,31 +14,76 @@ reads the values off its own page/API and hands them over.
 
 | File | What it is |
 | --- | --- |
-| `page_creator.js` | The row and the "Create" link. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options |
+| `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options |
 | `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup |
 | `title_definitions.js` | The word lists and channel->show mappings the parser uses. Plain data, meant to be extended by hand - this is where the learning from each report goes |
-| `page_creator.css` | Styles the row. Loaded with `loadRawCss()` by each site script |
+| `tracklist_detector.js` | `mdbTracklist_detectInText()` / `mdbTracklist_detectInComments()`: which lines of a description are the tracklist. No DOM, no network - see below |
+| `page_creator.css` | Styles the row and the tracklist box. Loaded with `loadRawCss()` by each site script |
 | `title_examples.js` | Test data: every title ever reported as wrong |
 | `title_examples_test.js` | The deno runner for it |
+| `tracklist_examples.js` | Test data: real descriptions and the tracklist that has to come out of them |
+| `tracklist_examples_test.js` | The deno runner for it |
 | `mixesdb_api_request.md` | The category-lookup endpoint we asked the MixesDB maintainer for - see below |
 | `page_text_learning.md` | Plan: reading the recent sibling pages' wikitext to shape the new page's text. Not built |
 
 ## Adding a site script
 
-`@require` the three JS files in this order (they are plain scripts, not modules, so order is
+`@require` the four JS files in this order (they are plain scripts, not modules, so order is
 the load order):
 
 ```
-title_definitions.js, title_builder.js, page_creator.js
+title_definitions.js, title_builder.js, tracklist_detector.js, page_creator.js
 ```
 
 then `loadRawCss()` `page_creator.css` next to the script's own `script.css`, and call
 `mdbPageCreator_add({ title, channel, createdAt, ..., target, placement })` when the site's data
-arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built. SoundCloud is
-the reference implementation.
+arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built. A site whose
+player pages carry a description adds `mdbPageCreator_addTracklist({ description, loadComments,
+target, placement })` - see the next section. SoundCloud is the reference implementation.
 
 `target` should be a **selector string**, not a node: these sites re-render under the script's
 feet, and the string is looked up again on every render.
+
+## The tracklist
+
+The tracklist an uploader wrote into the description ends up in an editable box next to the
+player and on the created page. `tracklist_detector.js` finds it in the text, the Tracklist
+Editor API (`apiTracklist( text, "standard" )` in `global.js`) formats it, `page_creator.js`
+renders the box (the shared `#tlEditor` from `global.js`) and writes it into the page.
+
+Settled, so it does not get re-litigated:
+
+- **The box wins over the detection.** What is in it at the moment "Create" is clicked is what
+  goes onto the page - it is there to be corrected.
+- **The API is asked once more on the way into the click, and only its FEEDBACK is used** - the
+  colour and the `[[Category:Tracklist: …]]`. The text stays the editor's: re-formatting what
+  someone just typed, under their hands, at the moment they click away, is the worst possible
+  time for it.
+- **Only the API's own `"complete"` earns `Tracklist: complete`.** A warning, a hint or its
+  `"incomplete"` all file as incomplete, which is the value that costs nothing if it is wrong.
+- **`<list>` or not is read off the API's answer, not off the status.** MixesDB writes a
+  tracklist as a `#` numbered list when every track is named, and as plain lines inside `<list>`
+  when it is not (a `...` gap is no list item). The `#` in the answer ARE that decision.
+- **A tracklist is a RUN of neighbouring lines**, never lines gathered from all over the text.
+  Single lines that read as "Artist - Title" are everywhere in a description ("6 Decks - 2
+  Mixers"); four of them in a row are not. Numbered runs additionally have to count upwards.
+- **Comments are asked only when the description gave nothing**, and only for a WHOLE numbered
+  tracklist starting at 1. Single track IDs - which is what nearly every comment naming an
+  "Artist - Title" is - must never be taken, and an unnumbered comment tracklist is left alone
+  because nothing can split it back into tracks. The site script fetches them (it owns the API
+  token); this file decides whether they are worth fetching.
+
+Run the examples before and after touching `tracklist_detector.js`:
+
+```
+deno run --allow-read includes/page_creator/tracklist_examples_test.js
+```
+
+They hold WHOLE descriptions, prose and links included - where the tracklist starts and stops is
+the question, and that question does not exist in a trimmed fixture. Add a reported description
+as a case the same way title reports are added to `title_examples.js`, with a comment naming what
+it guards. A case with `expect: null` is as important as the others: a wrong tracklist on a new
+mix page is worse than no tracklist.
 
 ## The MixesDB category lookup (on hold, waiting on the wiki)
 
@@ -77,8 +122,9 @@ Two things settled in advance, so they do not get re-litigated:
   `{{StandardShow2h}}` instead of the file details table, the leading
   `[[File:{{subst:PAGENAME}}.jpg|right|360px]]`. Design and measurements in
   `page_text_learning.md`. Styles are only filled when 90% of the siblings agree (measured: that
-  fires on 1 category in 9), and `Tracklist:` is always `none` until tracklist transfer exists -
-  that file says why.
+  fires on 1 category in 9), and `Tracklist:` is never learned from the siblings at all - it
+  describes the page's own tracklist, which is what the section above decides. That file says
+  why.
 
 ## Title suggestion reports
 
