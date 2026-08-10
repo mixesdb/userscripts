@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.12
+// @version      2026.08.10.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_3
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -169,7 +169,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 84,
+var cacheVersion = 85,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1518,6 +1518,24 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.10.13
+ * The tracklist box is now behind a headline that toggles it, and it is no longer built at all
+ * until there is a reason to. Detecting a tracklist is free (a regex over text we already have);
+ * formatting it costs a request to the Tracklist Editor API. So on a mix that is ALREADY on
+ * MixesDB the API is not asked at all - only the headline goes up, and the first click on it
+ * pays for the box; every click after that just shows and hides it. Nothing on such a page needs
+ * the tracklist by itself (it is there to be compared with the one the wiki has), and most of
+ * those clicks never happen. A mix with no page yet is unchanged: the box is what the "Create"
+ * link carries, so it is formatted and opened right away. That decision needs the toolkit's
+ * verdict, which arrives after the toolkit itself, so the creator now waits for both - and makes
+ * the decision once, so a SoundCloud re-render cannot force a box the reader closed back open.
+ * The headline is "Tracklist (from description)" in grey: the word alone is the <strong> and the
+ * toggle (pointer, caret), the bracket alone is an <abbr> carrying the "where this came from"
+ * tooltip. A tooltip on the word would have fought the click.
+ * New detector example, deep-space-helsinki/july_2026: labels written behind the title with the
+ * SAME " - " that separates the artist, so every line carries two dashes and none of them is the
+ * one that matters. It passed unchanged - 15 examples now, all passing.
  *
  * 2026.08.10.12
  * Three fixes to the tracklist box of .11, all reported off the live page:

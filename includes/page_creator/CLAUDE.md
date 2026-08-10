@@ -53,8 +53,18 @@ renders the box (the shared `#tlEditor` from `global.js`) and writes it into the
 
 Settled, so it does not get re-litigated:
 
+- **Detecting, formatting and showing are three steps, not one.** Detecting is free, formatting
+  costs a request. So a mix that is ALREADY on MixesDB gets the headline and nothing else - the
+  API is not asked until someone clicks it, and most of those clicks never happen. A mix with no
+  page yet is formatted and opened straight away, because the "Create" link has to carry it. That
+  needs the toolkit's verdict, so the box waits for it, and the decision is made **once**: a
+  re-render must not force a box the reader closed back open.
+- **The headline is two elements.** The word "Tracklist" is the `<strong>` and the toggle; the
+  bracket behind it is an `<abbr>` whose title says where the tracklist was read out of. A
+  tooltip on the word would fight the click, and a click on the explanation means nothing.
 - **The box wins over the detection.** What is in it at the moment "Create" is clicked is what
-  goes onto the page - it is there to be corrected.
+  goes onto the page - it is there to be corrected. Hiding it does not drop it from the page:
+  that is a display state, not a decision about the tracklist.
 - **The API is asked once more on the way into the click, and only its FEEDBACK is used** - the
   colour and the `[[Category:Tracklist: …]]`. The text stays the editor's: re-formatting what
   someone just typed, under their hands, at the moment they click away, is the worst possible
