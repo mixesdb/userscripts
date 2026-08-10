@@ -858,7 +858,7 @@ function mdbPageCreator_tracklistHeadline() {
             .addClass( "hand" )
             .text( "Tracklist" ),
         where = $("<abbr>")
-            .text( fromComments ? "from a comment" : "(rom description" )
+            .text( fromComments ? "from a comment" : "from description" )
             .attr( "title", fromComments
                 ? "Found in a comment under this track, because the description had none, and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first."
                 : "Found in this track's description and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first." );
