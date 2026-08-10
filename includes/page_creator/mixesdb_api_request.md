@@ -286,14 +286,50 @@ go to 2–3 (one lookup, plus one `categorymembers` call per matched non-artist 
 there is normally one). Happy to add a `User-Agent`/`maxage` or anything else that makes this
 easier to see and rate-limit on your side.
 
-## 9. If this is not possible
+## 9. Implementation notes, offered from the outside
+
+You know the install and we do not — everything here is an observation from the public API, not a
+recommendation about your code. It is written down only because the shape of the ask is easy to
+overestimate.
+
+**Nothing existing has to change.** This is a new `action=` module on the same `api.php`, next to
+`query` and `parse` — not a new endpoint, not a new service, and not a modification of an
+existing module. Same URL, same CORS, auth, rate limiting and caching. `action=query` keeps
+behaving exactly as it does today, so no existing consumer can be affected by it. In practice one
+`ApiBase` subclass and a registration line:
+
+```json
+"APIModules": { "mdbnames": "MediaWiki\\Extension\\MixesDB\\ApiMdbNames" }
+```
+
+dropped into an existing MixesDB extension if there is one.
+
+**The case-insensitive match is the only part with a real decision in it.** `page_title` is
+compared as binary, so a plain `WHERE LOWER(page_title) IN (…)` cannot use an index and would
+scan — which is presumably why nothing in the core API offers this.
+
+The observation that may save the work: **`list=prefixsearch` on this wiki already matches
+case-insensitively.** `pssearch=daniel bortz` returns `Category:Daniel Bortz`, and
+`pssearch=trommel` returns `Category:Trommel`, on a wiki whose `siteinfo` reports
+`case-sensitive`. So an indexed case-folded lookup already exists somewhere in the stack. If that
+path can be called in-process once per name — at most 10, filtered afterwards to exact
+case-insensitive equality, since prefix search also returns longer titles — then the module is
+mostly a join onto the category and `categoryinfo` data you already return, with no new index and
+no new table.
+
+For what it is worth, that path is case-insensitive but **not** typo-tolerant (`danel bortz`
+returns nothing), which reads more like a plain prefix strategy than a completion suggester —
+but you will know which of the two it actually is.
+
+## 10. If this is not possible
 
 We will ship the casing-variant workaround from section 3 and fetch the section 6 titles with
 plain `categorymembers` calls. That lands at 2–3 requests per track and works well enough, so
 nothing is blocked — the custom endpoint is simply the correct version of it, without the casing
 guesswork and at one request instead of three.
 
-Anything in sections 4 to 6 can be dropped or renamed to suit how MixesDB is actually built.
+Anything in sections 4 to 6 can be dropped or renamed to suit how MixesDB is actually built, and
+section 9 ignored entirely if it is off the mark.
 **Case-insensitive matching is the one thing we cannot build ourselves**, and the canonical
 spelling is the one that most improves the result. The `recent` titles are a convenience — very
 valuable to us, but we can get them without you.
