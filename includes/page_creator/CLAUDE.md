@@ -20,6 +20,7 @@ reads the values off its own page/API and hands them over.
 | `page_creator.css` | Styles the row. Loaded with `loadRawCss()` by each site script |
 | `title_examples.js` | Test data: every title ever reported as wrong |
 | `title_examples_test.js` | The deno runner for it |
+| `mixesdb_api_request.md` | The category-lookup endpoint we asked the MixesDB maintainer for - see below |
 
 ## Adding a site script
 
@@ -37,6 +38,32 @@ the reference implementation.
 
 `target` should be a **selector string**, not a node: these sites re-render under the script's
 feet, and the string is looked up again on every render.
+
+## The MixesDB category lookup (on hold, waiting on the wiki)
+
+The suggestion is meant to stop relying on hand-tuned word lists and let MixesDB's own category
+names decide what is an artist, a podcast, a show, a venue or an event.
+`mdbTitle_lookupCategories()` in `title_builder.js` is the first version of that, and it has two
+known faults, both waiting on the endpoint requested in `mixesdb_api_request.md`:
+
+- **MixesDB is case-sensitive** (`siteinfo` says `case: case-sensitive`, i.e.
+  `$wgCapitalLinks = false`) - even the first letter. The lookup asks `Category:<bit>` verbatim,
+  so `trommel`, `BASSIANI`, `FADI MOHEM` all miss categories that exist under another casing.
+  Player titles are cased however the uploader felt, so this misses a large share of tracks.
+- Only `artist` and `venue` are mapped; Podcast, Show, Event, Radio and Record Label all collapse
+  into `"other"`, which no caller reads.
+
+Do not start the client-side rework until the endpoint exists - that was decided, not forgotten.
+Two things settled in advance, so they do not get re-litigated:
+
+- **A resolved name is written in the wiki's spelling**, not the source's: `trommel` in a
+  SoundCloud title becomes `Trommel` in the suggestion. This changes the expectation of the
+  existing `Trommel.251 - Arno` case in `title_examples.js` (today it expects lowercase
+  `trommel.251`) - update it as part of that work.
+- **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
+  year), never from the left. With 57,462 artist categories nearly every common word is a real
+  category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
+  genuine Show with 779 mixes, and wreck the title.
 
 ## Title suggestion reports
 

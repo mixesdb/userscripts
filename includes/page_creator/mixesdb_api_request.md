@@ -1,0 +1,208 @@
+# API request to the MixesDB maintainer
+
+**What we would like:** one API call that takes a list of names and answers, for each, *does
+MixesDB have a category of that name, and what kind of thing is it* — matched
+**case-insensitively**.
+
+Everything below is the reasoning and the exact contract. Section 4 is the only part that needs
+implementing; the rest is context and can be skimmed.
+
+Measurements in this document were taken against the live API on 2026-08-10, MediaWiki 1.44.0.
+
+---
+
+## 1. Who is asking and what for
+
+The MixesDB page creator is a shared component of the userscripts that MixesDB contributors run
+on SoundCloud, Mixcloud, YouTube, RA and others (`includes/page_creator/`). Next to the player
+it shows a suggested mix page title and a "Create" link that opens the new page prefilled.
+
+The suggestion has to turn a player title plus a channel name into the three groups a MixesDB
+title has:
+
+```
+YYYY-MM-DD - Artist - Entity
+```
+
+Deciding which part of a player title is the **artist** and which is the **entity** — and
+whether the entity is a podcast, a show, a venue (`@`) or an event — is not something the shape
+of a title can settle. Two real examples:
+
+| Player title | Channel | Only the wiki can say |
+| --- | --- | --- |
+| `Vintage Vinyl Session 004` | `Daniel Bortz` | `Daniel Bortz` is an **Artist**, so the channel is the person and the whole title is their series |
+| `Zenaari Mix 028 - Azim Fathi` | `BASSIANI` | `Bassiani` is a **Venue** but `Zenaari Mix` is a **Podcast** — so the podcast is the entity, not the club |
+
+MixesDB already holds exactly this knowledge in its category names, and it is the only place
+that holds it. We do not want to copy tens of thousands of artist and podcast names into the
+userscript — hence asking the API.
+
+The lookup already exists in a limited form (`mdbTitle_lookupCategories()` in
+`title_builder.js`) using `action=query&prop=categories&titles=Category:X|Category:Y`. It works,
+it is one request per track, and it is polite. The problem is section 3.
+
+## 2. The category vocabulary we read
+
+Verified direct-parent categories and their sizes:
+
+| Category | Subcategories |
+| --- | --- |
+| `Category:Artist` | 57,462 |
+| `Category:Venue` | 10,610 |
+| `Category:Podcast` | 4,895 |
+| `Category:Show` | 4,294 |
+| `Category:Event` | 4,058 |
+| `Category:Radio` | 824 |
+| `Category:Internet Radio` | 585 |
+| `Category:Record Label` | 227 |
+
+`Category:Club`, `Category:Festival`, `Category:Collective` and `Category:Mix Series` exist but
+have 0 subcategories, so nothing is filed under them — please correct us if one of those (or
+another we missed) is the intended home for something.
+
+Two observations that shaped the contract below, both worth a sanity check from your side:
+
+- **The main type is always a *direct* parent.** Every sample we took has it sitting next to the
+  non-type parents rather than further up: `Category:Essential Mix` → `[BBC Radio 1, Show]`,
+  `Category:RA Podcast` → `[Podcast, Resident Advisor]`, `Category:Autonomic (Show)` →
+  `[Rinse FM, Show]`. No ancestor walk seems necessary.
+- **Some categories carry no type at all.** `Category:Panorama Bar` and `Category:Truancy Volume`
+  have no parent categories and 0 mixes. These must come back as "no answer", not as a match —
+  see section 5.
+
+## 3. Why core MediaWiki cannot answer this
+
+**MixesDB is case-sensitive.** `meta=siteinfo` reports `"case": "case-sensitive"`
+(`$wgCapitalLinks = false`), so unlike most wikis even the first letter is significant:
+
+```
+Category:trommel   → missing        Category:Trommel  → Podcast (29 mixes)
+Category:BASSIANI  → missing        Category:Bassiani → Venue   (39 mixes)
+Category:shimon    → missing        Category:Shimon   → Artist  (43 mixes)
+```
+
+Player titles are written in whatever case the uploader felt like — `FADI MOHEM`, `trommel`,
+`MOLTO IN THE MIX` — so a verbatim `titles=` lookup misses a large share of tracks. That is a
+bug on our side today, and we cannot fix it on our side without help, because:
+
+| What we tested | Case-insensitive? | Batched? | Verdict |
+| --- | --- | --- | --- |
+| `prop=categories&titles=…` | ❌ exact match only | ✅ 50 per call | misses most real inputs |
+| `list=prefixsearch` | ✅ | ❌ one term per call | 6–10 calls per track |
+| `list=search&srsearch=intitle:"…"` | ✅ | ❌ `OR` between `intitle:` clauses returns 0 hits | 6–10 calls per track |
+| `list=search&srwhat=nearmatch` | — | ❌ | returns nothing in ns 14 |
+| plain-phrase `"a" OR "b"` | ✅ | ✅ | searches page *text*, returns noise — unusable |
+
+So MediaWiki offers case-insensitive lookup **or** batching, never both.
+
+The workaround available to us without any change on your side is to guess casing variants and
+put them all in one `titles=` call — `Category:fadi mohem|Category:Fadi Mohem|Category:FADI
+MOHEM|…`. Tested on 10 real candidates it expands to 36 titles, stays inside the 50-title
+anonymous limit, costs 3.6 KB, and resolved 9 of 10. It works, but it is guesswork: it triples
+the payload, and it silently fails on any spelling we did not guess (`Category:ASA 808` is only
+found because we happened to try the all-caps variant).
+
+## 4. What we would like added
+
+One module, e.g. `action=mdbnames`:
+
+```
+GET /w/api.php
+    ?action=mdbnames
+    &format=json
+    &names=Fadi Mohem|HATE Podcast|trommel|fabric|Autonomic
+```
+
+- `names` — pipe-separated, same convention as `titles`. A limit of 30 is plenty for us.
+- Namespace is fixed to 14 (Category); no parameter needed.
+
+Response:
+
+```json
+{
+  "mdbnames": {
+    "Fadi Mohem":   [ { "title": "Fadi Mohem",   "type": "artist",  "mixes": 15,  "exactCase": false } ],
+    "HATE Podcast": [ { "title": "HATE Podcast", "type": "podcast", "mixes": 498, "exactCase": true  } ],
+    "trommel":      [ { "title": "Trommel",      "type": "podcast", "mixes": 29,  "exactCase": false } ],
+    "fabric":       [ { "title": "fabric",       "type": "venue",   "mixes": 395, "exactCase": true  },
+                      { "title": "Fabric",       "type": "artist",  "mixes": 2,   "exactCase": false } ],
+    "Autonomic":    []
+  }
+}
+```
+
+Per field:
+
+- **`title`** — the canonical category title, in the wiki's own spelling. We use this verbatim in
+  the suggested page title, so `trommel` in a SoundCloud title becomes `Trommel` in the
+  suggestion. This is the second-biggest win after case-insensitive matching: right now we guess
+  capitalisation with a heuristic, and the wiki simply knows.
+- **`type`** — one of `artist`, `podcast`, `show`, `venue`, `event`, `radio`, `internetradio`,
+  `recordlabel`. Derived from the direct parent categories in section 2.
+- **`mixes`** — the category's page count (what `prop=categoryinfo` returns). See section 5 for
+  why we need it.
+- **`exactCase`** — `true` when the input matched the canonical title byte-for-byte.
+
+**Returning *all* matches per name, rather than picking one, is the important part.** `fabric`
+(the London club, a Venue) and `Fabric` (an Artist) are different entities that only case tells
+apart, and which one is meant depends on the rest of the player title — context that lives on
+our side. Please do not collapse them.
+
+An empty array means "MixesDB has no usable category of that name", which is a perfectly good
+answer for us.
+
+## 5. Matching semantics we are asking for
+
+1. **Case-insensitive** match on the full title. This is the whole point of the request.
+2. **Ignore a trailing disambiguation qualifier.** `Category:Autonomic (Show)` is the real
+   category with 20 mixes, while `Category:Autonomic` exists empty with no parents. A player
+   title says "Autonomic", never "Autonomic (Show)", so a name should also match a category whose
+   title is `<name> (<anything>)`. If that turns out to be expensive or ambiguous, we can live
+   without it — everything else matters more.
+3. **Follow category redirects** and report the target. `redirects=1` already does this on
+   `prop=categories` (`Category:Dekmantel` → `Category:Dekmantel Festival`), so hopefully it is
+   free here too.
+4. **Skip categories with no type**, i.e. return no entry rather than one with a null type.
+   `Category:Truancy Volume` (0 mixes, no parents) currently comes back from `prop=categories` as
+   a page that exists, which reads to us as a confirmed hit and actively misleads the parser.
+   Nice-to-have: we can also filter these out ourselves if `type` is absent.
+5. Whitespace collapsed and trimmed; diacritic folding is welcome but not required.
+
+**Why `mixes` matters.** With 57,462 artist categories, almost every common word is a legitimate
+artist on MixesDB, and a fragment of a real name will often resolve to the wrong thing:
+
+```
+Daniel  → Artist, 1 mix        vs   Daniel Bortz → Artist, 71 mixes
+Asa     → Artist, 1 mix        vs   ASA 808      → Artist,  9 mixes
+Truancy → Artist, 1 mix        vs   HATE Podcast → Podcast, 498 mixes
+Black   → Venue,  1 mix
+Mitch   → Artist, 1 mix
+```
+
+The page count is not decisive on its own — `Leon` is a real artist with 69 mixes and still the
+wrong reading of "Leon Row x Shimon", which is why we prefer the longest match first. But it is
+what separates a real hit from a near-empty coincidence in everything else, and it feeds the
+confidence score we show under the suggestion. It comes from `categoryinfo`, which we can request
+today — we would just rather not pay a second call for it.
+
+## 6. What stays on our side
+
+So there is no doubt about the boundary: we are **not** asking you to parse titles. Candidate
+generation (splitting the player title, stripping trailing episode numbers, handling `@`, `x`,
+`w/`, `presents`), ranking the answers, and assembling the final page title all stay in the
+userscript, where the test suite for it lives. The endpoint is a pure name → type lookup.
+
+## 7. Load
+
+Roughly 10 userscript users, one call per opened track page, cached for the life of the page.
+We currently make **1** request per track and would like to stay at 1. Happy to add a
+`User-Agent`/`maxage` or anything else that makes this easier to see and rate-limit on your side.
+
+## 8. If this is not possible
+
+We will ship the casing-variant workaround from section 3. It is one call and it works well
+enough, so nothing is blocked — the custom endpoint is simply the correct version of it, and it
+would also give us the canonical spelling and the type vocabulary without guessing.
+
+Anything in section 4 or 5 can be dropped or renamed to suit how MixesDB is actually built;
+case-insensitive matching and the canonical title are the two things that carry the value.
