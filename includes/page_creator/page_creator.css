@@ -144,3 +144,42 @@
     cursor: help;
     white-space: nowrap;
 }
+
+/*
+ * The tracklist found in the player's description (page_creator.js, "Tracklist" section). Sits
+ * wherever the site script put it - above the description it was read out of - and not inside
+ * #mdb-pageCreator, which is one flex row and no place for a textarea.
+ *
+ * The box itself is the shared #tlEditor from global.js, styled by tracklistEditor_copy.css,
+ * which fixTLbox() loads. Only the wrapper and its headline are this file's business.
+ */
+#mdb-pageCreator-tracklist {
+    margin: 0 0 10px;
+}
+
+#mdb-pageCreator-tracklist > strong {
+    cursor: help;
+}
+
+/*
+ * The feedback box comes from the wiki, where it sits on a white page. On a dark player page the
+ * pale backgrounds tracklistEditor_copy.css gives it are the only thing keeping its (equally
+ * pale) green/orange/red text readable, so the text colour has to stay paired with them - hence
+ * a colour here rather than "inherit".
+ */
+#mdb-pageCreator-tracklist #tlEditor-feedback {
+    color: #444;
+    font-size: 0.85rem;
+}
+
+#mdb-pageCreator-tracklist #mixesdb-TLbox {
+    box-sizing: border-box;
+    padding: 4px 6px;
+    color: #444;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    background-color: #fcfcfc;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+}

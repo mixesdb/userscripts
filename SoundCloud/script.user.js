@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.10
+// @version      2026.08.10.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,13 +9,14 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_43
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_2
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @grant        unsafeWindow
@@ -168,7 +169,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 82,
+var cacheVersion = 83,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1108,6 +1109,27 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
                                 }
 
+                                // The tracklist an uploader wrote into the description (or, when
+                                // there is none there, into a comment): the page creator finds
+                                // it, has MixesDB's Tracklist Editor format it and puts it into
+                                // an editable box that then rides along into the created page.
+                                // Only the description is handed over up front - the comments
+                                // cost another API call and are fetched from the callback, which
+                                // the creator only reaches when the description gave nothing.
+                                // #mdb-toggle-target is the last thing we own above SoundCloud's
+                                // description in BOTH layouts: in the new one it is part of
+                                // #mdb-sc-trackExtras (which sits right under the Track header),
+                                // in the old one it is prepended to .listenDetails, whose
+                                // .listenDetails__partialInfo holds the description further down.
+                                mdbPageCreator_addTracklist({
+                                    description:  t.description,
+                                    loadComments: function( done ) {
+                                        getScTrackComments( currentTrack_id, scAccessToken, done );
+                                    },
+                                    target:       "#mdb-toggle-target",
+                                    placement:    "after"
+                                });
+
                                 // indicate download is available
                                 // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
                                 // therefor rename the dropdown to "DL"
@@ -1494,6 +1516,30 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.10.11
+ * The tracklist an uploader wrote into the description is no longer retyped by hand: it is
+ * found, formatted and carried into the created mix page. New
+ * includes/page_creator/tracklist_detector.js reads a tracklist out of any description text
+ * (pure text in, text out - no DOM, no network, so it is testable and every site script can use
+ * it), MixesDB's Tracklist Editor API turns it into wiki syntax with type "standard", and it
+ * lands in the shared #tlEditor box above SoundCloud's description. What is in that box at the
+ * moment "Create" is clicked is what goes onto the page - the box is asked of the API once more
+ * on the way into the click, and only the FEEDBACK of that answer is used (the colour and the
+ * [[Category:Tracklist: complete|incomplete|none]]); the text stays the editor's.
+ * A tracklist is recognized as a RUN of neighbouring lines rather than as single lines that
+ * look like a track - "6 Decks - 2 Mixers" is everywhere, four of them in a row are not - and
+ * numbered runs additionally have to count upwards, which is what keeps a stray line sitting on
+ * top of a tracklist out of it. When the description has none, the track's comments are fetched
+ * (getScTrackComments(), one page of 200) and searched for a WHOLE numbered tracklist starting
+ * at 1: single track IDs, which is what nearly every comment naming an "Artist - Title" is,
+ * must never be taken. 14 examples in tracklist_examples.js guard all of it, run with
+ * "deno run --allow-read includes/page_creator/tracklist_examples_test.js".
+ * global.js: fixTLbox() takes a third argument to skip the select() - a box that appears on its
+ * own next to a player must not take the caret and scroll the page to itself - and no longer
+ * stacks a second feedback box when it is re-run; apiTracklist() returns an empty result
+ * instead of throwing when the API answers with something that is not JSON (an empty tracklist
+ * answers with an empty body).
  *
  * 2026.08.10.10
  * The mix page title row is now the shared "MixesDB page creator" in

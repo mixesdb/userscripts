@@ -184,10 +184,11 @@ one style clears it, the second line stays empty.
 
 **`[[Category:Tracklist: incomplete]]`.** It appears on nearly every sibling, but only because
 those pages have a partial tracklist. The filing describes the page's own tracklist, not the
-series: `Tracklist: none` is the default and the only correct value for a page created empty,
-and `complete`/`incomplete` become available only once the creator fills a tracklist in.
-Transferring tracklists into the new page is a separate, much later project - until then this
-is always `Tracklist: none`, which is what the creator writes today.
+series, so it is never read off the siblings - not even now that the creator does fill a
+tracklist in (`tracklist_detector.js`, added after this file was written). It is decided by what
+MixesDB's Tracklist Editor API says about the tracklist actually being written: `none` when
+there is none, its own `complete` when it says so, `incomplete` for everything else. See the
+"The tracklist" section of `CLAUDE.md`.
 
 A signal being consistent across siblings does not make it transferable - ask what it describes
 first. That is the difference between this and Signal C: a style describes the music, which a
@@ -245,6 +246,10 @@ have something to say (image `same` 7/8, and `Techno` at 100%; the body stays a 
 [[Category:]]
 [[Category:Tracklist: none]]
 ```
+
+(The `<list>` and the `Tracklist: none` are the empty case. Where the description held a
+tracklist, both are filled by the detector instead - that is orthogonal to everything measured
+here.)
 
 For `Category:Essential Mix` the body becomes `{{StandardShow2h}}` instead of the table and both
 style lines stay blank. For `Category:Ritter Butzke` nothing fires at all and the output is
