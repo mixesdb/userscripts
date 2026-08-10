@@ -612,12 +612,37 @@ function mdbPageCreator_confidenceTitle() {
  * text stays the editor's - re-formatting what someone just typed, under their hands, at the
  * moment they click away, would be the worst possible time for it.
  *
+ *
+ * Detected, formatted, shown - three steps, not one
+ * -------------------------------------------------
+ * Detecting costs nothing (it is a regex over text we already have); formatting costs a request
+ * to the Tracklist Editor API. So the second step waits for a reason:
+ *
+ *   - the mix is NOT on MixesDB yet -> format straight away. The whole point is the "Create"
+ *     link, and it has to carry the tracklist the moment it is clicked.
+ *   - the mix IS on MixesDB already -> only the headline is put on the page, and the API is not
+ *     asked at all until someone clicks it. Nothing on such a page needs the tracklist by
+ *     itself; it is there to be compared with the one the wiki has, which is a decision only the
+ *     reader makes. Most of these clicks never happen, and every one that does not is a request
+ *     saved.
+ *
+ * Either way the headline toggles the box after that, and the toggle never asks the API twice.
+ *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // the box, wherever the site script put it - looked up by selector for the same reason the row's
 // target is (these pages re-render, a captured node would be the detached old one)
 var mdbPageCreator_tracklistBoxSelector = "#mdb-pageCreator-tracklist #mixesdb-TLbox",
-    mdbPageCreator_tracklistFeedback = null;
+    mdbPageCreator_tracklistFeedback = null,
+    // what the detector found, before the API has seen it - the raw lines out of the description
+    mdbPageCreator_tracklistDetected = null,
+    // whether the box is shown. Starts open for a mix that has no MixesDB page yet, closed for
+    // one that has - see the header.
+    mdbPageCreator_tracklistOpen = false,
+    // whether that decision has been made. Once it has, a re-render must not remake it: the
+    // toolkit verdict is reset to null on every rebuild, and the editor may have closed a box we
+    // would otherwise force back open (and would have to wait for a verdict to do it).
+    mdbPageCreator_tracklistDecided = false;
 
 // mdbPageCreator_addTracklist
 // The second entry point a site script calls, next to mdbPageCreator_add():
@@ -642,10 +667,10 @@ function mdbPageCreator_addTracklist( options ) {
     if( o.placement ) mdbPageCreator_tracklistPlacement = o.placement;
 
     // A site that re-renders under us calls this again after every rebuild. Nothing is detected
-    // or asked of the API a second time then - the box is simply put back, with whatever the
-    // editor had typed into it before the re-render took it away.
-    if( mdbPageCreator_tracklistFormatted ) {
-        log( "mdbPageCreator_addTracklist: tracklist already known - re-rendering the box only." );
+    // or asked of the API a second time then - the headline is simply put back, and with it the
+    // box, holding whatever the editor had typed into it before the re-render took it away.
+    if( mdbPageCreator_tracklistDetected ) {
+        log( "mdbPageCreator_addTracklist: tracklist already known - re-rendering only." );
         mdbPageCreator_renderTracklist();
         return;
     }
@@ -678,30 +703,44 @@ function mdbPageCreator_addTracklist( options ) {
 }
 
 // mdbPageCreator_useTracklist
-// Everything the detector found goes through the Tracklist Editor API before anyone sees it:
-// "standard" is the same conversion the wiki's own editor runs, so what lands in the box is
-// already wiki syntax and already judged complete or not.
+// What the detector found, kept as it stands. The API is NOT asked here - see the header on why
+// that waits.
 function mdbPageCreator_useTracklist( found, source ) {
     logVar( "mdbPageCreator_useTracklist: source", source );
-    log( "mdbPageCreator_useTracklist: " + found.lines + " lines before the API:\n" + found.text );
+    log( "mdbPageCreator_useTracklist: " + found.lines + " lines detected:\n" + found.text );
 
-    var res = apiTracklist( found.text, "standard" );
+    mdbPageCreator_tracklistDetected = found;
+    mdbPageCreator_tracklistSource = source;
+
+    mdbPageCreator_renderTracklist();
+}
+
+// mdbPageCreator_formatTracklist
+// The detected lines through the Tracklist Editor API: "standard" is the same conversion the
+// wiki's own editor runs, so what lands in the box is already wiki syntax and already judged
+// complete or not. Asked once - a second call finds the answer already here and returns it.
+function mdbPageCreator_formatTracklist() {
+    if( mdbPageCreator_tracklistFormatted ) return true;
+    if( !mdbPageCreator_tracklistDetected ) return false;
+
+    logFunc( "mdbPageCreator_formatTracklist" );
+
+    var res = apiTracklist( mdbPageCreator_tracklistDetected.text, "standard" );
 
     if( !res || !res.text ) {
-        log( "mdbPageCreator_useTracklist: the Tracklist Editor API returned nothing - no box." );
-        return;
+        log( "mdbPageCreator_formatTracklist: the Tracklist Editor API returned nothing - no box." );
+        return false;
     }
 
-    mdbPageCreator_tracklistSource = source;
     mdbPageCreator_tracklistFormatted = res.text;
     mdbPageCreator_tracklistLive = res.text;
     mdbPageCreator_tracklistValidated = res.text;
     mdbPageCreator_tracklistFeedback = res.feedback || null;
     mdbPageCreator_tracklistStatus = ( res.feedback && res.feedback.status ) || "";
 
-    logVar( "mdbPageCreator_useTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
+    logVar( "mdbPageCreator_formatTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
 
-    mdbPageCreator_renderTracklist();
+    return true;
 }
 
 // mdbPageCreator_tracklistTargetNode
@@ -711,65 +750,72 @@ function mdbPageCreator_tracklistTargetNode() {
     return mdbPageCreator_tracklistTarget ? $( mdbPageCreator_tracklistTarget ).first() : $();
 }
 
-// mdbPageCreator_waitForTracklistTarget
-// The box hangs off something that arrives on its own schedule - the toolkit, on every site so
-// far, which is a MixesDB API call away. Polling rather than waitForKeyElements for the same
-// reason mdbPageCreator_watchToolkit() polls: toolkit.js already watches those nodes, and
-// waitForKeyElements keeps a single "alreadyFound" flag per element, so a second watcher on them
-// would starve whichever of the two runs second.
-function mdbPageCreator_waitForTracklistTarget() {
+// mdbPageCreator_waitForTracklist
+// Two things have to be there before the headline can go up: the node it hangs off (the toolkit,
+// on every site so far, which is a MixesDB API call away) and the toolkit's VERDICT, since that
+// is what decides whether the API is asked now or on a click. Polling rather than
+// waitForKeyElements for the same reason mdbPageCreator_watchToolkit() polls: toolkit.js already
+// watches those nodes, and waitForKeyElements keeps a single "alreadyFound" flag per element, so
+// a second watcher on them would starve whichever of the two runs second.
+function mdbPageCreator_waitForTracklist() {
     if( mdbPageCreator_tracklistPoll ) return; // already waiting for this very thing
 
     var tries = 0,
         maxTries = 100; // 100 * 300ms = 30s
 
     mdbPageCreator_tracklistPoll = setInterval(function() {
-        var there = mdbPageCreator_tracklistTargetNode().length;
+        var there = mdbPageCreator_tracklistTargetNode().length,
+            answered = ( mdbPageCreator_tracklistDecided || mdbPageCreator_toolkitVerdict !== null );
 
-        if( !there && ++tries < maxTries ) return;
+        if( !( there && answered ) && ++tries < maxTries ) return;
 
         clearInterval( mdbPageCreator_tracklistPoll );
         mdbPageCreator_tracklistPoll = null;
 
         if( there ) {
+            // A verdict that never came is treated as "no page yet": the costly mistake is the
+            // other one - a "Create" link that starts a page without the tracklist we had.
+            if( !answered ) log( "mdbPageCreator_waitForTracklist: no toolkit verdict after " + maxTries + " tries - going ahead as if the mix had no page yet." );
             mdbPageCreator_renderTracklist();
         } else {
-            log( "mdbPageCreator_waitForTracklistTarget: gave up waiting for \"" +
+            log( "mdbPageCreator_waitForTracklist: gave up waiting for \"" +
                  mdbPageCreator_tracklistTarget + "\" after " + maxTries + " tries - no tracklist box." );
         }
     }, 300);
 }
 
 // mdbPageCreator_renderTracklist
-// Builds the box, or puts it back after a re-render wiped it. Not gated behind the toolkit
-// verdict the way the row is: a tracklist next to a player is worth having whether or not the mix
-// already has a page - on a page that exists it is what the existing tracklist is compared with.
+// Puts the headline on the page, and the box under it if it is to be open. Not gated behind the
+// toolkit verdict the way the row is - a tracklist next to a player is worth having whether or
+// not the mix already has a page - but the verdict does decide whether it starts open.
 function mdbPageCreator_renderTracklist() {
-    if( !mdbPageCreator_tracklistFormatted ) return;
+    if( !mdbPageCreator_tracklistDetected ) return;
     if( $("#mdb-pageCreator-tracklist").length ) return; // still on the page
 
     var target = mdbPageCreator_tracklistTargetNode();
-    if( !target.length ) {
-        log( "mdbPageCreator_renderTracklist: \"" + mdbPageCreator_tracklistTarget + "\" is not on the page yet - waiting for it." );
-        mdbPageCreator_waitForTracklistTarget();
+
+    if( !target.length || !( mdbPageCreator_tracklistDecided || mdbPageCreator_toolkitVerdict !== null ) ) {
+        log( "mdbPageCreator_renderTracklist: waiting for \"" + mdbPageCreator_tracklistTarget + "\" and the toolkit verdict." );
+        mdbPageCreator_waitForTracklist();
         return;
     }
 
     logFunc( "mdbPageCreator_renderTracklist" );
 
-    // Where it came from is only worth saying when it is the surprising answer. A tracklist next
-    // to a player comes from the description; naming that on every single track would be noise,
-    // and it would drown out the one case a contributor really has to look at twice.
-    var fromComments = ( mdbPageCreator_tracklistSource == "comments" ),
-        wrapper = $("<div>").attr( "id", "mdb-pageCreator-tracklist" ),
-        headline = $("<strong>")
-            .addClass( "mdb-highlight" )
-            .text( fromComments ? "Tracklist (from a comment)" : "Tracklist" )
-            .attr( "title", fromComments
-                ? "Found in a comment under this track, because the description had none, and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first."
-                : "Found in this track's description and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first." );
+    // The mix has no page yet -> the box is what the "Create" link will carry, so it is opened
+    // (and formatted) right away. It has one -> the headline alone, until someone asks.
+    // Once only: after a re-render this keeps whatever state the box was in.
+    if( !mdbPageCreator_tracklistDecided ) {
+        mdbPageCreator_tracklistDecided = true;
+        mdbPageCreator_tracklistOpen = ( mdbPageCreator_toolkitVerdict !== "used" );
 
-    wrapper.append( headline ).append( $( ta ) );
+        logVar( "mdbPageCreator_renderTracklist: toolkit verdict", mdbPageCreator_toolkitVerdict || "(none)" );
+        logVar( "mdbPageCreator_renderTracklist: opening the box right away", mdbPageCreator_tracklistOpen );
+    }
+
+    var wrapper = $("<div>").attr( "id", "mdb-pageCreator-tracklist" );
+
+    wrapper.append( mdbPageCreator_tracklistHeadline() );
 
     switch( mdbPageCreator_tracklistPlacement ) {
         case "before":  target.before( wrapper ); break;
@@ -777,6 +823,81 @@ function mdbPageCreator_renderTracklist() {
         case "prepend": target.prepend( wrapper ); break;
         default:        target.after( wrapper );
     }
+
+    if( mdbPageCreator_tracklistOpen ) mdbPageCreator_buildTracklistBox( wrapper );
+
+    mdbPageCreator_syncTracklistOpenClass();
+}
+
+// mdbPageCreator_tracklistHeadline
+// "Tracklist (from description)": the word is a <strong> and the toggle, the bracket is an <abbr>
+// carrying the explanation. Two elements rather than one because they do two different things -
+// a tooltip on the word would fight the click, and a click on the explanation means nothing.
+function mdbPageCreator_tracklistHeadline() {
+    var fromComments = ( mdbPageCreator_tracklistSource == "comments" ),
+        word = $("<strong>")
+            .addClass( "hand" )
+            .text( "Tracklist" ),
+        where = $("<abbr>")
+            .text( fromComments ? "(from a comment)" : "(from description)" )
+            .attr( "title", fromComments
+                ? "Found in a comment under this track, because the description had none, and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first."
+                : "Found in this track's description and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first." );
+
+    word.on( "click", function() {
+        mdbPageCreator_toggleTracklist();
+    });
+
+    return $("<div>")
+        .attr( "id", "mdb-pageCreator-tracklist-headline" )
+        .addClass( "mdb-grey" )
+        .append( word, " ", where );
+}
+
+// mdbPageCreator_toggleTracklist
+// The click on the word. The first one on a mix that already has a MixesDB page is also the one
+// that pays for the API call; every one after that only shows and hides what is already there.
+function mdbPageCreator_toggleTracklist() {
+    var wrapper = $("#mdb-pageCreator-tracklist");
+
+    if( !wrapper.length ) return;
+
+    mdbPageCreator_tracklistOpen = !mdbPageCreator_tracklistOpen;
+    logVar( "mdbPageCreator_toggleTracklist: open", mdbPageCreator_tracklistOpen );
+
+    if( mdbPageCreator_tracklistOpen ) {
+        if( wrapper.find("#tlEditor").length ) {
+            wrapper.find("#tlEditor").show();
+        } else {
+            mdbPageCreator_buildTracklistBox( wrapper );
+        }
+    } else {
+        wrapper.find("#tlEditor").hide();
+    }
+
+    mdbPageCreator_syncTracklistOpenClass();
+}
+
+// mdbPageCreator_syncTracklistOpenClass
+// Drives the caret in page_creator.css. A class rather than a second element, so the headline
+// stays the two things it says it is.
+function mdbPageCreator_syncTracklistOpenClass() {
+    $("#mdb-pageCreator-tracklist").toggleClass( "mdb-pageCreator-tracklist-open", mdbPageCreator_tracklistOpen );
+}
+
+// mdbPageCreator_buildTracklistBox
+// The box itself: formats if that has not happened yet, then puts the textarea and the feedback
+// under the headline. After a re-render it is rebuilt from the values already here - the API is
+// never asked a second time for the same tracklist.
+function mdbPageCreator_buildTracklistBox( wrapper ) {
+    if( !mdbPageCreator_formatTracklist() ) {
+        mdbPageCreator_tracklistOpen = false;
+        return;
+    }
+
+    logFunc( "mdbPageCreator_buildTracklistBox" );
+
+    wrapper.append( $( ta ) );
 
     var box = wrapper.find("#mixesdb-TLbox").val( mdbPageCreator_tracklistLive );
 

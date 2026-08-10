@@ -157,7 +157,27 @@
     margin: 0 0 10px;
 }
 
-#mdb-pageCreator-tracklist > strong {
+/*
+ * "Tracklist (from description)" - two elements doing two things. The word is the toggle, so it
+ * carries the pointer and the caret; the bracket is an <abbr> whose title says where the
+ * tracklist was read out of. A tooltip on the word would fight the click.
+ */
+#mdb-pageCreator-tracklist-headline {
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+}
+
+#mdb-pageCreator-tracklist-headline > strong::after {
+    content: " \25B8"; /* right-pointing triangle - the box is closed */
+    font-size: 0.9em;
+}
+
+#mdb-pageCreator-tracklist.mdb-pageCreator-tracklist-open #mdb-pageCreator-tracklist-headline > strong::after {
+    content: " \25BE"; /* down-pointing - the box is open */
+}
+
+/* the dotted underline browsers give a titled <abbr> is the whole point - keep the cue honest */
+#mdb-pageCreator-tracklist-headline > abbr {
     cursor: help;
 }
 

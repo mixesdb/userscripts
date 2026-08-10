@@ -123,6 +123,16 @@ var mdbTracklistExamples = [
         url: "https://soundcloud.com/resident-advisor/ra-1051-mietze-conte",
         text: "An antidote to the summertime banger, with an hour of breezy ambient from the Vienna artist.\n\nWhen we picture the summertime banger, we picture high energy. But with record-breaking heatwaves from South Korea to the South of France, a different soundtrack makes sense.\n\nCue RA.1051. Across an hour of woozy lo-fi electronics—many his own productions—Mietze Conte offers the alternative, inspired, as he puts it below, by \"the fresh cool cleansing breeze\" after a storm.\n\nAt his most energetic, the Vienna artist appeals to fans of Live From Earth or 1tbsp—eurodance meets hyperpop with a DIY smirk. At his most contemplative, he drifts toward the ambient reverie of Otto Benson and Dylan Henner. What ties it together is playfulness: songs under two minutes, hand-drawn covers, music that's deeply serious and deeply unserious at once.\n\nHere he goes wide without raising the temperature, from Green-House to Nala Sinephro to Terekke's dub-hazed loops. Step into his world and find some much-needed shade.\n\nFind the tracklist and Q&A at ra.co/podcast/1070 \n@mietzeconte\n \n",
         expect: null
+    },
+    {
+        // Labels written behind the title with the SAME " - " the artist is separated by, so every line carries two dashes and none of them is the one that matters. Also a bare "TRACKLIST" heading (no colon) and a "Thanks for listening!" line right under the block.
+        url: "https://soundcloud.com/deep-space-helsinki/july_2026",
+        text: "29th July 2026 episode with Juho Kusti\n\nTRACKLIST\n1. Forest On Stasys - Third Eye Dome - Orientation Records\n2. Onyr - Shama - Linderluft\n3. Ben Behrendt - History Of The World - Analogue Audio Archive\n4. Peralta - Regression - Forbidden Sessions\n5. HOV - Delayed Emanations - The Gods Planet\n6. Vladw - Hishi - Navigare Audio \n7. DSNGDMANN - Non-Figurative - Sintetics\n8. EMZOO - Omniverse 1.4 - Unspace\n9. Translate - Glass Ionomer - Analogue Audio Archive\n10. Vladw - Drya (Luigi Tozzi Remix) - SubSensory\n11. Forest On Stasys - Reptile Genetics - Delsin\n12. Johno - Squeeze Until you Can - Ucker Records\n13. Local Analyst - Skull Crack - SubSensory\n14. radd - Coworkers - Float Records\n15. Rutechno - Lucid Drift - Echoic Depths Records\n16. eaien - Encounter - Vertebrate\n17. Antidote MT - Esplora L’Infinita - Humanoid Gods\n18. Hugo Rolan -  Conducta Artificial - Analogue Audio Archive\n19. Translate - Nerv - Phyr Records\n20. Border One - Spectral Tension - Token\n21. Justine Perry - Blue Signal - Ostgut Ton\n22. OCHERii - Music Is Satan - Periphery Music\n23. MarekSPolzki - Self Destruction - Humanoid Gods\n24. Biorc - Gradiente - Warm Up Recordings\n25. David Reina - Side Glance - Illegal Alien\n26. Ottagone - Ottagone 036 - Will & Ink\n27. eaien - Marble - Vertebrate\n28. Lewis Fautzi - Paranoid Signals - Faut Section\n29. Paula Koski - Maeve - Ostgut Ton\n30. David Reina - Sinag - Illegal Alien\n31. Phase Fatale - Guts - Dekmantel\n\nThanks for listening!",
+        expect: {
+            lines: 31,
+            first: "1. Forest On Stasys - Third Eye Dome - Orientation Records",
+            last:  "31. Phase Fatale - Guts - Dekmantel"
+        }
     }
 ];
 
