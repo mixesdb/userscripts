@@ -557,6 +557,25 @@ function mdbPageCreator_render() {
             mdbPageCreator_syncCreateHref( input, create );
         });
 
+        // Enter in the title field is "I am done with the title" - that is the whole reason
+        // the field is there, so it starts the page rather than doing nothing. preventDefault
+        // because SoundCloud renders our row inside its own forms in places, where Enter would
+        // submit one. The href is refreshed by hand first: a scripted .click() fires no
+        // mousedown, so the handler above never runs on this path.
+        input.on( "keydown", function( e ) {
+            if( e.which !== 13 ) return;
+
+            e.preventDefault();
+            logFunc( "mdbPageCreator: Enter in the title field -> Create" );
+
+            mdbPageCreator_validateTracklist();
+            mdbPageCreator_syncCreateHref( input, create );
+
+            // the DOM node, not .trigger(): jQuery's synthetic click runs the handlers but does
+            // not follow the href, which is the entire point here
+            create[0].click();
+        });
+
         // Only a REAL keystroke marks the input as the editor's. A refresh sets .val() and
         // fires "change" itself, which must not count as editing.
         input.on( "input", function() {
@@ -839,7 +858,7 @@ function mdbPageCreator_tracklistHeadline() {
             .addClass( "hand" )
             .text( "Tracklist" ),
         where = $("<abbr>")
-            .text( fromComments ? "(from a comment)" : "(from description)" )
+            .text( fromComments ? "from a comment" : "(rom description" )
             .attr( "title", fromComments
                 ? "Found in a comment under this track, because the description had none, and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first."
                 : "Found in this track's description and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first." );
