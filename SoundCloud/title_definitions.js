@@ -379,6 +379,47 @@ var scShowSuffixWords = [
 
 
 /*
+ * scCounterWords
+ *
+ * Words that only COUNT an episode and are no part of the show's name, so they drop out of the
+ * entity once the number is taken off the title:
+ *
+ *     "Joe T Vannelli - Slave To The Rhythm Episode 72"
+ *     ->  2026-08-05 - Joe T Vannelli - Slave To The Rhythm 72
+ *         and NOT "... - Slave To The Rhythm Episode 72"
+ *
+ * The words deliberately NOT listed are the ones a series takes into its own name, which is why
+ * "Truancy Volume 300: Sunju Hargun" keeps its "Volume" and comes out as "Truancy Volume 300",
+ * and "Festival Mix 12 - Some DJ" keeps its "Mix". Nothing in a title tells the two apart - it
+ * is how the series is written on MixesDB, so this is a curated list and can only be one.
+ */
+var scCounterWords = [
+    "episode", "ep", "no", "nr", "nos", "part", "pt", "chapter", "folge"
+];
+
+
+/*
+ * A numbered series is the ENTITY, never the artist
+ *
+ * A series numbers its episodes and a person does not number themselves, so a title that is
+ * nothing but a name with a number on it names no artist at all:
+ *
+ *     "Mixing-Diaries 041"          on the channel "LX-F"    ->  2026-08-08 - LX-F - Mixing-Diaries 041
+ *     "From Paris With Hope Vol.14" on the channel "ZÆINO"   ->  2026-08-02 - ZÆINO - From Paris ...
+ *
+ * The channel is then the one who played it. Read off the order alone this comes out backwards,
+ * with the series as the artist and the person as the show ("Mixing-Diaries 041 - LX-F").
+ *
+ * Two things have to hold before the channel is promoted like that, because it overrides the
+ * usual reading of a title completely:
+ *
+ * - the channel name is NOT in the title. If it were, 4b/5b already know what it is.
+ * - the channel does not look like a series ITSELF - no number, no word from scShowSuffixWords.
+ *   A channel called "Some Podcast" is the show whatever the title looks like, and promoting it
+ *   to artist would only swap one wrong reading for another.
+ */
+
+/*
  * What MixesDB is asked about every title
  *
  * The shape of a SoundCloud title runs out of answers quickly, and the wiki has the rest. One

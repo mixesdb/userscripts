@@ -184,6 +184,38 @@ var scTitleExamples = [
         date: "2016-07-14",
         expect: "2016-07-14 - Anja Schneider @ Docklands"
     },
+    {
+        url: "https://soundcloud.com/lx-f/mixing-diaries-041",
+        title: "Mixing-Diaries 041",
+        channel: "LX-F",
+        date: "2026-08-08",
+        expect: "2026-08-08 - LX-F - Mixing-Diaries 041"
+    },
+    {
+        url: "https://soundcloud.com/zaeino/from-paris-with-hope-vol-14",
+        title: "From Paris With Hope Vol.14",
+        channel: "ZÆINO",
+        date: "2026-08-02",
+        // "From Paris, Hope" is the reported expectation verbatim: the "With" is eaten by
+        // scExtraArtistConnectors, which was not what the report was about. Say the word and the
+        // entity becomes "From Paris With Hope Vol.14" - a connector with the series NUMBER
+        // behind it ("Vol.14") stands inside a name, it does not introduce an artist.
+        expect: "2026-08-02 - ZÆINO - From Paris, Hope Vol.14"
+    },
+    {
+        url: "https://soundcloud.com/sweetspace/joetvannelli-slavetotherhythmepisode72",
+        title: "Joe T Vannelli - Slave To The Rhythm Episode 72",
+        channel: "Sweet Space",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Joe T Vannelli - Slave To The Rhythm 72"
+    },
+    {
+        url: "https://soundcloud.com/yoyaku/alich",
+        title: "Yoyaku Instore Session with Alich",
+        channel: "yoyaku",
+        date: "2026-07-15",
+        expect: "2026-07-15 - Alich - Yoyaku Instore Session"
+    },
 
     // Reported before the URLs were kept
     {
