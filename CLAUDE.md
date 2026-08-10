@@ -10,6 +10,8 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 - No shared build system; each script must work standalone when copy-pasted into a userscript manager
 - Each script can has own script.css files in the same folder
 - Each script can use include files for shared code, e.g. /includes/global.js. 
+- Shared code that is a whole feature rather than a helper gets its own subfolder under
+  `/includes/`, with its own CSS and its own CLAUDE.md - see `/includes/page_creator/`
 - If an includes script changes, update the version number in its @require URL of each userscript (and the @version of each userscript)
 
 ## Userscript Header Conventions
@@ -37,9 +39,10 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Use the log()/logVar()/logFunc() helpers from global.js and a `DEBUG` flag if logging is needed during development
 
 ## Testing / Verification
-- No automated test suite, with one exception: the SoundCloud mix page title suggestion has
-  `SoundCloud/title_examples.js` (reported titles + what they should produce) and a deno
-  runner. See SoundCloud/CLAUDE.md. Use deno, not node - node is not installed here.
+- No automated test suite, with one exception: the MixesDB page creator's title suggestion has
+  `includes/page_creator/title_examples.js` (reported titles + what they should produce) and a
+  deno runner. See `includes/page_creator/CLAUDE.md`. Use deno, not node - node is not
+  installed here.
 - Manual verification steps:
   1. Load script in Tampermonkey (dev mode / local file URL)
   2. Confirm `@match` triggers only on intended pages

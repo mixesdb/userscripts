@@ -27,151 +27,12 @@
     font-weight: bold;
 }
 
-/*
- * MixesDB mix page title suggestion, below the headline.
- * Only added when the toolkit found no MixesDB page for this player - or, with the debug
- * setting mdbTitle_showForUsedPlayers on, for a used one as well: that row gets the class
- * .mdb-mixesdbTitle-used and the #mdb-mixesdbTitle-usedNote marker styled further down.
- * Both in mdbTitleInput_add() in script.funcs.js.
- *
- * Deliberately theme-neutral (inherited colour, translucent background/border): the same
- * markup is used in the light old layout and in the dark new "Track header" one.
- */
-#mdb-mixesdbTitle-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    margin: 0 0 10px;
-}
-
-/*
- * The monospace font is set HERE and the input deliberately does NOT get the .mono class:
- * global.css has ".mono { font-size: 12px !important }", which no ID selector can override.
- */
-#mdb-mixesdbTitle {
-    /* content-box so the size attribute really is the character count of the suggestion */
-    box-sizing: content-box;
-    max-width: calc(100% - 44px) !important; /* incl. space for copy button */
-    padding: 2px 6px;
-    font-family: Consolas, monospace;
-    font-size: 1rem;
-    line-height: 1.3;
-    color: inherit;
-    background-color: rgba(127, 127, 127, 0.12);
-    border: 1px solid rgba(127, 127, 127, 0.45);
-    border-radius: 4px;
-}
-
-#mdb-mixesdbTitle::selection {
-    background-color: #fc0;
-    color: #fff;
-}
-
-/* copy button between the input and the "beta" note */
-#mdb-mixesdbTitle-wrapper .mdb-copy-text-control {
-    margin-left: 0; /* global.css sets 12px - the spacing here comes from padding-left */
-    padding-left: 5px;
-}
-
-/*
- * Score with "beta" stacked underneath it. A <br> cannot do that inside the flex row above -
- * it would become a flex item instead of breaking the line - so the two share this column.
- */
-#mdb-mixesdbTitle-confidence {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center; /* looks weird when aligned left */
-    line-height: 1.15;
-}
-
-/*
- * Confidence that the title needs no changes. Colours picked to stay readable on BOTH the
- * white old layout and the dark new one, so no plain "green"/"red" (too dark on black).
- */
-#mdb-mixesdbTitle-score {
-    font-size: 0.8rem;
-    font-weight: bold;
-    cursor: help;
-    white-space: nowrap;
-}
-
-#mdb-mixesdbTitle-score.mdb-mixesdbTitle-score-high {
-    color: #2eb82e;
-}
-
-#mdb-mixesdbTitle-score.mdb-mixesdbTitle-score-mid {
-    color: #e8930c;
-}
-
-#mdb-mixesdbTitle-score.mdb-mixesdbTitle-score-low {
-    color: #ef4444;
-}
-
-/* opens MixesDB's "Add a new mix" form prefilled with the (possibly edited) title */
-#mdb-mixesdbTitle-create {
-    padding-left: 5px;
-    white-space: nowrap;
-}
-
-/* grey, so it reads as a warning label and not as part of the title */
-#mdb-mixesdbTitle-beta {
-    color: #999;
-    font-size: 0.8rem;
-    cursor: help;
-}
-
-/*
- * Debug only (mdbTitle_showForUsedPlayers, top of script.user.js): the row for a player that
- * already has a MixesDB page. Takes the "Create" link's place - MixesDB orange and bold, so a
- * debug row is never read as the normal "nothing on MixesDB yet" one at a glance.
- */
-#mdb-mixesdbTitle-usedNote {
-    padding-left: 10px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    cursor: help;
-    white-space: nowrap;
-}
-
 .listenEngagement {
     padding-bottom: 6px;
 }
 
 .listenEngagement__actions {
     padding-bottom: 8px;
-}
-
-#mdb-mixesdbTitle-confidence,
-#mdb-mixesdbTitle-createColumn,
-#mdb-mixesdbTitle-create {
-    padding-left: 10px;
-}
-
-/*
- * "Create" with the promo category under it - same column trick as the score with its "BETA",
- * so the note reads as belonging to the link and not as another item in the row.
- */
-#mdb-mixesdbTitle-createColumn {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.15;
-}
-
-#mdb-mixesdbTitle-createColumn > #mdb-mixesdbTitle-create {
-    padding-left: 0;
-}
-
-#mdb-mixesdbTitle-promoCategory,
-#mdb-mixesdbTitle-usedNote {
-    color: #999;
-}
-
-/* grey and small, the same "this is a side note" as #mdb-mixesdbTitle-beta */
-#mdb-mixesdbTitle-promoCategory {
-    font-size: 0.8rem;
-    cursor: help;
-    white-space: nowrap;
 }
 
 button.mdb-toggle.selected,
@@ -303,11 +164,6 @@ a.sc_button-mdb:active {
     line-height: 1;
     padding: 0 6px;
     margin-right: 4px;
-}
-
-/* small copy button behind the MixesDB title */
-#mdb-mixesdbTitle-wrapper .mdb-copy-text-button {
-    padding: 1px 6px !important;
 }
 
 .listenInfo {
