@@ -1,8 +1,8 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Runs SoundCloud/title_examples.js against buildMixesdbTitle()
+ * Runs title_examples.js against buildMixesdbTitle()
  *
- *     deno run --allow-read SoundCloud/title_examples_test.js
+ *     deno run --allow-read includes/page_creator/title_examples_test.js
  *
  * Prints, per example, what the suggestion makes of it TODAY next to what it should be, so
  * the current behaviour is never written down anywhere and never goes stale.
@@ -20,16 +20,16 @@ const dir = new URL( ".", import.meta.url ).pathname;
 // the log helpers global.js would provide in the browser
 const stubs = "var log=function(){},logVar=function(){},logFunc=function(){},$=function(){return{}};";
 
-const source = [ "title_definitions.js", "script.funcs.js", "title_examples.js" ]
+const source = [ "title_definitions.js", "title_builder.js", "title_examples.js" ]
     .map( file => Deno.readTextFileSync( dir + file ) )
     .join( "\n" );
 
-const [ buildMixesdbTitle, mdbTitle_normalizeCompare, scTitleExamples ] =
-    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, scTitleExamples ]" );
+const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitleExamples ] =
+    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitleExamples ]" );
 
 let failed = 0;
 
-for( const example of scTitleExamples ) {
+for( const example of mdbTitleExamples ) {
     // A case's "known" stands in for the MixesDB category lookup, which runs over the network
     // in the browser: name -> "artist" | "venue" | "other", exactly what the API answered when
     // the case was added. Without it the examples could not test anything the wiki knows.
@@ -54,7 +54,7 @@ for( const example of scTitleExamples ) {
 }
 
 console.log(
-    "\n" + scTitleExamples.length + " examples, " +
+    "\n" + mdbTitleExamples.length + " examples, " +
     ( failed ? failed + " FAILING" : "all pass" )
 );
 

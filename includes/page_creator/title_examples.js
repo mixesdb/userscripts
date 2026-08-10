@@ -1,29 +1,33 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Examples for the MixesDB mix page title suggestion
+ * Examples for the MixesDB page creator's title suggestion
  *
  * Every title that was ever reported as wrong, kept as the input it came from and the title
  * it should produce. Run them with:
  *
- *     deno run --allow-read SoundCloud/title_examples_test.js
+ *     deno run --allow-read includes/page_creator/title_examples_test.js
  *
  * WHAT THE SUGGESTION CURRENTLY MAKES OF EACH ONE IS NOT IN HERE ON PURPOSE. The runner
  * prints it next to the expected title on every run, so it is always the behaviour of today
  * and can never go stale - which a written-down "created title" would within a rule or two.
  *
- * Adding a case: title, channel and date are what SoundCloud gives us (the channel is the API
- * field "username", NOT the URL slug - check it if unsure, they differ often), expect is the
- * MixesDB title it should turn into. The url is only there to look the track up again.
+ * One file for every site, grouped by where the report came from: the builder is shared, so a
+ * title reported on one site guards the rule for all of them.
+ *
+ * Adding a case: title, channel and date are what the site gives us (on SoundCloud the channel
+ * is the API field "username", NOT the URL slug - check it if unsure, they differ often),
+ * expect is the MixesDB title it should turn into. The url is only there to look the mix up
+ * again.
  *
  * Why a case matters is not written per case either: it is in the rule it belongs to, in
  * title_definitions.js. A case that fails sends you there.
  *
- * This file is NOT @required by script.user.js - it is test data, not something to ship to
- * every SoundCloud page.
+ * This file is NOT @required by any script.user.js - it is test data, not something to ship to
+ * every player page.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var scTitleExamples = [
+var mdbTitleExamples = [
 
     // Reported from SoundCloud
     {

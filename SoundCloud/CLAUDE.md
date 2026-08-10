@@ -2,36 +2,20 @@
 
 Script name alias in prompts: `SC`
 
-## Mix page title suggestion
+## Mix page title suggestion / "Create" link
 
-Every title reported as wrongly suggested lives in `title_examples.js` as its input and the
-title it should produce. Run them before and after touching anything the suggestion uses
-(`title_definitions.js`, the `mdbTitle_*` functions and `buildMixesdbTitle()` in
-`script.funcs.js`):
+Lives in `/includes/page_creator/` now, shared with the other site scripts - see its own
+CLAUDE.md, including the workflow for a reported wrong title. This script only reads the values
+off the SoundCloud API and hands them over in one `mdbPageCreator_add({...})` call (in the
+`api_funcs`/track-header block of `script.user.js`), plus `mdbPageCreator_watchToolkit()`
+wherever `getToolkit()` is called.
 
-```
-deno run --allow-read SoundCloud/title_examples_test.js
-```
+SoundCloud-only bits that must stay on this side, not move into the page creator:
 
-**I never edit `title_examples.js` by hand - Claude adds every reported title to it.** Part of
-fixing the report, not a separate step or something to ask about first. Per report:
-
-1. Add the case: `url`, `title`, `channel`, `date`, `expect`. `expect` is my expected title.
-2. `channel` is the API field `username`, NOT the URL slug - they differ constantly
-   (`discoanon` -> "Discoholics Anonymous", `sevenberlin` -> "SEVEN"). If I did not give it,
-   or gave it in passing, read it off
-   `https://soundcloud.com/oembed?format=json&url=<track url>` rather than guessing it.
-3. Never record what the suggestion currently produces - the runner prints that every run.
-4. Run the suite. It has to end at "all pass" before the work is done, old cases included.
-
-If a title cannot realistically be reached (an event name that reads exactly like a mix name,
-say), do not leave the case failing forever - pin `expect` to what it produces today and note
-in a comment on the case what the ideal would be, so the parts that DO work stay guarded.
-Say so in the reply rather than quietly lowering the bar.
-
-What a case is guarding is not noted on the case - it is in the rule it belongs to, in
-`title_definitions.js`, which is where the learning from each report goes. A failing case
-sends you there.
+- `scArtworkOriginalUrl()` - asking the CDN for the "-original" size is a SoundCloud trick
+- `getScPlayerUrl()` - the URL MixesDB embeds is not `location.href` here
+- the `target` selector, and the fact that it must be a **string**: SoundCloud re-renders the
+  track header repeatedly, and a captured node would be detached by the next render
 
 ## Locale: aria-labels vs. visible element text
 

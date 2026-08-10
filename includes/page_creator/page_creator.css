@@ -1,0 +1,146 @@
+/*
+ * MixesDB page creator - the row page_creator.js builds (#mdb-pageCreator).
+ *
+ * Loaded with loadRawCss() by every site script that calls mdbPageCreator_add(), next to that
+ * script's own script.css. Nothing in here is site-specific: where the row SITS is the site
+ * script's business (the target/placement it hands over), how it LOOKS is this file's.
+ *
+ * Only added when the toolkit found no MixesDB page for this player - or, with the debug
+ * setting mdbPageCreator_showForUsedPlayers on, for a used one as well: that row gets the class
+ * .mdb-pageCreator-used and the #mdb-pageCreator-usedNote marker styled further down.
+ *
+ * Deliberately theme-neutral (inherited colour, translucent background/border): the same markup
+ * is used on light pages and dark ones (SoundCloud alone has both).
+ */
+#mdb-pageCreator {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0 0 10px;
+}
+
+/*
+ * The monospace font is set HERE and the input deliberately does NOT get the .mono class:
+ * global.css has ".mono { font-size: 12px !important }", which no ID selector can override.
+ */
+#mdb-pageCreator-title {
+    /* content-box so the size attribute really is the character count of the suggestion */
+    box-sizing: content-box;
+    max-width: calc(100% - 44px) !important; /* incl. space for copy button */
+    padding: 2px 6px;
+    font-family: Consolas, monospace;
+    font-size: 1rem;
+    line-height: 1.3;
+    color: inherit;
+    background-color: rgba(127, 127, 127, 0.12);
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+}
+
+#mdb-pageCreator-title::selection {
+    background-color: #fc0;
+    color: #fff;
+}
+
+/* copy button between the input and the "beta" note */
+#mdb-pageCreator .mdb-copy-text-control {
+    margin-left: 0; /* global.css sets 12px - the spacing here comes from padding-left */
+    padding-left: 5px;
+}
+
+#mdb-pageCreator .mdb-copy-text-button {
+    padding: 1px 6px !important;
+}
+
+/*
+ * Score with "beta" stacked underneath it. A <br> cannot do that inside the flex row above -
+ * it would become a flex item instead of breaking the line - so the two share this column.
+ */
+#mdb-pageCreator-confidence {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center; /* looks weird when aligned left */
+    line-height: 1.15;
+}
+
+/*
+ * Confidence that the title needs no changes. Colours picked to stay readable on BOTH light and
+ * dark pages, so no plain "green"/"red" (too dark on black).
+ */
+#mdb-pageCreator-score {
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-score.mdb-pageCreator-score-high {
+    color: #2eb82e;
+}
+
+#mdb-pageCreator-score.mdb-pageCreator-score-mid {
+    color: #e8930c;
+}
+
+#mdb-pageCreator-score.mdb-pageCreator-score-low {
+    color: #ef4444;
+}
+
+/* opens the new page's edit form, prefilled with the (possibly edited) title and page text */
+#mdb-pageCreator-create {
+    padding-left: 5px;
+    white-space: nowrap;
+}
+
+/* grey, so it reads as a warning label and not as part of the title */
+#mdb-pageCreator-beta {
+    color: #999;
+    font-size: 0.8rem;
+    cursor: help;
+}
+
+/*
+ * Debug only (mdbPageCreator_showForUsedPlayers, top of the site's script.user.js): the row for
+ * a player that already has a MixesDB page. Takes the "Create" link's place, bold, so a debug
+ * row is never read as the normal "nothing on MixesDB yet" one at a glance.
+ */
+#mdb-pageCreator-usedNote {
+    padding-left: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-confidence,
+#mdb-pageCreator-createColumn,
+#mdb-pageCreator-create {
+    padding-left: 10px;
+}
+
+/*
+ * "Create" with the promo category under it - same column trick as the score with its "BETA",
+ * so the note reads as belonging to the link and not as another item in the row.
+ */
+#mdb-pageCreator-createColumn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+}
+
+#mdb-pageCreator-createColumn > #mdb-pageCreator-create {
+    padding-left: 0;
+}
+
+#mdb-pageCreator-promoCategory,
+#mdb-pageCreator-usedNote {
+    color: #999;
+}
+
+/* grey and small, the same "this is a side note" as #mdb-pageCreator-beta */
+#mdb-pageCreator-promoCategory {
+    font-size: 0.8rem;
+    cursor: help;
+    white-space: nowrap;
+}

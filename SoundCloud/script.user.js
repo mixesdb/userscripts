@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.9
+// @version      2026.08.10.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,8 +11,10 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/title_definitions.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_49
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_3
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -32,12 +34,12 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// Title creator: normally the suggested MixesDB page title is only offered for players that
-// are NOT on MixesDB yet - for a used player there is nothing to create, so the row stays
-// hidden and the title it would have built cannot be compared with the page that exists.
+// MixesDB page creator: normally the row is only offered for players that are NOT on MixesDB
+// yet - for a used player there is nothing to create, so it stays hidden and the title it
+// would have built cannot be compared with the page that exists.
 // With this on, the row is shown for used players too, marked "used" and without the "Create"
 // link (which would only start a duplicate page).
-window.mdbTitle_showForUsedPlayers = true; // True as default for the beta phase
+window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta phase
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -253,13 +255,18 @@ const hideIfXed = (soundItem) => {
 };
 
 // Note: loadRawCss() (in global.js) does not log success/error itself - if styling ever looks
-// broken, check the Network tab for these two URLs, since a failed fetch here fails silently.
+// broken, check the Network tab for these URLs, since a failed fetch here fails silently.
+// page_creator.css belongs to the shared MixesDB page creator (includes/page_creator/) and is
+// loaded by every site script that calls mdbPageCreator_add() - see its header comment.
 logFunc( "Loading CSS" );
 var globalCssUrl = githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion,
+    pageCreatorCssUrl = githubPath_raw + "includes/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion,
     scriptCssUrl = githubPath_raw + scriptName + "/script.css?v-" + cacheVersion;
 logVar( "globalCssUrl", globalCssUrl );
+logVar( "pageCreatorCssUrl", pageCreatorCssUrl );
 logVar( "scriptCssUrl", scriptCssUrl );
 loadRawCss( globalCssUrl );
+loadRawCss( pageCreatorCssUrl );
 loadRawCss( scriptCssUrl );
 
 
@@ -1067,28 +1074,34 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     }
                                 }
 
-                                // MixesDB mix page title suggestion, below the headline.
-                                // Outside the h1 guard above: the input is only added once the
+                                // MixesDB page creator (includes/page_creator/), below the
+                                // headline. Everything site-specific is read off the API
+                                // response here and handed over - the creator itself never
+                                // looks at a SoundCloud page.
+                                // Outside the h1 guard above: the row is only added once the
                                 // toolkit reported "not on MixesDB yet", which can land long
                                 // after the header was built (and the other way round).
                                 // dur_ms gates it: MixesDB does not take recordings under 20 min.
-                                // mdbTitle_suggest, not buildMixesdbTitle: it shows the guess
-                                // straight away and then asks MixesDB what it knows about the
-                                // names in the title, refreshing the row if that changes it.
                                 // getScPlayerUrl() rides along for the {{Player}} of the page the
                                 // "Create" link starts - the same URL MixesDB embeds, which is
                                 // not what location.href holds here (see its comment above).
                                 // The artwork URL goes with it for MixesDB's image upload form;
-                                // it is NOT put on the page, see mdbTitle_artwork().
-                                mdbTitle_suggest(
-                                    title,
-                                    ( t.user && t.user.username ) ? t.user.username : "",
-                                    created_at,
-                                    release_date,
-                                    dur_ms,
-                                    getScPlayerUrl(),
-                                    apiArtworkUrl
-                                );
+                                // it is NOT put on the page. scArtworkOriginalUrl() is applied
+                                // HERE and not over there: asking for the "-original" size is a
+                                // SoundCloud CDN trick, not something a page creator knows.
+                                // target as a selector string, not a node: SoundCloud re-renders
+                                // under us, and the string is looked up again on every render.
+                                mdbPageCreator_add({
+                                    title:       title,
+                                    channel:     ( t.user && t.user.username ) ? t.user.username : "",
+                                    createdAt:   created_at,
+                                    releaseDate: release_date,
+                                    durationMs:  dur_ms,
+                                    playerUrl:   getScPlayerUrl(),
+                                    artworkUrl:  scArtworkOriginalUrl( apiArtworkUrl ),
+                                    target:      "#mdb-trackHeader-headline",
+                                    placement:   "after"
+                                });
 
                                 // add toggleTarget
                                 if( $("#mdb-toggle-target").length === 0 ) {
@@ -1347,8 +1360,8 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
             log( "Calling getToolkit() for #mdb-sc-trackExtras." );
             getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
 
-            // the title suggestion is gated behind that toolkit's usage verdict
-            mdbTitleInput_watchToolkit();
+            // the page creator row is gated behind that toolkit's usage verdict
+            mdbPageCreator_watchToolkit();
         }
     } else if( trackHeaderLastLoggedState !== "not-track-page" ) {
         log( "Not a track detail page (urlPath(2): '" + urlPath(2) + "') - skipping trackExtras wrapper." );
@@ -1468,8 +1481,8 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         log( "Calling getToolkit() for old layout .listenDetails." );
         getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
 
-        // the title suggestion is gated behind that toolkit's usage verdict
-        mdbTitleInput_watchToolkit();
+        // the page creator row is gated behind that toolkit's usage verdict
+        mdbPageCreator_watchToolkit();
     } else {
         log( "Not a track detail page - skipping old layout toolkit." );
     }
@@ -1481,6 +1494,22 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.10.10
+ * The mix page title row is now the shared "MixesDB page creator" in
+ * includes/page_creator/ - renamed after the "Create" link, since the title has long stopped
+ * being all it hands to the wiki (file details, {{Player}}, categories, artwork URL). Nothing
+ * about it was SoundCloud-specific except where the values come from, so it moved out whole:
+ * title_definitions.js (the word lists, its sc* globals renamed to mdbTitle*),
+ * title_builder.js (buildMixesdbTitle() and the mdbTitle_* parser, lifted out of
+ * script.funcs.js), page_creator.js (the row, mdbPageCreator_*) and page_creator.css (lifted
+ * out of script.css). The ids went with it: #mdb-mixesdbTitle-wrapper -> #mdb-pageCreator and
+ * so on, and window.mdbTitle_showForUsedPlayers -> window.mdbPageCreator_showForUsedPlayers.
+ * A site script now hands over one object - title, channel, createdAt and where to put the row
+ * - and keeps its own quirks on its own side (this file applies scArtworkOriginalUrl() before
+ * passing the artwork URL along). target is given as a SELECTOR STRING so it survives
+ * SoundCloud's re-renders, which a captured node would not. Behaviour is unchanged; all 47
+ * title examples still pass.
  *
  * 2026.08.09.4
  * Extends .1 to EVERY copy button behind an input, not just the ones holding a URL - the
