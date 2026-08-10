@@ -90,7 +90,8 @@ var mdbPageCreator_title = "",
     mdbPageCreator_tracklistLive = "",
     mdbPageCreator_tracklistStatus = "",
     mdbPageCreator_tracklistValidated = null,
-    mdbPageCreator_tracklistChecked = false;
+    mdbPageCreator_tracklistChecked = false,
+    mdbPageCreator_tracklistPoll = null;
 
 // mdbPageCreator_add
 // The entry point a site script calls. Builds the suggestion TWICE: once straight away off the
@@ -703,6 +704,42 @@ function mdbPageCreator_useTracklist( found, source ) {
     mdbPageCreator_renderTracklist();
 }
 
+// mdbPageCreator_tracklistTargetNode
+// .first(): a site whose layout renders the target twice (SoundCloud ships a hidden responsive
+// duplicate of its track header) would otherwise get a box next to each of them.
+function mdbPageCreator_tracklistTargetNode() {
+    return mdbPageCreator_tracklistTarget ? $( mdbPageCreator_tracklistTarget ).first() : $();
+}
+
+// mdbPageCreator_waitForTracklistTarget
+// The box hangs off something that arrives on its own schedule - the toolkit, on every site so
+// far, which is a MixesDB API call away. Polling rather than waitForKeyElements for the same
+// reason mdbPageCreator_watchToolkit() polls: toolkit.js already watches those nodes, and
+// waitForKeyElements keeps a single "alreadyFound" flag per element, so a second watcher on them
+// would starve whichever of the two runs second.
+function mdbPageCreator_waitForTracklistTarget() {
+    if( mdbPageCreator_tracklistPoll ) return; // already waiting for this very thing
+
+    var tries = 0,
+        maxTries = 100; // 100 * 300ms = 30s
+
+    mdbPageCreator_tracklistPoll = setInterval(function() {
+        var there = mdbPageCreator_tracklistTargetNode().length;
+
+        if( !there && ++tries < maxTries ) return;
+
+        clearInterval( mdbPageCreator_tracklistPoll );
+        mdbPageCreator_tracklistPoll = null;
+
+        if( there ) {
+            mdbPageCreator_renderTracklist();
+        } else {
+            log( "mdbPageCreator_waitForTracklistTarget: gave up waiting for \"" +
+                 mdbPageCreator_tracklistTarget + "\" after " + maxTries + " tries - no tracklist box." );
+        }
+    }, 300);
+}
+
 // mdbPageCreator_renderTracklist
 // Builds the box, or puts it back after a re-render wiped it. Not gated behind the toolkit
 // verdict the way the row is: a tracklist next to a player is worth having whether or not the mix
@@ -711,21 +748,23 @@ function mdbPageCreator_renderTracklist() {
     if( !mdbPageCreator_tracklistFormatted ) return;
     if( $("#mdb-pageCreator-tracklist").length ) return; // still on the page
 
-    // .first(): a site whose layout renders the target twice (SoundCloud ships a hidden
-    // responsive duplicate of its track header) would otherwise get a box next to each of them.
-    var target = mdbPageCreator_tracklistTarget ? $( mdbPageCreator_tracklistTarget ).first() : $();
+    var target = mdbPageCreator_tracklistTargetNode();
     if( !target.length ) {
-        log( "mdbPageCreator_renderTracklist: the target for the tracklist box is not on the page (yet)." );
+        log( "mdbPageCreator_renderTracklist: \"" + mdbPageCreator_tracklistTarget + "\" is not on the page yet - waiting for it." );
+        mdbPageCreator_waitForTracklistTarget();
         return;
     }
 
     logFunc( "mdbPageCreator_renderTracklist" );
 
+    // Where it came from is only worth saying when it is the surprising answer. A tracklist next
+    // to a player comes from the description; naming that on every single track would be noise,
+    // and it would drown out the one case a contributor really has to look at twice.
     var fromComments = ( mdbPageCreator_tracklistSource == "comments" ),
         wrapper = $("<div>").attr( "id", "mdb-pageCreator-tracklist" ),
         headline = $("<strong>")
             .addClass( "mdb-highlight" )
-            .text( fromComments ? "Tracklist (from a comment)" : "Tracklist (from the description)" )
+            .text( fromComments ? "Tracklist (from a comment)" : "Tracklist" )
             .attr( "title", fromComments
                 ? "Found in a comment under this track, because the description had none, and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first."
                 : "Found in this track's description and formatted by MixesDB's Tracklist Editor.\nGoes into the page the \"Create\" link starts - please check it here first." );

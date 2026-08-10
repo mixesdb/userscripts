@@ -1246,7 +1246,13 @@ function fixTLbox( feedback, target, focus=true ) {
             count = lines.length;
         tl.attr('rows', count);
 
-        tl.show().addClass("fixed");
+        // "mdb-tlBox-fixed", not the bare "fixed" this used to add: player sites ship
+        // utility-class CSS, and on more than one of them (SoundCloud's Material layout, The Lot
+        // Radio) ".fixed" means "position: fixed" - which took the textarea out of the flow and
+        // laid it over the page. Nothing reads this class but us, so it is namespaced like every
+        // other class we add. (TheLotRadio/script.user.js still strips the old name off; its
+        // global.js is a cached older one, so leave that alone until it is bumped.)
+        tl.show().addClass("mdb-tlBox-fixed");
         if( focus ) tl.select();
     });
 
