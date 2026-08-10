@@ -48,6 +48,7 @@ Every script must start with a complete `==UserScript==` metadata block:
 ## Common Tasks
 - Adding a new script: create `scripts/<name>.user.js`, follow header template above, add entry to README.md table
 - Updating a script: bump `@version`, note change in a `## Changelog` comment block at bottom of file if non-trivial
+- Adding new features to a userscript or shared script: Log debugging diagnostics for crucial steps from the beginning not just when bugs occur
 - Renaming/moving a script: update `@namespace`/`@updateURL`/`@downloadURL` if present, since users' managers track updates by these
 
 ## Things to Avoid
