@@ -163,8 +163,8 @@
  * tracklist was read out of. A tooltip on the word would fight the click.
  */
 #mdb-pageCreator-tracklist-headline {
-    margin-bottom: 4px;
-    font-size: 0.85rem;
+    margin-top: 20px;
+    font-size: 1.4rem;
 }
 
 #mdb-pageCreator-tracklist-headline > strong::after {
