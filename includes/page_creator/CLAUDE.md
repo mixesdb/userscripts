@@ -77,6 +77,17 @@ Settled, so it does not get re-litigated:
 - **A tracklist is a RUN of neighbouring lines**, never lines gathered from all over the text.
   Single lines that read as "Artist - Title" are everywhere in a description ("6 Decks - 2
   Mixers"); four of them in a row are not. Numbered runs additionally have to count upwards.
+- **A blank line ends a run unless the numbering steps over it.** An uploader who writes every
+  track as its own paragraph leaves a blank line between every pair of them and still wrote one
+  tracklist. Only the numbering may bridge that gap, and only upwards - which is what keeps the
+  "6 Decks - 2 Mixers" line one blank above a tracklist starting at "01." out of it, and what
+  keeps the social links under an unnumbered tracklist out of that one.
+- **A cue written BEHIND the track is moved in front of it before the API sees it**, and anything
+  trailing that cue becomes a bold note in front of the artist ("Artist - Title 00:56:00- CLASSIC
+  OF THE WEEK" -> "[00:56:00] '''CLASSIC OF THE WEEK:''' Artist - Title"). The API reads a leading
+  cue and takes a trailing one for part of the title, so this cannot be left to it. Only done when
+  at least half the block's lines carry such a cue - one title ending in something clock-shaped is
+  not a pattern.
 - **Comments are asked only when the description gave nothing**, and only for a WHOLE numbered
   tracklist starting at 1. Single track IDs - which is what nearly every comment naming an
   "Artist - Title" is - must never be taken, and an unnumbered comment tracklist is left alone

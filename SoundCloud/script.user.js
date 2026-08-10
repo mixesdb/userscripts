@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.16
+// @version      2026.08.10.17
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_2
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_6
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
@@ -1518,6 +1518,28 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.10.17
+ * ROOT CAUSE FOUND for "no tracklist detected" on sultanshepard/dialekt-radio-339: the uploader
+ * wrote every track as its own paragraph, so the description holds a BLANK LINE between every
+ * pair of tracks - and a blank line ended a run, which left twelve runs of one line each and no
+ * tracklist. Blank lines no longer end a run by themselves: they end it unless the numbering
+ * steps over them ("11." followed by "12." is one list however many blank lines sit between).
+ * That the number has to go UP is what keeps the old case working - in the Hard Times
+ * description a "6 Decks - 2 Mixers" line sits one blank line above a tracklist starting at
+ * "01.", and 1 does not follow 6, so that blank still ends the run. Unnumbered tracklists are
+ * unaffected: without numbering there is nothing to step over, so a blank always ends the run
+ * there, which is what keeps the social links under a description out of it.
+ * The same track page writes its cues BEHIND the track ("Artist - Title 00:52:09"), two of them
+ * with a chapter name hung off the cue. Sent as-is, the Tracklist Editor keeps the timestamp
+ * glued to the title and turns "- CLASSIC OF THE WEEK" into a label of its own, so the block is
+ * now tidied first: the cue moves in front, where MixesDB writes cues, and what trailed it
+ * becomes a bold note in front of the artist -
+ * "[00:56:00] '''CLASSIC OF THE WEEK:''' Dennis Ferrer & Jerome Sydenham - Sandcastles (...)".
+ * Only done when at least half the lines of the block carry such a cue: one title ending in
+ * something clock-shaped ("Sandcastles 9:11") is not a pattern, and rewriting it would invent a
+ * timestamp nobody wrote.
+ * 16 detector examples now, all passing.
  *
  * 2026.08.10.13
  * The tracklist box is now behind a headline that toggles it, and it is no longer built at all

@@ -133,6 +133,16 @@ var mdbTracklistExamples = [
             first: "1. Forest On Stasys - Third Eye Dome - Orientation Records",
             last:  "31. Phase Fatale - Guts - Dekmantel"
         }
+    },
+    {
+        // Every track is its own paragraph, so the description holds a blank line between each pair of them - and the cue is written BEHIND the track, on two lines with a chapter name hung off the cue. Guards both the blank-line bridging and the tidying, and the expected edges are what the tidying makes of them.
+        url: "https://soundcloud.com/sultanshepard/dialekt-radio-339",
+        text: "1. Dusky - Bindweed 00:00:40\n\n2. Lane 8 & PARIS - Purple Pepper 00:04:46\n\n3. Madraas - Mosaic 00:09:37\n\n4. Christian Smith - Mileage Run (Dmitry Molosh Remix) 00:15:29\n\n5. Teho - Day By Day 00:22:08\n\n6. Adriatique & GENESI - Closer 00:27:15\n\n7. Eelke Kleijn - Hold On 00:33:16\n\n8. M.O.S. - Skywalkers 00:38:08- DIALEKT TRACK OF THE WEEK\n\n9. PARIS - Flourish (Just Her Remix) 00:43:04\n\n10. Coccolino Deep - Time 00:47:17\n\n11. Jon Gurd & Reset Robot - Found You 00:52:09\n\n12. Dennis Ferrer & Jerome Sydenham - Sandcastles (Martijn Ten Velden & Mark Knight Mix) 00:56:00- CLASSIC OF THE WEEK",
+        expect: {
+            lines: 12,
+            first: "1. [00:00:40] Dusky - Bindweed",
+            last:  "12. [00:56:00] '''CLASSIC OF THE WEEK:''' Dennis Ferrer & Jerome Sydenham - Sandcastles (Martijn Ten Velden & Mark Knight Mix)"
+        }
     }
 ];
 
