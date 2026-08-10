@@ -5,6 +5,10 @@ This file provides guidance to Claude Code when working with code in this reposi
 ## Repository Purpose
 Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 
+## Abbreviations
+- `MDB`: MixesDB
+- `TLE`/ `TLE API`: MixesDB's Tracklist Editor API called in `includes/global.js` –> `function apiTracklist()`
+
 ## Structure
 - `<script-name-with-underscores>/` - one .user.js file per userscript, named `script.user.js`
 - No shared build system; each script must work standalone when copy-pasted into a userscript manager
