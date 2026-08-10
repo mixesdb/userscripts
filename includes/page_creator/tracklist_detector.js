@@ -39,12 +39,30 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  *     ("06. [018] ID"), and dropping them would tear one tracklist into three.
  *
  * Blank lines end a run, which is what keeps a heading ("Tracklist:") and the paragraph above it
- * out of the block. A run is only taken when it is at least mdbTracklist_minTracks lines long and
- * at least half of them are real TRACK lines.
+ * out of the block - UNLESS the numbering steps over them. An uploader who writes every track as
+ * its own paragraph (SoundCloud renders those as <p>, and the description then holds a blank line
+ * between every pair of tracks) still wrote one tracklist, and "11." followed by "12." says so
+ * across any gap. That the number has to go UP is what keeps the rule honest: in the Hard Times
+ * description a "6 Decks - 2 Mixers" line sits one blank line above a tracklist starting at "01.",
+ * and 1 does not follow 6, so that blank still ends the run.
+ *
+ * A run is only taken when it is at least mdbTracklist_minTracks lines long and at least half of
+ * them are real TRACK lines.
  *
  * On a numbered run the numbers additionally have to ASCEND, and the longest ascending stretch is
  * what survives. This is what throws out a stray "6 Decks - 2 Mixers" that happens to sit right
  * on top of a tracklist starting at "01." - and any other line that only looks numbered.
+ *
+ *
+ * Tidying, before the API sees it
+ * -------------------------------
+ * The block is handed over as the uploader wrote it, with one exception: a cue written BEHIND the
+ * track ("Artist - Title 00:52:09") is moved in front of it, where MixesDB writes cues
+ * ("[00:52:09] Artist - Title"), and anything trailing the cue becomes a bold note in front of the
+ * artist ("00:56:00- CLASSIC OF THE WEEK" -> "'''CLASSIC OF THE WEEK:''' Artist - Title").
+ * The Tracklist Editor API reads a leading cue and would take a trailing one for part of the
+ * title, so this has to happen on our side. Only done when at least half the lines of the block
+ * carry such a cue - one title that happens to end in something clock-shaped is not a pattern.
  *
  *
  * Comments
@@ -83,6 +101,11 @@ var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
 // "Artist - Title", with the dash SoundCloud uploaders actually type - hyphen, en dash or em
 // dash. The surrounding spaces are required: "Rub-A-Dub-Dub" and "Lo-Fi" are not two tracks.
 var mdbTracklist_artistTitleRe = /\S\s[-–—]\s\S/;
+
+// A cue written behind the track instead of in front of it, with whatever the uploader hung off
+// it: "Artist - Title 00:52:09", "Artist - Title 00:56:00- CLASSIC OF THE WEEK".
+// The index in front is kept as it is; only what stands behind the track moves.
+var mdbTracklist_trailingCueRe = /^([#(]?\d{1,3}(?:[.):\]]+|\s*[-–—])?[ \t]+)?(.*\S)\s+(\d{1,3}:\d{2}(?::\d{2})?)\s*(?:[-–—]\s*(\S.*?))?\s*$/;
 
 // mdbTracklist_normalize
 // One text, one line ending, one kind of space. Non-breaking spaces are what a pasted tracklist
@@ -126,6 +149,59 @@ function mdbTracklist_isCandidateLine( line ) {
     if( /https?:\/\//i.test( line ) ) return false;
 
     return mdbTracklist_isTrackLine( line ) || mdbTracklist_indexRe.test( line );
+}
+
+// mdbTracklist_numberingContinues
+// Whether a blank line between these two is a gap INSIDE one tracklist rather than the end of it.
+// Only the numbering can say so: "11." followed by "12." is one list however many blank lines the
+// uploader put between them, and "6 Decks - 2 Mixers" followed by "01." is not.
+function mdbTracklist_numberingContinues( before, after ) {
+    var from = mdbTracklist_index( before ),
+        to = mdbTracklist_index( after );
+
+    return from > -1 && to > from;
+}
+
+// mdbTracklist_tidyLine
+// The cue behind the track moved in front of it, and whatever trailed the cue turned into a bold
+// note - see the "Tidying" part of the header. Returns the line unchanged when there is no
+// trailing cue on it.
+function mdbTracklist_tidyLine( line ) {
+    var m = String( line || "" ).match( mdbTracklist_trailingCueRe );
+
+    if( !m ) return line;
+
+    var index = m[1] || "",
+        track = m[2],
+        cue = m[3],
+        note = m[4] ? "'''" + m[4].trim() + ":''' " : "";
+
+    return index + "[" + cue + "] " + note + track;
+}
+
+// mdbTracklist_tidy
+// Half the block has to carry a trailing cue before any of them is rewritten. One title ending in
+// something clock-shaped ("Sandcastles 9:11") is not a pattern, and turning it into a cue would
+// invent a timestamp no one wrote.
+function mdbTracklist_tidy( lines ) {
+    var withCue = 0,
+        i;
+
+    for( i = 0; i < lines.length; i++ ) {
+        if( mdbTracklist_trailingCueRe.test( lines[i] ) ) withCue++;
+    }
+
+    if( withCue * 2 < lines.length ) return lines;
+
+    log( "mdbTracklist_tidy: " + withCue + " of " + lines.length + " lines carry a cue behind the track - moving them in front." );
+
+    var out = [];
+
+    for( i = 0; i < lines.length; i++ ) {
+        out.push( mdbTracklist_tidyLine( lines[i] ) );
+    }
+
+    return out;
 }
 
 // mdbTracklist_takeAscending
@@ -192,17 +268,33 @@ function mdbTracklist_detectInText( text, minTracks ) {
         lines = mdbTracklist_normalize( text ).split( "\n" ),
         runs = [],
         run = [],
+        blankSeen = false,
         i;
 
     for( i = 0; i < lines.length; i++ ) {
         var line = lines[i].trim();
 
+        // A blank line decides nothing by itself - what follows it does. See
+        // mdbTracklist_numberingContinues(): a tracklist whose tracks are separate paragraphs has
+        // a blank line between every pair of them and is still one tracklist.
+        if( !line ) {
+            if( run.length ) blankSeen = true;
+            continue;
+        }
+
         if( mdbTracklist_isCandidateLine( line ) ) {
+            if( blankSeen && !mdbTracklist_numberingContinues( run[ run.length - 1 ], line ) ) {
+                runs.push( run );
+                run = [];
+            }
+
             run.push( line );
         } else {
             if( run.length ) runs.push( run );
             run = [];
         }
+
+        blankSeen = false;
     }
     if( run.length ) runs.push( run );
 
@@ -235,6 +327,8 @@ function mdbTracklist_detectInText( text, minTracks ) {
 
     log( "mdbTracklist_detectInText: found " + best.length + " lines (" + bestScore.tracks +
          " with an \"Artist - Title\", " + bestScore.indexed + " numbered)." );
+
+    best = mdbTracklist_tidy( best );
 
     return {
         text: best.join( "\n" ),
@@ -320,6 +414,7 @@ function mdbTracklist_detectInComments( comments ) {
             var split = mdbTracklist_splitNumbered( body );
 
             if( split && mdbTracklist_acceptRun( split, mdbTracklist_minCommentTracks ) ) {
+                split = mdbTracklist_tidy( split );
                 found = { text: split.join( "\n" ), lines: split.length, indexed: true };
             }
         }
