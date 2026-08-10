@@ -162,17 +162,27 @@
 }
 
 /*
- * The feedback box comes from the wiki, where it sits on a white page. On a dark player page the
- * pale backgrounds tracklistEditor_copy.css gives it are the only thing keeping its (equally
- * pale) green/orange/red text readable, so the text colour has to stay paired with them - hence
- * a colour here rather than "inherit".
+ * NO "color" here, however tempting on a dark page. tracklistEditor_copy.css states the feedback
+ * colour per status (".tlEditor-feedback-complete #tlEditor-feedback { color: #090 }" and its
+ * hint/warning siblings) - green for complete, orange for incomplete, red for a warning - and
+ * that colour IS the message. Two IDs beat one ID and a class, so anything set here would win
+ * over all three and flatten them into one, which is how this rule was first written and what it
+ * cost. Each of those rules brings its own pale background, so they stay readable on dark pages
+ * without help from us.
  */
 #mdb-pageCreator-tracklist #tlEditor-feedback {
-    color: #444;
     font-size: 0.85rem;
 }
 
+/*
+ * "position: static" is not paranoia: these sites ship utility-class CSS of their own, and on
+ * SoundCloud's Material layout ".fixed" - which fixTLbox() used to put on the textarea - means
+ * "position: fixed", which lifted the box out of the flow and laid it over the page. That class
+ * is namespaced now, but the box sits in markup we do not own on every site, so the property it
+ * must never lose is stated rather than assumed.
+ */
 #mdb-pageCreator-tracklist #mixesdb-TLbox {
+    position: static !important;
     box-sizing: border-box;
     padding: 4px 6px;
     color: #444;

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.11
+// @version      2026.08.10.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,12 +9,12 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_44
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_45
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_3
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -169,7 +169,7 @@ if( isTopFrame ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 83,
+var cacheVersion = 84,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1116,17 +1116,19 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // Only the description is handed over up front - the comments
                                 // cost another API call and are fetched from the callback, which
                                 // the creator only reaches when the description gave nothing.
-                                // #mdb-toggle-target is the last thing we own above SoundCloud's
-                                // description in BOTH layouts: in the new one it is part of
-                                // #mdb-sc-trackExtras (which sits right under the Track header),
-                                // in the old one it is prepended to .listenDetails, whose
-                                // .listenDetails__partialInfo holds the description further down.
+                                // Below the toolkit and above SoundCloud's own description, which
+                                // #mdb-toolkit gives us in BOTH layouts: in the new one the
+                                // toolkit is the last thing in #mdb-sc-trackExtras (which sits
+                                // right under the Track header), in the old one it is inserted
+                                // before .listenDetails__partialInfo, which holds the
+                                // description. It arrives from a MixesDB API call of its own, so
+                                // the creator waits for it rather than expecting it to be there.
                                 mdbPageCreator_addTracklist({
                                     description:  t.description,
                                     loadComments: function( done ) {
                                         getScTrackComments( currentTrack_id, scAccessToken, done );
                                     },
-                                    target:       "#mdb-toggle-target",
+                                    target:       "#mdb-toolkit",
                                     placement:    "after"
                                 });
 
@@ -1516,6 +1518,27 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.10.12
+ * Three fixes to the tracklist box of .11, all reported off the live page:
+ * ROOT CAUSE FOUND for "the textarea floats over the page": fixTLbox() marked a finished box
+ * with a class named plainly "fixed", and SoundCloud's Material layout ships utility CSS where
+ * .fixed means "position: fixed" - so the box left the flow and was laid over the description.
+ * The Lot Radio had hit the same collision and worked around it locally (its
+ * keepTheLotRadioTextareaInFlow()); this fixes it at the source, where the class is now
+ * "mdb-tlBox-fixed" like every other class we add. page_creator.css states "position: static
+ * !important" on the box on top of that, since it sits in markup we do not own on every site.
+ * The box now goes BELOW the toolkit instead of above it - after #mdb-toolkit, which is above
+ * the description in both layouts. The toolkit arrives from a MixesDB API call of its own, so
+ * the creator polls for it rather than expecting it to be there when the tracklist is.
+ * The feedback box got its colour flattened to one grey: page_creator.css set a colour on
+ * "#mdb-pageCreator-tracklist #tlEditor-feedback", and two IDs beat the one ID and one class of
+ * tracklistEditor_copy.css' ".tlEditor-feedback-complete #tlEditor-feedback" - so green for
+ * complete, orange for incomplete and red for a warning all lost to it. That colour IS the
+ * message; the rule states no colour at all now.
+ * The headline is plain "Tracklist" again and only says where it came from when that is the
+ * surprising answer ("Tracklist (from a comment)") - naming the description on every track is
+ * noise that drowns out the one case worth a second look.
  *
  * 2026.08.10.11
  * The tracklist an uploader wrote into the description is no longer retyped by hand: it is

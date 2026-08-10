@@ -21,10 +21,17 @@ SoundCloud-only bits that must stay on this side, not move into the page creator
   no tracklist) and calls this through the `loadComments` callback of
   `mdbPageCreator_addTracklist()`; it never learns where they came from.
 
-The tracklist box goes after `#mdb-toggle-target`, which is the last thing we own above
-SoundCloud's own description in **both** layouts: in the new one it is part of
-`#mdb-sc-trackExtras` (right under the Track header), in the old one it is prepended to
-`.listenDetails`, whose `.listenDetails__partialInfo` holds the description further down.
+The tracklist box goes after `#mdb-toolkit` - below the toolkit, above SoundCloud's own
+description - which works in **both** layouts: in the new one the toolkit is the last thing in
+`#mdb-sc-trackExtras` (right under the Track header), in the old one it is inserted before
+`.listenDetails__partialInfo`, which holds the description.
+
+**Utility-class collisions.** The Material layout ships utility CSS where `.fixed` means
+`position: fixed`. `fixTLbox()` used to put a bare `"fixed"` class on the tracklist textarea,
+which took it out of the flow and laid it over the page (The Lot Radio hit the same thing and
+worked around it locally). The class is `mdb-tlBox-fixed` now, and `page_creator.css` states
+`position: static !important` on the box on top of that. Any class we add to markup on these
+sites has to be namespaced - a plain adjective is a collision waiting to happen.
 
 ## Locale: aria-labels vs. visible element text
 
