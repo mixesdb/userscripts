@@ -21,6 +21,7 @@ reads the values off its own page/API and hands them over.
 | `title_examples.js` | Test data: every title ever reported as wrong |
 | `title_examples_test.js` | The deno runner for it |
 | `mixesdb_api_request.md` | The category-lookup endpoint we asked the MixesDB maintainer for - see below |
+| `page_text_learning.md` | Plan: reading the recent sibling pages' wikitext to shape the new page's text. Not built |
 
 ## Adding a site script
 
@@ -64,6 +65,20 @@ Two things settled in advance, so they do not get re-litigated:
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
   genuine Show with 779 mixes, and wreck the title.
+- **A non-artist match then reads the last ~8 mix pages in that category and copies their
+  format**, rather than deriving it. `list=categorymembers` with `cmnamespace=0&cmsort=timestamp&
+  cmdir=desc` (or the `recent` field, if the endpoint ships it). This is what settles episode
+  number padding (`Zenaari Mix 025`), separators (`Trommel.234`), formats no rule would invent
+  (`RA Podcast (RA.1051)`), whether there is a number at all (`Essential Mix`), and the city of a
+  venue or event (`@ Ritter Butzke, Berlin`) - which today is taken from the player title and is
+  usually simply missing. Recent pages only: `Slave To The Rhythm` renamed its episodes from
+  `Ep.393` to `716` over the years, so a full listing misleads.
+- **The same call also brings those pages' wikitext, which shapes the new page's text** -
+  `{{StandardShow2h}}` instead of the file details table, the leading
+  `[[File:{{subst:PAGENAME}}.jpg|right|360px]]`. Design and measurements in
+  `page_text_learning.md`. Styles are only filled when 90% of the siblings agree (measured: that
+  fires on 1 category in 9), and `Tracklist:` is always `none` until tracklist transfer exists -
+  that file says why.
 
 ## Title suggestion reports
 
