@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Player Checker (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.2
+// @version      2026.08.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -51,7 +51,7 @@ https://wearesoundspace.com/in-focus-008-break-3000-dirt-crew-recordings/
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 16,
+var cacheVersion = 17,
     scriptName = "Player_Checker";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 

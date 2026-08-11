@@ -465,6 +465,14 @@ textarea.mono {
     & .mdb-copy-text-button {
         padding: 0px 6px;
     }
+
+    /* The control is a pure wrapper: any vertical margin/padding of its own is added to the
+       line box of the li it sits in and spaces the whole toolkit list out. Horizontal
+       spacing is unaffected - see the margin-left rules per context. */
+    & .mdb-copy-text-control {
+        margin-block: 0;
+        padding-block: 0;
+    }
 }
 
 /* nested lists */
