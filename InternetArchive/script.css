@@ -9,3 +9,31 @@
 #playsetList_apiLink {
     margin-top: 20px;
 }
+
+/*
+ * Table skin. Used to live in global.css as "table.mdb-element", where it hit every script's
+ * tables - including the dark-themed ones, which it turned white/light grey. Only this table
+ * ever wanted it, so it stays here.
+ */
+#playsetList_mdbTable {
+    & th,
+    & td {
+        padding: 2px 4px;
+        border: 1px solid #ccc;
+    }
+
+    & th {
+        background-color: #eee;
+        font-size: 110%;
+    }
+
+    & tr:nth-child(even) {
+        background-color: #fff;
+    }
+    & tr:nth-child(odd) {
+        background-color: #fafafa;
+    }
+    & tr:hover {
+        background-color: #ff99006f;
+    }
+}
