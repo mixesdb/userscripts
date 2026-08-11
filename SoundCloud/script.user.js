@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.17
+// @version      2026.08.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,12 +9,12 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_45
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_2
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_6
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_7
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -120,16 +120,25 @@ log( "Frame accepted, continuing in " + ( isTopFrame ? "top frame" : "webi frame
 // internal query string. Re-point global.js' urlPath() at the address bar so every
 // urlPath()/urlPath_noParams() call in global.js, toolkit.js and this script keeps
 // seeing /user/track instead of /n/user/track.
-const pageLocation = isWebiFrame ? window.top.location : window.location,
-      pagePathname = pageLocation.pathname,
-      pageHref = pageLocation.protocol + "//" + pageLocation.host + pagePathname + pageLocation.search;
+const pageLocation = isWebiFrame ? window.top.location : window.location;
+
+/*
+ * getPageHref
+ * A function, not a const: SoundCloud swaps tracks without ever loading a document (see
+ * onUrlChange() in global.js), so a URL read once at script start names the track the user
+ * opened FIRST and every lookup after the first click would be for the wrong mix.
+ * pageLocation itself is a live Location object and stays correct.
+ */
+function getPageHref() {
+    return pageLocation.protocol + "//" + pageLocation.host + pageLocation.pathname + pageLocation.search;
+}
 
 logVar( "pageLocation source", isWebiFrame ? "window.top.location (address bar)" : "window.location" );
-logVar( "pageHref", pageHref );
+logVar( "pageHref", getPageHref() );
 
 if( isWebiFrame ) {
     urlPath = function(n) {
-        return pageHref.split('/')[n+2];
+        return getPageHref().split('/')[n+2];
     };
     log( "urlPath() overridden to read from the address bar (webi frame mode)." );
 }
@@ -147,20 +156,11 @@ logVar( "metaDoc source", isWebiFrame ? "window.top.document" : "document" );
  * Must work on URLs like https://soundcloud.com/fccr/shigeo-yamaguchi-wm-66-berlin-1996?utm_source=trackid.net&utm_campaign=wtshare&utm_medium=widget&utm_content=https%253A%252F%252Fsoundcloud.com%252Ffccr%252Fshigeo-yamaguchi-wm-66-berlin-1996
  */
 function getScPlayerUrl() {
-    return pageLocation.protocol + '//' + pageLocation.host + pagePathname;
+    return pageLocation.protocol + '//' + pageLocation.host + pageLocation.pathname;
 }
 
-
-/*
- * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
- * Only the top frame owns the address bar; hooking history inside the webi frame as
- * well would only fight with the top frame's reload.
- */
-if( isTopFrame ) {
-    log( "Setting up redirectOnUrlChange (top frame only)." );
-    redirectOnUrlChange( 60 );
-}
+// SPA navigation is set up at the very bottom of this file, once everything it has to reset
+// exists - see runSoundcloudPage().
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -247,7 +247,7 @@ const getSlugFromSoundItem = (soundItem) => {
 };
 
 const hideIfXed = (soundItem) => {
-    if (isSetsTab || !isHideXedEnabled()) return;
+    if (isSetsTab() || !isHideXedEnabled()) return;
 
     const slug = getSlugFromSoundItem(soundItem);
     if (slug && isXed(slug)) {
@@ -280,37 +280,52 @@ loadRawCss( scriptCssUrl );
 var scAccessToken;
 
 const fast = 201,
-      soundActionFakeButtonClass = 'sc_button-mdb sc-button-secondary sc-button sc-button-medium mdb-item',
-      current_url = location.href;
-
-// url parameters
-var getHidePl = resolveHideOption("hidePl", hidePlaylistsKey),
-    getHideReposts = resolveHideOption("hideReposts", hideRepostsKey),
-    getHideFav = resolveHideOption("hideFav", hideFavoritesKey),
-    getHideUsed = resolveHideOption("hideUsed", hideUsedKey),
-    getHideXedParam = getURLParameter("hideXed"),
-    getHideXed = getHideXedParam == "true" ? "true" : getHideXedParam == "false" ? "false" : ( isHideXedEnabled() ? "true" : "false" );
-
-setHideXedEnabled(getHideXed === "true");
-
-logVar( "getHidePl", getHidePl );
-logVar( "getHideReposts", getHideReposts );
-logVar( "getHideFav", getHideFav );
-logVar( "getHideUsed", getHideUsed );
-logVar( "getHideXed", getHideXed );
+      soundActionFakeButtonClass = 'sc_button-mdb sc-button-secondary sc-button sc-button-medium mdb-item';
 
 // On set pages show only some filter options and hide list items, not players
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
-const isSetPage = ( urlPath_noParams(2) == "sets" ) ? true : false,
-      isSetsTab = isSetPage && !urlPath_noParams(3);
-logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage );
-logVar( "isSetsTab", isSetsTab );
-
-// The sets tab only shows an informational placeholder instead of filter
-// controls, so no persisted hide option may remove its playlist entries.
-if( isSetsTab ) {
-    getHidePl = getHideReposts = getHideFav = getHideUsed = getHideXed = "false";
+// Functions rather than values, for the same reason as getPageHref() above: SoundCloud goes
+// from a user page to a set and back without loading a document.
+function isSetPage() {
+    return urlPath_noParams(2) == "sets";
 }
+
+function isSetsTab() {
+    return isSetPage() && !urlPath_noParams(3);
+}
+
+// url parameters
+// Read off the URL, so they only describe the page we are on right now - readHideOptions()
+// runs again for every page, see runSoundcloudPage() at the bottom of this file.
+var getHidePl, getHideReposts, getHideFav, getHideUsed, getHideXed;
+
+function readHideOptions() {
+    getHidePl = resolveHideOption("hidePl", hidePlaylistsKey);
+    getHideReposts = resolveHideOption("hideReposts", hideRepostsKey);
+    getHideFav = resolveHideOption("hideFav", hideFavoritesKey);
+    getHideUsed = resolveHideOption("hideUsed", hideUsedKey);
+
+    var getHideXedParam = getURLParameter("hideXed");
+    getHideXed = getHideXedParam == "true" ? "true" : getHideXedParam == "false" ? "false" : ( isHideXedEnabled() ? "true" : "false" );
+
+    setHideXedEnabled(getHideXed === "true");
+
+    // The sets tab only shows an informational placeholder instead of filter
+    // controls, so no persisted hide option may remove its playlist entries.
+    if( isSetsTab() ) {
+        getHidePl = getHideReposts = getHideFav = getHideUsed = getHideXed = "false";
+    }
+
+    logVar( 'isSetPage (= "'+urlPath_noParams(2)+'")', isSetPage() );
+    logVar( "isSetsTab", isSetsTab() );
+    logVar( "getHidePl", getHidePl );
+    logVar( "getHideReposts", getHideReposts );
+    logVar( "getHideFav", getHideFav );
+    logVar( "getHideUsed", getHideUsed );
+    logVar( "getHideXed", getHideXed );
+}
+
+readHideOptions();
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -546,12 +561,12 @@ log( "Registering handlers: Set submit link" );
 
 // Below the filter row of #mdb-streamActions, i.e. the last of our own controls above the
 // set's track list. That row is built by mountUI() in script.funcs.js, which only runs for
-// !isSetsTab - exactly the set pages this link is for.
+// !isSetsTab() - exactly the set pages this link is for.
 // Set pages still use the old layout, so no webi frame handling is needed here, but
-// pageHref is passed anyway since it is the address bar URL in either frame.
+// getPageHref() is passed anyway since it is the address bar URL in either frame.
 // https://soundcloud.com/jedentageinset/sets/jeden-tag-ein-set-podcasts
 waitForKeyElements("#mdb-streamActions-filter", function( jNode ) {
-    addTidPlaylistSubmitLink( jNode, "after", pageHref );
+    addTidPlaylistSubmitLink( jNode, "after", getPageHref() );
 });
 
 
@@ -636,7 +651,7 @@ log( "Registering handlers: [X] remove button" );
 
 // if favorited before, show hidden soundActions
 waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
-    var removeItem = '<div class="mdb-removeItem hand sc-text-grey" title="Remove the player (can be filtered out again with the hiding option &quot;X\'ed items&quot;)">X</div>';
+    var removeItem = '<div class="mdb-element mdb-removeItem hand sc-text-grey" title="Remove the player (can be filtered out again with the hiding option &quot;X\'ed items&quot;)">X</div>';
     jNode.append( removeItem );
 });
 
@@ -666,8 +681,8 @@ waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
     });
 });
 
-waitForKeyElements('.soundList__item:not(.mdb-xed-checked)', function( jNode ) {
-    jNode.addClass('mdb-xed-checked');
+waitForKeyElements('.soundList__item:not(.mdb-processed-xed)', function( jNode ) {
+    jNode.addClass('mdb-processed-xed');
     hideIfXed(jNode);
 });
 
@@ -708,10 +723,10 @@ function lazyLoadingList(jNode) {
 
         // Display filter options per tab type
         saHide.append('<span class="mdb-darkorange">Hide:</span>');
-        if( isSetsTab ) {
+        if( isSetsTab() ) {
             saHide.append( "Filter options on pages with multiple playlists create too much server load. Open the playlist/set page of interest individually." );
         } else {
-            if( !isSetPage ) {
+            if( !isSetPage() ) {
                 saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
                 saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
                 saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
@@ -722,7 +737,7 @@ function lazyLoadingList(jNode) {
     }
 
     // Filter row
-    if( !isSetsTab ) {
+    if( !isSetsTab() ) {
         log( "lazyLoadingList: setting up filter row (installNetworkHooks, mountUI, attachIO, observeDOM, refreshVisible)." );
         installNetworkHooks();
         mountUI();
@@ -1413,6 +1428,7 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
  */
 var showMoreLabels = [ "Show more", "Mehr anzeigen" ];
 var showLessLabels = [ "Show less", "Weniger anzeigen" ];
+var descriptionExpandedOnce = false;
 
 if( isWebiFrame ) {
     // One click attempt is not enough: the button ships in the server-rendered HTML of the
@@ -1429,7 +1445,9 @@ if( isWebiFrame ) {
     // flips back to "Show more", the selector below matches it again, and per-node state (the
     // click counter/class) is no help - React swaps in a fresh button element on every toggle,
     // so each re-collapse looks like a brand-new, never-clicked button to us.
-    let descriptionExpandedOnce = false;
+    // "First time" means per track, not per browser tab: runSoundcloudPage() at the bottom of
+    // this file puts it back to false whenever SoundCloud swaps in another track, whose
+    // description arrives collapsed again. Hence declared outside this block.
 
     // Confirms the expand actually took effect (not just that we clicked). Once SC ever shows
     // "Show less"/"Weniger anzeigen", the description has been opened for this page view -
@@ -1509,6 +1527,56 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         mdbPageCreator_watchToolkit();
     } else {
         log( "Not a track detail page - skipping old layout toolkit." );
+    }
+});
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * SPA navigation
+ *
+ * Registered last, because it resets state that is declared all over this file.
+ *
+ * Both frames install it, unlike the reload it replaces: the reload was a top-frame job
+ * because only the top frame owns the address bar, but the DOM work now happens where the
+ * DOM is - and on new-layout track pages that is the webi frame. The frame that does not own
+ * the address bar reads it from the top frame via getUrl below.
+ *
+ * The waitForKeyElements handlers above are NOT re-registered here: they poll for the
+ * lifetime of the document and onUrlChange() re-arms them - see global.js.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+function runSoundcloudPage() {
+    logFunc( "runSoundcloudPage" );
+
+    // All read off the URL, so the previous page's answers are worthless
+    readHideOptions();
+
+    // One-shot guards whose "shot" was fired for the previous track. onUrlChange() has just
+    // removed the elements they were guarding, so they have to go back to their starting
+    // value along with them, or the new track gets no buttons and no toolkit at all.
+    RUN_sc_button_group = true;
+    trackHeaderLastLoggedState = null;
+    descriptionExpandedOnce = false;
+
+    // Same fixed checkpoints as at script start - see the diagnostics section above for why
+    // this is unconditional rather than triggered by a handler.
+    if( urlPath(2) && urlPath(2) != "sets" ) {
+        runTrackPageDiagnostics( "after SPA navigation" );
+
+        [ 3000, 8000 ].forEach(function( delay ) {
+            setTimeout(function() {
+                runTrackPageDiagnostics( delay + "ms after SPA navigation" );
+            }, delay );
+        });
+    }
+}
+
+onUrlChange( runSoundcloudPage, {
+    // pageLocation is window.top.location in the webi frame, i.e. the address bar - the
+    // frame's own location.href is a /n/... URL that does not change per track.
+    getUrl: function() {
+        return pageLocation.href;
     }
 });
 

@@ -42,6 +42,32 @@ Every script must start with a complete `==UserScript==` metadata block:
 - If the script declares `scriptName`, add `window.scriptName = scriptName;` right after — `includes/toolkit.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
 - Use the log()/logVar()/logFunc() helpers from global.js and a `DEBUG` flag if logging is needed during development
 
+## Single-page apps (all the sites we run on)
+A click on these sites swaps the page content and rewrites the address bar without ever
+loading a document. `onUrlChange( runPage )` in `includes/global.js` is the shared answer -
+it waits for the new DOM, clears the previous page out, then re-runs what was registered.
+It replaced `redirectOnUrlChange()`, which forced a full reload on every URL change.
+
+Three rules make it work; breaking any of them produces the same symptom - the first page is
+fine and every page after it is stale or empty:
+- **Never capture URL-derived state at load time.** `const isSetPage = urlPath(2) == "sets"`
+  right after the IIFE's opening brace answers for the first page forever. Make it a function,
+  or re-read it in the `onUrlChange` callback.
+- **Register `waitForKeyElements` handlers once, at the top level, and test the URL INSIDE the
+  handler.** waitForKeyElements keeps one polling interval per selector and that interval holds
+  the callback it was created with, so registering the same selector again later does not
+  replace it - the old closure keeps winning. Return `true` from a handler that is not
+  interested in the current page, so the node stays on the watch list.
+  For the same reason, do not pass its `waitOnce` argument for anything that has to work on
+  more than the first page.
+- **Name what you put on the page so the cleanup can find it:**
+  - elements we CREATE: class `mdb-element`, or an id starting with `mdb`/`mixesdb` - these are
+    removed on every navigation
+  - "already handled" markers on the SITE's nodes: a class containing `processed` and starting
+    with `mdb` (e.g. `mdb-processed-toolkit`) - these are cleared on every navigation
+  - never a bare `processed`: it collides with the sites' own classes and the cleanup cannot
+    tell it apart from theirs
+
 ## Testing / Verification
 - No automated test suite, with one exception: the MixesDB page creator's title suggestion has
   `includes/page_creator/title_examples.js` (reported titles + what they should produce) and a

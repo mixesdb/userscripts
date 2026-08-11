@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.7
+// @version      2026.08.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_23
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-YouTube_24
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-YouTube_16
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
@@ -66,12 +66,13 @@ ytLog( "top frame: " + ( window.self === window.top ) + ", hostname: " + locatio
 
 /*
  * Reload-burst counter
- * redirectOnUrlChange() below turns every history.pushState/replaceState into a full page
- * reload, and YouTube rewrites its own URL while the page is loading. If that ever ends in a
- * reload loop, nothing we register survives long enough to do anything - and the console
- * looks empty because every reload clears it. sessionStorage survives reloads, so a count
- * far above 1 here is the proof. Counts only reloads of the SAME url within 30s of each
- * other, so ordinary navigation always reads 1.
+ * We no longer reload on URL changes ourselves (onUrlChange() replaced redirectOnUrlChange(),
+ * see global.js), and YouTube rewriting its own URL while the page loads is exactly the case
+ * that used to send that into a reload loop. Kept as a tripwire: in a loop nothing we
+ * register survives long enough to do anything, and the console looks empty because every
+ * reload clears it. sessionStorage survives reloads, so a count far above 1 here is the
+ * proof - and now points at something other than us. Counts only reloads of the SAME url
+ * within 30s of each other, so ordinary navigation always reads 1.
  */
 var mdbLoadCount = "unknown (sessionStorage unavailable)";
 try {
@@ -89,7 +90,7 @@ try {
     mdbLoadCount = mdbLoadState.count;
 } catch( e ) {}
 
-ytLog( "loads of this URL in the last 30s: " + mdbLoadCount + " (a number climbing on every check means a redirectOnUrlChange reload loop)" );
+ytLog( "loads of this URL in the last 30s: " + mdbLoadCount + " (a number climbing on every check means something is reloading the page in a loop)" );
 
 /*
  * @require check
@@ -102,7 +103,7 @@ var mdbRequires = [
     [ "jquery-3.7.1.min.js", "$", typeof $ ],
     [ "waitForKeyElements.js", "waitForKeyElements", typeof waitForKeyElements ],
     [ "youtube_funcs.js", "normalizeYoutubeTitle", typeof normalizeYoutubeTitle ],
-    [ "global.js", "redirectOnUrlChange", typeof redirectOnUrlChange ],
+    [ "global.js", "onUrlChange", typeof onUrlChange ],
     [ "global.js", "getPlaylistPageInfo", typeof getPlaylistPageInfo ],
     [ "global.js", "addTidPlaylistSubmitLink", typeof addTidPlaylistSubmitLink ],
     [ "toolkit.js", "getToolkit", typeof getToolkit ]
@@ -127,17 +128,6 @@ if( !/(^|\.)youtube\.com$/.test( window.location.hostname ) && window.location.h
     console.log( "YouTube userscript: skip non-YouTube host", window.location.hostname );
     return;
 }
-
-/*
- * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
- */
-// guarded so that a failed global.js produces the full diagnostic report above and below
-// instead of a ReferenceError that cuts the script off right here
-if( typeof redirectOnUrlChange === "function" ) {
-    redirectOnUrlChange( 200 );
-}
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -231,104 +221,95 @@ function getDurationSec_YT() {
     return h*3600 + min*60 + s;
 }
 
-var youtubeEnhancementsStartedFor = null;
+/*
+ * Per-video state
+ *
+ * All handlers below are registered ONCE, at the bottom of this section, and then keep
+ * running for the lifetime of the document - waitForKeyElements polls forever and
+ * onUrlChange() (global.js) re-arms it when YouTube swaps in the next video.
+ *
+ * That is why nothing here may CAPTURE the video ID or the duration: after the user clicks
+ * the next video, a captured value would still describe the previous one and the toolkit
+ * would look up the wrong mix. Everything is resolved fresh inside the handler instead, and
+ * these two remember which video the work was already done for.
+ *
+ * They also explain the missing `waitOnce` argument on waitForKeyElements: a one-shot
+ * handler stops polling for good after the first video, which is fine only when every
+ * navigation reloads the page - which it no longer does.
+ */
+var youtubeDetailsAddedFor = null,
+    youtubeDurationAddedFor = null;
 
-function initYoutubeEnhancements( ytId ) {
-    if( !ytId || youtubeEnhancementsStartedFor === ytId ) return;
+function addDetailPageEnhancements( wrapper ) {
+    var ytId = resolveYoutubeId();
 
-    youtubeEnhancementsStartedFor = ytId;
+    if( !ytId ) {
+        log( "No YouTube ID yet, waiting for page data..." );
+        return true; // not handled - keep offering this node
+    }
+
+    if( youtubeDetailsAddedFor === ytId ) return;
+
+    var titleText = $("#title h1, ytd-watch-metadata h1").first().text().trim();
+    if( !titleText ) titleText = $("meta[name='title']").attr("content") || document.title;
+
+    var $wrapper = $(wrapper).first();
+    if( !$wrapper.length ) return true;
+
     logVar( "url", window.location.href );
     logVar( "ytId", ytId );
 
-    var playerUrl = "https://youtu.be/" + ytId,
-        dur_sec_cache = null,
-        detailEnhancementsAdded = false,
-        durationEnhancementsAdded = false;
+    var playerUrl = "https://youtu.be/" + ytId;
 
-    function addDetailPageEnhancements( wrapper ) {
-        if( detailEnhancementsAdded ) return;
+    // Thumbnail as linked image
+    var thumbImg_url = 'https://i.ytimg.com/vi/'+ytId+'/maxresdefault.jpg',
+        thumbImg = '<div class="mdb-element mdb-thumbImgLink-wrapper left0"><a href="'+thumbImg_url+'" target="_blank"><img src="'+thumbImg_url+'"></a></div>';
 
-        var titleText = $("#title h1, ytd-watch-metadata h1").first().text().trim();
-        if( !titleText ) titleText = $("meta[name='title']").attr("content") || document.title;
-
-        var $wrapper = $(wrapper).first();
-        if( !$wrapper.length ) return;
-
-        // Thumbnail as linked image
-        var thumbImg_url = 'https://i.ytimg.com/vi/'+ytId+'/maxresdefault.jpg',
-            thumbImg = '<div class="mdb-element mdb-thumbImgLink-wrapper left0"><a href="'+thumbImg_url+'" target="_blank"><img src="'+thumbImg_url+'"></a></div>';
-
-        if( !$(".mdb-thumbImgLink-wrapper").length ) {
-            $wrapper.after( thumbImg );
-        }
-
-        // Toolkit
-        getToolkit( playerUrl, "playerUrl", "detail page", $wrapper, "after", titleText, "link", 1, playerUrl );
-        detailEnhancementsAdded = true;
+    if( !$(".mdb-thumbImgLink-wrapper").length ) {
+        $wrapper.after( thumbImg );
     }
 
-    function addDurationEnhancements() {
-        if( durationEnhancementsAdded ) return;
-
-        dur_sec_cache = getDurationSec_YT();
-        if( !dur_sec_cache ) return;
-
-        var dur = convertHMS( dur_sec_cache );
-
-        waitForKeyElements( "#top-level-buttons-computed, ytd-watch-metadata #actions-inner", function( jNode ) {
-            if( !$("#mdb-fileInfo").length ) {
-                jNode.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
-            }
-        }, true );
-
-        waitForKeyElements( "ytd-watch-metadata #description, ytd-expandable-video-description-body-renderer", function( jNode ) {
-            if( !$("#mdb-fileDetails").length ) {
-                jNode.before( getFileDetails_forToggle( dur_sec_cache ) );
-            }
-        }, true );
-
-        durationEnhancementsAdded = true;
-    }
-
-    waitForKeyElements( "#bottom-row", function( jNode ) {
-        addDetailPageEnhancements( jNode );
-    });
-
-    waitForKeyElements( "ytd-watch-metadata #description-inner, ytd-watch-metadata #description", function( jNode ) {
-        addDetailPageEnhancements( jNode );
-    });
-
-    waitForKeyElements( ".ytp-time-duration", function() {
-        setTimeout(function(){
-            addDurationEnhancements();
-        }, 1000 );
-    }, true );
-
-    waitForKeyElements( "ytd-watch-metadata", function() {
-        addDurationEnhancements();
-    }, true );
+    // Toolkit
+    getToolkit( playerUrl, "playerUrl", "detail page", $wrapper, "after", titleText, "link", 1, playerUrl );
+    youtubeDetailsAddedFor = ytId;
 }
 
-function ensureYoutubeEnhancementsStarted() {
+function addDurationEnhancements() {
     var ytId = resolveYoutubeId();
-    if( !ytId ) {
-        log( "No YouTube ID yet, waiting for page data..." );
-        return false;
+
+    if( !ytId || youtubeDurationAddedFor === ytId ) return;
+
+    var dur_sec = getDurationSec_YT();
+    if( !dur_sec ) return true; // player not ready yet - ask again on the next poll
+
+    var dur = convertHMS( dur_sec ),
+        buttonTarget = $("#top-level-buttons-computed, ytd-watch-metadata #actions-inner").first(),
+        detailsTarget = $("ytd-watch-metadata #description, ytd-expandable-video-description-body-renderer").first();
+
+    // The metadata row hydrates later than the player, so both targets have to be there
+    // before this video counts as done - otherwise it would be marked off with nothing added.
+    if( !buttonTarget.length || !detailsTarget.length ) return true;
+
+    if( !$("#mdb-fileInfo").length ) {
+        buttonTarget.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
     }
 
-    initYoutubeEnhancements( ytId );
-    return true;
+    if( !$("#mdb-fileDetails").length ) {
+        detailsTarget.before( getFileDetails_forToggle( dur_sec ) );
+    }
+
+    youtubeDurationAddedFor = ytId;
 }
 
-ensureYoutubeEnhancementsStarted();
+waitForKeyElements( "#bottom-row", addDetailPageEnhancements );
 
-var youtubeInitAttempts = 0,
-    youtubeInitTimer = setInterval(function() {
-        youtubeInitAttempts++;
-        if( ensureYoutubeEnhancementsStarted() || youtubeInitAttempts >= 20 ) {
-            clearInterval( youtubeInitTimer );
-        }
-    }, 500 );
+waitForKeyElements( "ytd-watch-metadata #description-inner, ytd-watch-metadata #description", addDetailPageEnhancements );
+
+waitForKeyElements( ".ytp-time-duration", function() {
+    setTimeout( addDurationEnhancements, 1000 );
+});
+
+waitForKeyElements( "ytd-watch-metadata", addDurationEnhancements );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -350,9 +331,14 @@ var playlistAnchorSelector = ".ytPageHeaderViewModelFlexibleActions, ytd-playlis
 // Dependency-free copy of the URL test. getPlaylistPageInfo() (global.js) stays the single
 // source of truth for building the link, but the diagnostics below must keep working when
 // global.js is exactly what failed - which is one of the things they exist to reveal.
-var isPlaylistPage = location.pathname.replace( /\/+$/, "" ) === "/playlist" && /[?&]list=/.test( location.search );
+// A function, not a value: YouTube goes from a playlist to a video and back without ever
+// loading a document, so anything answered once at script start answers for the wrong page
+// from the first click onwards.
+function isPlaylistPage() {
+    return location.pathname.replace( /\/+$/, "" ) === "/playlist" && /[?&]list=/.test( location.search );
+}
 
-ytLog( "playlist page (by URL): " + isPlaylistPage );
+ytLog( "playlist page (by URL): " + isPlaylistPage() );
 
 if( typeof waitForKeyElements !== "function" ) {
     ytLog( "waitForKeyElements is not available - the playlist submit link cannot be registered at all." );
@@ -378,7 +364,7 @@ if( typeof waitForKeyElements !== "function" ) {
  * Plain DOM, no jQuery: see the note on ytLog above.
  */
 function logPlaylistPageSnapshot( label ) {
-    if( !isPlaylistPage ) return;
+    if( !isPlaylistPage() ) return;
 
     ytLog( "### Playlist page DOM snapshot: " + label + " (readyState: " + document.readyState + ")" );
 
@@ -412,5 +398,33 @@ logPlaylistPageSnapshot( "at script start" );
         logPlaylistPageSnapshot( delay + "ms after script start" );
     }, delay );
 });
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * SPA navigation
+ *
+ * YouTube is the reason the old redirectOnUrlChange() was worst here: it rewrites its own
+ * URL while a page is still loading, so "reload on every URL change" could reload the video
+ * the user had just started. Nothing reloads any more - onUrlChange() (global.js) waits for
+ * YouTube to finish swapping in the new video, clears out what the previous one left behind,
+ * and the handlers above then run again for the new one.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// guarded so that a failed global.js produces the full diagnostic report above instead of a
+// ReferenceError that cuts the script off here
+if( typeof onUrlChange === "function" ) {
+    onUrlChange(function() {
+        // onUrlChange() has just removed our elements from the page, so the bookkeeping that
+        // says "already done" has to go with them - otherwise coming back to a video seen
+        // earlier in this session would leave it without a toolkit.
+        youtubeDetailsAddedFor = null;
+        youtubeDurationAddedFor = null;
+
+        ytLog( "playlist page (by URL): " + isPlaylistPage() );
+        logPlaylistPageSnapshot( "after SPA navigation" );
+    });
+}
 
 })();
