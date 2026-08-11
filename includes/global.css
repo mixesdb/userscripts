@@ -253,11 +253,17 @@ button.mdb-element {
     width: auto !important;
 }
 
+/* The control is a pure wrapper around the button, so it never gets vertical margin or padding
+   of its own: whatever it had would be added to the line box (toolkit li) or the flex row
+   (#mdb-pageCreator) it sits in and space that context out. Horizontal spacing is its job and
+   is set here and per context. */
 .mdb-copy-text-control {
     align-items: center;
     display: inline-flex;
     flex-direction: column;
+    margin-block: 0;
     margin-left: 12px;
+    padding-block: 0;
     position: relative;
     vertical-align: middle;
 }
@@ -464,14 +470,6 @@ textarea.mono {
 
     & .mdb-copy-text-button {
         padding: 0px 6px;
-    }
-
-    /* The control is a pure wrapper: any vertical margin/padding of its own is added to the
-       line box of the li it sits in and spaces the whole toolkit list out. Horizontal
-       spacing is unaffected - see the margin-left rules per context. */
-    & .mdb-copy-text-control {
-        margin-block: 0;
-        padding-block: 0;
     }
 }
 
