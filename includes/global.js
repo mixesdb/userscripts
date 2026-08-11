@@ -1804,6 +1804,32 @@ const mdbCreatedSelector = '.mdb-element, [id^="mdb"], [id^="mixesdb"], #tlEdito
  */
 const mdbProcessedClassRx = /^(mdb|tlEditor)[\w-]*processed[\w-]*$/i;
 
+/*
+ * mdbPageGeneration / mdbIsCurrentPage
+ *
+ * Which page we are on, counted up on every navigation.
+ *
+ * This is what a reload used to do for free: it killed every request, timer and callback that
+ * was still in flight for the page being left. Nothing does that any more, so a chain started
+ * on the previous mix - and these are two network round trips deep on SoundCloud - lands on
+ * the NEXT one and writes the previous mix's title, player URL and tracklist into it.
+ *
+ * So anything asynchronous that will touch the DOM or shared state must remember which page it
+ * was started for, and drop its result if that page is gone:
+ *
+ *     var pageGeneration = mdbPageGeneration;      // at the start of the work
+ *     ...
+ *     if( !mdbIsCurrentPage( pageGeneration ) ) return;   // in every callback
+ */
+var mdbPageGeneration = 0;
+
+function mdbIsCurrentPage( generation ) {
+    if( generation === mdbPageGeneration ) return true;
+
+    log( "Dropping a result from page " + generation + " - we are on page " + mdbPageGeneration + " now." );
+    return false;
+}
+
 // mdbUrlChange
 // State of the single watcher. One per document - registering more callbacks does not add
 // more listeners, more observers or more intervals.
@@ -1827,6 +1853,11 @@ var mdbUrlChange = {
  */
 function mdbResetForNewPage() {
     logFunc( "mdbResetForNewPage" );
+
+    // 0. First of all, so that everything already in flight for the previous page can see it
+    // is no longer wanted - see mdbPageGeneration above.
+    mdbPageGeneration++;
+    logVar( "page generation", mdbPageGeneration );
 
     // 1. Our own elements. A site that re-renders its content containers takes most of them
     // down with it, but not the ones hanging off containers it REUSES - YouTube keeps
