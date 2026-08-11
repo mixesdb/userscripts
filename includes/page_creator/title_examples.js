@@ -309,6 +309,16 @@ var mdbTitleExamples = [
         expect: "2026-08-05 - Some DJ b2b Other DJ - Some Podcast 12"
     },
     {
+        // the presenter has nowhere to go - the entity slot is taken by the podcast - so the
+        // two names are two artists rather than one category holding the whole phrase.
+        // "fabric presents Bonobo" above is the case where the presenter CAN be placed.
+        title: "Some Podcast 12 - Some DJ presents Other DJ",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expectArtists: [ "Some DJ", "Other DJ" ],
+        expect: "2026-08-05 - Some DJ, Other DJ - Some Podcast 12"
+    },
+    {
         // the entity is a NAME - no joiner rewriting in there
         title: "Some DJ - Techno versus House",
         channel: "Some Label",
