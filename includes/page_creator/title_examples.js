@@ -288,6 +288,34 @@ var mdbTitleExamples = [
         expect: "2026-04-03 - Fadi Mohem - HATE Podcast 496"
     },
     {
+        title: "Some Podcast 12 - Some DJ VS. Other DJ",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expectArtists: [ "Some DJ", "Other DJ" ],
+        expect: "2026-08-05 - Some DJ vs Other DJ - Some Podcast 12"
+    },
+    {
+        title: "Some Podcast 12 - Some DJ versus Other DJ",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expectArtists: [ "Some DJ", "Other DJ" ],
+        expect: "2026-08-05 - Some DJ vs Other DJ - Some Podcast 12"
+    },
+    {
+        title: "Some Podcast 12 - Some DJ B3B Other DJ",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expectArtists: [ "Some DJ", "Other DJ" ],
+        expect: "2026-08-05 - Some DJ b2b Other DJ - Some Podcast 12"
+    },
+    {
+        // the entity is a NAME - no joiner rewriting in there
+        title: "Some DJ - Techno versus House",
+        channel: "Some Label",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - Techno versus House (Promo Mix)"
+    },
+    {
         title: "SEVEN Mix 084 Theo Scuera",
         channel: "SEVEN",
         date: "2026-07-13",
