@@ -229,6 +229,36 @@ var mdbTitleExamples = [
         expectArtists: [ "See Bastian", "Afin" ],
         expect: "2023-08-02 - See Bastian b2b Afin - ULLE WAR SAUBER!! MIT DIR '23 Warm Up Session"
     },
+    {
+        url: "https://soundcloud.com/hmwl/tooker-house-music-with-love",
+        title: "HMWL Podcast 439: Tooker (SONARA / Crosstown Rebels)",
+        channel: "House Music With Love (HMWL)",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Tooker - HMWL Podcast 439"
+    },
+    {
+        // the same bracket, with the label list knowing neither name - the mix's own tracklist
+        // is what says they are labels
+        title: "HMWL Podcast 440: Some DJ (Ovum / Nervous)",
+        channel: "House Music With Love (HMWL)",
+        date: "2026-08-05",
+        description: "01. Some DJ - A Track [Ovum]\n02. Another One - B Track [Nervous - NUR123]\n\nFollow us!",
+        expect: "2026-08-05 - Some DJ - HMWL Podcast 440"
+    },
+    {
+        url: "https://soundcloud.com/selected-berlin/selected-podcast-064-w-strauss",
+        title: "[selected] podcast 064 w/ STRAUSS.",
+        channel: "[selected]",
+        date: "2026-08-11",
+        expect: "2026-08-11 - Strauss. - (selected) Podcast 064"
+    },
+    {
+        url: "https://soundcloud.com/phonomusicclub-inf/phono-music-club-podcats-by-2",
+        title: "Phono music club podcats by Neryn",
+        channel: "PHONO Music Club",
+        date: "2026-08-10",
+        expect: "2026-08-10 - Neryn - PHONO Music Club Podcast"
+    },
 
     // Reported before the URLs were kept
     {
@@ -324,6 +354,38 @@ var mdbTitleExamples = [
         channel: "Some Label",
         date: "2026-08-05",
         expect: "2026-08-05 - Some DJ - Techno versus House (Promo Mix)"
+    },
+    {
+        // a label the list has never heard of, recognised by the word it writes into its name
+        title: "HMWL Podcast 441: Some DJ (Ostgut Ton Records)",
+        channel: "House Music With Love (HMWL)",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - HMWL Podcast 441"
+    },
+    {
+        // One label and one unknown name: the bracket STAYS, and the title comes out badly on
+        // purpose - the point of the case is that the unknown name is still in it. Dropping a
+        // bracket that only half reads as a label credit would delete a real artist for good,
+        // which is worse than the 10% title a reader is warned about here.
+        title: "Some Podcast 12 - Some DJ (Tresor / Someone Else)",
+        channel: "Some Channel",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ Tresor Someone Else - Some Podcast 12"
+    },
+    {
+        // "by" behind the episode number does the job of a separator, in caps because the whole
+        // title is shouted
+        title: "SOME PODCAST 12 BY SOMEONE",
+        channel: "Some Channel",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Someone - Some Podcast 12"
+    },
+    {
+        // the same word, Normal Case, inside a name - nothing follows it
+        title: "Some Podcast 12 - Stand By Me",
+        channel: "Some Channel",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Stand By Me - Some Podcast 12"
     },
     {
         title: "SEVEN Mix 084 Theo Scuera",

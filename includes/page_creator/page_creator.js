@@ -29,9 +29,15 @@ log( "/includes/page_creator/page_creator.js loaded" );
  *         durationMs:  4321000,                      // optional, gates the 20 min minimum
  *         playerUrl:   "https://...",                // optional, goes into {{Player}}
  *         artworkUrl:  "https://...",                // optional, for MixesDB's upload form
+ *         description: "01. Artist - Title [Label]", // optional, see below
  *         target:      "#mdb-trackHeader-headline",  // where the row goes
  *         placement:   "after"                       // after|before|append|prepend
  *     });
+ *
+ * description is handed over here as well as to mdbPageCreator_addTracklist() below, and for a
+ * different reason: the TITLE builder reads the labels the tracklist credits ("Artist - Title
+ * [Label]"), so it can tell a label in brackets behind an artist from a second artist. See
+ * mdbTitleKnownLabels in title_definitions.js.
  *
  *     mdbPageCreator_watchToolkit();  // whenever the toolkit is (re)built
  *
@@ -105,7 +111,11 @@ function mdbPageCreator_add( options ) {
         playerTitle = o.title || "",
         channel = o.channel || "",
         createdAt = o.createdAt || "",
-        releaseDate = o.releaseDate || "";
+        releaseDate = o.releaseDate || "",
+        // Only the title builder's label test reads this, for the labels the tracklist credits
+        // ("Artist - Title [Label]") - see mdbTitleKnownLabels in title_definitions.js. The
+        // tracklist itself is a second call, mdbPageCreator_addTracklist().
+        description = o.description || "";
 
     mdbPageCreator_playerUrl = o.playerUrl || "";
     mdbPageCreator_artworkUrl = o.artworkUrl || "";
@@ -121,7 +131,7 @@ function mdbPageCreator_add( options ) {
     logVar( "mdbPageCreator_add: target", typeof mdbPageCreator_target === "string" ? mdbPageCreator_target : "(node)" );
     logVar( "mdbPageCreator_add: placement", mdbPageCreator_placement );
 
-    var first = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache ),
+    var first = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache, description ),
         // The MixesDB lookup below is a request, and on a site that navigates without loading
         // a document its answer can arrive after the reader has moved to the next mix - where
         // it would replace that mix's title with a refined guess about the previous one.
@@ -132,7 +142,7 @@ function mdbPageCreator_add( options ) {
     mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel ), function( known ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-        var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known );
+        var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );
 
         if( second.title !== first.title ) {
             logVar( "mdbPageCreator_add: MixesDB knew better", first.title + "  ->  " + second.title );
