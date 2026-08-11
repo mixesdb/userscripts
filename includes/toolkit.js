@@ -81,7 +81,29 @@ function ensureTrailingSlash( url ) {
     return url.replace(/\/?$/, '/');
 }
 
+// normalizeSiteDomain
+// Same site, other hostname: the Embed URL check below asks "does this player belong to the
+// page we are on?", and a site whose player URLs live on a second domain of its own would
+// answer that wrongly on a plain string comparison.
+// YouTube is the case: the toolkit hands the player around as https://youtu.be/<id>
+// everywhere (see getToolkit_fromIframe), while the page itself is on youtube.com - plus
+// m./music. subdomains, which the YouTube script's @match lets in as well.
+function normalizeSiteDomain( domain ) {
+    if( !domain ) {
+        return domain;
+    }
+
+    if( domain == "youtu.be" || /^([^.]+\.)?youtube(-nocookie)?\.com$/.test( domain ) ) {
+        return "youtube.com";
+    }
+
+    return domain;
+}
+
 // shouldShowEmbedUrl
+// Only show the URL of a player that IS this page - an embed URL from another domain
+// describes a foreign player (e.g. a SoundCloud widget on 1001tracklists.com), which is
+// nothing the visitor can copy into a MixesDB page from here.
 function shouldShowEmbedUrl( embedUrl ) {
     if( !embedUrl || visitDomain == "trackid.net" ) {
         return false;
@@ -93,7 +115,7 @@ function shouldShowEmbedUrl( embedUrl ) {
         return false;
     }
 
-    return visitDomain.replace("www.", "") == embedDomain;
+    return normalizeSiteDomain( visitDomain.replace("www.", "") ) == normalizeSiteDomain( embedDomain );
 }
 
 // removeTrackingParameters

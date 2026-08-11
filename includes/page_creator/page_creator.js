@@ -121,11 +121,17 @@ function mdbPageCreator_add( options ) {
     logVar( "mdbPageCreator_add: target", typeof mdbPageCreator_target === "string" ? mdbPageCreator_target : "(node)" );
     logVar( "mdbPageCreator_add: placement", mdbPageCreator_placement );
 
-    var first = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache );
+    var first = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache ),
+        // The MixesDB lookup below is a request, and on a site that navigates without loading
+        // a document its answer can arrive after the reader has moved to the next mix - where
+        // it would replace that mix's title with a refined guess about the previous one.
+        pageGeneration = mdbPageGeneration;
 
     mdbPageCreator_setTitle( first, o.durationMs );
 
     mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel ), function( known ) {
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
         var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known );
 
         if( second.title !== first.title ) {
@@ -759,7 +765,13 @@ function mdbPageCreator_addTracklist( options ) {
 
     log( "mdbPageCreator_addTracklist: nothing in the description - asking the site for the comments." );
 
+    // Another request whose answer can outlive the page it was asked for - these are the
+    // PREVIOUS mix's comments once the reader has clicked on. See mdbPageGeneration in global.js.
+    var pageGeneration = mdbPageGeneration;
+
     o.loadComments(function( comments ) {
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
         var fromComments = mdbTracklist_detectInComments( comments );
 
         if( fromComments ) mdbPageCreator_useTracklist( fromComments, "comments" );

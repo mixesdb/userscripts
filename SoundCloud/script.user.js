@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.1
+// @version      2026.08.11.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,12 +9,12 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_46
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_47
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_2
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_7
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_8
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -976,7 +976,13 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
     log( "sc-button-group/#mdb-sc-trackExtras matched. RUN_sc_button_group: " + RUN_sc_button_group + ", matched selector on: " + ( jNode.attr("id") || jNode.attr("class") ) );
 
     if( RUN_sc_button_group ) {
-        var isNewSoundCloudLayout = jNode.is('#mdb-sc-trackExtras');
+        var isNewSoundCloudLayout = jNode.is('#mdb-sc-trackExtras'),
+            // Which track this run is for. Everything below is two network round trips deep
+            // (access token, then the track), and jNode/title/artwork/description all describe
+            // THIS track - so if the reader has clicked on to the next one meanwhile, the
+            // answer has to be dropped instead of written into their page. See
+            // mdbPageGeneration in global.js.
+            pageGeneration = mdbPageGeneration;
 
         RUN_sc_button_group = false;
 
@@ -987,6 +993,8 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
 
             // API call
             getScAccessTokenFromApi(function(output){
+                if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
                 scAccessToken = output;
                 logVar( "scAccessToken", scAccessToken );
 
@@ -1014,6 +1022,11 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                         dataType: "json",
                         url: scApiURl_currentTrack,
                         success: function( t ) {
+                            // The reader moved on while this was in the air - this whole
+                            // block writes the track it describes into the page, so it would
+                            // put the PREVIOUS mix's header, page creator row and tracklist
+                            // onto the one now on screen.
+                            if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
                             var kind = t.kind,
                                 id = t.id,
