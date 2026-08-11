@@ -82,6 +82,41 @@ function mdbTitle_normalizeCompare( s ) {
     return String( s || "" ).toLowerCase().replace( /[^a-z0-9]/g, "" );
 }
 
+// mdbTitle_matchCase
+// Writes a word in the case another one was typed in: "PODCATS" -> "PODCAST", "Podcats" ->
+// "Podcast", "podcats" -> "podcast". Whether a bit of the title is shouted is a question
+// mdbTitle_toNormalCase answers later off the bit as a whole, so a correction must not change
+// the answer on its way past.
+function mdbTitle_matchCase( sample, word ) {
+    var first = sample.charAt( 0 );
+
+    if( sample === sample.toUpperCase() && sample !== sample.toLowerCase() ) return word.toUpperCase();
+    if( first === first.toUpperCase() && first !== first.toLowerCase() ) {
+        return word.charAt( 0 ).toUpperCase() + word.slice( 1 );
+    }
+
+    return word;
+}
+
+// mdbTitle_fixTypos
+// The misspellings of mdbTitleTypoFixes, corrected before any rule reads a word of the title.
+function mdbTitle_fixTypos( text ) {
+    var list = ( typeof mdbTitleTypoFixes !== "undefined" && mdbTitleTypoFixes ) ? mdbTitleTypoFixes : [],
+        i;
+
+    text = String( text || "" );
+
+    for( i = 0; i < list.length; i++ ) {
+        list[i].wrong.lastIndex = 0;
+
+        text = text.replace( list[i].wrong, function( found ) {
+            return mdbTitle_matchCase( found, list[i].right );
+        } );
+    }
+
+    return text;
+}
+
 // mdbTitle_isValidYmd
 function mdbTitle_isValidYmd( y, m, d ) {
     if( !y || !m || !d ) return false;
@@ -782,11 +817,134 @@ function mdbTitle_bitSplitRe() {
     return new RegExp( "(?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+", "g" );
 }
 
+// mdbTitle_bracketPairRe
+// One innermost bracket pair of any kind, with its content. Innermost, so a bracket inside a
+// bracket cannot pair up with the wrong one.
+function mdbTitle_bracketPairRe() {
+    return /[\(\[\{]([^\(\)\[\]\{\}]*)[\)\]\}]/g;
+}
+
+// mdbTitle_labelsFromTracklist
+// The labels a tracklist credits: "Artist - Title [Label]", "Artist - Title [Label - Cat#]".
+// Only a bracket ENDING a line that reads as a track is one - the " - " of "Artist - Title" has
+// to stand in front of it - so a "[Free Download]" in the prose around the tracklist is not
+// mistaken for a label. See mdbTitleKnownLabels in title_definitions.js for what this is for.
+function mdbTitle_labelsFromTracklist( text ) {
+    var lines = String( text || "" ).split( /[\r\n]+/ ),
+        names = [],
+        seen = {},
+        i, m, name, cmp;
+
+    for( i = 0; i < lines.length; i++ ) {
+        m = /\s[-–—]\s.*\[([^\[\]]+)\]\s*$/.exec( lines[i] );
+
+        if( !m ) continue;
+
+        // "[Label - Cat#]" - the catalogue number is not part of the label's name
+        name = mdbTitle_trimSeparators( m[1].split( /\s+[-–—]\s+/ )[0] );
+        cmp = mdbTitle_normalizeCompare( name );
+
+        if( !cmp || seen[cmp] ) continue;
+
+        seen[cmp] = true;
+        names.push( name );
+    }
+
+    return names;
+}
+
+// mdbTitle_isLabelName
+// Whether a name is a record label or an event organiser rather than an artist - the three
+// tests of mdbTitleKnownLabels, cheapest first. fromTracklist is the third one, and is empty
+// on a site that hands over no description.
+function mdbTitle_isLabelName( name, fromTracklist ) {
+    var pattern = ( typeof mdbTitleLabelWords !== "undefined" && mdbTitleLabelWords ) ? mdbTitleLabelWords : /\brecords?\b/i,
+        known = ( typeof mdbTitleKnownLabels !== "undefined" && mdbTitleKnownLabels ) ? mdbTitleKnownLabels : [],
+        cmp = mdbTitle_normalizeCompare( name ),
+        i;
+
+    if( !cmp ) return false;
+
+    pattern.lastIndex = 0;
+    if( pattern.test( name ) ) return true;
+
+    for( i = 0; i < known.length; i++ ) {
+        if( mdbTitle_normalizeCompare( known[i] ) === cmp ) return true;
+    }
+
+    for( i = 0; fromTracklist && i < fromTracklist.length; i++ ) {
+        if( mdbTitle_normalizeCompare( fromTracklist[i] ) === cmp ) return true;
+    }
+
+    return false;
+}
+
+// mdbTitle_isChannelBracket
+// Whether a bracket pair OPENING the title holds the channel name: "[selected] podcast 064" on
+// the channel "[selected]". There the brackets are how the brand writes itself and the words
+// behind them are the rest of the same name, so the pair is neither a chunk of its own nor a
+// credit to drop.
+// Only at the very start. A bracket at the END of a title is an aside about what stands in
+// front of it - "Tooker (SONARA)" credits Tooker's label even on SONARA's own channel - which
+// is exactly what mdbTitle_dropLabelBrackets is for.
+function mdbTitle_isChannelBracket( inside, offset, username ) {
+    if( !username || offset !== 0 ) return false;
+
+    return mdbTitle_normalizeCompare( inside ) === mdbTitle_normalizeCompare( username );
+}
+
+// mdbTitle_dropLabelBrackets
+// "Tooker (SONARA / Crosstown Rebels)" -> "Tooker": a bracket crediting the artist's label(s)
+// is none of a mix page title's business. Every name in the bracket has to be a label for it to
+// go - see mdbTitleKnownLabels in title_definitions.js for why, and for the three tests.
+// Runs before mdbTitle_bracketsToSeparators, i.e. while the brackets are still brackets.
+function mdbTitle_dropLabelBrackets( text, description, username ) {
+    var result = { text: String( text || "" ), dropped: [] },
+        // the description is only read when a bracket actually has to be decided about
+        fromTracklist = null;
+
+    if( !/[\(\[\{]/.test( result.text ) ) return result;
+
+    var out = result.text.replace( mdbTitle_bracketPairRe(), function( all, inside, offset ) {
+        if( mdbTitle_isChannelBracket( inside, offset, username ) ) return all;
+
+        // "SONARA / Crosstown Rebels", "Label A & Label B" - a bracket may credit several
+        var parts = String( inside ).split( /\s*[,\/|]\s*|\s+(?:&|x|and)\s+|\s+[-–—]\s+/i ),
+            names = [],
+            i, name;
+
+        for( i = 0; i < parts.length; i++ ) {
+            name = mdbTitle_trimSeparators( parts[i] );
+
+            if( name ) names.push( name );
+        }
+
+        if( !names.length ) return all;
+
+        if( fromTracklist === null ) fromTracklist = mdbTitle_labelsFromTracklist( description );
+
+        for( i = 0; i < names.length; i++ ) {
+            if( !mdbTitle_isLabelName( names[i], fromTracklist ) ) return all;
+        }
+
+        result.dropped = result.dropped.concat( names );
+        return " ";
+    } );
+
+    if( result.dropped.length ) {
+        result.text = out.replace( /\s+/g, " " ).trim();
+    }
+
+    return result;
+}
+
 // mdbTitle_bracketsToSeparators
 // "(...)"/"[...]"/"{...}" -> "| ... |": a bracketed chunk is a chunk of its own, exactly like a
 // "|"-separated one (see title_definitions.js). Rewritten rather than parsed, so every rule
 // that splits a title into bits sees it without knowing brackets exist.
-function mdbTitle_bracketsToSeparators( text ) {
+// The channel's own bracket at the head of the title is the exception (mdbTitle_isChannelBracket):
+// it stays where it is and becomes the ROUND bracket a wiki title may hold.
+function mdbTitle_bracketsToSeparators( text, username ) {
     text = String( text || "" );
 
     // Innermost pair first, so a bracket inside a bracket cannot pair up with the wrong one -
@@ -796,7 +954,11 @@ function mdbTitle_bracketsToSeparators( text ) {
 
     do {
         before = out;
-        out = out.replace( /[\(\[\{]([^\(\)\[\]\{\}]*)[\)\]\}]/g, " | $1 | " );
+        out = out.replace( mdbTitle_bracketPairRe(), function( all, inside, offset ) {
+            if( mdbTitle_isChannelBracket( inside, offset, username ) ) return "(" + inside + ")";
+
+            return " | " + inside + " | ";
+        } );
     } while( out !== before );
 
     if( out === text ) return text;
@@ -1230,6 +1392,44 @@ function mdbTitle_toNormalCase( s ) {
 // shouted one, so having re-cased anything is worth a confidence drop.
 var mdbTitle_reCased = false;
 
+// How the CHANNEL spells its own name, but only when the title spells it EXACTLY the same way -
+// see "Which spelling of the channel name to use" in title_definitions.js. Set once per
+// suggestion in buildMixesdbTitle, and "" whenever the two spellings differ, which is what
+// keeps "Yoyaku Instore Sessions" on the channel "yoyaku" out of it.
+var mdbTitle_channelSpelling = "";
+
+// mdbTitle_toNormalCaseKeeping
+// mdbTitle_toNormalCase, with the channel's own spelling left standing wherever it turns up.
+// The bit is split at it, so each piece is judged on its own case - "(selected) podcast 064"
+// re-cases the " podcast 064" and hands back "(selected) Podcast 064".
+function mdbTitle_toNormalCaseKeeping( s ) {
+    var keep = mdbTitle_channelSpelling,
+        parts,
+        i;
+
+    s = String( s || "" );
+
+    if( !keep || s.indexOf( keep ) === -1 ) return mdbTitle_toNormalCase( s );
+
+    parts = s.split( keep );
+
+    for( i = 0; i < parts.length; i++ ) {
+        parts[i] = mdbTitle_toNormalCase( parts[i] );
+    }
+
+    return parts.join( keep );
+}
+
+// mdbTitle_byMarkerFlags
+// The regex flags that make "by" the preposition rather than a word of a name, for the bit it
+// stands in: none (so only the lowercase "by" matches), or "i" inside a bit that is SHOUTED
+// throughout, where caps say nothing. See the "by" block in title_definitions.js.
+function mdbTitle_byMarkerFlags( text ) {
+    text = String( text || "" );
+
+    return ( text === text.toUpperCase() && text !== text.toLowerCase() ) ? "i" : "";
+}
+
 // mdbTitle_trimSeparators
 // The separators and whitespace a bit of the title is left with once its neighbours were cut
 // away. The trailing DOT is deliberately kept - artist names like "DJ MARIA." end in one and
@@ -1253,12 +1453,17 @@ function mdbTitle_cleanArtist( s ) {
 
     // leading connectors: "w/ Ruf Dug", "presents Ruf Dug", ...
     s = mdbTitle_trimSeparators( s );
-    s = s.replace( /^(?:w\/|with|feat\.?|ft\.?|presents?|pres\.?|by)\s+/i, "" );
+    s = s.replace( /^(?:w\/|with|feat\.?|ft\.?|presents?|pres\.?)\s+/i, "" );
+
+    // "by Neryn" is the same thing, but only where the "by" is not a word of the name itself -
+    // see the "by" block in title_definitions.js
+    s = s.replace( new RegExp( "^by\\s+", mdbTitle_byMarkerFlags( s ) ), "" );
 
     s = mdbTitle_trimSeparators( s );
 
-    // Normal Case for a bit that was shouted in caps or typed all lowercase
-    var normalCased = mdbTitle_toNormalCase( s );
+    // Normal Case for a bit that was shouted in caps or typed all lowercase, the channel's own
+    // spelling excepted
+    var normalCased = mdbTitle_toNormalCaseKeeping( s );
     if( normalCased !== s ) {
         logVar( "mdbTitle_cleanArtist: re-cased", s + " -> " + normalCased );
         mdbTitle_reCased = true;
@@ -1364,13 +1569,16 @@ function mdbTitle_showFromUsername( username ) {
 // Returns { title, confidence, reasons }. title is "" when there is not enough to work with.
 // known is the { name -> "artist"|"venue"|"other" } map from mdbTitle_lookupCategories(), or
 // nothing on the first pass, before MixesDB has answered.
-function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known ) {
+// description is the player page's description text, when the site has one. Only read for the
+// labels its tracklist credits (mdbTitleKnownLabels) - nothing else in here looks at it.
+function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known, description ) {
     logFunc( "buildMixesdbTitle" );
 
     var conf = mdbTitle_confidence(),
         nothing = { title: "", confidence: 0, reasons: [] };
 
     mdbTitle_reCased = false;
+    mdbTitle_channelSpelling = "";
 
     try {
         var rest = String( playerTitle || "" ).replace( /\s+/g, " " ).trim();
@@ -1378,6 +1586,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         logVar( "playerTitle", rest );
         logVar( "username", username );
+
+        // 0) typos in the words the parser itself reads, before any rule reads one
+        var spelled = mdbTitle_fixTypos( rest );
+
+        if( spelled !== rest ) {
+            logVar( "buildMixesdbTitle: typo corrected", rest + " -> " + spelled );
+            rest = spelled;
+        }
 
         // 1) drop decoration
         if( typeof mdbTitleNoise !== "undefined" && mdbTitleNoise ) {
@@ -1387,14 +1603,34 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             }
         }
 
+        // 1a) a bracket crediting the artist's label(s) - "Tooker (SONARA / Crosstown Rebels)".
+        // While the brackets are still brackets, i.e. before 1b turns them into separators.
+        var labelBrackets = mdbTitle_dropLabelBrackets( rest, description, username );
+
+        if( labelBrackets.dropped.length ) {
+            logVar( "buildMixesdbTitle: label credit dropped", labelBrackets.dropped.join( " | " ) );
+            rest = labelBrackets.text;
+        }
+
         // 1b) brackets are a chunk of their own, exactly like a "|" - written out as one here,
         // so that every rule below splits the title without having to know about brackets.
-        // After the noise, whose patterns are written WITH their brackets.
-        var unbracketed = mdbTitle_bracketsToSeparators( rest );
+        // After the noise, whose patterns are written WITH their brackets. The channel's own
+        // brackets are the exception and stay where they are ("[selected] podcast 064").
+        var unbracketed = mdbTitle_bracketsToSeparators( rest, username );
 
         if( unbracketed !== rest ) {
             logVar( "buildMixesdbTitle: brackets read as separators", rest + " -> " + unbracketed );
             rest = unbracketed;
+        }
+
+        // The title spelling the channel name exactly the way the channel does is the real
+        // spelling, and Normal Case must not touch it. After 1b, so a channel name in brackets
+        // is compared in the round-bracket spelling both sides have by then.
+        var channelSpelling = mdbTitle_wikiSafe( username );
+
+        if( channelSpelling && rest.indexOf( channelSpelling ) !== -1 ) {
+            mdbTitle_channelSpelling = channelSpelling;
+            logVar( "buildMixesdbTitle: the title spells the channel name the channel's way", channelSpelling );
         }
 
         // 1c) chunks a mix page title does not carry - "Part 2", a stage, a camp. Done on the
@@ -1668,8 +1904,16 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // mdbTitleCounterWords - "Truancy Volume 300" keeps its "Volume".
         if( episode && episode.word && !taken.taken ) {
             var showFromTitle = mdbTitle_cleanArtist( beforeEpisode ),
-                episodeWord = mdbTitle_isCounterWord( episode.word ) ? "" : " " + episode.word,
-                artistAfter = new RegExp( "^\\s*[" + mdbTitle_sepInner + ",]+\\s*(.+)$" ).exec( afterEpisode );
+                // Normal Case for the keyword, exactly as mdbTitle_takeShowOutOfTitle does with
+                // the same words: it is a common noun off a curated list, so "SOME PODCAST 12"
+                // gives the show "Some Podcast" and not "Some PODCAST". The show NAME in front
+                // of it is a name we know nothing about and is not touched here.
+                episodeWord = mdbTitle_isCounterWord( episode.word ) ? "" : " " + mdbTitle_toNormalCase( episode.word ),
+                // "by" does the job of a separator here: "Some Podcast 12 by Someone" names its
+                // artist without one. See the "by" block in title_definitions.js for which one
+                // counts - the flags are what keeps the "By" of a name out.
+                artistAfter = new RegExp( "^\\s*(?:[" + mdbTitle_sepInner + ",]+|by\\b)\\s*(.+)$",
+                                          mdbTitle_byMarkerFlags( afterEpisode ) ).exec( afterEpisode );
 
             if( showFromTitle && artistAfter && mdbTitle_cleanArtist( artistAfter[1] ) ) {
                 show = ( showFromTitle + episodeWord ).replace( /\s+/g, " " );

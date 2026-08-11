@@ -86,7 +86,14 @@ log( "/includes/page_creator/title_definitions.js loaded" );
  * is applied: a bracket a title still carries at that point is holding something ("[Live]",
  * "[Part 2]"), so it becomes the ROUND bracket a wiki title may hold, never a space. Dropping
  * a bracket pair takes a word with it, which is a decision - and the rules that make those
- * (mdbTitleNoise, mdbTitleDroppedBitPatterns) have all run by then.
+ * (mdbTitleNoise, mdbTitleDroppedBitPatterns, mdbTitleKnownLabels) have all run by then.
+ *
+ *     "[selected] podcast 064 w/ STRAUSS."  (channel "[selected]")
+ *     WRONG: 2026-08-11 - Strauss. - Podcast 064
+ *     RIGHT: 2026-08-11 - Strauss. - (selected) Podcast 064
+ *
+ * The brackets are what the show is called there, and losing them loses the name. A square
+ * bracket becomes a round one - it is never simply removed.
  */
 var mdbTitleWikiIllegalChars = /[#<>\[\]|{}]+/g;
 
@@ -144,7 +151,17 @@ var mdbTitleApostropheChars = /[`´‘’‚‛ʻʼ′]/g;
  * which mdbTitleDroppedBitPatterns drops, and the title comes out as
  * "2016-07-14 - Anja Schneider @ Docklands".
  *
- * Decoration in brackets is gone by then - mdbTitleNoise runs first.
+ * Decoration in brackets is gone by then - mdbTitleNoise runs first, and so does the label
+ * credit of mdbTitleKnownLabels below.
+ *
+ * The one bracket that is NOT a chunk of its own is the one OPENING the title with the CHANNEL
+ * NAME. There the brackets are how the brand writes itself and the words behind them are the
+ * rest of the same name: "[selected] podcast 064" is one show, not a "[selected]" standing next
+ * to a "podcast 064". It keeps its place and its brackets become round ones (mdbTitle_wikiSafe).
+ *
+ * Only at the head of the title. A bracket at the END is an aside about what stands in front of
+ * it, and stays one however it reads - "Tooker (SONARA)" credits Tooker's label even when it is
+ * SONARA uploading it.
  */
 
 
@@ -214,6 +231,70 @@ var mdbTitleUsernameConversions = {
     "NTS Latest": "NTS Radio",
     "Resident Advisor": "RA Podcast"
 };
+
+
+/*
+ * mdbTitleTypoFixes
+ *
+ * Misspellings corrected before the title is parsed at all, i.e. before any rule reads a word
+ * of it. A typo in an ordinary word costs a letter; a typo in a word the PARSER reads costs
+ * the whole title:
+ *
+ *     "Phono music club podcats by Neryn"  (channel "PHONO Music Club")
+ *     WRONG: 2026-08-10 - PHONO Music Club - podcats by Neryn (Promo Mix)
+ *     RIGHT: 2026-08-10 - Neryn - PHONO Music Club Podcast
+ *
+ * "podcats" is not in mdbTitleShowSuffixWords, so the channel name never grew into
+ * "PHONO Music Club Podcast", and everything after that followed from it.
+ *
+ * Only for words that can be nothing BUT a typo of a word the parser reads - never for a
+ * spelling somebody may have meant. The case of what was typed is kept ("PODCATS" comes back as
+ * "PODCAST", not as "Podcast"): which case a bit of the title is in is a question
+ * mdbTitle_toNormalCase answers later, off the bit as a whole, and this must not answer it early.
+ */
+var mdbTitleTypoFixes = [
+    { wrong: /\bpodcats\b/gi, right: "podcast" },
+    { wrong: /\bpodast\b/gi,  right: "podcast" },
+    { wrong: /\bpocast\b/gi,  right: "podcast" }
+];
+
+
+/*
+ * mdbTitleLabelWords / mdbTitleKnownLabels
+ *
+ * What an uploader puts in brackets behind an artist is usually the LABEL or the crew that
+ * artist is on, and a MixesDB mix page title does not carry it:
+ *
+ *     "HMWL Podcast 439: Tooker (SONARA / Crosstown Rebels)"
+ *     WRONG: 2026-08-05 - Tooker SONARA Crosstown Rebels - HMWL Podcast 439
+ *     RIGHT: 2026-08-05 - Tooker - HMWL Podcast 439
+ *
+ * Nothing in the SHAPE of "(SONARA / Crosstown Rebels)" says that - it reads exactly like a
+ * bracket holding a second artist - so the names in it are tested against three things in turn,
+ * cheapest first (mdbTitle_isLabelName in title_builder.js):
+ *
+ * 1. mdbTitleLabelWords - the word a label writes into its own name ("Records", "Recordings",
+ *    "Rec.", "Label"). One of those and there is nothing left to ask.
+ * 2. mdbTitleKnownLabels - the labels and event organisers reported so far, by name. Kept
+ *    ALPHABETICAL so it stays readable as it grows, and extended by hand from reports.
+ * 3. the labels this mix's own TRACKLIST credits, which is where a label is written out in
+ *    full: "Artist - Title [Label]" and "Artist - Title [Label - Cat#]". A name the uploader
+ *    credits behind a track is a label whether or not any list here knows it - which is what
+ *    makes this work for the label nobody has reported yet. The site script hands the
+ *    description over; a site that has none simply stops after step 2.
+ *
+ * EVERY name in the bracket has to pass for the bracket to be dropped. "(SONARA / Crosstown
+ * Rebels)" only goes because both do - a bracket holding one label and one unknown word is far
+ * more likely to be something we have not understood than a label credit, and a wrong drop
+ * takes a name out of the title for good.
+ */
+var mdbTitleLabelWords = /\b(?:labels?|records?|recordings?|recs?|imprint|schallplatten)\b\.?/i;
+
+var mdbTitleKnownLabels = [
+    "Crosstown Rebels",
+    "SONARA",
+    "Tresor"
+];
 
 
 /*
@@ -437,6 +518,26 @@ var mdbTitleLiveAtWords = [
  * artist swap places. The phrase itself is dropped: MixesDB has no "Guest Mix" in a title,
  * the guest simply IS the artist.
  */
+/*
+ * "by" says a NAME follows
+ *
+ * The word behind a show name is the artist, with or without a separator in between:
+ *
+ *     "Phono music club podcast by Neryn"  ->  2026-08-10 - Neryn - PHONO Music Club Podcast
+ *     "Some Podcast 12 by Someone"         ->  2026-08-05 - Someone - Some Podcast 12
+ *
+ * Which "by" counts is decided by its CASE, because the word is also an ordinary English one:
+ *
+ * - written lowercase, it is the preposition and a name follows it
+ * - written "BY" inside a bit that is SHOUTED throughout, it is the same word - caps say
+ *   nothing there, everything around it is in caps too
+ * - written "By" inside a bit that is not, it is a word of the NAME ("Stand By Me"), and
+ *   nothing follows it
+ *
+ * Read in two places: mdbTitle_cleanArtist drops it off the front of what is left over
+ * ("... podcast by Neryn" leaves " by Neryn"), and rule 5b of buildMixesdbTitle takes it as the
+ * separator between an episode number and the artist behind it.
+ */
 var mdbTitleGuestMarkers = [
     "guest mix",
     "guestmix",
@@ -487,6 +588,17 @@ var mdbTitleGuestMarkers = [
  *
  * A channel whose title spells it the same way is unaffected, which is why "SEVEN Mix 084"
  * and "HATE Podcast 496" keep their caps.
+ *
+ * The mirror of that rule is what keeps the channel's spelling out of Normal Case: a bit of the
+ * title spelling the channel name EXACTLY the way the channel does is two independent sources
+ * agreeing on it, so it is the real spelling and mdbTitle_toNormalCase leaves it alone:
+ *
+ *     "[selected] podcast 064 w/ STRAUSS."  (channel "[selected]")
+ *     ->  "(selected) Podcast 064", never "(Selected) Podcast 064"
+ *
+ * Exact case, nothing looser. A title writing "Yoyaku" for the channel "yoyaku" confirms
+ * nothing - it is one of the two spellings, not both - and there the ordinary rules decide,
+ * which is what keeps "Yoyaku Instore Sessions" out of this.
  */
 
 

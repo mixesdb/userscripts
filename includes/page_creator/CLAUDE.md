@@ -39,7 +39,9 @@ then `loadRawCss()` `page_creator.css` next to the script's own `script.css`, an
 `mdbPageCreator_add({ title, channel, createdAt, ..., target, placement })` when the site's data
 arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built. A site whose
 player pages carry a description adds `mdbPageCreator_addTracklist({ description, loadComments,
-target, placement })` - see the next section. SoundCloud is the reference implementation.
+target, placement })` - see the next section - and hands the same `description` to
+`mdbPageCreator_add()`, where the TITLE builder reads the labels its tracklist credits.
+SoundCloud is the reference implementation.
 
 `target` should be a **selector string**, not a node: these sites re-render under the script's
 feet, and the string is looked up again on every render.
@@ -164,6 +166,8 @@ fixing the report, not a separate step or something to ask about first. Per repo
    `expect`. `expect` is my expected title. When the report is about the CATEGORIES the page is
    filed under rather than the title, add `expectArtists` as well - the artist categories, one
    per artist, which the runner reads off the built title with `mdbTitle_titleCategories()`.
+   `description` is optional and only matters to the label test (`mdbTitleKnownLabels`), which
+   reads the labels a tracklist credits (`Artist - Title [Label]`) out of it.
 2. `channel` is the channel/uploader name as the site's API gives it, NOT the URL slug - they
    differ constantly (on SoundCloud it is the API field `username`: `discoanon` ->
    "Discoholics Anonymous", `sevenberlin` -> "SEVEN"). If I did not give it, or gave it in

@@ -38,8 +38,10 @@ for( const example of mdbTitleExamples ) {
         known[ mdbTitle_normalizeCompare( name ) ] = example.known[name];
     }
 
-    // createdAt, releaseDate - the same two the track page passes in
-    const got = buildMixesdbTitle( example.title, example.channel, example.date, "", known ),
+    // createdAt, releaseDate - the same two the track page passes in. description is optional
+    // and only matters to the label test (mdbTitleKnownLabels), which reads the labels the
+    // tracklist credits out of it.
+    const got = buildMixesdbTitle( example.title, example.channel, example.date, "", known, example.description || "" ),
           titleOk = got.title === example.expect;
 
     // A case may also state the artist categories the page has to be filed under - one per
