@@ -1091,6 +1091,65 @@ function mdbTitle_joinArtists( artist, extraArtists ) {
     return [ artist ].concat( extraArtists ).join( joiner );
 }
 
+// mdbTitle_splitArtists
+// The mirror of mdbTitle_joinArtists, and the one that has to hold for titles WE did not build:
+// the artist group of a finished title -> the names in it, one per MixesDB artist category.
+// See mdbTitleArtistSplitJoiners for the joiners and why the list is longer than what the
+// builder itself writes.
+function mdbTitle_splitArtists( artistField ) {
+    var joiners = ( typeof mdbTitleArtistSplitJoiners !== "undefined" && mdbTitleArtistSplitJoiners ) ? mdbTitleArtistSplitJoiners : [ "&" ],
+        // "," splits with or without whitespace around it. A WORD joiner needs whitespace on
+        // BOTH sides, or the "x" of "Maxxi Soundsystem" and the "b2b" of a name would split a
+        // single artist in two.
+        re = new RegExp( "\\s*,\\s*|\\s+(?:" + mdbTitle_wordListAlternation( joiners ) + ")\\s+", "gi" ),
+        parts = String( artistField || "" ).split( re ),
+        names = [],
+        name,
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        // no episode stripping on an artist: "Asa 808" is a name, and the number belongs to it.
+        // The "(Promo Mix)" suffix is not part of the last one's name either.
+        name = mdbTitle_trimSeparators( String( parts[i] || "" ).replace( /\s*\(\s*Promo Mix\s*\)\s*$/i, "" ) );
+
+        if( name ) names.push( name );
+    }
+
+    return names;
+}
+
+// mdbTitle_titleCategories
+// A finished MixesDB title -> { year, artists, entity }, i.e. what the wiki files the page
+// under. Read off the TITLE and not off what the parser had in mind: the suggestion is editable,
+// and a corrected title has to take its categories with it. Which is also why this parses rather
+// than remembers - the title it is handed may never have been built here at all.
+function mdbTitle_titleCategories( title ) {
+    var text = String( title || "" ),
+        bits = text.split( mdbTitle_bitSplitRe() ),
+        year = ( text.match( /^\s*(\d{4})/ ) || [ "", "" ] )[1],
+        artistField = bits[1] || "",
+        entity = bits[2] || "";
+
+    // A live recording has no third bit: what stands behind the "@" is the entity there. The
+    // city behind the venue is not a category of its own - "... @ Wire Club, Leeds" is filed
+    // under Wire Club alone - so only the part in front of the comma is taken.
+    var atParts = artistField.split( /\s+@\s+/ );
+
+    if( atParts.length > 1 ) {
+        artistField = atParts[0];
+
+        if( !entity ) {
+            entity = atParts.slice( 1 ).join( " @ " ).split( "," )[0];
+        }
+    }
+
+    return {
+        year: year,
+        artists: mdbTitle_splitArtists( artistField ),
+        entity: mdbTitle_trimSeparators( entity )
+    };
+}
+
 // mdbTitle_capitalizeFirst
 // Uppercases the first CASED character, so "(no" becomes "(No" and a leading bracket or
 // quote does not swallow the capital. Works on any alphabet - a character is a letter when
@@ -1208,10 +1267,46 @@ function mdbTitle_cleanArtist( s ) {
 
     // Help:Add_a_new_mix_page: "DJ not Dj"
     s = s.replace( /\bdj\b/gi, "DJ" );
-    // ... and b2b stays lowercase, as in "Ruf Dug b2b Daniel John Willis - NTS Radio"
-    s = s.replace( /\bb2b\b/gi, "b2b" );
+    // ... and the joiners between two names stay lowercase, as in "Ruf Dug b2b Daniel John
+    // Willis - NTS Radio"
+    s = mdbTitle_lowercaseJoiners( s );
 
     return s;
+}
+
+// mdbTitle_lowercaseJoiners
+// "See Bastian B2B Afin" -> "See Bastian b2b Afin". See mdbTitleLowercaseJoiners.
+// Only the case is changed, so a "VS." keeps its dot.
+function mdbTitle_lowercaseJoiners( s ) {
+    var joiners = ( typeof mdbTitleLowercaseJoiners !== "undefined" && mdbTitleLowercaseJoiners ) ? mdbTitleLowercaseJoiners : [];
+
+    s = String( s || "" );
+
+    if( !joiners.length ) return s;
+
+    return s.replace(
+        new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( joiners ) + ")\\b", "gi" ),
+        function( joiner ) { return joiner.toLowerCase(); }
+    );
+}
+
+// mdbTitle_tidy
+// The MixesDB spelling conventions that hold for every group of a title, whichever branch built
+// it - see "The spelling every group is held to" in title_definitions.js for the list and for
+// what deliberately is not on it. Runs AFTER mdbTitle_wikiSafe(), so the square brackets are
+// round ones by now and the spaces that replaced an illegal character are tidied up too.
+function mdbTitle_tidy( s ) {
+    var apostrophes = ( typeof mdbTitleApostropheChars !== "undefined" && mdbTitleApostropheChars ) ? mdbTitleApostropheChars : /[`´‘’]/g;
+
+    apostrophes.lastIndex = 0;
+
+    return String( s || "" )
+        .replace( apostrophes, "'" )
+        .replace( /\(\s+/g, "(" )
+        .replace( /\s+\)/g, ")" )
+        .replace( /\s+,/g, "," )
+        .replace( /\s+/g, " " )
+        .trim();
 }
 
 // mdbTitle_usernameConversionKey
@@ -1831,6 +1926,10 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
         out += " (Promo Mix)";
     }
 
+    // an empty group anywhere leaves a double space behind, and a trailing separator a trailing
+    // space - neither belongs in a page title, whatever put it there
+    out = out.replace( /\s+/g, " " ).trim();
+
     logVar( "mdbTitle_assemble result", out );
     return out;
 }
@@ -1841,8 +1940,10 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
 // never a richer title, it always means a part of the player title was misread - it
 // cannot be repaired blindly here, so it is flagged hard instead.
 function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists, conf ) {
-    artist = mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) );
-    entity = mdbTitle_wikiSafe( entity );
+    // wikiSafe first (what a wiki title may hold at all), then tidy (how MixesDB spells it),
+    // then the lowercase joiners, which are about names and so only apply to the artist group
+    artist = mdbTitle_lowercaseJoiners( mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) ) ) );
+    entity = mdbTitle_tidy( mdbTitle_wikiSafe( entity ) );
 
     // " (Promo Mix)" only where the name does not already say it - the page still goes into
     // the category either way, which is what promoCategory carries out to the UI
@@ -1900,12 +2001,19 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
 // mdbTitle_wikiSafe
 // Takes out what a MediaWiki page title cannot hold (see title_definitions.js). A space, not
 // nothing, so "RAUSCH#6" reads as "RAUSCH 6" and not "RAUSCH6".
+// The square brackets go first and become ROUND ones: a bracket still standing here is holding
+// a word ("[Live]"), and replacing it with a space would strip the pair for no reason.
 function mdbTitle_wikiSafe( s ) {
     var illegal = ( typeof mdbTitleWikiIllegalChars !== "undefined" && mdbTitleWikiIllegalChars ) ? mdbTitleWikiIllegalChars : /[#<>\[\]|{}]+/g;
 
     illegal.lastIndex = 0;
 
-    return String( s || "" ).replace( illegal, " " ).replace( /\s+/g, " " ).trim();
+    return String( s || "" )
+        .replace( /\[/g, "(" )
+        .replace( /\]/g, ")" )
+        .replace( illegal, " " )
+        .replace( /\s+/g, " " )
+        .trim();
 }
 
 // mdbTitle_countGroups

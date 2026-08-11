@@ -24,8 +24,8 @@ const source = [ "title_definitions.js", "title_builder.js", "title_examples.js"
     .map( file => Deno.readTextFileSync( dir + file ) )
     .join( "\n" );
 
-const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitleExamples ] =
-    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitleExamples ]" );
+const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitleExamples ] =
+    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitleExamples ]" );
 
 let failed = 0;
 
@@ -40,16 +40,27 @@ for( const example of mdbTitleExamples ) {
 
     // createdAt, releaseDate - the same two the track page passes in
     const got = buildMixesdbTitle( example.title, example.channel, example.date, "", known ),
-          ok = got.title === example.expect;
+          titleOk = got.title === example.expect;
 
-    if( !ok ) failed++;
+    // A case may also state the artist categories the page has to be filed under - one per
+    // artist, which is what a joiner between two names decides. Read off the built title, the
+    // same way the "Create" link reads it off the (editable) input.
+    const artists = mdbTitle_titleCategories( got.title ).artists,
+          artistsOk = !example.expectArtists ||
+                      artists.join( " | " ) === example.expectArtists.join( " | " );
+
+    if( !titleOk || !artistsOk ) failed++;
 
     console.log(
-        ( ok ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
-        "\n              " + ( ok ? "" : "got      " ) + JSON.stringify( got.title ) +
-        ( ok ? "" : "\n              expected " + JSON.stringify( example.expect ) )
+        "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
+        ( titleOk ? "" : "\n              expected " + JSON.stringify( example.expect ) ) +
+        ( example.expectArtists
+            ? "\n              " + ( artistsOk ? "" : "got      " ) + "categories " + JSON.stringify( artists ) +
+              ( artistsOk ? "" : "\n              expected   categories " + JSON.stringify( example.expectArtists ) )
+            : "" )
     );
 }
 

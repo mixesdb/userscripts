@@ -81,8 +81,51 @@ log( "/includes/page_creator/title_definitions.js loaded" );
  * turning up in a suggestion never means "this title has a pipe in it" - it means a bit of the
  * title was not split up and not understood. It is replaced anyway, but the parse is what has
  * to be fixed when one appears.
+ *
+ * The SQUARE brackets are the exception, and mdbTitle_wikiSafe() handles them before this list
+ * is applied: a bracket a title still carries at that point is holding something ("[Live]",
+ * "[Part 2]"), so it becomes the ROUND bracket a wiki title may hold, never a space. Dropping
+ * a bracket pair takes a word with it, which is a decision - and the rules that make those
+ * (mdbTitleNoise, mdbTitleDroppedBitPatterns) have all run by then.
  */
 var mdbTitleWikiIllegalChars = /[#<>\[\]|{}]+/g;
+
+
+/*
+ * mdbTitleApostropheChars
+ *
+ * The apostrophe variants an uploader's keyboard produces, all written as the plain "'" that
+ * MixesDB uses:
+ *
+ *     "MIT DIR `23 Warm Up Session"  ->  "MIT DIR '23 Warm Up Session"
+ *
+ * A page title spelled with a backtick or a typographic quote is a different page from the
+ * same title spelled plainly, so this is not cosmetics: it decides whether an editor finds
+ * the page again. Only apostrophe-SHAPED characters belong here - quotation marks (" “ ”) are
+ * a different character with a different job and are left alone.
+ */
+var mdbTitleApostropheChars = /[`´‘’‚‛ʻʼ′]/g;
+
+
+/*
+ * The spelling every group is held to
+ *
+ * mdbTitle_tidy() in title_builder.js runs over the artist and the entity at the single exit of
+ * buildMixesdbTitle(), so it holds whichever branch built them, and over nothing else. These are
+ * MixesDB spelling conventions, not parsing - they never change WHAT a group says, only how it
+ * is written, which is why they can be applied blindly to a group nobody understood:
+ *
+ * - apostrophe variants become "'"                    (mdbTitleApostropheChars)
+ * - "[...]" becomes "(...)"                           (mdbTitle_wikiSafe, see above)
+ * - no space behind "(" or in front of ")"            "( Live )"     -> "(Live)"
+ * - no space in front of ","                          "Tonino , DJ"  -> "Tonino, DJ"
+ * - a run of spaces becomes one, and the title is trimmed
+ *
+ * What is NOT in that list, and must not be added to it: dropping brackets. A bracket that is
+ * still standing at the exit is holding a word, and a word is not something a cleanup step gets
+ * to decide about - mdbTitleNoise and mdbTitleDroppedBitPatterns are where a chunk is dropped,
+ * both of them off a list that says which chunks, and both long before this.
+ */
 
 
 /*
@@ -262,6 +305,55 @@ var mdbTitleExtraArtistJoiner = ", ";
  */
 var mdbTitleTogetherArtistJoiners = [
     "x"
+];
+
+
+/*
+ * mdbTitleLowercaseJoiners
+ *
+ * Joiners MixesDB writes in LOWERCASE wherever they stand between two artists, however the
+ * uploader shouted them:
+ *
+ *     "See Bastian B2B Afin"  ->  "See Bastian b2b Afin"
+ *     "Surgeon VS Regis"      ->  "Surgeon vs Regis"
+ *
+ * Only the case is touched - a "VS." keeps its dot, since which of the two spellings a title
+ * uses is not this rule's business.
+ *
+ * Applied to the artist group, not to the entity: these are words between NAMES. An entity
+ * that carries one got it through mdbTitle_cleanArtist, which spells names the same way.
+ */
+var mdbTitleLowercaseJoiners = [
+    "b2b2b", "b3b", "b2b", "vs"
+];
+
+
+/*
+ * mdbTitleArtistSplitJoiners
+ *
+ * What separates two ARTISTS inside the artist group - i.e. every way a MixesDB title can say
+ * "more than one person played this". The page creator files one [[Category:<name>]] per artist
+ * off this list, so a joiner missing from it costs a category:
+ *
+ *     "2023-08-02 - See Bastian b2b Afin - ..."
+ *     ->  [[Category:See Bastian]] [[Category:Afin]], never [[Category:See Bastian b2b Afin]]
+ *
+ * The "," (one after another) and the "&" (together) are what the builder itself writes; the
+ * word joiners are here because the title is EDITABLE - what the reader corrected it to has to
+ * be filed the same way, and they type "b2b", "vs" and "feat." rather than the builder's
+ * spelling.
+ *
+ * A word joiner needs whitespace on both sides, which is what keeps the "x" in "Maxxi
+ * Soundsystem" out of it - see mdbTitle_splitArtists(). The "," does not, and it is the one
+ * entry that can also stand inside a name, which is a trade MixesDB makes as well.
+ *
+ * Longest entry first, so "b2b2b" is not read as "b2b" with a stray "2b" behind it.
+ */
+var mdbTitleArtistSplitJoiners = [
+    "b2b2b", "b3b", "b2b",
+    "versus", "vs.", "vs",
+    "featuring", "feat.", "feat", "ft.", "ft",
+    "&", "x"
 ];
 
 
