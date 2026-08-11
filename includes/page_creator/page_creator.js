@@ -247,44 +247,25 @@ function mdbPageCreator_fileDetails() {
 
 // mdbPageCreator_pageCategories
 // Read out of the title in the input, not out of what the parser had in mind: the input is
-// editable, and a corrected title has to take its categories with it.
+// editable, and a corrected title has to take its categories with it. Reading it is
+// mdbTitle_titleCategories() in title_builder.js - parsing a title is its job, and the examples
+// suite tests it there. What is decided HERE is what the page, not the title, says: whether the
+// mix is a promo mix, and how its tracklist is filed.
 //
-// "Date - Artist - Entity" gives the year, one category per artist, and the entity. The two
+// "Date - Artist - Entity" gives the year, one category per artist (every joiner between two
+// names means another one - "See Bastian b2b Afin" is two categories), and the entity. The two
 // empty slots are the styles - nothing on a player page says what a mix sounds like, and a
 // guess there is worse than a blank the editor cannot miss. The "Tracklist:" filing is whatever
 // the Tracklist Editor API last said about the box - "none" when there is no tracklist at all.
 function mdbPageCreator_pageCategories( title ) {
-    var bits = String( title || "" ).split( mdbTitle_bitSplitRe() ),
-        year = ( String( title || "" ).match( /^\s*(\d{4})/ ) || [ "", "" ] )[1],
-        artistField = bits[1] || "",
-        entity = bits[2] || "",
+    var read = mdbTitle_titleCategories( title ),
         cats = [],
         i;
 
-    if( year ) cats.push( year );
+    if( read.year ) cats.push( read.year );
 
-    // A live recording has no third bit: what stands behind the "@" is the entity there. The
-    // city behind the venue is not a category of its own - "... @ Wire Club, Leeds" is filed
-    // under Wire Club alone - so only the part in front of the comma is taken.
-    var atParts = artistField.split( /\s+@\s+/ );
-
-    if( atParts.length > 1 ) {
-        artistField = atParts[0];
-
-        if( !entity ) {
-            entity = atParts.slice( 1 ).join( " @ " ).split( "," )[0];
-        }
-    }
-
-    // the separators MixesDB writes between artists - "," for one after another, "&" for
-    // together - both mean one category each
-    var artists = artistField.split( /\s*(?:,|&)\s*/ );
-
-    for( i = 0; i < artists.length; i++ ) {
-        // no episode stripping on an artist: "Asa 808" is a name, and the number belongs to it
-        var artist = $.trim( artists[i].replace( /\s*\(Promo Mix\)\s*$/, "" ) );
-
-        if( artist ) cats.push( artist );
+    for( i = 0; i < read.artists.length; i++ ) {
+        cats.push( read.artists[i] );
     }
 
     // Help:Add_a_new_mix_page - a self-released mix is filed under Promo Mix, and what stands in
@@ -293,7 +274,7 @@ function mdbPageCreator_pageCategories( title ) {
     // and Promo Mix, never under "Secret Santana Tapes". The flag covers the titles that leave
     // the suffix off because the name already says it (see mdbPageCreator_syncPromoNote).
     var isPromoMix = mdbPageCreator_promoCategory || /\(Promo Mix\)\s*$/.test( title ),
-        entityCategory = isPromoMix ? "Promo Mix" : mdbPageCreator_entityCategory( entity );
+        entityCategory = isPromoMix ? "Promo Mix" : mdbPageCreator_entityCategory( read.entity );
 
     if( entityCategory ) cats.push( entityCategory );
 

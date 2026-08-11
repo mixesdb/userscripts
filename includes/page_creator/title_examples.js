@@ -19,6 +19,11 @@
  * expect is the MixesDB title it should turn into. The url is only there to look the mix up
  * again.
  *
+ * expectArtists is optional and holds the ARTIST CATEGORIES the finished title has to be filed
+ * under, as reported. Only worth writing down where the split is the point of the case - a
+ * title naming two artists, a name that must NOT be split - since for a single artist it only
+ * repeats the middle group of expect.
+ *
  * Why a case matters is not written per case either: it is in the rule it belongs to, in
  * title_definitions.js. A case that fails sends you there.
  *
@@ -215,6 +220,14 @@ var mdbTitleExamples = [
         channel: "yoyaku",
         date: "2026-07-15",
         expect: "2026-07-15 - Alich - Yoyaku Instore Session"
+    },
+    {
+        url: "https://soundcloud.com/mitdirfestival/see-bastian-b2b-afin-ulle-war-sauber-mit-dir-23-warm-up-session",
+        title: "See Bastian B2B Afin - ULLE WAR SAUBER!! (MIT DIR `23 Warm Up Session)",
+        channel: "MIT DIR Festival",
+        date: "2023-08-02",
+        expectArtists: [ "See Bastian", "Afin" ],
+        expect: "2023-08-02 - See Bastian b2b Afin - ULLE WAR SAUBER!! MIT DIR '23 Warm Up Session"
     },
 
     // Reported before the URLs were kept

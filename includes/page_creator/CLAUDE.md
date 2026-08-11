@@ -15,7 +15,7 @@ reads the values off its own page/API and hands them over.
 | File | What it is |
 | --- | --- |
 | `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options |
-| `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup |
+| `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup. Also `mdbTitle_titleCategories()`, the way back: a finished title -> the year, the artists and the entity the page is filed under |
 | `title_definitions.js` | The word lists and channel->show mappings the parser uses. Plain data, meant to be extended by hand - this is where the learning from each report goes |
 | `tracklist_detector.js` | `mdbTracklist_detectInText()` / `mdbTracklist_detectInComments()`: which lines of a description are the tracklist. No DOM, no network - see below |
 | `page_creator.css` | Styles the row and the tracklist box. Loaded with `loadRawCss()` by each site script |
@@ -161,7 +161,9 @@ deno run --allow-read includes/page_creator/title_examples_test.js
 fixing the report, not a separate step or something to ask about first. Per report:
 
 1. Add the case under the site it was reported from: `url`, `title`, `channel`, `date`,
-   `expect`. `expect` is my expected title.
+   `expect`. `expect` is my expected title. When the report is about the CATEGORIES the page is
+   filed under rather than the title, add `expectArtists` as well - the artist categories, one
+   per artist, which the runner reads off the built title with `mdbTitle_titleCategories()`.
 2. `channel` is the channel/uploader name as the site's API gives it, NOT the URL slug - they
    differ constantly (on SoundCloud it is the API field `username`: `discoanon` ->
    "Discoholics Anonymous", `sevenberlin` -> "SEVEN"). If I did not give it, or gave it in
