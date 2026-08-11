@@ -309,23 +309,30 @@ var mdbTitleTogetherArtistJoiners = [
 
 
 /*
- * mdbTitleLowercaseJoiners
+ * mdbTitleArtistJoinerSpellings
  *
- * Joiners MixesDB writes in LOWERCASE wherever they stand between two artists, however the
- * uploader shouted them:
+ * How MixesDB SPELLS a joiner between two artists -> every way it turns up in a player title.
+ * Whatever stands on the right is rewritten to the key on the left, in any case:
  *
  *     "See Bastian B2B Afin"  ->  "See Bastian b2b Afin"
- *     "Surgeon VS Regis"      ->  "Surgeon vs Regis"
+ *     "Surgeon VS. Regis"     ->  "Surgeon vs Regis"
+ *     "Surgeon versus Regis"  ->  "Surgeon vs Regis"
  *
- * Only the case is touched - a "VS." keeps its dot, since which of the two spellings a title
- * uses is not this rule's business.
+ * "b3b" is nobody's spelling - three artists back to back are "b2b2b" - so it is read as a
+ * mistyped "b2b" rather than carried into the title.
  *
- * Applied to the artist group, not to the entity: these are words between NAMES. An entity
- * that carries one got it through mdbTitle_cleanArtist, which spells names the same way.
+ * Applied to the ARTIST group only, and never to the entity: an entity is a name, and a mix
+ * called "Techno versus House" is not two artists playing against each other.
+ *
+ * A joiner needs whitespace on both sides to be one, which is what keeps the "vs" of a name out
+ * of it. Variants are tried longest first, so "b2b2b" is never read as "b2b" with a stray "2b"
+ * behind it.
  */
-var mdbTitleLowercaseJoiners = [
-    "b2b2b", "b3b", "b2b", "vs"
-];
+var mdbTitleArtistJoinerSpellings = {
+    "b2b2b": [ "b2b2b" ],
+    "b2b":   [ "b2b", "b3b" ],
+    "vs":    [ "vs", "vs.", "versus" ]
+};
 
 
 /*

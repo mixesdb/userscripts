@@ -1267,26 +1267,45 @@ function mdbTitle_cleanArtist( s ) {
 
     // Help:Add_a_new_mix_page: "DJ not Dj"
     s = s.replace( /\bdj\b/gi, "DJ" );
-    // ... and the joiners between two names stay lowercase, as in "Ruf Dug b2b Daniel John
-    // Willis - NTS Radio"
-    s = mdbTitle_lowercaseJoiners( s );
 
     return s;
 }
 
-// mdbTitle_lowercaseJoiners
-// "See Bastian B2B Afin" -> "See Bastian b2b Afin". See mdbTitleLowercaseJoiners.
-// Only the case is changed, so a "VS." keeps its dot.
-function mdbTitle_lowercaseJoiners( s ) {
-    var joiners = ( typeof mdbTitleLowercaseJoiners !== "undefined" && mdbTitleLowercaseJoiners ) ? mdbTitleLowercaseJoiners : [];
+// mdbTitle_normalizeJoiners
+// "See Bastian B2B Afin" -> "See Bastian b2b Afin", "Surgeon VS. Regis" -> "Surgeon vs Regis".
+// See mdbTitleArtistJoinerSpellings, which also says why this is the artist group's business and
+// not the entity's. Whitespace on both sides is what makes a word a joiner rather than a piece
+// of a name.
+function mdbTitle_normalizeJoiners( s ) {
+    var spellings = ( typeof mdbTitleArtistJoinerSpellings !== "undefined" && mdbTitleArtistJoinerSpellings ) ? mdbTitleArtistJoinerSpellings : {},
+        writtenAs = {},
+        variants = [],
+        write,
+        i;
 
     s = String( s || "" );
 
-    if( !joiners.length ) return s;
+    for( write in spellings ) {
+        if( !Object.prototype.hasOwnProperty.call( spellings, write ) ) continue;
 
+        for( i = 0; i < spellings[write].length; i++ ) {
+            writtenAs[ spellings[write][i].toLowerCase() ] = write;
+            variants.push( spellings[write][i] );
+        }
+    }
+
+    if( !variants.length ) return s;
+
+    // longest first: "b2b2b" must not be read as "b2b" with a "2b" left behind
+    variants.sort( function( a, b ) { return b.length - a.length; } );
+
+    // the space in FRONT is consumed and put back, the one behind is only looked at - so two
+    // joiners in a row ("Foo b2b Bar b2b Baz") both match
     return s.replace(
-        new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( joiners ) + ")\\b", "gi" ),
-        function( joiner ) { return joiner.toLowerCase(); }
+        new RegExp( "(^|\\s)(?:" + mdbTitle_wordListAlternation( variants ) + ")(?=\\s)", "gi" ),
+        function( all, before ) {
+            return before + writtenAs[ all.trim().toLowerCase() ];
+        }
     );
 }
 
@@ -1941,8 +1960,8 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
 // cannot be repaired blindly here, so it is flagged hard instead.
 function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists, conf ) {
     // wikiSafe first (what a wiki title may hold at all), then tidy (how MixesDB spells it),
-    // then the lowercase joiners, which are about names and so only apply to the artist group
-    artist = mdbTitle_lowercaseJoiners( mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) ) ) );
+    // then the joiners, which stand between NAMES and so only apply to the artist group
+    artist = mdbTitle_normalizeJoiners( mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) ) ) );
     entity = mdbTitle_tidy( mdbTitle_wikiSafe( entity ) );
 
     // " (Promo Mix)" only where the name does not already say it - the page still goes into
