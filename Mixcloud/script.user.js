@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.10.3
+// @version      2026.08.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_30
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_31
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_198
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
@@ -34,19 +34,6 @@ window.scriptName = scriptName; // toolkit.js reads this global directly
 
 loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Basics
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
- */
-redirectOnUrlChange( 1000 );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -85,7 +72,7 @@ function appendArtworkInfo( artwork_max_url, imgWrapper ) {
             artworkInfo = imageWidth +'&thinsp;x&thinsp;'+ imageHeight,
             artworkInfo_link = '<a href="'+artwork_max_url+'" class="mdb-artwork-img mdb-mc-text-white" target="_blank">'+artworkInfo+'</a>';
 
-        imgWrapper.after( '<div class="mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="mdb-selectOnClick" type="text" value="'+artwork_max_url+'" />'+artworkInfo_link+'</div>' );
+        imgWrapper.after( '<div class="mdb-element mdb-artwork-input-wrapper"><input id="mdb-artwork-input" class="mdb-selectOnClick" type="text" value="'+artwork_max_url+'" />'+artworkInfo_link+'</div>' );
 
         // small copy button behind the artwork URL input
         appendMdbCopyTextButton( $("#mdb-artwork-input"), {
@@ -103,59 +90,75 @@ function appendArtworkInfo( artwork_max_url, imgWrapper ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * User pages
+ * SPA navigation
+ *
+ * Mixcloud swaps the page on a click without ever loading a document, so everything that
+ * reads the URL has to be re-read afterwards - see onUrlChange() in global.js. The
+ * waitForKeyElements handlers further down stay registered once and are re-armed by
+ * onUrlChange(), which is why they test the URL inside the handler instead of around it.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/*
- * Filter options
- * @DRY
- */
-logVar( "urlPath(2)", urlPath(2) );
+// Read off the URL, so it is only valid for the page we are on right now. Script scope, not
+// block scope: the "hide used players" handler below reads it too.
+var getHideUsed = "false";
 
-if( urlPath(2) == "uploads" || urlPath(2).replace(/\?.+$/,"") == "" ) { // https://www.mixcloud.com/Groove_Mag/?hideUsed=true
-    // vars
-    var getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false",
-        checkedUsed = "";
-    
-    if( getHideUsed == "true" ) checkedUsed = 'checked';
-    
-    // append filter section and param handling
-    waitForKeyElements('main > section > div > ul', function( jNode ) {
-        var userPageTabs = jNode,
-            userPageTabs_firstText = $("li:first-of-type a span", userPageTabs).text();
-        
-        // is really user page?
-        if( userPageTabs_firstText == "Shows" ) {
-            var filterOptions = '<div id="mdb-streamActions" class="mdb-element">';
-            filterOptions += '<div id="mdb-streamActions-hide">';
-            filterOptions += '<span class="mdb-darkorange">Hide:</span>';
-            filterOptions += '<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>';
-            filterOptions += '</div>';
-            filterOptions += '</div>';
-            
-            userPageTabs.before( filterOptions );
-            
-            // reload
-            var windowLocation = window.location,
-                href = $(location).attr('href');
+function runMixcloudPage() {
+    logVar( "urlPath(2)", urlPath(2) );
 
-            if( typeof href != "undefined" ) {
-                var url = href.replace(/\?.*$/g,"");
-            }
-
-            if( typeof url != "undefined" ) {
-                $("#hideUsed").change(function(){
-                    if(!this.checked) {
-                        windowLocation.href = url + "?hideUsed=false";
-                    } else {
-                        windowLocation.href = url + "?hideUsed=true";
-                    }
-                });
-            }
-        }
-    });
+    getHideUsed = getURLParameter("hideUsed") == "true" ? "true" : "false";
+    logVar( "getHideUsed", getHideUsed );
 }
+
+onUrlChange( runMixcloudPage, { runNow: true } );
+
+/*
+ * Filter options on user pages
+ * @DRY
+ * https://www.mixcloud.com/Groove_Mag/?hideUsed=true
+ */
+waitForKeyElements('main > section > div > ul', function( jNode ) {
+    // || "": urlPath(2) is undefined on mixcloud.com itself, where .replace() would throw -
+    // harmless while this ran once at the top of the file, but here it would throw on every
+    // poll for as long as the tab is open.
+    var tab = urlPath(2) || "";
+
+    if( tab != "uploads" && tab.replace(/\?.+$/,"") != "" ) return true;
+
+    var userPageTabs = jNode,
+        userPageTabs_firstText = $("li:first-of-type a span", userPageTabs).text();
+
+    // is really user page?
+    if( userPageTabs_firstText == "Shows" ) {
+        var checkedUsed = getHideUsed == "true" ? 'checked' : "",
+            filterOptions = '<div id="mdb-streamActions" class="mdb-element">';
+        filterOptions += '<div id="mdb-streamActions-hide">';
+        filterOptions += '<span class="mdb-darkorange">Hide:</span>';
+        filterOptions += '<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>';
+        filterOptions += '</div>';
+        filterOptions += '</div>';
+
+        userPageTabs.before( filterOptions );
+
+        // reload
+        var windowLocation = window.location,
+            href = $(location).attr('href');
+
+        if( typeof href != "undefined" ) {
+            var url = href.replace(/\?.*$/g,"");
+        }
+
+        if( typeof url != "undefined" ) {
+            $("#hideUsed").change(function(){
+                if(!this.checked) {
+                    windowLocation.href = url + "?hideUsed=false";
+                } else {
+                    windowLocation.href = url + "?hideUsed=true";
+                }
+            });
+        }
+    }
+});
 
 // Hiding option: each used player
     waitForKeyElements('button[data-testid="audiocard-play-button"]', function (jNode) {
@@ -243,81 +246,88 @@ waitForKeyElements('div[data-testid="play-all"]', function( jNode ) {
 
 /*
  * Original artwork
+ * The "is this a player page?" test sits INSIDE the handler: the handler is registered once
+ * for the lifetime of the document and outlives any number of navigations, so asking the URL
+ * around it would answer for whichever page happened to be open at script start.
+ * "return true" tells waitForKeyElements the node is not dealt with yet, so it keeps
+ * offering it - which is what we want if the URL only becomes a player page later.
  */
-if( urlPath(2) != "" ) {
-    waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.processed)', function( jNode ) {
-        jNode.addClass("processed");
+waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.mdb-processed-artwork)', function( jNode ) {
+    if( urlPath(2) == "" ) return true;
 
-        var artwork_thumb_url = jNode.attr("src"),
-            artwork_max_url = artwork_thumb_url.replace(/\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/"); /* https://community.metabrainz.org/t/is-there-a-native-optimal-size-for-cover-art-from-mixcloud/640075 */
+    jNode.addClass("mdb-processed-artwork");
 
-        logVar( "artwork_max_url", artwork_max_url );
+    var artwork_thumb_url = jNode.attr("src"),
+        artwork_max_url = artwork_thumb_url.replace(/\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/"); /* https://community.metabrainz.org/t/is-there-a-native-optimal-size-for-cover-art-from-mixcloud/640075 */
 
-        appendArtworkInfo( artwork_max_url, jNode )
-    });
-}
+    logVar( "artwork_max_url", artwork_max_url );
+
+    appendArtworkInfo( artwork_max_url, jNode )
+});
 
 
 /*
  * Action buttons
  */
-if( urlPath(2) != "" ) {
-    waitForKeyElements('button[aria-label="Add To"]:not(.processed)', function( jNode ) {
-        jNode.addClass("processed");
+waitForKeyElements('button[aria-label="Add To"]:not(.mdb-processed-actions)', function( jNode ) {
+    if( urlPath(2) == "" ) return true;
 
-        var apiUrl = url.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
+    jNode.addClass("mdb-processed-actions");
 
-        // create wrappers to ensure prefered order of async created elements
-        jNode.after( '<span class="mdb-apiLink-wrapper"></span><span class="mdb-durToggle-wrapper"></span><span class="mdb-tidSubmit-wrapper"></span>' );
+    // location.href, not global.js' url: that one is the address bar as it was when the
+    // script started, i.e. the wrong mix after a navigation
+    var apiUrl = location.href.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
 
-        // add api toggle link
-        var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
-        logVar( "apiUrl", apiUrl );
-        $(".mdb-apiLink-wrapper").after( apiButton );
+    // create wrappers to ensure prefered order of async created elements
+    jNode.after( '<span class="mdb-element mdb-apiLink-wrapper"></span><span class="mdb-element mdb-durToggle-wrapper"></span><span class="mdb-element mdb-tidSubmit-wrapper"></span>' );
 
-        /*
-         * Using API data
-         */
-        $.get(apiUrl, function( data ) {
-            // add dur toggle
-            var dur_sec = data["audio_length"],
-                durToggleWrapper = getFileDetails_forToggle( dur_sec ),
-                dur = convertHMS( dur_sec ),
-                durToggleLink = '<a class="mdb-durToggleLink mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
+    // add api toggle link
+    var apiButton = '<a class="mdb-element mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
+    logVar( "apiUrl", apiUrl );
+    $(".mdb-apiLink-wrapper").after( apiButton );
 
-            // add dur button
-            $(".mdb-durToggle-wrapper:not(.processed)").append( durToggleLink ).addClass("processed");
+    /*
+     * Using API data
+     */
+    $.get(apiUrl, function( data ) {
+        // add dur toggle
+        var dur_sec = data["audio_length"],
+            durToggleWrapper = getFileDetails_forToggle( dur_sec ),
+            dur = convertHMS( dur_sec ),
+            durToggleLink = '<a class="mdb-element mdb-durToggleLink mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
 
-            // append toggle wrapper
-            jNode.addClass("processed-dur");
-            jNode.closest("div").after( '<div class="mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
+        // add dur button
+        $(".mdb-durToggle-wrapper:not(.mdb-processed-durToggle)").append( durToggleLink ).addClass("mdb-processed-durToggle");
 
-            // toggle dur
-            waitForKeyElements('.mdb-durToggleLink', function( jNode ) {
-                jNode.click(function(){
-                    log("click");
-                    $("#mdb-fileDetails").toggle();
-                    $("#mdb-fileDetails textarea").select().focus();
-                });
+        // append toggle wrapper
+        jNode.addClass("mdb-processed-dur");
+        jNode.closest("div").after( '<div class="mdb-element mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
+
+        // toggle dur
+        waitForKeyElements('.mdb-durToggleLink', function( jNode ) {
+            jNode.click(function(){
+                log("click");
+                $("#mdb-fileDetails").toggle();
+                $("#mdb-fileDetails textarea").select().focus();
             });
-
-        }, "json" );
-    });
-
-    // api link on click
-    waitForKeyElements(".mdb-apiLink", function( jNode ) {
-        jNode.click(function(){
-            var apiUrl = jNode.attr("data-apiurl"),
-                apiToggleArea = $("#toggleApiText");
-
-            if( apiToggleArea.length == 0 ) {
-                createToggleApiArea( apiUrl );
-            } else {
-                ( apiToggleArea.is(':visible') ) ? apiToggleArea.slideUp() : apiToggleArea.slideDown();
-            }
         });
+
+    }, "json" );
+});
+
+// api link on click
+waitForKeyElements(".mdb-apiLink", function( jNode ) {
+    jNode.click(function(){
+        var apiUrl = jNode.attr("data-apiurl"),
+            apiToggleArea = $("#toggleApiText");
+
+        if( apiToggleArea.length == 0 ) {
+            createToggleApiArea( apiUrl );
+        } else {
+            ( apiToggleArea.is(':visible') ) ? apiToggleArea.slideUp() : apiToggleArea.slideDown();
+        }
     });
-}
+});
 
 
 /*

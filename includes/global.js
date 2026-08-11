@@ -176,7 +176,7 @@ function loadArtworkInfo( artworkUrl, callback, isAltAttempt ) {
 function createArtworkInfoWrapper( artworkUrl, options ) {
     options = options || {};
 
-    var wrapper = $("<div>");
+    var wrapper = $("<div>").addClass( "mdb-element" ); // mdb-element: taken down again on SPA navigation, see mdbCreatedSelector
     if( options.wrapperId ) wrapper.attr( "id", options.wrapperId );
     if( options.wrapperClass ) wrapper.addClass( options.wrapperClass );
 
@@ -492,7 +492,7 @@ function addTidPlaylistSubmitLink( targetNode, position, pageUrl ) {
     }
 
     var wrapper = document.createElement( "div" );
-    wrapper.className = "mdb-tidSubmit-playlist-wrapper";
+    wrapper.className = "mdb-element mdb-tidSubmit-playlist-wrapper"; // mdb-element: taken down again on SPA navigation, see mdbCreatedSelector
     wrapper.appendChild( makeTidPlaylistSubmitLink( playlistPageInfo ) );
 
     switch( position ) {
@@ -1088,7 +1088,7 @@ function appendMdbCopyTextButton( source, options ) {
     var isInputSource = sourceNode.is( "input, textarea" ),
         linkUrl = isInputSource ? getMdbCopyLinkUrl( sourceNode ) : "",
         control = $("<span>")
-            .addClass( "mdb-copy-text-control" ),
+            .addClass( "mdb-element mdb-copy-text-control" ), // mdb-element: taken down again on SPA navigation, see mdbCreatedSelector
         button = ( isInputSource ? $("<a>") : $("<button>") )
             .attr( "aria-label", settings.ariaLabel )
             .addClass( "mdb-copy-text-button" )
@@ -1746,39 +1746,260 @@ function textify( text ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Redirect on every url change event listener
+ * SPA navigation: onUrlChange()
+ *
+ * Every site we run on is a single-page app: a click swaps the page content and rewrites the
+ * address bar, but there is no new document and no load event, so nothing of ours runs again.
+ * The page then keeps showing the PREVIOUS mix's toolkit, tracklist and links.
+ *
+ * The old answer was redirectOnUrlChange(), which forced a real reload on every URL change.
+ * It worked, but it threw away the one thing an SPA is good at: a white flash and a full
+ * reload after every single click, on top of sites that rewrite their own URL while loading
+ * (YouTube), where it could turn into a reload loop.
+ *
+ * onUrlChange() replaces it. It watches the address bar, waits for the site to finish putting
+ * the new DOM in place, clears out what the previous page left behind, and only then re-runs
+ * what the script registered. No reload, no flash.
+ *
+ * Usage:
+ *   onUrlChange( runPage );                   // re-run runPage() on every URL change
+ *   onUrlChange( runPage, { runNow: true } ); // ... and once right now, for the first page
+ *   onUrlChange();                            // nothing to re-run by hand - just do the
+ *                                             // cleanup and re-arm waitForKeyElements
+ *
+ * What belongs in the callback: everything the script does FOR THE CURRENT PAGE, written so
+ * it can be called again. Anything read out of location or the DOM at load time has to move
+ * in there with it - a value computed right after the IIFE's opening brace still holds the
+ * FIRST page's answer after a navigation, which is the classic bug this mechanism invites.
+ *
+ * waitForKeyElements handlers do NOT need to be re-registered: they keep polling for the
+ * lifetime of the document, and mdbResetForNewPage() below re-arms them for the new page.
+ *
+ * options:
+ *   runNow      - also run this callback immediately (default false)
+ *   settle_ms   - how long the DOM has to stay unchanged before the new page counts as
+ *                 "in place" (default 250)
+ *   maxWait_ms  - run anyway once the DOM has been busy this long (default 3000)
+ *   getUrl      - where to read the URL from, for frames that do not own the address bar
+ *                 (SoundCloud's webi frame reads the top frame's)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function redirectOnUrlChange( delay_ms=0 ) {
-    logFunc( "redirectOnUrlChange" );
+/*
+ * mdbCreatedSelector
+ * Everything we ADD to a page is either marked with the class "mdb-element" or has an id
+ * starting with "mdb"/"mixesdb", so that all of it can be found again and thrown away when
+ * the site navigates. Note what is deliberately NOT in here: a "class starts with mdb-"
+ * rule. We put plenty of mdb- classes on nodes of the SITE to mark them
+ * (mdb-processed-toolkit, mdb-copy-text-source, ...), and removing those would tear the
+ * page apart.
+ */
+const mdbCreatedSelector = '.mdb-element, [id^="mdb"], [id^="mixesdb"], #tlEditor, [id^="playsetList_mdbTable"]';
 
-    window.setTimeout(function(){
-        // event listener
-        var pushState = history.pushState;
-        var replaceState = history.replaceState;
-        history.pushState = function() {
-            pushState.apply(history, arguments);
-            window.dispatchEvent(new Event('pushstate'));
-            window.dispatchEvent(new Event('locationchange'));
-        };
-        history.replaceState = function() {
-            replaceState.apply(history, arguments);
-            window.dispatchEvent(new Event('replacestate'));
-            window.dispatchEvent(new Event('locationchange'));
-        };
-        window.addEventListener('popstate', function() {
-            window.dispatchEvent(new Event('locationchange'))
-        });
+/*
+ * mdbProcessedClassRx
+ * "already handled" markers we put on the site's own nodes, e.g. mdb-processed-toolkit,
+ * mdb-tl-processed, mdb-copy-text-processed, tlEditor-processed. They exist to stop a handler
+ * from running twice on the SAME page, so they have to go the moment the page changes.
+ */
+const mdbProcessedClassRx = /^(mdb|tlEditor)[\w-]*processed[\w-]*$/i;
 
-        // redirect
-        window.addEventListener('locationchange', function(){
-            log( "URL change!" )
-            var newUrl = location.href;
-            log( 'onlocationchange event occurred > redirecting to ' + newUrl );
-            window.location.replace( newUrl );
+// mdbUrlChange
+// State of the single watcher. One per document - registering more callbacks does not add
+// more listeners, more observers or more intervals.
+var mdbUrlChange = {
+    installed: false,
+    lastUrl: "",
+    callbacks: [],
+    getUrl: function() { return location.href; },
+    observer: null,
+    settleTimer: null,
+    giveUpTimer: null,
+    settle_ms: 250,
+    maxWait_ms: 3000
+};
+
+/*
+ * mdbResetForNewPage
+ * Everything the previous page left behind, in the order it has to happen.
+ * Runs by itself on every URL change; exported because a script that navigates the user
+ * itself may want it earlier.
+ */
+function mdbResetForNewPage() {
+    logFunc( "mdbResetForNewPage" );
+
+    // 1. Our own elements. A site that re-renders its content containers takes most of them
+    // down with it, but not the ones hanging off containers it REUSES - YouTube keeps
+    // #bottom-row across videos, so the toolkit for the previous video would simply stay.
+    var created = $( mdbCreatedSelector );
+    logVar( "elements we added to the previous page, removing them now", created.length );
+    created.remove();
+
+    // 2. The "already handled" markers on the site's own nodes, for the same reason: on a
+    // reused node the marker is still there and would lock the handler out for good.
+    $("[class*='processed']").each(function() {
+        var node = $(this);
+
+        $.each( ( node.attr("class") || "" ).split( /\s+/ ), function( i, className ) {
+            if( mdbProcessedClassRx.test( className ) ) node.removeClass( className );
         });
-    }, delay_ms );
+    });
+
+    // 3. waitForKeyElements marks every node it has handed to a callback with the jQuery data
+    // key "alreadyFound" and never looks at that node again. On a reused node that means the
+    // handler would never fire for the new page. $("*") is the price of waitForKeyElements
+    // keeping this per element without telling anyone which ones - it is one pass per
+    // navigation, not per poll.
+    $("*").removeData("alreadyFound");
+
+    // 4. Shared features that keep their own state. The page creator is a separate @require
+    // that not every script loads, hence the typeof guard rather than a plain call.
+    if( typeof mdbPageCreator_resetForNewPage === "function" ) mdbPageCreator_resetForNewPage();
+
+    log( "mdbResetForNewPage: done - handlers are armed again for the new page." );
+}
+
+// mdbUrlChange_currentUrl
+function mdbUrlChange_currentUrl() {
+    try {
+        return mdbUrlChange.getUrl();
+    } catch( e ) {
+        // Reading another frame's location throws the moment that frame goes cross-origin
+        return location.href;
+    }
+}
+
+/*
+ * mdbUrlChange_install
+ * Three ways of noticing, because no single one of them is enough:
+ *   - history.pushState/replaceState: how an SPA router actually navigates. They fire no
+ *     event of their own, hence the wrapper.
+ *   - popstate/hashchange: browser back/forward and #anchors, which the wrapper misses.
+ *   - a poll: the safety net. It is the ONLY one that works when the URL changes in a
+ *     different frame (SoundCloud's webi frame watches the top frame's address bar), and
+ *     when the userscript manager runs us in a sandbox whose history object is not the
+ *     page's - in which case the wrapper below is installed on a copy nobody calls.
+ */
+function mdbUrlChange_install() {
+    if( mdbUrlChange.installed ) return;
+    mdbUrlChange.installed = true;
+    mdbUrlChange.lastUrl = mdbUrlChange_currentUrl();
+
+    logFunc( "onUrlChange" );
+    logVar( "watching for SPA navigation, starting at", mdbUrlChange.lastUrl );
+
+    $.each( [ "pushState", "replaceState" ], function( i, method ) {
+        var original = history[ method ];
+        if( typeof original !== "function" ) return;
+
+        // Defensive: the site wraps these too, and an exception thrown out of a router call
+        // would break the site's navigation, not just ours.
+        history[ method ] = function() {
+            var result = original.apply( history, arguments );
+            try { mdbUrlChange_check(); } catch( e ) {}
+            return result;
+        };
+    });
+
+    window.addEventListener( "popstate", mdbUrlChange_check );
+    window.addEventListener( "hashchange", mdbUrlChange_check );
+
+    setInterval( mdbUrlChange_check, 300 ); // same cadence as waitForKeyElements
+}
+
+// mdbUrlChange_check
+function mdbUrlChange_check() {
+    var newUrl = mdbUrlChange_currentUrl();
+
+    if( newUrl === mdbUrlChange.lastUrl ) return;
+
+    log( "onUrlChange: URL changed\n  from: " + mdbUrlChange.lastUrl + "\n  to:   " + newUrl );
+    mdbUrlChange.lastUrl = newUrl;
+
+    mdbUrlChange_waitForNewDom();
+}
+
+/*
+ * mdbUrlChange_waitForNewDom
+ * The whole point of the exercise: at the moment the URL changes the OLD DOM is still on
+ * screen - that is why the old code had to reload. So watch the document instead and treat
+ * the new page as ready once it has stopped changing for settle_ms.
+ */
+function mdbUrlChange_waitForNewDom() {
+    // Already waiting: a router that pushes twice in a row (YouTube rewrites its own URL
+    // while the page loads) must extend the wait, not start a second one.
+    if( mdbUrlChange.giveUpTimer ) {
+        mdbUrlChange_armSettleTimer();
+        return;
+    }
+
+    if( typeof MutationObserver === "function" ) {
+        mdbUrlChange.observer = new MutationObserver( mdbUrlChange_armSettleTimer );
+        mdbUrlChange.observer.observe( document.documentElement, { childList: true, subtree: true } );
+    }
+
+    // Started right away rather than on the first mutation: the poll can notice the new URL
+    // up to 300ms late, by which time the site may already be done rendering and no
+    // mutation would ever arrive to start it.
+    mdbUrlChange_armSettleTimer();
+
+    // A page that never goes quiet (an autoplaying player, an endless feed) must not mean we
+    // never run.
+    mdbUrlChange.giveUpTimer = setTimeout(function() {
+        log( "onUrlChange: DOM still busy after " + mdbUrlChange.maxWait_ms + "ms - going ahead anyway." );
+        mdbUrlChange_run();
+    }, mdbUrlChange.maxWait_ms );
+}
+
+// mdbUrlChange_armSettleTimer
+function mdbUrlChange_armSettleTimer() {
+    clearTimeout( mdbUrlChange.settleTimer );
+    mdbUrlChange.settleTimer = setTimeout( mdbUrlChange_run, mdbUrlChange.settle_ms );
+}
+
+// mdbUrlChange_run
+function mdbUrlChange_run() {
+    clearTimeout( mdbUrlChange.settleTimer );
+    clearTimeout( mdbUrlChange.giveUpTimer );
+    mdbUrlChange.settleTimer = null;
+    mdbUrlChange.giveUpTimer = null;
+
+    // Before the cleanup, or our own remove() calls would look like the page still moving
+    // and re-arm the settle timer forever.
+    if( mdbUrlChange.observer ) {
+        mdbUrlChange.observer.disconnect();
+        mdbUrlChange.observer = null;
+    }
+
+    logFunc( "onUrlChange: new page is in place" );
+    logVar( "URL", mdbUrlChange.lastUrl );
+
+    mdbResetForNewPage();
+
+    $.each( mdbUrlChange.callbacks, function( i, callback ) {
+        // One callback throwing must not cost the others their turn - and a stack trace
+        // naming us beats a page that silently stays empty after the second click.
+        try {
+            callback();
+        } catch( e ) {
+            log( "onUrlChange: a callback threw and was skipped: " + ( e && e.message ? e.message : e ) );
+        }
+    });
+}
+
+// onUrlChange
+function onUrlChange( callback, options ) {
+    options = options || {};
+
+    if( typeof options.getUrl === "function" ) mdbUrlChange.getUrl = options.getUrl;
+    if( options.settle_ms ) mdbUrlChange.settle_ms = options.settle_ms;
+    if( options.maxWait_ms ) mdbUrlChange.maxWait_ms = options.maxWait_ms;
+
+    if( typeof callback === "function" ) mdbUrlChange.callbacks.push( callback );
+
+    mdbUrlChange_install();
+
+    if( options.runNow && typeof callback === "function" ) callback();
 }
 
 

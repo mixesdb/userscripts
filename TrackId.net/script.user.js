@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.2
+// @version      2026.08.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_110
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -181,28 +181,34 @@ String.prototype.removeArtistLabels = function(artist) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Before anythings starts: Reload the page
- * Firefox on macOS needs a tiny delay, otherwise there's constant reloading
- */
-if( visitDomain == "trackid.net" ) {
-    redirectOnUrlChange( 50 );
-}
-
-/*
  * grab url path and fire functions
+ * TrackId.net is a React app: clicking through the site never loads a document, so this runs
+ * again for every page the user opens - see onUrlChange() in global.js.
  */
-d.ready(function(){
-    var contentWrapper = $(".MuiGrid-grid-xs-12"),
-        path1 = window.location.pathname.replace(/^\//, "");
+function runTrackIdPage() {
+    var path1 = window.location.pathname.replace(/^\//, "");
 
     logVar( "path1", path1 );
+
+    // funcTidTables() hides the site's own data grid behind our table. onUrlChange() has just
+    // removed our table, so the grid has to be given back until the table is rebuilt -
+    // otherwise the new page shows an empty space where its list should be.
+    $(".mdb-hide").removeClass("mdb-hide");
 
     switch( path1 ) {
         case "submiturl":
             on_submitrequest();
             break;
     }
-});
+}
+
+if( visitDomain == "trackid.net" ) {
+    // Only on trackid.net: this script also runs on mixesdb.com/w/*, which is a plain wiki
+    // where every navigation is a real page load anyway.
+    d.ready(function(){
+        onUrlChange( runTrackIdPage, { runNow: true } );
+    });
+}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -745,7 +751,7 @@ waitForKeyElements(".mdb-tid-table td.mdbTrackidCheck input[type=checkbox]", fun
 waitForKeyElements(".user-name", function( jNode ) {
     var userName = jNode.closest("button");
 
-    var quickLinks = '<ul class="mdb-quickLinks mdb-nolist mdb-highlight-hover">';
+    var quickLinks = '<ul class="mdb-element mdb-quickLinks mdb-nolist mdb-highlight-hover">';
     quickLinks += '<li><a href="/submiturl?from=menu">Submit</a></li>';
     quickLinks += '<li><a href="/myrequests?from=menu">My requests</a></li>';
     quickLinks += '</ul>';
@@ -766,7 +772,7 @@ waitForKeyElements(".user-name", function( jNode ) {
 // funcTidPlayers
 function funcTidPlayers( jNode, playerUrl, titleText ) {
     logFunc( "funcTidPlayers" );
-    log(url);
+    log( location.href ); // location.href, not global.js' url: that one is the page we started on
 
     // get domain
     var a = document.createElement('a');
@@ -801,20 +807,36 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     $(".mdb-player-audiostream").remove();
     if( embed != "" ) {
         // embedded player output
-        var mdbPlayerAndToolkit = '<div class="mdb-player-audiostream" data-tidplayerurl="'+playerUrl+'">' + embed + '</div>';
+        // The player URL and the title travel on the element itself, not in a closure, so
+        // that the toolkit handler below can stay a single registration - see the note there.
+        // .attr() rather than a concatenated attribute string: mix titles contain quotes
+        // often enough ("Live at Foo" 2019) and would break the markup.
+        var mdbPlayerAndToolkit = $('<div class="mdb-element mdb-player-audiostream"></div>')
+                                      .attr( "data-tidplayerurl", playerUrl )
+                                      .attr( "data-tidtitle", titleText )
+                                      .append( embed );
         jNode.closest(".audio-stream-box").append( mdbPlayerAndToolkit );
         jNode.hide();
     }
-
-    if( playerUrl ) {
-        // toolkit output
-        waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
-            logVar( "titleText toolkit", titleText );
-            getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1, "", "auto" );
-            jNode.addClass("mdb-processed-toolkit");
-        });
-    }
 }
+
+/*
+ * toolkit output
+ * Registered once, at the top level, NOT from inside funcTidPlayers(): waitForKeyElements
+ * keeps one polling interval per selector and that interval holds the callback it was
+ * created with, so a second registration of the same selector would keep running the FIRST
+ * audiostream's closure - and build the toolkit for the wrong mix from the second page on.
+ */
+waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
+    var playerUrl = jNode.attr("data-tidplayerurl"),
+        titleText = jNode.attr("data-tidtitle") || "";
+
+    if( !playerUrl ) return;
+
+    logVar( "titleText toolkit", titleText );
+    getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1, "", "auto" );
+    jNode.addClass("mdb-processed-toolkit");
+});
 
 // embed player
 waitForKeyElements(".request-summary img.artwork", function( jNode ) {
@@ -1329,27 +1351,32 @@ waitForKeyElements("#toggleTlCandidate", function( jNode ) {
  * Fix ugly grid layout to proper tables
  */
 
-var skipReplacingTables = false;
-if( urlPath_noParams(1) == "submiturl" ) {
-    skipReplacingTables = true;
+// The "is this a page we replace tables on?" test sits INSIDE the handler: it is registered
+// once for the lifetime of the document and outlives any number of navigations, so asking
+// around it would answer for whichever page happened to be open at script start.
+function skipReplacingTables() {
+    return urlPath_noParams(1) == "submiturl";
 }
+
 // waitForKeyElements
-if( !skipReplacingTables ) {
-    waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.processed)", function( jNode ) {
-        jNode.addClass("processed");
-        setTimeout(function () {
-            loadTidPaginatedGridRows( jNode.closest(".MuiDataGrid-main"), function( gridMain ) {
-                funcTidTables( gridMain );
-            });
-        }, timeoutDelay);
-    });
-    $(".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell:not(.processed)").on("change", function() {
-        jNode.addClass("processed");
-        setTimeout(function () {
-            funcTidTables( $(this).closest(".MuiDataGrid-main") );
-        }, timeoutDelay);
-    });
-}
+waitForKeyElements(".MuiDataGrid-virtualScrollerRenderZone:not(.mdb-processed-grid)", function( jNode ) {
+    if( skipReplacingTables() ) return true; // not handled - ask again after a navigation
+
+    jNode.addClass("mdb-processed-grid");
+    setTimeout(function () {
+        loadTidPaginatedGridRows( jNode.closest(".MuiDataGrid-main"), function( gridMain ) {
+            funcTidTables( gridMain );
+        });
+    }, timeoutDelay);
+});
+$(document).on("change", ".MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-cell", function() {
+    if( skipReplacingTables() ) return;
+
+    var gridMain = $(this).closest(".MuiDataGrid-main");
+    setTimeout(function () {
+        funcTidTables( gridMain );
+    }, timeoutDelay);
+});
 
 
 function parseTidPaginationText( text ) {
@@ -1461,7 +1488,7 @@ function funcTidTables(jNode) {
                              .replace(/ /g, "")
                          ,
             path = location.pathname.replace(/^\//, "");
-        grid.before('<table class="mdb-tid-table ' + tableClass + ' ' + path + '"><tbody></tbody></table>');
+        grid.before('<table class="mdb-element mdb-tid-table ' + tableClass + ' ' + path + '"><tbody></tbody></table>');
         var tbody = $(".mdb-tid-table tbody");
 
         $(".MuiDataGrid-columnHeader", grid).each(function () {

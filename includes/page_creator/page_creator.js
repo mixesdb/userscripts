@@ -663,6 +663,51 @@ var mdbPageCreator_tracklistBoxSelector = "#mdb-pageCreator-tracklist #mixesdb-T
     // would otherwise force back open (and would have to wait for a verdict to do it).
     mdbPageCreator_tracklistDecided = false;
 
+/*
+ * mdbPageCreator_resetForNewPage
+ * Called by mdbResetForNewPage() in global.js whenever the site navigates without loading a
+ * document (see onUrlChange() there). Everything above is deliberately STICKY against a
+ * re-render - a detected tracklist survives it, and so does the reader's decision about
+ * whether the box is open. A navigation is the one event where that stickiness is wrong:
+ * without this, the next mix would open showing the previous one's tracklist.
+ *
+ * The row and the box themselves are removed by global.js - only the bookkeeping is here.
+ */
+function mdbPageCreator_resetForNewPage() {
+    logFunc( "mdbPageCreator_resetForNewPage" );
+
+    mdbPageCreator_title = "";
+    mdbPageCreator_confidencePercent = 0;
+    mdbPageCreator_confidenceReasons = [];
+    mdbPageCreator_promoCategory = false;
+    mdbPageCreator_playerUrl = "";
+    mdbPageCreator_durationMs = 0;
+    mdbPageCreator_artworkUrl = "";
+
+    // The polls are the reason this cannot just null the values: each is an interval still
+    // asking about the mix the reader has already left.
+    if( mdbPageCreator_toolkitPoll ) clearInterval( mdbPageCreator_toolkitPoll );
+    if( mdbPageCreator_tracklistPoll ) clearInterval( mdbPageCreator_tracklistPoll );
+    mdbPageCreator_toolkitPoll = null;
+    mdbPageCreator_tracklistPoll = null;
+    mdbPageCreator_toolkitVerdict = null;
+
+    mdbPageCreator_tracklistFeedback = null;
+    mdbPageCreator_tracklistDetected = null;
+    mdbPageCreator_tracklistOpen = false;
+    mdbPageCreator_tracklistDecided = false;
+    mdbPageCreator_tracklistSource = "";
+    mdbPageCreator_tracklistFormatted = "";
+    mdbPageCreator_tracklistLive = "";
+    mdbPageCreator_tracklistStatus = "";
+    mdbPageCreator_tracklistValidated = null;
+    mdbPageCreator_tracklistChecked = false;
+
+    // Kept on purpose: mdbPageCreator_target / _tracklistTarget are selector strings naming
+    // where on THIS SITE the row goes, which does not change from one mix to the next, and the
+    // site script's next mdbPageCreator_add() may well omit them.
+}
+
 // mdbPageCreator_addTracklist
 // The second entry point a site script calls, next to mdbPageCreator_add():
 //

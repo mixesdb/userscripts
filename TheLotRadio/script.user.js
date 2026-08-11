@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         The Lot Radio (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.07.1
+// @version      2026.08.11.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -9,7 +9,7 @@
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TheLotRadio/script.user.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-The_Lot_Radio_4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-The_Lot_Radio_5
 // @include      http*thelotradio.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=thelotradio.com
 // @noframes
@@ -35,10 +35,12 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /*
- * Before anythings starts: Reload the page
- * A tiny delay is needed, otherwise there's constant reloading.
+ * SPA navigation
+ * Nothing to re-run by hand here: the tracklist is built from a waitForKeyElements handler,
+ * and onUrlChange() re-arms those for the new page (plus it takes the previous show's
+ * tracklist box down again). See global.js.
  */
-redirectOnUrlChange( 60 );
+onUrlChange();
 
 
 function normalizeTheLotRadioText( text ) {
@@ -199,7 +201,10 @@ function buildTheLotRadioTracklist( wrapperUl ) {
         feedback = (res && res.feedback) ? res.feedback : "";
 
     if( tlApi ) {
-        var tlEditor = $('<div class="tlEditor mdb-thelotradio-tracklist"></div>'),
+        // mdb-element on the box, but deliberately NOT on the layout wrapper below: that one
+        // WRAPS the site's own <ul>, so removing it on navigation would take the site's
+        // tracklist with it. Left in place it is simply reused for the next show.
+        var tlEditor = $('<div class="mdb-element tlEditor mdb-thelotradio-tracklist"></div>'),
             tlTextarea = $('<textarea class="mono mixesdb-TLbox" wrap="off" style="display:none; width:100%; margin:10px 0 0 0; white-space:pre; overflow-x:auto; resize:vertical;"></textarea>');
 
         tlTextarea
