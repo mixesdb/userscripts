@@ -237,12 +237,13 @@ var mdbTitleExamples = [
         expect: "2026-08-05 - Tooker - HMWL Podcast 439"
     },
     {
-        // the same bracket, with the label list knowing neither name - the mix's own tracklist
-        // is what says they are labels
-        title: "HMWL Podcast 440: Some DJ (Ovum / Nervous)",
+        // The same bracket with two labels nothing knows - not the word list, not
+        // mdbTitleKnownLabels. The mix's own TRACKLIST is what says they are labels, so the
+        // names here must stay invented ones, or the case stops testing that.
+        title: "HMWL Podcast 440: Some DJ (Nightshade Audio / Unlisted Tapes)",
         channel: "House Music With Love (HMWL)",
         date: "2026-08-05",
-        description: "01. Some DJ - A Track [Ovum]\n02. Another One - B Track [Nervous - NUR123]\n\nFollow us!",
+        description: "01. Some DJ - A Track [Nightshade Audio]\n02. Another One - B Track [Unlisted Tapes - NUT123]\n\nFollow us!",
         expect: "2026-08-05 - Some DJ - HMWL Podcast 440"
     },
     {
@@ -361,6 +362,31 @@ var mdbTitleExamples = [
         channel: "House Music With Love (HMWL)",
         date: "2026-08-05",
         expect: "2026-08-05 - Some DJ - HMWL Podcast 441"
+    },
+    {
+        // the same credit in SQUARE brackets and split by a comma - the bracket a title carries
+        // is whichever one the uploader typed, and both are the same credit
+        title: "HMWL Podcast 442: Some DJ [Drumcode, Terminal M]",
+        channel: "House Music With Love (HMWL)",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - HMWL Podcast 442"
+    },
+    {
+        // a label whose own NAME holds a separator: split first and both halves are nothing, so
+        // the whole bracket is tried as one name before anything is split
+        title: "HMWL Podcast 443: Some DJ (Lost & Found)",
+        channel: "House Music With Love (HMWL)",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - HMWL Podcast 443"
+    },
+    {
+        // The label list is only ever asked about a bracket standing BEHIND something. This one
+        // opens the title, so it credits nobody - it is the name of what follows it, and
+        // "Kompakt" being a label on the list is exactly why it must not be dropped here.
+        title: "(Kompakt) Total Mix 015 - Some DJ",
+        channel: "Kompakt Records",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - Kompakt Total Mix 015"
     },
     {
         // One label and one unknown name: the bracket STAYS, and the title comes out badly on

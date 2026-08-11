@@ -893,35 +893,65 @@ function mdbTitle_isChannelBracket( inside, offset, username ) {
     return mdbTitle_normalizeCompare( inside ) === mdbTitle_normalizeCompare( username );
 }
 
+// mdbTitle_splitLabelNames
+// "SONARA / Crosstown Rebels" -> [ "SONARA", "Crosstown Rebels" ]: the names a bracket credits,
+// however the uploader separated them. See mdbTitleLabelSeparators in title_definitions.js.
+function mdbTitle_splitLabelNames( content ) {
+    var separators = ( typeof mdbTitleLabelSeparators !== "undefined" && mdbTitleLabelSeparators ) ? mdbTitleLabelSeparators : /\s*[,\/|]\s*/,
+        parts = String( content || "" ).split( separators ),
+        names = [],
+        name,
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        name = mdbTitle_trimSeparators( parts[i] );
+
+        if( name ) names.push( name );
+    }
+
+    return names;
+}
+
 // mdbTitle_dropLabelBrackets
 // "Tooker (SONARA / Crosstown Rebels)" -> "Tooker": a bracket crediting the artist's label(s)
 // is none of a mix page title's business. Every name in the bracket has to be a label for it to
 // go - see mdbTitleKnownLabels in title_definitions.js for why, and for the three tests.
 // Runs before mdbTitle_bracketsToSeparators, i.e. while the brackets are still brackets.
-function mdbTitle_dropLabelBrackets( text, description, username ) {
+//
+// Only a bracket standing BEHIND something is a credit, so a title cannot begin with one. A
+// bracket opening the title has nothing to credit and is the NAME of what follows it -
+// "(Kompakt) Total Mix 015" is the show, the same shape as "[selected] podcast 064". That is
+// also why the channel-name test does not have to be repeated here.
+function mdbTitle_dropLabelBrackets( text, description ) {
     var result = { text: String( text || "" ), dropped: [] },
         // the description is only read when a bracket actually has to be decided about
         fromTracklist = null;
 
     if( !/[\(\[\{]/.test( result.text ) ) return result;
 
-    var out = result.text.replace( mdbTitle_bracketPairRe(), function( all, inside, offset ) {
-        if( mdbTitle_isChannelBracket( inside, offset, username ) ) return all;
+    var out = result.text.replace( mdbTitle_bracketPairRe(), function( all, inside, offset, whole ) {
+        if( !mdbTitle_trimSeparators( whole.slice( 0, offset ) ) ) return all;
 
-        // "SONARA / Crosstown Rebels", "Label A & Label B" - a bracket may credit several
-        var parts = String( inside ).split( /\s*[,\/|]\s*|\s+(?:&|x|and)\s+|\s+[-–—]\s+/i ),
-            names = [],
-            i, name;
+        var content = mdbTitle_trimSeparators( inside ),
+            names,
+            i;
 
-        for( i = 0; i < parts.length; i++ ) {
-            name = mdbTitle_trimSeparators( parts[i] );
-
-            if( name ) names.push( name );
-        }
-
-        if( !names.length ) return all;
+        if( !content ) return all;
 
         if( fromTracklist === null ) fromTracklist = mdbTitle_labelsFromTracklist( description );
+
+        // The whole bracket as ONE name first: a label's own name may hold a separator, spaces
+        // and all ("Lost & Found", "aufnahme + wiedergabe"), and splitting one of those leaves
+        // two halves that are nothing. Only what is not a label as a whole is read as a list.
+        if( mdbTitle_isLabelName( content, fromTracklist ) ) {
+            result.dropped.push( content );
+            return " ";
+        }
+
+        // "SONARA / Crosstown Rebels", "Drumcode, Terminal M" - a bracket may credit several
+        names = mdbTitle_splitLabelNames( content );
+
+        if( names.length < 2 ) return all;
 
         for( i = 0; i < names.length; i++ ) {
             if( !mdbTitle_isLabelName( names[i], fromTracklist ) ) return all;
@@ -1605,7 +1635,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         // 1a) a bracket crediting the artist's label(s) - "Tooker (SONARA / Crosstown Rebels)".
         // While the brackets are still brackets, i.e. before 1b turns them into separators.
-        var labelBrackets = mdbTitle_dropLabelBrackets( rest, description, username );
+        var labelBrackets = mdbTitle_dropLabelBrackets( rest, description );
 
         if( labelBrackets.dropped.length ) {
             logVar( "buildMixesdbTitle: label credit dropped", labelBrackets.dropped.join( " | " ) );
