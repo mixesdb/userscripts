@@ -1300,11 +1300,14 @@ function mdbTitle_normalizeJoiners( s ) {
     variants.sort( function( a, b ) { return b.length - a.length; } );
 
     // the space in FRONT is consumed and put back, the one behind is only looked at - so two
-    // joiners in a row ("Foo b2b Bar b2b Baz") both match
+    // joiners in a row ("Foo b2b Bar b2b Baz") both match. A joiner written as punctuation keeps
+    // the space it is followed by and drops the one in front: "Foo, Bar", never "Foo , Bar".
     return s.replace(
         new RegExp( "(^|\\s)(?:" + mdbTitle_wordListAlternation( variants ) + ")(?=\\s)", "gi" ),
         function( all, before ) {
-            return before + writtenAs[ all.trim().toLowerCase() ];
+            var write = writtenAs[ all.trim().toLowerCase() ];
+
+            return ( /^\w/.test( write ) ? before : "" ) + write;
         }
     );
 }

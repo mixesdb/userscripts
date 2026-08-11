@@ -321,17 +321,30 @@ var mdbTitleTogetherArtistJoiners = [
  * "b3b" is nobody's spelling - three artists back to back are "b2b2b" - so it is read as a
  * mistyped "b2b" rather than carried into the title.
  *
+ * "presents" becomes the "," of mdbTitleExtraArtistJoiner, exactly like the "with" it reads as
+ * by then:
+ *
+ *     "Some Podcast 12 - Foo presents Bar"  ->  "... - Foo, Bar - Some Podcast 12"
+ *
+ * That is the LEFTOVER case, and the only one that reaches this: a presenter whose name the
+ * parser could place is already the entity by now ("fabric presents Bonobo" on the channel
+ * "fabric" -> "Bonobo - fabric", see buildMixesdbTitle 4b). What is left is a "presents" sitting
+ * inside a finished artist group with nowhere for the presenter to go, and two names filed as
+ * two artists beat one category holding the whole phrase.
+ *
  * Applied to the ARTIST group only, and never to the entity: an entity is a name, and a mix
  * called "Techno versus House" is not two artists playing against each other.
  *
  * A joiner needs whitespace on both sides to be one, which is what keeps the "vs" of a name out
  * of it. Variants are tried longest first, so "b2b2b" is never read as "b2b" with a stray "2b"
- * behind it.
+ * behind it. A joiner written as punctuation swallows the space in front of it, so it comes out
+ * as "Foo, Bar" and not "Foo , Bar".
  */
 var mdbTitleArtistJoinerSpellings = {
     "b2b2b": [ "b2b2b" ],
     "b2b":   [ "b2b", "b3b" ],
-    "vs":    [ "vs", "vs.", "versus" ]
+    "vs":    [ "vs", "vs.", "versus" ],
+    ",":     [ "presents", "present", "pres.", "pres" ]
 };
 
 
