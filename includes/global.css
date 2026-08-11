@@ -328,31 +328,6 @@ a.mdb-copy-text-button:focus,
     visibility: visible;
 }
 
-/* Light-theme table skin, added for InternetArchive's #playsetList_mdbTable. Dark sites bring
-   their own colors, so tables that style themselves must opt out - see .mdb-tid-table. */
-table.mdb-element:not(.mdb-tid-table) {
-    & th,
-    & td {
-        padding: 2px 4px;
-        border: 1px solid #ccc;
-    }
-    
-    & th {
-        background-color: #eee;
-        font-size: 110%;
-    }
-    
-    & tr:nth-child(even) {
-        background-color: #fff;
-    }
-    & tr:nth-child(odd) {
-        background-color: #fafafa;
-    }
-    & tr:hover {
-        background-color: #ff99006f;
-    }
-}
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
