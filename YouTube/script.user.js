@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.1
+// @version      2026.08.11.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -193,8 +193,18 @@ function resolveYoutubeId() {
     return id;
 }
 
-function getDurationSec_YT() {
-    var sec = window.ytInitialPlayerResponse?.videoDetails?.lengthSeconds
+/*
+ * expectedId (optional): YouTube keeps window.ytInitialPlayerResponse around across SPA
+ * navigations and does not always refresh it before our handlers run, so on the second video
+ * it can still describe the first one. Passing the ID we resolved for the current page makes
+ * that branch answer only when it really belongs to this video; the player DOM below is live
+ * and needs no such check.
+ */
+function getDurationSec_YT( expectedId ) {
+    var playerResponse = window.ytInitialPlayerResponse?.videoDetails,
+        playerResponseFits = !expectedId || !playerResponse?.videoId || playerResponse.videoId === expectedId;
+
+    var sec = ( playerResponseFits ? playerResponse?.lengthSeconds : null )
               || window.ytplayer?.config?.args?.length_seconds;
     if( sec ) return parseInt( sec, 10 );
 
@@ -240,6 +250,9 @@ function getDurationSec_YT() {
 var youtubeDetailsAddedFor = null,
     youtubeDurationAddedFor = null;
 
+// Shortest video we still treat as a possible DJ mix. Anything below gets no toolkit.
+var toolkitMinDuration_sec = 20 * 60;
+
 function addDetailPageEnhancements( wrapper ) {
     var ytId = resolveYoutubeId();
 
@@ -269,7 +282,28 @@ function addDetailPageEnhancements( wrapper ) {
         $wrapper.after( thumbImg );
     }
 
-    // Toolkit
+    /*
+     * Toolkit - only for videos long enough to be a DJ mix.
+     * getToolkit() hits the MixesDB API for every video it is called on, and the overwhelming
+     * majority of YouTube videos are not mixes, so that request would be wasted almost every
+     * time. Duration is the one cheap signal we already have: nothing under 20 minutes is a
+     * mix, so it decides before any request goes out.
+     */
+    var dur_sec = getDurationSec_YT( ytId );
+
+    if( !dur_sec ) {
+        log( "Duration not known yet - deferring the toolkit decision to the next poll" );
+        return true; // not handled - the thumbnail above is guarded against being added twice
+    }
+
+    if( dur_sec < toolkitMinDuration_sec ) {
+        log( "Video is " + convertHMS( dur_sec ) + ", below the " + convertHMS( toolkitMinDuration_sec ) + " mix threshold - no toolkit, no MixesDB API call" );
+        youtubeDetailsAddedFor = ytId;
+        return;
+    }
+
+    logVar( "duration", convertHMS( dur_sec ) + " - long enough for a mix, adding the toolkit" );
+
     getToolkit( playerUrl, "playerUrl", "detail page", $wrapper, "after", titleText, "link", 1, playerUrl );
     youtubeDetailsAddedFor = ytId;
 }
@@ -279,7 +313,7 @@ function addDurationEnhancements() {
 
     if( !ytId || youtubeDurationAddedFor === ytId ) return;
 
-    var dur_sec = getDurationSec_YT();
+    var dur_sec = getDurationSec_YT( ytId );
     if( !dur_sec ) return true; // player not ready yet - ask again on the next poll
 
     var dur = convertHMS( dur_sec ),
