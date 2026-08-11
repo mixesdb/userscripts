@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.6
+// @version      2026.08.11.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -362,7 +362,7 @@ var trackPageDiagnosticSelectors = [
     [ '.listenInfo .image span.sc-artwork[style*="background-image"]',  "frame" ], // newer artwork wrapper
     [ 'h1.soundTitle__title',                                           "frame" ],
     [ 'button[aria-label="Download track"]',                            "frame" ],
-    [ 'meta[property="al:ios:url"]',                                    "meta"  ], // track ID source for the API call
+    [ 'meta[property="al:ios:url"]',                                    "meta"  ], // NOT the track ID source any more (it is stale under SPA navigation - see the API call), kept as a signal for whether this document was server-rendered for this track
     [ 'meta[property="og:title"]',                                      "meta"  ]
 ];
 
@@ -999,19 +999,24 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                 logVar( "scAccessToken", scAccessToken );
 
                 if( scAccessToken != "null" ) {
-                    // Call API on current page
-                    // metaDoc: in the new layout this meta only exists in the top document
-                    var iosUrlMeta = $('meta[property="al:ios:url"]', metaDoc),
-                        currentTrack_id = iosUrlMeta.length ? iosUrlMeta.attr("content").replace( "soundcloud://sounds:", "" ) : ""; // e.g. 2007615367
-                    logVar( "currentTrack_id", currentTrack_id );
-
-                    if( !currentTrack_id ) {
-                        log( "No track ID meta found!" );
-                        addApiErrorNote( "no track ID" );
-                        return;
-                    }
-                    var scApiURl_currentTrack = "https://api.soundcloud.com/tracks/" + currentTrack_id; // Track ID would need to be grabbed (e.g. via sound action "report" URL
-                    //var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( location.href );
+                    /*
+                     * Which track this page is about: asked of the API by its PLAYER URL.
+                     *
+                     * It used to be read out of meta[property="al:ios:url"] in the top
+                     * document, and that only ever worked because we forced a full reload on
+                     * every URL change. SoundCloud writes that meta when it SERVER-renders a
+                     * track page and does not rewrite it when its own router navigates, so
+                     * under SPA navigation it is either
+                     *   - absent, coming from the feed          -> "no track ID", no toolkit
+                     *   - the PREVIOUS track, coming from one   -> the mix before this one is
+                     *     what gets looked up, which is how its header, page creator row and
+                     *     tracklist ended up on the next mix's page.
+                     * Both symptoms disappear on a manual reload, which is exactly the tell.
+                     *
+                     * getScPlayerUrl() is built from the live pageLocation (the address bar in
+                     * either frame), so it always names the track actually on screen.
+                     */
+                    var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( getScPlayerUrl() );
 
                     logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
 
@@ -1154,7 +1159,10 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 mdbPageCreator_addTracklist({
                                     description:  t.description,
                                     loadComments: function( done ) {
-                                        getScTrackComments( currentTrack_id, scAccessToken, done );
+                                        // id, not a track ID read off the page: it comes out of
+                                        // the very response being handled, so it cannot name
+                                        // another track than the one this row is for.
+                                        getScTrackComments( id, scAccessToken, done );
                                     },
                                     target:       "#mdb-toolkit",
                                     placement:    "after"
@@ -1263,6 +1271,14 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     }
                                     $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
                                 }
+                            } else {
+                                // /resolve normally answers with the resource itself. If it ever
+                                // hands back a { status, location } pointer instead, kind is
+                                // undefined and everything above silently does nothing - which
+                                // is the one failure mode of switching to it, so it says so.
+                                log( "The API answered, but not with a track (kind: " + kind + ")" +
+                                     ( t && t.location ? " - it returned a pointer to " + t.location + " instead." : "." ) );
+                                addApiErrorNote( "no track in the API answer" );
                             }
                         },
                         error: function() {
