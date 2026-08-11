@@ -40,8 +40,11 @@ a.sc_button-mdb:active {
     border-color: #f60;
 }
 
-.sc_button-mdb a {
-    color: inherit;
+/* our fake buttons that are links carry the classes on the <a> itself, so the anchor must
+   not bring its own link look along - here and in the hover state */
+a.sc_button-mdb,
+a.sc_button-mdb:hover {
+    text-decoration: none;
 }
 
 #mdb-toggle-target>div {
@@ -287,9 +290,12 @@ a.sc_button-mdb:active {
     border-color: var(--mui-palette-contrast-hover, rgba(250, 250, 250, 0.16));
     background-color: var(--mui-palette-contrast-hoverFill, rgba(18, 18, 18, 0.4));
 }
-/* buy/purchase link: the anchor inside must not bring its own link look */
-#mdb-sc-trackButtons .sc_button-mdb a {
-    color: inherit;
+/* buy/purchase link: it is an <a> carrying the button classes, not an <a> inside a <button>
+   (SoundCloud's .sc-button sets pointer-events: none on children), so the link look has to be
+   taken off the button itself, in the hover state too */
+#mdb-sc-trackButtons a.sc_button-mdb,
+#mdb-sc-trackButtons a.sc_button-mdb:hover {
+    color: var(--mui-palette-contrast-contrastText, #fafafa);
     text-decoration: none;
 }
 /* the DL button forwards the click to SoundCloud's own download button */

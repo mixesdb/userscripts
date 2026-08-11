@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.7
+// @version      2026.08.11.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -169,7 +169,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 88,
+var cacheVersion = 90,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -865,7 +865,9 @@ waitForKeyElements(".soundActions", function( jNode ) {
             buyLink_text = buyLink.text();
 
         buyLink.remove();
-        jNode.append( '<button class="'+soundActionFakeButtonClass+'"><a href="'+buyLink_href+'" target="_blank">Link: '+buyLink_text+'</a></button>' );
+        // an <a> carrying the button classes, not an <a> inside a <button> - see the new
+        // layout's #mdb-purchaseLink for why a nested anchor cannot be clicked
+        jNode.append( '<a class="'+soundActionFakeButtonClass+'" href="'+buyLink_href+'" target="_blank">Link: '+buyLink_text+'</a>' );
     }
 });
 
@@ -1197,11 +1199,17 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // buy/purchase link
                                 // The old layout offered it as .soundActions__purchaseLink in the DOM, the
                                 // new one hides it away - take it from the API response instead.
+                                // The link IS the button, it is not an <a> inside a <button>: SoundCloud's
+                                // own .sc-button rule (which soundActionFakeButtonClass pulls in for the
+                                // look) sets pointer-events: none on every child, so a nested anchor never
+                                // receives the click - the button swallows it and nothing happens. An <a>
+                                // carrying the button classes is what SoundCloud does itself and what we
+                                // already do for a.mdb-tidSubmit.sc_button-mdb.
                                 if( isNewSoundCloudLayout && purchase_url && $("#mdb-purchaseLink").length === 0 ) {
                                     var purchase_href = /^https?:\/\/gate\.sc\//.test( purchase_url ) ? fixScRedirectUrl( purchase_url ) : purchase_url,
                                         purchase_text = purchase_title ? purchase_title : "Buy";
 
-                                    buttonTarget.append( '<button id="mdb-purchaseLink" class="'+soundActionFakeButtonClass+'"><a href="'+purchase_href+'" target="_blank">Link: '+purchase_text+'</a></button>' );
+                                    buttonTarget.append( '<a id="mdb-purchaseLink" class="'+soundActionFakeButtonClass+'" href="'+purchase_href+'" target="_blank">Link: '+purchase_text+'</a>' );
                                 }
 
                                 // artwork: link to the original plus its dimensions/file type
