@@ -143,6 +143,16 @@ var mdbTracklistExamples = [
             first: "1. [00:00:40] Dusky - Bindweed",
             last:  "12. [00:56:00] '''CLASSIC OF THE WEEK:''' Dennis Ferrer & Jerome Sydenham - Sandcastles (Martijn Ten Velden & Mark Knight Mix)"
         }
+    },
+    {
+        // Unnumbered, and track 13 is mistyped "Kate Bush -Running Up That Hill" - no space behind the dash. A line that is not a candidate ENDS the run, so this one typo used to cut the list in two and hand back the longer half (the last 18 tracks) as if it were the whole thing.
+        url: "https://soundcloud.com/tanzmarke/mit-dir-festival-2024-muhle",
+        text: "Mein Beitrag zum MIT DIR Festival 2024. 1000 Dank für die Einladung.\n\nTracklist\n\nKROCODEAL - Terr (Original Mix)\nRiver Red - Otherside (Cuprite & Amir Telem Remix)\nFred Ventura - Dancing Alone (A.P. Mono 1984 Remix)\nKimshies - The Hours (Original Mix)\nCoxenberg - Focus (Leo Sagrado Remix)\nAFFKT - Corcho (Kimshies Remix)\nK2W0 - Ain't no Sunshine (SAQIB Remix)\nNUAH - Smalltalk (Atric Remix)\nKaufmann - In Control (Original Mix)\nPavel Petrov & Rafael Cerato - Intelligence (Extended Mix)\nSian & David LeSal - Black T-Shirt (Original Mix)\nBOHO - Eigelstein (Kiko Remix)\nKate Bush -Running Up That Hill (Notre Dame Edit)\nI Promised Mom - Nobody Knows (Original Mix)\nGnarls Barkley - Crazy (DEFLEE, Panic Chase)\npizzaaftersex - Flow (Far&High Edit)\nDelara Ja - Skylight (Original Mix)\nZakmina - Running Amore (Original Mix)\nG.Pal, Alexandros Djkevingr, Gabriel Di Pasqua - Medusa (Anatolian Sessions Remix)\nCloz - Deeper (Gueva Remix)\nPavel Petrov - Wir Brauchen Bass (Original Mix)\nBlack Accord - Drinks House (Original Mix)\nR.E.M - Losing My Religion (Tal Fussman Remix)\nVitalic ft. Vimala - You Are Not Alone (Extended Version)\nGregor Tresher ft. Sven Väth - Flashback (Pavel Petrov Remix)\nRodg & Veljko Jovic - Neonatic (Original Mix)\nEran Hersh, Dmitry KO - Relax (Original Mix)\nSabii - Memories of my soul (Instrumental mix)\nFedele - Your Eyes (Original Mix)\nFelix E feat. Solveig Eger - Meine Katze (Original Mix)\nKimshies - Cowboys Don't Cry (Original Mix)",
+        expect: {
+            lines: 31,
+            first: "KROCODEAL - Terr (Original Mix)",
+            last:  "Kimshies - Cowboys Don't Cry (Original Mix)"
+        }
     }
 ];
 
