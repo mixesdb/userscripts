@@ -528,5 +528,49 @@ var mdbTitleExamples = [
         channel: "Some Label",
         date: "2026-08-07",
         expect: "2026-08-07 - Some DJ - Berghain July (Promo Mix)"
+    },
+    {
+        title: "Some DJ - DJmix at Berghain",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        title: "Some DJ - DJ-Set@Berghain",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        title: "Some DJ - Live Mix at Berghain",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        title: "Some DJ@Berghain",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        title: "Some DJ (Live) @ Berghain",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        title: "Some DJ @ Berghain (DJ Set)",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        // the marker word is only noise where it MARKS - a venue may be named after it, and
+        // there it is the name
+        title: "Some DJ @ Live Music Hall",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Live Music Hall"
     }
 ];

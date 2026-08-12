@@ -814,12 +814,18 @@ var mdbTitleVenueConnectors = [
  *     WRONG: 2026-06-28 - DJ Set @ What Happens Label Night 2026
  *     RIGHT: 2026 - Alex Esser @ What Happens Label Night 2026
  *
+ * The blank INSIDE a two-word entry is optional as well, and a "-", "." or "_" may stand in its
+ * place: "DJmix@Docks", "DJ-Set at Docks" and "Liveset at Docks" are the same words typed the
+ * way uploaders type them, and the marker has to go in all of them - it must never survive into
+ * the name in front of the "@" ("Anja Schneider - DJmix @ Docks").
+ *
  * Longest entry first: they are tried in order and "live" would otherwise swallow the start of
  * "live set".
  */
 var mdbTitleLiveAtWords = [
     "recorded live",
     "live set",
+    "live mix",
     "dj set",
     "dj mix",
     "live"

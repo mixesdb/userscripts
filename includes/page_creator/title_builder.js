@@ -800,6 +800,16 @@ function mdbTitle_wordListAlternation( list ) {
     return alternatives.join( "|" );
 }
 
+// mdbTitle_liveWordAlternation
+// The mdbTitleLiveAtWords as a regex body, with the blank INSIDE a two-word marker made
+// optional: "DJ Set", "DJset", "DJ-Set" and "DJ.Set" are one word to an uploader, and the
+// marker has to be dropped in all of them - a "DJmix" left standing ends up in the artist
+// group in front of the "@". Only the blank between the marker's OWN words is loosened; the
+// connector behind it keeps its whitespace, or the "at" of "Livegate" would count.
+function mdbTitle_liveWordAlternation( list ) {
+    return mdbTitle_wordListAlternation( list ).replace( /\s+/g, "\\s*[-._]?\\s*" );
+}
+
 // mdbTitle_applyJoiners
 // Rewrites the joiners of Help:Add_a_new_mix_page into the spelling MixesDB uses:
 //   "Surgeon x Erika"                 -> "Surgeon & Erika"   (played together)
@@ -811,6 +821,13 @@ function mdbTitle_applyJoiners( text ) {
     var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
         venue = ( typeof mdbTitleVenueConnectors !== "undefined" && mdbTitleVenueConnectors ) ? mdbTitleVenueConnectors : [],
         together = ( typeof mdbTitleTogetherArtistJoiners !== "undefined" && mdbTitleTogetherArtistJoiners ) ? mdbTitleTogetherArtistJoiners : [];
+
+    // An "@" the uploader typed says the same thing as the rules below produce, so it is
+    // written the same way before anything reads it: MixesDB spells the joiner " @ ", and
+    // "Anja Schneider@Docks" is that title with the blanks left out. Everything downstream
+    // asks indexOf( "@" ) and then reads the bits AROUND it, so a glued "@" would carry the
+    // artist and the place into one bit and out into the finished title.
+    text = text.replace( /\s*@\s*/g, " @ " ).replace( /^\s+|\s+$/g, "" );
 
     // "Live at <place>" first, because it says outright what the two rules below can only read
     // off the shape of a title. One name in front of it is enough - unlike the bare "at" below
@@ -827,12 +844,16 @@ function mdbTitle_applyJoiners( text ) {
         // "Live@Elsewhere Loft" is that title with the blanks left out, which is how uploaders
         // write it half the time. A WORD connector still needs its whitespace, or the "at" of
         // "Livegate" would count.
+        // A separator may stand between the marker and the "@", because a marker the uploader
+        // put in a bracket ("Anja Schneider (Live) @ Docks") is a bit of its own by the time
+        // this runs - mdbTitle_bracketsToSeparators turned the pair into "|".
         var sep = "[" + mdbTitle_sepInner + "]",
             venueWords = venue.length ? mdbTitle_wordListAlternation( venue ) : "",
-            connectors = ( venueWords ? "\\s+(?:" + venueWords + ")\\s+|" : "" ) + "\\s*@\\s*",
+            connectors = ( venueWords ? "\\s+(?:" + venueWords + ")\\s+|" : "" ) +
+                         "\\s*(?:" + sep + "\\s*)*@\\s*",
             liveRe = new RegExp(
                 "(^|[^\\s" + mdbTitle_sepInner + "])\\s*" + sep + "*\\s*\\b(?:" +
-                mdbTitle_wordListAlternation( live ).replace( /\s+/g, "\\s+" ) +
+                mdbTitle_liveWordAlternation( live ) +
                 ")\\b(?:" + connectors + ")", "i" );
 
         text = text.replace( liveRe, function( all, before ) {
@@ -850,6 +871,19 @@ function mdbTitle_applyJoiners( text ) {
                                   mdbTitle_wordListAlternation( venue ) + ")(?=\\s)", "i" );
 
         text = text.replace( venueRe, "$1 @" );
+    }
+
+    // The marker may also stand BEHIND the place, where it connects nothing and only says the
+    // same thing the "@" already says: "Anja Schneider @ Docks (Live)", "… @ Docks - DJ Set".
+    // It has no business in the entity, so it goes - but only at the very END of the title and
+    // only while a name is left standing behind the "@": a venue may well BEGIN with the word
+    // ("@ Live Music Hall"), and there it is the name, not a marker.
+    if( live.length && text.indexOf( "@" ) !== -1 ) {
+        var trailingRe = new RegExp( "\\s*(?:[" + mdbTitle_sepInner + "]\\s*)*\\b(?:" +
+                                     mdbTitle_liveWordAlternation( live ) + ")\\b\\s*$", "i" ),
+            withoutMarker = text.replace( trailingRe, "" );
+
+        if( withoutMarker !== text && /@\s*\S/.test( withoutMarker ) ) text = withoutMarker;
     }
 
     if( together.length ) {
