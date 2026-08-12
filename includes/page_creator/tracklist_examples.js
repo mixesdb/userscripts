@@ -153,6 +153,21 @@ var mdbTracklistExamples = [
             first: "KROCODEAL - Terr (Original Mix)",
             last:  "Kimshies - Cowboys Don't Cry (Original Mix)"
         }
+    },
+    {
+        // Numbered "N " throughout except tracks 12 and 13, which the uploader typed as "12 - " and
+        // "13 - ". Detection was never the problem here - the API's was: it strips the numbering
+        // the block agrees on and leaves the two odd lines alone, so they arrive as tracks called
+        // "12 - Wassu & Haums" and "13 - Juju". This is the case that guards mdbTracklist_evenIndexes(),
+        // so it names its whole `text` - the two lines it is about are in the MIDDLE of the block,
+        // where the usual first/last assertions cannot see them.
+        // Reported as the block alone, without the URL of the mix it came from.
+        what: "mixed \"N \" and \"N - \" numbering in one block",
+        text: "1 Aykut Bilir - Humans (Original Mix) Mousike Records\n2 Kaob - Atua (Mula remix) Mousike Records\n3 Massrali - Reeds (Original Mix) Electronical Reeds\n4 Adam Ten, DvirNuns - Comusa (Original Mix) Life And Death\n5 Pryda - Rakfunk (Original Mix) Pryda Recordings\n6 Nash La Musica - Kali (Original Mix) Be Adult Roots\n7 Traffic Report - Airfield\n8 Andfølk - Drift (Original Mix) Caramel Records\n9 Massuma - Mermaid (Original Mix) Places & Spaces\n10 Peter Makto - Naked Soul (Original Mix) HMWL\n11 Dino Lenny - I've Learned That (Jonathan Kaspar Remix) Crosstown Rebels\n12 - Wassu & Haums - Blue Meadow HMWL\n13 - Juju - Souvenirs\n14 JUNO (DE) - Last Dance (Original Mix) Magnifik Music\n15 Rhye, Adam Ten - 3 Days Later (Extended) Higher Ground\n16 CVALM & Ikerfoxx - Often (Extended Mix) ABRACADABRA\n17 Emmanuel Jal, Desiree - Macho (Extended) Ninja Tune\n18 Tahos - DLDL - Soon on HMWL",
+        expect: {
+            lines: 18,
+            text: "1 Aykut Bilir - Humans (Original Mix) Mousike Records\n2 Kaob - Atua (Mula remix) Mousike Records\n3 Massrali - Reeds (Original Mix) Electronical Reeds\n4 Adam Ten, DvirNuns - Comusa (Original Mix) Life And Death\n5 Pryda - Rakfunk (Original Mix) Pryda Recordings\n6 Nash La Musica - Kali (Original Mix) Be Adult Roots\n7 Traffic Report - Airfield\n8 Andfølk - Drift (Original Mix) Caramel Records\n9 Massuma - Mermaid (Original Mix) Places & Spaces\n10 Peter Makto - Naked Soul (Original Mix) HMWL\n11 Dino Lenny - I've Learned That (Jonathan Kaspar Remix) Crosstown Rebels\n12 Wassu & Haums - Blue Meadow HMWL\n13 Juju - Souvenirs\n14 JUNO (DE) - Last Dance (Original Mix) Magnifik Music\n15 Rhye, Adam Ten - 3 Days Later (Extended) Higher Ground\n16 CVALM & Ikerfoxx - Often (Extended Mix) ABRACADABRA\n17 Emmanuel Jal, Desiree - Macho (Extended) Ninja Tune\n18 Tahos - DLDL - Soon on HMWL"
+        }
     }
 ];
 
