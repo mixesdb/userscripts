@@ -810,6 +810,50 @@ function mdbTitle_liveWordAlternation( list ) {
     return mdbTitle_wordListAlternation( list ).replace( /\s+/g, "\\s*[-._]?\\s*" );
 }
 
+// mdbTitle_reduceRecordingNotes
+// A chunk that is a live/DJ-set marker with nothing but a note about the recording next to it
+// becomes the bare marker: "… | 2hr Live Mix | at The Yard" -> "… | Live Mix | at The Yard".
+// Uploaders put the marker in a bracket, and a bracket is a chunk of its own by the time the
+// joiner rules run - so without this the marker is unreachable for them and the words around it
+// ("2hr") end up in the artist. Only when the marker plus mdbTitleRecordingNoteFillers accounts
+// for the WHOLE chunk: a name that merely contains a marker word ("Live Sessions 12") is a name.
+function mdbTitle_reduceRecordingNotes( text ) {
+    var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
+        fillers = ( typeof mdbTitleRecordingNoteFillers !== "undefined" && mdbTitleRecordingNoteFillers ) ? mdbTitleRecordingNoteFillers : [];
+
+    text = String( text || "" );
+
+    if( !live.length ) return text;
+
+    // the separator is captured, so parts reads [ chunk, sep, chunk, sep, chunk, ... ] - the
+    // same split mdbTitle_dropBits uses. One chunk is the whole title and there is nothing
+    // around the marker to reach.
+    var parts = text.split( new RegExp( "((?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+)" ) );
+
+    if( parts.length < 3 ) return text;
+
+    var markerRe = new RegExp( "\\b(?:" + mdbTitle_liveWordAlternation( live ) + ")\\b", "i" ),
+        i, j, bit, marker, left;
+
+    for( i = 0; i < parts.length; i += 2 ) {
+        bit = mdbTitle_trimSeparators( parts[i] );
+        marker = bit.match( markerRe );
+
+        // nothing to reduce when the chunk IS the marker already
+        if( !marker || bit.length === marker[0].length ) continue;
+
+        left = bit.slice( 0, marker.index ) + " " + bit.slice( marker.index + marker[0].length );
+
+        for( j = 0; j < fillers.length; j++ ) {
+            left = left.replace( fillers[j], " " );
+        }
+
+        if( !/\S/.test( left ) ) parts[i] = marker[0];
+    }
+
+    return parts.join( "" );
+}
+
 // mdbTitle_applyJoiners
 // Rewrites the joiners of Help:Add_a_new_mix_page into the spelling MixesDB uses:
 //   "Surgeon x Erika"                 -> "Surgeon & Erika"   (played together)
@@ -829,6 +873,16 @@ function mdbTitle_applyJoiners( text ) {
     // artist and the place into one bit and out into the finished title.
     text = text.replace( /\s*@\s*/g, " @ " ).replace( /^\s+|\s+$/g, "" );
 
+    // A marker the uploader wrote into a bracket arrives here as a chunk holding the marker AND
+    // a note about the recording ("2hr Live Mix"). Cut down to the marker first, so the rules
+    // below read it as the marker it is rather than dragging "2hr" into the name in front.
+    var reduced = mdbTitle_reduceRecordingNotes( text );
+
+    if( reduced !== text ) {
+        logVar( "mdbTitle_applyJoiners: a chunk is a note about the recording", text + " -> " + reduced );
+        text = reduced;
+    }
+
     // "Live at <place>" first, because it says outright what the two rules below can only read
     // off the shape of a title. One name in front of it is enough - unlike the bare "at" below
     // it cannot be an ordinary English phrase - and the separator in front is swallowed with
@@ -844,12 +898,15 @@ function mdbTitle_applyJoiners( text ) {
         // "Live@Elsewhere Loft" is that title with the blanks left out, which is how uploaders
         // write it half the time. A WORD connector still needs its whitespace, or the "at" of
         // "Livegate" would count.
-        // A separator may stand between the marker and the "@", because a marker the uploader
-        // put in a bracket ("Anja Schneider (Live) @ Docks") is a bit of its own by the time
-        // this runs - mdbTitle_bracketsToSeparators turned the pair into "|".
+        // A separator may stand between the marker and the connector, because a marker the
+        // uploader put in a bracket is a bit of its own by the time this runs -
+        // mdbTitle_bracketsToSeparators turned the pair into "|", and the place is in the next
+        // bit: "Anja Schneider (Live) @ Docks", "… Soulmate | Live Mix | at The Yard". A WORD
+        // connector still needs whitespace or a separator in front of it - never nothing - or
+        // the "at" of "Livegate" would count.
         var sep = "[" + mdbTitle_sepInner + "]",
             venueWords = venue.length ? mdbTitle_wordListAlternation( venue ) : "",
-            connectors = ( venueWords ? "\\s+(?:" + venueWords + ")\\s+|" : "" ) +
+            connectors = ( venueWords ? "(?:\\s+|(?:\\s*" + sep + "\\s*)+)(?:" + venueWords + ")\\s+|" : "" ) +
                          "\\s*(?:" + sep + "\\s*)*@\\s*",
             liveRe = new RegExp(
                 "(^|[^\\s" + mdbTitle_sepInner + "])\\s*" + sep + "*\\s*\\b(?:" +

@@ -334,6 +334,16 @@ var mdbTitleExamples = [
         date: "2026-04-03",
         expect: "2026-04-03 - Ben Klock - RA Podcast (RA.971)"
     },
+    {
+        url: "https://soundcloud.com/meat-free-djs/deetron-pres-soulmate-2hr-live",
+        title: "Deetron pres. Soulmate [2hr Live Mix] at The Yard // 25.07.2026",
+        channel: "Meat Free",
+        date: "2026-07-30",
+        // the phrase stays whole in the title and is still two categories - as on the wiki's own
+        // "2024-05-16 - Deetron Pres. Soulmate - fabric Podcast 037"
+        expectArtists: [ "Deetron", "Soulmate" ],
+        expect: "2026-07-25 - Deetron pres. Soulmate @ The Yard"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {
@@ -372,6 +382,15 @@ var mdbTitleExamples = [
         date: "2026-08-05",
         expectArtists: [ "Some DJ", "Other DJ" ],
         expect: "2026-08-05 - Some DJ, Other DJ - Some Podcast 12"
+    },
+    {
+        // the ABBREVIATION is the other word: it names a project, so it stays in the title -
+        // and the two names are still two categories
+        title: "Some Podcast 12 - Some DJ pres Other DJ",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expectArtists: [ "Some DJ", "Other DJ" ],
+        expect: "2026-08-05 - Some DJ pres. Other DJ - Some Podcast 12"
     },
     {
         // the entity is a NAME - no joiner rewriting in there
@@ -572,5 +591,19 @@ var mdbTitleExamples = [
         channel: "Some Label",
         date: "2026-08-07",
         expect: "2026 - Some DJ @ Live Music Hall"
+    },
+    {
+        title: "Some DJ (60 min Live Mix) at Berghain",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        // the other side of it: a NAME that happens to carry a marker word is not a note about
+        // the recording, and neither the name nor its number may be dropped
+        title: "Some DJ - Live Sessions 12",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Some DJ - Live Sessions 12"
     }
 ];

@@ -722,6 +722,19 @@ var mdbTitleTogetherArtistJoiners = [
  * inside a finished artist group with nowhere for the presenter to go, and two names filed as
  * two artists beat one category holding the whole phrase.
  *
+ * The ABBREVIATION is the other word. "pres." says an artist is playing as a project of theirs,
+ * and MixesDB writes that project out in the title as the one act it is:
+ *
+ *     "2024-05-16 - Deetron Pres. Soulmate - fabric Podcast 037"
+ *     "2017-10-25 - Tiefschwarz - Tiefschwarz pres. A Souvenir from…, Ibiza Global Radio"
+ *
+ * so "pres." is normalised (a bare "pres" gets its dot) and then left exactly where it stands.
+ * The two names behind it are still filed as two artists - that page carries both
+ * [[Category:Deetron]] and [[Category:Soulmate (Sam Geiser)]] - which is mdbTitleArtistSplitJoiners'
+ * job, not this list's. Spelling the joiner out and abbreviating it are therefore NOT the same
+ * word here, and that is the only signal there is: an uploader who typed the whole word is
+ * introducing somebody, one who typed "pres." is naming a project.
+ *
  * Applied to the ARTIST group only, and never to the entity: an entity is a name, and a mix
  * called "Techno versus House" is not two artists playing against each other.
  *
@@ -734,7 +747,8 @@ var mdbTitleArtistJoinerSpellings = {
     "b2b2b": [ "b2b2b" ],
     "b2b":   [ "b2b", "b3b" ],
     "vs":    [ "vs", "vs.", "versus" ],
-    ",":     [ "presents", "present", "pres.", "pres" ]
+    "pres.": [ "pres.", "pres" ],
+    ",":     [ "presents", "present" ]
 };
 
 
@@ -757,12 +771,19 @@ var mdbTitleArtistJoinerSpellings = {
  * Soundsystem" out of it - see mdbTitle_splitArtists(). The "," does not, and it is the one
  * entry that can also stand inside a name, which is a trade MixesDB makes as well.
  *
+ * "pres." is here and NOT in mdbTitleArtistJoinerSpellings, which is the whole point of the two
+ * lists being separate: the title keeps the phrase whole ("Deetron pres. Soulmate" - the project
+ * is what played), and the categories still get both names. That is what the wiki does with it:
+ * "2024-05-16 - Deetron Pres. Soulmate - fabric Podcast 037" is filed under [[Category:Deetron]]
+ * AND [[Category:Soulmate (Sam Geiser)]].
+ *
  * Longest entry first, so "b2b2b" is not read as "b2b" with a stray "2b" behind it.
  */
 var mdbTitleArtistSplitJoiners = [
     "b2b2b", "b3b", "b2b",
     "versus", "vs.", "vs",
     "featuring", "feat.", "feat", "ft.", "ft",
+    "pres.", "pres",
     "&", "x"
 ];
 
@@ -819,6 +840,14 @@ var mdbTitleVenueConnectors = [
  * way uploaders type them, and the marker has to go in all of them - it must never survive into
  * the name in front of the "@" ("Anja Schneider - DJmix @ Docks").
  *
+ * A SEPARATOR may stand between the marker and the connector behind it, because a marker the
+ * uploader put in brackets is a chunk of its own by the time this runs - the brackets became
+ * "|" (see mdbTitle_bracketsToSeparators), and the place is then in the next chunk:
+ *
+ *     "Deetron pres. Soulmate [2hr Live Mix] at The Yard"  (channel "Meat Free")
+ *     read as   "Deetron pres. Soulmate | 2hr Live Mix | at The Yard"
+ *     ->  2026-07-25 - Deetron pres. Soulmate @ The Yard
+ *
  * Longest entry first: they are tried in order and "live" would otherwise swallow the start of
  * "live set".
  */
@@ -829,6 +858,33 @@ var mdbTitleLiveAtWords = [
     "dj set",
     "dj mix",
     "live"
+];
+
+
+/*
+ * mdbTitleRecordingNoteFillers
+ *
+ * What may stand next to a marker word inside a chunk without that chunk stopping to be the
+ * marker. An uploader writes the marker into a bracket together with a note about the recording
+ * - how long it is, that it is the whole thing - and the bracket is a chunk of its own by the
+ * time the joiner rules read it:
+ *
+ *     "Deetron pres. Soulmate [2hr Live Mix] at The Yard"
+ *     ->  the chunk "2hr Live Mix" IS the "Live Mix" marker, and the "@" is put in front of
+ *         "The Yard" as if the title had read "… Soulmate - Live Mix at The Yard"
+ *
+ * mdbTitle_reduceRecordingNotes() cuts the marker and these fillers out of a chunk and only
+ * calls it a marker when NOTHING is left over. That is what keeps a name that merely contains
+ * a marker word out of it: "Live Sessions 12" leaves "Sessions 12" standing and is a show, not
+ * a note about the recording - and dropping it would lose the show.
+ *
+ * So keep this list to words that can only ever be a note. A bare number is deliberately not
+ * one: it is an episode far more often than a duration ("Live Set 12"), and it only counts here
+ * with a time unit behind it.
+ */
+var mdbTitleRecordingNoteFillers = [
+    /\b\d+(?:[.,]\d+)?\s*(?:h|hr|hrs|hour|hours|min|mins|minute|minutes|std|stunden)\b/gi,
+    /\b(?:full|complete|whole|recording)\b/gi
 ];
 
 
