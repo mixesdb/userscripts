@@ -33,6 +33,9 @@ Each folder holds one userscript and a README describing its features.
 Shared across the site scripts: [Toolkit and tracklist boxes](includes/) and the
 [page creator](includes/page_creator/).
 
+[private/](private/) holds personal import helpers for bulk work on a single show. They are not
+part of the set contributors install.
+
 ## Issues
 
 There probably won't be any issues listed here. Discussion takes place on Discord:
