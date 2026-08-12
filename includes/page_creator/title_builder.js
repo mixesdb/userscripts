@@ -58,13 +58,43 @@ var mdbTitle_monthNames = {
 // other ("ANA, Johnny D, DJ Koze"), so it must never split a title into artist and show.
 var mdbTitle_sepInner = "\\-–—|:/\\\\";
 
-// Words that only ever introduce an episode NUMBER, so "Vol.5" must not be mistaken for an
+// The words that only ever introduce an episode NUMBER, so "Vol.5" must not be mistaken for an
 // episode ID like "RA.971" just because it is also "letters, dot, digits".
-var mdbTitle_episodeWords = [
-    "vol", "volume", "ep", "episode", "pt", "part", "no", "nr", "nos", "chapter", "folge",
-    "podcast", "pod", "show", "mix", "mixtape", "set", "session", "radio", "feat", "ft",
-    "tape", "act", "guest"
-];
+//
+// BUILT from the two curated lists in title_definitions.js rather than kept alongside them: a
+// word that names a series (mdbTitleShowSuffixWords) and a word that counts an episode
+// (mdbTitleCounterWords) both introduce a number wherever they stand, and a private copy of
+// them drifts. It did - "cast" was on the show list and not in here, so
+// "Whose These Cast #02 by Mar Monzon" never found the word carrying its number, and with it
+// went the artist standing behind the "by". One list cannot drift from itself.
+//
+// What the two lists do NOT cover is added here: words that number something without naming a
+// series ("Vol.5", "Tape 4", "Act 2", "Set 3"). Cached, since mdbTitle_findEpisode is called
+// several times per title.
+var mdbTitle_episodeWordCache = null;
+
+function mdbTitle_episodeWords() {
+    if( mdbTitle_episodeWordCache ) return mdbTitle_episodeWordCache;
+
+    var words = [ "vol", "volume", "pod", "set", "feat", "ft", "tape", "act", "guest" ]
+            .concat( mdbTitle_showSuffixWords() )
+            .concat( ( typeof mdbTitleCounterWords !== "undefined" && mdbTitleCounterWords ) ? mdbTitleCounterWords : [] ),
+        seen = {},
+        list = [],
+        word,
+        i;
+
+    for( i = 0; i < words.length; i++ ) {
+        word = String( words[i] ).toLowerCase();
+
+        if( word && !seen[word] ) { seen[word] = true; list.push( word ); }
+    }
+
+    // longest first, so the alternation reports "mixtape" rather than the "mix" inside it
+    mdbTitle_episodeWordCache = list.sort( function( a, b ) { return b.length - a.length; } );
+
+    return mdbTitle_episodeWordCache;
+}
 
 // mdbTitle_pad
 function mdbTitle_pad( n ) {
@@ -316,6 +346,71 @@ function mdbTitle_findDate( text, refIso ) {
     return null;
 }
 
+// mdbTitle_yearOf
+// The year of a date, or "" - the only part of an upload date a live recording may claim.
+// Takes a bare "2026" as readily as a full ISO date, so an event's own year passes through it.
+function mdbTitle_yearOf( date ) {
+    var m = /^\s*((?:19|20)\d{2})/.exec( String( date || "" ) );
+
+    return m ? m[1] : "";
+}
+
+// mdbTitle_takeRecordingMonth
+// A MONTH NAME ending a live recording's title says WHEN it was played, not what the place is
+// called: "Live@Elsewhere Loft July" is a July recording at Elsewhere Loft. Returns
+// { text, month }, with month 0 when there is none.
+//
+// Only ever asked about a title that already reads as a live recording, and only about its LAST
+// word. A bare month name is part of a NAME far more often than it is a date - "Mar Monzon",
+// "May Day", the channel "Juni" - so nothing looser may read one, which is also why
+// mdbTitle_findDate has no pattern for it.
+function mdbTitle_takeRecordingMonth( text ) {
+    var result = { text: String( text || "" ), month: 0 },
+        m = /\s+([a-zäöü]{3,9})\.?\s*$/i.exec( result.text ),
+        month = m ? mdbTitle_monthFromName( m[1] ) : 0;
+
+    // the month must leave a place behind - "@ July" names no venue at all
+    if( !month || !mdbTitle_trimSeparators( result.text.slice( 0, m.index ) ) ) return result;
+
+    result.text = result.text.slice( 0, m.index );
+    result.month = month;
+
+    return result;
+}
+
+// mdbTitle_liveDate
+// The date and the artist group of a LIVE recording whose player title carries no date of its
+// own. Such a set is uploaded whenever the recording is ready - days, months or years after it
+// was played - so the upload date is never the gig date and only its YEAR is claimed. A month
+// the place names refines that year, and leaves the place name as it goes.
+// See "The date of a live recording" in title_definitions.js.
+function mdbTitle_liveDate( date, group ) {
+    var year = mdbTitle_yearOf( date ),
+        result = { date: date, group: group, month: 0 };
+
+    if( !year ) return result;
+
+    var withoutMonth = mdbTitle_takeRecordingMonth( group );
+
+    result.date = year;
+    result.month = withoutMonth.month;
+
+    if( withoutMonth.month ) {
+        result.date = year + "-" + mdbTitle_pad( withoutMonth.month );
+        result.group = withoutMonth.text;
+    }
+
+    return result;
+}
+
+// mdbTitle_liveDateReason
+// What the reader is told about a date mdbTitle_liveDate cut down to the year (and month).
+function mdbTitle_liveDateReason( month ) {
+    return month
+        ? "only the year and the month are known - the title says the set was played somewhere and names a month, but no day"
+        : "only the year is known - the title says the set was played somewhere but names no day, and the upload date is not when it was played";
+}
+
 /*
  * Confidence
  *
@@ -352,7 +447,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     // falls through to the number patterns below instead of becoming a bracketed ID.
     var idRe = /(^|[^\w])([A-Za-z][A-Za-z0-9]{0,7})\.\s?(\d{1,5})(?!\d)/g;
     while( ( m = idRe.exec( text ) ) !== null ) {
-        if( mdbTitle_episodeWords.indexOf( m[2].toLowerCase() ) === -1 ) {
+        if( mdbTitle_episodeWords().indexOf( m[2].toLowerCase() ) === -1 ) {
             var lead = m[1] ? m[1].length : 0;
             return {
                 text: m[2] + "." + m[3],
@@ -364,7 +459,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     }
 
     // "Podcast 496", "Episode 12", "Vol. 5", "Show #23"
-    var wordRe = new RegExp( "(^|[^\\w])(" + mdbTitle_episodeWords.join("|") + ")\\.?\\s*#?\\s*(\\d{1,5})(?!\\d)", "i" );
+    var wordRe = new RegExp( "(^|[^\\w])(" + mdbTitle_episodeWords().join("|") + ")\\.?\\s*#?\\s*(\\d{1,5})(?!\\d)", "i" );
     m = wordRe.exec( text );
     if( m ) {
         return {
@@ -392,7 +487,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     // two digits, nothing wordy on either side - otherwise "b2b" would read as the ID "b2".
     var gluedRe = /(^|[^\w])([A-Za-z]{2,8})(\d{2,5})(?![\w])/g;
     while( ( m = gluedRe.exec( text ) ) !== null ) {
-        if( mdbTitle_episodeWords.indexOf( m[2].toLowerCase() ) === -1 ) {
+        if( mdbTitle_episodeWords().indexOf( m[2].toLowerCase() ) === -1 ) {
             var gluedLead = m[1] ? m[1].length : 0;
             return {
                 text: m[2] + m[3],
@@ -727,13 +822,18 @@ function mdbTitle_applyJoiners( text ) {
     // at the front, where buildMixesdbTitle reads it as "the channel is the artist".
     if( live.length ) {
         // "Live @ <place>" is the same title as "Live at <place>", so the "@" counts as a
-        // connector of its own next to the words from mdbTitleVenueConnectors
+        // connector of its own next to the words from mdbTitleVenueConnectors - and as
+        // punctuation it is its OWN boundary, so the spaces around it are optional:
+        // "Live@Elsewhere Loft" is that title with the blanks left out, which is how uploaders
+        // write it half the time. A WORD connector still needs its whitespace, or the "at" of
+        // "Livegate" would count.
         var sep = "[" + mdbTitle_sepInner + "]",
-            connectors = venue.length ? mdbTitle_wordListAlternation( venue ) + "|@" : "@",
+            venueWords = venue.length ? mdbTitle_wordListAlternation( venue ) : "",
+            connectors = ( venueWords ? "\\s+(?:" + venueWords + ")\\s+|" : "" ) + "\\s*@\\s*",
             liveRe = new RegExp(
                 "(^|[^\\s" + mdbTitle_sepInner + "])\\s*" + sep + "*\\s*\\b(?:" +
                 mdbTitle_wordListAlternation( live ).replace( /\s+/g, "\\s+" ) +
-                ")\\b\\s+(?:" + connectors + ")\\s+", "i" );
+                ")\\b(?:" + connectors + ")", "i" );
 
         text = text.replace( liveRe, function( all, before ) {
             return before ? before + " @ " : "@ ";
@@ -1781,20 +1881,25 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( eventTitle ) {
             logVar( "buildMixesdbTitle: event title", eventTitle.artist + " @ " + eventTitle.event + " (" + eventTitle.year + ")" );
 
-            if( eventTitle.year && dateFromUpload ) {
-                // a festival set is uploaded whenever the recording is ready, so the upload
-                // date says nothing about when it was played - only the year is claimed
-                date = eventTitle.year;
-                conf.drop( 10, "only the year is known - the title names an event but no day, and the upload date is not when it was played" );
-            } else if( dateFromUpload ) {
-                conf.drop( 15, uploadDateReason );
+            var eventGroup = eventTitle.artist + " @ " + eventTitle.event;
+
+            if( dateFromUpload ) {
+                // A festival set is uploaded whenever the recording is ready, so the upload date
+                // says nothing about when it was played - only a year is claimed. The event's
+                // own year wins over the upload year: the title states that one.
+                var eventLive = mdbTitle_liveDate( eventTitle.year || date, eventGroup );
+
+                date = eventLive.date;
+                eventGroup = eventLive.group;
+                conf.drop( 10, mdbTitle_liveDateReason( eventLive.month ) );
+
             } else if( eventTitle.year && date.slice( 0, 4 ) !== eventTitle.year ) {
                 conf.drop( 15, "the date in the title and the year of the event (" + eventTitle.year + ") do not match - one of them is misread" );
             }
 
             conf.drop( 10, "read as a live recording at an event - the event name was taken as the place it was played at" );
 
-            return mdbTitle_result( date, eventTitle.artist + " @ " + eventTitle.event, "", null, false, [], conf );
+            return mdbTitle_result( date, eventGroup, "", null, false, [], conf );
         }
 
         // 3g) MixesDB knows one of the bits as a venue, so this was played somewhere rather
@@ -1805,19 +1910,36 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( venueTitle ) {
             logVar( "buildMixesdbTitle: venue known to MixesDB", venueTitle.venue );
 
+            var venueGroup = venueTitle.artist + " @ " + venueTitle.venue +
+                             ( venueTitle.city ? ", " + venueTitle.city : "" );
+
             if( dateFromUpload ) {
-                conf.drop( 15, uploadDateReason );
+                var venueLive = mdbTitle_liveDate( date, venueGroup );
+
+                date = venueLive.date;
+                venueGroup = venueLive.group;
+                conf.drop( 10, mdbTitle_liveDateReason( venueLive.month ) );
             }
 
-            return mdbTitle_result(
-                date,
-                venueTitle.artist + " @ " + venueTitle.venue + ( venueTitle.city ? ", " + venueTitle.city : "" ),
-                "", null, false, [], conf
-            );
+            return mdbTitle_result( date, venueGroup, "", null, false, [], conf );
         }
 
+        // The same for a live recording the title itself marks with an "@" - every branch below
+        // carries that "@" through into the artist group, so the question is settled here, once,
+        // on the whole title. Without one the upload date stands as it is, which is right for
+        // what makes up most uploads: a podcast episode goes up on its release day.
         if( dateFromUpload ) {
-            conf.drop( 15, uploadDateReason );
+            if( rest.indexOf( "@" ) !== -1 ) {
+                var live = mdbTitle_liveDate( date, rest );
+
+                logVar( "buildMixesdbTitle: live recording, no date in the title", date + " -> " + live.date );
+                conf.drop( 10, mdbTitle_liveDateReason( live.month ) );
+
+                date = live.date;
+                rest = live.group;
+            } else {
+                conf.drop( 15, uploadDateReason );
+            }
         }
 
         // 4) take the show name out of the title before looking for an episode, so
@@ -1834,7 +1956,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // the artist as the show, and no way of telling which of the two the channel is.
         // No "(Promo Mix)": a name like that is a series of the artist's own, and the marker is
         // better left off than wrongly put on.
-        if( !taken.taken && mdbTitle_knownAs( known, username ) === "artist" ) {
+        // An "@" rules the branch out: there the title is not the name of something they made,
+        // it is the place they played at, and the artist is already standing in front of it.
+        // "DJ Set @ What Happens Label Night 2026" on the channel "Alex Esser" would otherwise
+        // come out as "Alex Esser - Alex Esser @ What Happens Label Night 2026".
+        if( !taken.taken && rest.indexOf( "@" ) === -1 && mdbTitle_knownAs( known, username ) === "artist" ) {
             var ownEntity = mdbTitle_cleanArtist( rest );
 
             if( ownEntity ) {

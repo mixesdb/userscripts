@@ -211,6 +211,42 @@ var mdbTitlePromoMixImpliedWords = [
 
 
 /*
+ * The date of a live recording
+ *
+ * The upload date is a fair guess for what makes up most uploads: a podcast episode goes up on
+ * its release day. It is never the gig date of a set that was PLAYED SOMEWHERE. Such a
+ * recording goes online whenever it is ready - the weekend after, months later, sometimes years
+ * later - so a title that comes out as a live recording and carries no date of its own only
+ * claims the YEAR of the upload date:
+ *
+ *     "DJ Set @ What Happens Label Night 2026"  (channel "Alex Esser", uploaded 2026-06-28)
+ *     ->  2026 - Alex Esser @ What Happens Label Night 2026
+ *
+ * The year there comes from the UPLOAD DATE, not from the "2026" the event writes into its own
+ * name - that one stays where it stands, as part of the name.
+ *
+ * The "@" is what says it, whichever rule put it there: the words of mdbTitleLiveAtWords, the
+ * mdbTitleVenueConnectors, an event name (mdbTitleEventWords), a venue MixesDB knows, or an "@"
+ * the uploader typed. All of them mean the same thing, so they get the same date.
+ *
+ * A MONTH refines that year, and only there:
+ *
+ *     "Live@Elsewhere Loft July"  (channel "alexander:louis", uploaded 2026-07-27)
+ *     ->  2026-07 - alexander:louis @ Elsewhere Loft
+ *
+ * A month NAME ending a live recording's title is when it was played, and it leaves the place
+ * name as it goes - "Elsewhere Loft", not "Elsewhere Loft July". Nothing looser may read a bare
+ * month: outside a live recording's place name it is part of a name far more often than it is a
+ * date ("Mar Monzon", "May Day"), which is why mdbTitle_findDate has no pattern for one.
+ *
+ * A date written in the title still wins over all of this, exactly as above - it is the only
+ * source that names the mix's own day:
+ *
+ *     "Adriana Lopez at RAW x Monnom Black | Mar 2026"  ->  2026-03
+ */
+
+
+/*
  * mdbTitleUsernameConversions
  *
  * Channel/profile name (SoundCloud API field "username") -> the show/podcast entity a
@@ -764,12 +800,27 @@ var mdbTitleVenueConnectors = [
  * that with the joiner alone, see Help:Add_a_new_mix_page#Joiners:_Live_/_@_/_-
  *
  * "at" and "@" both count as the connector behind the word, so "Live @ Docklands" is the same
- * title. Longest entry first: they are tried in order and "live" would otherwise swallow the
- * start of "live set".
+ * title - and around the "@" the blanks are optional, because punctuation is its own boundary:
+ *
+ *     "Live@Elsewhere Loft July"  (channel "alexander:louis")
+ *     ->  2026-07 - alexander:louis @ Elsewhere Loft
+ *
+ * "DJ set" and "DJ mix" say the same thing as "Live" and are on the list for the same reason.
+ * What they do NOT say is who played: nothing in "DJ Set @ <place>" is a name, so the words go
+ * and the CHANNEL is the artist, exactly as with a title opening on "Live at".
+ *
+ *     "DJ Set @ What Happens Label Night 2026"  (channel "Alex Esser")
+ *     WRONG: 2026-06-28 - DJ Set @ What Happens Label Night 2026
+ *     RIGHT: 2026 - Alex Esser @ What Happens Label Night 2026
+ *
+ * Longest entry first: they are tried in order and "live" would otherwise swallow the start of
+ * "live set".
  */
 var mdbTitleLiveAtWords = [
     "recorded live",
     "live set",
+    "dj set",
+    "dj mix",
     "live"
 ];
 
@@ -889,6 +940,20 @@ var mdbTitleGuestMarkers = [
  *
  * Only used for channels WITHOUT an entry in mdbTitleUsernameConversions - a mapped name is the
  * curated one and must not be extended behind the editor's back.
+ *
+ * The same words are what carries an episode NUMBER wherever they stand, so mdbTitle_episodeWords()
+ * is built out of this list and mdbTitleCounterWords rather than repeating them. Adding a word
+ * here therefore also teaches the parser to read the number behind it, which is what settles
+ * where the entity ends and the artist begins:
+ *
+ *     "Whose These Cast #02 by Mar Monzon"  (channel "Whose These Records")
+ *     WRONG: 2026-07-30 - Whose These Records - Whose These Cast 02 by Mar Monzon
+ *     RIGHT: 2026-07-30 - Mar Monzon - Whose These Cast 02
+ *
+ * "Cast" carries the number, so "Whose These Cast" is the podcast and the "by" behind the number
+ * introduces the artist. The channel name says the same thing from the other side - a label
+ * ("Records") is what a podcast is named after, not who played the mix - but it is not needed
+ * for the reading and nothing here relies on it.
  */
 var mdbTitleShowSuffixWords = [
     "podcast", "radio", "radioshow", "show", "mixshow", "mix", "mixtape", "mixseries",
