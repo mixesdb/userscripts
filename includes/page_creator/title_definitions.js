@@ -599,6 +599,7 @@ var mdbTitleKnownLabels = [
     "Voitax",
     "Watergate",
     "Who's Afraid of 138?!",
+    "Whose These",
     "Wolf Music",
     "WSNWG",
     "Yoruba"

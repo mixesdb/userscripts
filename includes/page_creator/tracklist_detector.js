@@ -99,8 +99,16 @@ var mdbTracklist_indexRe = /^[#(]?(\d{1,3})(?:[.):\]]+|\s*[-–—])?[ \t]+/;
 var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
 
 // "Artist - Title", with the dash SoundCloud uploaders actually type - hyphen, en dash or em
-// dash. The surrounding spaces are required: "Rub-A-Dub-Dub" and "Lo-Fi" are not two tracks.
-var mdbTracklist_artistTitleRe = /\S\s[-–—]\s\S/;
+// dash. A space on at least ONE side of it is required, and that alone is what keeps
+// "Rub-A-Dub-Dub" and "Lo-Fi" from reading as two tracks: a hyphen inside a word never has a
+// space next to it.
+//
+// Demanding one on BOTH sides is what a single typo used to cost a whole tracklist. "Kate Bush
+// -Running Up That Hill" is a track line its uploader mistyped, and rejecting it does not just
+// drop that line - it is not a candidate line at all, so the run ENDS there and the tracklist is
+// torn into the part above and the part below, of which only the longer one survives. Half a
+// tracklist is the one outcome worse than none, because nothing about it looks wrong.
+var mdbTracklist_artistTitleRe = /\S(?:\s[-–—]\s?|\s?[-–—]\s)\S/;
 
 // A cue written behind the track instead of in front of it, with whatever the uploader hung off
 // it: "Artist - Title 00:52:09", "Artist - Title 00:56:00- CLASSIC OF THE WEEK".
