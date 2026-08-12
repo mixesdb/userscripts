@@ -74,7 +74,7 @@ var mdbTitleExamples = [
         // needs the wiki: Category:Ritter Butzke is a Venue, which is what makes this a live
         // recording and the bit behind it the city
         known: { "Ritter Butzke": "venue", "Berlin": "other" },
-        expect: "2026-07-20 - Tonino & Lanka @ Ritter Butzke, Berlin"
+        expect: "2026 - Tonino & Lanka @ Ritter Butzke, Berlin"
     },
     {
         url: "https://soundcloud.com/shimon-earthly/leon-row-x-shimon-landjuweel",
@@ -191,7 +191,7 @@ var mdbTitleExamples = [
         title: "Anja Schneider - Live at Docklands (Smirnoff Sound Collective Camp)",
         channel: "Groove Magazin",
         date: "2016-07-14",
-        expect: "2016-07-14 - Anja Schneider @ Docklands"
+        expect: "2016 - Anja Schneider @ Docklands"
     },
     {
         url: "https://soundcloud.com/lx-f/mixing-diaries-041",
@@ -260,6 +260,30 @@ var mdbTitleExamples = [
         date: "2026-08-10",
         expect: "2026-08-10 - Neryn - PHONO Music Club Podcast"
     },
+    {
+        url: "https://soundcloud.com/alexesser/what-happens-mix",
+        title: "DJ Set @ What Happens Label Night 2026",
+        channel: "Alex Esser",
+        date: "2026-06-28",
+        expect: "2026 - Alex Esser @ What Happens Label Night 2026"
+    },
+    {
+        url: "https://soundcloud.com/alexanderlouisnyc/live-elsewhere-july",
+        title: "Live@Elsewhere Loft July",
+        channel: "alexander:louis",
+        date: "2026-07-27",
+        // what the wiki answered: the channel is an Artist, "Elsewhere Loft" is no category at
+        // all (its club "Elsewhere" is one, but that is not the name in the title)
+        known: { "alexander:louis": "artist" },
+        expect: "2026-07 - alexander:louis @ Elsewhere Loft"
+    },
+    {
+        url: "https://soundcloud.com/whose-these-records/whose-these-cast-02-by-mar-1",
+        title: "Whose These Cast #02 by Mar Monzon",
+        channel: "Whose These Records",
+        date: "2026-07-30",
+        expect: "2026-07-30 - Mar Monzon - Whose These Cast 02"
+    },
 
     // Reported before the URLs were kept
     {
@@ -302,7 +326,7 @@ var mdbTitleExamples = [
         title: "DJ Koze @ Robert Johnson",
         channel: "Robert Johnson",
         date: "2026-04-03",
-        expect: "2026-04-03 - DJ Koze @ Robert Johnson"
+        expect: "2026 - DJ Koze @ Robert Johnson"
     },
     {
         title: "RA.971 Ben Klock",
@@ -483,12 +507,26 @@ var mdbTitleExamples = [
         title: "Live at Docklands",
         channel: "Anja Schneider",
         date: "2016-07-14",
-        expect: "2016-07-14 - Anja Schneider @ Docklands"
+        expect: "2016 - Anja Schneider @ Docklands"
     },
     {
         title: "Some DJ - Live at Berghain (Part 2)",
         channel: "Some Label",
         date: "2026-08-07",
-        expect: "2026-08-07 - Some DJ @ Berghain"
+        expect: "2026 - Some DJ @ Berghain"
+    },
+    {
+        // the month behind the place refines the year, and only there - the same word ending an
+        // ordinary title stays part of the name
+        title: "Some DJ - Live at Berghain July",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026-07 - Some DJ @ Berghain"
+    },
+    {
+        title: "Some DJ - Berghain July",
+        channel: "Some Label",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Some DJ - Berghain July (Promo Mix)"
     }
 ];
