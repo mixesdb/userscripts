@@ -562,3 +562,19 @@ body.sc-hideShortTracks-fallback {
         padding-top: 32px !important;
     }
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 
+ * 
+ * Custom pageCreator rules
+ * 
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * No margin below tracklist wrapper
+ */
+body.soundcloud-com #mdb-pageCreator-tracklist {
+    margin-bottom: 0;
+}
