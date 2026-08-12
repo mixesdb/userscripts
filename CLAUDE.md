@@ -18,6 +18,25 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
   `/includes/`, with its own CSS and its own CLAUDE.md - see `/includes/page_creator/`
 - If an includes script changes, update the version number in its @require URL of each userscript (and the @version of each userscript)
 
+## Feature Docs
+- Every userscript folder has a `README.md` describing its user-facing features, and so do the
+  shared ones (`/includes/`, `/includes/page_creator/`). GitHub renders a folder's README right
+  under its file listing, which is why they are not called FEATURES.md.
+- They are the source for https://www.mixesdb.com/w/Help:MixesDB_userscripts, which links to them
+  instead of duplicating the text. Write for a MixesDB contributor, not for a developer: what the
+  feature does and where it shows up on the page, not which selector it hangs off.
+- **Any change that adds, removes or alters user-visible behaviour must update the README.md of
+  every affected script** - a change under `/includes/` usually means several of them, plus the
+  shared README that owns the feature. Purely internal changes (refactors, logging, selector
+  fixes that only restore existing behaviour) need no README.md edit.
+- Keep the structure identical across all of them: the intro sentence, the
+  `Runs on` / `Install` / `Shared features` list, `## Features` with one `###` per feature, and
+  `## Known limitations`. The wiki deep-links to headings, so renaming one silently breaks those
+  links - rename only when the feature itself changed.
+- A feature that lives in `/includes/` is described once there and linked from the site scripts,
+  not copied into each of them.
+- Root `README.md` holds the table of all scripts; a new script needs a row there.
+
 ## Userscript Header Conventions
 Every script must start with a complete `==UserScript==` metadata block:
 - `@name` - short, descriptive, in English
@@ -79,7 +98,7 @@ fine and every page after it is stale or empty:
   3. Check browser console for errors on page load
 
 ## Common Tasks
-- Adding a new script: create `scripts/<name>.user.js`, follow header template above, add entry to README.md table
+- Adding a new script: create `<Script_Name>/script.user.js`, follow header template above, write its `README.md` (see Feature Docs) and add a row to the root README.md table
 - Updating a script: bump `@version`, note change in a `## Changelog` comment block at bottom of file if non-trivial
 - Adding new features to a userscript or shared script: Log debugging diagnostics for crucial steps from the beginning not just when bugs occur
 - Renaming/moving a script: update `@namespace`/`@updateURL`/`@downloadURL` if present, since users' managers track updates by these
