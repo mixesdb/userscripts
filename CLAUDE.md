@@ -36,6 +36,10 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 - A feature that lives in `/includes/` is described once there and linked from the site scripts,
   not copied into each of them.
 - Root `README.md` holds the table of all scripts; a new script needs a row there.
+- `/private/` follows the same rules - every folder with a `script.user.js` has a README, and
+  `/private/README.md` lists them. They are NOT linked from the wiki: they are personal import
+  helpers, so their README says which show they are wired to and that they save pages by
+  themselves.
 
 ## Userscript Header Conventions
 Every script must start with a complete `==UserScript==` metadata block:
