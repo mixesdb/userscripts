@@ -56,7 +56,16 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  *
  * Tidying, before the API sees it
  * -------------------------------
- * The block is handed over as the uploader wrote it, with one exception: a cue written BEHIND the
+ * The block is handed over as the uploader wrote it, with two exceptions.
+ *
+ * The numbering is evened out. "12 - Wassu & Haums" and "13 - Juju" in a list otherwise numbered
+ * "11 Dino Lenny", "14 JUNO (DE)" is one tracklist to a reader and two kinds of line to the
+ * Tracklist Editor API: it strips the numbering from the lines that share the block's style and
+ * leaves the odd ones out alone, so those two arrive with their number still in the artist. The
+ * majority style wins and only the lines disagreeing with it are rewritten, which is what leaves
+ * a list that is CONSISTENTLY "1 - Artist - Title" untouched.
+ *
+ * And a cue written BEHIND the
  * track ("Artist - Title 00:52:09") is moved in front of it, where MixesDB writes cues
  * ("[00:52:09] Artist - Title"), and anything trailing the cue becomes a bold note in front of the
  * artist ("00:56:00- CLASSIC OF THE WEEK" -> "'''CLASSIC OF THE WEEK:''' Artist - Title").
@@ -90,10 +99,13 @@ var mdbTracklist_minCommentTracks = 6;
 // examples comes close to this, the longest being 92 characters.
 var mdbTracklist_maxLineLength = 200;
 
-// "1.", "01", "1)", "001.)", "(1)", "#1", "1 - " - the front of a numbered track line.
+// "1.", "01", "1)", "001.)", "(1)", "#1", "1 - " - the front of a numbered track line, taken
+// apart into what OPENS it, the digits, and the separator behind them. In three groups rather
+// than one because the numbering is not only recognized here but rewritten - see
+// mdbTracklist_evenIndexes().
 // \d{1,3} and the required separator together are what keeps a year out: "2026 Best Of" leaves
 // "6" where the separator has to be and does not match.
-var mdbTracklist_indexRe = /^[#(]?(\d{1,3})(?:[.):\]]+|\s*[-–—])?[ \t]+/;
+var mdbTracklist_indexRe = /^([#(]?)(\d{1,3})([.):\]]+|\s*[-–—])?[ \t]+/;
 
 // A cue in front of the artist: "[000]", "[00:12:30]", "[cue]"
 var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
@@ -136,7 +148,7 @@ function mdbTracklist_stripIndex( line ) {
 function mdbTracklist_index( line ) {
     var m = String( line || "" ).match( mdbTracklist_indexRe );
 
-    return m ? parseInt( m[1], 10 ) : -1;
+    return m ? parseInt( m[2], 10 ) : -1;
 }
 
 // mdbTracklist_isTrackLine
@@ -187,11 +199,100 @@ function mdbTracklist_tidyLine( line ) {
     return index + "[" + cue + "] " + note + track;
 }
 
+// mdbTracklist_indexStyle
+// HOW a line writes its numbering, with the digits themselves left out: "1." and "01." are the
+// same style, "12 -" is not. null for a line that is not numbered at all.
+function mdbTracklist_indexStyle( line ) {
+    var m = String( line || "" ).match( mdbTracklist_indexRe );
+
+    // "|" cannot occur in either group - one is "#" or "(", the other a dash or ".):]"
+    return m ? ( m[1] || "" ) + "|" + ( m[3] || "" ) : null;
+}
+
+// mdbTracklist_evenIndexes
+// One numbering style for the whole block. An uploader who typed "12 - " and "13 - " into a list
+// otherwise numbered "12 " wrote one tracklist and meant one thing by it, but the Tracklist
+// Editor API reads the block as a whole: it strips the numbering it sees on most lines and leaves
+// the odd ones out alone, so those two tracks keep their number and arrive as tracks called
+// "12 - Wassu & Haums" and "13 - Juju".
+//
+// The MAJORITY style wins and only the lines that disagree with it are touched. That is also the
+// answer to the dash that belongs to the artist rather than to the numbering: a list written
+// "1 - Artist - Title" all the way down is consistent, so nothing about it is a minority and
+// nothing is rewritten. A block does not write its artists differently from line to line - a
+// separator standing out from every other line is the numbering, not a name.
+function mdbTracklist_evenIndexes( lines ) {
+    var counts = {},
+        indexed = 0,
+        top = null,
+        i, style;
+
+    for( i = 0; i < lines.length; i++ ) {
+        style = mdbTracklist_indexStyle( lines[i] );
+
+        if( style === null ) continue;
+
+        indexed++;
+        counts[ style ] = ( counts[ style ] || 0 ) + 1;
+
+        if( !top || counts[ style ] > counts[ top ] ) top = style;
+    }
+
+    // A block that is not mostly numbered has no numbering style to even out - and the stray line
+    // that DOES start with a number in an unnumbered tracklist ("2 Bad Mice - Bombscare") must not
+    // become one by itself.
+    if( !top || indexed * 2 < lines.length ) return lines;
+
+    // Nothing to do, and the far more common case by a distance: everyone already agrees.
+    if( counts[ top ] === indexed ) return lines;
+
+    // A plurality is not a majority. Two styles splitting a block down the middle is an uploader
+    // who changed their mind halfway, and picking a winner by one line would be a coin toss.
+    if( counts[ top ] * 2 <= indexed ) {
+        log( "mdbTracklist_evenIndexes: no numbering style holds a majority of the " + indexed + " numbered lines - leaving them as they are." );
+        return lines;
+    }
+
+    var parts = top.split( "|" ),
+        lead = parts[0],
+        sep = parts[1],
+        out = [];
+
+    log( "mdbTracklist_evenIndexes: " + counts[ top ] + " of " + indexed + " numbered lines are written \"" +
+         lead + "N" + sep + " \" - bringing the other " + ( indexed - counts[ top ] ) + " in line." );
+
+    for( i = 0; i < lines.length; i++ ) {
+        out.push( mdbTracklist_evenIndexLine( lines[i], top, lead, sep ) );
+    }
+
+    return out;
+}
+
+// mdbTracklist_evenIndexLine
+// The digits are kept exactly as the uploader wrote them - "07" stays "07". Only what is
+// decorated around them changes, which is the whole of what the API trips over.
+function mdbTracklist_evenIndexLine( line, style, lead, sep ) {
+    var mine = mdbTracklist_indexStyle( line );
+
+    if( mine === null || mine === style ) return line;
+
+    var m = String( line ).match( mdbTracklist_indexRe );
+
+    return lead + m[2] + sep + " " + line.slice( m[0].length );
+}
+
 // mdbTracklist_tidy
+// Everything the block gets on the way to the API, in the order the two steps read the line: the
+// numbering at the front evened out first, then the cue behind the track moved in front of it.
+function mdbTracklist_tidy( lines ) {
+    return mdbTracklist_tidyCues( mdbTracklist_evenIndexes( lines ) );
+}
+
+// mdbTracklist_tidyCues
 // Half the block has to carry a trailing cue before any of them is rewritten. One title ending in
 // something clock-shaped ("Sandcastles 9:11") is not a pattern, and turning it into a cue would
 // invent a timestamp no one wrote.
-function mdbTracklist_tidy( lines ) {
+function mdbTracklist_tidyCues( lines ) {
     var withCue = 0,
         i;
 

@@ -84,6 +84,14 @@ Settled, so it does not get re-litigated:
   tracklist. Only the numbering may bridge that gap, and only upwards - which is what keeps the
   "6 Decks - 2 Mixers" line one blank above a tracklist starting at "01." out of it, and what
   keeps the social links under an unnumbered tracklist out of that one.
+- **One numbering style per block, decided by the MAJORITY of its numbered lines.** An uploader
+  who typed `12 - ` and `13 - ` into a list otherwise numbered `12 ` wrote one tracklist, but the
+  API reads the block as a whole: it strips the numbering the block agrees on and leaves the odd
+  lines alone, so those two arrive with the number still in the artist. Only lines disagreeing
+  with the majority are rewritten, and the digits are never touched (`07` stays `07`) - which is
+  what leaves a list written `1 - Artist - Title` all the way down exactly as it is, and is the
+  answer to a dash that belongs to the artist rather than to the numbering. No majority means no
+  rewrite: two styles splitting a block down the middle is not a pattern.
 - **A cue written BEHIND the track is moved in front of it before the API sees it**, and anything
   trailing that cue becomes a bold note in front of the artist ("Artist - Title 00:56:00- CLASSIC
   OF THE WEEK" -> "[00:56:00] '''CLASSIC OF THE WEEK:''' Artist - Title"). The API reads a leading

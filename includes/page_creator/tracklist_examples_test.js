@@ -31,13 +31,24 @@ let failed = 0;
 // check
 // Both suites assert the same three things about a found block - its length and its two edges -
 // so they are compared in one place.
+//
+// A case may name its whole `text` instead of the two edges, and then that is what is compared.
+// The edges answer "where does the tracklist start and stop", which is the question for nearly
+// every case; they cannot see a case about what the TIDYING makes of the lines IN BETWEEN.
 function check( label, found, expect ) {
     const lines = found ? found.text.split( "\n" ) : [],
-          got = found ? { lines: found.lines, first: lines[0], last: lines[ lines.length - 1 ] } : null;
+          whole = !!expect && typeof expect.text === "string",
+          got = found
+              ? ( whole
+                  ? { lines: found.lines, text: found.text }
+                  : { lines: found.lines, first: lines[0], last: lines[ lines.length - 1 ] } )
+              : null;
 
     const ok = expect === null
         ? found === null
-        : !!found && got.lines === expect.lines && got.first === expect.first && got.last === expect.last;
+        : !!found && got.lines === expect.lines && ( whole
+            ? got.text === expect.text
+            : got.first === expect.first && got.last === expect.last );
 
     if( !ok ) failed++;
 
@@ -47,15 +58,30 @@ function check( label, found, expect ) {
     );
 
     if( !ok ) {
-        console.log( "              got      " + JSON.stringify( got ) );
-        console.log( "              expected " + JSON.stringify( expect ) );
+        // A whole-text case is 30 lines long - printed as one JSON string it says only "these
+        // differ", so the lines that actually differ are singled out instead.
+        if( whole && found ) {
+            const want = expect.text.split( "\n" );
+
+            console.log( "              got " + got.lines + " lines, expected " + expect.lines );
+
+            for( let i = 0; i < Math.max( lines.length, want.length ); i++ ) {
+                if( lines[i] === want[i] ) continue;
+
+                console.log( "              line " + ( i + 1 ) + " got      " + JSON.stringify( lines[i] ) );
+                console.log( "                     " + " ".repeat( String( i + 1 ).length ) + " expected " + JSON.stringify( want[i] ) );
+            }
+        } else {
+            console.log( "              got      " + JSON.stringify( got ) );
+            console.log( "              expected " + JSON.stringify( expect ) );
+        }
     }
 }
 
 console.log( "Descriptions\n" );
 
 for( const example of mdbTracklistExamples ) {
-    check( example.url, mdbTracklist_detectInText( example.text ), example.expect );
+    check( example.url || example.what, mdbTracklist_detectInText( example.text ), example.expect );
 }
 
 console.log( "\nComments\n" );
