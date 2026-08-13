@@ -603,3 +603,10 @@ body.soundcloud-com #mdb-pageCreator-tracklist {
 #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
     color: var(--mui-palette-link-light, inherit);
 }
+
+/* 
+ * Report link
+ */
+#mdb-pageCreator #mdb-pageCreator-report {
+    color: var(--mui-palette-link-main);
+}
