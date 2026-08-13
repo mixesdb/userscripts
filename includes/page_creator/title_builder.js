@@ -312,7 +312,21 @@ function mdbTitle_findDate( text, refIso ) {
             if( m[0].length === 0 ) { pat.re.lastIndex++; continue; } // never loop forever
 
             var lead = m[1] ? m[1].length : 0,
-                cands = pat.build( m ) || [];
+                cands = pat.build( m ) || [],
+                // How many ways THESE digits can be read at all. "1999-10-09" has exactly one -
+                // the year stands in front, so nothing about it is a guess - while "03/04/26"
+                // has three. Counted per match and after the invalid readings dropped out
+                // ("25/12/2020" is a date in one order only), because that is what says whether
+                // the reading could be a misread. See the confidence drop in buildMixesdbTitle.
+                readings = {},
+                readingCount = 0;
+
+            for( var r = 0; r < cands.length; r++ ) {
+                if( cands[r] && !readings[ cands[r].out ] ) {
+                    readings[ cands[r].out ] = true;
+                    readingCount++;
+                }
+            }
 
             for( var c = 0; c < cands.length; c++ ) {
                 if( !cands[c] ) continue;
@@ -326,6 +340,7 @@ function mdbTitle_findDate( text, refIso ) {
                     best = {
                         out: cands[c].out,
                         score: score,
+                        readings: readingCount,
                         index: m.index + lead,
                         length: m[0].length - lead
                     };
@@ -417,6 +432,27 @@ function mdbTitle_liveDateReason( month ) {
  * Every guess the builder has to make lowers the score, so the number next to the input says
  * how much of the title was READ off the source and how much was inferred. Capped at 95: this
  * is a suggestion, and claiming certainty about a free-text player title would be wrong.
+ *
+ * A GUESS is what earns a drop, and nothing else. The reasons are shown to the reader under
+ * "What lowered it", so each one has to name something they could go and check - and a reason
+ * that cannot say WHAT was guessed is a reason that should not have been charged. Four things
+ * that look like doubts and are not, all found in one report - "1999-10-09 - Thomas Bangalter
+ * @ WE, Dolton Expo Center, Chicago", a MixesDB title pasted back into the player, which came
+ * out verbatim and still scored 65%:
+ *
+ * - A fact about the MIX is not a doubt about the reading. A title date ten years before the
+ *   upload date only means the recording is old. Where the title names a day, a month and a
+ *   year and the digits read one way, nothing there was decided by us: no drop. Where it leaves
+ *   something open, the upload date did decide, and that is worth 3.
+ * - Rewriting is not reading. Putting the blanks around an "@" the uploader typed, cutting a
+ *   note about the recording out of a bracket, or trimming what a cut-out date left behind
+ *   decides nothing. Only a joiner read INTO the title is charged, and the reason names the
+ *   words it was read out of ("at" as "@") - the reader cannot check "a joiner was applied".
+ * - What the title already says is not missing. A venue group is "@ Venue, City", so the doubt
+ *   is a MISSING city, not the "@" - "@ WE, Dolton Expo Center, Chicago" leaves nothing open.
+ * - A doubt about something that is not in the suggestion is not a doubt about the suggestion.
+ *   The channel not being a known show is charged only where the channel actually became the
+ *   entity, not where the title carried its own and the channel was dropped.
  */
 function mdbTitle_confidence() {
     return {
@@ -466,6 +502,32 @@ function mdbTitle_findEpisode( text, entityKnown ) {
             text: m[3],
             kind: "number",
             word: m[2], // the keyword as spelled in the title - part of the show name, see below
+            index: m.index + ( m[1] ? m[1].length : 0 ),
+            length: m[0].length - ( m[1] ? m[1].length : 0 )
+        };
+    }
+
+    // The same, but with a SEPARATOR between the keyword and its number:
+    // "IA Podcast | 233: Fixeer & Ricardo Garduno". The uploader broke the show name and the
+    // episode number into two bits of the title, and they still belong together - without this
+    // the title reads as three groups and nothing can be told apart in it.
+    // Two guards, because a separator makes the number a BIT of its own and a bit of its own
+    // can be all sorts of things:
+    // - a year is never taken this way ("Some Show | 2026" numbers no episode), since a wrong
+    //   episode number costs more than a missing one
+    // - the number has to END its bit. "Deep House Mix - 2 Hours Live" counts hours, not
+    //   episodes, and what tells it from "IA Podcast | 233: Fixeer & Ricardo Garduno" is the
+    //   word behind the digits. Without a separator the two cannot be confused and the pattern
+    //   above already reads them.
+    var sepWordRe = new RegExp( "(^|[^\\w])(" + mdbTitle_episodeWords().join("|") +
+                                ")\\.?\\s*[" + mdbTitle_sepInner + "]+\\s*#?\\s*(?!(?:19|20)\\d{2}(?!\\d))(\\d{1,5})(?!\\d)" +
+                                "(?=\\s*[" + mdbTitle_sepInner + "]|\\s*$)", "i" );
+    m = sepWordRe.exec( text );
+    if( m ) {
+        return {
+            text: m[3],
+            kind: "number",
+            word: m[2],
             index: m.index + ( m[1] ? m[1].length : 0 ),
             length: m[0].length - ( m[1] ? m[1].length : 0 )
         };
@@ -861,10 +923,27 @@ function mdbTitle_reduceRecordingNotes( text ) {
 //   "Anja Schneider - Live at Docks"  -> "Anja Schneider @ Docks"
 // Done on the whole title before anything is split up, so the "@" is already in place when
 // the venue rules further down look for it.
+//
+// Returns { text, read: [ "\"at\" as \"@\"", ... ] } - the joiners it READ INTO the title, each
+// one named by the words it actually found. Only those are a guess about the recording and only
+// those are worth a confidence drop, which is why they are collected here instead of being
+// inferred from a before/after comparison at the call site: re-spacing an "@" the uploader
+// typed, cutting a note about the recording out of a bracket and dropping a "(Live)" that sits
+// BEHIND the place all change the text and decide nothing.
 function mdbTitle_applyJoiners( text ) {
     var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
         venue = ( typeof mdbTitleVenueConnectors !== "undefined" && mdbTitleVenueConnectors ) ? mdbTitleVenueConnectors : [],
-        together = ( typeof mdbTitleTogetherArtistJoiners !== "undefined" && mdbTitleTogetherArtistJoiners ) ? mdbTitleTogetherArtistJoiners : [];
+        together = ( typeof mdbTitleTogetherArtistJoiners !== "undefined" && mdbTitleTogetherArtistJoiners ) ? mdbTitleTogetherArtistJoiners : [],
+        read = [];
+
+    // What a rule replaced, in the words the title actually used, e.g. "Live at" -> "@".
+    // The separator a rule swallows along with the phrase is not part of what was read, so it
+    // is trimmed off: "- Live at" is reported as "Live at".
+    function readAs( found, spelling ) {
+        var was = mdbTitle_trimSeparators( found );
+
+        if( was ) read.push( "\"" + was + "\" as \"" + spelling + "\"" );
+    }
 
     // An "@" the uploader typed says the same thing as the rules below produce, so it is
     // written the same way before anything reads it: MixesDB spells the joiner " @ ", and
@@ -914,6 +993,10 @@ function mdbTitle_applyJoiners( text ) {
                 ")\\b(?:" + connectors + ")", "i" );
 
         text = text.replace( liveRe, function( all, before ) {
+            // the "@" it produces may already have been in the title ("Live @ Docks"), and then
+            // only the marker in front of it went - nothing was read into the title
+            if( all.indexOf( "@" ) === -1 ) readAs( all.slice( before.length ), "@" );
+
             return before ? before + " @ " : "@ ";
         } );
     }
@@ -927,7 +1010,11 @@ function mdbTitle_applyJoiners( text ) {
             venueRe = new RegExp( "(" + word + "\\s+" + word + ")\\s+(?:" +
                                   mdbTitle_wordListAlternation( venue ) + ")(?=\\s)", "i" );
 
-        text = text.replace( venueRe, "$1 @" );
+        text = text.replace( venueRe, function( all, before ) {
+            readAs( all.slice( before.length ), "@" );
+
+            return before + " @";
+        } );
     }
 
     // The marker may also stand BEHIND the place, where it connects nothing and only says the
@@ -947,15 +1034,21 @@ function mdbTitle_applyJoiners( text ) {
         var re = new RegExp( "(^|\\s)(?:" + mdbTitle_wordListAlternation( together ) + ")(?=\\s)", "gi" ),
             at = text.indexOf( "@" );
 
+        function toAmpersand( all, before ) {
+            readAs( all.slice( before.length ), "&" );
+
+            return before + "&";
+        }
+
         // only in front of the venue - "RAW x Monnom Black" is two promoters, not two DJs
         if( at === -1 ) {
-            text = text.replace( re, "$1&" );
+            text = text.replace( re, toAmpersand );
         } else {
-            text = text.slice( 0, at ).replace( re, "$1&" ) + text.slice( at );
+            text = text.slice( 0, at ).replace( re, toAmpersand ) + text.slice( at );
         }
     }
 
-    return text;
+    return { text: text, read: read };
 }
 
 // mdbTitle_takeGuestMarker
@@ -1597,6 +1690,12 @@ function mdbTitle_toNormalCase( s ) {
         // This is what saves the acronyms that are not worth listing one by one.
         if( !mdbTitle_hasVowel( word ) ) return word;
 
+        // The channel spelling itself out in initials - "IA Podcast" on the channel
+        // "Illegal Alien Records". An acronym that happens to hold a vowel reads exactly like a
+        // shouted word ("IA" -> "Ia"), and the channel name is the one place that says which it
+        // is, so it is asked before the word lists below.
+        if( mdbTitle_isChannelInitials( word ) ) return word;
+
         var cmp = mdbTitle_normalizeCompare( word );
 
         if( keepUpperCmp.indexOf( cmp ) !== -1 ) return word.toUpperCase();
@@ -1618,6 +1717,40 @@ var mdbTitle_reCased = false;
 // suggestion in buildMixesdbTitle, and "" whenever the two spellings differ, which is what
 // keeps "Yoyaku Instore Sessions" on the channel "yoyaku" out of it.
 var mdbTitle_channelSpelling = "";
+
+// The channel name's initials, e.g. "Illegal Alien Records" -> "IAR". Set once per suggestion
+// in buildMixesdbTitle, next to mdbTitle_channelSpelling and for the same reason: Normal Case
+// runs deep inside the parser and cannot be handed the channel through every caller.
+var mdbTitle_channelInitials = "";
+
+// mdbTitle_isChannelInitials
+// Whether an all-caps word is the channel abbreviating itself: "IA" on "Illegal Alien Records".
+// A PREFIX of the initials counts, because a label drops its "Records" in its own podcast name
+// as readily as it keeps it. Two letters minimum - one initial matches almost anything - and
+// the word has to be written in caps already, so a lowercase title is never shouted INTO caps.
+function mdbTitle_isChannelInitials( word ) {
+    if( !mdbTitle_channelInitials || word.length < 2 ) return false;
+    if( word !== word.toUpperCase() || word === word.toLowerCase() ) return false;
+
+    return mdbTitle_channelInitials.indexOf( word.toUpperCase() ) === 0;
+}
+
+// mdbTitle_initialsOf
+// The first letter of every word of a name, in caps. Words that start with a digit or a symbol
+// contribute nothing - an acronym is made of letters.
+function mdbTitle_initialsOf( name ) {
+    var words = String( name || "" ).split( /[^\p{L}\p{N}]+/u ),
+        out = "",
+        i;
+
+    for( i = 0; i < words.length; i++ ) {
+        var first = words[i].charAt( 0 );
+
+        if( first && first.toLowerCase() !== first.toUpperCase() ) out += first.toUpperCase();
+    }
+
+    return out;
+}
 
 // mdbTitle_toNormalCaseKeeping
 // mdbTitle_toNormalCase, with the channel's own spelling left standing wherever it turns up.
@@ -1800,6 +1933,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
     mdbTitle_reCased = false;
     mdbTitle_channelSpelling = "";
+    mdbTitle_channelInitials = mdbTitle_initialsOf( username );
 
     try {
         var rest = String( playerTitle || "" ).replace( /\s+/g, " " ).trim();
@@ -1891,10 +2025,17 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 conf.drop( 15, "the date in the title reads two ways (day/month order)" );
             }
 
-            // the title date being far from the upload date is normal for an old set, but it
-            // also looks exactly like a misread, so it is worth flagging
-            if( found.score > 60 ) {
-                conf.drop( 10, "the date in the title is far from the upload date" );
+            // The title date being far from the upload date is normal for an old set, and it
+            // also looks like a misread - but only a title that leaves something open can BE
+            // misread. A day, a month and a year with one reading between them ("1999-10-09 -
+            // Thomas Bangalter @ WE, Dolton Expo Center, Chicago", uploaded in 2009) leaves
+            // nothing: the distance then says "this is an old recording", which is a fact about
+            // the mix and not a doubt about the suggestion. Anything less complete - digits
+            // that read two ways, a month without a day - keeps a small charge, since there the
+            // upload date was the only thing that decided.
+            if( found.score > 60 &&
+                ( found.readings > 1 || !/^\d{4}-\d{2}-\d{2}$/.test( found.out ) ) ) {
+                conf.drop( 3, "the date in the title is far from the upload date" );
             }
         } else {
             // same preference the header's highlighted date uses: release date wins
@@ -1924,10 +2065,18 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // becomes "@". Both change what the rest of the parser sees, so they run early.
         var joined = mdbTitle_applyJoiners( rest );
 
-        if( joined !== rest ) {
-            logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined );
-            conf.drop( 5, "a joiner was read out of the title (\"x\" as \"&\", \"at\"/\"Live at\" as \"@\") - check it against the recording" );
-            rest = joined;
+        if( joined.text !== rest ) {
+            logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined.text );
+            rest = joined.text;
+        }
+
+        // Only a joiner READ INTO the title is a guess, and the reason names the words it was
+        // read out of - "a joiner was applied" says nothing a reader can go and check. A joiner
+        // the uploader already typed costs nothing: it is the title telling us, not us telling
+        // the title.
+        if( joined.read.length ) {
+            conf.drop( 5, "a joiner was read into the title (" + joined.read.join( ", " ) +
+                          ") - check it against the recording" );
         }
 
         // A title that is nothing but the place ("Live at Docklands") names no artist, so the
@@ -2267,6 +2416,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // that would mostly measure how far the list has been filled in rather than how well
         // the title was read. Being listed still confirms the entity, so it stays the best of
         // the branches, just barely.
+        var unknownShowReason = "";
+
         if( isMappedChannel ) {
             // curated by hand in title_definitions.js - nothing to doubt
         } else if( showFromEpisodeRule ) {
@@ -2276,7 +2427,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // the channel name is in the title too, which is confirmation from the title
             // itself - as good as finding the channel in the list
         } else if( show ) {
-            conf.drop( 5, "the channel \"" + show + "\" is not in the known-shows list - it may not be a show name at all" );
+            // Not charged here: the branches below still drop the channel from a title that
+            // does not need it, and a doubt about a name that never made it into the
+            // suggestion is not a doubt about the suggestion. Charged at the assembly, and
+            // only if the name is still standing there ("M_P_M" is not, in
+            // "1999-10-09 - Thomas Bangalter @ WE, Dolton Expo Center, Chicago").
+            unknownShowReason = "the channel \"" + show + "\" is not in the known-shows list - it may not be a show name at all";
         }
 
         // 5d) The channel hosting its own party: "Adriana Lopez @ RAW x Monnom Black" on the
@@ -2356,8 +2512,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( /\d/.test( artist ) ) {
             conf.drop( 5, "the artist still contains numbers - possibly a leftover date or episode" );
         }
-        if( artist.indexOf( "@" ) !== -1 ) {
-            conf.drop( 10, "there is a venue/event in the title - check the joiner and the city/country info" );
+        // A venue group is "@ Venue, City" on MixesDB, and a player title hardly ever spells the
+        // city out - so what is worth flagging is the city MISSING, not the "@" being there.
+        // The "@" itself is not charged here at all: where it was read into the title out of an
+        // "at"/"Live at" the joiner drop above already said so, and where the uploader typed it
+        // nothing was guessed. "@ WE, Dolton Expo Center, Chicago" names the place down to the
+        // city and leaves nothing to look up.
+        if( artist.indexOf( "@" ) !== -1 && artist.slice( artist.indexOf( "@" ) ).indexOf( "," ) === -1 ) {
+            conf.drop( 5, "no city/country behind the venue/event - MixesDB writes \"@ Venue, City\", and a player title rarely spells the city out" );
         }
         if( artist.length > 60 ) {
             conf.drop( 5, "the artist is unusually long" );
@@ -2396,6 +2558,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             logVar( "buildMixesdbTitle: dropping the show, the venue is already in the artist", show );
             show = "";
             conf.drop( 5, "the title names a venue with \"@\", so the channel was not added as a show" );
+        }
+
+        // The channel not being a known show only matters now that it is settled whether the
+        // channel is IN the title at all - the branches above just dropped it from three kinds
+        // of title that carry their own entity.
+        if( show && unknownShowReason ) {
+            conf.drop( 5, unknownShowReason );
         }
 
         // 7) assemble

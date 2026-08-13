@@ -19,6 +19,17 @@ point, not a decision – and a confidence score next to it says how sure the su
 The row only appears for mixes that are **not on MixesDB yet** (the toolkit decides that) and
 only for recordings of at least 20 minutes, which is MixesDB's lower limit.
 
+### "Report" box
+
+**Report** behind the confidence score opens a text box under the row, already filled with
+everything a report about a wrong title needs: the title, channel name and date the site handed
+over, the title that came out of them, the score, and the artist and entity categories the page
+would be filed under. Underneath are the empty lines only you can fill in – what went wrong and
+what the title and its categories should have been.
+
+Copy the box, correct it and post it on Discord. Editing the title field above refills the box,
+but anything typed into the box itself is never overwritten.
+
 ### "Create" link
 
 Opens the edit form of the new page, prefilled with:
@@ -54,7 +65,8 @@ click, not before, so no request is wasted.
 
 - The title suggestion leans on hand-maintained word lists (`title_definitions.js`), so shows,
   labels and venues it has not seen before can end up in the wrong part of the title. Report a
-  wrong suggestion on Discord and it becomes a test case.
+  wrong suggestion on Discord – the **Report** box has the whole case ready – and it becomes a
+  test case.
 - MixesDB category names are not yet used to resolve artists, shows and venues – that work waits
   on a wiki API endpoint.
 - Only tracklists written as a run of neighbouring lines are detected. A tracklist scattered

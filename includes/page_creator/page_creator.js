@@ -30,9 +30,15 @@ log( "/includes/page_creator/page_creator.js loaded" );
  *         playerUrl:   "https://...",                // optional, goes into {{Player}}
  *         artworkUrl:  "https://...",                // optional, for MixesDB's upload form
  *         description: "01. Artist - Title [Label]", // optional, see below
+ *         sourceLabel: "SC",                         // optional, names the site in the report
  *         target:      "#mdb-trackHeader-headline",  // where the row goes
  *         placement:   "after"                       // after|before|append|prepend
  *     });
+ *
+ * sourceLabel is what the "Report" box calls the site the values were read off ("SC title:",
+ * "SC date:"). It is the site's own short name as it is used when a title is reported, which
+ * is not always the script name - hence an option rather than a look at window.scriptName,
+ * which is only the fallback.
  *
  * description is handed over here as well as to mdbPageCreator_addTracklist() below, and for a
  * different reason: the TITLE builder reads the labels the tracklist credits ("Artist - Title
@@ -83,6 +89,16 @@ var mdbPageCreator_title = "",
     mdbPageCreator_playerUrl = "",
     mdbPageCreator_durationMs = 0,
     mdbPageCreator_artworkUrl = "",
+    // What the site handed over, kept as it came in - the "Report" box quotes it back
+    // unchanged, since a report is only worth anything if it names the INPUT the suggestion was
+    // built from. Nothing else reads these.
+    mdbPageCreator_sourceTitle = "",
+    mdbPageCreator_sourceChannel = "",
+    mdbPageCreator_sourceDate = "",
+    mdbPageCreator_sourceLabel = "",
+    // whether the report box is open. Not sticky the way the tracklist box is: it is opened for
+    // one title, and a refined suggestion refills it rather than the reader reopening it.
+    mdbPageCreator_reportOpen = false,
     // where the row goes - see the note on selector strings in the header comment
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
@@ -119,6 +135,13 @@ function mdbPageCreator_add( options ) {
 
     mdbPageCreator_playerUrl = o.playerUrl || "";
     mdbPageCreator_artworkUrl = o.artworkUrl || "";
+
+    // for the "Report" box - the release date beats the upload date here for the same reason it
+    // does in the title itself
+    mdbPageCreator_sourceTitle = playerTitle;
+    mdbPageCreator_sourceChannel = channel;
+    mdbPageCreator_sourceDate = releaseDate || createdAt;
+    mdbPageCreator_sourceLabel = o.sourceLabel || "";
 
     // Kept even when this call brings none, so a second call that only refreshes the data does
     // not lose the placement the first one set.
@@ -278,13 +301,7 @@ function mdbPageCreator_pageCategories( title ) {
         cats.push( read.artists[i] );
     }
 
-    // Help:Add_a_new_mix_page - a self-released mix is filed under Promo Mix, and what stands in
-    // the entity slot there is the mix's OWN name, which is no category at all: "1975 - Bob
-    // Marley & The Wailers - Secret Santana Tapes (Promo Mix)" is filed under the two artists
-    // and Promo Mix, never under "Secret Santana Tapes". The flag covers the titles that leave
-    // the suffix off because the name already says it (see mdbPageCreator_syncPromoNote).
-    var isPromoMix = mdbPageCreator_promoCategory || /\(Promo Mix\)\s*$/.test( title ),
-        entityCategory = isPromoMix ? "Promo Mix" : mdbPageCreator_entityCategory( read.entity );
+    var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
 
     if( entityCategory ) cats.push( entityCategory );
 
@@ -298,6 +315,21 @@ function mdbPageCreator_pageCategories( title ) {
     }
 
     return out;
+}
+
+// mdbPageCreator_entityCategoryFor
+// The category the finished TITLE files the page under besides the year and the artists - what
+// the page text writes and what the report names, so both answer the same way.
+//
+// Help:Add_a_new_mix_page - a self-released mix is filed under Promo Mix, and what stands in the
+// entity slot there is the mix's OWN name, which is no category at all: "1975 - Bob Marley & The
+// Wailers - Secret Santana Tapes (Promo Mix)" is filed under the two artists and Promo Mix, never
+// under "Secret Santana Tapes". The flag covers the titles that leave the suffix off because the
+// name already says it (see mdbPageCreator_syncPromoNote).
+function mdbPageCreator_entityCategoryFor( title, entity ) {
+    if( mdbPageCreator_promoCategory || /\(Promo Mix\)\s*$/.test( title ) ) return "Promo Mix";
+
+    return mdbPageCreator_entityCategory( entity );
 }
 
 // mdbPageCreator_entityCategory
@@ -413,6 +445,7 @@ function mdbPageCreator_refresh( wrapper ) {
         .text( mdbPageCreator_confidencePercent + "%" );
 
     mdbPageCreator_syncPromoNote( wrapper );
+    mdbPageCreator_fillReport( wrapper );
 }
 
 // mdbPageCreator_syncPromoNote
@@ -496,7 +529,8 @@ function mdbPageCreator_render() {
 
     // input first, so appendMdbCopyTextButton() has a parent to insert the button into - it
     // uses .after(), which is a no-op on a detached node.
-    // Order: input, copy, confidence (score over beta), then "Create" - or "used" in its place.
+    // Order: input, copy, confidence (score over beta), "Report", then "Create" - or "used" in
+    // its place. The report box itself is built on the first click and lands behind all of them.
     wrapper.append( input );
 
     appendMdbCopyTextButton( input, {
@@ -516,6 +550,30 @@ function mdbPageCreator_render() {
             .append( score, beta );
 
     wrapper.append( confidence );
+
+    // "Report", behind the score: the whole case as one paste-able block - what the site gave,
+    // what came out of it, and the empty lines for what SHOULD have come out. Reported titles
+    // become cases in title_examples.js, and every report that had to be asked back for the
+    // channel name or the upload date cost a round trip - the channel name especially, which is
+    // the API's username and is not the name in the URL. So the box hands all of it over at once.
+    // Shown for a used player too: that debug row exists to compare the suggestion against the
+    // page that already has it, which is exactly when something worth reporting turns up.
+    var report = $("<a>")
+            .attr( "id", "mdb-pageCreator-report" )
+            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines." )
+            .text( "Report" );
+
+    report.on( "click", function() {
+        mdbPageCreator_toggleReport( wrapper );
+    });
+
+    wrapper.append( report );
+
+    // The report quotes the title that is in the field, so a correction typed above lands in it
+    // - unless the box has been written in by then, see mdbPageCreator_fillReport().
+    input.on( "input change", function() {
+        mdbPageCreator_fillReport( wrapper );
+    });
 
     if( isUsed ) {
         // No "Create" link for a used player: the mix HAS a page, and the link would open the
@@ -611,6 +669,126 @@ function mdbPageCreator_confidenceTitle() {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * The report box
+ *
+ * "Report" behind the score opens a textarea under the row, holding the case as it is written
+ * when a wrong title is reported: the three values the site handed over, what the suggestion made
+ * of them, and empty lines for the title and categories it SHOULD have produced.
+ *
+ * It exists because the report, not the fix, was the slow part: the player title is on screen,
+ * but the channel name is the site API's username and not the name in the URL ("discoanon" ->
+ * "Discoholics Anonymous"), and the upload date is nowhere near the player either. Both had to be
+ * asked back for, one round trip per report. Everything in the box is already in this file.
+ *
+ * The two empty "Expected" blocks are the point of it - they are the answer only the reporter has
+ * - which is why anything typed into the box stops it from ever being refilled.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// mdbPageCreator_toggleReport
+// Built on the first click rather than with the row: most rows are never reported, and the box is
+// the one part of this that costs layout.
+function mdbPageCreator_toggleReport( wrapper ) {
+    logFunc( "mdbPageCreator_toggleReport" );
+
+    var box = wrapper.find( "#mdb-pageCreator-report-box" );
+
+    mdbPageCreator_reportOpen = !mdbPageCreator_reportOpen;
+
+    if( !mdbPageCreator_reportOpen ) {
+        box.hide();
+        return;
+    }
+
+    if( !box.length ) {
+        box = $("<textarea>")
+            .attr( "id", "mdb-pageCreator-report-box" )
+            .attr( "spellcheck", "false" )
+            .attr( "rows", 12 );
+
+        // Only a REAL keystroke marks the box as the reporter's - the fill below sets .val()
+        // itself and must not count as writing in it.
+        box.on( "input", function() {
+            box.data( "mdb-edited", true );
+        });
+
+        // At the end of the row, which is where it stays: the wrapper is a wrapping flex
+        // container and the box takes a full basis, so it forms a line of its own under
+        // everything else (see page_creator.css).
+        wrapper.append( box );
+    }
+
+    box.show();
+    mdbPageCreator_fillReport( wrapper );
+}
+
+// mdbPageCreator_fillReport
+// Rewritten whenever the title changes - by the MixesDB lookup's second thoughts or by the
+// reporter correcting the field - but never over anything typed into the box: losing a written
+// "Expected title" to a keystroke in the field above is the one thing this must not do.
+function mdbPageCreator_fillReport( wrapper ) {
+    var box = wrapper.find( "#mdb-pageCreator-report-box" );
+
+    if( !box.length || !mdbPageCreator_reportOpen || box.data( "mdb-edited" ) ) return;
+
+    box.val( mdbPageCreator_reportText( $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ) ) );
+}
+
+// mdbPageCreator_reportText
+// The categories are read off the TITLE, not off what the parser had in mind - the same way the
+// created page reads them - so a title corrected in the field reports the categories it would
+// really be filed under.
+function mdbPageCreator_reportText( title ) {
+    var read = mdbTitle_titleCategories( title ),
+        // one line per artist, since every joiner between two names is another category ("See
+        // Bastian b2b Afin" is two). A title with none still gets the empty line, so the shape
+        // of the report never changes.
+        artists = read.artists.length ? read.artists : [ "" ],
+        label = mdbPageCreator_sourceLabel || window.scriptName || "Player",
+        lines = [],
+        i;
+
+    lines.push( "-> " + label + " title: " + mdbPageCreator_sourceTitle );
+    lines.push( "–> Channel name: " + mdbPageCreator_sourceChannel );
+    lines.push( "-> " + label + " date: " + mdbPageCreator_reportDay( mdbPageCreator_sourceDate ) );
+    lines.push( "-> Created title: " + title );
+    lines.push( "–> Confidence score: " + mdbPageCreator_confidencePercent + "%" );
+
+    for( i = 0; i < artists.length; i++ ) {
+        lines.push( "–> Artist category: " + artists[i] );
+    }
+
+    lines.push( "–> Entity category: " + mdbPageCreator_entityCategoryFor( title, read.entity ) );
+    lines.push( "-> Mistake / learning: " );
+    lines.push( "-> Expected title: " );
+    lines.push( "–> Expected artist category: " );
+    lines.push( "–> Expected entity category: " );
+
+    return lines.join( "\n" );
+}
+
+// mdbPageCreator_reportDay
+// The upload/release date as the plain YYYY-MM-DD a report is written in. The sites hand it over
+// in whatever their API returns ("2026-08-12T10:00:00Z", "2026/08/12 10:00:00 +0000"), so an ISO
+// day is taken as it stands and Date reads the rest. UTC on the way out, not local: these are
+// UTC timestamps, and a local reading moves the day for anyone east or west of it.
+function mdbPageCreator_reportDay( date ) {
+    var text = String( date || "" ).trim(),
+        iso = /^(\d{4}-\d{2}-\d{2})/.exec( text );
+
+    if( iso ) return iso[1];
+    if( !text ) return "";
+
+    var parsed = new Date( text );
+
+    // An unparsable date is handed over as it came in rather than dropped - the report is read
+    // by a person, and the raw string still says more than an empty line.
+    return isNaN( parsed.getTime() ) ? text : parsed.toISOString().slice( 0, 10 );
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Tracklist
  *
  * Uploaders write the tracklist into the description, and it was being retyped by hand into
@@ -680,6 +858,11 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_playerUrl = "";
     mdbPageCreator_durationMs = 0;
     mdbPageCreator_artworkUrl = "";
+    mdbPageCreator_sourceTitle = "";
+    mdbPageCreator_sourceChannel = "";
+    mdbPageCreator_sourceDate = "";
+    mdbPageCreator_sourceLabel = "";
+    mdbPageCreator_reportOpen = false;
 
     // The polls are the reason this cannot just null the values: each is an interval still
     // asking about the mix the reader has already left.

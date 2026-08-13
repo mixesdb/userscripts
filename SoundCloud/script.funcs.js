@@ -613,7 +613,7 @@ async function evaluateCard(card) {
 
         const node = asCard(card);
 
-        // Favorites — immediate and independent
+        // Favorites – immediate and independent
         let tooFewFavs = false;
         if (STATE.favsEnabled) {
             const favs = getFavoritesCount(card);
@@ -627,7 +627,7 @@ async function evaluateCard(card) {
             return;
         }
 
-        // Duration — cache → resolve
+        // Duration – cache → resolve
         let ms = STATE.cache[url]?.ms ?? null;
         const isNeg = !!STATE.cache[url]?.neg;
         if (ms == null && !isNeg) {

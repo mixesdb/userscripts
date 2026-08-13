@@ -344,6 +344,25 @@ var mdbTitleExamples = [
         expectArtists: [ "Deetron", "Soulmate" ],
         expect: "2026-07-25 - Deetron pres. Soulmate @ The Yard"
     },
+    {
+        url: "https://soundcloud.com/illegal-alien-records/ia-podcast-233-fixeer-ricardo",
+        title: "IA Podcast | 233: Fixeer & Ricardo Garduno",
+        channel: "Illegal Alien Records",
+        date: "2026-03-05",
+        // "IA" is the channel's own initials, so Normal Case has to leave it alone -
+        // "Ia Podcast" is what it would make of a two-letter acronym that holds a vowel
+        expectArtists: [ "Fixeer", "Ricardo Garduno" ],
+        expect: "2026-03-05 - Fixeer & Ricardo Garduno - IA Podcast 233"
+    },
+    {
+        url: "https://soundcloud.com/m_p_m/1999-10-09-thomas-bangalter-we-dolton-expo-center-chicago",
+        title: "1999-10-09 - Thomas Bangalter @ WE, Dolton Expo Center, Chicago",
+        channel: "M_P_M",
+        date: "2009-10-28",
+        // a MixesDB title pasted back into the player: nothing here is inferred, which is what
+        // the confidence has to say as well - see the four drops it used to be charged
+        expect: "1999-10-09 - Thomas Bangalter @ WE, Dolton Expo Center, Chicago"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {

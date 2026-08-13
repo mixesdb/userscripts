@@ -46,6 +46,10 @@ SoundCloud is the reference implementation.
 `target` should be a **selector string**, not a node: these sites re-render under the script's
 feet, and the string is looked up again on every render.
 
+`sourceLabel` is the site's short name as a reported title is written with it (`"SC"`), used by
+the "Report" box for its `SC title:`/`SC date:` lines. `window.scriptName` is only the fallback -
+the script name and the name reports use are not always the same.
+
 ## The tracklist
 
 The tracklist an uploader wrote into the description ends up in an editable box next to the
@@ -158,6 +162,12 @@ Two things settled in advance, so they do not get re-litigated:
   why.
 
 ## Title suggestion reports
+
+Reports come out of the **"Report" box** behind the score (`mdbPageCreator_reportText()` in
+`page_creator.js`), so they arrive with the player title, the channel name **as the site's API
+gives it**, the upload date, the suggested title, the score and the categories already filled in,
+plus the reporter's "Mistake / learning" and "Expected …" lines. That is exactly the input a case
+needs - do not ask back for any of it when the box was used.
 
 Every title reported as wrongly suggested lives in `title_examples.js` as its input and the
 title it should produce. Run them before and after touching anything the suggestion uses

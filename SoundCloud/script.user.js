@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.12.5
+// @version      2026.08.13.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,10 +11,10 @@
 // @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_47
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_10
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_10
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -169,7 +169,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 93,
+var cacheVersion = 94,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1140,6 +1140,10 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     // ("Artist - Title [Label]") out of it, so it can tell a
                                     // label in brackets behind an artist from a second artist.
                                     description: t.description,
+                                    // what the "Report" box calls this site ("SC title:",
+                                    // "SC date:") - the short name a reported title is written
+                                    // with, not the script name
+                                    sourceLabel: "SC",
                                     target:      "#mdb-trackHeader-headline",
                                     placement:   "after"
                                 });
