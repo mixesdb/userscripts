@@ -779,6 +779,11 @@ function mdbPageCreator_reportText( title ) {
         lines = [],
         i;
 
+    // First line, because it is the one thing that lets a report be looked at again - and the
+    // player URL rather than location.href: the site hands over the clean page URL there, while
+    // location.href carries tracking parameters and, inside a framed layout, is not even this
+    // track's URL.
+    lines.push( "-> " + label + " URL: " + mdbPageCreator_playerUrl );
     lines.push( "-> " + label + " title: " + mdbPageCreator_sourceTitle );
     lines.push( "–> Channel name: " + mdbPageCreator_sourceChannel );
     lines.push( "-> " + label + " date: " + mdbPageCreator_reportDay( mdbPageCreator_sourceDate ) );

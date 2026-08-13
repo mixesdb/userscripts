@@ -1081,6 +1081,30 @@ var mdbTitleCounterWords = [
  */
 
 /*
+ * The episode number belongs to the name it stands NEXT TO
+ *
+ * When the channel name IS in the title and a number is too, which of the two is the series is
+ * not a question about either name - it is a question about where the number sits:
+ *
+ *     "LIMB #9 – Yuka"                          on the channel "LIMB"
+ *     ->  2026-08-07 - Yuka - LIMB 9              the number is in the CHANNEL's bit,
+ *                                                 so the channel is the series
+ *     "The Sound of Rome #147 - Ricky Montana"  on the channel "Ricky Montana"
+ *     ->  2026-08-12 - Ricky Montana - The Sound of Rome 147
+ *                                                 the number is in the OTHER bit, so that bit
+ *                                                 is the series and the channel is the artist
+ *
+ * The two titles have the same shape, the same channel-name-plus-number ingredients and opposite
+ * readings, and nothing but the position of the "#" tells them apart. Read off the order alone
+ * the second comes out inside out, with the series as the artist and the person carrying the
+ * episode number ("The Sound of Rome - Ricky Montana 147").
+ *
+ * The order of the two bits decides nothing - "Ricky Montana - The Sound of Rome #147" is the
+ * same title. Only a title of EXACTLY two bits is read this way: with a third one there is more
+ * than one way to pair a name with the number, which is a guess again.
+ */
+
+/*
  * What MixesDB is asked about every title
  *
  * The shape of a player title runs out of answers quickly, and the wiki has the rest. One
