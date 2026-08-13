@@ -624,7 +624,9 @@ function mdbTitle_showSuffixWords() {
 // Removes one occurrence of the show name from the title, so an episode number behind it can
 // be found on its own. Returns the shortened text and the (possibly extended) show name.
 function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
-    var result = { text: text, show: show, taken: false, extended: false, episode: null };
+    // index is where the name stood in the text HANDED IN, which is what lets a caller ask
+    // which bit of the title it was standing in - see 4c in buildMixesdbTitle
+    var result = { text: text, show: show, taken: false, extended: false, episode: null, index: -1 };
 
     if( !show ) return result;
 
@@ -717,8 +719,36 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
 
     result.text = mdbTitle_cut( text, index, length );
     result.taken = true;
+    result.index = index;
 
     return result;
+}
+
+// mdbTitle_bitAt
+// Which bit of a title an offset falls into: { text, start }, counting the bits the separators
+// mark out (mdbTitle_bitSplitRe). What it is for is asking whether two things - the channel
+// name and an episode number - stand in the SAME bit, which is what says the number belongs to
+// that name rather than to the one in the next bit over.
+function mdbTitle_bitAt( text, offset ) {
+    var re = mdbTitle_bitSplitRe(),
+        start = 0,
+        end = text.length,
+        m;
+
+    re.lastIndex = 0;
+
+    while( ( m = re.exec( text ) ) !== null ) {
+        if( m[0].length === 0 ) { re.lastIndex++; continue; } // never loop forever
+
+        if( m.index > offset ) {
+            end = m.index;
+            break;
+        }
+
+        start = m.index + m[0].length;
+    }
+
+    return { text: text.slice( start, end ), start: start };
 }
 
 // mdbTitle_takeExtraArtists
@@ -2255,6 +2285,47 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             // taken.show, not show: the title may spell an all-caps channel name better
             return mdbTitle_result( date, taken.show, entity, null, promoMix, extraArtists, conf );
+        }
+
+        // 4c) The channel name is in the title and an episode number is too, but they stand in
+        // DIFFERENT bits of it:
+        //   "The Sound of Rome #147 - Ricky Montana"  on the channel "Ricky Montana"
+        // A number belongs to the name it stands next to, so the numbered bit is the series and
+        // the channel - a person, standing in a bit of their own - is who played it:
+        //   -> 2026-08-12 - Ricky Montana - The Sound of Rome 147
+        // This is the mirror of "LIMB #9 – Yuka" on the channel "LIMB", where the number stands
+        // in the channel's OWN bit and the channel therefore IS the series. That pair is also
+        // why 4b steps aside as soon as a number turns up anywhere: which of the two the
+        // channel is cannot be read off the shape of the title, but WHERE the number sits says
+        // it outright.
+        // Exactly two bits, as narrow as 5b and 5c: with a third one there is more than one
+        // way to pair them up and it is a guess again. A number written ONTO the channel name
+        // ("Trommel.251") never gets here - it left the title together with the name.
+        if( taken.taken && !taken.episode && !isMappedChannel && !guestArtist &&
+            restWithShow.indexOf( "@" ) === -1 && mdbTitle_countGroups( restWithShow ) === 2 ) {
+
+            var titleEpisode = mdbTitle_findEpisode( restWithShow, true ),
+                channelBit = mdbTitle_bitAt( restWithShow, taken.index );
+
+            if( titleEpisode ) {
+                var numberBit = mdbTitle_bitAt( restWithShow, titleEpisode.index );
+
+                if( numberBit.start !== channelBit.start ) {
+                    // the number goes with the series, so it comes out of the name here and is
+                    // written back behind it by mdbTitle_assemble
+                    var numberedSeries = mdbTitle_cleanArtist(
+                            mdbTitle_cut( numberBit.text, titleEpisode.index - numberBit.start, titleEpisode.length ) );
+
+                    if( numberedSeries ) {
+                        logVar( "buildMixesdbTitle: the number is in the other bit, so the channel is the artist",
+                                taken.show + " | " + numberedSeries + " " + titleEpisode.text );
+
+                        return mdbTitle_result( date, taken.show, numberedSeries,
+                                                { text: titleEpisode.text, kind: titleEpisode.kind },
+                                                false, extraArtists, conf );
+                    }
+                }
+            }
         }
 
         rest = taken.text;

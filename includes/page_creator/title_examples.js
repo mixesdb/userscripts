@@ -363,6 +363,16 @@ var mdbTitleExamples = [
         // the confidence has to say as well - see the four drops it used to be charged
         expect: "1999-10-09 - Thomas Bangalter @ WE, Dolton Expo Center, Chicago"
     },
+    {
+        url: "https://soundcloud.com/ricky-montana/tsr147",
+        title: "The Sound of Rome #147 - Ricky Montana",
+        channel: "Ricky Montana",
+        date: "2026-08-12",
+        // the number stands in the OTHER bit than the channel name, which is what tells this
+        // from "LIMB #9 – Yuka" further up - there the number is in the channel's own bit
+        expectArtists: [ "Ricky Montana" ],
+        expect: "2026-08-12 - Ricky Montana - The Sound of Rome 147"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {
