@@ -1122,7 +1122,7 @@ function mdbPageCreator_renderTracklist() {
 function mdbPageCreator_tracklistHeadline() {
     var fromComments = ( mdbPageCreator_tracklistSource == "comments" ),
         word = $("<strong>")
-            .addClass( "hand" )
+            .addClass( "mdb-highlight hand" )
             .text( "Tracklist" ),
         where = $("<abbr>")
             .text( fromComments ? "from a comment" : "from description" )
