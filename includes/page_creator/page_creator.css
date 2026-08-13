@@ -42,10 +42,14 @@
     color: #fff;
 }
 
-/* copy button between the input and the "beta" note */
+/*
+ * The copy button, between the title and the score. 10px is the row's ONE gap: it separates the
+ * input from this button, this button from the score column and that column from "Create", so
+ * the four items read as one evenly spaced row rather than as pairs.
+ */
 #mdb-pageCreator .mdb-copy-text-control {
     margin-left: 0; /* global.css sets 12px - the spacing here comes from padding-left */
-    padding-left: 5px;
+    padding-left: 10px;
 }
 
 #mdb-pageCreator .mdb-copy-text-button {
@@ -96,9 +100,12 @@
  * Opens the new page's edit form, prefilled with the (possibly edited) title and page text - the
  * one thing in this row that DOES something, hence bold. The colour is left to the site: it is a
  * real link, and the site's link colour is the one that is guaranteed to work on its background.
+ *
+ * Two IDs for the same reason as "Report" below: it is an <a>, and these sites style their <a>s
+ * hard enough to beat a single ID. The gap in front of it comes from the column further down,
+ * not from here.
  */
-#mdb-pageCreator-create {
-    padding-left: 5px;
+#mdb-pageCreator #mdb-pageCreator-create {
     font-weight: bold;
     white-space: nowrap;
 }
