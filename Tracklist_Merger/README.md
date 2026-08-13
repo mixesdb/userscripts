@@ -1,7 +1,7 @@
 # Tracklist Merger (Beta)
 
 Merges a second tracklist into an existing one – a TrackId.net tracklist into the tracklist a
-MixesDB page already has, say – and shows what would change.
+MixesDB page already has – and shows what would change.
 
 - **Runs on:** `mixesdb.com/w/MixesDB:Tests/Tracklist_Merger` and trackid.net audiostream pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Merger/script.user.js)
