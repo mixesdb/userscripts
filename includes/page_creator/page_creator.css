@@ -67,7 +67,6 @@
 #mdb-pageCreator-scoreLine {
     display: inline-flex;
     align-items: baseline;
-    gap: 4px;
 }
 
 /*
@@ -93,21 +92,31 @@
     color: #ef4444;
 }
 
-/* opens the new page's edit form, prefilled with the (possibly edited) title and page text */
+/*
+ * Opens the new page's edit form, prefilled with the (possibly edited) title and page text - the
+ * one thing in this row that DOES something, hence bold. The colour is left to the site: it is a
+ * real link, and the site's link colour is the one that is guaranteed to work on its background.
+ */
 #mdb-pageCreator-create {
     padding-left: 5px;
+    font-weight: bold;
     white-space: nowrap;
 }
 
 /*
  * "Report" under the score - opens the report box below the row. Deliberately NOT styled as a
  * link: it is the same kind of side note as #mdb-pageCreator-beta above it, and the two sit in
- * one column, so it takes that grey and that size. It carries no href either (it goes nowhere,
- * it toggles), so there is no site :link styling to override in the first place.
+ * one column, so it takes that grey and that size.
+ *
+ * Written with the wrapper's ID in front, which is not decoration: it is an <a>, and these sites
+ * style their <a>s hard enough to beat a single ID (SoundCloud's Material layout paints it blue
+ * and underlines it). Two IDs beat that without reaching for !important - the same reasoning as
+ * the #tlEditor-feedback note further down.
  */
-#mdb-pageCreator-report {
+#mdb-pageCreator #mdb-pageCreator-report {
     color: #999;
     font-size: 0.8rem;
+    font-weight: normal;
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
@@ -143,6 +152,7 @@
 
 /* grey, so it reads as a warning label and not as part of the title */
 #mdb-pageCreator-beta {
+    padding-left: 5px; /* it sits directly behind the score, which needs the air */
     color: #999;
     font-size: 0.8rem;
     cursor: help;
