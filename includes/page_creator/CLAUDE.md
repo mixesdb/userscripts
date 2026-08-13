@@ -163,7 +163,7 @@ Two things settled in advance, so they do not get re-litigated:
 
 ## Title suggestion reports
 
-Reports come out of the **"Report" box** behind the score (`mdbPageCreator_reportText()` in
+Reports come out of the **"Report" box** under the score (`mdbPageCreator_reportText()` in
 `page_creator.js`), so they arrive with the player title, the channel name **as the site's API
 gives it**, the upload date, the suggested title, the score and the categories already filled in,
 plus the reporter's "Mistake / learning" and "Expected …" lines. That is exactly the input a case

@@ -21,14 +21,15 @@ only for recordings of at least 20 minutes, which is MixesDB's lower limit.
 
 ### "Report" box
 
-**Report** behind the confidence score opens a text box under the row, already filled with
+**Report** under the confidence score opens a text box under the row, already filled with
 everything a report about a wrong title needs: the title, channel name and date the site handed
 over, the title that came out of them, the score, and the artist and entity categories the page
 would be filed under. Underneath are the empty lines only you can fill in – what went wrong and
 what the title and its categories should have been.
 
-Copy the box, correct it and post it on Discord. Editing the title field above refills the box,
-but anything typed into the box itself is never overwritten.
+Copy the box, correct it and post it on Discord. It is always as tall as its text and grows as
+you type. Editing the title field above refills it, but anything typed into the box itself is
+never overwritten.
 
 ### "Create" link
 
