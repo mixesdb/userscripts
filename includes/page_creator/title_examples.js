@@ -373,6 +373,16 @@ var mdbTitleExamples = [
         expectArtists: [ "Ricky Montana" ],
         expect: "2026-08-12 - Ricky Montana - The Sound of Rome 147"
     },
+    {
+        url: "https://soundcloud.com/dualismberlin/dualism-series-031",
+        title: "Dualism Series #031 - alemiko *live",
+        channel: "Dualism.Berlin",
+        date: "2026-08-12",
+        // the marker names no place, so it cannot become an "@" and must not stay stuck to the
+        // artist either - "Alemiko *Live" would be the artist category
+        expectArtists: [ "Alemiko" ],
+        expect: "2026-08-12 - Alemiko - Dualism Series 031"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {

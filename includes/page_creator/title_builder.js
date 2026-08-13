@@ -954,17 +954,23 @@ function mdbTitle_reduceRecordingNotes( text ) {
 // Done on the whole title before anything is split up, so the "@" is already in place when
 // the venue rules further down look for it.
 //
-// Returns { text, read: [ "\"at\" as \"@\"", ... ] } - the joiners it READ INTO the title, each
-// one named by the words it actually found. Only those are a guess about the recording and only
-// those are worth a confidence drop, which is why they are collected here instead of being
-// inferred from a before/after comparison at the call site: re-spacing an "@" the uploader
-// typed, cutting a note about the recording out of a bracket and dropping a "(Live)" that sits
-// BEHIND the place all change the text and decide nothing.
+// Returns { text, read, dropped }.
+//
+// "read" holds the joiners it READ INTO the title, each named by the words it actually found
+// ( "\"at\" as \"@\"" ). Only those are a guess about the recording and only those are worth a
+// confidence drop, which is why they are collected here instead of being inferred from a
+// before/after comparison at the call site: re-spacing an "@" the uploader typed, cutting a note
+// about the recording out of a bracket and dropping a "(Live)" that sits BEHIND the place all
+// change the text and decide nothing.
+//
+// "dropped" is a live marker that had no place to point at and was taken out of the title, see
+// the block that sets it. That one loses something the title said, so the caller flags it.
 function mdbTitle_applyJoiners( text ) {
     var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
         venue = ( typeof mdbTitleVenueConnectors !== "undefined" && mdbTitleVenueConnectors ) ? mdbTitleVenueConnectors : [],
         together = ( typeof mdbTitleTogetherArtistJoiners !== "undefined" && mdbTitleTogetherArtistJoiners ) ? mdbTitleTogetherArtistJoiners : [],
-        read = [];
+        read = [],
+        dropped = "";
 
     // What a rule replaced, in the words the title actually used, e.g. "Live at" -> "@".
     // The separator a rule swallows along with the phrase is not part of what was read, so it
@@ -1047,17 +1053,38 @@ function mdbTitle_applyJoiners( text ) {
         } );
     }
 
-    // The marker may also stand BEHIND the place, where it connects nothing and only says the
-    // same thing the "@" already says: "Anja Schneider @ Docks (Live)", "… @ Docks - DJ Set".
-    // It has no business in the entity, so it goes - but only at the very END of the title and
-    // only while a name is left standing behind the "@": a venue may well BEGIN with the word
-    // ("@ Live Music Hall"), and there it is the name, not a marker.
-    if( live.length && text.indexOf( "@" ) !== -1 ) {
-        var trailingRe = new RegExp( "\\s*(?:[" + mdbTitle_sepInner + "]\\s*)*\\b(?:" +
+    // The marker may also stand at the END of the title, where it connects nothing. Two cases,
+    // and they cost different things:
+    //
+    // - with an "@" in the title it only repeats what the joiner already says, so it is pure
+    //   decoration: "Anja Schneider @ Docks (Live)", "… @ Docks - DJ Set"
+    // - without one there is no place in the title at all, and the marker is stuck to the artist
+    //   instead: "Dualism Series #031 - alemiko *live" -> the artist is "Alemiko". MixesDB has
+    //   no group for HOW a set was played, only for WHERE, and "live" alone does not even settle
+    //   that much - it may as well have been a DJ set. So the word goes and the caller says so
+    //   in the confidence reasons, which is what the second return value is for.
+    //
+    // Only at the very end, and only while a name is left standing: a venue may well BEGIN with
+    // the word ("@ Live Music Hall"), and there it is the name, not a marker.
+    // Without an "@" the marker additionally has to be SET OFF from the name - by a separator, a
+    // bracket (which is a "|" by the time this runs) or an asterisk, which is how an uploader
+    // writes an aside. A name whose last word merely happens to be one of these words ("Boiler
+    // Room Live") keeps it: nothing there says the word is an annotation rather than the name.
+    if( live.length ) {
+        var placed = text.indexOf( "@" ) !== -1,
+            // "\\-" first: inside a character class a bare "-" would read as a range
+            markerLead = placed ? "\\s*(?:[" + mdbTitle_sepInner + "]\\s*)*"
+                                : "\\s*(?:[" + mdbTitle_sepInner + "*•·]\\s*)+",
+            trailingRe = new RegExp( markerLead + "\\b(?:" +
                                      mdbTitle_liveWordAlternation( live ) + ")\\b\\s*$", "i" ),
+            trailing = trailingRe.exec( text ),
             withoutMarker = text.replace( trailingRe, "" );
 
-        if( withoutMarker !== text && /@\s*\S/.test( withoutMarker ) ) text = withoutMarker;
+        if( trailing && ( placed ? /@\s*\S/ : /\S/ ).test( withoutMarker ) ) {
+            if( !placed ) dropped = mdbTitle_trimSeparators( trailing[0] );
+
+            text = withoutMarker;
+        }
     }
 
     if( together.length ) {
@@ -1078,7 +1105,7 @@ function mdbTitle_applyJoiners( text ) {
         }
     }
 
-    return { text: text, read: read };
+    return { text: text, read: read, dropped: dropped };
 }
 
 // mdbTitle_takeGuestMarker
@@ -2107,6 +2134,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( joined.read.length ) {
             conf.drop( 5, "a joiner was read into the title (" + joined.read.join( ", " ) +
                           ") - check it against the recording" );
+        }
+
+        // The one thing applyJoiners takes OUT of the title rather than rewriting: a live marker
+        // with no place for it to point at. Something the title said is gone, so it is said out
+        // loud - if the set really was played somewhere, the venue has to be typed in by hand.
+        if( joined.dropped ) {
+            conf.drop( 5, "\"" + joined.dropped + "\" was dropped - it says how the set was played, not where, " +
+                          "and the title names no venue or event to put behind an \"@\"" );
         }
 
         // A title that is nothing but the place ("Live at Docklands") names no artist, so the
