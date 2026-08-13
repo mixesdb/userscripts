@@ -578,3 +578,17 @@ body.sc-hideShortTracks-fallback {
 body.soundcloud-com #mdb-pageCreator-tracklist {
     margin-bottom: 0;
 }
+
+/*
+ * The "Create" link in the new layout's own link colour. Here and not in page_creator.css: a
+ * --mui-* variable is this layout's design system, and nothing in the shared file may know about
+ * a single site.
+ *
+ * Scoped to #mdb-sc-trackExtras, which is our new-layout wrapper and exists nowhere else - that
+ * is also what stands in for a fallback value. The variable only lives on that document's :root,
+ * so an unscoped rule would fire on the old layout too, find nothing, and leave the link with the
+ * plain text colour instead of the link colour it has there today.
+ */
+#mdb-sc-trackExtras #mdb-pageCreator-create {
+    color: var(--mui-palette-link-light, inherit);
+}
