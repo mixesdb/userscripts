@@ -11,7 +11,7 @@ mixes without a player page of their own.
 
 ### Toolkit for every embedded player
 
-Every visible player on the page — SoundCloud, Mixcloud, YouTube or hearthis.at — is looked up on
+Every visible player on the page – SoundCloud, Mixcloud, YouTube or hearthis.at – is looked up on
 MixesDB and the result appears above it: is this mix on MixesDB already, and what is the
 copy-paste ready player URL. See [Toolkit](../includes/README.md#toolkit).
 
@@ -31,7 +31,7 @@ A block is only treated as a tracklist when it has timestamps, or more than eigh
 
 ## Known limitations
 
-- The site list is the `@include` list above — a new blog needs a line added to the script.
+- The site list is the `@include` list above – a new blog needs a line added to the script.
 - Only finn-johannsen.de gets tracklists. The other sites are player checks only.
 - Posts with many players take a moment: each player is one MixesDB lookup, and posts are worked
   through one after the other.

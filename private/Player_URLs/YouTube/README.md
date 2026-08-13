@@ -3,7 +3,7 @@
 Adds the YouTube player URL to a MixesDB mix page from a prepared list, matched by the episode
 number in the page title. For working through a show's back catalogue page by page.
 
-Private import helper — see [private/](../../) for what that means.
+Private import helper – see [private/](../../) for what that means.
 
 - **Runs on:** mixesdb.com
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/YouTube/script.user.js)
@@ -15,8 +15,8 @@ Private import helper — see [private/](../../) for what that means.
 
 The edit toolbar gets a **Players:** group. When the page title carries an episode number the
 prepared list knows, a **YT** button appears, inserts that YouTube URL into the page's
-`{{Player}}` — or creates the template before the Notes/Tracklist section when the page has none
-yet — and saves. It fires by itself as soon as it appears, so the page can be worked through
+`{{Player}}` – or creates the template before the Notes/Tracklist section when the page has none
+yet – and saves. It fires by itself as soon as it appears, so the page can be worked through
 without clicking.
 
 A page that already holds a YouTube URL is left alone and not saved again.
@@ -27,7 +27,7 @@ Renumbers the URLs of an existing `{{Player}}` to the referenced form (`|1=URL |
 switches the template to `mode=mirrors`, which is what a page with several players for the same
 mix needs.
 
-When the page uses `t` title parameters, it warns instead of saving — those have to be renumbered
+When the page uses `t` title parameters, it warns instead of saving – those have to be renumbered
 by hand.
 
 ### "Edit all results" on the Explorer

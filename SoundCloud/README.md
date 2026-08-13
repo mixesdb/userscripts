@@ -3,7 +3,7 @@
 Turns a SoundCloud track page into a place a MixesDB page can be written from, and makes long
 stream and profile lists usable by filtering out what is not a mix.
 
-- **Runs on:** soundcloud.com — track pages, sets/playlists, streams and profiles
+- **Runs on:** soundcloud.com – track pages, sets/playlists, streams and profiles
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js)
 - **Shared features:** [Toolkit](../includes/README.md#toolkit), [Page creator](../includes/page_creator/), [Tracklist box](../includes/README.md#tracklist-box), [File details](../includes/README.md#file-details)
 
@@ -17,7 +17,7 @@ highlighted.
 
 ### MixesDB page creator
 
-The suggested page title and the **Create** link — see [Page creator](../includes/page_creator/).
+The suggested page title and the **Create** link – see [Page creator](../includes/page_creator/).
 SoundCloud is its reference implementation: title, uploader, dates, duration, player URL,
 artwork URL and description all come off the SoundCloud API.
 
@@ -29,7 +29,7 @@ for a complete numbered tracklist. Details in [Page creator](../includes/page_cr
 
 ### Toolkit
 
-Is this track already on MixesDB — see [Toolkit](../includes/README.md#toolkit). It carries the
+Is this track already on MixesDB – see [Toolkit](../includes/README.md#toolkit). It carries the
 player URL in the form MixesDB embeds, not `location.href`, so tracking parameters and the
 redesign's frame URL never end up in a mix page.
 
@@ -37,12 +37,12 @@ redesign's frame URL never end up in a mix page.
 
 Next to the player:
 
-- **duration** — click for the copy-paste ready [File details](../includes/README.md#file-details) table
-- **API** — toggles the raw SoundCloud API answer for the track, with the artwork URLs on top and
+- **duration** – click for the copy-paste ready [File details](../includes/README.md#file-details) table
+- **API** – toggles the raw SoundCloud API answer for the track, with the artwork URLs on top and
   every URL clickable
-- **DL** — shown when the track is downloadable; forwards the click to SoundCloud's own download
+- **DL** – shown when the track is downloadable; forwards the click to SoundCloud's own download
   button, including when that button hides in the overflow menu
-- **Link: …** — the track's buy/purchase link, which the current layout otherwise hides
+- **Link: …** – the track's buy/purchase link, which the current layout otherwise hides
 
 ### Artwork
 
@@ -57,11 +57,11 @@ afterwards is left alone. Works with English and German account locales.
 
 A **Hide:** row above lazy-loading lists, each option remembered:
 
-- **Playlists** — hide playlist entries (on by default)
-- **Reposts** — hide reposted players
-- **Favs** — hide players you have favorited
-- **Used** — hide players already used on MixesDB
-- **X'ed items** — hide entries removed with the **X** button
+- **Playlists** – hide playlist entries (on by default)
+- **Reposts** – hide reposted players
+- **Favs** – hide players you have favorited
+- **Used** – hide players already used on MixesDB
+- **X'ed items** – hide entries removed with the **X** button
 
 And a **Filter:** row with two sliders: **Durations ≥ n minutes** and **Favorites ≥ n**, so short
 uploads and unnoticed tracks disappear from the list.

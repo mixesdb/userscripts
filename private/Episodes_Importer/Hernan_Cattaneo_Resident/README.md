@@ -3,7 +3,7 @@
 Marks up the Resident podcast's episode archive with what is and is not on MixesDB yet, and turns
 every missing episode into one click that opens a prefilled new mix page.
 
-Private import helper — see [private/](../../) for what that means.
+Private import helper – see [private/](../../) for what that means.
 
 - **Runs on:** podcast.hernancattaneo.com, plus mixesdb.com edit forms
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js)
@@ -33,7 +33,7 @@ The page title is built from the episode title, which comes in several shapes ov
 (`Resident / Episode 502 / Dec 19 2020`, `502 Hernan Cattaneo podcast - 2020-12-19`) and in
 Spanish month names as well as English ones.
 
-Nothing is saved — the normal edit form opens, to check and submit. Links already used are
+Nothing is saved – the normal edit form opens, to check and submit. Links already used are
 marked, so a long session can be picked up where it stopped.
 
 ### Hide what is done

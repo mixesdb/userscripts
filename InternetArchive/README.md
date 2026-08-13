@@ -3,7 +3,7 @@
 Turns an archive.org item holding a whole set of recordings into a sortable table with download
 links and a MixesDB usage check per file.
 
-- **Runs on:** archive.org/details/* — items with a playset list
+- **Runs on:** archive.org/details/* – items with a playset list
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/InternetArchive/script.user.js)
 - **Shared features:** [Toolkit](../includes/README.md#toolkit)
 
@@ -15,7 +15,7 @@ Below the player, a sortable table of every recording in the item:
 
 - number, name and the detail part of the file name (usually the artist)
 - duration
-- a download link per available format — `.ogg` is dropped when an `.mp3` exists for the same
+- a download link per available format – `.ogg` is dropped when an `.mp3` exists for the same
   recording, and the full file name is on the link as a tooltip
 
 ### MixesDB usage per file

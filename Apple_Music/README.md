@@ -3,7 +3,7 @@
 Turns an Apple Music album or playlist into MixesDB wiki syntax, with cues added up from the
 track durations.
 
-- **Runs on:** music.apple.com and beta.music.apple.com — album and playlist pages
+- **Runs on:** music.apple.com and beta.music.apple.com – album and playlist pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Music/script.user.js)
 - **Shared features:** [Tracklist box](../includes/README.md#tracklist-box)
 
@@ -28,5 +28,5 @@ durations still in it, to check the calculated cues against.
 - **music.apple.com blocks external resources**, so MixesDB's Tracklist Editor API cannot be
   called from here. The box says so: paste the tracklist into the Tracklist Editor by hand to get
   it into the standard format.
-- Tracks Apple shows as unavailable (pre-release albums, for instance) carry no duration, so cue
+- Sometimes Apple shows tracks as unavailable (pre-release albums, for instance). These carry no duration, so cue
   calculation is skipped for the whole album.

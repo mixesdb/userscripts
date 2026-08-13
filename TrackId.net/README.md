@@ -16,7 +16,7 @@ in brackets. On the way there a long list of cleanups is applied, all of them le
 pages:
 
 - artist names de-duplicated, country codes stripped, `feat.` moved from the title to the artist
-- titles normalised — `Title - Some Remix` becomes `Title (Some Remix)`, remaster/`(Mixed)`
+- titles normalised – `Title - Some Remix` becomes `Title (Some Remix)`, remaster/`(Mixed)`
   noise removed, numeric suffixes dropped
 - labels cleaned, major labels and labels that only repeat the artist removed
 - a leading `?` gap when the first identified track starts more than two minutes in
@@ -27,7 +27,7 @@ removed; a **Toggle** button above the box shows the unfiltered version.
 ### Style suggestions
 
 The stream's TrackId.net styles, mapped to MixesDB category names, in a copyable box below the
-tracklist — with the reminder to double-check them by skipping through the mix.
+tracklist – with the reminder to double-check them by skipping through the mix.
 
 ### Cue format switch
 
@@ -38,7 +38,7 @@ next audiostream.
 
 The audiostream's source player is embedded on the page (SoundCloud, Mixcloud, YouTube,
 hearthis.at) and the [Toolkit](../includes/README.md#toolkit) below it says whether that player is
-already used on MixesDB — including a hint when the TID page is newer than the last edit of the
+already used on MixesDB – including a hint when the TID page is newer than the last edit of the
 MixesDB page.
 
 ### Mark as integrated
@@ -72,6 +72,6 @@ preselected. An existing `Tracklist: complete` is never downgraded.
 ## Known limitations
 
 - The cleanups are pattern-based. A title or label written in a way not seen before comes through
-  untouched — report it on Discord and it becomes another rule.
+  untouched – report it on Discord and it becomes another rule.
 - Removing likely-false `?` tracks is a heuristic; use the toggle to check what was dropped.
 - Style suggestions come from TrackId.net's own styles and are only as good as those.

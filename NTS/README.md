@@ -2,7 +2,7 @@
 
 Turns an NTS episode tracklist into MixesDB wiki syntax.
 
-- **Runs on:** nts.live — episode pages
+- **Runs on:** nts.live – episode pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/NTS/script.user.js)
 - **Shared features:** [Tracklist box](../includes/README.md#tracklist-box)
 
@@ -25,5 +25,5 @@ aligned. Episodes without timestamps are handled as a plain tracklist.
 ## Known limitations
 
 - Without an NTS subscription there are no timestamps, so the tracklist has no cues.
-- The tracklist is read off the rendered page, so it appears once NTS has rendered it — up to a
+- The tracklist is read off the rendered page, so it appears once NTS has rendered it – up to a
   second on a slow load.

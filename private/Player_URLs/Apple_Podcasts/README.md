@@ -1,10 +1,10 @@
 # Apple Podcasts Player URLs (private)
 
 Adds the Apple Podcasts player URL to a MixesDB mix page from a prepared list, matched by the
-episode number in the page title — and collects that list off an Apple Podcasts show page in the
+episode number in the page title – and collects that list off an Apple Podcasts show page in the
 first place.
 
-Private import helper — see [private/](../../) for what that means.
+Private import helper – see [private/](../../) for what that means.
 
 - **Runs on:** mixesdb.com and podcasts.apple.com
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js)
@@ -16,14 +16,14 @@ Private import helper — see [private/](../../) for what that means.
 
 The edit toolbar gets a **Players:** group. When the page title carries an episode number the
 prepared list knows, an **AP** button appears, inserts that Apple Podcasts URL into the page's
-`{{Player}}` — or creates the template when the page has none yet — and saves. It fires by
+`{{Player}}` – or creates the template when the page has none yet – and saves. It fires by
 itself as soon as it appears, so a show can be worked through without clicking.
 
 ### "1=" button
 
 Renumbers the URLs of an existing `{{Player}}` to the referenced form (`|1=URL |2=URL`) and
 switches the template to `mode=mirrors`. When the page uses `t` title parameters it warns instead
-of saving — those have to be renumbered by hand.
+of saving – those have to be renumbered by hand.
 
 Both buttons order the URLs of a multi-player page by the preferred site order in `../funcs.js`
 (Apple Podcasts, SoundCloud, hearthis.at, YouTube, Mixcloud).
@@ -31,7 +31,7 @@ Both buttons order the URLs of a multi-player page by the preferred site order i
 ### Collecting the episode list
 
 On an Apple Podcasts show page, every episode's title and URL is written to the console as
-`title : url`. That log is what the episode list at the top of the script is built from — the
+`title : url`. That log is what the episode list at the top of the script is built from – the
 titles get normalised down to the episode number, which then has to match what the MixesDB page
 titles carry.
 
@@ -46,6 +46,6 @@ edit form of every result in its own tab.
   constants at the top of the script and are swapped out for each show worked on. The pattern
   currently in place is the one for `Resident <n>`; earlier shows are kept as commented-out lines
   next to it.
-- Building the list means copying it out of the console by hand — there is no export.
+- Building the list means copying it out of the console by hand – there is no export.
 - The button saves the page. Check the show and the list before letting it run through a
   catalogue.

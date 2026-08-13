@@ -2,10 +2,10 @@
 
 Features that are not owned by a single site script. Each site script loads what it needs and
 decides where it goes on the page, so the wording here describes what these look like
-everywhere — a script's own README says what it does on that site.
+everywhere – a script's own README says what it does on that site.
 
 - **Runs on:** every site a userscript with the feature is installed for
-- **Install:** nothing to install — these come with the site scripts
+- **Install:** nothing to install – these come with the site scripts
 - **Shared features:** [Page creator](page_creator/) has its own page
 
 ## Features
@@ -18,13 +18,13 @@ whether that player is already used, and shows:
 - **This player is used on MixesDB** with a link to every mix page it is on, each followed by
   **EDIT** and **HIST** links (new tab) and how long ago that page was last edited
 - **This player is not used on MixesDB yet** plus a **Search the title** link
-- **Used / Unused players** — the copy-paste ready player URLs, on pages that hold more than one
+- **Used / Unused players** – the copy-paste ready player URLs, on pages that hold more than one
   player. The URL is written out in full so it can be copied, tracking parameters removed
-- **Embed URL** — the URL MixesDB embeds, in a field with a copy button, when the player belongs
+- **Embed URL** – the URL MixesDB embeds, in a field with a copy button, when the player belongs
   to the page being visited
 - **This player exists on TrackId.net** (plus whether that tracklist is integrated into MixesDB
   already), or a **Submit to TrackId.net** link when it does not
-- **This page was created after the MixesDB page was last edited** — a hint that the page's
+- **This page was created after the MixesDB page was last edited** – a hint that the page's
   tracklist may be worth carrying over
 
 Player URLs are read out of the page's embedded players, so a SoundCloud, Mixcloud, hearthis.at
@@ -44,8 +44,8 @@ opens a copy-paste ready **File details** table for the mix page.
 
 ### TrackId.net submit links
 
-`global.js` (`makeTidSubmitLink()`, `addTidPlaylistSubmitLink()`). Links that hand a player URL —
-or a whole playlist/set — over to TrackId.net's submit form, prefilled.
+`global.js` (`makeTidSubmitLink()`, `addTidPlaylistSubmitLink()`). Links that hand a player URL –
+or a whole playlist/set – over to TrackId.net's submit form, prefilled.
 
 ## Known limitations
 

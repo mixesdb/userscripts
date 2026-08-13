@@ -3,7 +3,7 @@
 Marks up Inverted Audio's IA MIX archive with what is and is not on MixesDB yet, and turns every
 missing episode into one click that opens a prefilled new mix page.
 
-Private import helper — see [private/](../../) for what that means.
+Private import helper – see [private/](../../) for what that means.
 
 - **Runs on:** inverted-audio.com/mix*, plus mixesdb.com edit forms
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/IA_MIX/script.user.js)
@@ -23,7 +23,7 @@ a missing one it says **Copy to MixesDB** and opens the edit form of the new pag
 the File details, the `{{Player}}`, the tracklist from the post's content run through MixesDB's
 Tracklist Editor API, and the categories including the `Tracklist:` status.
 
-Player URLs come from `player_episodes.js` — the list prepared for this show — so a mix page is
+Player URLs come from `player_episodes.js` – the list prepared for this show – so a mix page is
 created with its player already in place.
 
 Nothing is saved: the normal edit form opens, to check and submit. Links already used are marked.
