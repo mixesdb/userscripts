@@ -60,6 +60,11 @@ Every script must start with a complete `==UserScript==` metadata block:
 ## Code Style
 - Indentation: 4 spaces
 - Comments: English, explain *why* not just *what*
+- Never write an em dash (`—`). Use an en dash (`–`) instead - in code comments, in commit
+  messages and in every Markdown file. The only `—` allowed in this repo are the ones that are
+  DATA: character classes and separator patterns that have to match an em dash in a scraped
+  title (`title_builder.js`, `tracklist_detector.js`, `Discogs/script.user.js`), and the test
+  fixtures in `tracklist_examples.js`. Never "fix" those.
 - Prefer plain JS, but do not change existing jQuery code
 - Wrap script body in an IIFE: `(function() { ... })();` right after `// ==/UserScript==`, closed at end of file. No `'use strict'` – too risky to audit every implicit global across this much legacy jQuery code; a silent bug would become a hard `ReferenceError`.
 - If the script declares `scriptName`, add `window.scriptName = scriptName;` right after – `includes/toolkit.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
