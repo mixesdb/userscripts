@@ -850,6 +850,25 @@ var mdbTitleVenueConnectors = [
  *
  * Longest entry first: they are tried in order and "live" would otherwise swallow the start of
  * "live set".
+ *
+ * A marker with NO place behind it is dropped, not kept
+ *
+ * The words say WHERE only when a place follows them. Standing at the end of a title they say
+ * how the set was played, and MixesDB writes that nowhere - there is no group for it:
+ *
+ *     "Dualism Series #031 - alemiko *live"  (channel "Dualism.Berlin")
+ *     WRONG: 2026-08-12 - Alemiko *Live - Dualism Series 031   (and the artist category with it)
+ *     RIGHT: 2026-08-12 - Alemiko - Dualism Series 031
+ *
+ * "live" alone does not even settle what it looks like it settles - it may have been a live PA
+ * or a DJ set - and with no venue or event named there is nothing to put behind an "@" either
+ * way. So the word goes and the confidence says so: if the set really was played somewhere, the
+ * venue has to be typed in by hand.
+ *
+ * The marker has to be SET OFF from the name for this - by a separator, by a bracket (which is a
+ * "|" by the time the joiners run) or by an asterisk, which is how an uploader writes an aside.
+ * A name whose last word merely happens to be one of these words keeps it: nothing in "Boiler
+ * Room Live" says the word is an annotation rather than part of the name.
  */
 var mdbTitleLiveAtWords = [
     "recorded live",
