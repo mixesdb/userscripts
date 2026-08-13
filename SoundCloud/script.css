@@ -169,6 +169,11 @@ a.sc_button-mdb:hover {
     margin-right: 4px;
 }
 
+#mdb-pageCreator .mdb-copy-text-control {
+    padding-left: 10px;
+    padding-right: 0;
+}
+
 .listenInfo {
     & #mdb-artwork-input {
         clear: both !important;
