@@ -33,7 +33,8 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  *
  *   - a TRACK line: "Artist - Title" survives after an optional index and an optional cue are
  *     taken off the front. The bracketed extras behind it - "(Some Mix)", "[Label - #Cat]" -
- *     are simply part of the title and need no rule of their own.
+ *     are simply part of the title and need no rule of their own. A slash between the two
+ *     ("Ackermann / Pure") counts as well - see the separator part of the tidying below.
  *   - an INDEXED line: it starts with "1.", "01", "1)", "001.)", "1 - ", "#1 " ... Those come
  *     along because a numbered tracklist keeps numbering the tracks it has no name for
  *     ("06. [018] ID"), and dropping them would tear one tracklist into three.
@@ -56,7 +57,7 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  *
  * Tidying, before the API sees it
  * -------------------------------
- * The block is handed over as the uploader wrote it, with two exceptions.
+ * The block is handed over as the uploader wrote it, with three exceptions.
  *
  * The numbering is evened out. "12 - Wassu & Haums" and "13 - Juju" in a list otherwise numbered
  * "11 Dino Lenny", "14 JUNO (DE)" is one tracklist to a reader and two kinds of line to the
@@ -64,6 +65,13 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  * leaves the odd ones out alone, so those two arrive with their number still in the artist. The
  * majority style wins and only the lines disagreeing with it are rewritten, which is what leaves
  * a list that is CONSISTENTLY "1 - Artist - Title" untouched.
+ *
+ * A block that splits artist and title with a SLASH ("Ackermann / Pure", also "//" and "\") is
+ * rewritten to the dash the Tracklist Editor API reads, because the API knows no other separator:
+ * it takes such a line for one nameless track called "Ackermann / Pure" and hands back the whole
+ * tracklist with not a single track in it. Only the FIRST slash of a line moves, and only when
+ * most of the block's lines are written that way - a lone "Artist / Other Artist - Title" among
+ * dashes is a collaboration, not a separator.
  *
  * And a cue written BEHIND the
  * track ("Artist - Title 00:52:09") is moved in front of it, where MixesDB writes cues
@@ -122,6 +130,14 @@ var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
 // tracklist is the one outcome worse than none, because nothing about it looks wrong.
 var mdbTracklist_artistTitleRe = /\S(?:\s[-–—]\s?|\s?[-–—]\s)\S/;
 
+// The other separator uploaders write instead of that dash: "Ackermann / Pure", with "//", "\"
+// and "\\" as the same thing. A space is required on BOTH sides here, where the dash needs only
+// one: a slash lives inside words, dates and addresses all day long ("AC/DC", "w/ Mücha", "24/7",
+// "music.beepd.co/card/anjaschneider"), so a one-sided rule would read half the prose of a
+// description as a track line. The two groups are the characters either side of the separator,
+// kept so that the same regex can also do the rewriting - see mdbTracklist_dashifyLine().
+var mdbTracklist_slashTitleRe = /(\S)\s[\/\\]{1,2}\s(\S)/;
+
 // A cue written behind the track instead of in front of it, with whatever the uploader hung off
 // it: "Artist - Title 00:52:09", "Artist - Title 00:56:00- CLASSIC OF THE WEEK".
 // The index in front is kept as it is; only what stands behind the track moves.
@@ -151,13 +167,30 @@ function mdbTracklist_index( line ) {
     return m ? parseInt( m[2], 10 ) : -1;
 }
 
-// mdbTracklist_isTrackLine
-// Index and cue are taken off first, so "001.) [cue] Foo - Bar (Some Mix) [Label - #Cat]" is
-// judged on the "Foo - Bar ..." that is left.
-function mdbTracklist_isTrackLine( line ) {
-    var rest = mdbTracklist_stripIndex( line ).replace( mdbTracklist_cueRe, "" );
+// mdbTracklist_separator
+// WHICH separator splits the artist from the title on this line - "-" or "/" - or null for a line
+// that carries neither and is no track line. Index and cue are taken off first, so
+// "001.) [cue] Foo - Bar (Some Mix) [Label - #Cat]" is judged on the "Foo - Bar ..." that is left.
+//
+// The FIRST of the two on the line is the one that splits it, and the rest of the line is title:
+// "traKKman / Jack 2 The Groove - Sound Factory Bar mix" is a slash line whose title happens to
+// carry a dash, "Dj Lion - Mit Dir Intro - Camisra - Let Me Show You / Alta Moda" a dash line
+// whose title happens to carry a slash.
+function mdbTracklist_separator( line ) {
+    var rest = mdbTracklist_stripIndex( line ).replace( mdbTracklist_cueRe, "" ),
+        dash = rest.search( mdbTracklist_artistTitleRe ),
+        slash = rest.search( mdbTracklist_slashTitleRe );
 
-    return mdbTracklist_artistTitleRe.test( rest );
+    if( dash < 0 && slash < 0 ) return null;
+    if( dash < 0 ) return "/";
+    if( slash < 0 ) return "-";
+
+    return slash < dash ? "/" : "-";
+}
+
+// mdbTracklist_isTrackLine
+function mdbTracklist_isTrackLine( line ) {
+    return mdbTracklist_separator( line ) !== null;
 }
 
 // mdbTracklist_isCandidateLine
@@ -282,10 +315,65 @@ function mdbTracklist_evenIndexLine( line, style, lead, sep ) {
 }
 
 // mdbTracklist_tidy
-// Everything the block gets on the way to the API, in the order the two steps read the line: the
-// numbering at the front evened out first, then the cue behind the track moved in front of it.
+// Everything the block gets on the way to the API, in the order the steps read the line: the
+// numbering at the front evened out first, then the separator in the middle, then the cue behind
+// the track moved in front of it.
 function mdbTracklist_tidy( lines ) {
-    return mdbTracklist_tidyCues( mdbTracklist_evenIndexes( lines ) );
+    return mdbTracklist_tidyCues( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( lines ) ) );
+}
+
+// mdbTracklist_dashifySeparators
+// A block written "Ackermann / Pure" turned into the "Artist - Title" the Tracklist Editor API
+// reads. The API knows the dash and nothing else, so a slash line arrives as one nameless track
+// carrying the whole line as its artist - a tracklist with no tracks in it.
+//
+// Most of the lines that carry a separator at all have to be slash lines before any of them is
+// touched, the same "a pattern or nothing" rule as the cues below. A lone "Artist / Other Artist
+// - Title" in a block of dashes is a collaboration, and rewriting its slash would move the split
+// off the dash that really is the separator. The dash lines of a mostly-slash block are left
+// alone for the mirror image of that reason: their separator already is the one the API reads.
+function mdbTracklist_dashifySeparators( lines ) {
+    var slash = 0,
+        dash = 0,
+        i, sep;
+
+    for( i = 0; i < lines.length; i++ ) {
+        sep = mdbTracklist_separator( lines[i] );
+
+        if( sep === "/" ) slash++;
+        else if( sep === "-" ) dash++;
+    }
+
+    if( !slash || slash <= dash ) return lines;
+
+    log( "mdbTracklist_dashifySeparators: " + slash + " of the " + ( slash + dash ) +
+         " lines with a separator split artist and title with a slash - writing those with \" - \"." );
+
+    var out = [];
+
+    for( i = 0; i < lines.length; i++ ) {
+        out.push( mdbTracklist_separator( lines[i] ) === "/" ? mdbTracklist_dashifyLine( lines[i] ) : lines[i] );
+    }
+
+    return out;
+}
+
+// mdbTracklist_dashifyLine
+// The line's first slash written as " - ", and nothing else touched: "Fu Dog, Sides / Mzanbouncy"
+// -> "Fu Dog, Sides - Mzanbouncy". A second slash ("Artist / Title / Label") stays where the
+// uploader put it - it separates the title from something else, not the artist from the title.
+// The numbering and the cue are skipped over, the same way mdbTracklist_separator() takes them off
+// before looking - so the slash that is rewritten is the one that was counted, never one sitting
+// in front of the artist.
+function mdbTracklist_dashifyLine( line ) {
+    var text = String( line ),
+        index = text.match( mdbTracklist_indexRe ),
+        at = index ? index[0].length : 0,
+        cue = text.slice( at ).match( mdbTracklist_cueRe );
+
+    if( cue ) at += cue[0].length;
+
+    return text.slice( 0, at ) + text.slice( at ).replace( mdbTracklist_slashTitleRe, "$1 - $2" );
 }
 
 // mdbTracklist_tidyCues

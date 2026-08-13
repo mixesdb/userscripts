@@ -54,6 +54,11 @@ player and, from there, on the created page. Comments are read only when the des
 tracklist, and only for a whole numbered tracklist – single track IDs in comments are never
 taken.
 
+A tracklist whose lines split artist and title with a slash (`Ackermann / Pure`, and the same
+with `//`, `\` or `\\`) is read as well, and arrives in the box written with the dash MixesDB
+uses. Only the first slash of a line moves, and only when the whole block is written that way –
+a single `Artist / Other Artist - Title` among dashes is a collaboration and stays as it is.
+
 The box is behind a **Tracklist** headline that toggles it, and a bracket behind that headline
 says where the tracklist was read from. What is in the box at the moment **Create** is clicked is
 what goes onto the page, so corrections stick. The `[[Category:Tracklist: …]]` of the new page

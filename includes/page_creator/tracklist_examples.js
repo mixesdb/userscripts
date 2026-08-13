@@ -155,6 +155,19 @@ var mdbTracklistExamples = [
         }
     },
     {
+        // Artist and title split by a SLASH on every line, so nothing in the block read as a track
+        // and no tracklist was found at all. Names its whole `text` because the rewriting is the
+        // point: tracks 5 and 6 carry a dash BEHIND the slash, which is part of their title and
+        // has to stay one, and the "music.beepd.co/card/anjaschneider" line above the block is
+        // what a one-sided slash rule would have swallowed.
+        url: "https://soundcloud.com/anjaschneider/clubroom-431-with-anja",
+        text: "Hi my dear friends! Its time for another Club Room Mix. Enjoy Club Room Mix #426!\n\nAnja Schneider Clubroom Mix - No. 431\nmusic.beepd.co/card/anjaschneider\n\nTracklist\n\nAckermann / Pure\nJoe Milli / The Less You Know\nJewel Kid / In the dance\nCharles Meyer / Stickin Round\ntraKKman / Jack 2 The Groove - Sound Factory Bar mix \nKevin Saunderson / Inner City Pennies From Heaven - Roland Leesker Remix\nHilit Kolet / Yessir (Anja Schneider Remix)\nYNNY / Take 5\nFu Dog, Sides / Mzanbouncy \nNick Nolan / Say Baby\nMischa Daniels / Take Me higher (Maga Remix)\nBr!NK / Deep turn Around\n\n\nAnd please follow my Anja Schneider Backstage Podcast available on all platforms:\nlnk.to/clubroombackstagepodcast\nwww.youtube.com/@AnjaSchneiderMusic",
+        expect: {
+            lines: 12,
+            text: "Ackermann - Pure\nJoe Milli - The Less You Know\nJewel Kid - In the dance\nCharles Meyer - Stickin Round\ntraKKman - Jack 2 The Groove - Sound Factory Bar mix\nKevin Saunderson - Inner City Pennies From Heaven - Roland Leesker Remix\nHilit Kolet - Yessir (Anja Schneider Remix)\nYNNY - Take 5\nFu Dog, Sides - Mzanbouncy\nNick Nolan - Say Baby\nMischa Daniels - Take Me higher (Maga Remix)\nBr!NK - Deep turn Around"
+        }
+    },
+    {
         // Numbered "N " throughout except tracks 12 and 13, which the uploader typed as "12 - " and
         // "13 - ". Detection was never the problem here - the API's was: it strips the numbering
         // the block agrees on and leaves the two odd lines alone, so they arrive as tracks called

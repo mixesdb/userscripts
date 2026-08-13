@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.13.9
+// @version      2026.08.13.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_5
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
@@ -1632,6 +1632,21 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.13.10
+ * "No tracklist detected" on anjaschneider/clubroom-431-with-anja: the uploader splits artist and
+ * title with a SLASH ("Ackermann / Pure"), and the detector only ever knew the dash - so not one
+ * line of that block read as a track and no run formed at all. A slash counts as a separator now,
+ * with "//", "\" and "\\" as the same thing, and the block is rewritten to " - " before the
+ * Tracklist Editor API sees it: the API knows no other separator and would take such a line for
+ * one nameless track carrying the whole line as its artist.
+ * A slash needs a space on BOTH sides to count, where the dash needs only one - it lives inside
+ * words and addresses all day long ("AC/DC", "w/", "music.beepd.co/card/anjaschneider"), and a
+ * one-sided rule would read half the prose of a description as a track line.
+ * Only the FIRST separator on a line splits it, so "traKKman / Jack 2 The Groove - Sound Factory
+ * Bar mix" keeps the dash in its title, and only a block that is MOSTLY slash lines is rewritten:
+ * a lone "Artist / Other Artist - Title" among dashes is a collaboration, not a separator.
+ * 19 detector examples now, all passing.
  *
  * 2026.08.10.17
  * ROOT CAUSE FOUND for "no tracklist detected" on sultanshepard/dialekt-radio-339: the uploader
