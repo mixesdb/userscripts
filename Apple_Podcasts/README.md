@@ -3,7 +3,7 @@
 Makes Apple Podcasts episode URLs easy to grab and adds MixesDB search links next to episode
 titles.
 
-- **Runs on:** podcasts.apple.com — episode pages, show pages, search results
+- **Runs on:** podcasts.apple.com – episode pages, show pages, search results
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Apple_Podcasts/script.user.js)
 - **Shared features:** none
 
@@ -19,7 +19,7 @@ Apple Podcasts offers no way to copy an episode URL. A field holding it is added
 
 ### MixesDB search links
 
-A MixesDB logo next to the episode title — on the episode page and in a show's episode list —
+A MixesDB logo next to the episode title – on the episode page and in a show's episode list –
 searching MixesDB for that episode.
 
 ### Bigger search form

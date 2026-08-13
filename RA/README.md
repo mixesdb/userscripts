@@ -3,7 +3,7 @@
 Adds the MixesDB toolkit and the podcast tracklist to ra.co, plus the copy buttons and artwork
 URLs a mix page needs.
 
-- **Runs on:** ra.co and its country subdomains — podcast episodes, events, clubs, artists
+- **Runs on:** ra.co and its country subdomains – podcast episodes, events, clubs, artists
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/RA/script.user.js)
 - **Shared features:** [Toolkit](../includes/README.md#toolkit), [Tracklist box](../includes/README.md#tracklist-box)
 
@@ -11,7 +11,7 @@ URLs a mix page needs.
 
 ### Toolkit on podcast episodes
 
-Above the player on `ra.co/podcast/…`: is this episode already on MixesDB — see
+Above the player on `ra.co/podcast/…`: is this episode already on MixesDB – see
 [Toolkit](../includes/README.md#toolkit). The episode's SoundCloud player is what gets looked up.
 
 ### Podcast tracklist
@@ -29,8 +29,8 @@ artist page.
 
 ### Original artwork
 
-On event and podcast episode pages, the artwork's original URL — the real JPG or PNG, not RA's
-webp proxy version — in a copyable field with its dimensions.
+On event and podcast episode pages, the artwork's original URL – the real JPG or PNG, not RA's
+webp proxy version – in a copyable field with its dimensions.
 
 ## Known limitations
 

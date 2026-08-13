@@ -2,7 +2,7 @@
 
 Turns the "Music played" list of a BBC programme page into MixesDB wiki syntax.
 
-- **Runs on:** bbc.co.uk — programme pages with a tracklist
+- **Runs on:** bbc.co.uk – programme pages with a tracklist
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/BBC/script.user.js)
 - **Shared features:** [Tracklist box](../includes/README.md#tracklist-box)
 
@@ -22,5 +22,5 @@ Tracks BBC lists as `[Unknown]` come through as `Unknown`.
 ## Known limitations
 
 - No cues: BBC does not publish track times.
-- Only programme pages that render a segment list are handled — a programme without a published
+- Only programme pages that render a segment list are handled – a programme without a published
   tracklist gets nothing.

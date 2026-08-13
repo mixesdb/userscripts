@@ -1,7 +1,7 @@
 # MixesDB Userscripts Helper
 
-Changes MixesDB itself so the other userscripts can hand things over to it — a page text, a
-title, an artwork URL — and adds the links that lead from a mix page out to TrackId.net and
+Changes MixesDB itself so the other userscripts can hand things over to it – a page text, a
+title, an artwork URL – and adds the links that lead from a mix page out to TrackId.net and
 Apple Podcasts.
 
 - **Runs on:** mixesdb.com

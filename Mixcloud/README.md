@@ -11,7 +11,7 @@ filters shows already used on MixesDB out of a user's page.
 
 ### Toolkit
 
-Below the player on a show page: is this show already on MixesDB — see
+Below the player on a show page: is this show already on MixesDB – see
 [Toolkit](../includes/README.md#toolkit).
 
 ### Original artwork

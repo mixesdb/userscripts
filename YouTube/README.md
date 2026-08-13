@@ -3,7 +3,7 @@
 Adds the MixesDB toolkit to YouTube videos long enough to be a DJ mix, plus the thumbnail and
 file details a mix page needs.
 
-- **Runs on:** youtube.com and youtu.be — watch pages and playlist pages
+- **Runs on:** youtube.com and youtu.be – watch pages and playlist pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/YouTube/script.user.js)
 - **Shared features:** [Toolkit](../includes/README.md#toolkit), [File details](../includes/README.md#file-details)
 
@@ -11,7 +11,7 @@ file details a mix page needs.
 
 ### Toolkit
 
-Below the video title: is this video already on MixesDB — see
+Below the video title: is this video already on MixesDB – see
 [Toolkit](../includes/README.md#toolkit). The player URL is handed over as `https://youtu.be/<id>`,
 the form MixesDB embeds, and the same URL is offered as the copy-paste **Embed URL**.
 
@@ -36,7 +36,7 @@ TrackId.net.
 
 - youtube.com enforces Trusted Types, which blocks the way jQuery writes markup. The script
   installs a pass-through policy for it before anything else loads. Should Google ever restrict
-  policy names, the whole script stops working — the console says so in its first line rather
+  policy names, the whole script stops working – the console says so in its first line rather
   than failing silently.
 - YouTube ships several playlist header layouts in parallel per account; the submit link attaches
   to the visible one. The console keeps snapshots of what was found, which is what a "the link is

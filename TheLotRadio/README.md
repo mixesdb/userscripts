@@ -2,7 +2,7 @@
 
 Turns a The Lot Radio show tracklist into MixesDB wiki syntax.
 
-- **Runs on:** thelotradio.com — show pages
+- **Runs on:** thelotradio.com – show pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TheLotRadio/script.user.js)
 - **Shared features:** [Tracklist box](../includes/README.md#tracklist-box)
 

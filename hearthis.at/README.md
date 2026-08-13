@@ -2,7 +2,7 @@
 
 Adds the MixesDB toolkit to hearthis.at track pages.
 
-- **Runs on:** hearthis.at — track pages
+- **Runs on:** hearthis.at – track pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/hearthis.at/script.user.js)
 - **Shared features:** [Toolkit](../includes/README.md#toolkit)
 
@@ -10,7 +10,7 @@ Adds the MixesDB toolkit to hearthis.at track pages.
 
 ### Toolkit
 
-Below the track header: is this track already used on MixesDB — see
+Below the track header: is this track already used on MixesDB – see
 [Toolkit](../includes/README.md#toolkit).
 
 hearthis.at players are embedded on MixesDB under two different URLs: the readable
