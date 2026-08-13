@@ -542,20 +542,11 @@ function mdbPageCreator_render() {
         processedClass: "mdb-pageCreator-copy-processed"
     });
 
-    // "beta" belongs under the score, and a plain <br> cannot do that here: the row is a flex
-    // container, where a <br> becomes a flex item of its own instead of breaking the line.
-    // A small column wrapper stacks the two and keeps them as one item in the row.
-    var confidence = $("<span>")
-            .attr( "id", "mdb-pageCreator-confidence" )
-            .append( score, beta );
-
-    wrapper.append( confidence );
-
-    // "Report", behind the score: the whole case as one paste-able block - what the site gave,
-    // what came out of it, and the empty lines for what SHOULD have come out. Reported titles
-    // become cases in title_examples.js, and every report that had to be asked back for the
-    // channel name or the upload date cost a round trip - the channel name especially, which is
-    // the API's username and is not the name in the URL. So the box hands all of it over at once.
+    // "Report": the whole case as one paste-able block - what the site gave, what came out of it,
+    // and the empty lines for what SHOULD have come out. Reported titles become cases in
+    // title_examples.js, and every report that had to be asked back for the channel name or the
+    // upload date cost a round trip - the channel name especially, which is the API's username
+    // and is not the name in the URL. So the box hands all of it over at once.
     // Shown for a used player too: that debug row exists to compare the suggestion against the
     // page that already has it, which is exactly when something worth reporting turns up.
     var report = $("<a>")
@@ -567,7 +558,18 @@ function mdbPageCreator_render() {
         mdbPageCreator_toggleReport( wrapper );
     });
 
-    wrapper.append( report );
+    // Two lines, and a plain <br> cannot make them here: the row is a flex container, where a
+    // <br> becomes a flex item of its own instead of breaking the line. So a column wrapper
+    // stacks them and keeps the lot as ONE item in the row - the score with "BETA" behind it on
+    // top, "Report" underneath.
+    var confidence = $("<span>")
+            .attr( "id", "mdb-pageCreator-confidence" )
+            .append(
+                $("<span>").attr( "id", "mdb-pageCreator-scoreLine" ).append( score, beta ),
+                report
+            );
+
+    wrapper.append( confidence );
 
     // The report quotes the title that is in the field, so a correction typed above lands in it
     // - unless the box has been written in by then, see mdbPageCreator_fillReport().
@@ -703,13 +705,13 @@ function mdbPageCreator_toggleReport( wrapper ) {
     if( !box.length ) {
         box = $("<textarea>")
             .attr( "id", "mdb-pageCreator-report-box" )
-            .attr( "spellcheck", "false" )
-            .attr( "rows", 12 );
+            .attr( "spellcheck", "false" );
 
         // Only a REAL keystroke marks the box as the reporter's - the fill below sets .val()
         // itself and must not count as writing in it.
         box.on( "input", function() {
             box.data( "mdb-edited", true );
+            mdbPageCreator_growReport( box );
         });
 
         // At the end of the row, which is where it stays: the wrapper is a wrapping flex
@@ -720,6 +722,32 @@ function mdbPageCreator_toggleReport( wrapper ) {
 
     box.show();
     mdbPageCreator_fillReport( wrapper );
+
+    // After show(): a hidden textarea measures 0, so the first grow has to happen once the box
+    // is on the page. fillReport() grows it too, but it does nothing on a box already written in.
+    mdbPageCreator_growReport( box );
+}
+
+// mdbPageCreator_growReport
+// The box is exactly as tall as its text - it is read as a whole and copied as a whole, so a
+// scrollbar in it is pure friction - and grows as the "Mistake / learning" and "Expected" lines
+// are typed.
+//
+// Measured rather than counted from the newlines: a long player title wraps, and a wrapped line
+// takes a row on screen without being one in the text. Height reset to "auto" first, or
+// scrollHeight would only ever report the height the box already has and the box could never
+// shrink again.
+function mdbPageCreator_growReport( box ) {
+    var el = box[0];
+
+    if( !el ) return;
+
+    el.style.height = "auto";
+
+    // scrollHeight is the CONTENT box, and page_creator.css sets border-box sizing, so the
+    // borders have to be added back on top - otherwise the box is 2px short and scrolls by
+    // exactly that. offsetHeight - clientHeight IS those borders, whatever they are set to.
+    el.style.height = ( el.scrollHeight + el.offsetHeight - el.clientHeight ) + "px";
 }
 
 // mdbPageCreator_fillReport
@@ -732,6 +760,9 @@ function mdbPageCreator_fillReport( wrapper ) {
     if( !box.length || !mdbPageCreator_reportOpen || box.data( "mdb-edited" ) ) return;
 
     box.val( mdbPageCreator_reportText( $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ) ) );
+
+    // a refined suggestion can wrap where the first one did not
+    mdbPageCreator_growReport( box );
 }
 
 // mdbPageCreator_reportText

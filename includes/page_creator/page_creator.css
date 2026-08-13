@@ -53,14 +53,21 @@
 }
 
 /*
- * Score with "beta" stacked underneath it. A <br> cannot do that inside the flex row above -
- * it would become a flex item instead of breaking the line - so the two share this column.
+ * The score with "BETA" behind it, and "Report" on a second line under them. A <br> cannot make
+ * that line break inside the flex row above - it would become a flex item instead of breaking
+ * the line - so the two lines share this column and the row sees one item.
  */
 #mdb-pageCreator-confidence {
     display: inline-flex;
     flex-direction: column;
     align-items: center; /* looks weird when aligned left */
     line-height: 1.15;
+}
+
+#mdb-pageCreator-scoreLine {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
 }
 
 /*
@@ -93,14 +100,15 @@
 }
 
 /*
- * "Report" behind the score - opens the report box below the row. It carries no href (it goes
- * nowhere, it toggles), so the link look cannot be borrowed from the site's :link styling and is
- * stated here instead.
+ * "Report" under the score - opens the report box below the row. Deliberately NOT styled as a
+ * link: it is the same kind of side note as #mdb-pageCreator-beta above it, and the two sit in
+ * one column, so it takes that grey and that size. It carries no href either (it goes nowhere,
+ * it toggles), so there is no site :link styling to override in the first place.
  */
 #mdb-pageCreator-report {
-    padding-left: 10px;
+    color: #999;
     font-size: 0.8rem;
-    text-decoration: underline;
+    text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
 }
@@ -111,6 +119,10 @@
  * link and only makes the row scroll.
  * Same colours as the tracklist box further down, since it is the same kind of thing: a plain
  * text box of ours on a page whose own background we do not know.
+ *
+ * No "rows" and no height here: mdbPageCreator_growReport() sets the height from the text, so
+ * the box is always exactly as tall as what is in it. "overflow: hidden" keeps a scrollbar from
+ * flashing up in the moment between a keystroke and that measurement.
  */
 #mdb-pageCreator-report-box {
     flex: 0 0 100%;
@@ -118,6 +130,7 @@
     width: 100%;
     margin-top: 8px;
     padding: 4px 6px;
+    overflow: hidden;
     color: #444;
     font-family: Consolas, monospace;
     font-size: 12px;
@@ -125,6 +138,7 @@
     background-color: #fcfcfc;
     border: 1px solid rgba(127, 127, 127, 0.45);
     border-radius: 4px;
+    resize: none; /* dragging it taller fights the auto-grow, which wins on the next keystroke */
 }
 
 /* grey, so it reads as a warning label and not as part of the title */
