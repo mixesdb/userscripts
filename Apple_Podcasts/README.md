@@ -30,6 +30,5 @@ form carrying them is added at the top of the page, focused and ready to refine.
 
 ## Known limitations
 
-- Apple Podcasts blocks external stylesheets, so this script's CSS is inlined and stays minimal.
-- Episode pages have no tracklist and no toolkit — this script is about getting the URL and the
-  title out of the page.
+- The toolkit cannot be used, because apple.com doesn't allow API calls to external websites (www.mixesdb.com).
+- Apple Podcasts also blocks external stylesheets, so this script's CSS is inlined and stays minimal.
