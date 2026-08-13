@@ -181,6 +181,20 @@ var mdbTracklistExamples = [
             lines: 18,
             text: "1 Aykut Bilir - Humans (Original Mix) Mousike Records\n2 Kaob - Atua (Mula remix) Mousike Records\n3 Massrali - Reeds (Original Mix) Electronical Reeds\n4 Adam Ten, DvirNuns - Comusa (Original Mix) Life And Death\n5 Pryda - Rakfunk (Original Mix) Pryda Recordings\n6 Nash La Musica - Kali (Original Mix) Be Adult Roots\n7 Traffic Report - Airfield\n8 Andfølk - Drift (Original Mix) Caramel Records\n9 Massuma - Mermaid (Original Mix) Places & Spaces\n10 Peter Makto - Naked Soul (Original Mix) HMWL\n11 Dino Lenny - I've Learned That (Jonathan Kaspar Remix) Crosstown Rebels\n12 Wassu & Haums - Blue Meadow HMWL\n13 Juju - Souvenirs\n14 JUNO (DE) - Last Dance (Original Mix) Magnifik Music\n15 Rhye, Adam Ten - 3 Days Later (Extended) Higher Ground\n16 CVALM & Ikerfoxx - Often (Extended Mix) ABRACADABRA\n17 Emmanuel Jal, Desiree - Macho (Extended) Ninja Tune\n18 Tahos - DLDL - Soon on HMWL"
         }
+    },
+    {
+        // Artist and title split by an EN dash on every line but track 10. Detection was never the
+        // problem - the Tracklist Editor API's was: it reads the hyphen and the em dash and takes
+        // an en dash line for one nameless track, so the box came back orange with "These tracks
+        // seem to miss the artist names" listing all of them. Names its whole `text` because the
+        // rewriting is the point, and track 10 is the control: a line already written with " - "
+        // must come through untouched.
+        url: "https://soundcloud.com/whose-these-records/whose-these-cast-02-by-mar-1",
+        text: "Bringing \"Whose These Cast\" #02 by @marmonzon\n\nThe series continous with an exclusive mix from argentinian talent @marmonzon who brings an hour of her selection straight from her record bag.\n\nHer selections are rooted in raw house, with strong influences from the 90s and early 2000s, working across both vinyl and digital formats.\n\nShe is currently focused on developing her sound as a producer, working across analog instruments and digital production.\n\nThe second of many exclusive mixes to drop in the coming months!\n\nTracklist: \n\n1. Arion – Squaa\n2. Ranerro & Manuel Correa – Valley of Deaths\n3. 10AM – Good Times\n4. Rossiter – Shabba\n5. Spceboi – The Business\n6. Traumer – Do Not Resist\n7. Toomy Disco – The Deeva\n8. Rossiter – Do It Again!\n9. Matichap – Straight On\n10. Jorge Savoretti & Mai Iachetti - Dunhan\n11. Elias Tabares – Listen To Frank\n12. Sisto – Under Pressure",
+        expect: {
+            lines: 12,
+            text: "1. Arion - Squaa\n2. Ranerro & Manuel Correa - Valley of Deaths\n3. 10AM - Good Times\n4. Rossiter - Shabba\n5. Spceboi - The Business\n6. Traumer - Do Not Resist\n7. Toomy Disco - The Deeva\n8. Rossiter - Do It Again!\n9. Matichap - Straight On\n10. Jorge Savoretti & Mai Iachetti - Dunhan\n11. Elias Tabares - Listen To Frank\n12. Sisto - Under Pressure"
+        }
     }
 ];
 

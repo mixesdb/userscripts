@@ -59,6 +59,12 @@ with `//`, `\` or `\\`) is read as well, and arrives in the box written with the
 uses. Only the first slash of a line moves, and only when the whole block is written that way –
 a single `Artist / Other Artist - Title` among dashes is a collaboration and stays as it is.
 
+The dash itself arrives in the box the way MixesDB writes it too. An uploader who typed an en
+dash (`Arion – Squaa`), an em dash, a double hyphen or a space on only one side of it wrote the
+same separator, and the box shows ` - ` for all of them – the Tracklist Editor otherwise reads
+such a line as a track with no artist and calls the whole tracklist incomplete. Only the first
+dash of a line is the separator; anything further right belongs to the title and stays.
+
 The box is behind a **Tracklist** headline that toggles it, and a bracket behind that headline
 says where the tracklist was read from. What is in the box at the moment **Create** is clicked is
 what goes onto the page, so corrections stick. The `[[Category:Tracklist: …]]` of the new page

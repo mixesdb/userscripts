@@ -104,6 +104,14 @@ Settled, so it does not get re-litigated:
   FIRST separator on a line splits it (`traKKman / Jack 2 The Groove - Sound Factory Bar mix`
   keeps the dash in its title), and only a block whose separator lines are MOSTLY slashes is
   rewritten - a lone `Artist / Other Artist - Title` among dashes is a collaboration.
+- **The separator is written as `" - "` before the API sees it**, whatever dash and whatever
+  spacing it was typed with (`Arion – Squaa`, `Artist –Title`, `Artist -- Title`). The API
+  normalizes an em dash and one-sided spacing itself, but NOT the en dash - the one SoundCloud
+  uploaders type most - and a line it does not read splits into no artist at all, so the box comes
+  back orange with "These tracks seem to miss the artist names" listing every track. No majority
+  rule here, unlike the slash: a dash with a space next to it IS the separator on a line that has
+  one, which is the very rule the run was detected by. Only the FIRST one moves, and the numbering
+  and a leading cue are skipped over first.
 - **A cue written BEHIND the track is moved in front of it before the API sees it**, and anything
   trailing that cue becomes a bold note in front of the artist ("Artist - Title 00:56:00- CLASSIC
   OF THE WEEK" -> "[00:56:00] '''CLASSIC OF THE WEEK:''' Artist - Title"). The API reads a leading
