@@ -92,6 +92,41 @@
     white-space: nowrap;
 }
 
+/*
+ * "Report" behind the score - opens the report box below the row. It carries no href (it goes
+ * nowhere, it toggles), so the link look cannot be borrowed from the site's :link styling and is
+ * stated here instead.
+ */
+#mdb-pageCreator-report {
+    padding-left: 10px;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/*
+ * The report box. "flex-basis: 100%" is what puts it on a line of its own: the row above is a
+ * WRAPPING flex container, where a plain width still leaves the box sitting next to the "Create"
+ * link and only makes the row scroll.
+ * Same colours as the tracklist box further down, since it is the same kind of thing: a plain
+ * text box of ours on a page whose own background we do not know.
+ */
+#mdb-pageCreator-report-box {
+    flex: 0 0 100%;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 8px;
+    padding: 4px 6px;
+    color: #444;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    background-color: #fcfcfc;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+}
+
 /* grey, so it reads as a warning label and not as part of the title */
 #mdb-pageCreator-beta {
     color: #999;

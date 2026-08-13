@@ -1017,6 +1017,21 @@ var mdbTitleGuestMarkers = [
  * introduces the artist. The channel name says the same thing from the other side - a label
  * ("Records") is what a podcast is named after, not who played the mix - but it is not needed
  * for the reading and nothing here relies on it.
+ *
+ * A SEPARATOR between the word and its number changes nothing about that. The two belong
+ * together however the uploader punctuated them:
+ *
+ *     "IA Podcast | 233: Fixeer & Ricardo Garduno"  (channel "Illegal Alien Records")
+ *     WRONG: 2026-03-05 - IA Podcast 233: Fixeer & Ricardo Garduno
+ *     RIGHT: 2026-03-05 - Fixeer & Ricardo Garduno - IA Podcast 233
+ *
+ * Read as three bits the title has a show, a number and an artist and no way of telling which
+ * is which, so all three end up in the artist and the entity is lost. Reading the number as the
+ * episode of the word in front of it puts the title back into its two halves.
+ *
+ * The one thing never taken that way is a YEAR: "Some Show | 2026" numbers no episode, and an
+ * invented episode number is worse than a missing one. A year GLUED to the word still is one
+ * ("Vol. 2026"), because there the uploader wrote the two as one thing.
  */
 var mdbTitleShowSuffixWords = [
     "podcast", "radio", "radioshow", "show", "mixshow", "mix", "mixtape", "mixseries",
@@ -1165,6 +1180,15 @@ var mdbTitleDroppedBitPatterns = [
  * - words without a vowel, which cannot be words either, so they are abbreviations and keep
  *   their caps: "DSS 139" stays "DSS 139", never "Dss 139". That is what covers the acronyms
  *   not worth listing below one by one.
+ * - words that spell the CHANNEL's initials, which is the third kind of acronym and the only
+ *   one a vowel does not give away:
+ *       "IA Podcast | 233: Fixeer & Ricardo Garduno"  on the channel "Illegal Alien Records"
+ *       ->  2026-03-05 - Fixeer & Ricardo Garduno - IA Podcast 233,  never "Ia Podcast"
+ *   A label shortening itself in its own podcast name is common enough that listing every such
+ *   channel below would be endless, and the channel name is right there to be asked. A PREFIX
+ *   of the initials counts ("IA" of "IAR"): the "Records" drops out of the podcast name as
+ *   readily as it stays in. Two letters minimum, and only for a word already written in caps -
+ *   otherwise a lowercase title would be shouted INTO an acronym.
  *
  * The catch, and why re-casing costs confidence: an artist really spelled in caps ("DJ MARIA.")
  * reads exactly like a shouted one, so it gets re-cased as well. Nothing in a player title
