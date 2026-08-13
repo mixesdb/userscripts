@@ -57,7 +57,7 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  *
  * Tidying, before the API sees it
  * -------------------------------
- * The block is handed over as the uploader wrote it, with three exceptions.
+ * The block is handed over as the uploader wrote it, with four exceptions.
  *
  * The numbering is evened out. "12 - Wassu & Haums" and "13 - Juju" in a list otherwise numbered
  * "11 Dino Lenny", "14 JUNO (DE)" is one tracklist to a reader and two kinds of line to the
@@ -72,6 +72,13 @@ log( "/includes/page_creator/tracklist_detector.js loaded" );
  * tracklist with not a single track in it. Only the FIRST slash of a line moves, and only when
  * most of the block's lines are written that way - a lone "Artist / Other Artist - Title" among
  * dashes is a collaboration, not a separator.
+ *
+ * The separator itself is written as " - ", whatever dash and whatever spacing it was typed with:
+ * "Arion – Squaa" -> "Arion - Squaa". The API normalizes an em dash and one-sided spacing itself,
+ * but not the EN dash - the one SoundCloud uploaders type most - and a line it does not read
+ * splits into no artist at all, so the whole tracklist comes back with "These tracks seem to miss
+ * the artist names" under it. Only the first separator of a line moves; a dash further right is
+ * part of the title.
  *
  * And a cue written BEHIND the
  * track ("Artist - Title 00:52:09") is moved in front of it, where MixesDB writes cues
@@ -128,7 +135,12 @@ var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
 // drop that line - it is not a candidate line at all, so the run ENDS there and the tracklist is
 // torn into the part above and the part below, of which only the longer one survives. Half a
 // tracklist is the one outcome worse than none, because nothing about it looks wrong.
-var mdbTracklist_artistTitleRe = /\S(?:\s[-–—]\s?|\s?[-–—]\s)\S/;
+//
+// The two groups are the characters either side of the separator, kept so that the same regex can
+// also do the rewriting - see mdbTracklist_plainDashes(). "+" for the same reason: "Artist -- Title"
+// is ONE separator to whoever typed it, and rewriting only half of it would leave a stray dash in
+// front of the title.
+var mdbTracklist_artistTitleRe = /(\S)(?:\s[-–—]+\s?|\s?[-–—]+\s)(\S)/;
 
 // The other separator uploaders write instead of that dash: "Ackermann / Pure", with "//", "\"
 // and "\\" as the same thing. A space is required on BOTH sides here, where the dash needs only
@@ -319,7 +331,7 @@ function mdbTracklist_evenIndexLine( line, style, lead, sep ) {
 // numbering at the front evened out first, then the separator in the middle, then the cue behind
 // the track moved in front of it.
 function mdbTracklist_tidy( lines ) {
-    return mdbTracklist_tidyCues( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( lines ) ) );
+    return mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( lines ) ) ) );
 }
 
 // mdbTracklist_dashifySeparators
@@ -362,18 +374,70 @@ function mdbTracklist_dashifySeparators( lines ) {
 // The line's first slash written as " - ", and nothing else touched: "Fu Dog, Sides / Mzanbouncy"
 // -> "Fu Dog, Sides - Mzanbouncy". A second slash ("Artist / Title / Label") stays where the
 // uploader put it - it separates the title from something else, not the artist from the title.
-// The numbering and the cue are skipped over, the same way mdbTracklist_separator() takes them off
-// before looking - so the slash that is rewritten is the one that was counted, never one sitting
-// in front of the artist.
 function mdbTracklist_dashifyLine( line ) {
     var text = String( line ),
-        index = text.match( mdbTracklist_indexRe ),
+        at = mdbTracklist_bodyAt( text );
+
+    return text.slice( 0, at ) + text.slice( at ).replace( mdbTracklist_slashTitleRe, "$1 - $2" );
+}
+
+// mdbTracklist_bodyAt
+// Where the track itself starts on a line: behind the numbering and behind a leading cue. Both
+// rewriters skip over that, the same way mdbTracklist_separator() takes both off before looking -
+// so the separator they change is the one that was counted, never one sitting in front of the
+// artist ("12 – Artist – Title" is numbered "12 – " and split by the SECOND dash).
+function mdbTracklist_bodyAt( text ) {
+    var index = text.match( mdbTracklist_indexRe ),
         at = index ? index[0].length : 0,
         cue = text.slice( at ).match( mdbTracklist_cueRe );
 
-    if( cue ) at += cue[0].length;
+    return cue ? at + cue[0].length : at;
+}
 
-    return text.slice( 0, at ) + text.slice( at ).replace( mdbTracklist_slashTitleRe, "$1 - $2" );
+// mdbTracklist_plainDashes
+// The separator written as the " - " the Tracklist Editor API reads, whatever dash and whatever
+// spacing the uploader typed: "Arion – Squaa" -> "Arion - Squaa".
+//
+// The API normalizes an em dash and one-sided spacing itself, but NOT the en dash - which is the
+// one SoundCloud uploaders type most (whose-these-records/whose-these-cast-02-by-mar-1 is written
+// with it throughout). Such a line comes back as one nameless track carrying the whole line as its
+// artist, and the box turns orange with "These tracks seem to miss the artist names" under it -
+// listing every track of the tracklist. Same reasoning as the slash above: the API knows one
+// separator, so everything else has to be rewritten on our side.
+//
+// No majority rule here, unlike the slash: a dash with a space next to it IS the separator on a
+// line that has one, whichever of the three it is - that is the very rule the run was detected by.
+function mdbTracklist_plainDashes( lines ) {
+    var out = [],
+        changed = 0,
+        i, line;
+
+    for( i = 0; i < lines.length; i++ ) {
+        line = mdbTracklist_plainDashLine( lines[i] );
+
+        if( line !== lines[i] ) changed++;
+
+        out.push( line );
+    }
+
+    if( changed ) {
+        log( "mdbTracklist_plainDashes: " + changed + " of the " + lines.length +
+             " lines split artist and title with something other than \" - \" - written as \" - \"." );
+    }
+
+    return out;
+}
+
+// mdbTracklist_plainDashLine
+// Only the FIRST separator of the line moves, the one mdbTracklist_separator() judged it by. A
+// dash further right belongs to the title and stays as the uploader wrote it: "Kevin Saunderson –
+// Inner City Pennies From Heaven - Roland Leesker Remix" is artist, title and remix credit, and
+// the API splits on the first " - " too.
+function mdbTracklist_plainDashLine( line ) {
+    var text = String( line ),
+        at = mdbTracklist_bodyAt( text );
+
+    return text.slice( 0, at ) + text.slice( at ).replace( mdbTracklist_artistTitleRe, "$1 - $2" );
 }
 
 // mdbTracklist_tidyCues

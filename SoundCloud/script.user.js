@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.13.12
+// @version      2026.08.13.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_6
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
@@ -1632,6 +1632,19 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.13.13
+ * The tracklist of whose-these-records/whose-these-cast-02-by-mar-1 came back orange with "These
+ * tracks seem to miss the artist names" listing every track: its uploader splits artist and title
+ * with an EN dash, and the Tracklist Editor API reads the hyphen and the em dash but not that one,
+ * so each line arrived as one nameless track carrying the whole line as its artist. Not the
+ * "standard" type going missing - that is what has always been passed, here as everywhere else.
+ * The detector now writes the separator as " - " before the API sees it, whatever dash and
+ * whatever spacing it was typed with ("Artist –Title", "Artist -- Title"), the same answer the
+ * slash of .10 got and for the same reason: the API knows one separator.
+ * Only the FIRST separator of a line moves - a dash further right is part of the title - and the
+ * numbering and a leading cue are skipped over, so a "12 – Artist – Title" is split by the second
+ * dash and not by the one that numbers it. 20 detector examples now, all passing.
  *
  * 2026.08.13.10
  * "No tracklist detected" on anjaschneider/clubroom-431-with-anja: the uploader splits artist and
