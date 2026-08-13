@@ -96,6 +96,14 @@ Settled, so it does not get re-litigated:
   what leaves a list written `1 - Artist - Title` all the way down exactly as it is, and is the
   answer to a dash that belongs to the artist rather than to the numbering. No majority means no
   rewrite: two styles splitting a block down the middle is not a pattern.
+- **A block that splits artist and title with a SLASH is rewritten to the dash** (`Ackermann /
+  Pure` -> `Ackermann - Pure`, same for `//`, `\` and `\\`) before the API sees it: the API knows
+  no other separator and reads such a line as one nameless track carrying the whole line as its
+  artist. A slash needs a space on BOTH sides to count as one, where the dash needs only one -
+  it sits inside words and addresses all the time (`AC/DC`, `w/`, `label.com/artist`). Only the
+  FIRST separator on a line splits it (`traKKman / Jack 2 The Groove - Sound Factory Bar mix`
+  keeps the dash in its title), and only a block whose separator lines are MOSTLY slashes is
+  rewritten - a lone `Artist / Other Artist - Title` among dashes is a collaboration.
 - **A cue written BEHIND the track is moved in front of it before the API sees it**, and anything
   trailing that cue becomes a bold note in front of the artist ("Artist - Title 00:56:00- CLASSIC
   OF THE WEEK" -> "[00:56:00] '''CLASSIC OF THE WEEK:''' Artist - Title"). The API reads a leading
