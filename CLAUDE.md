@@ -7,7 +7,7 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 
 ## Abbreviations
 - `MDB`: MixesDB
-- `TLE`/ `TLE API`: MixesDB's Tracklist Editor API called in `shared/global.js` –> `function apiTracklist()`
+- `TLE`/ `TLE API`: MixesDB's Tracklist Editor API called in `shared/tracklist_editor/funcs.js` –> `function apiTracklist()`
 
 ## Structure
 - `<script-name-with-underscores>/` - one .user.js file per userscript, named `script.user.js`

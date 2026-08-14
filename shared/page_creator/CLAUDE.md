@@ -35,6 +35,9 @@ the load order):
 title_definitions.js, title_builder.js, tracklist_detector.js, page_creator.js
 ```
 
+`../global.js` and `../tracklist_editor/funcs.js` have to be `@require`'d before all four -
+`page_creator.js` calls `apiTracklist()` and renders the `#tlEditor` box out of the latter.
+
 then `loadRawCss()` `page_creator.css` next to the script's own `script.css`, and call
 `mdbPageCreator_add({ title, channel, createdAt, ..., target, placement })` when the site's data
 arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built. A site whose
@@ -54,8 +57,9 @@ the script name and the name reports use are not always the same.
 
 The tracklist an uploader wrote into the description ends up in an editable box next to the
 player and on the created page. `tracklist_detector.js` finds it in the text, the Tracklist
-Editor API (`apiTracklist( text, "standard" )` in `global.js`) formats it, `page_creator.js`
-renders the box (the shared `#tlEditor` from `global.js`) and writes it into the page.
+Editor API (`apiTracklist( text, "standard" )` in `../tracklist_editor/funcs.js`) formats it,
+`page_creator.js` renders the box (the shared `#tlEditor` from `../tracklist_editor/funcs.js`)
+and writes it into the page.
 
 Settled, so it does not get re-litigated:
 
