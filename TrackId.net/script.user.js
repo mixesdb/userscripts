@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.4
+// @version      2026.08.14.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1686,7 +1686,7 @@ function on_submitrequest() {
     // Insert the requestUrl to the submit input
     if( requestUrl && requestUrl !== "" ) {
         var requestUrl_domain = new URL( requestUrl ).hostname.replace("www.",""),
-            keywords = getURLParameter("keywords");
+            keywords = getURLParameter("keywords") || ""; // set URLs are submitted without keywords – avoid "null" in the search input
 
         logVar( "requestUrl_domain", requestUrl_domain );
         logVar( "keywords", keywords );
