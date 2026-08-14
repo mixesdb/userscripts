@@ -230,5 +230,5 @@ table.mdb-tid-table {
 	font-weight: bold;
 }
 #mdb-replacedSearch .replaced-search-input {
-	width: calc( 100% - 75px - .5rem ); /* .5rem = .mdb-element padding */
+	width: calc( 100% - 75px - .5rem ); /* .5rem = .mdb-element.input padding */
 }

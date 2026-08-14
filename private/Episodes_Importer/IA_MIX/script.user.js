@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.3
+// @version      2026.08.14.4
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -21,7 +21,7 @@
 // @run-at       document-end
 // ==/UserScript==
 
-var cacheVersion = 2,
+var cacheVersion = 3,
     scriptName = "IA_MIX";
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );

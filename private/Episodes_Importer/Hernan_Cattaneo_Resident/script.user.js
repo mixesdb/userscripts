@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.3
+// @version      2026.08.14.4
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -26,7 +26,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 23,
+var cacheVersion = 24,
     scriptName = "Hernan_Cattaneo_Resident";
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );

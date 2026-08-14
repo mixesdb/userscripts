@@ -224,26 +224,36 @@ th.sorttable_sorted_reverse::after {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-.mdb-element {
-    margin: 1rem 0;
-    padding: .25rem .5rem;
-}
+/* .mdb-element itself is only the SPA-cleanup marker (see mdbCreatedSelector in global.js)
+   and carries NO spacing of its own: wrapper and inner element are often both marked, so a
+   blanket margin/padding stacked once per nesting level - which pushed injected controls out
+   of the sites' button rows (e.g. the Mixcloud player action links). Spacing is opt-in per
+   element type below, or per component in the site's script.css. */
 .mdb-element.input:not(.inline) {
     display: block;
     width: 100%;
 }
 .mdb-element.input {
+    margin: 1rem 0;
     padding: .25rem .5rem;
     font-family: monospace;
     font-size: 12px;
     border: 2px solid #fc6;
 }
 .mdb-element.note {
+    margin: 1rem 0;
+    padding: .25rem .5rem;
     background-color: #eee;
     color: #f60;
 }
 button.mdb-element {
+    margin: 1rem 0;
+    padding: .25rem .5rem;
     font-size: .9rem;
+}
+pre.mdb-element,
+table.mdb-element {
+    margin: 1rem 0;
 }
 
 /* forces text-node sources (links, spans, …) to stay inline next to their copy button -

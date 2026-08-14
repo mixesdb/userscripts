@@ -40,12 +40,12 @@
     background-color: transparent;
     border-radius: var(--border-radius-s);
     border: 1px solid var(--color-surface-subtle);
-    height: 48px;
-    max-height: 48px;
-    min-height: 48px;
-    padding: 16px;
+    height: 40px;
+    max-height: 40px;
+    min-height: 40px;
+    padding: 12px 16px;
     text-transform: none;
-    font-size: 13px;
+    font-size: 14px;
     overflow: hidden;
     width: auto;
     
@@ -58,6 +58,14 @@
 
 .mdb-tidSubmit img {
 	max-height: 30px;
+}
+
+/* The wrapper spans only pin the order of the async created links and mark them for the SPA
+   cleanup - without a box of their own the links sit in Mixcloud's flex button row as direct
+   items, spaced by the row's own gap like the site's buttons. */
+.mdb-apiLink-wrapper,
+.mdb-durToggle-wrapper {
+	display: contents;
 }
 
 
