@@ -6,7 +6,7 @@ behaves the same everywhere.
 
 - **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/)
 - **Install:** nothing to install – it comes with the site scripts
-- **Shared features:** [Toolkit](../README.md#toolkit), [Tracklist box](../README.md#tracklist-box)
+- **Shared features:** [Tracklist box](../README.md#tracklist-box)
 
 ## Features
 
@@ -16,8 +16,10 @@ Built from the player title, the uploader/channel name and the upload date, in M
 title format (`YYYY-MM-DD - Artist - Show`). The field is editable – the suggestion is a starting
 point, not a decision – and a confidence score next to it says how sure the suggestion is.
 
-The row only appears for mixes that are **not on MixesDB yet** (the toolkit decides that) and
-only for recordings of at least 20 minutes, which is MixesDB's lower limit.
+The row only appears for mixes that are **not on MixesDB yet**, and only for recordings of at
+least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
+[Toolkit](../README.md#toolkit)'s answer, so the row shows up once the toolkit box next to it
+has one.
 
 ### "Report" box
 
