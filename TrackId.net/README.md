@@ -5,7 +5,7 @@ which TID tracklists have already been integrated into MixesDB.
 
 - **Runs on:** trackid.net, plus mixesdb.com/w/* for the edit-form part
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [Tracklist box](../includes/README.md#tracklist-box)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 
@@ -37,7 +37,7 @@ next audiostream.
 ### Player and toolkit
 
 The audiostream's source player is embedded on the page (SoundCloud, Mixcloud, YouTube,
-hearthis.at) and the [Toolkit](../includes/README.md#toolkit) below it says whether that player is
+hearthis.at) and the [Toolkit](../shared/toolkit/) below it says whether that player is
 already used on MixesDB – including a hint when the TID page is newer than the last edit of the
 MixesDB page.
 

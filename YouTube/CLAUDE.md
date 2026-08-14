@@ -22,7 +22,7 @@ after jQuery plus the site script itself. The page then looks exactly as if no u
 installed, with **not one line of ours in the console**, so the startup diagnostics in
 `script.user.js` cannot report it either: they never run.
 
-The fix is `includes/trustedTypes.js`, which installs a pass-through Trusted Types `default`
+The fix is `shared/trustedTypes.js`, which installs a pass-through Trusted Types `default`
 policy. Rules:
 
 - It **must stay the first `@require`, ahead of `jquery-3.7.1.min.js`**. The policy has to
@@ -46,5 +46,5 @@ policy cannot be installed. Existing jQuery HTML-string code is fine as long as 
 in place; do not rewrite it wholesale.
 
 ## Testing / Verification
-`includes/trustedTypes.js` is loaded from `raw.githubusercontent.com/.../main/`, so it has to be
+`shared/trustedTypes.js` is loaded from `raw.githubusercontent.com/.../main/`, so it has to be
 pushed **before** re-saving the userscript in the manager - otherwise that `@require` 404s.

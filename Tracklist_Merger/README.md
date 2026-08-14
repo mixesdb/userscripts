@@ -5,7 +5,7 @@ MixesDB page already has – and shows what would change.
 
 - **Runs on:** `mixesdb.com/w/MixesDB:Tests/Tracklist_Merger` and trackid.net audiostream pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Merger/script.user.js)
-- **Shared features:** [Tracklist box](../includes/README.md#tracklist-box)
+- **Shared features:** [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 

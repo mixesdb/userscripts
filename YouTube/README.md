@@ -5,14 +5,14 @@ file details a mix page needs.
 
 - **Runs on:** youtube.com and youtu.be – watch pages and playlist pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/YouTube/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [File details](../includes/README.md#file-details)
+- **Shared features:** [Toolkit](../shared/toolkit/), [File details](../shared/README.md#file-details)
 
 ## Features
 
 ### Toolkit
 
 Below the video title: is this video already on MixesDB – see
-[Toolkit](../includes/README.md#toolkit). The player URL is handed over as `https://youtu.be/<id>`,
+[Toolkit](../shared/toolkit/). The player URL is handed over as `https://youtu.be/<id>`,
 the form MixesDB embeds, and the same URL is offered as the copy-paste **Embed URL**.
 
 Only videos of **at least 20 minutes** get a toolkit. Everything shorter is not a mix, and the
@@ -25,7 +25,7 @@ The video's `maxresdefault` thumbnail below the title, linking to the full-size 
 ### Duration and file details
 
 The duration as a button in the action row. Clicking it opens the copy-paste ready
-[File details](../includes/README.md#file-details) table.
+[File details](../shared/README.md#file-details) table.
 
 ### Submit a playlist to TrackId.net
 

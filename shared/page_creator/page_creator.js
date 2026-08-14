@@ -1,4 +1,4 @@
-log( "/includes/page_creator/page_creator.js loaded" );
+log( "/shared/page_creator/page_creator.js loaded" );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

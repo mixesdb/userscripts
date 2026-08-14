@@ -1,4 +1,4 @@
-log( "/includes/page_creator/title_builder.js loaded" );
+log( "/shared/page_creator/title_builder.js loaded" );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

@@ -15,7 +15,7 @@ Measurements in this document were taken against the live API on 2026-08-10, Med
 ## 1. Who is asking and what for
 
 The MixesDB page creator is a shared component of the userscripts that MixesDB contributors run
-on SoundCloud, Mixcloud, YouTube, RA and others (`includes/page_creator/`). Next to the player
+on SoundCloud, Mixcloud, YouTube, RA and others (`shared/page_creator/`). Next to the player
 it shows a suggested mix page title and a "Create" link that opens the new page prefilled.
 
 The suggestion has to turn a player title plus a channel name into the three groups a MixesDB

@@ -5,7 +5,7 @@
  * Real player descriptions, as the site's API hands them over, next to the tracklist that has to
  * come out of them. Run them with:
  *
- *     deno run --allow-read includes/page_creator/tracklist_examples_test.js
+ *     deno run --allow-read shared/page_creator/tracklist_examples_test.js
  *
  * The text is the WHOLE description on purpose - prose, links, headings and all. What the
  * detector has to get right is not "does this line look like a track" but where the tracklist

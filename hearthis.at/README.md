@@ -4,14 +4,14 @@ Adds the MixesDB toolkit to hearthis.at track pages.
 
 - **Runs on:** hearthis.at – track pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/hearthis.at/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit)
+- **Shared features:** [Toolkit](../shared/toolkit/)
 
 ## Features
 
 ### Toolkit
 
 Below the track header: is this track already used on MixesDB – see
-[Toolkit](../includes/README.md#toolkit).
+[Toolkit](../shared/toolkit/).
 
 hearthis.at players are embedded on MixesDB under two different URLs: the readable
 `hearthis.at/user/track/` one and the numeric `hearthis.at/12345/` one the embed uses. Both are

@@ -5,7 +5,7 @@ against MixesDB.
 
 - **Runs on:** 1001tracklists.com – tracklist pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/1001_Tracklists/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [Tracklist box](../includes/README.md#tracklist-box)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 
@@ -22,7 +22,7 @@ with `[H:MM:SS]` is padded to one format.
 
 1001 pages carry several players for the same mix (SoundCloud, Mixcloud, YouTube, Apple
 Podcasts), visible ones and hidden tab ones. Each is checked against MixesDB and the result is
-collected into one [Toolkit](../includes/README.md#toolkit) box listing the used and unused player
+collected into one [Toolkit](../shared/toolkit/) box listing the used and unused player
 URLs.
 
 When the 1001 page was created after the MixesDB page was last edited, the toolkit says so – the

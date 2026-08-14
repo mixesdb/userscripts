@@ -4,7 +4,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-log( "includes/toolkit.js: started executing" );
+log( "shared/toolkit/funcs.js: started executing" );
 
 /*
  * Link targets in toolkit HTML

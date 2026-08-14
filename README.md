@@ -30,8 +30,8 @@ Each folder holds one userscript and a README describing its features.
 | [Tracklist Cue Switcher](Tracklist_Cue_Switcher/) | mixesdb.com, trackid.net | Clickable cues, minutes ⟷ clock times |
 | [Tracklist Merger](Tracklist_Merger/) | mixesdb.com, trackid.net | Merge two tracklists with a diff (beta) |
 
-Shared across the site scripts: [Toolkit and tracklist boxes](includes/) and the
-[page creator](includes/page_creator/).
+Shared across the site scripts, in [shared/](shared/): the [toolkit](shared/toolkit/), the
+[tracklist box](shared/tracklist_editor/) and the [page creator](shared/page_creator/).
 
 [private/](private/) holds personal import helpers for bulk work on a single show. They are not
 part of the set contributors install.

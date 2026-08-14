@@ -1,4 +1,4 @@
-log( "/includes/page_creator/tracklist_detector.js loaded" );
+log( "/shared/page_creator/tracklist_detector.js loaded" );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

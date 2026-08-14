@@ -5,7 +5,7 @@ mixes without a player page of their own.
 
 - **Runs on:** finn-johannsen.de, groove.de podcast posts, wearesoundspace.com, toxicfamily.de
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Player_Checker/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [Tracklist box](../includes/README.md#tracklist-box)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 
@@ -13,7 +13,7 @@ mixes without a player page of their own.
 
 Every visible player on the page – SoundCloud, Mixcloud, YouTube or hearthis.at – is looked up on
 MixesDB and the result appears above it: is this mix on MixesDB already, and what is the
-copy-paste ready player URL. See [Toolkit](../includes/README.md#toolkit).
+copy-paste ready player URL. See [Toolkit](../shared/toolkit/).
 
 On finn-johannsen.de, whose front page holds many posts at once, each post gets its own toolkit
 rather than one shared box.
