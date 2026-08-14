@@ -27,7 +27,7 @@ Each folder holds one userscript and a README describing its features.
 | [Internet Archive](InternetArchive/) | archive.org | Episode table with downloads and MixesDB usage (beta) |
 | [Player Checker](Player_Checker/) | blogs and podcast sites | Toolkit for embedded players, tracklists |
 | [MixesDB Userscripts Helper](MixesDB_Userscripts_Helper/) | mixesdb.com | Makes MixesDB accept what the other scripts hand over |
-| [Tracklist Cue Switcher](Tracklist_Cue_Switcher/) | mixesdb.com | Clickable cues, minutes ⟷ clock times |
+| [Tracklist Cue Switcher](Tracklist_Cue_Switcher/) | mixesdb.com, trackid.net | Clickable cues, minutes ⟷ clock times |
 | [Tracklist Merger](Tracklist_Merger/) | mixesdb.com, trackid.net | Merge two tracklists with a diff (beta) |
 
 Shared across the site scripts: [Toolkit and tracklist boxes](includes/) and the
