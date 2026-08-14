@@ -17,6 +17,7 @@
 // @include      http*groove.de/*/*/*/*podcast*
 // @include      http*wearesoundspace.com/*
 // @include      http*toxicfamily.de/*/*/*/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
