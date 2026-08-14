@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.3
+// @version      2026.08.14.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -28,7 +28,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 26,
+var cacheVersion = 27,
     scriptName = "Mixcloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -257,8 +257,16 @@ waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.
 
     jNode.addClass("mdb-processed-artwork");
 
-    var artwork_thumb_url = jNode.attr("src"),
-        artwork_max_url = artwork_thumb_url.replace(/\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/"); /* https://community.metabrainz.org/t/is-there-a-native-optimal-size-for-cover-art-from-mixcloud/640075 */
+    // playerHero wraps most of the page now, incl. the comment and up-next avatars (40x40),
+    // so the selector alone no longer isolates the show artwork (290x290). The size is read
+    // off the thumbnailer URL, not the rendered box, so an image that has not been laid out
+    // yet cannot slip through as 0x0.
+    var artwork_thumb_url = jNode.attr("src") || "",
+        sizeMatch = artwork_thumb_url.match(/\/unsafe\/([0-9]+)x[0-9]+\//);
+
+    if( !sizeMatch || parseInt(sizeMatch[1], 10) < 100 ) return;
+
+    var artwork_max_url = artwork_thumb_url.replace(/\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/"); /* https://community.metabrainz.org/t/is-there-a-native-optimal-size-for-cover-art-from-mixcloud/640075 */
 
     logVar( "artwork_max_url", artwork_max_url );
 
@@ -272,19 +280,30 @@ waitForKeyElements('div[data-testid="playerHero"] img[data-in-view="true"]:not(.
 waitForKeyElements('button[aria-label="Add To"]:not(.mdb-processed-actions)', function( jNode ) {
     if( urlPath(2) == "" ) return true;
 
+    // Mixcloud renders the action row twice (responsive variants) - the hidden clone must
+    // not create a second set of buttons
+    if( !jNode.is(":visible") ) return true;
+
     jNode.addClass("mdb-processed-actions");
 
     // location.href, not global.js' url: that one is the address bar as it was when the
     // script started, i.e. the wrong mix after a navigation
     var apiUrl = location.href.replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" );
 
-    // create wrappers to ensure prefered order of async created elements
-    jNode.after( '<span class="mdb-element mdb-apiLink-wrapper"></span><span class="mdb-element mdb-durToggle-wrapper"></span><span class="mdb-element mdb-tidSubmit-wrapper"></span>' );
+    // Wrappers pin the order of the async created buttons. They are kept as jQuery objects
+    // and filled directly: a page-wide class selector here appended the API button to every
+    // wrapper again on each run of this handler, which is where the duplicated buttons came
+    // from. The inner links carry no mdb-element - the wrapper is the cleanup unit, and
+    // nested marked elements would each pick up the shared element spacing.
+    var apiLinkWrapper = $('<span class="mdb-element mdb-apiLink-wrapper"></span>'),
+        durToggleWrapper = $('<span class="mdb-element mdb-durToggle-wrapper"></span>');
+
+    jNode.after( durToggleWrapper ).after( apiLinkWrapper );
 
     // add api toggle link
-    var apiButton = '<a class="mdb-element mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
+    var apiButton = '<a class="mdb-actionLink mdb-apiLink mdb-mc-text hand" data-apiurl="'+apiUrl+'" target="_blank">API</a>';
     logVar( "apiUrl", apiUrl );
-    $(".mdb-apiLink-wrapper").after( apiButton );
+    apiLinkWrapper.append( apiButton );
 
     /*
      * Using API data
@@ -292,24 +311,24 @@ waitForKeyElements('button[aria-label="Add To"]:not(.mdb-processed-actions)', fu
     $.get(apiUrl, function( data ) {
         // add dur toggle
         var dur_sec = data["audio_length"],
-            durToggleWrapper = getFileDetails_forToggle( dur_sec ),
+            fileDetailsToggle = getFileDetails_forToggle( dur_sec ),
             dur = convertHMS( dur_sec ),
-            durToggleLink = '<a class="mdb-element mdb-durToggleLink mdb-actionLink mdb-mc-text hand">'+dur+'</a>';
+            durToggleLink = $('<a class="mdb-durToggleLink mdb-actionLink mdb-mc-text hand">'+dur+'</a>');
 
         // add dur button
-        $(".mdb-durToggle-wrapper:not(.mdb-processed-durToggle)").append( durToggleLink ).addClass("mdb-processed-durToggle");
+        durToggleWrapper.append( durToggleLink );
 
         // append toggle wrapper
         jNode.addClass("mdb-processed-dur");
-        jNode.closest("div").after( '<div class="mdb-element mdb-durToggle-wrapper-parent">'+durToggleWrapper+'</div>' );
+        jNode.closest("div").after( '<div class="mdb-element mdb-durToggle-wrapper-parent">'+fileDetailsToggle+'</div>' );
 
-        // toggle dur
-        waitForKeyElements('.mdb-durToggleLink', function( jNode ) {
-            jNode.click(function(){
-                log("click");
-                $("#mdb-fileDetails").toggle();
-                $("#mdb-fileDetails textarea").select().focus();
-            });
+        // toggle dur - the link is at hand, so it is bound directly; the old
+        // waitForKeyElements('.mdb-durToggleLink') here registered one more poller per API
+        // response for the lifetime of the tab
+        durToggleLink.click(function(){
+            log("click");
+            $("#mdb-fileDetails").toggle();
+            $("#mdb-fileDetails textarea").select().focus();
         });
 
     }, "json" );
@@ -343,3 +362,12 @@ waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed
 });
 
 })();
+
+/* ## Changelog
+ * 2026.08.14.4  Player pages: action links are created once, off the visible "Add To" button
+ *               only, and each wrapper is filled directly - the page-wide class selectors
+ *               added one more API/dur button per handler run. Artwork input only for the
+ *               real artwork; playerHero now wraps the comment/up-next avatars too. Dead
+ *               mdb-tidSubmit-wrapper removed. Shared: .mdb-element lost its blanket
+ *               margin/padding (spacing is opt-in per element type now).
+ */

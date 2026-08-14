@@ -50,4 +50,4 @@ tracklist may be worth carrying over.
 ## Known limitations
 
 - The MixesDB lookup is one request per player, so pages with many players take a moment before
-  the box appears.
+  the box appears, e.g. on finn-johannsen.de.
