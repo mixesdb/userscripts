@@ -4,7 +4,7 @@ Script name alias in prompts: `SC`
 
 ## Mix page title suggestion / "Create" link
 
-Lives in `/includes/page_creator/` now, shared with the other site scripts - see its own
+Lives in `/shared/page_creator/` now, shared with the other site scripts - see its own
 CLAUDE.md, including the workflow for a reported wrong title. This script only reads the values
 off the SoundCloud API and hands them over in one `mdbPageCreator_add({...})` call (in the
 `api_funcs`/track-header block of `script.user.js`), plus `mdbPageCreator_watchToolkit()`

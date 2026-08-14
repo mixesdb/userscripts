@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         BBC (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.2
+// @version      2026.08.14.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/BBC/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/BBC/script.user.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-BBC_4
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-BBC_5
 // @include      http*bbc.co.uk*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=bbc.co.uk
 // @noframes
@@ -26,11 +26,11 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 4,
+var cacheVersion = 5,
     scriptName = "BBC";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
-loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

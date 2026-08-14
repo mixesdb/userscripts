@@ -5,14 +5,14 @@ URLs a mix page needs.
 
 - **Runs on:** ra.co and its country subdomains – podcast episodes, events, clubs, artists
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/RA/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [Tracklist box](../includes/README.md#tracklist-box)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 
 ### Toolkit on podcast episodes
 
 Above the player on `ra.co/podcast/…`: is this episode already on MixesDB – see
-[Toolkit](../includes/README.md#toolkit). The episode's SoundCloud player is what gets looked up.
+[Toolkit](../shared/toolkit/). The episode's SoundCloud player is what gets looked up.
 
 ### Podcast tracklist
 

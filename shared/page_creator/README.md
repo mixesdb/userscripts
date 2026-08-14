@@ -6,7 +6,7 @@ behaves the same everywhere.
 
 - **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/)
 - **Install:** nothing to install – it comes with the site scripts
-- **Shared features:** [Tracklist box](../README.md#tracklist-box)
+- **Shared features:** [Tracklist box](../tracklist_editor/)
 
 ## Features
 
@@ -18,7 +18,7 @@ point, not a decision – and a confidence score next to it says how sure the su
 
 The row only appears for mixes that are **not on MixesDB yet**, and only for recordings of at
 least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
-[Toolkit](../README.md#toolkit)'s answer, so the row shows up once the toolkit box next to it
+[Toolkit](../toolkit/)'s answer, so the row shows up once the toolkit box next to it
 has one.
 
 ### "Report" box

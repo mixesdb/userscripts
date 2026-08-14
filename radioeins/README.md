@@ -4,7 +4,7 @@ Turns the played-tracks table of a radioeins page into MixesDB wiki syntax.
 
 - **Runs on:** radioeins.de – pages with a track table
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/radioeins/script.user.js)
-- **Shared features:** [Tracklist box](../includes/README.md#tracklist-box)
+- **Shared features:** [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 

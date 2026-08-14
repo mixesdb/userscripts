@@ -5,7 +5,7 @@ stream and profile lists usable by filtering out what is not a mix.
 
 - **Runs on:** soundcloud.com – track pages, sets/playlists, streams and profiles
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [Page creator](../includes/page_creator/), [Tracklist box](../includes/README.md#tracklist-box), [File details](../includes/README.md#file-details)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [File details](../shared/README.md#file-details)
 
 ## Features
 
@@ -17,7 +17,7 @@ highlighted.
 
 ### MixesDB page creator
 
-The suggested page title and the **Create** link – see [Page creator](../includes/page_creator/).
+The suggested page title and the **Create** link – see [Page creator](../shared/page_creator/).
 SoundCloud is its reference implementation: title, uploader, dates, duration, player URL,
 artwork URL and description all come off the SoundCloud API.
 
@@ -25,11 +25,11 @@ artwork URL and description all come off the SoundCloud API.
 
 The tracklist an uploader wrote into the description lands in an editable box below the toolkit,
 formatted in wiki syntax. When the description holds none, the track's comments are asked once
-for a complete numbered tracklist. Details in [Page creator](../includes/page_creator/).
+for a complete numbered tracklist. Details in [Page creator](../shared/page_creator/).
 
 ### Toolkit
 
-Is this track already on MixesDB – see [Toolkit](../includes/README.md#toolkit). It carries the
+Is this track already on MixesDB – see [Toolkit](../shared/toolkit/). It carries the
 player URL in the form MixesDB embeds, not `location.href`, so tracking parameters and the
 redesign's frame URL never end up in a mix page.
 
@@ -37,7 +37,7 @@ redesign's frame URL never end up in a mix page.
 
 Next to the player:
 
-- **duration** – click for the copy-paste ready [File details](../includes/README.md#file-details) table
+- **duration** – click for the copy-paste ready [File details](../shared/README.md#file-details) table
 - **API** – toggles the raw SoundCloud API answer for the track, with the artwork URLs on top and
   every URL clickable
 - **DL** – shown when the track is downloadable; forwards the click to SoundCloud's own download

@@ -5,7 +5,7 @@
  * Every title that was ever reported as wrong, kept as the input it came from and the title
  * it should produce. Run them with:
  *
- *     deno run --allow-read includes/page_creator/title_examples_test.js
+ *     deno run --allow-read shared/page_creator/title_examples_test.js
  *
  * WHAT THE SUGGESTION CURRENTLY MAKES OF EACH ONE IS NOT IN HERE ON PURPOSE. The runner
  * prints it next to the expected title on every run, so it is always the behaviour of today

@@ -7,33 +7,38 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 
 ## Abbreviations
 - `MDB`: MixesDB
-- `TLE`/ `TLE API`: MixesDB's Tracklist Editor API called in `includes/global.js` –> `function apiTracklist()`
+- `TLE`/ `TLE API`: MixesDB's Tracklist Editor API called in `shared/global.js` –> `function apiTracklist()`
 
 ## Structure
 - `<script-name-with-underscores>/` - one .user.js file per userscript, named `script.user.js`
 - No shared build system; each script must work standalone when copy-pasted into a userscript manager
 - Each script can has own script.css files in the same folder
-- Each script can use include files for shared code, e.g. /includes/global.js. 
+- Each script can `@require` shared code from `/shared/`, e.g. `/shared/global.js`.
 - Shared code that is a whole feature rather than a helper gets its own subfolder under
-  `/includes/`, with its own CSS and its own CLAUDE.md - see `/includes/page_creator/`
-- If an includes script changes, update the version number in its @require URL of each userscript (and the @version of each userscript)
+  `/shared/` holding a `funcs.js`, its own CSS and its own README - see `/shared/toolkit/`,
+  `/shared/tracklist_editor/` and `/shared/page_creator/`, which also has its own CLAUDE.md
+- Loose files directly in `/shared/` are the helpers that are not a feature of their own
+  (`global.js`, `global.css`, `trustedTypes.js`, `youtube_funcs.js`) plus the vendored copies
+  (`jquery-3.7.1.min.js`, `waitForKeyElements.js`)
+- If a shared script changes, update the version number in its @require URL of each userscript (and the @version of each userscript)
 
 ## Feature Docs
 - Every userscript folder has a `README.md` describing its user-facing features, and so do the
-  shared ones (`/includes/`, `/includes/page_creator/`). GitHub renders a folder's README right
+  shared ones (`/shared/`, `/shared/toolkit/`, `/shared/tracklist_editor/`,
+  `/shared/page_creator/`). GitHub renders a folder's README right
   under its file listing, which is why they are not called FEATURES.md.
 - They are the source for https://www.mixesdb.com/w/Help:MixesDB_userscripts, which links to them
   instead of duplicating the text. Write for a MixesDB contributor, not for a developer: what the
   feature does and where it shows up on the page, not which selector it hangs off.
 - **Any change that adds, removes or alters user-visible behaviour must update the README.md of
-  every affected script** - a change under `/includes/` usually means several of them, plus the
+  every affected script** - a change under `/shared/` usually means several of them, plus the
   shared README that owns the feature. Purely internal changes (refactors, logging, selector
   fixes that only restore existing behaviour) need no README.md edit.
 - Keep the structure identical across all of them: the intro sentence, the
   `Runs on` / `Install` / `Shared features` list, `## Features` with one `###` per feature, and
   `## Known limitations`. The wiki deep-links to headings, so renaming one silently breaks those
   links - rename only when the feature itself changed.
-- A feature that lives in `/includes/` is described once there and linked from the site scripts,
+- A feature that lives in `/shared/` is described once there and linked from the site scripts,
   not copied into each of them.
 - Root `README.md` holds the table of all scripts; a new script needs a row there.
 - `/private/` follows the same rules - every folder with a `script.user.js` has a README, and
@@ -68,12 +73,12 @@ Every script must start with a complete `==UserScript==` metadata block:
   A grep for U+2014 across `*.md` must stay empty.
 - Prefer plain JS, but do not change existing jQuery code
 - Wrap script body in an IIFE: `(function() { ... })();` right after `// ==/UserScript==`, closed at end of file. No `'use strict'` – too risky to audit every implicit global across this much legacy jQuery code; a silent bug would become a hard `ReferenceError`.
-- If the script declares `scriptName`, add `window.scriptName = scriptName;` right after – `includes/toolkit.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
+- If the script declares `scriptName`, add `window.scriptName = scriptName;` right after – `shared/toolkit/funcs.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
 - Use the log()/logVar()/logFunc() helpers from global.js and a `DEBUG` flag if logging is needed during development
 
 ## Single-page apps (all the sites we run on)
 A click on these sites swaps the page content and rewrites the address bar without ever
-loading a document. `onUrlChange( runPage )` in `includes/global.js` is the shared answer -
+loading a document. `onUrlChange( runPage )` in `shared/global.js` is the shared answer -
 it waits for the new DOM, clears the previous page out, then re-runs what was registered.
 It replaced `redirectOnUrlChange()`, which forced a full reload on every URL change.
 
@@ -99,8 +104,8 @@ fine and every page after it is stale or empty:
 
 ## Testing / Verification
 - No automated test suite, with one exception: the MixesDB page creator's title suggestion has
-  `includes/page_creator/title_examples.js` (reported titles + what they should produce) and a
-  deno runner. See `includes/page_creator/CLAUDE.md`. Use deno, not node - node is not
+  `shared/page_creator/title_examples.js` (reported titles + what they should produce) and a
+  deno runner. See `shared/page_creator/CLAUDE.md`. Use deno, not node - node is not
   installed here.
 - Manual verification steps:
   1. Load script in Tampermonkey (dev mode / local file URL)

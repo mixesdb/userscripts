@@ -1,20 +1,20 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.13.13
+// @version      2026.08.14.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-SoundCloud_47
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-SoundCloud_58
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_definitions.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/title_builder.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/tracklist_detector.js?v_6
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/page_creator/page_creator.js?v_13
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_48
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_59
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_7
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -169,7 +169,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 100,
+var cacheVersion = 101,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -257,11 +257,11 @@ const hideIfXed = (soundItem) => {
 
 // Note: loadRawCss() (in global.js) does not log success/error itself - if styling ever looks
 // broken, check the Network tab for these URLs, since a failed fetch here fails silently.
-// page_creator.css belongs to the shared MixesDB page creator (includes/page_creator/) and is
+// page_creator.css belongs to the shared MixesDB page creator (shared/page_creator/) and is
 // loaded by every site script that calls mdbPageCreator_add() - see its header comment.
 logFunc( "Loading CSS" );
-var globalCssUrl = githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion,
-    pageCreatorCssUrl = githubPath_raw + "includes/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion,
+var globalCssUrl = githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion,
+    pageCreatorCssUrl = githubPath_raw + "shared/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion,
     scriptCssUrl = githubPath_raw + scriptName + "/script.css?v-" + cacheVersion;
 logVar( "globalCssUrl", globalCssUrl );
 logVar( "pageCreatorCssUrl", pageCreatorCssUrl );
@@ -1110,7 +1110,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     }
                                 }
 
-                                // MixesDB page creator (includes/page_creator/), below the
+                                // MixesDB page creator (shared/page_creator/), below the
                                 // headline. Everything site-specific is read off the API
                                 // response here and handed over - the creator itself never
                                 // looks at a SoundCloud page.
@@ -1725,7 +1725,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * 2026.08.10.11
  * The tracklist an uploader wrote into the description is no longer retyped by hand: it is
  * found, formatted and carried into the created mix page. New
- * includes/page_creator/tracklist_detector.js reads a tracklist out of any description text
+ * shared/page_creator/tracklist_detector.js reads a tracklist out of any description text
  * (pure text in, text out - no DOM, no network, so it is testable and every site script can use
  * it), MixesDB's Tracklist Editor API turns it into wiki syntax with type "standard", and it
  * lands in the shared #tlEditor box above SoundCloud's description. What is in that box at the
@@ -1739,7 +1739,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * (getScTrackComments(), one page of 200) and searched for a WHOLE numbered tracklist starting
  * at 1: single track IDs, which is what nearly every comment naming an "Artist - Title" is,
  * must never be taken. 14 examples in tracklist_examples.js guard all of it, run with
- * "deno run --allow-read includes/page_creator/tracklist_examples_test.js".
+ * "deno run --allow-read shared/page_creator/tracklist_examples_test.js".
  * global.js: fixTLbox() takes a third argument to skip the select() - a box that appears on its
  * own next to a player must not take the caret and scroll the page to itself - and no longer
  * stacks a second feedback box when it is re-run; apiTracklist() returns an empty result
@@ -1748,7 +1748,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  *
  * 2026.08.10.10
  * The mix page title row is now the shared "MixesDB page creator" in
- * includes/page_creator/ - renamed after the "Create" link, since the title has long stopped
+ * shared/page_creator/ - renamed after the "Create" link, since the title has long stopped
  * being all it hands to the wiki (file details, {{Player}}, categories, artwork URL). Nothing
  * about it was SoundCloud-specific except where the values come from, so it moved out whole:
  * title_definitions.js (the word lists, its sc* globals renamed to mdbTitle*),

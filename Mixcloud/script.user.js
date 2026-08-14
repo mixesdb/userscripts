@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.4
+// @version      2026.08.14.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Mixcloud_32
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-Mixcloud_198
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-Mixcloud_33
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-Mixcloud_199
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -28,11 +28,11 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 25,
+var cacheVersion = 26,
     scriptName = "Mixcloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
-loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 

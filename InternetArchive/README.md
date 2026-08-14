@@ -5,7 +5,7 @@ links and a MixesDB usage check per file.
 
 - **Runs on:** archive.org/details/* – items with a playset list
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/InternetArchive/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit)
+- **Shared features:** [Toolkit](../shared/toolkit/)
 
 ## Features
 

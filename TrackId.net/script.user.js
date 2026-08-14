@@ -1,17 +1,17 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.6
+// @version      2026.08.14.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-TrackId.net_112
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/toolkit.js?v-TrackId.net_88
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_113
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
 // @include      http*mixesdb.com/w/*
@@ -29,11 +29,11 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 106,
+var cacheVersion = 107,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
-loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 

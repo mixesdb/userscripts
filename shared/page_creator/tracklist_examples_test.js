@@ -2,7 +2,7 @@
  *
  * Runs tracklist_examples.js against the tracklist detector
  *
- *     deno run --allow-read includes/page_creator/tracklist_examples_test.js
+ *     deno run --allow-read shared/page_creator/tracklist_examples_test.js
  *
  * Same shape and same reasoning as title_examples_test.js next door: deno because node is not
  * installed here and it needs no install step, and the detector is read as text and evaluated,

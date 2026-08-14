@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Hernan Cattaneo Resident (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.07.14.1
+// @version      2026.08.14.1
 // @description  Add MixesDB creation links to Hernan Cattaneo Resident podcast episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/Hernan_Cattaneo_Resident/script.user.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Hernan_Cattaneo_Resident_22
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-Hernan_Cattaneo_Resident_23
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Episodes_Importer/funcs.js?v-2026.07.14.1
 // @include      https://podcast.hernancattaneo.com*
 // @include      https://www.mixesdb.com/w/index.php*
@@ -25,10 +25,10 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 22,
+var cacheVersion = 23,
     scriptName = "Hernan_Cattaneo_Resident";
 
-loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 
 
 /* global fixTLbox */

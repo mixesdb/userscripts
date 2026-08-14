@@ -127,7 +127,7 @@ Settled, so it does not get re-litigated:
 Run the examples before and after touching `tracklist_detector.js`:
 
 ```
-deno run --allow-read includes/page_creator/tracklist_examples_test.js
+deno run --allow-read shared/page_creator/tracklist_examples_test.js
 ```
 
 They hold WHOLE descriptions, prose and links included - where the tracklist starts and stops is
@@ -191,7 +191,7 @@ title it should produce. Run them before and after touching anything the suggest
 (`title_definitions.js`, `title_builder.js`):
 
 ```
-deno run --allow-read includes/page_creator/title_examples_test.js
+deno run --allow-read shared/page_creator/title_examples_test.js
 ```
 
 **I never edit `title_examples.js` by hand - Claude adds every reported title to it.** Part of

@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Discogs (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.11.2
+// @version      2026.08.14.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
 // @updateURL    https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/Discogs/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Discogs/script.user.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/jquery-3.7.1.min.js
-// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/includes/waitForKeyElements.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/global.js?v-Tracklist_Cue_Switcher_2_
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
+// @require      https://cdn.rawgit.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-Discogs_2
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_1
 // @match        https://www.discogs.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=discogs.com
@@ -27,12 +27,12 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 5;
+var cacheVersion = 6;
 var scriptName = "Discogs";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 var ta = '<div id="tlEditor"><textarea id="mixesdb-fileDetails" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea><textarea id="mixesdb-TLbox" class="mono" style="display:none; width:100%; margin:10px 0 0 0;"></textarea></div>';
 
-loadRawCss( githubPath_raw + "includes/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 //loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 

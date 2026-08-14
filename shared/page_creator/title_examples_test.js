@@ -2,7 +2,7 @@
  *
  * Runs title_examples.js against buildMixesdbTitle()
  *
- *     deno run --allow-read includes/page_creator/title_examples_test.js
+ *     deno run --allow-read shared/page_creator/title_examples_test.js
  *
  * Prints, per example, what the suggestion makes of it TODAY next to what it should be, so
  * the current behaviour is never written down anywhere and never goes stale.

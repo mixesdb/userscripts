@@ -5,14 +5,14 @@ filters shows already used on MixesDB out of a user's page.
 
 - **Runs on:** mixcloud.com
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Mixcloud/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit), [File details](../includes/README.md#file-details)
+- **Shared features:** [Toolkit](../shared/toolkit/), [File details](../shared/README.md#file-details)
 
 ## Features
 
 ### Toolkit
 
 Below the player on a show page: is this show already on MixesDB – see
-[Toolkit](../includes/README.md#toolkit).
+[Toolkit](../shared/toolkit/).
 
 ### Original artwork
 
@@ -22,7 +22,7 @@ it linking to the image.
 ### Duration and file details
 
 The show's duration from the Mixcloud API as a button next to the action buttons. Clicking it
-opens the copy-paste ready [File details](../includes/README.md#file-details) table.
+opens the copy-paste ready [File details](../shared/README.md#file-details) table.
 
 ### API toggle
 

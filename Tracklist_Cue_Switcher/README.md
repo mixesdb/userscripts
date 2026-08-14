@@ -8,7 +8,7 @@ cue, in the TrackId.net Tracklist box by an option in the tracklist feedback.
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.user.js)
   – nothing extra is needed for trackid.net, the [TrackId.net](../TrackId.net/) script brings the
   cue conversion with it
-- **Shared features:** [Tracklist box](../includes/README.md#tracklist-box) – on trackid.net only
+- **Shared features:** [Tracklist box](../shared/tracklist_editor/) – on trackid.net only
 
 ## Features
 

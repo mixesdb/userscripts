@@ -107,14 +107,14 @@ function logArr( name, arr ) {
  *
  * Only the report survives here. The policy that keeps jQuery loadable under
  * "require-trusted-types-for 'script'" has to exist before jQuery is parsed, so it lives in
- * includes/trustedTypes.js and is @require'd ahead of it - by the time global.js runs, the
+ * shared/trustedTypes.js and is @require'd ahead of it - by the time global.js runs, the
  * outcome is already decided. See that file for the whole story.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 logVar( "Trusted Types", typeof getTrustedTypesStatus === "function"
         ? getTrustedTypesStatus()
-        : "unguarded - this script does not @require includes/trustedTypes.js before jQuery (only matters on sites sending require-trusted-types-for)" );
+        : "unguarded - this script does not @require shared/trustedTypes.js before jQuery (only matters on sites sending require-trusted-types-for)" );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1275,7 +1275,7 @@ function fixTLbox( feedback, target, focus=true ) {
         tl.nextAll("#tlEditor-feedback").remove();
         tl.after( feedback.text );
     }
-    loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/includes/tracklistEditor_copy.css" );
+    loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/tracklistEditor_copy.css" );
 }
 
 // apiTracklist

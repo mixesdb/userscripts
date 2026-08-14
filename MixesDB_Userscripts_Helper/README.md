@@ -6,7 +6,7 @@ Apple Podcasts.
 
 - **Runs on:** mixesdb.com
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js)
-- **Shared features:** [Toolkit](../includes/README.md#toolkit)
+- **Shared features:** [Toolkit](../shared/toolkit/)
 
 ## Features
 
