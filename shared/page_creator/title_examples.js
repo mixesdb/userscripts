@@ -284,6 +284,38 @@ var mdbTitleExamples = [
         date: "2026-07-30",
         expect: "2026-07-30 - Mar Monzon - Whose These Cast 02"
     },
+    {
+        url: "https://soundcloud.com/dirk-wiertz/e-l-e-c-t-r-o-mix-august-2026",
+        title: "E-L-E-C-T-R-O MIx August 2026",
+        channel: "Dirk Wiertz",
+        date: "2026-08-14",
+        expect: "2026-08-14 - Dirk Wiertz - E-L-E-C-T-R-O MIx"
+    },
+    {
+        url: "https://soundcloud.com/lilly_palmer/lilly-palmer-pres-spannung-radio-show-069",
+        title: "Lilly Palmer pres. Spannung Radio Show #069",
+        channel: "Lilly Palmer",
+        date: "2026-08-14",
+        expect: "2026-08-14 - Lilly Palmer - Spannung Radio 069"
+    },
+    {
+        url: "https://soundcloud.com/multisex/multisexual-mix-39-vaahzer",
+        title: "Multisexual Mix #39 Vaahzer",
+        channel: "MULTISEX",
+        date: "2026-08-14",
+        expect: "2026-08-14 - Vaahzer - Multisexual Mix 39"
+    },
+    {
+        url: "https://soundcloud.com/techno-ist-familiensache/familycast-048-zitrophren",
+        title: "Familycast #048 - Zitrophren",
+        channel: "Techno ist Familiensache",
+        date: "2026-08-06",
+        // The report expected the date 2026-08-13 - the page's display date. The SoundCloud
+        // API hands the script created_at 2026-08-06 (uploaded private, made public a week
+        // later) and no release_date, so 08-06 is the date the builder gets and the date it
+        // writes. Which date the site script hands over is its question, not this parser's.
+        expect: "2026-08-06 - Zitrophren - Familycast 048"
+    },
 
     // Reported before the URLs were kept
     {
