@@ -328,7 +328,7 @@ body.soundcloud-com #mdb-pageCreator #mdb-pageCreator-report {
  * TrackId.net
  */
 body.trackid-net #mdb-pageCreator-title {
-    max-width: calc(100% - 187px);
+    max-width: calc(100% - 289px);
 }
 body.trackid-net #mdb-pageCreator-confidence * {
     font-size: 12px !important;
