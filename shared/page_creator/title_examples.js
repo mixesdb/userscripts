@@ -316,6 +316,14 @@ var mdbTitleExamples = [
         // writes. Which date the site script hands over is its question, not this parser's.
         expect: "2026-08-06 - Zitrophren - Familycast 048"
     },
+    {
+        url: "https://soundcloud.com/nickjsmith/lone-saxon_august-26_mix",
+        title: "LONE SAXON_AUGUST 26_MIX",
+        channel: "Lone Saxon / Nick J. Smith",
+        date: "2026-08-07",
+        expectArtists: [ "Lone Saxon" ],
+        expect: "2026-08-07 - Lone Saxon - August 26 Mix"
+    },
 
     // Reported before the URLs were kept
     {
@@ -422,6 +430,22 @@ var mdbTitleExamples = [
         channel: "HATE",
         date: "2026-04-03",
         expect: "2026-04-03 - Fadi Mohem - HATE Podcast 496"
+    },
+    {
+        // the same monthly edition with the year written short - the reported
+        // "E-L-E-C-T-R-O MIx August 2026" is the four-digit half of the pair
+        title: "E-L-E-C-T-R-O MIx August 26",
+        channel: "Dirk Wiertz",
+        date: "2026-08-14",
+        expect: "2026-08-14 - Dirk Wiertz - E-L-E-C-T-R-O MIx"
+    },
+    {
+        // the other side of it: two digits that cannot be the edition's year land nowhere near
+        // the upload year, so they are a DAY and stay part of the name
+        title: "Some Mix August 12",
+        channel: "Some Channel",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some Channel - Some Mix August 12"
     },
     {
         title: "Some Podcast 12 - Some DJ VS. Other DJ",
