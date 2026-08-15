@@ -209,6 +209,23 @@ Two things settled in advance, so they do not get re-litigated:
   describes the page's own tracklist, which is what the section above decides. That file says
   why.
 
+### Roadmap
+
+The one place the order of this work is written down. Every design decision lives in the plan
+file named on the line, not here.
+
+| # | Work | Plan file | Waits on |
+| --- | --- | --- | --- |
+| 0a | `insource:` mirror-URL check as second layer of the toolkit's player search | `row_enrichment.md` §4 | nothing - toolkit-side, decided independent of the hold |
+| 0b | Sanity check on Create click, two-step "Yes, still create" button | `row_enrichment.md` §3 | nothing (plain `action=query`), but sits in the row, so most natural bundled with 2 |
+| 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **the endpoint** (or its casing-variant fallback, §3 there) |
+| 2 | Row enrichment: category links, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | 1 |
+| 3 | Page text learned from siblings: `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | 1 (same sibling call) |
+| later | Tracklist transfer into the new page (then `Tracklist: complete/incomplete`) | not planned yet | out of scope until the above ships |
+
+0a/0b can start whenever wanted; nothing else before the endpoint answers (or is refused, which
+switches 1 to the fallback and changes nothing downstream).
+
 ## Title suggestion reports
 
 Reports come out of the **"Report" box** under the score (`mdbPageCreator_reportText()` in

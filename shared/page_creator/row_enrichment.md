@@ -70,7 +70,22 @@ For the entity category the recent titles are already in hand - the page-text le
 (`page_text_learning.md`) fetches the 8 most recent siblings - so this adds nothing there. Only
 the artist category and the old-mix window cost a call.
 
-### 3. The sanity check on the built title
+### 3. The sanity check on the built title - fired on Create, not on load
+
+The check runs when the user clicks **Create**, not when the row is built. The click is
+intercepted the first time:
+
+1. Click "Create" → the combined check request (below) fires, button shows a waiting state.
+2. Nothing found → carry on to the edit form directly. No second click for the clean case,
+   which is most of them.
+3. Anything found → the hits render in the row (linked, as everywhere else), and the button
+   relabels to **"Yes, still create"**. That second click is never intercepted again - the
+   user has seen the evidence and judged it.
+
+Deferring it to the click is not only politeness (no cost for the many rows nobody creates
+from): it also means the check runs against the title as the user **edited** it, not as it was
+first suggested - the input is editable, and load-time results would go stale with the first
+keystroke.
 
 Two layers, both verified, both in **one combined request** - `action=query` merges a `titles=`
 existence check and a `list=search` into a single call:
@@ -107,17 +122,18 @@ carry the insource clause, so existence + mirror check are one call.
 
 ## Request budget per track page
 
-| # | Call | Cost |
-| --- | --- | --- |
-| 1 | category lookup (`mdbnames`, or the casing-variant batch) | exists in plan |
-| 2 | entity siblings with wikitext (page-text learning + recent titles) | exists in plan |
-| 3 | exact title + `intitle` net + `insource` mirror check, combined | new, 1 call |
-| 4 | artist category sortkey listing | new, 1 call |
-| 5 | date-window call, only when the mix date is old | new, 0-1 call |
+| # | Call | When | Cost |
+| --- | --- | --- | --- |
+| 1 | category lookup (`mdbnames`, or the casing-variant batch) | page load | exists in plan |
+| 2 | entity siblings with wikitext (page-text learning + recent titles) | page load | exists in plan |
+| 3 | artist category sortkey listing | page load | new, 1 call |
+| 4 | date-window call, only when the mix date is old | page load | new, 0-1 call |
+| 5 | exact title + `intitle` net + `insource` mirror check, combined | **Create click** | new, 1 call |
 
-4-5 calls, inside the 2-5 budget set for the feature, all cached for the life of the page.
-Call 3 only fires once a title is actually built; re-running it on every keystroke of the
-editable title would be rude - on blur / before Create is enough.
+3-4 calls at load, inside the 2-5 budget set for the feature, all cached for the life of the
+page - plus one more on the Create click, which only the pages someone actually creates from
+ever pay. Calls 1-4 are display and title material and belong at load; call 5 is the verdict on
+the finished title and belongs at the click (see addition 3 for the two-step button).
 
 ## Presentation
 
@@ -126,7 +142,8 @@ gatekeeping:
 
 - Category links sit with the suggestion, always.
 - Sibling titles are a small expandable list per category - titles only, linked.
-- The checks escalate the row's tone, they never disable the Create link:
+- The checks escalate the row's tone, they never disable creation - they only turn it into the
+  two-step "Yes, still create" (addition 3):
   - exact hit → the strongest warning the row has: "A page with this title exists", linked.
   - `insource` hit → "This player URL appears on <title>" - the mirror trap caught, worth the
     same weight as an exact hit because it is one.
