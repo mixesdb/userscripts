@@ -24,7 +24,8 @@
  * global.css has ".mono { font-size: 12px !important }", which no ID selector can override.
  */
 #mdb-pageCreator-title {
-    /* content-box so the size attribute really is the character count of the suggestion */
+    /* content-box so the ch width the script sets really is the character count of the title
+       (the padding stays outside of it) */
     box-sizing: content-box;
     max-width: calc(100% - 180px) !important; /* incl. space for copy button */
     padding: 2px 6px;
