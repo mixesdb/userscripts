@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.15.3
+// @version      2026.08.15.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -921,7 +921,10 @@ function funcTidPageCreator( playerUrl ) {
                     placement:    "append",
                     // TID's own tracklist box: what is in it when "Create" is clicked goes
                     // onto the new page, and its API verdict files the "Tracklist:" category
-                    tracklistBox: "#tlEditor #mixesdb-TLbox"
+                    tracklistBox: "#tlEditor #mixesdb-TLbox",
+                    // TID's "Style suggestions" box: its [[Category:...]] lines fill the two
+                    // style slots of the new page - also read at click time, no waiting needed
+                    stylesBox:    "#mixesdb-TIDstyles"
                 });
             },
             error: function( jqXHR, textStatus, errorThrown ) {
@@ -1875,6 +1878,14 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.15.4
+ * The "Create" link now also fills the created page's STYLE categories from TID's own "Style
+ * suggestions" box (new stylesBox option of mdbPageCreator_add(), next to tracklistBox): its
+ * "[[Category:...]]" lines replace the two empty [[Category:]] rows the page text otherwise
+ * keeps for the editor. Read at the moment "Create" is clicked, like the tracklist - so
+ * corrections typed into the box ride along, and no waiting for the box is needed. No
+ * suggestions (or an emptied box) keep the two empty rows as before.
  *
  * 2026.08.15.1
  * The MixesDB page creator (shared/page_creator/) now runs on audiostream pages with a

@@ -41,6 +41,8 @@ Opens the edit form of the new page, prefilled with:
 - the **File details** table (duration and what else the site gave away)
 - the `{{Player}}` with the player URL as MixesDB embeds it
 - the categories the title gives away (year, artists, the entity the page is filed under)
+- the style categories, where the site suggests any (TrackId.net's style suggestions box) –
+  otherwise they stay two empty category rows to fill in
 - the tracklist from the box below, when there is one
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text

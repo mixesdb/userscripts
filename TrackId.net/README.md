@@ -27,7 +27,9 @@ removed; a **Toggle** button above the box shows the unfiltered version.
 ### Style suggestions
 
 The stream's TrackId.net styles, mapped to MixesDB category names, in a copyable box below the
-tracklist – with the reminder to double-check them by skipping through the mix.
+tracklist – with the reminder to double-check them by skipping through the mix. On pages with
+the [page creator](#mixesdb-page-creator) row they also prefill the created page's style
+categories.
 
 ### Cue format switch
 
@@ -54,6 +56,10 @@ takes whatever is in the [tracklist box](#tracklist-in-wiki-syntax) at the momen
 corrections included – and files the `Tracklist:` category by what the Tracklist Editor says
 about it. On a stream that is still processing the box does not exist yet; wait for it before
 creating the page.
+
+The [style suggestions](#style-suggestions) fill the new page's style categories the same way:
+whatever is in that box when **Create** is clicked, so correct it there first. Without
+suggestions the page keeps the two empty category rows to fill in by hand.
 
 Other players (Mixcloud, YouTube, hearthis.at) do not get the row yet.
 

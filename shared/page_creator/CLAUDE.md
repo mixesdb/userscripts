@@ -25,6 +25,7 @@ reads the values off its own page/API and hands them over.
 | `tracklist_examples_test.js` | The deno runner for it |
 | `mixesdb_api_request.md` | The category-lookup endpoint we asked the MixesDB maintainer for - see below |
 | `page_text_learning.md` | Plan: reading the recent sibling pages' wikitext to shape the new page's text. Not built |
+| `row_enrichment.md` | Plan: category links, sibling titles and duplicate checks in the row. Not built, except the `insource:` mirror-URL check, which needs no endpoint |
 
 ## Adding a site script
 
@@ -50,7 +51,10 @@ A site that builds a tracklist box of its OWN (TrackId.net renders the identifie
 one) skips `mdbPageCreator_addTracklist()` entirely and names that box in the `tracklistBox`
 option of `mdbPageCreator_add()` instead - the "Create" link then reads the page's tracklist
 out of it at click time, and the Tracklist Editor's verdict about that text files the
-`Tracklist:` category, exactly as with the creator's own box.
+`Tracklist:` category, exactly as with the creator's own box. The same pattern serves the
+styles: a site that suggests style categories (TrackId.net's "Style suggestions" box) names
+that box in `stylesBox`, and its `[[Category:...]]` lines fill the style slots the page text
+otherwise leaves as two empty rows - also read at click time, so no waiting on the box.
 
 `target` should be a **selector string**, not a node: these sites re-render under the script's
 feet, and the string is looked up again on every render.

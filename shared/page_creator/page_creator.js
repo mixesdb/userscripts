@@ -68,6 +68,15 @@ log( "/shared/page_creator/page_creator.js loaded" );
  * the creator's own: whatever is in it at click time goes onto the page, and the Tracklist
  * Editor API's verdict about that text decides the "Tracklist:" category.
  *
+ * A site that suggests STYLE categories of its own (TrackId.net's "Style suggestions" box)
+ * names that box the same way:
+ *
+ *     stylesBox: "#mixesdb-TIDstyles"               // optional - "[[Category:...]]" lines
+ *
+ * Its "[[Category:...]]" lines fill the style slots of the created page's category block,
+ * which otherwise stay the two empty rows the editor fills by hand. Read at click time too,
+ * so corrections typed into the box ride along.
+ *
  * target is best given as a SELECTOR STRING: these sites re-render under the script's feet,
  * and a string is looked up again on every render, where a captured jQuery object would be a
  * detached node by then. A jQuery object or a DOM element is accepted too.
@@ -120,6 +129,10 @@ var mdbPageCreator_title = "",
     // in through mdbPageCreator_add({ tracklistBox }). When set, the "Create" link reads the
     // page's tracklist out of that box instead of the creator's own.
     mdbPageCreator_tracklistBoxSite = "",
+    // a style-suggestions box the SITE built (TrackId.net's "Style suggestions"): a selector
+    // string handed in through mdbPageCreator_add({ stylesBox }). Its "[[Category:...]]" lines
+    // fill the style slots of the created page, which otherwise stay the two empty rows.
+    mdbPageCreator_stylesBoxSite = "",
     mdbPageCreator_tracklistPlacement = "after",
     mdbPageCreator_tracklistSource = "",
     mdbPageCreator_tracklistFormatted = "",
@@ -162,6 +175,7 @@ function mdbPageCreator_add( options ) {
     if( o.target ) mdbPageCreator_target = o.target;
     if( o.placement ) mdbPageCreator_placement = o.placement;
     if( o.tracklistBox ) mdbPageCreator_tracklistBoxSite = o.tracklistBox;
+    if( o.stylesBox ) mdbPageCreator_stylesBoxSite = o.stylesBox;
 
     logVar( "mdbPageCreator_add: title", playerTitle );
     logVar( "mdbPageCreator_add: channel", channel );
@@ -293,6 +307,32 @@ function mdbPageCreator_fileDetails() {
     return getFileDetails_wikitext( mdbPageCreator_durationMs ? Math.floor( mdbPageCreator_durationMs / 1000 ) : 0 );
 }
 
+// mdbPageCreator_styleCategories
+// The styles of the created page, read out of a style-suggestions box the site script built
+// (the stylesBox option) - one "[[Category:House]]" per line, as TrackId.net writes them. Read
+// at click time like the tracklist box, so whatever the editor left in the box is what the page
+// gets; a bare name typed in by hand counts too. No box, or nothing in it, means no styles -
+// the category block then keeps its two empty rows.
+function mdbPageCreator_styleCategories() {
+    if( !mdbPageCreator_stylesBoxSite ) return [];
+
+    var text = $.trim( $( mdbPageCreator_stylesBoxSite ).first().val() || "" ),
+        out = [],
+        lines, i, name;
+
+    if( !text ) return out;
+
+    lines = text.split( "\n" );
+
+    for( i = 0; i < lines.length; i++ ) {
+        name = $.trim( lines[i] ).replace( /^\[\[Category:(.+?)\]\]$/, "$1" );
+
+        if( name && out.indexOf( name ) === -1 ) out.push( name );
+    }
+
+    return out;
+}
+
 // mdbPageCreator_pageCategories
 // Read out of the title in the input, not out of what the parser had in mind: the input is
 // editable, and a corrected title has to take its categories with it. Reading it is
@@ -303,8 +343,10 @@ function mdbPageCreator_fileDetails() {
 // "Date - Artist - Entity" gives the year, one category per artist (every joiner between two
 // names means another one - "See Bastian b2b Afin" is two categories), and the entity. The two
 // empty slots are the styles - nothing on a player page says what a mix sounds like, and a
-// guess there is worse than a blank the editor cannot miss. The "Tracklist:" filing is whatever
-// the Tracklist Editor API last said about the box - "none" when there is no tracklist at all.
+// guess there is worse than a blank the editor cannot miss. The exception is a site that
+// SUGGESTS styles (the stylesBox option, TrackId.net): those are read off the mix itself, so
+// they fill the slots instead. The "Tracklist:" filing is whatever the Tracklist Editor API
+// last said about the box - "none" when there is no tracklist at all.
 function mdbPageCreator_pageCategories( title ) {
     var read = mdbTitle_titleCategories( title ),
         cats = [],
@@ -320,7 +362,17 @@ function mdbPageCreator_pageCategories( title ) {
 
     if( entityCategory ) cats.push( entityCategory );
 
-    cats.push( "", "" ); // styles - the editor's call
+    var styles = mdbPageCreator_styleCategories();
+
+    if( styles.length ) {
+        // the site's own style suggestions (stylesBox option), read at click time
+        for( i = 0; i < styles.length; i++ ) {
+            cats.push( styles[i] );
+        }
+    } else {
+        cats.push( "", "" ); // styles - the editor's call
+    }
+
     cats.push( "Tracklist: " + mdbPageCreator_tracklistFiling() );
 
     var out = "";
@@ -945,10 +997,10 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_tracklistValidated = null;
     mdbPageCreator_tracklistChecked = false;
 
-    // Kept on purpose: mdbPageCreator_target / _tracklistTarget / _tracklistBoxSite are
-    // selector strings naming where on THIS SITE the row and the boxes live, which does not
-    // change from one mix to the next, and the site script's next mdbPageCreator_add() may
-    // well omit them.
+    // Kept on purpose: mdbPageCreator_target / _tracklistTarget / _tracklistBoxSite /
+    // _stylesBoxSite are selector strings naming where on THIS SITE the row and the boxes
+    // live, which does not change from one mix to the next, and the site script's next
+    // mdbPageCreator_add() may well omit them.
 }
 
 // mdbPageCreator_addTracklist
