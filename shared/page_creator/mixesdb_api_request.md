@@ -280,11 +280,15 @@ The endpoint stays a pure name → type lookup that happens to hand us a few sam
 
 ## 8. Load
 
-Roughly 10 userscript users, one call per opened track page, cached for the life of the page.
-We currently make **1** request per track. With `recent` included we stay at 1; without it we
-go to 2–3 (one lookup, plus one `categorymembers` call per matched non-artist entity, of which
-there is normally one). Happy to add a `User-Agent`/`maxage` or anything else that makes this
-easier to see and rate-limit on your side.
+Roughly 10 userscript users. We currently make **1** request per opened track page, cached for
+the life of the page. The full feature set we are planning around this lookup (sibling-title
+listings and duplicate warnings in the creator row, all plain `action=query` — nothing further
+is asked of you for those) lands at **3–4 requests per opened track page**, plus **1** more at
+the moment a user actually clicks Create, which only the handful of pages that get created ever
+pay. With `recent` included in `mdbnames`, one of the 3–4 falls away.
+
+Happy to add a `User-Agent`/`maxage` or anything else that makes this easier to see and
+rate-limit on your side.
 
 ## 9. Implementation notes, offered from the outside
 
