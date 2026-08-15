@@ -5,7 +5,7 @@ which TID tracklists have already been integrated into MixesDB.
 
 - **Runs on:** trackid.net, plus mixesdb.com/w/* for the edit-form part
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js)
-- **Shared features:** [Toolkit](../shared/toolkit/), [Tracklist box](../shared/tracklist_editor/)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/)
 
 ## Features
 
@@ -40,6 +40,22 @@ The audiostream's source player is embedded on the page (SoundCloud, Mixcloud, Y
 hearthis.at) and the [Toolkit](../shared/toolkit/) below it says whether that player is
 already used on MixesDB – including a hint when the TID page is newer than the last edit of the
 MixesDB page.
+
+### MixesDB page creator
+
+On audiostream pages whose source player is on SoundCloud, the suggested page title and the
+**Create** link sit between the embedded player and the toolkit – see
+[Page creator](../shared/page_creator/). The title, channel name, date, duration and artwork URL
+are read from the SoundCloud API, not from the TID page, so the suggestion is the same one the
+SoundCloud script would make on the track's own page.
+
+Unlike on SoundCloud there is no tracklist detection from the description: the **Create** link
+takes whatever is in the [tracklist box](#tracklist-in-wiki-syntax) at the moment it is clicked –
+corrections included – and files the `Tracklist:` category by what the Tracklist Editor says
+about it. On a stream that is still processing the box does not exist yet; wait for it before
+creating the page.
+
+Other players (Mixcloud, YouTube, hearthis.at) do not get the row yet.
 
 ### Mark as integrated
 

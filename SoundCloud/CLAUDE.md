@@ -12,7 +12,11 @@ wherever `getToolkit()` is called.
 
 SoundCloud-only bits that must stay on this side, not move into the page creator:
 
-- `scArtworkOriginalUrl()` - asking the CDN for the "-original" size is a SoundCloud trick
+- `scArtworkOriginalUrl()` - asking the CDN for the "-original" size is a SoundCloud trick.
+  It lives in `api_funcs.js` (like `formatScDate()`), not `script.funcs.js`: `api_funcs.js` is
+  the file other scripts reading the SC API `@require` (RA, 1001 Tracklists, Player Checker,
+  and TrackId.net for its own page creator row), so only API-level helpers belong in it -
+  never anything touching the SoundCloud page's DOM
 - `getScPlayerUrl()` - the URL MixesDB embeds is not `location.href` here
 - the `target` selector, and the fact that it must be a **string**: SoundCloud re-renders the
   track header repeatedly, and a captured node would be detached by the next render

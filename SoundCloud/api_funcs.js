@@ -31,6 +31,33 @@ function getScAccessTokenFromApi(handleData) {
     });
 }
 
+// formatScDate
+// The API's "2026/08/07 17:28:15 +0000" as the "2026-08-07" MixesDB titles and reports use.
+// Lives here, not in script.funcs.js: every script reading the SC API needs it (TrackId.net
+// feeds the page creator from SC track data too), and this is the file they all @require.
+function formatScDate( date ) {
+    // string check, not just typeof !== "undefined": the API answers null for a missing
+    // release_date, and null.replace() would take the whole success handler down with it
+    if( typeof date === "string" ) {
+        date = date.replace(/(\d\d\d\d)\/(\d\d)\/(\d\d).+$/g,"$1-$2-$3");
+    } else {
+        date = "";
+    }
+    return date;
+}
+
+// scArtworkOriginalUrl
+// SoundCloud writes the size into the artwork's file name ("-t500x500", "-large", ...) and
+// serves the same picture in a dozen of them. MixesDB wants the biggest one there is, so
+// whichever size the API named is swapped for "-original". Whether that one really exists is
+// a separate question - loadArtworkInfo() in script.funcs.js, and MixesDB's own upload form
+// over there, both fall back to a size that loads.
+// Here rather than in script.funcs.js for the same reason as formatScDate above.
+function scArtworkOriginalUrl( artwork_url ) {
+    return String( artwork_url || "" )
+        .replace( /-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-original" );
+}
+
 // getScTrackComments
 // The comments under a track, reduced to their plain bodies - which is all the tracklist
 // detector wants. Only ever called when the description held no tracklist (the page creator

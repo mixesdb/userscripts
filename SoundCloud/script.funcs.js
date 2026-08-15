@@ -45,16 +45,8 @@ function append_artwork( artwork_url ) {
     }
 }
 
-// scArtworkOriginalUrl
-// SoundCloud writes the size into the artwork's file name ("-t500x500", "-large", ...) and
-// serves the same picture in a dozen of them. MixesDB wants the biggest one there is, so
-// whichever size the API named is swapped for "-original". Whether that one really exists is
-// a separate question - loadArtworkInfo() here, and MixesDB's own upload form over there,
-// both fall back to a size that loads.
-function scArtworkOriginalUrl( artwork_url ) {
-    return String( artwork_url || "" )
-        .replace( /-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-original" );
-}
+// scArtworkOriginalUrl moved to api_funcs.js: TrackId.net reads the SC API too and needs the
+// "-original" trick without pulling in this file's page handlers.
 
 // append_artwork_trackExtras()
 // New Material "Track header" layout (since ~Aug 2026 redesign): the artwork <img> is a
@@ -113,15 +105,7 @@ function removeFavedPlayer_ifOptedIn( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// formatScDate
-function formatScDate( date ) {
-    if( typeof(date) !== "undefined" ) {
-        date = date.replace(/(\d\d\d\d)\/(\d\d)\/(\d\d).+$/g,"$1-$2-$3");
-    } else {
-        date = "";
-    }
-    return date;
-}
+// formatScDate moved to api_funcs.js - same reason as scArtworkOriginalUrl above.
 
 
 // fixScRedirectUrl
