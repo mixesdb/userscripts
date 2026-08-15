@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.4
+// @version      2026.08.15.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-YouTube_27
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-YouTube_28
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-YouTube_18
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
@@ -136,7 +136,7 @@ if( !/(^|\.)youtube\.com$/.test( window.location.hostname ) && window.location.h
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 29,
+var cacheVersion = 30,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -350,12 +350,18 @@ waitForKeyElements( "ytd-watch-metadata", addDurationEnhancements );
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Playlist pages
+ * Playlists
+ *
+ * Two pages show one and the same playlist, and both get the submit link:
+ *   /playlist?list=…          the playlist's own page, link below the header's action row
+ *   /watch?v=…&list=…         a video playing out of it, link in the sidebar panel
+ * getPlaylistPageInfo() (global.js) reduces both to the same canonical playlist URL, so
+ * whichever one it is submitted from, TrackId.net gets the same playlist.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
- * Submit the whole playlist to TrackId.net
+ * Playlist page
  * Below the header's action row (the "Play all" button and friends).
  * YouTube ships the playlist header markup twice over - a permanently hidden copy alongside
  * the live one - and still ships the pre-2024 sidebar layout (hidden) next to the current
@@ -364,34 +370,69 @@ waitForKeyElements( "ytd-watch-metadata", addDurationEnhancements );
  */
 var playlistAnchorSelector = ".ytPageHeaderViewModelFlexibleActions, ytd-playlist-sidebar-primary-info-renderer #stats";
 
-// Dependency-free copy of the URL test. getPlaylistPageInfo() (global.js) stays the single
+/*
+ * Watch page playing a playlist
+ * There is no page header here - the playlist is the panel at the top of the right sidebar,
+ * so the link goes below that panel's action row (loop/shuffle/⋮), right above the video list.
+ * https://www.youtube.com/watch?v=WSIP7fWTjIU&list=PLtVJWhGPjwI0CDoCLajqrUMdcbi5kffPt
+ */
+var watchPlaylistAnchorSelector = "ytd-playlist-panel-renderer #playlist-actions";
+
+// Dependency-free copies of the URL tests. getPlaylistPageInfo() (global.js) stays the single
 // source of truth for building the link, but the diagnostics below must keep working when
 // global.js is exactly what failed - which is one of the things they exist to reveal.
-// A function, not a value: YouTube goes from a playlist to a video and back without ever
+// Functions, not values: YouTube goes from a playlist to a video and back without ever
 // loading a document, so anything answered once at script start answers for the wrong page
 // from the first click onwards.
 function isPlaylistPage() {
     return location.pathname.replace( /\/+$/, "" ) === "/playlist" && /[?&]list=/.test( location.search );
 }
 
-ytLog( "playlist page (by URL): " + isPlaylistPage() );
+function isWatchPlaylistPage() {
+    return location.pathname.replace( /\/+$/, "" ) === "/watch" && /[?&]list=/.test( location.search );
+}
+
+// Says which of the two the current URL is - note that a list= alone is not enough: an
+// auto-generated Mix and the private Watch Later/Liked lists carry one too and get no link
+// (see isSubmittableYoutubeListId in global.js), which is why the answer is logged as well.
+function logPlaylistUrlKind() {
+    ytLog( "playlist page (by URL): " + isPlaylistPage() +
+           ", watch page with a playlist: " + isWatchPlaylistPage() +
+           ", submittable playlist: " + ( typeof getPlaylistPageInfo === "function" ? JSON.stringify( getPlaylistPageInfo() ) : "unknown, global.js is missing" ) );
+}
+
+logPlaylistUrlKind();
 
 if( typeof waitForKeyElements !== "function" ) {
     ytLog( "waitForKeyElements is not available - the playlist submit link cannot be registered at all." );
 } else {
     waitForKeyElements( playlistAnchorSelector, function( jNode ) {
-        if( !getPlaylistPageInfo() ) return; // watch/channel pages have page headers too
+        // Not getPlaylistPageInfo(): that one now answers for watch pages too, and those are
+        // served by the handler below. Channel pages have page headers as well.
+        if( !isPlaylistPage() ) return true;
 
         if( !jNode.is(":visible") ) return true; // hidden duplicate, or not hydrated yet
 
         ytLog( "Anchor matched and visible - adding the submit link now." );
         addTidPlaylistSubmitLink( jNode, "after" );
     });
+
+    waitForKeyElements( watchPlaylistAnchorSelector, function( jNode ) {
+        // Nothing to submit here - no list=, or one we do not submit. Returns true rather
+        // than falling through: YouTube keeps this panel across videos, so the node has to
+        // stay on the watch list for the next one, which may well be a playlist we do want.
+        if( !getPlaylistPageInfo() ) return true;
+
+        if( !jNode.is(":visible") ) return true; // panel closed, or not hydrated yet
+
+        ytLog( "Playlist panel action row matched and visible - adding the submit link now." );
+        addTidPlaylistSubmitLink( jNode, "after" );
+    });
 }
 
 /*
- * Playlist page diagnostics
- * The header is generated markup whose class names carry no meaning, and YouTube serves
+ * Playlist diagnostics
+ * Both anchors are generated markup whose class names carry no meaning, and YouTube serves
  * several layouts in parallel per account/rollout bucket. waitForKeyElements by design only
  * logs once a selector actually matches, so a "the link is not there" report produces total
  * silence and cannot be diagnosed from a log alone (same problem as the SoundCloud track
@@ -400,11 +441,23 @@ if( typeof waitForKeyElements !== "function" ) {
  * Plain DOM, no jQuery: see the note on ytLog above.
  */
 function logPlaylistPageSnapshot( label ) {
-    if( !isPlaylistPage() ) return;
+    var onPlaylistPage = isPlaylistPage(),
+        onWatchPlaylistPage = isWatchPlaylistPage();
 
-    ytLog( "### Playlist page DOM snapshot: " + label + " (readyState: " + document.readyState + ")" );
+    if( !onPlaylistPage && !onWatchPlaylistPage ) return;
 
-    playlistAnchorSelector.split( ", " ).forEach(function( selector ) {
+    // Which anchors to report, and reference points that must exist on a page of that kind
+    // whatsoever. All of the latter at 0 means the page had not rendered yet (or is a layout
+    // none of our selectors know), which is a different problem than our anchor missing.
+    var anchors = onPlaylistPage ? playlistAnchorSelector : watchPlaylistAnchorSelector,
+        references = onPlaylistPage
+                     ? [ "yt-page-header-view-model", "ytd-browse", "#contents" ]
+                     : [ "ytd-watch-flexy", "ytd-playlist-panel-renderer", "#secondary" ];
+
+    ytLog( "### DOM snapshot of the " + ( onPlaylistPage ? "playlist page" : "watch page's playlist panel" ) +
+           ": " + label + " (readyState: " + document.readyState + ")" );
+
+    anchors.split( ", " ).forEach(function( selector ) {
         var matches = document.querySelectorAll( selector ),
             visible = 0;
 
@@ -416,10 +469,7 @@ function logPlaylistPageSnapshot( label ) {
         ytLog( "  [" + matches.length + " found, " + visible + " visible] " + selector );
     });
 
-    // Reference points that must exist on any playlist page whatsoever. All three at 0 means
-    // the page had not rendered yet (or is a layout none of our selectors know), which is a
-    // different problem than our specific anchor missing.
-    [ "yt-page-header-view-model", "ytd-browse", "#contents" ].forEach(function( selector ) {
+    references.forEach(function( selector ) {
         ytLog( "  [" + document.querySelectorAll( selector ).length + " found] " + selector + " (reference point)" );
     });
 
@@ -458,7 +508,7 @@ if( typeof onUrlChange === "function" ) {
         youtubeDetailsAddedFor = null;
         youtubeDurationAddedFor = null;
 
-        ytLog( "playlist page (by URL): " + isPlaylistPage() );
+        logPlaylistUrlKind();
         logPlaylistPageSnapshot( "after SPA navigation" );
     });
 }

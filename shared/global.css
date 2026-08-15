@@ -148,6 +148,27 @@ body.youtube-com .mdb-tidSubmit-playlist-wrapper {
     margin: 20px 0;
 }
 
+/* YouTube watch pages: same link, but in the playlist panel in the right sidebar, directly
+   below its action row and above the video list - so the generous header margin above would
+   push the list down for nothing. The ID beats that rule without !important.
+   The color cannot be pinned to white like the playlist header above: this panel follows the
+   site theme, so it takes YouTube's own primary-text token, which lands on exactly the value
+   the panel title next to it uses (#f1f1f1 dark, #0f0f0f light). The token is a plain custom
+   property on <html>, so it inherits down into our link. Its NAME is versioned though - the
+   2025 color tokens renamed --yt-spec-text-primary to the one below - hence the chain, and
+   hence the literal spelled out per theme behind it: [dark] on <html> is what YouTube keys
+   its own definitions of that token on. */
+body.youtube-com #playlist-actions + .mdb-tidSubmit-playlist-wrapper {
+    margin: 0 0 12px;
+}
+body.youtube-com #playlist-actions + .mdb-tidSubmit-playlist-wrapper a.mdb-tidSubmit-playlist {
+    color: var(--yt-sys-color-baseline--text-primary, var(--yt-spec-text-primary, #0f0f0f));
+    font-size: 14px;
+}
+html[dark] body.youtube-com #playlist-actions + .mdb-tidSubmit-playlist-wrapper a.mdb-tidSubmit-playlist {
+    color: var(--yt-sys-color-baseline--text-primary, var(--yt-spec-text-primary, #f1f1f1));
+}
+
 /* Mixcloud & YouTube: bigger icon next to its larger UI text */
 body.mixcloud-com a.mdb-tidSubmit-playlist img.tidSubmit-icon,
 body.youtube-com a.mdb-tidSubmit-playlist img.tidSubmit-icon {

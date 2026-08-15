@@ -29,8 +29,13 @@ The duration as a button in the action row. Clicking it opens the copy-paste rea
 
 ### Submit a playlist to TrackId.net
 
-On playlist pages, a submit link below the header's action row hands the whole playlist over to
-TrackId.net.
+A submit link that hands the whole playlist over to TrackId.net – on the playlist's own page
+below the header's action row, and on a video playing out of a playlist in the sidebar panel,
+below its loop/shuffle row and above the video list. Both submit the playlist, not the single
+video, so it makes no difference which one you use.
+
+Auto-generated **Mixes** and your **Watch Later**/**Liked videos** lists get no link: the first
+exists only for your own session, the others are private, so TrackId.net could not read either.
 
 ## Known limitations
 

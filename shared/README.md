@@ -24,6 +24,10 @@ opens a copy-paste ready **File details** table for the mix page.
 `global.js` (`makeTidSubmitLink()`, `addTidPlaylistSubmitLink()`). Links that hand a player URL –
 or a whole playlist/set – over to TrackId.net's submit form, prefilled.
 
+Every page that shows a playlist gets the playlist link, not just the playlist's own page – a
+YouTube video playing out of one counts too. They all submit the same playlist, whichever page
+you use.
+
 ## Known limitations
 
 - `waitForKeyElements.js` and `jquery-3.7.1.min.js` are vendored copies and are not documented
