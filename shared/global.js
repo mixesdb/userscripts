@@ -386,11 +386,24 @@ function makeTidSubmitLink( thisUrl, keywords="", linkText_mode="text" ) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
+ * isSubmittableYoutubeListId
+ * Not every list= names a playlist TrackId.net could fetch:
+ *   RD…       YouTube's auto-generated Mix/radio. It is put together per viewer and per
+ *             session, and /playlist?list=RD… is not a page at all.
+ *   WL/LL/LM  Watch Later, Liked videos, Liked music - private to the signed-in account, so
+ *             the submission would only ever get an empty page.
+ */
+function isSubmittableYoutubeListId( listId ) {
+    return !/^RD/.test( listId ) && !/^(WL|LL|LM)$/.test( listId );
+}
+
+/*
  * getPlaylistPageInfo
  * Recognizes the playlist/set URL scheme of the supported sites, false for any other page:
  *   https://soundcloud.com/[channel]/sets/[set-name]
  *   https://www.mixcloud.com/[channel]/playlists/[playlist-name]/
  *   https://www.youtube.com/playlist?list=[playlist_id]
+ *   https://www.youtube.com/watch?v=[video_id]&list=[playlist_id]
  * Returns:
  *   url  - the page URL reduced to what identifies the playlist and rebuilt on the canonical
  *          host, so tracking/session parameters (?si=, ?utm_*, SoundCloud's ?in=, ...) and
@@ -420,9 +433,20 @@ function getPlaylistPageInfo( pageUrl ) {
         return { url: "https://www.mixcloud.com/" + path[0] + "/playlists/" + path[2] + "/", term: "playlist" };
     }
 
-    // YouTube playlists - "list" is not just a parameter here, it IS the page, so it stays
-    if( /(^|\.)youtube\.com$/i.test( host ) && path[0] == "playlist" && parsedUrl.searchParams.get("list") ) {
-        return { url: "https://www.youtube.com/playlist?list=" + parsedUrl.searchParams.get("list"), term: "playlist" };
+    /*
+     * YouTube playlists - "list" is not just a parameter here, it IS the page, so it stays.
+     * A watch page carrying a list= plays that same playlist in the panel in its right
+     * sidebar, so it identifies the playlist just as well and is reduced to the very same
+     * canonical /playlist?list= URL: what goes to TrackId.net is the whole playlist, not the
+     * one video that happens to be playing - and submitting it from either page is then the
+     * same submission rather than two.
+     */
+    if( /(^|\.)youtube\.com$/i.test( host ) && ( path[0] == "playlist" || path[0] == "watch" ) ) {
+        var listId = parsedUrl.searchParams.get("list");
+
+        if( listId && isSubmittableYoutubeListId( listId ) ) {
+            return { url: "https://www.youtube.com/playlist?list=" + listId, term: "playlist" };
+        }
     }
 
     return false;
