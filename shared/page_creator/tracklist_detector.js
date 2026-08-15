@@ -47,6 +47,15 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  * description a "6 Decks - 2 Mixers" line sits one blank line above a tracklist starting at "01.",
  * and 1 does not follow 6, so that blank still ends the run.
  *
+ * URLs are nothing and nowhere. A line that is only a link vanishes before the runs are read -
+ * it neither joins a run nor ends one, and it is no blank line either: uploaders put a link
+ * under every single track ("01.Lifeblood - ...", then "cicutanetlabel.com/release-019/"), and
+ * a rule that merely refused to TAKE those lines would still cut the run apart at every one of
+ * them. Most of these links are typed bare, without the http:// a scheme test would need, so a
+ * bare "domain.tld/path" has to be recognized as well. A URL standing INSIDE a line is stripped
+ * out of it, and what is left decides: "Buy it here - https://..." reads as "Artist - Title"
+ * with the URL in place and as nothing once it is gone.
+ *
  * A run is only taken when it is at least mdbTracklist_minTracks lines long and at least half of
  * them are real TRACK lines.
  *
@@ -155,6 +164,30 @@ var mdbTracklist_slashTitleRe = /(\S)\s[\/\\]{1,2}\s(\S)/;
 // The index in front is kept as it is; only what stands behind the track moves.
 var mdbTracklist_trailingCueRe = /^([#(]?\d{1,3}(?:[.):\]]+|\s*[-–—])?[ \t]+)?(.*\S)\s+(\d{1,3}:\d{2}(?::\d{2})?)\s*(?:[-–—]\s*(\S.*?))?\s*$/;
 
+// A line that is nothing but a link. Uploaders put one under every track, and most are written
+// without the http:// a scheme test would need - so a bare "domain.tld/path" and even a bare
+// "domain.tld" have to be read as one. Two things keep track names out of it: the TLD has to be
+// LOWERCASE and short, which is what saves "Mono.xID" (an artist) and "R.E.M", and the label in
+// front of it has to carry a letter, which is what saves "4.Slam" (a numbered one-word track) -
+// a digits-only host like "1001.tl" only passes with its scheme on.
+var mdbTracklist_urlLineRe = /^(?:https?:\/\/\S+|www\.\S+|[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*\.[a-z]{2,6}(?:[\/?#]\S*)?)$/;
+
+// The same thing INSIDE a line ("Facebook - www.facebook.com/MichonOfficial", "Find the
+// tracklist and Q&A at ra.co/podcast/1070"). Stricter than the whole-line rule in one point: a
+// bare domain needs its /path here, because "feat.dj" can stand inside a track title where a
+// lone "domain.tld" line cannot. Only a URL at the start of the line or behind a space is one -
+// a slash or dot glued into a word is part of that word.
+var mdbTracklist_urlInLineRe = /(?:^|\s)(?:https?:\/\/\S+|www\.\S+|[a-zA-Z0-9-]*[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*\.[a-z]{2,6}\/\S*)/g;
+
+// mdbTracklist_stripUrls
+// The line with its URLs taken out and the spacing healed. "" for a line that was only URL(s).
+function mdbTracklist_stripUrls( line ) {
+    return String( line || "" )
+        .replace( mdbTracklist_urlInLineRe, " " )
+        .replace( /[ \t]+/g, " " )
+        .trim();
+}
+
 // mdbTracklist_normalize
 // One text, one line ending, one kind of space. Non-breaking spaces are what a pasted tracklist
 // is full of, and they would make every " - " test fail for no visible reason.
@@ -208,6 +241,8 @@ function mdbTracklist_isTrackLine( line ) {
 // mdbTracklist_isCandidateLine
 // A line that may be part of a run. A URL never is - descriptions are full of "Buy it here -
 // https://..." lines, which read as "Artist - Title" and sit right next to the tracklist.
+// mdbTracklist_detectInText() strips URLs out before this is asked, so the test here is only
+// the backstop for a URL written in a way the stripper's boundaries do not reach.
 function mdbTracklist_isCandidateLine( line ) {
     if( !line ) return false;
     if( line.length > mdbTracklist_maxLineLength ) return false;
@@ -533,7 +568,14 @@ function mdbTracklist_detectInText( text, minTracks ) {
         i;
 
     for( i = 0; i < lines.length; i++ ) {
-        var line = lines[i].trim();
+        var raw = lines[i].trim(),
+            line = mdbTracklist_urlLineRe.test( raw ) ? "" : mdbTracklist_stripUrls( raw );
+
+        // A line that was nothing but URL(s) vanishes - see the header. It does not join the
+        // run, it does not end it, and it is NOT a blank line: the track above it and the track
+        // below it are neighbours. A blank the uploader wrote around it still counts, which is
+        // why this steps over blankSeen instead of resetting it.
+        if( raw && !line ) continue;
 
         // A blank line decides nothing by itself - what follows it does. See
         // mdbTracklist_numberingContinues(): a tracklist whose tracks are separate paragraphs has

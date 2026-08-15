@@ -56,6 +56,10 @@ player and, from there, on the created page. Comments are read only when the des
 tracklist, and only for a whole numbered tracklist – single track IDs in comments are never
 taken.
 
+Links never end up in the box. Some uploaders put a shop or label link under every single
+track – usually without `http://` – and the tracklist is still found in one piece: the link
+lines are skipped, and a link written inside a track line is removed from it.
+
 A tracklist whose lines split artist and title with a slash (`Ackermann / Pure`, and the same
 with `//`, `\` or `\\`) is read as well, and arrives in the box written with the dash MixesDB
 uses. Only the first slash of a line moves, and only when the whole block is written that way –
