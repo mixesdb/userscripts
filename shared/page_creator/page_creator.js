@@ -591,6 +591,10 @@ function mdbPageCreator_render() {
             id: "mdb-pageCreator-title",
             spellcheck: "false",
             autocomplete: "off",
+            // MediaWiki's page title limit. Strictly 255 BYTES, so a title heavy on umlauts
+            // could still overrun it serverside - but the edit form it would overrun says so
+            // itself, and counting UTF-8 bytes per keystroke is not worth that edge.
+            maxlength: "255",
             title: "Suggested MixesDB mix page title - editable, please check it before using it"
         }),
         // how much of the title was read off the source vs. inferred - the tooltip names
