@@ -491,6 +491,21 @@ function mdbPageCreator_watchToolkit() {
     }, 300);
 }
 
+// mdbPageCreator_growTitleInput
+// The input's width IS its size attribute (monospace font + content-box, page_creator.css), so
+// this keeps it as wide as what is in it - called on every keystroke and on every programmatic
+// .val(). Grow only: a width once reached is kept, because a field that narrows while someone
+// deletes in the middle of it pulls the text away under their cursor. The CSS max-width caps
+// the growth either way, so a long title never pushes the row's buttons off screen.
+function mdbPageCreator_growTitleInput( input ) {
+    var current = parseInt( input.attr( "size" ), 10 ) || 0,
+        wanted = Math.max( 20, input.val().length ); // floored: an empty-looking 1-char box is useless
+
+    if( wanted > current ) {
+        input.attr( "size", wanted );
+    }
+}
+
 // mdbPageCreator_refresh
 // Second thoughts from the MixesDB lookup, put into a row that is already on screen. Anything
 // typed into the input wins: a refined guess is still a guess, and the editor's own text is
@@ -501,8 +516,8 @@ function mdbPageCreator_refresh( wrapper ) {
     var input = wrapper.find( "#mdb-pageCreator-title" );
 
     if( input.length && !input.data( "mdb-edited" ) && input.val() !== mdbPageCreator_title ) {
+        // no size handling here: the "change" handler grows the input to the new title
         input.val( mdbPageCreator_title )
-             .attr( "size", Math.max( 20, mdbPageCreator_title.length ) )
              .trigger( "change" ); // keeps the "Create" href in step with the new title
     }
 
@@ -591,8 +606,8 @@ function mdbPageCreator_render() {
     input.val( mdbPageCreator_title );
 
     // monospace, so size is the character count of the suggestion - the whole title stays
-    // visible without a horizontal scroll. Floored, an empty-looking 1-char box is useless.
-    input.attr( "size", Math.max( 20, mdbPageCreator_title.length ) );
+    // visible without a horizontal scroll
+    mdbPageCreator_growTitleInput( input );
 
     // input first, so appendMdbCopyTextButton() has a parent to insert the button into - it
     // uses .after(), which is a no-op on a detached node.
@@ -640,7 +655,9 @@ function mdbPageCreator_render() {
 
     // The report quotes the title that is in the field, so a correction typed above lands in it
     // - unless the box has been written in by then, see mdbPageCreator_fillReport().
+    // The grow first: typing and refreshes alike land here, so the field widens with its text.
     input.on( "input change", function() {
+        mdbPageCreator_growTitleInput( input );
         mdbPageCreator_fillReport( wrapper );
     });
 

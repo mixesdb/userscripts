@@ -15,7 +15,8 @@ behaves the same everywhere.
 
 Built from the player title, the uploader/channel name and the upload date, in MixesDB's own
 title format (`YYYY-MM-DD - Artist - Show`). The field is editable – the suggestion is a starting
-point, not a decision – and a confidence score next to it says how sure the suggestion is.
+point, not a decision – and widens as you type so the whole title stays readable. A confidence
+score next to it says how sure the suggestion is.
 
 The row only appears for mixes that are **not on MixesDB yet**, and only for recordings of at
 least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
