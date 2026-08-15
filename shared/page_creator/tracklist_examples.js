@@ -210,6 +210,20 @@ var mdbTracklistExamples = [
             first: "01.Lifeblood - Gravitational Force Of Destiny [CICUTA NETLABEL 019]",
             last:  "30.Structural From - 333 (Pussyshaver Replant B) [KIDNAPPING 008]"
         }
+    },
+    {
+        // TWO tracklists, each under a headline - a resident's hour and a guest mix. Both used to
+        // be detected and the second silently dropped; MixesDB writes this as chapters
+        // (Help:Tracklists#Chapters), so both are taken, each under its ";Chapter" line. Names
+        // its whole `text` because the chapter lines ARE the point: the headlines stripped down
+        // to the name ("First Hour - Ollie Blackmore:" -> "Ollie Blackmore", "Guest Mix -
+        // Natasha Kitty Katt" -> "Natasha Kitty Katt"), and `lines` counts the tracks alone.
+        url: "https://soundcloud.com/soulheavenrecords/soul-heaven-presents-004-natasha-kitty-katt",
+        text: "Back again with our 4th episode of Soul Heaven Presents with special guest DJ Natasha Kitty Katt.\n\nWe are excited to showcase Natasha's mix having recently joined the Soul Heaven DJ roster!\n\nOllie Blackmore hosts the show, the first hour with deep soulful cuts.\n\n*** Tracklisting ***\n\nFirst Hour - Ollie Blackmore:\n\n01. Soul Slayerz Feat Karina Nistal - Call Me (Vocal Mix)\n02. Mark De Clive-Lowe - Worth The Wait (Mark De Clive-Lowe Remix)\n03. Jimpster - Silent Stars\n04. Sir LSG, Clara Hill - Circles (Sir LSG Main Mix)\n05. Alan De Laniere, Tribalizer - Believe Me (Tribalizer Mix)\n06. Inaky Garcia, Moon Rocket - Dum Dum (Moon Rocket Organ Rmx)\n07. Souldynamic, Miranda Nicole - For Love (Original Mix)\n08. Reelsou - Get Myself Together (Mr. V Remix)\n09. AFRICAN WOMAN (YASS REVIVAL MIX)\n10. Kiko Navarro ft HanLe - Right On (Extended Version)\n\nGuest Mix - Natasha Kitty Katt\n\n01. Twisted Katt - Natasha Kitty Katt & Twisted Soul Collective\n02. Acid Indie Club - Funky Jaws\n03. Beat The Street - Sharon Redd\n04. Roll The Dice - Misiu\n05. Keep Fighting - The Popular People's Front\n06. Birthday of Blackness - Cazz Ear & Natasha Kitty Katt\n07. Summertime (TZ Remix) - Judy Hipps\n08. Music People - Moodymann\n09. Cosmic Bitch - Natasha Kitty Katt\n10. Cat Lady - Fouk",
+        expect: {
+            lines: 20,
+            text: ";Ollie Blackmore\n01. Soul Slayerz Feat Karina Nistal - Call Me (Vocal Mix)\n02. Mark De Clive-Lowe - Worth The Wait (Mark De Clive-Lowe Remix)\n03. Jimpster - Silent Stars\n04. Sir LSG, Clara Hill - Circles (Sir LSG Main Mix)\n05. Alan De Laniere, Tribalizer - Believe Me (Tribalizer Mix)\n06. Inaky Garcia, Moon Rocket - Dum Dum (Moon Rocket Organ Rmx)\n07. Souldynamic, Miranda Nicole - For Love (Original Mix)\n08. Reelsou - Get Myself Together (Mr. V Remix)\n09. AFRICAN WOMAN (YASS REVIVAL MIX)\n10. Kiko Navarro ft HanLe - Right On (Extended Version)\n\n;Natasha Kitty Katt\n01. Twisted Katt - Natasha Kitty Katt & Twisted Soul Collective\n02. Acid Indie Club - Funky Jaws\n03. Beat The Street - Sharon Redd\n04. Roll The Dice - Misiu\n05. Keep Fighting - The Popular People's Front\n06. Birthday of Blackness - Cazz Ear & Natasha Kitty Katt\n07. Summertime (TZ Remix) - Judy Hipps\n08. Music People - Moodymann\n09. Cosmic Bitch - Natasha Kitty Katt\n10. Cat Lady - Fouk"
+        }
     }
 ];
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.15.2
+// @version      2026.08.15.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_59
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_8
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_9
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_4
 // @include      http*soundcloud.com*
@@ -170,7 +170,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 102,
+var cacheVersion = 103,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1633,6 +1633,22 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.15.4
+ * soulheavenrecords/soul-heaven-presents-004-natasha-kitty-katt holds TWO tracklists - the
+ * resident's hour under "First Hour - Ollie Blackmore:" and the guest's under "Guest Mix -
+ * Natasha Kitty Katt" - and the detector took the first and silently dropped the second.
+ * MixesDB writes such a mix as chapters (Help:Tracklists#Chapters), and the detector now does
+ * too: when more than one run passes and every one has a headline above it, all of them are
+ * taken, each block under a ";Chapter" line with a blank line between the blocks. The headline
+ * is stripped down to the name the chapter is filed under - "Guest Mix" / "Hour 1" / "First
+ * Hour" prefixes and a trailing ":" go, in whatever mixture of blanks, "-" and ":" they were
+ * typed - and a headline glued straight onto its tracks (no blank line, so "Hour 1 - DJ A:"
+ * even reads as a track line and joins the run) is peeled off the front when the rest still
+ * passes on its own. All or nothing: a run without a headline, a bare "Tracklist:" heading or
+ * runs that disagree on being numbered mean no chapters and the longest run wins as before.
+ * The Tracklist Editor API keeps the ";" lines and numbers each chapter's tracks on their own -
+ * verified against it. 22 detector examples now, all passing.
  *
  * 2026.08.13.13
  * The tracklist of whose-these-records/whose-these-cast-02-by-mar-1 came back orange with "These

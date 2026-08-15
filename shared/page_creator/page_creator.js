@@ -579,16 +579,25 @@ function mdbPageCreator_render() {
 
     if( isUsed ) {
         // No "Create" link for a used player: the mix HAS a page, and the link would open the
-        // edit form of a second one. The toolkit right below links to the existing page - that
-        // is what the suggestion is to be compared against. The marker keeps the debug row from
-        // ever passing as the normal "not on MixesDB yet" one.
-        // The row is only shown because the debug setting mdbPageCreator_showForUsedPlayers
-        // is on at the top of script.user.js.
-        wrapper.addClass( "mdb-pageCreator-used" )
-               .append( $("<span>")
-                   .attr( "id", "mdb-pageCreator-usedNote" )
-                   .attr( "title", "This player is already used on MixesDB - see the toolkit below.\nNo \"Create\" link, since that would open the edit mode of the existing page." )
-                   .text( "Exists" ) );
+        // edit form of a second one. "Exists" links to that page instead - the toolkit has
+        // found it by the time this runs, because the "used" verdict this branch hangs on is
+        // read off the toolkit's filled <li>, the very one holding the link. First link on
+        // purpose where a player is used on several pages: the toolkit below lists them all.
+        // The marker keeps the debug row from ever passing as the normal "not on MixesDB yet"
+        // one. Span fallback so the note survives a toolkit markup change.
+        var usedHref = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.used.filled a.mdb-mixesdbLink.mixPage").first().attr( "href" ),
+            usedNote = $( usedHref ? "<a>" : "<span>" )
+                .attr( "id", "mdb-pageCreator-usedNote" )
+                .attr( "title", "This player is already used on MixesDB - opens the mix page the toolkit found.\nThe row is only shown because the debug setting mdbPageCreator_showForUsedPlayers is on at the top of script.user.js. No \"Create\" link, since that would start a duplicate page." )
+                .text( "Exists" );
+
+        if( usedHref ) {
+            // _top like every same-tab link we add: inside SoundCloud's preloaded iframe a
+            // target-less link would swap the frame, not the page (see CLAUDE.md, Links We Add)
+            usedNote.attr( "href", usedHref ).attr( "target", "_top" );
+        }
+
+        wrapper.addClass( "mdb-pageCreator-used" ).append( usedNote );
     } else {
         // _blank, not the usual _top: the point of this link is to fill in the MixesDB form
         // while still reading duration/artwork URL/API data off this player page - the same

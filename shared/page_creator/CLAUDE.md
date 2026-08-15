@@ -87,6 +87,16 @@ Settled, so it does not get re-litigated:
 - **A tracklist is a RUN of neighbouring lines**, never lines gathered from all over the text.
   Single lines that read as "Artist - Title" are everywhere in a description ("6 Decks - 2
   Mixers"); four of them in a row are not. Numbered runs additionally have to count upwards.
+- **Several runs become CHAPTERS (`;Name` above each block, blank line between) - all or
+  nothing.** Every run needs its own headline: the nearest real line above it, or a glued
+  "Hour 1 - DJ A:" first line, peeled off only when the rest still passes as a tracklist. The
+  name is the headline stripped of "Guest Mix"/"Hour 1"/"First Hour" prefixes and a trailing
+  ":", in whatever mixture of blanks, "-" and ":"; a headline that was ONLY the prefix keeps
+  it. A missing headline, a prose line, a bare "Tracklist:" heading or runs that disagree on
+  being numbered mean NO chapters - the longest run wins as before, because a wrong chapter
+  split is worse than the main tracklist alone. The TLE API keeps the ";" lines and numbers
+  each chapter's tracks on their own (verified against it 2026-08-15), so chapters need nothing
+  from `page_creator.js`.
 - **A blank line ends a run unless the numbering steps over it.** An uploader who writes every
   track as its own paragraph leaves a blank line between every pair of them and still wrote one
   tracklist. Only the numbering may bridge that gap, and only upwards - which is what keeps the
