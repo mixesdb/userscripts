@@ -92,6 +92,14 @@ Settled, so it does not get re-litigated:
   tracklist. Only the numbering may bridge that gap, and only upwards - which is what keeps the
   "6 Decks - 2 Mixers" line one blank above a tracklist starting at "01." out of it, and what
   keeps the social links under an unnumbered tracklist out of that one.
+- **A URL is never part of a tracklist and never the END of one.** A line that is only a link
+  vanishes before the runs are read - it neither joins a run nor breaks it, and it is no blank
+  line. Uploaders put a link under every single track, and a rule that merely refused to take
+  those lines would still cut the run apart at each of them. Most such links are typed bare,
+  without `http://`, so `domain.tld/path` and a lone `domain.tld` count as URLs - guarded by a
+  lowercase short TLD and a letter in the label before it, which is what keeps `Mono.xID` and
+  `4.Slam` being tracks. A URL INSIDE a line is stripped and what remains is judged:
+  `Buy it here - https://...` reads as a track with the URL in place and as nothing without it.
 - **One numbering style per block, decided by the MAJORITY of its numbered lines.** An uploader
   who typed `12 - ` and `13 - ` into a list otherwise numbered `12 ` wrote one tracklist, but the
   API reads the block as a whole: it strips the numbering the block agrees on and leaves the odd
