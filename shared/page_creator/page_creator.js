@@ -502,7 +502,10 @@ function mdbPageCreator_growTitleInput( input ) {
         wanted = Math.max( 20, input.val().length ); // floored: an empty-looking 1-char box is useless
 
     if( wanted > current ) {
-        input.attr( "size", wanted );
+        // The width in ch on top of size: size alone is only the browser's estimate and pads
+        // the field wider than the text even in monospace, where N ch IS N characters. The size
+        // attribute stays as the fallback for when the inline style loses (or CSS is off).
+        input.attr( "size", wanted ).css( "width", wanted + "ch" );
     }
 }
 
