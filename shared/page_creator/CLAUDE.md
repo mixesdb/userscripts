@@ -46,6 +46,12 @@ target, placement })` - see the next section - and hands the same `description` 
 `mdbPageCreator_add()`, where the TITLE builder reads the labels its tracklist credits.
 SoundCloud is the reference implementation.
 
+A site that builds a tracklist box of its OWN (TrackId.net renders the identified tracks into
+one) skips `mdbPageCreator_addTracklist()` entirely and names that box in the `tracklistBox`
+option of `mdbPageCreator_add()` instead - the "Create" link then reads the page's tracklist
+out of it at click time, and the Tracklist Editor's verdict about that text files the
+`Tracklist:` category, exactly as with the creator's own box.
+
 `target` should be a **selector string**, not a node: these sites re-render under the script's
 feet, and the string is looked up again on every render.
 

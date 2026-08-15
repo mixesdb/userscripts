@@ -13,7 +13,7 @@ Each folder holds one userscript and a README describing its features.
 | [SoundCloud](SoundCloud/) | soundcloud.com | Page creator, tracklist from the description, toolkit, artwork, list filters |
 | [Mixcloud](Mixcloud/) | mixcloud.com | Toolkit, artwork URL, file details, hide used shows |
 | [YouTube](YouTube/) | youtube.com | Toolkit for mix-length videos, thumbnail, file details |
-| [TrackId.net](TrackId.net/) | trackid.net | Tracklist in wiki syntax, player embed, integration marker |
+| [TrackId.net](TrackId.net/) | trackid.net | Tracklist in wiki syntax, page creator, player embed, integration marker |
 | [RA](RA/) | ra.co | Toolkit, podcast tracklist, artwork URLs, copy buttons |
 | [1001 Tracklists](1001_Tracklists/) | 1001tracklists.com | Tracklist in wiki syntax, toolkit for every player |
 | [hearthis.at](hearthis.at/) | hearthis.at | Toolkit for both player URL variants |

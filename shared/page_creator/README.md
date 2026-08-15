@@ -4,7 +4,8 @@ The row next to a player holding a suggested MixesDB mix page title and a **Crea
 opens the new page's edit form already filled in. Shared by the site scripts, so it looks and
 behaves the same everywhere.
 
-- **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/)
+- **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/) and
+  [TrackId.net](../../TrackId.net/) (audiostream pages with a SoundCloud player)
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** [Tracklist box](../tracklist_editor/)
 
@@ -88,6 +89,10 @@ follows what the Tracklist Editor API says about the box's final content.
 
 Mixes that are already on MixesDB get the headline only – the tracklist is formatted on the first
 click, not before, so no request is wasted.
+
+On TrackId.net the description is not searched at all: the **Create** link reads the
+[tracklist box](../../TrackId.net/#tracklist-in-wiki-syntax) the TrackId.net script itself builds
+from the identified tracks, which is the better tracklist anyway.
 
 ## Known limitations
 

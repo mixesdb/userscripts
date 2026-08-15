@@ -58,6 +58,16 @@ log( "/shared/page_creator/page_creator.js loaded" );
  *         placement:    "after"
  *     });
  *
+ * A site that builds a tracklist box of its OWN (TrackId.net renders the identified tracks into
+ * one) does not call mdbPageCreator_addTracklist() at all - it names that box in
+ * mdbPageCreator_add() instead:
+ *
+ *     tracklistBox: "#tlEditor #mixesdb-TLbox"      // optional - the site's own tracklist box
+ *
+ * The "Create" link then reads the page's tracklist out of that box, exactly as it would read
+ * the creator's own: whatever is in it at click time goes onto the page, and the Tracklist
+ * Editor API's verdict about that text decides the "Tracklist:" category.
+ *
  * target is best given as a SELECTOR STRING: these sites re-render under the script's feet,
  * and a string is looked up again on every render, where a captured jQuery object would be a
  * detached node by then. A jQuery object or a DOM element is accepted too.
@@ -106,6 +116,10 @@ var mdbPageCreator_title = "",
     mdbPageCreator_toolkitPoll = null,
     // the tracklist box (see the "Tracklist" section at the bottom of this file)
     mdbPageCreator_tracklistTarget = null,
+    // a tracklist box the SITE built (TrackId.net's identified tracks): a selector string handed
+    // in through mdbPageCreator_add({ tracklistBox }). When set, the "Create" link reads the
+    // page's tracklist out of that box instead of the creator's own.
+    mdbPageCreator_tracklistBoxSite = "",
     mdbPageCreator_tracklistPlacement = "after",
     mdbPageCreator_tracklistSource = "",
     mdbPageCreator_tracklistFormatted = "",
@@ -147,6 +161,7 @@ function mdbPageCreator_add( options ) {
     // not lose the placement the first one set.
     if( o.target ) mdbPageCreator_target = o.target;
     if( o.placement ) mdbPageCreator_placement = o.placement;
+    if( o.tracklistBox ) mdbPageCreator_tracklistBoxSite = o.tracklistBox;
 
     logVar( "mdbPageCreator_add: title", playerTitle );
     logVar( "mdbPageCreator_add: channel", channel );
@@ -930,9 +945,10 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_tracklistValidated = null;
     mdbPageCreator_tracklistChecked = false;
 
-    // Kept on purpose: mdbPageCreator_target / _tracklistTarget are selector strings naming
-    // where on THIS SITE the row goes, which does not change from one mix to the next, and the
-    // site script's next mdbPageCreator_add() may well omit them.
+    // Kept on purpose: mdbPageCreator_target / _tracklistTarget / _tracklistBoxSite are
+    // selector strings naming where on THIS SITE the row and the boxes live, which does not
+    // change from one mix to the next, and the site script's next mdbPageCreator_add() may
+    // well omit them.
 }
 
 // mdbPageCreator_addTracklist
@@ -1214,8 +1230,10 @@ function mdbPageCreator_buildTracklistBox( wrapper ) {
 // mdbPageCreator_tracklistText
 // What is in the box right now. Falls back to the last value seen, for the moment between a
 // re-render wiping the box and mdbPageCreator_renderTracklist() putting it back.
+// A site that named its own box (tracklistBox option) is read instead of the creator's - for
+// such a site the fallback is simply empty, since the box's lifecycle is not ours.
 function mdbPageCreator_tracklistText() {
-    var box = $( mdbPageCreator_tracklistBoxSelector );
+    var box = $( mdbPageCreator_tracklistBoxSite || mdbPageCreator_tracklistBoxSelector );
 
     if( box.length ) return $.trim( box.val() || "" );
 
@@ -1250,8 +1268,9 @@ function mdbPageCreator_validateTracklist() {
 
     logVar( "mdbPageCreator_validateTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
 
-    // re-colours the box and replaces the printed feedback, and leaves the text alone
-    fixTLbox( mdbPageCreator_tracklistFeedback, "#mdb-pageCreator-tracklist", false );
+    // re-colours the box and replaces the printed feedback, and leaves the text alone -
+    // the site's own box when one was named, the creator's otherwise
+    fixTLbox( mdbPageCreator_tracklistFeedback, mdbPageCreator_tracklistBoxSite || "#mdb-pageCreator-tracklist", false );
 
     mdbPageCreator_tracklistLive = mdbPageCreator_tracklistText();
 }
