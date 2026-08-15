@@ -54,6 +54,15 @@
 	}
 }
 
+/*
+ * TID playist submit link
+ * On top of sidebar listing, e.g.
+ * https://www.youtube.com/watch?v=WSIP7fWTjIU&list=PLtVJWhGPjwI0CDoCLajqrUMdcbi5kffPt
+ */
+#playlist-actions + .mdb-element.mdb-tidSubmit-playlist-wrapper {
+    margin: 5px 0 10px 0;
+}
+
 
 /*
  * Ads
