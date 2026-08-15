@@ -647,8 +647,8 @@ function mdbPageCreator_render() {
         mdbPageCreator_toggleReport( wrapper );
     });
 
-    // Two lines, and a plain <br> cannot make them here: the row is a flex container, where a
-    // <br> becomes a flex item of its own instead of breaking the line. So a column wrapper
+    // Two lines, and a plain <br> cannot make them here: the row is a grid, where a <br>
+    // becomes a grid item of its own instead of breaking the line. So a column wrapper
     // stacks them and keeps the lot as ONE item in the row - the score with "BETA" behind it on
     // top, "Report" underneath.
     var confidence = $("<span>")
@@ -816,9 +816,9 @@ function mdbPageCreator_toggleReport( wrapper ) {
             mdbPageCreator_growReport( box );
         });
 
-        // At the end of the row, which is where it stays: the wrapper is a wrapping flex
-        // container and the box takes a full basis, so it forms a line of its own under
-        // everything else (see page_creator.css).
+        // At the end of the row, which is where it stays: the wrapper is a grid and the box
+        // spans all its columns, so it forms a full-width line of its own under everything
+        // else (see page_creator.css).
         wrapper.append( box );
     }
 

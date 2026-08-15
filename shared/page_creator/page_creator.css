@@ -13,8 +13,19 @@
  * is used on light pages and dark ones (SoundCloud alone has both).
  */
 #mdb-pageCreator {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    /*
+     * One grid row instead of a wrapping flex row, so the INPUT is what gives way when the
+     * container runs out: a wrapping flex container breaks the trailing items onto a new line
+     * before it ever shrinks the input. Column 1 grows with the input's text (the ch width the
+     * script sets) and shrinks first; the three max-content columns (copy button, score column,
+     * "Create"/"Exists") always keep their natural width - on every site, whatever its fonts,
+     * with no per-site max-width guesswork. The trailing 1fr is an always-empty filler: without
+     * it a full-width child (the report box, grid-column 1 / -1) would only span the content
+     * columns, not the whole container. A fifth inline item would land in that filler - add a
+     * column here if one is ever added to the row.
+     */
+    grid-template-columns: minmax(0, max-content) repeat(3, max-content) 1fr;
     align-items: center;
     margin: 10px 0;
 }
@@ -27,7 +38,11 @@
     /* content-box so the ch width the script sets really is the character count of the title
        (the padding stays outside of it) */
     box-sizing: content-box;
-    max-width: calc(100% - 180px); /* incl. space for other elemts next to the input, may need adjustment on specific sites, eg for using a sidebar */
+    /* The grid column above may shrink below the ch width - these let the input follow it.
+       100% is the own grid track; minus the horizontal padding (2*6px) and border (2*1px),
+       which content-box keeps outside the width. */
+    min-width: 0;
+    max-width: calc(100% - 14px);
     padding: 2px 6px;
     font-family: Consolas, monospace;
     font-size: .9rem;
@@ -130,9 +145,9 @@
 }
 
 /*
- * The report box. "flex-basis: 100%" is what puts it on a line of its own: the row above is a
- * WRAPPING flex container, where a plain width still leaves the box sitting next to the "Create"
- * link and only makes the row scroll.
+ * The report box. "grid-column: 1 / -1" is what puts it on a full-width line of its own under
+ * the row: it spans every column INCLUDING the 1fr filler, which is what makes its 100% the
+ * whole container and not just the content columns.
  * Same colours as the tracklist box further down, since it is the same kind of thing: a plain
  * text box of ours on a page whose own background we do not know.
  *
@@ -141,7 +156,7 @@
  * flashing up in the moment between a keystroke and that measurement.
  */
 #mdb-pageCreator-report-box {
-    flex: 0 0 100%;
+    grid-column: 1 / -1;
     box-sizing: border-box;
     width: 100%;
     margin-top: 8px;
