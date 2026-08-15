@@ -494,14 +494,17 @@ function mdbTitle_findEpisode( text, entityKnown ) {
         }
     }
 
-    // "Podcast 496", "Episode 12", "Vol. 5", "Show #23"
-    var wordRe = new RegExp( "(^|[^\\w])(" + mdbTitle_episodeWords().join("|") + ")\\.?\\s*#?\\s*(\\d{1,5})(?!\\d)", "i" );
+    // "Podcast 496", "Episode 12", "Vol. 5", "Show #23". The "#" is captured: it marks the
+    // digits as a pure episode number, which is what lets a bare name stand right behind them
+    // - see "#" marks the episode number in title_definitions.js.
+    var wordRe = new RegExp( "(^|[^\\w])(" + mdbTitle_episodeWords().join("|") + ")\\.?\\s*(#?)\\s*(\\d{1,5})(?!\\d)", "i" );
     m = wordRe.exec( text );
     if( m ) {
         return {
-            text: m[3],
+            text: m[4],
             kind: "number",
             word: m[2], // the keyword as spelled in the title - part of the show name, see below
+            marked: m[3] === "#",
             index: m.index + ( m[1] ? m[1].length : 0 ),
             length: m[0].length - ( m[1] ? m[1].length : 0 )
         };
@@ -520,14 +523,15 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     //   word behind the digits. Without a separator the two cannot be confused and the pattern
     //   above already reads them.
     var sepWordRe = new RegExp( "(^|[^\\w])(" + mdbTitle_episodeWords().join("|") +
-                                ")\\.?\\s*[" + mdbTitle_sepInner + "]+\\s*#?\\s*(?!(?:19|20)\\d{2}(?!\\d))(\\d{1,5})(?!\\d)" +
+                                ")\\.?\\s*[" + mdbTitle_sepInner + "]+\\s*(#?)\\s*(?!(?:19|20)\\d{2}(?!\\d))(\\d{1,5})(?!\\d)" +
                                 "(?=\\s*[" + mdbTitle_sepInner + "]|\\s*$)", "i" );
     m = sepWordRe.exec( text );
     if( m ) {
         return {
-            text: m[3],
+            text: m[4],
             kind: "number",
             word: m[2],
+            marked: m[3] === "#",
             index: m.index + ( m[1] ? m[1].length : 0 ),
             length: m[0].length - ( m[1] ? m[1].length : 0 )
         };
@@ -539,6 +543,7 @@ function mdbTitle_findEpisode( text, entityKnown ) {
         return {
             text: m[2],
             kind: "number",
+            marked: true,
             index: m.index + ( m[1] ? m[1].length : 0 ),
             length: m[0].length - ( m[1] ? m[1].length : 0 )
         };
@@ -878,6 +883,32 @@ function mdbTitle_looksNumberedSeries( name ) {
     var endsInNumber = /[\s.]\d{1,5}$/.test( name ) && !/[\s.](?:19|20)\d{2}$/.test( name );
 
     return endsInNumber || !!mdbTitle_findEpisode( name );
+}
+
+// mdbTitle_takeMonthlyEdition
+// "E-L-E-C-T-R-O MIx August 2026" -> { text: "E-L-E-C-T-R-O MIx", taken: true, stamp:
+// "August 2026" }. A series word with "<Month> <Year>" behind it is the monthly EDITION of a
+// recurring mix - the month and year date the episode the way "#39" numbers one, so they are
+// not part of the name. Only at the very end of a name, only as month PLUS year, and only
+// with a series word (mdbTitleShowSuffixWords) left standing in front: "Berghain July" names
+// no series and stays whole, and a bare trailing month is a live recording's business
+// (mdbTitle_takeRecordingMonth). See "A series dated by month" in title_definitions.js.
+function mdbTitle_takeMonthlyEdition( name ) {
+    var result = { text: String( name || "" ), taken: false, stamp: "" },
+        m = /\s+([a-zäöü]{3,9})\.?\s+((?:19|20)\d{2})\s*$/i.exec( result.text );
+
+    if( !m || !mdbTitle_monthFromName( m[1] ) ) return result;
+
+    var front = mdbTitle_trimSeparators( result.text.slice( 0, m.index ) ),
+        series = new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")\\b", "i" );
+
+    if( !front || !series.test( front ) ) return result;
+
+    result.text = front;
+    result.taken = true;
+    result.stamp = mdbTitle_trimSeparators( m[0] );
+
+    return result;
 }
 
 // mdbTitle_wordListAlternation
@@ -2275,6 +2306,36 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             }
         }
 
+        // 4a2) The channel name opens the title and "pres." introduces a numbered SERIES:
+        //   "Lilly Palmer pres. Spannung Radio Show #069"  (channel "Lilly Palmer")
+        //   -> 2026-08-14 - Lilly Palmer - Spannung Radio 069
+        // The channel is the ARTIST there, presenting a show of their own, and the series is
+        // the entity - the words stay in the order they stand, nothing is moved around the
+        // number. "fabric presents Bonobo" is the other reading: what follows is a bare NAME,
+        // so the channel is the presenter and the name the artist (the fall-through below,
+        // via mdbTitle_cleanArtist). The episode number is what tells the two apart - only a
+        // series is presented episode by episode. The keyword that carried the number goes
+        // with it ("Radio Show #069" -> "Radio 069"): it stood there to introduce the number,
+        // and the name in front of it is the name the wiki files the show under.
+        // See "The channel presenting a numbered series" in title_definitions.js.
+        if( taken.taken && !isMappedChannel && !guestArtist ) {
+            var presSeries = /^\s*(?:presents?|pres\.?)\s+(\S.*)$/i.exec( taken.text );
+
+            if( presSeries ) {
+                var presEpisode = mdbTitle_findEpisode( presSeries[1], true ),
+                    presEntity = presEpisode &&
+                        mdbTitle_cleanArtist( mdbTitle_cut( presSeries[1], presEpisode.index, presEpisode.length ) );
+
+                if( presEntity ) {
+                    logVar( "buildMixesdbTitle: the channel presents a numbered series", presEntity + " " + presEpisode.text );
+
+                    return mdbTitle_result( date, taken.show, presEntity,
+                                            { text: presEpisode.text, kind: presEpisode.kind },
+                                            false, extraArtists, conf );
+                }
+            }
+        }
+
         // 4b) The channel name is in the title, but PLAIN - no "Podcast"/"Radio"/... behind it
         // and no entry in mdbTitleUsernameConversions saying it is a show. Then the channel is the
         // ARTIST and the remaining title is the mix's own name:
@@ -2404,18 +2465,30 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // - 6b reads that one, with the whole title as the series.
         // The keyword itself joins the show name unless it only counts ("Episode"), see
         // mdbTitleCounterWords - "Truancy Volume 300" keeps its "Volume".
-        if( episode && episode.word && !taken.taken ) {
+        if( episode && ( episode.word || episode.marked ) && !taken.taken ) {
             var showFromTitle = mdbTitle_cleanArtist( beforeEpisode ),
                 // Normal Case for the keyword, exactly as mdbTitle_takeShowOutOfTitle does with
                 // the same words: it is a common noun off a curated list, so "SOME PODCAST 12"
                 // gives the show "Some Podcast" and not "Some PODCAST". The show NAME in front
                 // of it is a name we know nothing about and is not touched here.
-                episodeWord = mdbTitle_isCounterWord( episode.word ) ? "" : " " + mdbTitle_toNormalCase( episode.word ),
+                // A "#" episode may carry no keyword at all ("Familycast #048") - the "#" is
+                // then the whole marker and nothing joins the show name.
+                episodeWord = ( !episode.word || mdbTitle_isCounterWord( episode.word ) ) ? "" : " " + mdbTitle_toNormalCase( episode.word ),
                 // "by" does the job of a separator here: "Some Podcast 12 by Someone" names its
                 // artist without one. See the "by" block in title_definitions.js for which one
                 // counts - the flags are what keeps the "By" of a name out.
                 artistAfter = new RegExp( "^\\s*(?:[" + mdbTitle_sepInner + ",]+|by\\b)\\s*(.+)$",
                                           mdbTitle_byMarkerFlags( afterEpisode ) ).exec( afterEpisode );
+
+            // A "#" writes the digits as a pure episode number, so a bare name behind them is
+            // the artist even with nothing but a space in between: "Multisexual Mix #39
+            // Vaahzer" is the shape of "HATE Podcast 496 Fadi Mohem", it just never named its
+            // channel. Only with the "#": behind an unmarked number a word is far more often
+            // part of the name ("Deep House Mix 2 Hours") than an artist glued on, so there a
+            // separator or a "by" stays required.
+            if( !artistAfter && episode.marked ) {
+                artistAfter = /^\s+(\S.*)$/.exec( afterEpisode );
+            }
 
             if( showFromTitle && artistAfter && mdbTitle_cleanArtist( artistAfter[1] ) ) {
                 show = ( showFromTitle + episodeWord ).replace( /\s+/g, " " );
@@ -2590,12 +2663,22 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // Before the leftover checks below, not after: a number is exactly what a series name
         // is expected to carry, so charging for one in the artist would be charging for the
         // very thing this rule reads. See title_definitions.js for the two guards.
-        var seriesName = mdbTitle_joinArtists( mdbTitle_cleanArtist( restWithEpisode ), extraArtists );
+        var seriesName = mdbTitle_joinArtists( mdbTitle_cleanArtist( restWithEpisode ), extraArtists ),
+            // "<name> Mix August 2026": a series stamps its edition with the month instead of
+            // a number, and the stamp reads exactly like the number does - the title is a
+            // series and names nobody, so the channel is the artist. The stamp itself leaves
+            // the name: the date group is what carries when the mix is from.
+            monthly = mdbTitle_takeMonthlyEdition( seriesName );
 
         if( show && seriesName && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
             seriesName.indexOf( "@" ) === -1 &&
             mdbTitle_seriesScore( show ) === 0 &&
-            ( !!foundEpisode || mdbTitle_looksNumberedSeries( seriesName ) ) ) {
+            ( !!foundEpisode || monthly.taken || mdbTitle_looksNumberedSeries( seriesName ) ) ) {
+
+            if( monthly.taken ) {
+                seriesName = monthly.text;
+                conf.drop( 5, "\"" + monthly.stamp + "\" was read as the edition's month, not as part of the name - the date group already carries when the mix is from" );
+            }
 
             // A numbered series on a channel that is not a show is someone putting out their
             // own mixes, so it belongs in Category:Promo Mix - but only when the name SAYS so
@@ -2606,7 +2689,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             var seriesPromo = mdbTitle_saysPromoMix( seriesName );
 
             logVar( "buildMixesdbTitle: the title is a numbered series, so the channel is the artist", show );
-            conf.drop( 5, "the title reads as a numbered series and names nobody, so the channel was taken as the artist" );
+            conf.drop( 5, "the title reads as a " + ( monthly.taken ? "monthly" : "numbered" ) +
+                          " series and names nobody, so the channel was taken as the artist" );
 
             return mdbTitle_result( date, show, seriesName, null, seriesPromo, [], conf );
         }

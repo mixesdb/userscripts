@@ -978,6 +978,51 @@ var mdbTitleGuestMarkers = [
 
 
 /*
+ * "#" marks the episode number, never a part of the name
+ *
+ * A "#" in front of digits says outright what a bare number leaves open: these digits COUNT
+ * an episode. No podcast writes a "#NN" into its own name, so the number is the border of the
+ * rule above even when nothing else marks it - what stands in front is the series, what
+ * stands behind the number is the artist, separator or not:
+ *
+ *     "Multisexual Mix #39 Vaahzer"   (channel "MULTISEX")
+ *     ->  2026-08-14 - Vaahzer - Multisexual Mix 39
+ *     "Familycast #048 - Zitrophren"  (channel "Techno ist Familiensache")
+ *     ->  2026-08-06 - Zitrophren - Familycast 048
+ *
+ * The second one has no episode keyword at all - the "cast" is glued into the name where no
+ * word list sees it - and the "#" alone is what reads it. Without a "#", a name standing
+ * right behind the number still needs a separator or a "by" in front of it ("HATE Podcast
+ * 496 Fadi Mohem" has the channel name to say where the entity ends): behind an unmarked
+ * number a word is far more often part of the name ("Deep House Mix 2 Hours") than an
+ * artist glued on.
+ */
+
+
+/*
+ * The channel presenting a numbered series
+ *
+ * "pres." behind the channel's own name introduces what the channel PRESENTS, and what
+ * follows it decides which side is the artist:
+ *
+ *     "Lilly Palmer pres. Spannung Radio Show #069"  (channel "Lilly Palmer")
+ *     ->  2026-08-14 - Lilly Palmer - Spannung Radio 069
+ *     "fabric presents Bonobo"                       (channel "fabric")
+ *     ->  2026-04-03 - Bonobo - fabric
+ *
+ * A numbered SERIES behind the "pres." is the channel's own show, so the channel is the
+ * artist and the series the entity - the words keep the order they stand in, nothing is
+ * moved around the number. A bare NAME behind it is a guest, so the channel is the presenter
+ * (the entity) and the name the artist. The episode number is what tells the two apart:
+ * only a series is presented episode by episode.
+ *
+ * The keyword that carried the number goes with it - "Radio Show #069" comes out as
+ * "Radio 069", because the word stood there to introduce the number and the name in front of
+ * it is what the show is called.
+ */
+
+
+/*
  * Which spelling of the channel name to use
  *
  * The channel name is normally the better source: it is the brand's own account name, which
@@ -1097,6 +1142,28 @@ var mdbTitleCounterWords = [
  * - the channel does not look like a series ITSELF - no number, no word from mdbTitleShowSuffixWords.
  *   A channel called "Some Podcast" is the show whatever the title looks like, and promoting it
  *   to artist would only swap one wrong reading for another.
+ */
+
+/*
+ * A series dated by month
+ *
+ * A recurring mix stamps its editions with the month instead of a number, and the stamp reads
+ * exactly like the number of the rule above - the title is a series and names nobody, so the
+ * channel is the one who played it. The stamp itself leaves the name: the date group is what
+ * carries when the mix is from, and a channel written "Word Word" in title case is somebody's
+ * NAME more often than not:
+ *
+ *     "E-L-E-C-T-R-O MIx August 2026"  (channel "Dirk Wiertz", uploaded 2026-08-14)
+ *     ->  2026-08-14 - Dirk Wiertz - E-L-E-C-T-R-O MIx
+ *
+ * and the page belongs in Category:Promo Mix, which the "Mix" already says in the name, so
+ * nothing is appended to the title.
+ *
+ * The month and year have to end the title TOGETHER, and a series word (mdbTitleShowSuffixWords)
+ * has to be left standing in front of them - that is what keeps everything else out:
+ * "Berghain July" names no series and stays whole, "Summer 2026 Mix" ends in the word and not
+ * in the stamp, and "House Set August 2026 - Simeon Sarfati" names its artist, so 4b reads it
+ * and the mix's name stays verbatim, month and all.
  */
 
 /*
