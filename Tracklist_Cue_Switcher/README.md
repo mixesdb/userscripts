@@ -4,11 +4,12 @@ Switches a tracklist's cues between minutes and clock times – on a MixesDB pag
 cue, in the TrackId.net Tracklist box by an option in the tracklist feedback.
 
 - **Runs on:** mixesdb.com/w/* – mix pages, `MixesDB:Explorer/Mixes` and tracklists in the
-  lightbox; trackid.net audiostream pages, through the TrackId.net script
+  lightbox; the [Tracklist box](../shared/tracklist_editor/) on trackid.net audiostream pages,
+  through the TrackId.net script
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.user.js)
   – nothing extra is needed for trackid.net, the [TrackId.net](../TrackId.net/) script brings the
   cue conversion with it
-- **Shared features:** [Tracklist box](../shared/tracklist_editor/) – on trackid.net only
+- **Shared features:** none – the switch is added TO the shared Tracklist box, it does not use it
 
 ## Features
 
