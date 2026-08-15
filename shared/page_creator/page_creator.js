@@ -582,10 +582,12 @@ function mdbPageCreator_render() {
         // edit form of a second one. The toolkit right below links to the existing page - that
         // is what the suggestion is to be compared against. The marker keeps the debug row from
         // ever passing as the normal "not on MixesDB yet" one.
+        // The row is only shown because the debug setting mdbPageCreator_showForUsedPlayers
+        // is on at the top of script.user.js.
         wrapper.addClass( "mdb-pageCreator-used" )
                .append( $("<span>")
                    .attr( "id", "mdb-pageCreator-usedNote" )
-                   .attr( "title", "This player is already used on MixesDB - see the toolkit below.\nThe row is only shown because the debug setting mdbPageCreator_showForUsedPlayers is on at the top of script.user.js. No \"Create\" link, since that would start a duplicate page." )
+                   .attr( "title", "This player is already used on MixesDB - see the toolkit below.\nNo \"Create\" link, since that would open the edit mode of the existing page." )
                    .text( "Exists" ) );
     } else {
         // _blank, not the usual _top: the point of this link is to fill in the MixesDB form

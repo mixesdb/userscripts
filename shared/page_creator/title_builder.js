@@ -128,6 +128,19 @@ function mdbTitle_matchCase( sample, word ) {
     return word;
 }
 
+// mdbTitle_spaced
+// "_" written as the space it already is on MediaWiki - see "The underscore IS a space" in
+// title_definitions.js. Runs before every other rule, including the typo fixes: "_" is a word
+// character to a regex, so every "\b" in the parser (and in mdbTitleTypoFixes) reads
+// "SAXON_AUGUST" as a single word.
+function mdbTitle_spaced( text ) {
+    var chars = ( typeof mdbTitleSpaceChars !== "undefined" && mdbTitleSpaceChars ) ? mdbTitleSpaceChars : /_+/g;
+
+    chars.lastIndex = 0;
+
+    return String( text || "" ).replace( chars, " " );
+}
+
 // mdbTitle_fixTypos
 // The misspellings of mdbTitleTypoFixes, corrected before any rule reads a word of the title.
 function mdbTitle_fixTypos( text ) {
@@ -893,11 +906,22 @@ function mdbTitle_looksNumberedSeries( name ) {
 // with a series word (mdbTitleShowSuffixWords) left standing in front: "Berghain July" names
 // no series and stays whole, and a bare trailing month is a live recording's business
 // (mdbTitle_takeRecordingMonth). See "A series dated by month" in title_definitions.js.
-function mdbTitle_takeMonthlyEdition( name ) {
+// date is the mix's date, and is what tells a two-digit YEAR from a DAY - see below.
+function mdbTitle_takeMonthlyEdition( name, date ) {
     var result = { text: String( name || "" ), taken: false, stamp: "" },
-        m = /\s+([a-zäöü]{3,9})\.?\s+((?:19|20)\d{2})\s*$/i.exec( result.text );
+        m = /\s+([a-zäöü]{3,9})\.?\s+((?:19|20)\d{2}|\d{2})\s*$/i.exec( result.text );
 
     if( !m || !mdbTitle_monthFromName( m[1] ) ) return result;
+
+    // "August 26" is the 2026 edition as often as it is the 26th of August, and only the
+    // upload date can say which: the digits are a year when they land on the year the mix was
+    // uploaded in, give or take one. A four-digit year says it itself.
+    if( m[2].length === 2 ) {
+        var stampYear = mdbTitle_expandYear( m[2] ),
+            uploadYear = parseInt( mdbTitle_yearOf( date ), 10 );
+
+        if( !uploadYear || Math.abs( stampYear - uploadYear ) > 1 ) return result;
+    }
 
     var front = mdbTitle_trimSeparators( result.text.slice( 0, m.index ) ),
         series = new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")\\b", "i" );
@@ -1455,10 +1479,19 @@ function mdbTitle_knownAs( known, name ) {
 // The names worth asking about: the channel, and every bit the title splits into.
 function mdbTitle_categoryCandidates( playerTitle, username ) {
     var names = [],
-        bits = String( playerTitle || "" ).split( mdbTitle_bitSplitRe() ),
+        // spaced the same way buildMixesdbTitle spaces them, or a name the wiki is asked about
+        // carries an underscore no category has
+        bits = mdbTitle_spaced( playerTitle ).split( mdbTitle_bitSplitRe() ),
+        channelNames = mdbTitle_channelNames( mdbTitle_spaced( username ) ),
         i;
 
-    if( username ) names.push( username );
+    if( username ) names.push( mdbTitle_spaced( username ) );
+
+    // A channel naming several names is asked about each of them: which one gets used is
+    // decided off the title, and the wiki's answer is worth having for whichever it is.
+    for( i = 0; channelNames.length > 1 && i < channelNames.length; i++ ) {
+        names.push( channelNames[i] );
+    }
 
     for( i = 0; i < bits.length; i++ ) {
         var bit = mdbTitle_cleanArtist( bits[i] );
@@ -1997,6 +2030,51 @@ function mdbTitle_usernameConversionKey( username ) {
     return "";
 }
 
+// mdbTitle_channelNames
+// The names a channel name lists: "Lone Saxon / Nick J. Smith" -> [ "Lone Saxon", "Nick J.
+// Smith" ]. Only a slash or a pipe with whitespace on BOTH sides separates two names - see
+// "A channel naming SEVERAL names" in title_definitions.js.
+function mdbTitle_channelNames( username ) {
+    var parts = String( username || "" ).split( /\s+[\/|]+\s+/ ),
+        names = [],
+        name,
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        name = mdbTitle_trimSeparators( parts[i] );
+
+        if( name ) names.push( name );
+    }
+
+    return names;
+}
+
+// mdbTitle_namesTheChannel
+// Whether a name stands in the title as a name of its own rather than inside a longer word.
+// The plain question, without the guards mdbTitle_takeShowOutOfTitle puts on top of it: this
+// only decides WHICH of a channel's names to work with, never what to do with it.
+function mdbTitle_namesTheChannel( text, name ) {
+    if( !name ) return false;
+
+    return new RegExp( "(^|[^\\w])" + mdbTitle_escapeRe( name ) + "(?![\\w])", "i" ).test( text );
+}
+
+// mdbTitle_pickChannelName
+// Which of a channel's names to use: the one the title names, else the first - an account
+// leads with the name it puts mixes out under.
+function mdbTitle_pickChannelName( text, username ) {
+    var names = mdbTitle_channelNames( username ),
+        i;
+
+    if( names.length < 2 ) return username;
+
+    for( i = 0; i < names.length; i++ ) {
+        if( mdbTitle_namesTheChannel( text, names[i] ) ) return names[i];
+    }
+
+    return names[0];
+}
+
 // mdbTitle_showFromUsername
 // Channel name -> show entity, via mdbTitleUsernameConversions (title_definitions.js).
 // An unlisted channel falls back to its raw name; an entry mapped to "" means "no show".
@@ -2021,11 +2099,17 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
     mdbTitle_reCased = false;
     mdbTitle_channelSpelling = "";
-    mdbTitle_channelInitials = mdbTitle_initialsOf( username );
+    // filled in once the channel's name is settled below - a channel may name several, and
+    // the initials of the one actually used are the ones an acronym is checked against
+    mdbTitle_channelInitials = "";
 
     try {
-        var rest = String( playerTitle || "" ).replace( /\s+/g, " " ).trim();
+        // "_" is a space on MediaWiki and a word character to a regex, so it is written out
+        // before anything else reads a word - of the title and of the channel name alike.
+        var rest = mdbTitle_spaced( playerTitle ).replace( /\s+/g, " " ).trim();
         if( !rest ) return nothing;
+
+        username = mdbTitle_spaced( username ).replace( /\s+/g, " " ).trim();
 
         logVar( "playerTitle", rest );
         logVar( "username", username );
@@ -2065,6 +2149,21 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             logVar( "buildMixesdbTitle: brackets read as separators", rest + " -> " + unbracketed );
             rest = unbracketed;
         }
+
+        // The channel may name SEVERAL names - the artist and the person behind the account
+        // ("Lone Saxon / Nick J. Smith"). Only one of them can be used, and the title says
+        // which; the rest of the parser then works with one name like everywhere else. A
+        // mapped channel is left alone - that name is curated. See title_definitions.js.
+        if( !mdbTitle_usernameConversionKey( username ) ) {
+            var oneName = mdbTitle_pickChannelName( rest, username );
+
+            if( oneName !== username ) {
+                logVar( "buildMixesdbTitle: the channel lists several names, using", username + " -> " + oneName );
+                username = oneName;
+            }
+        }
+
+        mdbTitle_channelInitials = mdbTitle_initialsOf( username );
 
         // The title spelling the channel name exactly the way the channel does is the real
         // spelling, and Normal Case must not touch it. After 1b, so a channel name in brackets
@@ -2668,7 +2767,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // a number, and the stamp reads exactly like the number does - the title is a
             // series and names nobody, so the channel is the artist. The stamp itself leaves
             // the name: the date group is what carries when the mix is from.
-            monthly = mdbTitle_takeMonthlyEdition( seriesName );
+            monthly = mdbTitle_takeMonthlyEdition( seriesName, date );
 
         if( show && seriesName && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
             seriesName.indexOf( "@" ) === -1 &&

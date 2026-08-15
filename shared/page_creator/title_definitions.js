@@ -99,6 +99,30 @@ var mdbTitleWikiIllegalChars = /[#<>\[\]|{}]+/g;
 
 
 /*
+ * The underscore IS a space
+ *
+ * MediaWiki reads "_" and " " in a page title as the same character - "Some_Mix" and
+ * "Some Mix" are one page - so an underscore in a title is a space already, and writing it as
+ * one loses nothing. Uploaders type them where a FILE NAME would carry them:
+ *
+ *     "LONE SAXON_AUGUST 26_MIX"  (channel "Lone Saxon / Nick J. Smith")
+ *     WRONG: 2026-08-07 - Lone Saxon_august 26_MIX - Lone Saxon Nick J. Smith
+ *     RIGHT: 2026-08-07 - Lone Saxon - August 26 Mix
+ *
+ * Done before ANY rule reads a word of the title, because "_" is a word character to a regex:
+ * every "\b" in the parser reads "SAXON_AUGUST" as one word, so the channel name in front of
+ * it is never found, no word list ever matches, and the whole title ends up in the artist.
+ * The channel name is spaced the same way and for the same reason - it is compared against the
+ * title, and it ends up in the title itself.
+ *
+ * A SPACE, not a separator. An underscore stands where a space was typed out of the way, not
+ * where a "-" or a "|" would be: reading it as a separator breaks the title above into three
+ * groups and the mix's own name is lost to the flattening.
+ */
+var mdbTitleSpaceChars = /_+/g;
+
+
+/*
  * mdbTitleApostropheChars
  *
  * The apostrophe variants an uploader's keyboard produces, all written as the plain "'" that
@@ -1023,6 +1047,31 @@ var mdbTitleGuestMarkers = [
 
 
 /*
+ * A channel naming SEVERAL names
+ *
+ * An account is regularly named after the artist AND the person behind it, separated the way a
+ * title separates anything:
+ *
+ *     "LONE SAXON_AUGUST 26_MIX"  (channel "Lone Saxon / Nick J. Smith")
+ *     ->  2026-08-07 - Lone Saxon - August 26 Mix
+ *
+ * That is not one name and can never be used as one: a "/" with blanks around it reads as a
+ * group separator wherever it stands, so the channel on its own makes the title four groups
+ * and gets flattened - which is what the report above came out as ("- Lone Saxon Nick J.
+ * Smith").
+ *
+ * So the names are taken apart and exactly ONE is used: the one the TITLE names, and the FIRST
+ * one when the title names none of them - an account leads with the name it puts mixes out
+ * under. Only a slash or a pipe with whitespace on BOTH sides splits, the same rule the
+ * tracklist detector holds a slash to - without the blanks it sits inside names and addresses
+ * all the time ("AC/DC"). An "&" or a "," never splits one: a duo is one act with one name.
+ *
+ * A channel in mdbTitleUsernameConversions is never split - that name is curated, and whatever
+ * stands in it stands there on purpose.
+ */
+
+
+/*
  * Which spelling of the channel name to use
  *
  * The channel name is normally the better source: it is the brand's own account name, which
@@ -1163,7 +1212,16 @@ var mdbTitleCounterWords = [
  * has to be left standing in front of them - that is what keeps everything else out:
  * "Berghain July" names no series and stays whole, "Summer 2026 Mix" ends in the word and not
  * in the stamp, and "House Set August 2026 - Simeon Sarfati" names its artist, so 4b reads it
- * and the mix's name stays verbatim, month and all.
+ * and the mix's name stays verbatim, month and all. It is also what keeps the stamp out of
+ * "LONE SAXON AUGUST 26 MIX", where the month stands in the MIDDLE of the name: the mix is
+ * called "August 26 Mix" and that is the whole name.
+ *
+ * The YEAR may be written with two digits, which is how an uploader dates a monthly edition
+ * half the time ("August 26" for August 2026). Those same two digits are a DAY just as often
+ * ("August 26" as the 26th), and nothing in the title tells the two apart - so the UPLOAD DATE
+ * does: the digits are read as a year only when they land on the year the mix was uploaded in,
+ * give or take one. "Some Mix August 12" uploaded in 2026 is not the 2012 edition of anything,
+ * so it stays part of the name. A four-digit year says it itself and needs no such check.
  */
 
 /*
