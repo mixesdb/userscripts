@@ -40,6 +40,16 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
   links - rename only when the feature itself changed.
 - A feature that lives in `/shared/` is described once there and linked from the site scripts,
   not copied into each of them.
+- `Shared features:` lists only the shared features the script ITSELF puts on the page. It is not
+  a list of everything the script touches or sits next to:
+  - a script that ADDS something to a shared feature (Tracklist Cue Switcher -> the Tracklist
+    box) has none - name the surface it is applied to in `Runs on` instead
+  - a script that READS a shared feature another script put there (Tracklist Merger on
+    trackid.net) has none
+  - a script that only `@require`s a shared file without rendering its feature (Internet Archive
+    requires `toolkit.js` but never calls `getToolkit()`) has none
+
+  Check the code before listing one: the `@require` list is not the answer, the call is.
 - Root `README.md` holds the table of all scripts; a new script needs a row there.
 - `/private/` follows the same rules - every folder with a `script.user.js` has a README, and
   `/private/README.md` lists them. They are NOT linked from the wiki: they are personal import

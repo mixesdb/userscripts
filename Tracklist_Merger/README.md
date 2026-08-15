@@ -5,7 +5,9 @@ MixesDB page already has – and shows what would change.
 
 - **Runs on:** `mixesdb.com/w/MixesDB:Tests/Tracklist_Merger` and trackid.net audiostream pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Merger/script.user.js)
-- **Shared features:** [Tracklist box](../shared/tracklist_editor/)
+- **Shared features:** none – on trackid.net it reads the
+  [Tracklist box](../shared/tracklist_editor/) the TrackId.net script put there, it does not add
+  one; the merger page's own boxes belong to the wiki page
 
 ## Features
 
@@ -28,8 +30,8 @@ The two tracklists and the result side by side, column-aligned, updating as you 
 
 ### "Open in Tracklist Merger" on TrackId.net
 
-A link above every TrackId.net tracklist that opens the merger with that tracklist already filled
-in as the candidate.
+A link in the feedback row above every TrackId.net tracklist that opens the merger with the
+content of that Tracklist box already filled in as the candidate.
 
 ### URL parameters
 

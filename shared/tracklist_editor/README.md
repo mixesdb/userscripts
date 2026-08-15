@@ -10,9 +10,15 @@ site scripts, so it looks and behaves the same everywhere.
   [1001 Tracklists](../../1001_Tracklists/), [NTS](../../NTS/), [BBC](../../BBC/),
   [The Lot Radio](../../TheLotRadio/), [radioeins](../../radioeins/),
   [Discogs](../../Discogs/), [Apple Music](../../Apple_Music/),
-  [Player Checker](../../Player_Checker/), [Tracklist Merger](../../Tracklist_Merger/)
+  [Player Checker](../../Player_Checker/)
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** [Toolkit](../toolkit/), [Page creator](../page_creator/)
+
+Those are the scripts that ADD the box, and they are the only ones listing it as a shared
+feature. A script that merely applies its own feature to a box already on the page does not:
+the [Tracklist Cue Switcher](../../Tracklist_Cue_Switcher/) adds its cue format switch to it and
+the [Tracklist Merger](../../Tracklist_Merger/) reads what is in it, but neither puts a box
+there, so neither lists it.
 
 ## Features
 
