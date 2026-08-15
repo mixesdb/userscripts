@@ -29,8 +29,8 @@
     max-width: calc(100% - 44px) !important; /* incl. space for copy button */
     padding: 2px 6px;
     font-family: Consolas, monospace;
-    font-size: 1rem;
-    line-height: 1.8;
+    font-size: .9rem;
+    line-height: 1.75;
     color: inherit;
     background-color: rgba(127, 127, 127, 0.12);
     border: 1px solid rgba(127, 127, 127, 0.45);
