@@ -56,6 +56,16 @@ player and, from there, on the created page. Comments are read only when the des
 tracklist, and only for a whole numbered tracklist – single track IDs in comments are never
 taken.
 
+A description holding several tracklists, each under its own headline – a resident's hour and a
+guest mix, say – becomes one tracklist in
+[chapters](https://www.mixesdb.com/w/Help:Tracklists#Chapters): a `;Chapter` line above each
+part. The headline is stripped down to the name the chapter is filed under, so
+`First Hour - Ollie Blackmore:` becomes `;Ollie Blackmore` and `Guest Mix: Natasha Kitty Katt`
+becomes `;Natasha Kitty Katt` – a `Guest Mix` / `Hour 1` / `First Hour` prefix and a trailing
+`:` are removed, in whatever mixture of blanks, `-` and `:` they were typed. A headline needs no
+blank line under it. When one of the tracklists has no headline of its own, no chapters are
+invented – the longest single tracklist ends up in the box, as before.
+
 Links never end up in the box. Some uploaders put a shop or label link under every single
 track – usually without `http://` – and the tracklist is still found in one piece: the link
 lines are skipped, and a link written inside a track line is removed from it.
