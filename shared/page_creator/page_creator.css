@@ -168,13 +168,15 @@
 /*
  * Debug only (mdbPageCreator_showForUsedPlayers, top of the site's script.user.js): the row for
  * a player that already has a MixesDB page. Takes the "Create" link's place, bold, so a debug
- * row is never read as the normal "nothing on MixesDB yet" one at a glance.
+ * row is never read as the normal "nothing on MixesDB yet" one at a glance. An <a> to that very
+ * page, grey on purpose: it is a marker, not a call to action. Two IDs for the same reason as
+ * "Report" above - these sites style their <a>s hard enough to beat a single ID.
  */
-#mdb-pageCreator-usedNote {
+#mdb-pageCreator #mdb-pageCreator-usedNote {
     padding-left: 10px;
-    font-size: 0.8rem;
+    color: #999;
     font-weight: bold;
-    cursor: help;
+    text-decoration: none;
     white-space: nowrap;
 }
 
@@ -199,13 +201,9 @@
     padding-left: 0;
 }
 
-#mdb-pageCreator-promoCategory,
-#mdb-pageCreator-usedNote {
-    color: #999;
-}
-
 /* grey and small, the same "this is a side note" as #mdb-pageCreator-beta */
 #mdb-pageCreator-promoCategory {
+    color: #999;
     font-size: 0.8rem;
     cursor: help;
     white-space: nowrap;
