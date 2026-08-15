@@ -38,6 +38,15 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
   `Runs on` / `Install` / `Shared features` list, `## Features` with one `###` per feature, and
   `## Known limitations`. The wiki deep-links to headings, so renaming one silently breaks those
   links - rename only when the feature itself changed.
+- **Never use a userscript's name as a `##`/`###` headline** - not in its own README, not in
+  another script's, not in a shared feature's. The name here means the title with blanks instead
+  of underscores and without ` (by MixesDB)`: `SoundCloud`, `Mixcloud`, `1001 Tracklists`,
+  `The Lot Radio`, `Apple Podcasts`, `Internet Archive`, `MixesDB Userscripts Helper`,
+  `Tracklist Cue Switcher`, `TrackId.net`, `hearthis.at`, `radioeins` and so on.
+  https://www.mixesdb.com/w/Help:MixesDB_userscripts already carries one headline per userscript;
+  a second headline of the same name collides with that anchor and breaks every link pointing at
+  it. Name the FEATURE instead: `### Toolkit on podcast episodes`, never `### RA`.
+  The `#` title at the top of a README is the one exception - that line IS the script's name.
 - A feature that lives in `/shared/` is described once there and linked from the site scripts,
   not copied into each of them.
 - `Shared features:` lists only the shared features the script ITSELF puts on the page. It is not
