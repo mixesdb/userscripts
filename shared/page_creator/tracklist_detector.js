@@ -18,6 +18,8 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  *
  *     var found = mdbTracklist_detectInText( track.description );
  *     // -> { text: "01. Artist - Title\n02. ...", lines: 18, indexed: true }  or  null
+ *     // several tracklists under headlines -> one text with a ";Chapter" line above each block,
+ *     // and found.chapters holding the names - see "Chapters" below
  *
  *     var found = mdbTracklist_detectInComments([ "1. Artist - Title 2. Other - Thing ..." ]);
  *     // -> { text: "1. Artist - Title\n2. Other - Thing\n...", lines: 12, comment: "1. Artist..." }
@@ -62,6 +64,43 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  * On a numbered run the numbers additionally have to ASCEND, and the longest ascending stretch is
  * what survives. This is what throws out a stray "6 Decks - 2 Mixers" that happens to sit right
  * on top of a tracklist starting at "01." - and any other line that only looks numbered.
+ *
+ *
+ * Chapters
+ * --------
+ * A description holding SEVERAL tracklists, each under a headline ("First Hour - Ollie
+ * Blackmore:", then ten tracks, then "Guest Mix - Natasha Kitty Katt", then ten more), is one
+ * mix in parts - and MixesDB writes it that way, as chapters (Help:Tracklists#Chapters):
+ *
+ *     ;Ollie Blackmore
+ *     01. Soul Slayerz Feat Karina Nistal - Call Me (Vocal Mix)
+ *     ...
+ *
+ *     ;Natasha Kitty Katt
+ *     01. Twisted Katt - Natasha Kitty Katt & Twisted Soul Collective
+ *     ...
+ *
+ * So when more than one run passes, they are ALL taken - a ";Chapter" line above each block, a
+ * blank line between the blocks - rather than silently dropping every list but the longest.
+ * The Tracklist Editor API keeps the ";" lines and numbers each chapter's tracks on their own
+ * (verified against it), so what leaves here survives the formatting.
+ *
+ * The chapter name is the headline standing above the run, stripped down to what MixesDB files
+ * the chapter under: decorations, a trailing ":" or "-", and a "Guest Mix" / "Hour 1" / "First
+ * Hour" prefix with whatever mixture of blanks, "-" and ":" it was typed with all go. A headline
+ * that was ONLY such a prefix ("Guest Mix") keeps it - a generic chapter name still names the
+ * chapter, where an empty one would break the wiki syntax.
+ *
+ * A headline needs no blank line under it. Written "Hour 1 - DJ A:" right on top of its tracks
+ * it even reads as a track line and JOINS the run - so a run whose first line is unnumbered and
+ * wears a headline's clothes (that prefix, or a trailing ":") has it peeled off, provided what
+ * remains still passes as a tracklist on its own. See mdbTracklist_gluedHeadline().
+ *
+ * All or nothing: every run needs its own headline, and the runs have to agree on being
+ * numbered. A run whose nearest line above is a track of the previous run (a torn tracklist,
+ * not two chapters), a prose line, a bare "Tracklist:" heading or nothing at all means NO
+ * chapters, and the longest single run wins as before - a wrong chapter split on a new page is
+ * worse than the main tracklist alone.
  *
  *
  * Tidying, before the API sees it
@@ -122,6 +161,16 @@ var mdbTracklist_minCommentTracks = 6;
 // A prose paragraph is one long line in a description; a track line is not. Nothing in the
 // examples comes close to this, the longest being 92 characters.
 var mdbTracklist_maxLineLength = 200;
+
+// A chapter headline is a SHORT line. The longest real one seen so far ("First Hour - Ollie
+// Blackmore:") is 29 characters; the prose lines that can also stand right above a tracklist
+// run long past this.
+var mdbTracklist_maxHeadlineLength = 60;
+
+// What a headline hangs IN FRONT of the name and MixesDB does not file the chapter under:
+// "Guest Mix - Natasha Kitty Katt", "Hour 1: Foo", "First Hour - Ollie Blackmore" - in whatever
+// mixture of blanks, "-" and ":" it was typed. The name is what is left once it goes.
+var mdbTracklist_chapterPrefixRe = /^(?:guest\s*mix(?:\s+by)?|(?:first|second|third|fourth|1st|2nd|3rd|4th)\s+hour|hour\s*(?:\d{1,2}|one|two|three|four))(?:\s*[-–—:]\s*|\s+)/i;
 
 // "1.", "01", "1)", "001.)", "(1)", "#1", "1 - " - the front of a numbered track line, taken
 // apart into what OPENS it, the digits, and the separator behind them. In three groups rather
@@ -501,15 +550,19 @@ function mdbTracklist_tidyCues( lines ) {
 }
 
 // mdbTracklist_takeAscending
-// Of a numbered run, the longest stretch whose numbers count upwards. Lines without a number
-// (the "06. [018] ID" case is numbered, but "ID" alone is not) ride along without breaking it.
+// Of a numbered run, the longest stretch whose numbers count upwards - as { lines, at }, where
+// `at` is the offset of that stretch inside the run, so the caller can map it back to a position
+// in the description. Lines without a number (the "06. [018] ID" case is numbered, but "ID"
+// alone is not) ride along without breaking it.
 //
 // This is what a stray line on top of a tracklist runs into: "6 Decks - 2 Mixers" directly above
 // "01. Hardrive - No Cure" reads as track 6 followed by track 1, so the stretch breaks between
 // them and the 26 real tracks win over the stretch of one.
 function mdbTracklist_takeAscending( lines ) {
     var best = [],
+        bestAt = 0,
         current = [],
+        currentAt = 0,
         last = -1,
         i;
 
@@ -517,8 +570,13 @@ function mdbTracklist_takeAscending( lines ) {
         var index = mdbTracklist_index( lines[i] );
 
         if( index > -1 && index <= last ) {
-            if( current.length > best.length ) best = current;
+            if( current.length > best.length ) {
+                best = current;
+                bestAt = currentAt;
+            }
+
             current = [];
+            currentAt = i;
             last = -1;
         }
 
@@ -526,7 +584,9 @@ function mdbTracklist_takeAscending( lines ) {
         if( index > -1 ) last = index;
     }
 
-    return current.length > best.length ? current : best;
+    return current.length > best.length
+        ? { lines: current, at: currentAt }
+        : { lines: best, at: bestAt };
 }
 
 // mdbTracklist_scoreRun
@@ -556,71 +616,254 @@ function mdbTracklist_acceptRun( lines, minTracks ) {
     return score;
 }
 
+// mdbTracklist_chapterName
+// The chapter name a headline holds, or null for a line that cannot be one. Decorations go
+// first ("*** Tracklisting ***"), then a trailing ":" or "-" ("First Hour - Ollie Blackmore:"),
+// then the mdbTracklist_chapterPrefixRe prefix. A headline that was ONLY the prefix ("Guest
+// Mix") keeps it - a generic chapter name still names the chapter, where an empty one would
+// break the wiki syntax.
+//
+// null is for what disqualifies the LINE, not just the name: a line numbered like a track is a
+// leftover track, one past mdbTracklist_maxHeadlineLength or ending like a sentence is prose,
+// and a bare "Tracklist(ing)" heading titles the WHOLE list, not a chapter of it.
+function mdbTracklist_chapterName( line ) {
+    var name = String( line || "" )
+        .replace( /^[\s*=~_#>|•·-]+/, "" )
+        .replace( /[\s*=~_#>|•·]+$/, "" );
+
+    if( !name || name.length > mdbTracklist_maxHeadlineLength ) return null;
+    if( mdbTracklist_indexRe.test( name ) ) return null;
+    if( /[.!?…]$/.test( name ) ) return null;
+
+    name = name.replace( /[\s:\-–—]+$/, "" );
+
+    if( !name ) return null;
+
+    // The prefix can stack ("Hour 1 - Guest Mix: Foo"), so it is taken off until none is left -
+    // with a bound, so a pathological line cannot loop this.
+    var stripped = name,
+        guard = 4;
+
+    while( guard-- > 0 && mdbTracklist_chapterPrefixRe.test( stripped ) ) {
+        stripped = stripped.replace( mdbTracklist_chapterPrefixRe, "" ).replace( /[\s:\-–—]+$/, "" );
+    }
+
+    if( !stripped ) stripped = name;
+
+    if( /^(?:(?:full|the)\s+)?(?:track\s*list(?:ing|s)?|playlist)$/i.test( stripped ) ) return null;
+
+    return stripped;
+}
+
+// mdbTracklist_chapterHeadline
+// The headline standing above a run, as a chapter name - or null when there is none. `cleaned`
+// is the description exactly as the run collector read it ("" a blank line, null a URL line -
+// which is nothing here too, uploaders put a link under a headline like under everything else),
+// and the FIRST real line above the run decides. A track of another taken tracklist there means
+// the runs stand back to back with nothing between them - a torn tracklist, not two chapters.
+function mdbTracklist_chapterHeadline( from, accepted, cleaned ) {
+    var i, j;
+
+    for( i = from - 1; i >= 0; i-- ) {
+        if( cleaned[i] === null || cleaned[i] === "" ) continue;
+
+        for( j = 0; j < accepted.length; j++ ) {
+            if( i >= accepted[j].from && i <= accepted[j].to ) return null;
+        }
+
+        return mdbTracklist_chapterName( cleaned[i] );
+    }
+
+    return null;
+}
+
+// mdbTracklist_gluedHeadline
+// Whether a run's first line is a headline GLUED to its block: no blank line between "Hour 1 -
+// DJ A:" and the tracks means the headline reads as a track line and joins the run. Only a line
+// that is unnumbered AND wears a headline's clothes - the chapter prefix or a trailing ":" -
+// counts: an unnumbered first track ("ID - Intro") wears neither, and a numbered one is a track
+// whatever it ends in.
+function mdbTracklist_gluedHeadline( line ) {
+    if( mdbTracklist_index( line ) > -1 ) return false;
+
+    var bare = String( line || "" ).replace( /^[\s*=~_#>|•·-]+/, "" );
+
+    return mdbTracklist_chapterPrefixRe.test( bare ) || /:$/.test( bare );
+}
+
+// mdbTracklist_chapters
+// Several tracklists as ONE, written the way MixesDB writes a mix in parts - see "Chapters" in
+// the header. All or nothing: every run needs its own headline and the runs have to agree on
+// being numbered, otherwise null, and the caller falls back to the longest single run.
+function mdbTracklist_chapters( accepted, cleaned, min ) {
+    var parts = [],
+        i, part, name, rest, restScore;
+
+    for( i = 0; i < accepted.length; i++ ) {
+        part = accepted[i];
+        name = null;
+
+        // A glued headline is peeled off the front of its run - but only when what remains
+        // still passes as a tracklist on its own. When it does not, the line was not a headline
+        // after all and the lookup above the run gets its turn.
+        if( mdbTracklist_gluedHeadline( part.lines[0] ) ) {
+            name = mdbTracklist_chapterName( part.lines[0] );
+            rest = part.lines.slice( 1 );
+            restScore = name ? mdbTracklist_acceptRun( rest, min ) : null;
+
+            if( restScore ) {
+                part = { lines: rest, score: restScore, from: part.from, to: part.to };
+            } else {
+                name = null;
+            }
+        }
+
+        if( !name ) name = mdbTracklist_chapterHeadline( part.from, accepted, cleaned );
+
+        if( !name ) {
+            log( "mdbTracklist_chapters: tracklist " + ( i + 1 ) + " of " + accepted.length + " has no headline above it - no chapters." );
+            return null;
+        }
+
+        parts.push({ name: name, lines: part.lines, score: part.score });
+    }
+
+    var indexed = parts[0].score.indexed * 2 >= parts[0].score.rows,
+        blocks = [],
+        rows = 0,
+        names = [];
+
+    for( i = 0; i < parts.length; i++ ) {
+        if( ( parts[i].score.indexed * 2 >= parts[i].score.rows ) !== indexed ) {
+            log( "mdbTracklist_chapters: the " + parts.length + " tracklists do not agree on being numbered - no chapters." );
+            return null;
+        }
+    }
+
+    // Each block is tidied on its own: the majority rules (numbering style, slash separators,
+    // trailing cues) are per-tracklist decisions, and one chapter's style must not outvote
+    // another's.
+    for( i = 0; i < parts.length; i++ ) {
+        blocks.push( ";" + parts[i].name + "\n" + mdbTracklist_tidy( parts[i].lines ).join( "\n" ) );
+        rows += parts[i].score.rows;
+        names.push( parts[i].name );
+    }
+
+    log( "mdbTracklist_chapters: " + parts.length + " tracklists under headlines - written as chapters: \"" + names.join( "\", \"" ) + "\"." );
+
+    return {
+        text: blocks.join( "\n\n" ),
+        lines: rows,
+        indexed: indexed,
+        chapters: names
+    };
+}
+
 // mdbTracklist_detectInText
 // The entry point for a description. Returns the tracklist as it stands in the text - unchanged,
 // numbering and cues included, since the Tracklist Editor API is the one that normalizes it.
+// Several tracklists under headlines come back as one text with a ";Chapter" line above each -
+// see mdbTracklist_chapters().
 function mdbTracklist_detectInText( text, minTracks ) {
     var min = minTracks || mdbTracklist_minTracks,
         lines = mdbTracklist_normalize( text ).split( "\n" ),
-        runs = [],
-        run = [],
-        blankSeen = false,
-        i;
+        cleaned = [],
+        i, raw, line;
 
+    // What each line IS, decided once and kept: null for a line that was nothing but URL(s) -
+    // see the header - "" for a blank line, the URL-stripped text for everything else. An array
+    // rather than a step inside the loop below because the chapter step reads the lines ABOVE a
+    // run again, and it has to read them the same way.
     for( i = 0; i < lines.length; i++ ) {
-        var raw = lines[i].trim(),
-            line = mdbTracklist_urlLineRe.test( raw ) ? "" : mdbTracklist_stripUrls( raw );
+        raw = lines[i].trim();
+        line = mdbTracklist_urlLineRe.test( raw ) ? "" : mdbTracklist_stripUrls( raw );
 
-        // A line that was nothing but URL(s) vanishes - see the header. It does not join the
-        // run, it does not end it, and it is NOT a blank line: the track above it and the track
-        // below it are neighbours. A blank the uploader wrote around it still counts, which is
-        // why this steps over blankSeen instead of resetting it.
-        if( raw && !line ) continue;
+        cleaned.push( raw && !line ? null : line );
+    }
+
+    var runs = [],
+        run = null,
+        blankSeen = false;
+
+    for( i = 0; i < cleaned.length; i++ ) {
+        line = cleaned[i];
+
+        // A URL line vanishes - it does not join the run, it does not end it, and it is NOT a
+        // blank line: the track above it and the track below it are neighbours. A blank the
+        // uploader wrote around it still counts, which is why this steps over blankSeen instead
+        // of resetting it.
+        if( line === null ) continue;
 
         // A blank line decides nothing by itself - what follows it does. See
         // mdbTracklist_numberingContinues(): a tracklist whose tracks are separate paragraphs has
         // a blank line between every pair of them and is still one tracklist.
         if( !line ) {
-            if( run.length ) blankSeen = true;
+            if( run ) blankSeen = true;
             continue;
         }
 
         if( mdbTracklist_isCandidateLine( line ) ) {
-            if( blankSeen && !mdbTracklist_numberingContinues( run[ run.length - 1 ], line ) ) {
+            if( run && blankSeen && !mdbTracklist_numberingContinues( run.lines[ run.lines.length - 1 ], line ) ) {
                 runs.push( run );
-                run = [];
+                run = null;
             }
 
-            run.push( line );
+            // `at` remembers where each line stands in the description, so an accepted run can
+            // be traced back there - the chapter step looks for the headline ABOVE that spot.
+            if( !run ) run = { lines: [], at: [] };
+
+            run.lines.push( line );
+            run.at.push( i );
         } else {
-            if( run.length ) runs.push( run );
-            run = [];
+            if( run ) runs.push( run );
+            run = null;
         }
 
         blankSeen = false;
     }
-    if( run.length ) runs.push( run );
+    if( run ) runs.push( run );
 
-    var best = null,
+    var accepted = [],
+        best = null,
         bestScore = null;
 
     for( i = 0; i < runs.length; i++ ) {
-        var candidate = runs[i],
+        var candidate = runs[i].lines,
+            offset = 0,
             score = mdbTracklist_scoreRun( candidate );
 
         // Numbered runs are cut down to their longest ascending stretch first, so a run that
         // only borrowed its neighbour's numbering is judged on what is really left of it.
         if( score.indexed * 2 >= score.rows ) {
-            candidate = mdbTracklist_takeAscending( candidate );
+            var stretch = mdbTracklist_takeAscending( candidate );
+
+            candidate = stretch.lines;
+            offset = stretch.at;
         }
 
         score = mdbTracklist_acceptRun( candidate, min );
         if( !score ) continue;
 
+        accepted.push({
+            lines: candidate,
+            score: score,
+            from: runs[i].at[ offset ],
+            to: runs[i].at[ offset + candidate.length - 1 ]
+        });
+
         if( !best || candidate.length > best.length ) {
             best = candidate;
             bestScore = score;
         }
+    }
+
+    // More than one tracklist in one description is a mix in parts when every part has its
+    // headline - then all of them are taken, as chapters. When they cannot be (no headline,
+    // prose, a torn tracklist), the longest single run below wins as before.
+    if( accepted.length > 1 ) {
+        var chaptered = mdbTracklist_chapters( accepted, cleaned, min );
+
+        if( chaptered ) return chaptered;
     }
 
     if( !best ) {
