@@ -37,7 +37,7 @@ copied, tracking parameters removed.
 The URL MixesDB embeds, in a field with a copy button, shown when the player belongs to the page
 being visited.
 
-### TrackId.net
+### TrackId.net check
 
 **This player exists on TrackId.net**, plus whether that tracklist is integrated into MixesDB
 already – or a **Submit to TrackId.net** link when it does not.
