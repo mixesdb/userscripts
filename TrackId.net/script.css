@@ -232,3 +232,18 @@ table.mdb-tid-table {
 #mdb-replacedSearch .replaced-search-input {
 	width: calc( 100% - 75px - .5rem ); /* .5rem = .mdb-element.input padding */
 }
+
+/*
+ * Page creator adjustments
+ */
+#mdb-pageCreator-confidence * {
+    font-size: 12px !important;
+}
+#mdb-pageCreator-createColumn a {
+	color: var(--main);
+    text-decoration: none;
+    
+    &:visited {
+        color: var(--main-very-dark);
+    }
+}
