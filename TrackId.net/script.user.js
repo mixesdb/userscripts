@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.2
+// @version      2026.08.16.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,10 +13,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_89
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_17
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_21
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 113,
+var cacheVersion = 114,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -48,6 +48,12 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 // players too, marked "used" and without the "Create" link (which would only start a duplicate
 // page). On window because page_creator.js is a @require and cannot see this IIFE's scope.
 window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta phase, like on SoundCloud
+
+// Loading skeleton on audiostream pages: the grey pulsing placeholder that covers player,
+// toolkit and page creator row until they have all arrived - shared with SoundCloud, see
+// mdbSkeleton_* in shared/page_creator/page_creator.js. With this off, the pieces pop in
+// one by one; the time until everything has loaded is logged the same way in both modes.
+window.mdbSkeleton_enabled = true;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -817,6 +823,9 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     //log( embed );
 
     // embed player
+    // hearthis players arrive async via embed_hearthis_fromAnyUrl() and sit outside the
+    // extras wrapper, so both removes are needed
+    $("#mdb-tid-audiostreamExtras").remove();
     $(".mdb-player-audiostream").remove();
     if( embed != "" ) {
         // embedded player output
@@ -828,8 +837,22 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
                                       .attr( "data-tidplayerurl", playerUrl )
                                       .attr( "data-tidtitle", titleText )
                                       .append( embed );
-        jNode.closest(".audio-stream-box").append( mdbPlayerAndToolkit );
+
+        // One wrapper around player + toolkit: getToolkit's "after" placement (see the
+        // toolkit handler below) lands right behind the player and thus INSIDE this
+        // wrapper, so the shared loading skeleton can cover the whole build-up - player
+        // embed, toolkit verdict and (for SoundCloud players) the page creator row - and
+        // swap it out in one step. See mdbSkeleton_* in shared/page_creator/.
+        var tidExtras = $('<div id="mdb-tid-audiostreamExtras" class="mdb-element"></div>')
+                            .append( mdbPlayerAndToolkit );
+        jNode.closest(".audio-stream-box").append( tidExtras );
         jNode.hide();
+
+        mdbSkeleton_show({
+            target: "#mdb-tid-audiostreamExtras",
+            rows:   [ "player", "toolkit" ],
+            height: 300
+        });
     }
 
     // MixesDB page creator - only needs the player URL, so it starts alongside the embed
@@ -1878,6 +1901,19 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.16.4
+ * Audiostream pages get the loading skeleton the SoundCloud script introduced, now shared
+ * as mdbSkeleton_* in shared/page_creator/: player embed, toolkit and (for SoundCloud
+ * players) the page creator row build up hidden behind a dark grey box with pulsing
+ * stand-ins (player block + toolkit lines) and appear in one step once the toolkit verdict
+ * is in and the DOM has settled - or after a 6s cap. For that the player wrapper now sits
+ * inside a new #mdb-tid-audiostreamExtras container, which also catches the toolkit
+ * (getToolkit's "after" placement lands inside it, right behind the player); selectors on
+ * .mdb-player-audiostream and the page creator target are unchanged. hearthis players
+ * arrive through a separate async path outside the container and keep the old behaviour.
+ * New debug option window.mdbSkeleton_enabled (default true): off = pieces pop in as
+ * before, and both modes log the identical "everything loaded Xms" line for comparison.
  *
  * 2026.08.15.4
  * The "Create" link now also fills the created page's STYLE categories from TID's own "Style

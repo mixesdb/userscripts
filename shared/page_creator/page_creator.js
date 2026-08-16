@@ -1383,3 +1383,209 @@ function mdbPageCreator_tracklistWikitext() {
 
     return tl;
 }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Loading skeleton
+ *
+ * A site's MixesDB additions build up asynchronously and each piece used to pop in on its
+ * own - the toolkit once the MixesDB search answers, the page creator row once the verdict
+ * is read, buttons/dates/tracklist box after their own API answers. mdbSkeleton_show()
+ * covers that build-up with pulsing grey stand-ins (the .mdb-skeleton-loading class in
+ * page_creator.css hides every other child of the covered container while it is up) and
+ * mdbSkeleton_reveal() swaps skeleton and content in ONE step, so the area goes straight
+ * from placeholder to complete.
+ *
+ * Nothing in here looks at a specific site. The site script names its container and its
+ * stand-in rows:
+ *
+ *   mdbSkeleton_show({
+ *       target:     "#mdb-sc-trackExtras",  // selector string of the container to cover -
+ *                                           // ALL its other children are display:none'd,
+ *                                           // so it must be a container the script owns
+ *       rows:       [ "head", "dates", "buttons", "player", "toolkit" ], // any subset, in
+ *                                           // order; default [ "toolkit" ]
+ *       height:     300,                    // px, optional - default is the 230px in
+ *                                           // page_creator.css
+ *       extraReady: function() { ... }      // optional site condition on top of the
+ *                                           // toolkit verdict (e.g. "my buttons are in")
+ *   });
+ *
+ * Revealed when the toolkit verdict is in the DOM (the same li.filled selector
+ * mdbPageCreator_watchToolkit() polls), extraReady() - if given - returns true, and nothing
+ * has changed inside the container for mdbSkeleton_settleMs. The settle window is what lets
+ * the page creator row and a tracklist box (which follow the verdict within a
+ * waitForKeyElements poll or two) slip in before the swap. mdbSkeleton_maxMs caps the whole
+ * wait: after that, whatever has arrived is shown as-is.
+ *
+ * SPA navigation and a site wiping the container both simply remove skeleton and container
+ * together; the site script calls mdbSkeleton_show() again when it recreates the container,
+ * which is why it starts by clearing the previous run's timers.
+ *
+ * window.mdbSkeleton_enabled (site script debug settings, default true) turns the covering
+ * off: the pieces then pop in one by one as they used to, but the readiness watch still
+ * runs and the time until everything has loaded is logged with the SAME wording in both
+ * modes, so they can be compared log against log.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var mdbSkeleton_checkTimer = null,
+    mdbSkeleton_capTimer = null,
+    mdbSkeleton_observer = null,
+    mdbSkeleton_lastMutation = 0,
+    mdbSkeleton_startedAt = 0,
+    mdbSkeleton_active = false,
+    mdbSkeleton_target = "",
+    mdbSkeleton_extraReady = null;
+
+var mdbSkeleton_settleMs = 600,
+    mdbSkeleton_maxMs = 6000;
+
+// mdbSkeleton_html
+// The stand-in rows, composed from the row names the site passed. The shapes and sizes live
+// in page_creator.css; the sites share one vocabulary so the skeleton looks the same
+// everywhere: "head" (headline + artwork bar), "dates", "buttons" (pill row), "player"
+// (embed-sized block) and "toolkit" (the block that also absorbs the box's leftover height).
+function mdbSkeleton_html( rows ) {
+    function bars( n ) {
+        var out = "", i;
+        for( i = 0; i < n; i++ ) {
+            out += '<div class="mdb-skeleton-bar"></div>';
+        }
+        return out;
+    }
+
+    var html = '<div id="mdb-skeleton">',
+        i;
+
+    for( i = 0; i < rows.length; i++ ) {
+        switch( rows[i] ) {
+            case "head":
+                html += '<div class="mdb-skeleton-head">'
+                      +     '<div class="mdb-skeleton-bar mdb-skeleton-headline"></div>'
+                      +     '<div class="mdb-skeleton-bar mdb-skeleton-artwork"></div>'
+                      + '</div>';
+                break;
+            case "dates":
+                html += '<div class="mdb-skeleton-row mdb-skeleton-dates">' + bars(3) + '</div>';
+                break;
+            case "buttons":
+                html += '<div class="mdb-skeleton-row mdb-skeleton-buttons">' + bars(3) + '</div>';
+                break;
+            case "player":
+                html += '<div class="mdb-skeleton-bar mdb-skeleton-player"></div>';
+                break;
+            case "toolkit":
+                html += '<div class="mdb-skeleton-block mdb-skeleton-toolkit">' + bars(2) + '</div>';
+                break;
+        }
+    }
+
+    return html + '</div>';
+}
+
+// mdbSkeleton_show
+function mdbSkeleton_show( options ) {
+    logFunc( "mdbSkeleton_show" );
+
+    var wrapper = $( options.target );
+
+    if( wrapper.length === 0 ) {
+        log( "mdbSkeleton_show: \"" + options.target + "\" not found - nothing to cover." );
+        return;
+    }
+
+    // A previous skeleton's timers may still be running (the site wiped the container
+    // mid-load and recreated it) - they would reveal the new skeleton on the old clock.
+    mdbSkeleton_stop();
+    $("#mdb-skeleton").remove();
+
+    mdbSkeleton_target = options.target;
+    mdbSkeleton_extraReady = options.extraReady || null;
+
+    // Read at call time, not load time: the option lives in the site script, whose body
+    // runs after this @require'd file.
+    mdbSkeleton_active = window.mdbSkeleton_enabled !== false;
+
+    if( mdbSkeleton_active ) {
+        // Appended, not prepended, so a container whose first child carries layout duties
+        // (SC's floated #mdb-sc-trackHead) keeps it. While loading the siblings are
+        // display:none anyway, and the reveal removes the skeleton in the same step it
+        // shows them.
+        wrapper.append( mdbSkeleton_html( options.rows || [ "toolkit" ] ) ).addClass( "mdb-skeleton-loading" );
+
+        if( options.height ) {
+            $("#mdb-skeleton").css( "height", options.height + "px" );
+        }
+    } else {
+        log( "mdbSkeleton_show: skeleton disabled (window.mdbSkeleton_enabled) - pieces pop in as they arrive, the load is only timed." );
+    }
+
+    mdbSkeleton_startedAt = Date.now();
+    mdbSkeleton_lastMutation = mdbSkeleton_startedAt;
+
+    // attributes:true because the toolkit verdict arrives as a class flip (.filled) on an
+    // already-present li, not as a new node - it has to count as activity too.
+    mdbSkeleton_observer = new MutationObserver(function() {
+        mdbSkeleton_lastMutation = Date.now();
+    });
+    mdbSkeleton_observer.observe( wrapper.get(0), { childList: true, subtree: true, attributes: true, characterData: true } );
+
+    mdbSkeleton_checkTimer = setInterval( mdbSkeleton_check, 150 );
+    mdbSkeleton_capTimer = setTimeout(function() {
+        mdbSkeleton_reveal( "max wait of " + mdbSkeleton_maxMs + "ms reached - not everything arrived" );
+    }, mdbSkeleton_maxMs );
+
+    log( "mdbSkeleton_show: " + ( mdbSkeleton_active ? "skeleton up" : "timing only" ) + " on \"" + mdbSkeleton_target + "\", waiting for the toolkit verdict" + ( mdbSkeleton_extraReady ? " + extraReady()" : "" ) + " (settle " + mdbSkeleton_settleMs + "ms, cap " + mdbSkeleton_maxMs + "ms)." );
+}
+
+// mdbSkeleton_check
+function mdbSkeleton_check() {
+    var wrapper = $( mdbSkeleton_target );
+
+    // SPA navigation or the site's own re-render removed the container (and the skeleton
+    // with it) - stop quietly, the site script starts a fresh skeleton when it recreates
+    // the container. In timing-only mode there is no skeleton node to check.
+    if( wrapper.length === 0 || ( mdbSkeleton_active && $("#mdb-skeleton").length === 0 ) ) {
+        log( "mdbSkeleton_check: container or skeleton gone - stopping timers." );
+        mdbSkeleton_stop();
+        return;
+    }
+
+    // the exact selector mdbPageCreator_watchToolkit() polls for the verdict
+    var toolkitDone = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.filled").length !== 0,
+        extraDone = mdbSkeleton_extraReady ? mdbSkeleton_extraReady() : true,
+        quietFor = Date.now() - mdbSkeleton_lastMutation;
+
+    if( toolkitDone && extraDone && quietFor >= mdbSkeleton_settleMs ) {
+        mdbSkeleton_reveal( "toolkit verdict" + ( mdbSkeleton_extraReady ? " + extraReady()" : "" ) + " present, container quiet for " + quietFor + "ms" );
+    }
+}
+
+// mdbSkeleton_stop
+function mdbSkeleton_stop() {
+    if( mdbSkeleton_checkTimer ) { clearInterval( mdbSkeleton_checkTimer ); mdbSkeleton_checkTimer = null; }
+    if( mdbSkeleton_capTimer )   { clearTimeout( mdbSkeleton_capTimer );    mdbSkeleton_capTimer = null; }
+    if( mdbSkeleton_observer )   { mdbSkeleton_observer.disconnect();       mdbSkeleton_observer = null; }
+}
+
+// mdbSkeleton_reveal
+function mdbSkeleton_reveal( reason ) {
+    logFunc( "mdbSkeleton_reveal" );
+
+    // The line the two modes are compared by - identical wording with and without skeleton.
+    log( "mdbSkeleton_reveal: everything loaded " + ( Date.now() - mdbSkeleton_startedAt ) + "ms after the container was created (" + ( mdbSkeleton_active ? "skeleton shown" : "skeleton disabled, timing only" ) + "). Reason: " + reason + "." );
+
+    mdbSkeleton_stop();
+
+    // Timing-only mode: nothing to swap, the pieces are already on the page.
+    if( !mdbSkeleton_active ) {
+        return;
+    }
+
+    // Class off and skeleton out in the same synchronous step - no frame ever paints the
+    // placeholder and the real content together. mdb-skeleton-revealed fades the children in.
+    $( mdbSkeleton_target ).removeClass( "mdb-skeleton-loading" ).addClass( "mdb-skeleton-revealed" );
+    $("#mdb-skeleton").remove();
+}

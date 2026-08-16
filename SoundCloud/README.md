@@ -55,11 +55,10 @@ afterwards is left alone. Works with English and German account locales.
 
 ### Loading placeholder
 
-Everything this script adds below the player – headline, dates, buttons, toolkit and tracklist
-box – arrives from different API answers, each a moment after the other. Until they are all in,
-a grey pulsing placeholder holds their space, and the finished block then appears in one step
-instead of piece by piece. If an answer takes too long, whatever has arrived is shown after a
-few seconds. Only on the redesigned track pages.
+Until everything below the player has arrived – headline, dates, buttons, toolkit and tracklist
+box – a grey pulsing placeholder holds their space and the finished block appears in one step –
+see [Page creator](../shared/page_creator/#loading-placeholder). Only on the redesigned track
+pages.
 
 ### Filters on streams, profiles and playlists
 

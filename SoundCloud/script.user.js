@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.2
+// @version      2026.08.16.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,11 +12,11 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_59
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_17
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_52
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_22
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -42,6 +42,13 @@
 // With this on, the row is shown for used players too, marked "used" and without the "Create"
 // link (which would only start a duplicate page).
 window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta phase
+
+// Track page loading skeleton (new layout): the grey pulsing placeholder that covers the
+// wrapper below the Track header until buttons, toolkit and tracklist box have all arrived -
+// shared with TrackId.net, see mdbSkeleton_* in shared/page_creator/page_creator.js.
+// With this off, the pieces pop in one by one as they used to. The time until everything
+// has loaded is logged the same way in BOTH modes, so they can be compared log against log.
+window.mdbSkeleton_enabled = true;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -170,7 +177,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 108,
+var cacheVersion = 110,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1444,8 +1451,18 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
             // Everything async that lands in this wrapper (buttons/dates from the SC API,
             // the toolkit's MixesDB verdict, the page creator row, the tracklist box) used
             // to pop in piece by piece. Cover the build-up with the pulsing grey skeleton
-            // instead and swap it out in one step - see scSkeleton_* in script.funcs.js.
-            scSkeleton_show();
+            // instead and swap it out in one step - see mdbSkeleton_* in
+            // shared/page_creator/page_creator.js.
+            mdbSkeleton_show({
+                target: "#mdb-sc-trackExtras",
+                rows:   [ "head", "dates", "buttons", "toolkit" ],
+                extraReady: function() {
+                    // buttons built from the API answer, or the API failure note (a direct
+                    // wrapper child) - either way the SC API side is done
+                    return $("#mdb-sc-trackButtons").children().length !== 0
+                           || $("#mdb-sc-trackExtras").children("p.mdb-warning").length !== 0;
+                }
+            });
 
             // toolkit goes full-width at the very end of the wrapper (below buttons and toggle
             // target), instead of being squeezed into the old sidebar column
@@ -1639,6 +1656,27 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.16.4
+ * The loading skeleton moved to shared/page_creator/ (mdbSkeleton_* in page_creator.js,
+ * styles in page_creator.css) so TrackId.net gets it too: scSkeleton_* left script.funcs.js
+ * and the skeleton CSS left script.css. This script now passes its specifics to
+ * mdbSkeleton_show(): the wrapper selector, the stand-in rows (head/dates/buttons/toolkit)
+ * and an extraReady() check for the SC API side (buttons built, or the failure note).
+ * Behaviour on SoundCloud is unchanged, including the tuned 230px height (now the shared
+ * default); the debug flag was renamed window.scSkeleton_enabled ->
+ * window.mdbSkeleton_enabled.
+ *
+ * 2026.08.16.3
+ * Skeleton follow-ups. Fixed 320px height instead of the stand-ins' natural height, which
+ * rendered clearly taller than the typical content: 320px is the height of a page WITHOUT
+ * a tracklist box (most descriptions hold none), so the tracklist stand-in is gone - a page
+ * that does get one grows in the one reveal step. Flex column, the fixed rows keep their
+ * size and the toolkit stand-in absorbs the remainder, so nothing is clipped mid-bar.
+ * New window.scSkeleton_enabled option in the debug settings block (default true): with it
+ * off the pieces pop in one by one as before, but the readiness watch still runs, and the
+ * "everything loaded Xms after the wrapper was created" log line is written with identical
+ * wording in both modes, so skeleton on/off can be compared log against log.
  *
  * 2026.08.16.2
  * New-layout track pages no longer build up piece by piece ("very flashy"): the moment

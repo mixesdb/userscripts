@@ -674,7 +674,9 @@ var mdbTitleNoise = [
  * on an ordinary phrase - "Live with Love - Some Artist" reads as the artists "Live, Love".
  * "with" is in the list because it is the far more common case on a mix title, but it is the
  * one entry worth removing if that turns out to be the wrong trade. Shorthands like "w/"
- * carry no such risk, so prefer them when extending the list.
+ * carry no such risk, so prefer them when extending the list. "w." sits in between: it can
+ * collide with an initial inside a name ("Andrew W. K."), which is rare enough on a mix
+ * title to take.
  *
  * One shape is known to misfire and is ruled out: a connector with the series NUMBER behind it
  * stands INSIDE a name and introduces nobody.
@@ -692,6 +694,7 @@ var mdbTitleNoise = [
  */
 var mdbTitleExtraArtistConnectors = [
     "w/",
+    "w.",
     "with"
 ];
 

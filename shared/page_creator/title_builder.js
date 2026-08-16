@@ -1928,7 +1928,7 @@ function mdbTitle_cleanArtist( s ) {
 
     // leading connectors: "w/ Ruf Dug", "presents Ruf Dug", ...
     s = mdbTitle_trimSeparators( s );
-    s = s.replace( /^(?:w\/|with|feat\.?|ft\.?|presents?|pres\.?)\s+/i, "" );
+    s = s.replace( /^(?:w\/|w\.|with|feat\.?|ft\.?|presents?|pres\.?)\s+/i, "" );
 
     // "by Neryn" is the same thing, but only where the "by" is not a word of the name itself -
     // see the "by" block in title_definitions.js
