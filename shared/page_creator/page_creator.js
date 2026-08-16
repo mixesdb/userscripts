@@ -1296,7 +1296,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.empty();
 
     // 1) the chunks the player title split into
-    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks", "the player title, split at its separators and brackets" );
+    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks", "the units of the parse - split at separators, brackets and a series' \"by\"; these are also the lookup candidates" );
 
     if( trace ) {
         s1.append(

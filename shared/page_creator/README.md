@@ -49,7 +49,9 @@ never overwritten.
 Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
 learning" line can name the step that went wrong:
 
-1. **Title chunks** – the pieces the player title split into, plus the channel name
+1. **Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
+   a separator, at a bracket, and at the `by` in front of a numbered series (`Guestroom 779 by
+   Sascha Sibler` is two chunks) – the same units the lookups are sent for
 2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, label credits,
    the date that was read out, joiners rewritten, chunks a mix page title does not carry
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
