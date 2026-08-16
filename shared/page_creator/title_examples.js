@@ -440,6 +440,15 @@ var mdbTitleExamples = [
         expectArtists: [ "Alemiko" ],
         expect: "2026-08-12 - Alemiko - Dualism Series 031"
     },
+    {
+        url: "https://soundcloud.com/frenzynl/frenzypodcast-233-glia",
+        title: "FrenzyPodcast #233 - GLIA",
+        channel: "Frenzy",
+        date: "2026-08-14",
+        // the channel is mapped to "Frenzy Podcast", and the mapped value is the spelling the
+        // title carries - the title's glued "FrenzyPodcast" must not override it
+        expect: "2026-08-14 - Glia - Frenzy Podcast 233"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {

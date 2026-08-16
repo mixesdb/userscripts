@@ -106,6 +106,15 @@ function mdbTitle_escapeRe( s ) {
     return String( s ).replace( /[.*+?^${}()|[\]\\]/g, "\\$&" );
 }
 
+// mdbTitle_escapeReLooseSpaces
+// A name as a pattern whose INNER spaces are optional: "Frenzy Podcast" also matches
+// "FrenzyPodcast". Everything else is escaped as usual, so only the spacing is loose - the
+// whole name still has to stand there, and the callers still put word boundaries around it.
+// See "A name written without its spaces" in title_definitions.js.
+function mdbTitle_escapeReLooseSpaces( name ) {
+    return mdbTitle_escapeRe( String( name || "" ) ).split( /\s+/ ).join( "\\s*" );
+}
+
 // mdbTitle_normalizeCompare
 // Strips everything but letters/digits, so "DJ MARIA." and "dj maria" compare equal
 function mdbTitle_normalizeCompare( s ) {
@@ -650,11 +659,14 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
 
     // The pattern differs between a mapped and an unmapped channel, so the group numbers are
     // tracked as they are built - a hard-coded m[2]/m[3] would silently read the wrong group.
-    var pattern = "(^|[^\\w])" + mdbTitle_escapeRe( show ),
+    // The name is a group of its own because its spaces are optional: how long it stands in the
+    // title is not its own length ("FrenzyPodcast" is 14 characters of "Frenzy Podcast").
+    var pattern = "(^|[^\\w])(" + mdbTitle_escapeReLooseSpaces( show ) + ")",
+        nameGroup = 2,
         suffixGroup = 0,
         wordGroup = 0,
         numberGroup = 0,
-        groups = 1;
+        groups = 2;
 
     if( allowExtend ) {
         // "HATE" + " Podcast" -> the show is "HATE Podcast"
@@ -688,9 +700,14 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
     //   channel "DIRTYBIRD" + "Dirtybird Radio 540"  ->  "Dirtybird Radio 540"
     // Any other channel spelling is the brand's own and keeps its case, which is what makes
     // "Trommel.251" on the channel "trommel" come out as "trommel.251".
-    var shownAs = text.substr( index, show.length );
+    // Only the CASE is ever taken from the title, never the SPACING: a title writing the name
+    // glued ("FrenzyPodcast") is matched by the loose spaces above, and the name still goes
+    // into the suggestion spelled the way its own side spells it. Equal length says the spacing
+    // is the same, since the two can only differ in case and in whitespace by then.
+    var shownAs = m[nameGroup];
 
-    if( shownAs !== show && show === show.toUpperCase() && show !== show.toLowerCase() ) {
+    if( shownAs !== show && shownAs.length === show.length &&
+        show === show.toUpperCase() && show !== show.toLowerCase() ) {
         logVar( "mdbTitle_takeShowOutOfTitle: channel is all caps, title spelling wins", show + " -> " + shownAs );
         result.show = shownAs;
     }

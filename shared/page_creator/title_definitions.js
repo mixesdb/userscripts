@@ -286,6 +286,20 @@ var mdbTitlePromoMixImpliedWords = [
  *       "Some Artist": ""      ->  "2026-04-03 - Some Artist"
  * - A channel that is NOT listed here falls back to its raw channel name, so the common
  *   case of an unmapped show still produces something usable.
+ * - The VALUE is the show as MixesDB writes it, and it is used twice: as the entity spelled
+ *   out in the title and - with the episode number stripped - as the category the page is
+ *   filed under. The title never overrides a mapped value; see the next note.
+ *
+ * A name written without its spaces:
+ * Uploaders glue a name into one word as readily as they space it out - "FrenzyPodcast #233"
+ * for the show "Frenzy Podcast". A name is therefore matched with its INNER spaces optional
+ * (mdbTitle_escapeReLooseSpaces), so the curated name is still found in the title and taken
+ * out of it, and the suggestion carries the curated spelling, never the glued one. Without
+ * this the mapped name is simply "not in the title", and the rule that reads a show off the
+ * title ("<Show> #NNN - <Artist>") wins with the uploader's spelling - that is exactly the
+ * reported "FrenzyPodcast 233". Only the spacing is loose: the whole name still has to stand
+ * there, word boundaries around it and all, and it holds for a raw channel name the same way
+ * it holds for a mapped one.
  */
 var mdbTitleUsernameConversions = {
     "Frenzy": "Frenzy Podcast", // Not FrenzyPodcast
