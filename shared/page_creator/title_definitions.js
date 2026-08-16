@@ -441,7 +441,7 @@ var mdbTitleLabelWords = /\b(?:labels?|records?|recordings?|recs?|imprint|schall
  * kept, not a name deleted) and is rare enough to leave: taking it on means trying every way of
  * re-joining the parts, which is a lot of machinery for a bracket nobody has reported yet.
  */
-var mdbTitleLabelSeparators = /\s*[,;\/|•·]+\s*|\s+[-–—+&]\s+|\s+(?:x|and|und)\s+/i;
+var mdbTitleLabelSeparators = /\s*[,;\/|•·]+\s*|\s+[-–—+&]\s+|\s+(?:x|and|und|by)\s+/i;
 
 var mdbTitleKnownLabels = [
     "2DIY4",
