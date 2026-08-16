@@ -28,6 +28,20 @@
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var cacheVersion = 20,
+    scriptName = "Player_Checker";
+window.scriptName = scriptName; // toolkit.js reads this global directly
+
+loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Matching URLs
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -44,20 +58,6 @@ https://www.toxicfamily.de/2024/09/26/tofa-nightshift-vom-25-09-2024-mit-grille-
 https://wearesoundspace.com/mix386-luca-olivotto/
 https://wearesoundspace.com/in-focus-008-break-3000-dirt-crew-recordings/
 */
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Load @ressource files with variables
- * global.js URL needs to be changed manually
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-var cacheVersion = 20,
-    scriptName = "Player_Checker";
-window.scriptName = scriptName; // toolkit.js reads this global directly
-
-loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

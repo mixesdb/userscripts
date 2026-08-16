@@ -23,6 +23,21 @@
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var cacheVersion = 13,
+    scriptName = "MixesDB_Userscripts_Helper";
+window.scriptName = scriptName; // toolkit.js reads this global directly
+
+//loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * User settings
  * You need to set these on each update, but updates happen rarely for this script
  *
@@ -61,21 +76,6 @@ const trackIdnet_addLinks = 1; // default: 1
 // Add search icons for Apple Podcasts to mix page title icons and Explorer mix results
 // Set 0 to disable
 const applePodcasts_addSearchIcons = 1; // default: 1
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
- * Load @ressource files with variables
- * global.js URL needs to be changed manually
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-var cacheVersion = 13,
-    scriptName = "MixesDB_Userscripts_Helper";
-window.scriptName = scriptName; // toolkit.js reads this global directly
-
-//loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
-loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

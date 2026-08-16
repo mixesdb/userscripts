@@ -28,6 +28,22 @@
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ * Only the declarations live up here: the CSS itself loads in
+ * "Loading CSS" further down, after the frame opt-out, so foreign
+ * frames (widget players etc.) stay untouched
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+var cacheVersion = 112,
+    scriptName = "SoundCloud";
+window.scriptName = scriptName; // toolkit.js reads this global directly
+logVar( "scriptName", scriptName );
+logVar( "cacheVersion", cacheVersion );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Debug settings
  *
  * All off in the shipped script - flip one to true while working on a feature.
@@ -176,12 +192,6 @@ function getScPlayerUrl() {
  * Constants
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-var cacheVersion = 112,
-    scriptName = "SoundCloud";
-window.scriptName = scriptName; // toolkit.js reads this global directly
-logVar( "scriptName", scriptName );
-logVar( "cacheVersion", cacheVersion );
 
 const xedItemsStorageKey = 'mdb-soundcloud-xed-items',
       hideXedItemsKey = 'mdb-soundcloud-hide-xed',

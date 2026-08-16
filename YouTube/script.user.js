@@ -21,6 +21,19 @@
 
 (function() {
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Load @ressource files with variables
+ * global.js URL needs to be changed manually
+ * Only the declarations live up here (they cannot throw): the CSS
+ * itself loads in "Load CSS" further down, after the @require check
+ * had its chance to report a dead global.js - loadRawCss() lives there
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+var cacheVersion = 31,
+    scriptName = "YouTube";
+window.scriptName = scriptName; // toolkit.js reads this global directly
+
 console.log( "YouTube userscript init" );
 
 
@@ -131,14 +144,11 @@ if( !/(^|\.)youtube\.com$/.test( window.location.hostname ) && window.location.h
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Load @ressource files with variables
- * global.js URL needs to be changed manually
+ * Load CSS
+ * cacheVersion/scriptName sit at the top of the IIFE - only the
+ * loadRawCss() calls stay down here, behind the @require check
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-var cacheVersion = 31,
-    scriptName = "YouTube";
-window.scriptName = scriptName; // toolkit.js reads this global directly
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
