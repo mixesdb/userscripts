@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.6
+// @version      2026.08.16.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 116,
+var cacheVersion = 117,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -849,12 +849,15 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
         jNode.hide();
 
         // The player itself is NOT covered (keep): its embed is built right here and should
-        // play as early as possible - the skeleton only holds the space below it, where the
-        // toolkit (and, inside the player wrapper, the page creator row) will appear.
+        // play as early as possible. The skeleton holds the space below it, where page
+        // creator row and toolkit appear together at the reveal - the row is placed "after"
+        // the player wrapper (funcTidPageCreator), so it is a hidden direct child of the
+        // extras wrapper like the toolkit, not a visible part of the kept player.
+        // No height option: the default in page_creator.css is the one source of truth -
+        // an inline height here would silently win over any value tuned in the CSS.
         mdbSkeleton_show({
             target: "#mdb-tid-audiostreamExtras",
             rows:   [ "toolkit" ],
-            height: 120,
             keep:   ".mdb-player-audiostream"
         });
     }
@@ -942,10 +945,13 @@ function funcTidPageCreator( playerUrl ) {
                     description:  t.description,
                     // the values above are SoundCloud's, so a report reads "SC title:" here too
                     sourceLabel:  "SC",
-                    // inside our own player wrapper, below the embed iframe - the toolkit sits
-                    // right after that wrapper, so the row lands between player and toolkit
+                    // "after" the player wrapper, not appended INTO it: the row becomes a
+                    // direct child of #mdb-tid-audiostreamExtras between player and toolkit,
+                    // which is what lets the loading skeleton cover it - the player wrapper
+                    // itself stays visible (keep) while everything loads, so a row inside it
+                    // would pop in before the one reveal
                     target:       ".mdb-player-audiostream",
-                    placement:    "append",
+                    placement:    "after",
                     // TID's own tracklist box: what is in it when "Create" is clicked goes
                     // onto the new page, and its API verdict files the "Tracklist:" category
                     tracklistBox: "#tlEditor #mixesdb-TLbox",
@@ -1905,6 +1911,16 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.16.8
+ * ONE skeleton for page creator row + toolkit, and the CSS owns the height. The row was
+ * appended INTO the kept (always visible) player wrapper, so it popped in on its own before
+ * the reveal and the covered area below changed size - now it is placed "after" the player
+ * wrapper, a hidden direct child of #mdb-tid-audiostreamExtras between player and toolkit,
+ * revealed together with the toolkit in the one swap (order stays player > row > toolkit:
+ * .after(player) inserts in front of the toolkit whichever of the two renders first). The
+ * call's height option is gone: it set an inline style that silently beat any height tuned
+ * in page_creator.css - the CSS default is now the one source of truth for all sites.
  *
  * 2026.08.16.5
  * The embedded player is no longer covered by the loading skeleton: its embed markup is
