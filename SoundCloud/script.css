@@ -322,11 +322,18 @@ a.sc_button-mdb:hover {
    script.user.js. --mui-error-dark-color is SoundCloud's own error color, read live off the
    top document (#b40030); the fallback IS that value, for a document that does not define it.
    The :hover line keeps the red fill against .sc_button-mdb:hover's own background-color,
-   which is more specific than the bare id+class. */
+   which is more specific than the bare id+class.
+
+   It is a LABEL here, not a control: the file details it would open are the wikitext for a mix
+   page this track will never get, so script.user.js leaves the toggle off it. The cursor has to
+   say the same thing - .sc_button-mdb sets "pointer" on every button in the row - and so does
+   the border, which would otherwise still light up on hover and promise a click. */
 #mdb-fileInfo.mdb-fileInfo-tooShort,
 #mdb-sc-trackButtons #mdb-fileInfo.mdb-fileInfo-tooShort:hover {
     background-color: #ffadc4a3;
     color: var(--mui-error-dark-color, #b40030);
+    border-color: var(--mui-palette-contrast-outlinedBorder, rgba(250, 250, 250, 0.24));
+    cursor: default;
 }
 
 /* Artwork info bar is its own block here, not an overlay on the artwork:
