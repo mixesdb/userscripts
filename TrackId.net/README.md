@@ -45,8 +45,8 @@ MixesDB page.
 
 ### Loading placeholder
 
-Until the embedded player, the toolkit and the page creator row have all arrived, a grey pulsing
-placeholder holds their space and the finished block appears in one step – see
+The embedded player shows straight away; below it, a grey pulsing placeholder holds the space of
+the toolkit and the page creator row until they have arrived, and they appear in one step – see
 [Page creator](../shared/page_creator/#loading-placeholder).
 
 ### MixesDB page creator

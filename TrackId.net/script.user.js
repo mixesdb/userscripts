@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.5
+// @version      2026.08.16.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_22
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_23
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 114,
+var cacheVersion = 116,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -49,10 +49,11 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 // page). On window because page_creator.js is a @require and cannot see this IIFE's scope.
 window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta phase, like on SoundCloud
 
-// Loading skeleton on audiostream pages: the grey pulsing placeholder that covers player,
-// toolkit and page creator row until they have all arrived - shared with SoundCloud, see
-// mdbSkeleton_* in shared/page_creator/page_creator.js. With this off, the pieces pop in
-// one by one; the time until everything has loaded is logged the same way in both modes.
+// Loading skeleton on audiostream pages: the grey pulsing placeholder below the embedded
+// player (which shows straight away) until toolkit and page creator row have arrived -
+// shared with SoundCloud, see mdbSkeleton_* in shared/page_creator/page_creator.js. With
+// this off, the pieces pop in one by one; the time until everything has loaded is logged
+// the same way in both modes.
 window.mdbSkeleton_enabled = true;
 
 
@@ -840,18 +841,21 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
 
         // One wrapper around player + toolkit: getToolkit's "after" placement (see the
         // toolkit handler below) lands right behind the player and thus INSIDE this
-        // wrapper, so the shared loading skeleton can cover the whole build-up - player
-        // embed, toolkit verdict and (for SoundCloud players) the page creator row - and
+        // wrapper, so the shared loading skeleton can cover the toolkit's build-up and
         // swap it out in one step. See mdbSkeleton_* in shared/page_creator/.
         var tidExtras = $('<div id="mdb-tid-audiostreamExtras" class="mdb-element"></div>')
                             .append( mdbPlayerAndToolkit );
         jNode.closest(".audio-stream-box").append( tidExtras );
         jNode.hide();
 
+        // The player itself is NOT covered (keep): its embed is built right here and should
+        // play as early as possible - the skeleton only holds the space below it, where the
+        // toolkit (and, inside the player wrapper, the page creator row) will appear.
         mdbSkeleton_show({
             target: "#mdb-tid-audiostreamExtras",
-            rows:   [ "player", "toolkit" ],
-            height: 300
+            rows:   [ "toolkit" ],
+            height: 120,
+            keep:   ".mdb-player-audiostream"
         });
     }
 
@@ -1901,6 +1905,14 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.16.5
+ * The embedded player is no longer covered by the loading skeleton: its embed markup is
+ * built right on the spot, so hiding it only delayed playback for no calmer page. New keep
+ * option of mdbSkeleton_show() (shared/page_creator/): direct children matching it stay
+ * visible while loading and are skipped by the reveal fade, so the player does not blink
+ * at the swap. The skeleton now only holds the space below the player (rows: toolkit,
+ * 120px) where toolkit and page creator row appear.
  *
  * 2026.08.16.4
  * Audiostream pages get the loading skeleton the SoundCloud script introduced, now shared

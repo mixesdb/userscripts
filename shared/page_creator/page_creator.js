@@ -1408,6 +1408,11 @@ function mdbPageCreator_tracklistWikitext() {
  *                                           // order; default [ "toolkit" ]
  *       height:     300,                    // px, optional - default is the 230px in
  *                                           // page_creator.css
+ *       keep:       ".mdb-player-audiostream", // optional - direct children matching this
+ *                                           // stay visible while loading (and are skipped
+ *                                           // by the reveal fade): an embedded player that
+ *                                           // should show straight away, say. They must
+ *                                           // already be in the container when show() runs
  *       extraReady: function() { ... }      // optional site condition on top of the
  *                                           // toolkit verdict (e.g. "my buttons are in")
  *   });
@@ -1529,6 +1534,12 @@ function mdbSkeleton_show( options ) {
         // display:none anyway, and the reveal removes the skeleton in the same step it
         // shows them.
         wrapper.append( mdbSkeleton_html( options.rows || [ "toolkit" ] ) ).addClass( "mdb-skeleton-loading" );
+
+        // Marked rather than matched in the CSS, so the stylesheet stays static. Same
+        // synchronous step as the class above - no frame ever paints them hidden.
+        if( options.keep ) {
+            wrapper.children( options.keep ).addClass( "mdb-skeleton-keep" );
+        }
 
         if( options.height ) {
             $("#mdb-skeleton").css( "height", options.height + "px" );
