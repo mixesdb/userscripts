@@ -155,7 +155,7 @@ placeholder only holds the space below it.
 
 1. ✅ **MixesDB name lookup** – live since 2026-08-16. The wiki answers what a name is – artist,
    podcast, show, venue, event – case-insensitively and in its own spelling, and the suggested
-   title uses that answer (`trommel` → `Trommel.251`, `asa 808` → `ASA 808`, known venues become
+   title uses that answer (`asa 808` → `ASA 808`, known venues become
    `@ Venue, City`, known podcasts stop getting `(Promo Mix)` wrongly).
 2. **Double-check info in the row** – links to the found categories with type and mix count, the
    category *family* around a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
