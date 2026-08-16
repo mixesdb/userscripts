@@ -1182,7 +1182,7 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
             break;
 
         case "tracklist":
-            note.append( mdbPageCreator_reasoningNote( "what the Tracklist Editor last said about the tracklist box", "muted" ) );
+            note.append( mdbPageCreator_reasoningNote( "what the Tracklist Editor feedback last said about the tracklist box", "muted" ) );
             break;
     }
 
