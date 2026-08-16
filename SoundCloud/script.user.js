@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.1
+// @version      2026.08.16.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_51
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_52
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -170,7 +170,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 107,
+var cacheVersion = 108,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1441,6 +1441,12 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
 
             watchTrackExtrasForRemoval( $("#mdb-sc-trackExtras").get(0) );
 
+            // Everything async that lands in this wrapper (buttons/dates from the SC API,
+            // the toolkit's MixesDB verdict, the page creator row, the tracklist box) used
+            // to pop in piece by piece. Cover the build-up with the pulsing grey skeleton
+            // instead and swap it out in one step - see scSkeleton_* in script.funcs.js.
+            scSkeleton_show();
+
             // toolkit goes full-width at the very end of the wrapper (below buttons and toggle
             // target), instead of being squeezed into the old sidebar column
             log( "Calling getToolkit() for #mdb-sc-trackExtras." );
@@ -1633,6 +1639,20 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.16.2
+ * New-layout track pages no longer build up piece by piece ("very flashy"): the moment
+ * #mdb-sc-trackExtras is created it shows a dark grey skeleton - pulsing bars shaped like
+ * the content to come (headline, artwork bar, dates, button pills, toolkit, tracklist box) -
+ * while the real elements assemble hidden underneath (display:none is safe there: the one
+ * thing that measures itself, the tracklist textarea, sizes via its rows attribute counted
+ * from the text). One reveal swaps skeleton for content: SC API buttons and the toolkit
+ * verdict present plus 600ms of wrapper quiet - which lets the page creator row and a
+ * description tracklist slip in - or a 6s cap that shows whatever arrived. The API failure
+ * note counts as the API being done, so a dead API does not hold the page; a
+ * comments-fetched tracklist may still pop in after the reveal (rare, sits at the bottom).
+ * Re-shows when SoundCloud's React wipes the wrapper and the Track header handler recreates
+ * it. scSkeleton_* in script.funcs.js, styles in script.css; old layout untouched.
  *
  * 2026.08.15.6
  * formatScDate() and scArtworkOriginalUrl() moved from script.funcs.js to api_funcs.js:
