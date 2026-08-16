@@ -1,5 +1,16 @@
 # API request to the MixesDB maintainer
 
+> **ANSWERED – the maintainer shipped `action=mdbnames` on 2026-08-16**, and it delivers
+> everything below. Deltas against the ask, verified live: `names` is capped at 10 (as we
+> asked), `recentlimit=0..10` replaces the fixed `recent` idea, `formatversion=2` returns
+> `mdbnames` as an array of `{ name, matches: [...] }` preserving input order, and matching is
+> *looser* than requested in a good way – `Autonomic` finds `Autonomic (Show)` (the qualifier
+> rule), `Dekmantel` follows the redirect to `Dekmantel Festival`, `Panorama Bar` resolves to
+> `Berghain`, and typeless categories are skipped – while `MOLTO IN THE MIX` still returns
+> empty, so the left-strip danger stayed out. `origin=*` CORS works. The client lives in
+> `title_builder.js` (`mdbTitle_lookupCategories`). This document stays as the contract's
+> rationale.
+
 **What we would like:** one API call that takes a list of names and answers, for each, *does
 MixesDB have a category of that name, and what kind of thing is it* – matched
 **case-insensitively**.

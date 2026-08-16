@@ -1600,20 +1600,108 @@ function mdbTitle_dropLocationChunks( text ) {
  * series) from a podcast called "Vintage Vinyl" - or know that "Ritter Butzke" is a club and
  * therefore an "@".
  *
- * One request per track, for every name in the title at once. The answers are cached for the
- * life of the page, so the same channel is never asked about twice.
+ * One request per track, for every name in the title at once, against the wiki's own
+ * action=mdbnames module: it matches case-insensitively (the wiki itself is case-sensitive
+ * to the first letter, so a verbatim Category: lookup misses "trommel" and "BASSIANI"),
+ * resolves redirects, and answers with the category's canonical spelling, its type and its
+ * mix count. The answers are cached for the life of the page, so the same channel is never
+ * asked about twice.
+ *
+ * A cache entry is { matches: [ { title, type, mixes, exactCase } ] } - all matches, because
+ * one name can be several things at once and only the title's context can pick: "fabric" is
+ * the London club (venue) and "Fabric" an artist. "" is both "never asked" and "MixesDB has
+ * no such category", which are the same thing to a caller: no help from here. The test
+ * fixtures write entries as plain type strings, which every reader below accepts too.
  */
 var mdbTitle_categoryCache = {},
-    mdbTitle_categoryApiUrl = "https://www.mixesdb.com/w/api.php";
+    mdbTitle_categoryApiUrl = "https://www.mixesdb.com/w/api.php",
+    // the types that say a name is a SERIES a mix belongs to rather than a person or a place -
+    // a name the wiki knows this way is never "(Promo Mix)" and never doubted as a show
+    mdbTitle_entityTypes = [ "podcast", "show", "radio", "internet radio" ],
+    // what buildMixesdbTitle was last called with, for the one reader that cannot be handed it
+    // as a parameter without threading it through every branch: the canonicalization at the
+    // single exit, mdbTitle_result
+    mdbTitle_knownNow = null;
 
 // mdbTitle_knownAs
-// "artist" | "venue" | "other" | "" - "" is both "never asked" and "MixesDB has no such
-// category", which are the same thing to a caller: no help from here.
+// The type MixesDB files a name under: "artist" | "podcast" | "show" | "venue" | "event" |
+// "radio" | "internet radio" | "record label" | "". Of several matches this answers with the
+// best one (the server ranks) - use mdbTitle_knownMatch to ask for a type specifically.
 function mdbTitle_knownAs( known, name ) {
     if( !known || !name ) return "";
 
-    var key = mdbTitle_normalizeCompare( name );
-    return Object.prototype.hasOwnProperty.call( known, key ) ? known[key] : "";
+    var key = mdbTitle_normalizeCompare( name ),
+        entry = Object.prototype.hasOwnProperty.call( known, key ) ? known[key] : "";
+
+    if( !entry ) return "";
+    if( typeof entry === "string" ) return entry;
+
+    return ( entry.matches && entry.matches.length ) ? String( entry.matches[0].type || "" ) : "";
+}
+
+// mdbTitle_knownMatch
+// The best match of one of the given types, or null. This is how "fabric" answers both ways:
+// the venue branch asks for a venue and gets the club, an artist reader would get "Fabric".
+function mdbTitle_knownMatch( known, name, types ) {
+    if( !known || !name ) return null;
+
+    var key = mdbTitle_normalizeCompare( name ),
+        entry = Object.prototype.hasOwnProperty.call( known, key ) ? known[key] : "";
+
+    if( !entry ) return null;
+
+    // a fixture's plain type string reads as one match spelled the way the fixture wrote it
+    var matches = ( typeof entry === "string" )
+        ? [ { title: name, type: entry, mixes: 1, exactCase: true } ]
+        : ( entry.matches || [] );
+
+    for( var i = 0; i < matches.length; i++ ) {
+        if( !types || types.indexOf( String( matches[i].type || "" ) ) !== -1 ) return matches[i];
+    }
+
+    return null;
+}
+
+// mdbTitle_knownEntityType
+// Whether MixesDB knows the name as a series (podcast/show/radio) - the answer that both
+// suppresses "(Promo Mix)" and spares the "not in the known-shows list" doubt.
+function mdbTitle_knownEntityType( known, name ) {
+    return !!mdbTitle_knownMatch( known, name, mdbTitle_entityTypes );
+}
+
+// mdbTitle_canonicalName
+// The wiki's own spelling of a name: "trommel" -> "Trommel", "BASSIANI" -> "Bassiani",
+// "Asa 808" -> "ASA 808". Only when the match IS this name (compared normalized) - a fuzzy
+// server match like "Truancy Volume" -> "Truancy Volumes" names a different string, and
+// rewriting the title to it would change what the uploader said, not how it is spelled.
+// preferTypes ranks same-named matches of different types ("fabric" the venue vs "Fabric"
+// the artist); pass nothing to take the server's best.
+function mdbTitle_canonicalName( known, name, preferTypes ) {
+    if( !name ) return name;
+
+    var match = ( preferTypes && mdbTitle_knownMatch( known, name, preferTypes ) ) ||
+                mdbTitle_knownMatch( known, name, null );
+
+    if( match && match.title &&
+        mdbTitle_normalizeCompare( match.title ) === mdbTitle_normalizeCompare( name ) ) {
+        return match.title;
+    }
+
+    return name;
+}
+
+// mdbTitle_canonicalArtists
+// mdbTitle_canonicalName over every name of a joined artist group, keeping the separators as
+// they stand: "leon row & shimon" -> "Leon Row & Shimon".
+function mdbTitle_canonicalArtists( known, group ) {
+    var parts = String( group || "" ).split( /(\s*[,&]\s*)/ ),
+        i;
+
+    for( i = 0; i < parts.length; i += 2 ) {
+        parts[i] = mdbTitle_canonicalName( known, parts[i], [ "artist" ] );
+    }
+
+    return parts.join( "" );
 }
 
 // mdbTitle_categoryCandidates
@@ -1638,21 +1726,34 @@ function mdbTitle_categoryCandidates( playerTitle, username ) {
         var bit = mdbTitle_cleanArtist( bits[i] );
 
         // a page title that long is not a name, and asking wastes the request
-        if( bit && bit.length <= 80 ) names.push( bit );
+        if( bit && bit.length <= 80 ) {
+            names.push( bit );
+
+            // the same bit with a trailing episode number or year taken off, because that is
+            // how a series name stands in a title: "HATE Podcast 496" is filed as
+            // "HATE Podcast", "Trommel.251" as "Trommel", "Landjuweel Festival 2026" as
+            // "Landjuweel Festival". From the RIGHT only - with 57,000+ artist categories
+            // nearly every common word is one, so shortening a name from the left invents
+            // matches ("MOLTO IN THE MIX" must not find the show "In The Mix").
+            var stripped = bit
+                .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?\s*\d{1,4}\s*$/i, "" )
+                .trim();
+
+            if( stripped && stripped !== bit && stripped.length >= 3 ) names.push( stripped );
+        }
     }
 
     return names;
 }
 
 // mdbTitle_lookupCategories
-// Asks MixesDB what its Category: pages say about these names, all in ONE request, then calls
+// Asks the wiki's action=mdbnames module what these names are, all in ONE request, then calls
 // back with the cache. Always calls back - a failed or blocked request just means the parser
 // carries on with what the title alone says, which is what it did before this existed.
 function mdbTitle_lookupCategories( names, callback ) {
     logFunc( "mdbTitle_lookupCategories" );
 
     var wanted = [],
-        titles = [],
         i, key;
 
     for( i = 0; i < names.length; i++ ) {
@@ -1661,15 +1762,22 @@ function mdbTitle_lookupCategories( names, callback ) {
         if( !key || Object.prototype.hasOwnProperty.call( mdbTitle_categoryCache, key ) ) continue;
 
         wanted.push( names[i] );
-        titles.push( "Category:" + names[i] );
     }
 
-    if( !titles.length ) {
+    // the module takes 10 names per request. The list is in priority order - the channel
+    // first, then the title bits left to right - so what falls off is the least likely to
+    // matter. Not pre-seeded as answered: a second lookup on the same page may still ask.
+    if( wanted.length > 10 ) {
+        logVar( "mdbTitle_lookupCategories: over the 10-name limit, dropping", wanted.slice( 10 ).join( " | " ) );
+        wanted = wanted.slice( 0, 10 );
+    }
+
+    if( !wanted.length ) {
         callback( mdbTitle_categoryCache );
         return;
     }
 
-    logVar( "mdbTitle_lookupCategories: asking about", titles.join( " | " ) );
+    logVar( "mdbTitle_lookupCategories: asking about", wanted.join( " | " ) );
 
     // everything asked about counts as answered even if the request dies, so a dead API is
     // asked once per page and not once per rebuild
@@ -1682,40 +1790,31 @@ function mdbTitle_lookupCategories( names, callback ) {
         type: "get",
         dataType: "json",
         data: {
-            action: "query",
-            prop: "categories",
-            cllimit: "max",
+            action: "mdbnames",
             format: "json",
+            formatversion: 2,
             origin: "*", // MediaWiki's CORS switch for an anonymous cross-origin read
-            titles: titles.join( "|" )
+            names: wanted.join( "|" )
         },
         success: function( data ) {
-            var pages = ( data && data.query && data.query.pages ) || {},
-                id;
+            var entries = ( data && data.mdbnames ) || [],
+                i;
 
-            for( id in pages ) {
-                if( !Object.prototype.hasOwnProperty.call( pages, id ) ) continue;
+            for( i = 0; i < entries.length; i++ ) {
+                var name = String( entries[i].name || "" ),
+                    matches = entries[i].matches || [];
 
-                var page = pages[id],
-                    name = String( page.title || "" ).replace( /^Category:/, "" ),
-                    cats = page.categories || [],
-                    kind = "",
-                    c;
+                if( !name ) continue;
 
-                // "missing" on the page means MixesDB has no category of that name at all
-                if( page.missing === undefined ) {
-                    kind = "other";
+                mdbTitle_categoryCache[ mdbTitle_normalizeCompare( name ) ] =
+                    matches.length ? { matches: matches } : "";
 
-                    for( c = 0; c < cats.length; c++ ) {
-                        var parent = String( cats[c].title || "" ).replace( /^Category:/, "" ).toLowerCase();
-
-                        if( parent === "artist" ) { kind = "artist"; break; }
-                        if( parent === "venue" || parent === "club" ) { kind = "venue"; break; }
-                    }
+                if( matches.length ) {
+                    logVar( "mdbTitle_lookupCategories: " + name,
+                            matches.map( function( m ) {
+                                return "\"" + m.title + "\" " + m.type + " (" + m.mixes + ")";
+                            } ).join( ", " ) );
                 }
-
-                mdbTitle_categoryCache[ mdbTitle_normalizeCompare( name ) ] = kind;
-                if( kind ) logVar( "mdbTitle_lookupCategories: " + name, kind );
             }
 
             callback( mdbTitle_categoryCache );
@@ -1742,8 +1841,10 @@ function mdbTitle_takeVenueTitle( text, known ) {
         cleaned.push( mdbTitle_cleanArtist( bits[i] ) );
     }
 
+    // asked for the venue type specifically, not the best match: "fabric" is a venue AND an
+    // artist, and standing in a title next to another name it is the place
     for( i = 0; i < cleaned.length; i++ ) {
-        if( cleaned[i] && mdbTitle_knownAs( known, cleaned[i] ) === "venue" ) { venueIndex = i; break; }
+        if( cleaned[i] && mdbTitle_knownMatch( known, cleaned[i], [ "venue" ] ) ) { venueIndex = i; break; }
     }
 
     if( venueIndex === -1 ) return null;
@@ -1757,7 +1858,8 @@ function mdbTitle_takeVenueTitle( text, known ) {
 
     return {
         artist: artist,
-        venue: cleaned[venueIndex],
+        // in the wiki's own spelling - it is the wiki that says this is a venue at all
+        venue: mdbTitle_canonicalName( known, cleaned[venueIndex], [ "venue" ] ),
         // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue
         city: cleaned[ venueIndex + 1 ] || ""
     };
@@ -2312,6 +2414,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     // filled in once the channel's name is settled below - a channel may name several, and
     // the initials of the one actually used are the ones an acronym is checked against
     mdbTitle_channelInitials = "";
+    // for mdbTitle_result, which canonicalizes the finished groups against the wiki
+    mdbTitle_knownNow = known || null;
 
     try {
         // "_" is a space on MediaWiki and a word character to a regex, so it is written out
@@ -2701,11 +2805,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             logVar( "buildMixesdbTitle: channel name is the artist, entity from the title", entity );
 
             // a self-released mix under its own name is a promo mix - but not when the entity
-            // names a venue/event (@) or is recognisably a series
+            // names a venue/event (@), is recognisably a series, or is one the wiki KNOWS as
+            // a podcast/show/radio
             promoMix = !!entity &&
                        entity.indexOf( "@" ) === -1 &&
                        !/\b(podcast|radio|radioshow|show|sessions|series|cast|fm)\b/i.test( entity ) &&
-                       !/promo\s*mix/i.test( entity );
+                       !/promo\s*mix/i.test( entity ) &&
+                       !mdbTitle_knownEntityType( known, entity );
 
             // No penalty for the split itself: the uploader's own name standing verbatim in
             // their own title is the strongest confirmation of an artist there is - two
@@ -2910,7 +3016,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                         // neither side looks like a series, so this is the order alone
                         splitArtist = leftPart;
                         splitEntity = rightPart;
-                        splitPromo = !/promo\s*mix/i.test( splitEntity );
+                        splitPromo = !/promo\s*mix/i.test( splitEntity ) &&
+                                     !mdbTitle_knownEntityType( known, splitEntity );
 
                         conf.drop( 10, "nothing in the title says which half is the artist - it was read in the order they stand" );
                     }
@@ -2945,6 +3052,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         } else if( taken.extended || taken.taken ) {
             // the channel name is in the title too, which is confirmation from the title
             // itself - as good as finding the channel in the list
+        } else if( show && mdbTitle_knownEntityType( known, show ) ) {
+            // the wiki files it as a podcast/show/radio, which answers the doubt the list
+            // exists for - nothing to charge
         } else if( show ) {
             // Not charged here: the branches below still drop the channel from a title that
             // does not need it, and a doubt about a name that never made it into the
@@ -3167,6 +3277,17 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
     // then the joiners, which stand between NAMES and so only apply to the artist group
     artist = mdbTitle_normalizeJoiners( mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) ) ) );
     entity = mdbTitle_tidy( mdbTitle_wikiSafe( entity ) );
+
+    // Last word on spelling: a name the wiki knows is written the way the wiki writes it -
+    // "trommel" -> "Trommel", "asa 808" -> "ASA 808" - undoing whatever the re-caser guessed.
+    // After tidy so nothing re-cases it back, and only name-for-name (see mdbTitle_canonicalName);
+    // a composed live group ("A @ Venue, City") was already canonicalized where it was built.
+    if( mdbTitle_knownNow ) {
+        if( artist.indexOf( "@" ) === -1 ) {
+            artist = mdbTitle_canonicalArtists( mdbTitle_knownNow, artist );
+        }
+        entity = mdbTitle_canonicalName( mdbTitle_knownNow, entity, mdbTitle_entityTypes );
+    }
 
     // " (Promo Mix)" only where the name does not already say it - the page still goes into
     // the category either way, which is what promoCategory carries out to the UI

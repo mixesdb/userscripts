@@ -187,31 +187,33 @@ as a case the same way title reports are added to `title_examples.js`, with a co
 it guards. A case with `expect: null` is as important as the others: a wrong tracklist on a new
 mix page is worse than no tracklist.
 
-## The MixesDB category lookup (on hold, waiting on the wiki)
+## The MixesDB category lookup (live since 2026-08-16)
 
-The suggestion is meant to stop relying on hand-tuned word lists and let MixesDB's own category
-names decide what is an artist, a podcast, a show, a venue or an event.
-`mdbTitle_lookupCategories()` in `title_builder.js` is the first version of that, and it has two
-known faults, both waiting on the endpoint requested in `mixesdb_api_request.md`:
+The suggestion no longer relies on hand-tuned word lists alone: MixesDB's own category names
+decide what is an artist, a podcast, a show, a venue or an event. The wiki's `action=mdbnames`
+module (built for us - contract in `mixesdb_api_request.md`) answers case-insensitively with
+the canonical spelling, the type and the mix count; `mdbTitle_lookupCategories()` in
+`title_builder.js` is the client. Background worth keeping: **MixesDB itself is case-sensitive
+to the first letter** (`$wgCapitalLinks = false`), which is why a verbatim `Category:` lookup
+missed `trommel`/`BASSIANI` for months and why the module exists at all.
 
-- **MixesDB is case-sensitive** (`siteinfo` says `case: case-sensitive`, i.e.
-  `$wgCapitalLinks = false`) - even the first letter. The lookup asks `Category:<bit>` verbatim,
-  so `trommel`, `BASSIANI`, `FADI MOHEM` all miss categories that exist under another casing.
-  Player titles are cased however the uploader felt, so this misses a large share of tracks.
-- Only `artist` and `venue` are mapped; Podcast, Show, Event, Radio and Record Label all collapse
-  into `"other"`, which no caller reads.
+Rules the implementation follows, settled before it was built - do not re-litigate:
 
-Do not start the client-side rework until the endpoint exists - that was decided, not forgotten.
-Two things settled in advance, so they do not get re-litigated:
-
-- **A resolved name is written in the wiki's spelling**, not the source's: `trommel` in a
-  SoundCloud title becomes `Trommel` in the suggestion. This changes the expectation of the
-  existing `Trommel.251 - Arno` case in `title_examples.js` (today it expects lowercase
-  `trommel.251`) - update it as part of that work.
+- **A resolved name is written in the wiki's spelling**, not the source's: `trommel` ->
+  `Trommel.251`, `asa 808` -> `ASA 808`. Done at the single exit (`mdbTitle_result`), but ONLY
+  name-for-name: a server match whose normalized name differs (`Truancy Volume` ->
+  `Truancy Volumes`) is knowledge, not a spelling, and never rewrites the title.
 - **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
-  genuine Show with 779 mixes, and wreck the title.
+  genuine Show with 779 mixes, and wreck the title. (Verified the server does not left-match
+  either.)
+- **All matches per name are kept**, because one name is legitimately several things:
+  `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
+  a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never
+  "(Promo Mix)" and never charged the "not in the known-shows list" doubt.
+- The module takes **10 names max** per request - the candidate list is priority-ordered
+  (channel first) and truncated, not split into a second request.
 - **A non-artist match then reads the last ~8 mix pages in that category and copies their
   format**, rather than deriving it. `list=categorymembers` with `cmnamespace=0&cmsort=timestamp&
   cmdir=desc` (or the `recent` field, if the endpoint ships it). This is what settles episode
@@ -233,17 +235,14 @@ Two things settled in advance, so they do not get re-litigated:
 The one place the order of this work is written down. Every design decision lives in the plan
 file named on the line, not here.
 
-| # | Work | Plan file | Waits on |
+| # | Work | Plan file | State |
 | --- | --- | --- | --- |
-| 0a | `insource:` mirror-URL check as second layer of the toolkit's player search | `row_enrichment.md` §4 | nothing - toolkit-side, decided independent of the hold |
-| 0b | Sanity check on Create click, two-step "Yes, still create" button | `row_enrichment.md` §3 | nothing (plain `action=query`), but sits in the row, so most natural bundled with 2 |
-| 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **the endpoint** (or its casing-variant fallback, §3 there) |
-| 2 | Row enrichment: category links, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | 1 |
-| 3 | Page text learned from siblings: `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | 1 (same sibling call) |
+| 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
+| 0a | `insource:` mirror-URL check as second layer of the toolkit's player search | `row_enrichment.md` §4 | open - toolkit-side, independent of everything |
+| 0b | Sanity check on Create click, two-step "Yes, still create" button | `row_enrichment.md` §3 | open - plain `action=query`, natural bundle with 2 |
+| 2 | Row enrichment: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | open, unblocked; waiting on the maintainer's `match=prefix` + `matchedTitle` (offered 2026-08-16, row-only - the title builder stays on exact match) |
+| 3 | Page text learned from siblings: `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | open, unblocked (`recentlimit` exists but wikitext still needs the generator call) |
 | later | Tracklist transfer into the new page (then `Tracklist: complete/incomplete`) | not planned yet | out of scope until the above ships |
-
-0a/0b can start whenever wanted; nothing else before the endpoint answers (or is refused, which
-switches 1 to the fallback and changes nothing downstream).
 
 ## Title suggestion reports
 
