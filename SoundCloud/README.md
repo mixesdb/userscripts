@@ -36,15 +36,17 @@ redesign's frame URL never end up in a mix page.
 ### Tracks too short for MixesDB
 
 MixesDB does not take recordings under 20 minutes, so on a shorter track the toolkit, the page
-creator and the tracklist box are not loaded at all. The red duration button is what says this
-is intended, not broken – its tooltip explains it, and clicking it still shows the file details
-as usual.
+creator and the tracklist box are not loaded at all. The red duration is what says this is
+intended, not broken, and its tooltip explains it. It is only a label there: the file details
+are the wikitext for a mix page such a track will never get, so there is nothing to open and
+the duration does not react to a click.
 
 ### Track page buttons
 
 Next to the player:
 
-- **duration** – click for the copy-paste ready [File details](../shared/README.md#file-details) table
+- **duration** – click for the copy-paste ready [File details](../shared/README.md#file-details) table.
+  Not clickable on a track under 20 minutes, see above
 - **API** – toggles the raw SoundCloud API answer for the track, with the artwork URLs on top and
   every URL clickable
 - **DL** – shown when the track is downloadable; forwards the click to SoundCloud's own download

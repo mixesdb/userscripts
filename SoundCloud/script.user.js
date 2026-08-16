@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.6
+// @version      2026.08.16.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1373,21 +1373,33 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
                                         var bytes = "",
                                             dur_sec = Math.floor(dur_ms/ 1000),
-                                            durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
                                             dur = convertHMS( dur_sec ),
-                                            // Too short for MixesDB: the red duration button is
-                                            // what says the missing toolkit/page creator is on
-                                            // purpose - styled in script.css
-                                            fileInfoClass = soundActionFakeButtonClass + ' mdb-toggle' + ( tooShortForMixesdb ? ' mdb-fileInfo-tooShort' : '' ),
-                                            fileInfoTitle = ( tooShortForMixesdb ? 'Too short for MixesDB (under 20:00), so no toolkit and no page creator for this track. ' : '' ) + 'Click to copy file details';
+                                            // Too short for MixesDB: the file details are the
+                                            // wikitext that goes onto a mix page, and this track
+                                            // will never get one - so the duration is a plain
+                                            // label here and nothing opens under it. The red fill
+                                            // says why the toolkit and page creator are missing
+                                            // (styled in script.css, cursor included), and the
+                                            // tooltip spells it out. Leaving mdb-toggle and
+                                            // data-toggleid off is what makes it inert: the click
+                                            // handler in global.js binds by that class.
+                                            fileInfoClass = soundActionFakeButtonClass + ( tooShortForMixesdb ? ' mdb-fileInfo-tooShort' : ' mdb-toggle' ),
+                                            fileInfoToggle = tooShortForMixesdb ? '' : ' data-toggleid="mdb-fileDetails"',
+                                            fileInfoTitle = tooShortForMixesdb
+                                                ? 'Too short for MixesDB (under 20:00), so no toolkit, no page creator and no file details for this track.'
+                                                : 'Click to copy file details';
 
                                         if( isNewSoundCloudLayout ) {
-                                            buttonTarget.append('<button id="mdb-fileInfo" class="'+fileInfoClass+'" data-toggleid="mdb-fileDetails" title="'+fileInfoTitle+'">'+dur+'</button>');
+                                            buttonTarget.append('<button id="mdb-fileInfo" class="'+fileInfoClass+'"'+fileInfoToggle+' title="'+fileInfoTitle+'">'+dur+'</button>');
                                         } else {
-                                            soundActions.after('<button id="mdb-fileInfo" class="'+fileInfoClass+'" data-toggleid="mdb-fileDetails" title="'+fileInfoTitle+'">'+dur+'</button>');
+                                            soundActions.after('<button id="mdb-fileInfo" class="'+fileInfoClass+'"'+fileInfoToggle+' title="'+fileInfoTitle+'">'+dur+'</button>');
                                         }
 
-                                        $("#mdb-toggle-target").append( durToggleWrapper );
+                                        // no box for a track that is too short - it would only
+                                        // ever hold file details nobody can use
+                                        if( !tooShortForMixesdb ) {
+                                            $("#mdb-toggle-target").append( getFileDetails_forToggle( dur_sec, bytes ) );
+                                        }
                                     }
                                 }
 
@@ -1814,6 +1826,13 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.16.7
+ * The red duration of a too-short track is a plain label now, not a button: short tracks are
+ * never used on MixesDB, so the file details it used to open are wikitext nobody can use.
+ * mdb-toggle/data-toggleid stay off it (the click handler in global.js binds by that class),
+ * the file details block is not built at all, the tooltip only explains the red, and the
+ * cursor and hover styles stop promising a click (script.css).
  *
  * 2026.08.16.6
  * A track under MixesDB's 20 min minimum no longer loads the toolkit at all - its MixesDB
