@@ -1387,7 +1387,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.append( s3 );
 
     // 4) the categories of the created page - read off the CURRENT title, like the page text
-    var s4 = mdbPageCreator_reasoningSection( "4", "Categories for the new page", "read off the title above - editing it moves them" ),
+    var s4 = mdbPageCreator_reasoningSection( "4", "Categories for the new page", "read off the title above" ),
         entries = mdbPageCreator_categoryEntries( title ),
         cats = $("<div>").addClass( "mdb-pageCreator-reasoning-cats" );
 
