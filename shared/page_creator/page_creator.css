@@ -296,64 +296,6 @@
 }
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * 
- * 
- * Custom pageCreator rules
- * 
- * 
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
- * No margin below tracklist wrapper
- */
-body.soundcloud-com #mdb-pageCreator-tracklist {
-    margin-bottom: 0;
-}
-
-/*
- * The "Create" link in the new layout's own link colour. Here and not in page_creator.css: a
- * --mui-* variable is this layout's design system, and nothing in the shared file may know about
- * a single site.
- *
- * Scoped to #mdb-sc-trackExtras, which is our new-layout wrapper and exists nowhere else - that
- * is also what stands in for a fallback value. The variable only lives on that document's :root,
- * so an unscoped rule would fire on the old layout too, find nothing, and leave the link with the
- * plain text colour instead of the link colour it has there today.
- *
- * Two IDs and no "body.soundcloud-com" in front: the specificity is already there without it, and
- * this layout renders into its own document (the webi iframe), where the class global.js puts on
- * the body is not something to bet a rule on. :hover is spelled out because MUI states a link
- * colour for it too.
- */
-body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create,
-body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
-    color: var(--mui-palette-link-light, inherit);
-}
-
-/* 
- * Report link
- */
-body.soundcloud-com #mdb-pageCreator #mdb-pageCreator-report {
-    color: var(--mui-palette-link-main);
-}
-
-
-/*
- * TrackId.net
- */
-body.trackid-net #mdb-pageCreator-confidence * {
-    font-size: 12px !important;
-}
-body.trackid-net #mdb-pageCreator-createColumn a {
-    color: var(--main);
-    text-decoration: none;
-    
-    &:visited {
-        color: var(--main-very-dark);
-    }
-}
-
 /*
  * Loading skeleton (mdbSkeleton_* in page_creator.js)
  *
@@ -366,7 +308,9 @@ body.trackid-net #mdb-pageCreator-createColumn a {
  * the DOM. Hardcoded dark greys: both sites showing it (SoundCloud's redesigned track
  * pages, TrackId.net) are dark-themed.
  */
-.mdb-skeleton-loading > :not(#mdb-skeleton) {
+/* .mdb-skeleton-keep marks direct children the site wants visible DURING loading (the keep
+   option of mdbSkeleton_show() - TID's embedded player) */
+.mdb-skeleton-loading > :not(#mdb-skeleton):not(.mdb-skeleton-keep) {
     display: none !important;
 }
 
@@ -495,13 +439,83 @@ body.trackid-net #mdb-pageCreator-createColumn a {
 /*
  * The one-step reveal: a short fade on the container's direct children instead of a hard
  * swap. Direct children only - nested toggled content (SC's #mdb-toggle-target boxes) would
- * re-run the animation on every display toggle.
+ * re-run the animation on every display toggle. Kept children were visible the whole time,
+ * so fading them too would make them blink.
  */
-.mdb-skeleton-revealed > * {
+.mdb-skeleton-revealed > :not(.mdb-skeleton-keep) {
     animation: mdb-skeleton-reveal .18s ease-out;
 }
 
 @keyframes mdb-skeleton-reveal {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 
+ * 
+ * Site specific rules
+ * 
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * No margin below tracklist wrapper
+ */
+body.soundcloud-com #mdb-pageCreator-tracklist {
+    margin-bottom: 0;
+}
+
+/*
+ * The "Create" link in the new layout's own link colour. Here and not in page_creator.css: a
+ * --mui-* variable is this layout's design system, and nothing in the shared file may know about
+ * a single site.
+ *
+ * Scoped to #mdb-sc-trackExtras, which is our new-layout wrapper and exists nowhere else - that
+ * is also what stands in for a fallback value. The variable only lives on that document's :root,
+ * so an unscoped rule would fire on the old layout too, find nothing, and leave the link with the
+ * plain text colour instead of the link colour it has there today.
+ *
+ * Two IDs and no "body.soundcloud-com" in front: the specificity is already there without it, and
+ * this layout renders into its own document (the webi iframe), where the class global.js puts on
+ * the body is not something to bet a rule on. :hover is spelled out because MUI states a link
+ * colour for it too.
+ */
+body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create,
+body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
+    color: var(--mui-palette-link-light, inherit);
+}
+
+/* 
+ * soundcloud.com
+ */
+body.soundcloud-com {
+    /* Report link */
+    & #mdb-pageCreator #mdb-pageCreator-report {
+        color: var(--mui-palette-link-main);
+    }
+}
+
+
+/*
+ * trackid.net
+ */
+body.trackid-net {
+    & #mdb-skeleton {
+        height: 120px;
+    }
+    
+    & #mdb-pageCreator-confidence * {
+        font-size: 12px !important;
+    }
+    
+    & #mdb-pageCreator-createColumn a {
+        color: var(--main);
+        text-decoration: none;
+        
+        &:visited {
+            color: var(--main-very-dark);
+        }
+    }
 }

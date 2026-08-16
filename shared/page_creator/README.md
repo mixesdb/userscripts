@@ -105,7 +105,9 @@ grey pulsing placeholder holds their space, and the finished block then appears 
 instead of piece by piece. If an answer takes too long, whatever has arrived is shown after a
 few seconds.
 
-Where it shows: SoundCloud's redesigned track pages and TrackId.net's audiostream pages.
+Where it shows: SoundCloud's redesigned track pages and TrackId.net's audiostream pages. On
+TrackId.net the embedded player itself is not covered – it shows and can play straight away; the
+placeholder only holds the space below it.
 
 ## Known limitations
 

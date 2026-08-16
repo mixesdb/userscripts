@@ -64,15 +64,17 @@ the "Report" box for its `SC title:`/`SC date:` lines. `window.scriptName` is on
 the script name and the name reports use are not always the same.
 
 A site whose additions build up inside ONE container it owns can cover that build-up with the
-loading skeleton: call `mdbSkeleton_show({ target, rows, height, extraReady })` right after
-creating the container (and again whenever the site wipes and the script recreates it). All
-other children of `target` are `display:none` until the toolkit verdict is in, `extraReady()` -
-if given - says the site's own async pieces are done, and the container's DOM has been quiet for
-a settle window; then skeleton and content swap in one step (6s cap either way). `rows` composes
-the grey stand-ins from a shared vocabulary (`head`, `dates`, `buttons`, `player`, `toolkit`);
-`window.mdbSkeleton_enabled = false` (site debug settings) turns it into timing-only mode, which
-logs the same "everything loaded" line without covering anything. SoundCloud and TrackId.net
-are the two callers.
+loading skeleton: call `mdbSkeleton_show({ target, rows, height, keep, extraReady })` right
+after creating the container (and again whenever the site wipes and the script recreates it).
+All other children of `target` are `display:none` until the toolkit verdict is in,
+`extraReady()` - if given - says the site's own async pieces are done, and the container's DOM
+has been quiet for a settle window; then skeleton and content swap in one step (6s cap either
+way). `rows` composes the grey stand-ins from a shared vocabulary (`head`, `dates`, `buttons`,
+`player`, `toolkit`); `keep` names direct children that stay visible while loading and skip the
+reveal fade (TID's embedded player - built on the spot, so covering it would only delay
+playback); `window.mdbSkeleton_enabled = false` (site debug settings) turns it into timing-only
+mode, which logs the same "everything loaded" line without covering anything. SoundCloud and
+TrackId.net are the two callers.
 
 ## The tracklist
 
