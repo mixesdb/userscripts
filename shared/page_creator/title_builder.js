@@ -1621,7 +1621,45 @@ var mdbTitle_categoryCache = {},
     // what buildMixesdbTitle was last called with, for the one reader that cannot be handed it
     // as a parameter without threading it through every branch: the canonicalization at the
     // single exit, mdbTitle_result
-    mdbTitle_knownNow = null;
+    mdbTitle_knownNow = null,
+    // Every name ever asked of the wiki on this page, in the order it was first asked - the
+    // "Report" panel reads it to show which candidates were looked up and what came back. The
+    // ANSWERS live in mdbTitle_categoryCache; this only remembers the asking, in the original
+    // spelling (the cache keys are normalized beyond recognition). Reset per page by
+    // mdbPageCreator_resetForNewPage(), unlike the cache, which is deliberately kept.
+    mdbTitle_lookupLog = [];
+
+// mdbTitle_lookupLogEntry
+// The log entry for a name, created on first sight. pending/failed/skipped describe the
+// REQUEST; what the name turned out to be is read off the cache at render time.
+function mdbTitle_lookupLogEntry( name ) {
+    var key = mdbTitle_normalizeCompare( name ),
+        i;
+
+    if( !key ) return null;
+
+    for( i = 0; i < mdbTitle_lookupLog.length; i++ ) {
+        if( mdbTitle_lookupLog[i].key === key ) return mdbTitle_lookupLog[i];
+    }
+
+    var entry = { name: name, key: key, pending: false, failed: false, skipped: false };
+
+    mdbTitle_lookupLog.push( entry );
+
+    return entry;
+}
+
+// mdbTitle_lookupLogSettle
+// The request for these names is over - clear pending, remember a failure. A failed name still
+// sits in the cache as "" (asked names are pre-seeded so a dead API is not asked again), so
+// only the log can tell "asked and unknown" from "asked and the request died".
+function mdbTitle_lookupLogSettle( names, failed ) {
+    for( var i = 0; i < names.length; i++ ) {
+        var entry = mdbTitle_lookupLogEntry( names[i] );
+
+        if( entry ) { entry.pending = false; entry.failed = failed; }
+    }
+}
 
 // mdbTitle_knownAs
 // The type MixesDB files a name under: "artist" | "podcast" | "show" | "venue" | "event" |
@@ -1759,7 +1797,13 @@ function mdbTitle_lookupCategories( names, callback ) {
     for( i = 0; i < names.length; i++ ) {
         key = mdbTitle_normalizeCompare( names[i] );
 
-        if( !key || Object.prototype.hasOwnProperty.call( mdbTitle_categoryCache, key ) ) continue;
+        if( !key ) continue;
+
+        // the report panel's record of every name asked about on this page - cached ones too,
+        // they were asked and their answer is worth showing
+        mdbTitle_lookupLogEntry( names[i] );
+
+        if( Object.prototype.hasOwnProperty.call( mdbTitle_categoryCache, key ) ) continue;
 
         wanted.push( names[i] );
     }
@@ -1769,6 +1813,13 @@ function mdbTitle_lookupCategories( names, callback ) {
     // matter. Not pre-seeded as answered: a second lookup on the same page may still ask.
     if( wanted.length > 10 ) {
         logVar( "mdbTitle_lookupCategories: over the 10-name limit, dropping", wanted.slice( 10 ).join( " | " ) );
+
+        for( i = 10; i < wanted.length; i++ ) {
+            var over = mdbTitle_lookupLogEntry( wanted[i] );
+
+            if( over ) over.skipped = true;
+        }
+
         wanted = wanted.slice( 0, 10 );
     }
 
@@ -1783,6 +1834,12 @@ function mdbTitle_lookupCategories( names, callback ) {
     // asked once per page and not once per rebuild
     for( i = 0; i < wanted.length; i++ ) {
         mdbTitle_categoryCache[ mdbTitle_normalizeCompare( wanted[i] ) ] = "";
+
+        // a name that fell off an earlier over-full request but made it into this one is no
+        // longer skipped - it is being asked right now
+        var entry = mdbTitle_lookupLogEntry( wanted[i] );
+
+        if( entry ) { entry.pending = true; entry.skipped = false; }
     }
 
     $.ajax({
@@ -1817,10 +1874,12 @@ function mdbTitle_lookupCategories( names, callback ) {
                 }
             }
 
+            mdbTitle_lookupLogSettle( wanted, false );
             callback( mdbTitle_categoryCache );
         },
         error: function( xhr, status ) {
             log( "mdbTitle_lookupCategories FAILED (" + status + ") - carrying on with the title alone." );
+            mdbTitle_lookupLogSettle( wanted, true );
             callback( mdbTitle_categoryCache );
         }
     });
@@ -2397,6 +2456,58 @@ function mdbTitle_channelSeriesConversion( text, username ) {
     return null;
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The build trace
+ *
+ * How the LAST buildMixesdbTitle() run read the title, as plain data: the chunks the player
+ * title split into, every fix/removal of standard stuff by name, and the title as it stood
+ * once the cleanup was done. The "Report" panel (page_creator.js) renders it above the report
+ * box, so a reporter sees WHY the suggestion looks the way it does.
+ *
+ * Overwritten on every run - the second, lookup-informed pass replaces the first pass's
+ * trace, which is right: the panel describes the suggestion that is on screen.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var mdbTitle_trace = null;
+
+// mdbTitle_traceStep
+// One thing the cleanup did, named for a reader: label says what, detail quotes it (usually
+// the same "before -> after" string the logVar line next to it builds). Whitespace collapsed,
+// so a removal that left a double blank behind does not show one.
+function mdbTitle_traceStep( label, detail ) {
+    if( !mdbTitle_trace ) return;
+
+    mdbTitle_trace.steps.push( {
+        label: label,
+        detail: String( detail || "" ).replace( /\s+/g, " " ).trim()
+    } );
+}
+
+// mdbTitle_traceCleaned
+// Checkpoint: the title as it stands after the cleanup so far. Called after every removal, so
+// the last call before the parse proper is what the panel shows as "after cleanup".
+function mdbTitle_traceCleaned( text ) {
+    if( mdbTitle_trace ) mdbTitle_trace.cleaned = text;
+}
+
+// mdbTitle_traceChunks
+// A title as the trimmed, non-empty chunks it splits into - what the panel renders as chips.
+function mdbTitle_traceChunks( text ) {
+    var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
+        out = [],
+        i, bit;
+
+    for( i = 0; i < bits.length; i++ ) {
+        bit = mdbTitle_trimSeparators( bits[i] );
+
+        if( bit ) out.push( bit );
+    }
+
+    return out;
+}
+
 // buildMixesdbTitle
 // Returns { title, confidence, reasons }. title is "" when there is not enough to work with.
 // known is the { name -> "artist"|"venue"|"other" } map from mdbTitle_lookupCategories(), or
@@ -2428,20 +2539,36 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         logVar( "playerTitle", rest );
         logVar( "username", username );
 
+        // the report panel's record of this run - see "The build trace" above
+        mdbTitle_trace = {
+            playerTitle: rest,
+            channel: username,
+            chunks: mdbTitle_traceChunks( rest ),
+            cleaned: rest,
+            steps: []
+        };
+
         // 0) typos in the words the parser itself reads, before any rule reads one
         var spelled = mdbTitle_fixTypos( rest );
 
         if( spelled !== rest ) {
             logVar( "buildMixesdbTitle: typo corrected", rest + " -> " + spelled );
+            mdbTitle_traceStep( "Typo fixed", rest + " -> " + spelled );
             rest = spelled;
         }
 
         // 1) drop decoration
+        var beforeNoise = rest;
+
         if( typeof mdbTitleNoise !== "undefined" && mdbTitleNoise ) {
             for( var n = 0; n < mdbTitleNoise.length; n++ ) {
                 mdbTitleNoise[n].lastIndex = 0;
                 rest = rest.replace( mdbTitleNoise[n], " " );
             }
+        }
+
+        if( rest !== beforeNoise ) {
+            mdbTitle_traceStep( "Decoration removed", beforeNoise + " -> " + rest );
         }
 
         // 1a) a bracket crediting the artist's label(s) - "Tooker (SONARA / Crosstown Rebels)".
@@ -2450,6 +2577,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( labelBrackets.dropped.length ) {
             logVar( "buildMixesdbTitle: label credit dropped", labelBrackets.dropped.join( " | " ) );
+            mdbTitle_traceStep( "Label credit removed", labelBrackets.dropped.join( " | " ) );
             rest = labelBrackets.text;
         }
 
@@ -2461,6 +2589,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( unbracketed !== rest ) {
             logVar( "buildMixesdbTitle: brackets read as separators", rest + " -> " + unbracketed );
+            mdbTitle_traceStep( "Brackets read as separators", rest + " -> " + unbracketed );
             rest = unbracketed;
         }
 
@@ -2496,9 +2625,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( withoutDropped.dropped ) {
             logVar( "buildMixesdbTitle: chunks dropped", rest + " -> " + withoutDropped.text );
+            mdbTitle_traceStep( "Chunk dropped (a part, a stage or the like)", rest + " -> " + withoutDropped.text );
             conf.drop( 5, "a part of the title was left out - it named a part, a stage or the like, which a mix page title does not carry" );
             rest = withoutDropped.text;
         }
+
+        mdbTitle_traceCleaned( rest );
 
         // 2) the show entity comes from the channel, not from the title
         var isMappedChannel = mdbTitle_usernameConversionKey( username ) !== "",
@@ -2532,8 +2664,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             uploadDateReason = "no date in the player title - using the upload date, which is not the mix date for an older recording";
 
         if( found ) {
+            // sliced before the cut, so the trace can quote the digits as the title wrote them
+            var dateAsWritten = mdbTitle_trimSeparators( rest.slice( found.index, found.index + found.length ) );
+
             date = found.out;
             rest = mdbTitle_cut( rest, found.index, found.length );
+
+            mdbTitle_traceStep( "Date read out of the title", dateAsWritten + " -> " + found.out );
+            mdbTitle_traceCleaned( rest );
 
             // a rival reading of the same digits lands almost as close to the upload date -
             // e.g. 03/04 could be the 3rd or the 4th, and nothing here can settle it
@@ -2560,6 +2698,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // with the year it names, and would leave a reason behind that is not true.
             dateFromUpload = true;
             logVar( "buildMixesdbTitle: no date in the title, falling back to", date );
+            mdbTitle_traceStep( "No date in the title", "the upload date stands in: " + date );
         }
 
         if( !date ) return nothing;
@@ -2575,6 +2714,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( extraArtists.length ) {
             logVar( "extra artists", extraArtists.join( " | " ) + " (behind: " + extra.before + ")" );
+            mdbTitle_traceStep( "Further artists taken out (\"w/\", \"with\")", extraArtists.join( ", " ) );
+            mdbTitle_traceCleaned( rest );
         }
 
         // 3c) MixesDB joiners: "x" between artists becomes "&", "at" in front of a place
@@ -2583,7 +2724,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( joined.text !== rest ) {
             logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined.text );
+            mdbTitle_traceStep( "Joiners rewritten", rest + " -> " + joined.text );
             rest = joined.text;
+            mdbTitle_traceCleaned( rest );
         }
 
         // Only a joiner READ INTO the title is a guess, and the reason names the words it was
@@ -2601,6 +2744,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( joined.dropped ) {
             conf.drop( 5, "\"" + joined.dropped + "\" was dropped - it says how the set was played, not where, " +
                           "and the title names no venue or event to put behind an \"@\"" );
+            mdbTitle_traceStep( "Live marker dropped", "\"" + joined.dropped + "\" says how the set was played, not where" );
         }
 
         // A title that is nothing but the place ("Live at Docklands") names no artist, so the
@@ -2619,6 +2763,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( guestArtist ) {
             logVar( "guest artist", guestArtist );
+            mdbTitle_traceStep( "Guest-mix marker read", "the guest artist is " + guestArtist );
+            mdbTitle_traceCleaned( rest );
         }
 
         // 3e) "<show> with <artists>" - what stands in front of the connector names a SERIES,
@@ -2718,7 +2864,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             if( locations.dropped.length ) {
                 logVar( "buildMixesdbTitle: location chunks dropped", locations.dropped.join( " | " ) );
                 conf.drop( 3, "\"" + locations.dropped.join( "\", \"" ) + "\" was left out - it says where the artist is from, which a mix page title does not carry" );
+                mdbTitle_traceStep( "Location chunk dropped", locations.dropped.join( " | " ) );
                 rest = locations.text;
+                mdbTitle_traceCleaned( rest );
             }
         }
 

@@ -118,6 +118,9 @@ var mdbPageCreator_title = "",
     // whether the report box is open. Not sticky the way the tracklist box is: it is opened for
     // one title, and a refined suggestion refills it rather than the reader reopening it.
     mdbPageCreator_reportOpen = false,
+    // the debounce behind the reasoning panel's title-edit refresh - see
+    // mdbPageCreator_queueReasoningUpdate()
+    mdbPageCreator_reasoningTimer = null,
     // where the row goes - see the note on selector strings in the header comment
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
@@ -348,40 +351,53 @@ function mdbPageCreator_styleCategories() {
 // they fill the slots instead. The "Tracklist:" filing is whatever the Tracklist Editor API
 // last said about the box - "none" when there is no tracklist at all.
 function mdbPageCreator_pageCategories( title ) {
-    var read = mdbTitle_titleCategories( title ),
-        cats = [],
+    var entries = mdbPageCreator_categoryEntries( title ),
+        out = "",
         i;
 
-    if( read.year ) cats.push( read.year );
+    for( i = 0; i < entries.length; i++ ) {
+        out += "[[Category:" + entries[i].name + "]]\n";
+    }
+
+    return out;
+}
+
+// mdbPageCreator_categoryEntries
+// The category lines as data, each with the ROLE it plays on the page - what
+// mdbPageCreator_pageCategories() writes and what the reasoning panel annotates, so both
+// always name the same categories.
+function mdbPageCreator_categoryEntries( title ) {
+    var read = mdbTitle_titleCategories( title ),
+        entries = [],
+        i;
+
+    if( read.year ) entries.push( { name: read.year, role: "year" } );
 
     for( i = 0; i < read.artists.length; i++ ) {
-        cats.push( read.artists[i] );
+        entries.push( { name: read.artists[i], role: "artist" } );
     }
 
     var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
 
-    if( entityCategory ) cats.push( entityCategory );
+    if( entityCategory ) {
+        entries.push( { name: entityCategory, role: entityCategory === "Promo Mix" ? "promo" : "entity" } );
+    }
 
     var styles = mdbPageCreator_styleCategories();
 
     if( styles.length ) {
         // the site's own style suggestions (stylesBox option), read at click time
         for( i = 0; i < styles.length; i++ ) {
-            cats.push( styles[i] );
+            entries.push( { name: styles[i], role: "style" } );
         }
     } else {
-        cats.push( "", "" ); // styles - the editor's call
+        // styles - the editor's call, so two empty rows to fill in
+        entries.push( { name: "", role: "style" }, { name: "", role: "style" } );
     }
 
-    cats.push( "Tracklist: " + mdbPageCreator_tracklistFiling() );
+    entries.push( { name: "Tracklist: " + mdbPageCreator_tracklistFiling(), role: "tracklist" } );
 
-    var out = "";
-
-    for( i = 0; i < cats.length; i++ ) {
-        out += "[[Category:" + cats[i] + "]]\n";
-    }
-
-    return out;
+    return entries;
 }
 
 // mdbPageCreator_entityCategoryFor
@@ -531,6 +547,9 @@ function mdbPageCreator_refresh( wrapper ) {
 
     mdbPageCreator_syncPromoNote( wrapper );
     mdbPageCreator_fillReport( wrapper );
+    // the trace and the lookup log just changed with the refined suggestion - redraw right
+    // away, no debounce: nothing here waits on typing
+    mdbPageCreator_renderReasoning( wrapper );
 }
 
 // mdbPageCreator_syncPromoNote
@@ -640,7 +659,7 @@ function mdbPageCreator_render() {
     // page that already has it, which is exactly when something worth reporting turns up.
     var report = $("<a>")
             .attr( "id", "mdb-pageCreator-report" )
-            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines." )
+            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built: the title chunks, the cleanup, the MixesDB lookups and the categories." )
             .text( "Report" );
 
     report.on( "click", function() {
@@ -666,6 +685,9 @@ function mdbPageCreator_render() {
     input.on( "input change", function() {
         mdbPageCreator_growTitleInput( input );
         mdbPageCreator_fillReport( wrapper );
+        // the reasoning panel follows the title too, but debounced - its category section is
+        // read off the field, and a corrected name may need a lookup the cache has not seen
+        mdbPageCreator_queueReasoningUpdate();
     });
 
     if( isUsed ) {
@@ -787,6 +809,9 @@ function mdbPageCreator_confidenceTitle() {
  * The two empty "Expected" blocks are the point of it - they are the answer only the reporter has
  * - which is why anything typed into the box stops it from ever being refilled.
  *
+ * Above the box sits the reasoning panel - its own section further down - which explains how
+ * the suggestion was built, so the "Mistake / learning" line can name the step that went wrong.
+ *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // mdbPageCreator_toggleReport
@@ -801,6 +826,7 @@ function mdbPageCreator_toggleReport( wrapper ) {
 
     if( !mdbPageCreator_reportOpen ) {
         box.hide();
+        wrapper.find( "#mdb-pageCreator-reasoning" ).hide();
         return;
     }
 
@@ -816,14 +842,22 @@ function mdbPageCreator_toggleReport( wrapper ) {
             mdbPageCreator_growReport( box );
         });
 
-        // At the end of the row, which is where it stays: the wrapper is a grid and the box
-        // spans all its columns, so it forms a full-width line of its own under everything
-        // else (see page_creator.css).
-        wrapper.append( box );
+        // At the end of the row, which is where it stays: the wrapper is a grid and both the
+        // panel and the box span all its columns, so each forms a full-width line of its own
+        // under everything else (see page_creator.css). The reasoning panel goes in FIRST -
+        // document order is vertical order here - so it sits above the textarea.
+        wrapper.append( $("<div>").attr( "id", "mdb-pageCreator-reasoning" ), box );
     }
 
     box.show();
+    wrapper.find( "#mdb-pageCreator-reasoning" ).show();
     mdbPageCreator_fillReport( wrapper );
+    mdbPageCreator_renderReasoning( wrapper );
+
+    // The current title's names may not all be in the cache yet (the box can be opened before
+    // the lookup answered, and a corrected title names new ones) - the same delayed, cache-aware
+    // lookup a title edit gets.
+    mdbPageCreator_queueReasoningUpdate();
 
     // After show(): a hidden textarea measures 0, so the first grow has to happen once the box
     // is on the page. fillReport() grows it too, but it does nothing on a box already written in.
@@ -927,6 +961,334 @@ function mdbPageCreator_reportDay( date ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * The reasoning panel
+ *
+ * Opens with the report box, above it: four numbered sections that say how the suggestion was
+ * built. (1) the chunks the player title split into, (2) what the cleanup fixed and removed,
+ * (3) which names were looked up on MixesDB and what the wiki knows them as, (4) the
+ * categories the created page would be filed under - each annotated with what the lookup
+ * cache says about it, which is exactly the check a reporter otherwise runs by hand.
+ *
+ * The sources are title_builder.js's plain-data globals (mdbTitle_trace, mdbTitle_lookupLog,
+ * mdbTitle_categoryCache) plus the title as it stands in the field. Sections 1-3 describe the
+ * PLAYER title and only change when the suggestion is rebuilt; section 4 follows every edit of
+ * the field - debounced, because a corrected name may need a lookup of its own and firing one
+ * per keystroke would spam the wiki.
+ *
+ * Display only, rebuilt whole on every render: nothing in the panel holds state worth keeping.
+ * Everything is written with .text(), never with HTML strings - player titles are hostile
+ * free text.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// mdbPageCreator_queueReasoningUpdate
+// A title edit changes the categories the panel shows, and can name someone the cache has
+// never heard of - so the re-render waits out the typing and only then asks the wiki about
+// the names of the CURRENT title (one cache-aware request at most; unchanged names cost none).
+var mdbPageCreator_reasoningDelayMs = 800;
+
+function mdbPageCreator_queueReasoningUpdate() {
+    if( !mdbPageCreator_reportOpen ) return;
+
+    if( mdbPageCreator_reasoningTimer ) clearTimeout( mdbPageCreator_reasoningTimer );
+
+    // the answer may arrive after the reader clicked on to the next mix - see mdbPageGeneration
+    var pageGeneration = mdbPageGeneration;
+
+    mdbPageCreator_reasoningTimer = setTimeout(function() {
+        mdbPageCreator_reasoningTimer = null;
+
+        if( !mdbIsCurrentPage( pageGeneration ) || !mdbPageCreator_reportOpen ) return;
+
+        var wrapper = $("#mdb-pageCreator"),
+            title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
+            read = mdbTitle_titleCategories( title ),
+            names = read.artists.slice();
+
+        if( read.entity ) names.push( read.entity );
+
+        // the category section annotates the entity CATEGORY (episode number stripped), so
+        // that spelling has to be asked about too - "HATE Podcast", not just "HATE Podcast 496"
+        var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
+
+        if( entityCategory && entityCategory !== "Promo Mix" && entityCategory !== read.entity ) {
+            names.push( entityCategory );
+        }
+
+        logVar( "mdbPageCreator_queueReasoningUpdate: looking up", names.join( " | " ) || "(nothing)" );
+
+        mdbTitle_lookupCategories( names, function() {
+            if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            mdbPageCreator_renderReasoning( $("#mdb-pageCreator") );
+        });
+    }, mdbPageCreator_reasoningDelayMs );
+}
+
+// mdbPageCreator_reasoningSection
+// A numbered section: the count bubble, the heading, and a grey hint that says in passing what
+// the section is read off.
+function mdbPageCreator_reasoningSection( no, title, hint ) {
+    var head = $("<div>").addClass( "mdb-pageCreator-reasoning-head" ).append(
+            $("<span>").addClass( "mdb-pageCreator-reasoning-no" ).text( no ),
+            $("<span>").addClass( "mdb-pageCreator-reasoning-title" ).text( title )
+        );
+
+    if( hint ) head.append( $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( hint ) );
+
+    return $("<div>").addClass( "mdb-pageCreator-reasoning-section" ).append( head );
+}
+
+// mdbPageCreator_reasoningChips
+function mdbPageCreator_reasoningChips( names, chipClass ) {
+    var row = $("<div>").addClass( "mdb-pageCreator-reasoning-chips" ),
+        i;
+
+    for( i = 0; i < names.length; i++ ) {
+        row.append(
+            $("<span>")
+                .addClass( "mdb-pageCreator-chip" + ( chipClass ? " " + chipClass : "" ) )
+                .text( names[i] )
+        );
+    }
+
+    return row;
+}
+
+// mdbPageCreator_reasoningTypeBadge
+// One class per broad kind rather than per server type, so the CSS does not have to name every
+// type the module may ever answer with - unknown ones fall into the grey "other".
+function mdbPageCreator_reasoningTypeBadge( type ) {
+    var kind = /podcast|show|radio/.test( type ) ? "series"
+             : type === "venue"  ? "venue"
+             : type === "event"  ? "event"
+             : type === "artist" ? "artist"
+             : "other";
+
+    return $("<span>")
+        .addClass( "mdb-pageCreator-typeBadge mdb-pageCreator-typeBadge-" + kind )
+        .text( type );
+}
+
+// mdbPageCreator_reasoningMatch
+// One server match as "Name [type] N mixes" - the spelling is the wiki's own, which is half of
+// what makes the lookup worth showing.
+function mdbPageCreator_reasoningMatch( match ) {
+    var out = $("<span>").addClass( "mdb-pageCreator-reasoning-match" ).append(
+            $("<span>").addClass( "mdb-pageCreator-known" ).text( match.title || "?" ),
+            mdbPageCreator_reasoningTypeBadge( String( match.type || "?" ) )
+        );
+
+    if( typeof match.mixes === "number" ) {
+        out.append(
+            $("<span>").addClass( "mdb-pageCreator-reasoning-mixes" )
+                .text( match.mixes + ( match.mixes === 1 ? " mix" : " mixes" ) )
+        );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_reasoningNote
+function mdbPageCreator_reasoningNote( text, known ) {
+    return $("<span>")
+        .addClass( known ? "mdb-pageCreator-known" : "mdb-pageCreator-unknown" )
+        .text( text );
+}
+
+// mdbPageCreator_reasoningCategoryRow
+// One "[[Category:...]]" line with what is known about it: an artist the wiki has is confirmed
+// with its mix count, one it does not have is flagged as possibly new or misspelled.
+function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
+    var row = $("<div>").addClass( "mdb-pageCreator-reasoning-cat" ),
+        note = $("<span>").addClass( "mdb-pageCreator-reasoning-cat-note" ),
+        match;
+
+    row.append(
+        $("<span>")
+            .addClass( "mdb-pageCreator-reasoning-cat-name" + ( entry.name ? "" : " mdb-pageCreator-reasoning-cat-empty" ) )
+            .text( "[[Category:" + entry.name + "]]" )
+    );
+
+    switch( entry.role ) {
+        case "year":
+            note.append( mdbPageCreator_reasoningNote( "the year of the date group", false ) );
+            break;
+
+        case "artist":
+            match = mdbTitle_knownMatch( cache, entry.name, [ "artist" ] );
+
+            if( match ) {
+                note.append( mdbPageCreator_reasoningMatch( match ) );
+
+                // a match whose spelling differs is knowledge worth a look, not a rewrite
+                if( match.title && match.title !== entry.name ) {
+                    note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", false ) );
+                }
+            } else {
+                note.append( mdbPageCreator_reasoningNote( "no artist category of this name yet - a new name, or misspelled", false ) );
+            }
+            break;
+
+        case "entity":
+            match = mdbTitle_knownMatch( cache, entry.name, null );
+
+            if( match ) {
+                note.append( mdbPageCreator_reasoningMatch( match ) );
+
+                if( match.title && match.title !== entry.name ) {
+                    note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", false ) );
+                }
+            } else {
+                note.append( mdbPageCreator_reasoningNote( "no category of this name yet", false ) );
+            }
+            break;
+
+        case "promo":
+            note.append( mdbPageCreator_reasoningNote( "self-released, so no entity category - see Help:Add a new mix page", false ) );
+            break;
+
+        case "style":
+            note.append( mdbPageCreator_reasoningNote(
+                entry.name ? "style suggested by this site" : "style - left empty, that call is the editor's",
+                false
+            ) );
+            break;
+
+        case "tracklist":
+            note.append( mdbPageCreator_reasoningNote( "what the Tracklist Editor last said about the tracklist box", false ) );
+            break;
+    }
+
+    row.append( note );
+
+    return row;
+}
+
+// mdbPageCreator_renderReasoning
+// Builds the whole panel from the current state of its sources. Cheap enough to run whole on
+// every refresh, and stateless on purpose - see the section header.
+function mdbPageCreator_renderReasoning( wrapper ) {
+    var panel = wrapper.find( "#mdb-pageCreator-reasoning" );
+
+    if( !panel.length || !mdbPageCreator_reportOpen ) return;
+
+    logFunc( "mdbPageCreator_renderReasoning" );
+
+    // typeof-guarded: the panel must never break the report box, and a stale cached
+    // title_builder.js from before the trace existed would otherwise do exactly that
+    var trace = ( typeof mdbTitle_trace !== "undefined" ) ? mdbTitle_trace : null,
+        lookupLog = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
+        i;
+
+    panel.empty();
+
+    // 1) the chunks the player title split into
+    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks", "the player title, split at its separators and brackets" );
+
+    if( trace ) {
+        s1.append(
+            mdbPageCreator_reasoningChips( trace.chunks ),
+            $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                $("<span>").text( "Channel:" ),
+                $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-channel" ).text( trace.channel || "(none)" )
+            )
+        );
+    } else {
+        s1.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "No build trace - reload the page once, please." ) );
+    }
+
+    panel.append( s1 );
+
+    // 2) the cleanup
+    var s2 = mdbPageCreator_reasoningSection( "2", "Fixed and cleaned", "typos, decoration, credits and the date, taken out before the parse" );
+
+    if( trace ) {
+        if( trace.steps.length ) {
+            var steps = $("<div>").addClass( "mdb-pageCreator-reasoning-steps" );
+
+            for( i = 0; i < trace.steps.length; i++ ) {
+                steps.append(
+                    $("<div>").addClass( "mdb-pageCreator-reasoning-step" ).append(
+                        $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( trace.steps[i].label ),
+                        $("<span>").addClass( "mdb-pageCreator-reasoning-step-detail" ).text( trace.steps[i].detail )
+                    )
+                );
+            }
+
+            s2.append( steps );
+        } else {
+            s2.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "Nothing had to be fixed or removed." ) );
+        }
+
+        s2.append(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Left for the parser:" ),
+            mdbPageCreator_reasoningChips( mdbTitle_traceChunks( trace.cleaned ) )
+        );
+    }
+
+    panel.append( s2 );
+
+    // 3) the MixesDB lookups
+    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are" );
+
+    if( lookupLog.length ) {
+        var lookups = $("<div>").addClass( "mdb-pageCreator-reasoning-lookups" );
+
+        for( i = 0; i < lookupLog.length; i++ ) {
+            var entry = lookupLog[i],
+                cached = Object.prototype.hasOwnProperty.call( cache, entry.key ) ? cache[entry.key] : "",
+                matches = ( cached && cached.matches ) ? cached.matches : [],
+                result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
+                m;
+
+            if( matches.length ) {
+                for( m = 0; m < matches.length; m++ ) {
+                    result.append( mdbPageCreator_reasoningMatch( matches[m] ) );
+                }
+            } else if( entry.pending ) {
+                result.append( mdbPageCreator_reasoningNote( "looking it up …", false ) );
+            } else if( entry.skipped ) {
+                result.append( mdbPageCreator_reasoningNote( "not asked - over the 10-name request limit", false ) );
+            } else if( entry.failed ) {
+                result.append( mdbPageCreator_reasoningNote( "lookup failed", false ) );
+            } else {
+                result.append( mdbPageCreator_reasoningNote( "no category of this name", false ) );
+            }
+
+            lookups.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ).append(
+                    $("<span>").addClass( "mdb-pageCreator-chip" ).text( entry.name ),
+                    result
+                )
+            );
+        }
+
+        s3.append( lookups );
+    } else {
+        s3.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "No names were looked up." ) );
+    }
+
+    panel.append( s3 );
+
+    // 4) the categories of the created page - read off the CURRENT title, like the page text
+    var s4 = mdbPageCreator_reasoningSection( "4", "Categories for the new page", "read off the title above - editing it moves them" ),
+        entries = mdbPageCreator_categoryEntries( title ),
+        cats = $("<div>").addClass( "mdb-pageCreator-reasoning-cats" );
+
+    for( i = 0; i < entries.length; i++ ) {
+        cats.append( mdbPageCreator_reasoningCategoryRow( entries[i], cache ) );
+    }
+
+    s4.append( cats );
+    panel.append( s4 );
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Tracklist
  *
  * Uploaders write the tracklist into the description, and it was being retyped by hand into
@@ -1006,9 +1368,17 @@ function mdbPageCreator_resetForNewPage() {
     // asking about the mix the reader has already left.
     if( mdbPageCreator_toolkitPoll ) clearInterval( mdbPageCreator_toolkitPoll );
     if( mdbPageCreator_tracklistPoll ) clearInterval( mdbPageCreator_tracklistPoll );
+    if( mdbPageCreator_reasoningTimer ) clearTimeout( mdbPageCreator_reasoningTimer );
     mdbPageCreator_toolkitPoll = null;
     mdbPageCreator_tracklistPoll = null;
+    mdbPageCreator_reasoningTimer = null;
     mdbPageCreator_toolkitVerdict = null;
+
+    // The reasoning panel's sources (title_builder.js, @require'd before this file): the trace
+    // describes the previous mix's build, and the lookup log lists names asked FOR that mix.
+    // The CACHE is deliberately kept - an answer about a name does not change from page to page.
+    mdbTitle_trace = null;
+    mdbTitle_lookupLog = [];
 
     mdbPageCreator_tracklistFeedback = null;
     mdbPageCreator_tracklistDetected = null;
