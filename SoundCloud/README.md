@@ -33,6 +33,13 @@ Is this track already on MixesDB – see [Toolkit](../shared/toolkit/). It carri
 player URL in the form MixesDB embeds, not `location.href`, so tracking parameters and the
 redesign's frame URL never end up in a mix page.
 
+### Tracks too short for MixesDB
+
+MixesDB does not take recordings under 20 minutes, so on a shorter track the toolkit, the page
+creator and the tracklist box are not loaded at all. The red duration button is what says this
+is intended, not broken – its tooltip explains it, and clicking it still shows the file details
+as usual.
+
 ### Track page buttons
 
 Next to the player:

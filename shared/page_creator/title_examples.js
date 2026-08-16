@@ -324,6 +324,23 @@ var mdbTitleExamples = [
         expectArtists: [ "Lone Saxon" ],
         expect: "2026-08-07 - Lone Saxon - August 26 Mix"
     },
+    {
+        url: "https://soundcloud.com/from-undrgrnd-culture/kce-from-open-frequency-001",
+        title: "KCE — FROM OPEN FREQUENCY 001",
+        channel: "From UNDRGRND Culture",
+        date: "2026-08-13",
+        expectArtists: [ "KCE" ],
+        expect: "2026-08-13 - KCE - From Open Frequency 001"
+    },
+    {
+        url: "https://soundcloud.com/chlaurien/mix-august-2026-1",
+        title: "Mix August 2026",
+        channel: "Christian Laurien",
+        date: "2026-08-07",
+        // the reported entity category is Promo Mix, which the name already says - so it is
+        // carried by promoCategory and not written into the title
+        expect: "2026-08-07 - Christian Laurien - August 2026 Mix"
+    },
 
     // Reported before the URLs were kept
     {
@@ -446,6 +463,46 @@ var mdbTitleExamples = [
         channel: "Some Channel",
         date: "2026-08-05",
         expect: "2026-08-05 - Some Channel - Some Mix August 12"
+    },
+    {
+        // the mix word already BEHIND the month, i.e. the order MixesDB writes - it has to
+        // come back unchanged, or running the rule over both orders would shuffle it forever
+        title: "August 2026 Mix",
+        channel: "Christian Laurien",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Christian Laurien - August 2026 Mix"
+    },
+    {
+        // the same shape spelled "DJ Mix", which is one word to an uploader however they
+        // punctuate it
+        title: "DJ-Mix August 2026",
+        channel: "Christian Laurien",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Christian Laurien - August 2026 DJ-Mix"
+    },
+    {
+        // a name in front of the mix word is a NAME, so the stamp dates an edition of it and
+        // goes - this is the monthly-edition rule, and the pair guards the border between them
+        title: "Some Show Mix August 2026",
+        channel: "Some Channel",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Some Channel - Some Show Mix"
+    },
+    {
+        // three letters alone in a bit are an acronym and keep their caps; the same three
+        // inside a phrase are an ordinary word, which "MOLTO IN THE MIX" guards from the
+        // other side
+        title: "ABC - Some Podcast 12",
+        channel: "Some Channel",
+        date: "2026-08-07",
+        expect: "2026-08-07 - ABC - Some Podcast 12"
+    },
+    {
+        // the cutoff: one letter more and it is a word again
+        title: "ABCD - Some Podcast 12",
+        channel: "Some Channel",
+        date: "2026-08-07",
+        expect: "2026-08-07 - Abcd - Some Podcast 12"
     },
     {
         title: "Some Podcast 12 - Some DJ VS. Other DJ",

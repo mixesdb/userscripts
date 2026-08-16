@@ -317,6 +317,18 @@ a.sc_button-mdb:hover {
     background-color: transparent;
 }
 
+/* Too short for MixesDB (under 20 min): the toolkit and the page creator are skipped on
+   purpose, and the red duration button is what says so - see the toolkit duration gate in
+   script.user.js. --mui-error-dark-color is SoundCloud's own error color, read live off the
+   top document (#b40030); the fallback IS that value, for a document that does not define it.
+   The :hover line keeps the red fill against .sc_button-mdb:hover's own background-color,
+   which is more specific than the bare id+class. */
+#mdb-fileInfo.mdb-fileInfo-tooShort,
+#mdb-sc-trackButtons #mdb-fileInfo.mdb-fileInfo-tooShort:hover {
+    background-color: #ffadc4a3;
+    color: var(--mui-error-dark-color, #b40030);
+}
+
 /* Artwork info bar is its own block here, not an overlay on the artwork:
    right of the title on wide windows, above it once the head row wraps */
 #mdb-sc-trackExtras .mdb-artwork-input-wrapper-trackHeader {

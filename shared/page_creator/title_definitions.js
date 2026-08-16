@@ -1225,7 +1225,45 @@ var mdbTitleCounterWords = [
  * does: the digits are read as a year only when they land on the year the mix was uploaded in,
  * give or take one. "Some Mix August 12" uploaded in 2026 is not the 2012 edition of anything,
  * so it stays part of the name. A four-digit year says it itself and needs no such check.
+ *
+ * What has to be left in front of the stamp is a NAME, not just the word. Strip the series
+ * words out of "Mix August 2026" and nothing remains - there is no series called "Mix", the
+ * title simply has no name of its own, and the month is all the name there is. That one is
+ * mdbTitleDatedMixWords' business, below.
  */
+
+
+/*
+ * mdbTitleDatedMixWords
+ *
+ * A title that is a MIX WORD and a date and nothing else: no name, no series, no episode -
+ * somebody's monthly mix, uploaded under what amounts to a file name.
+ *
+ *     "Mix August 2026"     (channel "Christian Laurien")
+ *     ->  2026-08-07 - Christian Laurien - August 2026 Mix
+ *     "DJ Mix August 2026"  ->  ... - August 2026 DJ Mix
+ *
+ * Two things follow, and both are what MixesDB does with such a mix:
+ *
+ * - it is a Promo Mix, which the word in the name already says, so nothing is appended to the
+ *   title and only the category is set
+ * - the word goes BEHIND the month and year, whichever order the uploader typed them in.
+ *   "August 2026 Mix" is how MixesDB writes it: the date is the name, the word says what kind
+ *   of thing it is
+ *
+ * Nothing is dropped here, only moved - which is the difference to the monthly EDITION above.
+ * There a name stands in front of the stamp and the stamp only dates it, so the stamp goes.
+ * Here the stamp is the only name there is, so it stays and the word moves behind it.
+ *
+ * The whole name has to be nothing but the word and the date, which is what keeps every real
+ * name out of it: "House Set August 2026" names a set, "E-L-E-C-T-R-O MIx August 2026" names
+ * a series. Only the words a mix is generically called belong on this list - never one that a
+ * series is named after ("Podcast", "Radio"), since an episode of those is not a promo mix.
+ */
+var mdbTitleDatedMixWords = [
+    "dj mix",
+    "mix"
+];
 
 /*
  * The episode number belongs to the name it stands NEXT TO
@@ -1351,6 +1389,20 @@ var mdbTitleDroppedBitPatterns = [
  * - words without a vowel, which cannot be words either, so they are abbreviations and keep
  *   their caps: "DSS 139" stays "DSS 139", never "Dss 139". That is what covers the acronyms
  *   not worth listing below one by one.
+ * A bit that is nothing BUT a short word in caps is the fourth kind, and the one no test
+ * inside the word can reach:
+ *
+ *     "KCE — FROM OPEN FREQUENCY 001"  (channel "From UNDRGRND Culture")
+ *     WRONG: 2026-08-13 - Kce - From Open Frequency 001
+ *     RIGHT: 2026-08-13 - KCE - From Open Frequency 001
+ *
+ * "KCE" holds a vowel, is not the channel's initials and is on no list, so every rule above
+ * reads it as a shouted word - and "Kce" is nobody. Three letters standing alone as a whole
+ * bit of the title are an artist's initials or a brand, never a word somebody bothered to
+ * shout. The bit has to be nothing but that one word: the same three letters INSIDE a phrase
+ * are an ordinary word, which is what keeps "MOLTO IN THE MIX" coming out as "Molto In The
+ * Mix" and not as "Molto IN THE MIX".
+ *
  * - words that spell the CHANNEL's initials, which is the third kind of acronym and the only
  *   one a vowel does not give away:
  *       "IA Podcast | 233: Fixeer & Ricardo Garduno"  on the channel "Illegal Alien Records"

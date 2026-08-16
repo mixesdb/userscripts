@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.4
+// @version      2026.08.16.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_59
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_18
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_22
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_23
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -177,7 +177,7 @@ function getScPlayerUrl() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 110,
+var cacheVersion = 111,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -853,6 +853,115 @@ waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Toolkit duration gate
+ *
+ * MixesDB does not take recordings under 20 min (Help:File_Details#Minimum_duration). The
+ * page creator already refuses those - and for the toolkit the MixesDB usage check could
+ * only ever answer "not used", so it is not loaded at all for them, which saves MixesDB
+ * that request. The red #mdb-fileInfo button is what tells the reader this is on purpose.
+ *
+ * The duration comes out of the ONE SC API answer the sc-button-group handler already
+ * fetches - no second SC API call for this. Since the toolkit handlers fire before that
+ * answer is in, they park their getToolkit() call here and it is released (or dropped)
+ * when the answer names the duration.
+ *
+ * The SC API can also die on the way (a failing token fetch never calls back - see
+ * getScAccessTokenFromApi), and the toolkit must not die with it: a parked call is released
+ * ungated after 10s. A duration of 0/unknown releases too - only a duration we positively
+ * know may drop the toolkit, the same rule mdbPageCreator_setTitle applies.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var toolkitDurationGate_pending = null,  // the parked "load the toolkit now" call of the current track
+    toolkitDurationGate_durMs = null,    // null = the SC API has not answered for this track yet, 0 = answered without a duration
+    toolkitDurationGate_fallbackTimer = null;
+
+function toolkitDurationGate_clearFallbackTimer() {
+    if( toolkitDurationGate_fallbackTimer ) {
+        clearTimeout( toolkitDurationGate_fallbackTimer );
+        toolkitDurationGate_fallbackTimer = null;
+    }
+}
+
+// toolkitDurationGate_tooShort
+// Only a positively known duration may drop the toolkit - see the section comment.
+// mdbPageCreator_minDurationMs is the page creator's 20 min constant (page_creator.js), so
+// both features keep skipping at the same threshold.
+function toolkitDurationGate_tooShort() {
+    return toolkitDurationGate_durMs !== null
+        && toolkitDurationGate_durMs > 0
+        && toolkitDurationGate_durMs < mdbPageCreator_minDurationMs;
+}
+
+// toolkitDurationGate_decide
+function toolkitDurationGate_decide( fire ) {
+    if( toolkitDurationGate_tooShort() ) {
+        log( "toolkitDurationGate: track is " + Math.round( toolkitDurationGate_durMs / 1000 ) + "s, under the " +
+             ( mdbPageCreator_minDurationMs / 60000 ) + " min MixesDB minimum - toolkit (and its MixesDB usage check) skipped. " +
+             "The red #mdb-fileInfo button marks this as intended." );
+
+        // the loading skeleton waits for a toolkit verdict before it reveals - tell it that
+        // none is coming, or it would sit out its whole max wait
+        mdbSkeleton_noToolkit();
+        return;
+    }
+
+    fire();
+}
+
+// toolkitDurationGate_request
+// The toolkit handlers hand their getToolkit() call in here instead of firing it themselves.
+function toolkitDurationGate_request( fire ) {
+    logFunc( "toolkitDurationGate_request" );
+
+    toolkitDurationGate_clearFallbackTimer();
+
+    // duration already in (a React re-render of the same track): decide right away
+    if( toolkitDurationGate_durMs !== null ) {
+        toolkitDurationGate_decide( fire );
+        return;
+    }
+
+    log( "toolkitDurationGate_request: SC API answer not in yet - toolkit call parked." );
+    toolkitDurationGate_pending = fire;
+
+    toolkitDurationGate_fallbackTimer = setTimeout(function() {
+        if( toolkitDurationGate_pending ) {
+            log( "toolkitDurationGate: no SC API answer after 10s - loading the toolkit without the duration check." );
+            var pending = toolkitDurationGate_pending;
+            toolkitDurationGate_pending = null;
+            pending();
+        }
+    }, 10000 );
+}
+
+// toolkitDurationGate_resolve
+// Called with the SC API's duration (ms) once its answer is in - 0 for "answered, but no
+// usable duration" (an error, no track, no token), which releases the parked call ungated.
+function toolkitDurationGate_resolve( durMs ) {
+    toolkitDurationGate_durMs = ( typeof durMs === "number" && durMs > 0 ) ? durMs : 0;
+    logVar( "toolkitDurationGate_resolve: durMs", toolkitDurationGate_durMs );
+
+    toolkitDurationGate_clearFallbackTimer();
+
+    if( toolkitDurationGate_pending ) {
+        var pending = toolkitDurationGate_pending;
+        toolkitDurationGate_pending = null;
+        toolkitDurationGate_decide( pending );
+    }
+}
+
+// toolkitDurationGate_reset
+// SPA navigation: the parked call and the duration both describe the previous track.
+function toolkitDurationGate_reset() {
+    toolkitDurationGate_pending = null;
+    toolkitDurationGate_durMs = null;
+    toolkitDurationGate_clearFallbackTimer();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Player page / features using SC API
  * like soundAactions buttons and upload date
  *
@@ -1060,6 +1169,16 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                             logVar( "title", title );
                             logVar( "downloadable", downloadable );
 
+                            // releases (or drops) the parked getToolkit() call - see the
+                            // toolkit duration gate. A non-track answer counts as "no
+                            // usable duration", which releases ungated.
+                            toolkitDurationGate_resolve( kind == "track" ? dur_ms : 0 );
+
+                            // MixesDB does not take recordings under 20 min: no page creator
+                            // row, no tracklist box (the toolkit was dropped by the gate
+                            // above). Read off the gate so both use the same verdict.
+                            var tooShortForMixesdb = toolkitDurationGate_tooShort();
+
                             if( kind == "track" ) {
                                 // trackHeader
                                 // in the new layout jNode is #mdb-sc-trackExtras itself, which already
@@ -1135,26 +1254,33 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // SoundCloud CDN trick, not something a page creator knows.
                                 // target as a selector string, not a node: SoundCloud re-renders
                                 // under us, and the string is looked up again on every render.
-                                mdbPageCreator_add({
-                                    title:       title,
-                                    channel:     ( t.user && t.user.username ) ? t.user.username : "",
-                                    createdAt:   created_at,
-                                    releaseDate: release_date,
-                                    durationMs:  dur_ms,
-                                    playerUrl:   getScPlayerUrl(),
-                                    artworkUrl:  scArtworkOriginalUrl( apiArtworkUrl ),
-                                    // Not for the tracklist - that is the separate call below.
-                                    // The TITLE builder reads the labels the tracklist credits
-                                    // ("Artist - Title [Label]") out of it, so it can tell a
-                                    // label in brackets behind an artist from a second artist.
-                                    description: t.description,
-                                    // what the "Report" box calls this site ("SC title:",
-                                    // "SC date:") - the short name a reported title is written
-                                    // with, not the script name
-                                    sourceLabel: "SC",
-                                    target:      "#mdb-trackHeader-headline",
-                                    placement:   "after"
-                                });
+                                // Not called at all for a track under the 20 min minimum:
+                                // mdbPageCreator_setTitle() would refuse the title anyway, but
+                                // skipping here also saves its MixesDB category lookup.
+                                if( !tooShortForMixesdb ) {
+                                    mdbPageCreator_add({
+                                        title:       title,
+                                        channel:     ( t.user && t.user.username ) ? t.user.username : "",
+                                        createdAt:   created_at,
+                                        releaseDate: release_date,
+                                        durationMs:  dur_ms,
+                                        playerUrl:   getScPlayerUrl(),
+                                        artworkUrl:  scArtworkOriginalUrl( apiArtworkUrl ),
+                                        // Not for the tracklist - that is the separate call below.
+                                        // The TITLE builder reads the labels the tracklist credits
+                                        // ("Artist - Title [Label]") out of it, so it can tell a
+                                        // label in brackets behind an artist from a second artist.
+                                        description: t.description,
+                                        // what the "Report" box calls this site ("SC title:",
+                                        // "SC date:") - the short name a reported title is written
+                                        // with, not the script name
+                                        sourceLabel: "SC",
+                                        target:      "#mdb-trackHeader-headline",
+                                        placement:   "after"
+                                    });
+                                } else {
+                                    log( "Track is under the 20 min MixesDB minimum - no page creator row and no tracklist box." );
+                                }
 
                                 // add toggleTarget
                                 if( $("#mdb-toggle-target").length === 0 ) {
@@ -1175,17 +1301,22 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // before .listenDetails__partialInfo, which holds the
                                 // description. It arrives from a MixesDB API call of its own, so
                                 // the creator waits for it rather than expecting it to be there.
-                                mdbPageCreator_addTracklist({
-                                    description:  t.description,
-                                    loadComments: function( done ) {
-                                        // id, not a track ID read off the page: it comes out of
-                                        // the very response being handled, so it cannot name
-                                        // another track than the one this row is for.
-                                        getScTrackComments( id, scAccessToken, done );
-                                    },
-                                    target:       "#mdb-toolkit",
-                                    placement:    "after"
-                                });
+                                // Skipped for a too-short track along with mdbPageCreator_add()
+                                // above: its box waits for a toolkit verdict, and the duration
+                                // gate dropped that toolkit.
+                                if( !tooShortForMixesdb ) {
+                                    mdbPageCreator_addTracklist({
+                                        description:  t.description,
+                                        loadComments: function( done ) {
+                                            // id, not a track ID read off the page: it comes out of
+                                            // the very response being handled, so it cannot name
+                                            // another track than the one this row is for.
+                                            getScTrackComments( id, scAccessToken, done );
+                                        },
+                                        target:       "#mdb-toolkit",
+                                        placement:    "after"
+                                    });
+                                }
 
                                 // indicate download is available
                                 // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
@@ -1243,12 +1374,17 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         var bytes = "",
                                             dur_sec = Math.floor(dur_ms/ 1000),
                                             durToggleWrapper = getFileDetails_forToggle( dur_sec, bytes ),
-                                            dur = convertHMS( dur_sec );
+                                            dur = convertHMS( dur_sec ),
+                                            // Too short for MixesDB: the red duration button is
+                                            // what says the missing toolkit/page creator is on
+                                            // purpose - styled in script.css
+                                            fileInfoClass = soundActionFakeButtonClass + ' mdb-toggle' + ( tooShortForMixesdb ? ' mdb-fileInfo-tooShort' : '' ),
+                                            fileInfoTitle = ( tooShortForMixesdb ? 'Too short for MixesDB (under 20:00), so no toolkit and no page creator for this track. ' : '' ) + 'Click to copy file details';
 
                                         if( isNewSoundCloudLayout ) {
-                                            buttonTarget.append('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                            buttonTarget.append('<button id="mdb-fileInfo" class="'+fileInfoClass+'" data-toggleid="mdb-fileDetails" title="'+fileInfoTitle+'">'+dur+'</button>');
                                         } else {
-                                            soundActions.after('<button id="mdb-fileInfo" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details" class="pointer">'+dur+'</button>');
+                                            soundActions.after('<button id="mdb-fileInfo" class="'+fileInfoClass+'" data-toggleid="mdb-fileDetails" title="'+fileInfoTitle+'">'+dur+'</button>');
                                         }
 
                                         $("#mdb-toggle-target").append( durToggleWrapper );
@@ -1309,10 +1445,17 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                         error: function() {
                             log( "No track or no API!" );
                             addApiErrorNote( "unknown error" );
+
+                            // no duration to gate on - release the parked toolkit call, but
+                            // only if the reader is still on the page this answer was for
+                            if( mdbIsCurrentPage( pageGeneration ) ) {
+                                toolkitDurationGate_resolve( 0 );
+                            }
                         }
                     });
                 } else {
                     addApiErrorNote( "no access token" );
+                    toolkitDurationGate_resolve( 0 ); // no duration to gate on - release the parked toolkit call
                 }
             });
         }
@@ -1465,12 +1608,19 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
             });
 
             // toolkit goes full-width at the very end of the wrapper (below buttons and toggle
-            // target), instead of being squeezed into the old sidebar column
-            log( "Calling getToolkit() for #mdb-sc-trackExtras." );
-            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
+            // target), instead of being squeezed into the old sidebar column.
+            // Not called directly: the call is parked in the duration gate and only released
+            // once the SC API answer above says the track is long enough for MixesDB.
+            log( "Requesting toolkit for #mdb-sc-trackExtras (parked until the SC API names the duration)." );
+            toolkitDurationGate_request(function() {
+                log( "Calling getToolkit() for #mdb-sc-trackExtras." );
+                // the wrapper is looked up at fire time: the parked call can outlive the node
+                // it was registered for (React wipe), and this handler re-requests for the new one
+                getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
 
-            // the page creator row is gated behind that toolkit's usage verdict
-            mdbPageCreator_watchToolkit();
+                // the page creator row is gated behind that toolkit's usage verdict
+                mdbPageCreator_watchToolkit();
+            });
         }
     } else if( trackHeaderLastLoggedState !== "not-track-page" ) {
         log( "Not a track detail page (urlPath(2): '" + urlPath(2) + "') - skipping trackExtras wrapper." );
@@ -1590,11 +1740,16 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
         var titleText = $("h1.soundTitle__title").text();
         logVar( "titleText", titleText );
 
-        log( "Calling getToolkit() for old layout .listenDetails." );
-        getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
+        // Parked in the duration gate, not called directly - released once the SC API answer
+        // (fetched by the sc-button-group handler) says the track is long enough for MixesDB.
+        log( "Requesting toolkit for old layout .listenDetails (parked until the SC API names the duration)." );
+        toolkitDurationGate_request(function() {
+            log( "Calling getToolkit() for old layout .listenDetails." );
+            getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
 
-        // the page creator row is gated behind that toolkit's usage verdict
-        mdbPageCreator_watchToolkit();
+            // the page creator row is gated behind that toolkit's usage verdict
+            mdbPageCreator_watchToolkit();
+        });
     } else {
         log( "Not a track detail page - skipping old layout toolkit." );
     }
@@ -1629,6 +1784,9 @@ function runSoundcloudPage() {
     trackHeaderLastLoggedState = null;
     descriptionExpandedOnce = false;
 
+    // The parked toolkit call and the duration both describe the previous track.
+    toolkitDurationGate_reset();
+
     // Same fixed checkpoints as at script start - see the diagnostics section above for why
     // this is unconditional rather than triggered by a handler.
     if( urlPath(2) && urlPath(2) != "sets" ) {
@@ -1656,6 +1814,20 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.16.6
+ * A track under MixesDB's 20 min minimum no longer loads the toolkit at all - its MixesDB
+ * usage check could only ever answer "not used", so that request is saved along with the
+ * page creator row and the tracklist box, which were already refused for such tracks. The
+ * duration comes out of the ONE SC API answer the buttons are built from (new "Toolkit
+ * duration gate" section: getToolkit() is parked and released - or dropped - by that
+ * answer; no second SC API call). The red #mdb-fileInfo duration button (light red fill,
+ * MUI error text color, explaining tooltip) is what tells the reader the missing pieces
+ * are intended, not broken. A dead SC API cannot take the toolkit down with it: a parked
+ * call is released ungated after 10s, and an answer without a usable duration releases
+ * right away - only a positively known short duration drops the toolkit. The loading
+ * skeleton is told no toolkit verdict is coming (new mdbSkeleton_noToolkit() in
+ * page_creator.js v_23), so it reveals on the settle window instead of its 6s cap.
  *
  * 2026.08.16.4
  * The loading skeleton moved to shared/page_creator/ (mdbSkeleton_* in page_creator.js,

@@ -1414,7 +1414,9 @@ function mdbPageCreator_tracklistWikitext() {
  *
  * Revealed when the toolkit verdict is in the DOM (the same li.filled selector
  * mdbPageCreator_watchToolkit() polls), extraReady() - if given - returns true, and nothing
- * has changed inside the container for mdbSkeleton_settleMs. The settle window is what lets
+ * has changed inside the container for mdbSkeleton_settleMs. A site that decided against
+ * loading the toolkit at all on this page calls mdbSkeleton_noToolkit(), which stands in
+ * for the verdict. The settle window is what lets
  * the page creator row and a tracklist box (which follow the verdict within a
  * waitForKeyElements poll or two) slip in before the swap. mdbSkeleton_maxMs caps the whole
  * wait: after that, whatever has arrived is shown as-is.
@@ -1437,10 +1439,22 @@ var mdbSkeleton_checkTimer = null,
     mdbSkeleton_startedAt = 0,
     mdbSkeleton_active = false,
     mdbSkeleton_target = "",
-    mdbSkeleton_extraReady = null;
+    mdbSkeleton_extraReady = null,
+    mdbSkeleton_toolkitSkipped = false;
 
 var mdbSkeleton_settleMs = 600,
     mdbSkeleton_maxMs = 6000;
+
+// mdbSkeleton_noToolkit
+// A site script that decided NOT to load the toolkit at all for this page says so here
+// (SoundCloud skips it - and its MixesDB usage check - for tracks under MixesDB's 20 min
+// minimum), otherwise the reveal would sit out the whole max wait for a verdict that is
+// never coming. mdbSkeleton_show() resets it: a fresh container expects a toolkit again
+// until the site script says otherwise for that one too.
+function mdbSkeleton_noToolkit() {
+    log( "mdbSkeleton_noToolkit: not waiting for a toolkit verdict on this page." );
+    mdbSkeleton_toolkitSkipped = true;
+}
 
 // mdbSkeleton_html
 // The stand-in rows, composed from the row names the site passed. The shapes and sizes live
@@ -1503,6 +1517,7 @@ function mdbSkeleton_show( options ) {
 
     mdbSkeleton_target = options.target;
     mdbSkeleton_extraReady = options.extraReady || null;
+    mdbSkeleton_toolkitSkipped = false; // see mdbSkeleton_noToolkit()
 
     // Read at call time, not load time: the option lives in the site script, whose body
     // runs after this @require'd file.
@@ -1553,8 +1568,9 @@ function mdbSkeleton_check() {
         return;
     }
 
-    // the exact selector mdbPageCreator_watchToolkit() polls for the verdict
-    var toolkitDone = $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.filled").length !== 0,
+    // the exact selector mdbPageCreator_watchToolkit() polls for the verdict - unless the
+    // site script said there will be no toolkit on this page (mdbSkeleton_noToolkit)
+    var toolkitDone = mdbSkeleton_toolkitSkipped || $("#mdb-toolkit > ul > li.mdb-toolkit-usageLink.filled").length !== 0,
         extraDone = mdbSkeleton_extraReady ? mdbSkeleton_extraReady() : true,
         quietFor = Date.now() - mdbSkeleton_lastMutation;
 

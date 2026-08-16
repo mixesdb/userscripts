@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Name alias in prompts: `page creator`
+Name alias in prompts: `PC`, `page creator`
 
 The MixesDB page creator: the row (`#mdb-pageCreator`) a site script puts next to a player,
 holding an editable suggested mix page title, a confidence score and a "Create" link that opens
