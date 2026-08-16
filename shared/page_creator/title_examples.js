@@ -795,5 +795,28 @@ var mdbTitleExamples = [
         channel: "Some Podcast",
         date: "2026-08-05",
         expect: "2026-08-05 - Georgia - Some Podcast 12"
+    },
+    {
+        // the SHORT forms of a country do the same job as the long one, two-letter included
+        title: "Some Podcast 12 - Some DJ (Paris, FR)",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - Some Podcast 12"
+    },
+    {
+        // and the three-letter Olympic spelling, which is what an uploader writes as readily
+        // as the ISO one
+        title: "Some Podcast 12 - Some DJ (Zurich, SUI)",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - Some Podcast 12"
+    },
+    {
+        // a code standing alone drops nothing either - same rule as the lone "Georgia" above,
+        // and what makes the word-shaped codes ("CAN", "NO", "IT") safe to list
+        title: "Some Podcast 12 - CAN",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expect: "2026-08-05 - CAN - Some Podcast 12"
     }
 ];
