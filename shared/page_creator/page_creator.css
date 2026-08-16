@@ -172,6 +172,238 @@
     resize: none; /* dragging it taller fights the auto-grow, which wins on the next keystroke */
 }
 
+/*
+ * The reasoning panel above the report box (mdbPageCreator_renderReasoning in page_creator.js):
+ * how the suggestion was built, in four numbered sections. Same fixed light surface as the
+ * report box below it - the two open together and read as one thing, whatever the page's own
+ * theme is, which is also why fixed colours are safe in here.
+ *
+ * Generous spacing on purpose: the panel is read once, carefully, when something went wrong -
+ * it is allowed to take room.
+ */
+#mdb-pageCreator-reasoning {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 8px;
+    padding: 14px 16px 16px;
+    color: #444;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    background-color: #fcfcfc;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(127, 127, 127, 0.35);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+/* the little count bubble in front of each heading */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(127, 127, 127, 0.18);
+    font-size: 11px;
+    line-height: 1;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-hint {
+    color: #999;
+    font-weight: normal;
+    font-size: 11.5px;
+}
+
+/* the chunk/name chips - monospace like the title field, since they quote it */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip {
+    display: inline-block;
+    padding: 2px 9px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #333;
+    background-color: rgba(127, 127, 127, 0.10);
+    border: 1px solid rgba(127, 127, 127, 0.30);
+    border-radius: 999px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-channel {
+    color: #2f6fb7;
+    background-color: rgba(47, 111, 183, 0.10);
+    border-color: rgba(47, 111, 183, 0.35);
+}
+
+/* the "Channel:" / "Left for the parser:" side lines */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-aside {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    color: #777;
+    font-size: 12px;
+}
+
+/*
+ * The cleanup steps, the lookups and the categories are all two-column grids: the left column
+ * as wide as its widest reasonable entry, the right one taking the rest. display:contents on
+ * the rows is what lets one row's two spans land in the shared columns, so all labels line up.
+ * fit-content instead of max-content where the left side quotes free text, so a monster name
+ * wraps instead of pushing the answers off screen.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-steps {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 14px;
+    align-items: baseline;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step {
+    display: contents;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-label {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-detail {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    color: #666;
+    word-break: break-word;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {
+    display: grid;
+    grid-template-columns: fit-content(45%) 1fr;
+    gap: 8px 14px;
+    align-items: center;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup {
+    display: contents;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    font-size: 12px;
+}
+
+/* one server match: the wiki's spelling, the type badge, the mix count */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-match {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-mixes {
+    color: #999;
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    line-height: 1.6;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-artist { color: #2f6fb7; background-color: rgba(47, 111, 183, 0.12); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-series { color: #7c4dbe; background-color: rgba(124, 77, 190, 0.12); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-venue  { color: #1f9d55; background-color: rgba(31, 157, 85, 0.12); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-event  { color: #d97706; background-color: rgba(217, 119, 6, 0.12); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-other  { color: #777;    background-color: rgba(127, 127, 127, 0.12); }
+
+/* the same green the high confidence score wears - "the wiki confirms this" */
+#mdb-pageCreator-reasoning .mdb-pageCreator-known {
+    color: #2eb82e;
+    font-weight: 600;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-unknown {
+    color: #999;
+    font-style: italic;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cats {
+    display: grid;
+    grid-template-columns: fit-content(55%) 1fr;
+    gap: 6px 14px;
+    align-items: baseline;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat {
+    display: contents;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-name {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    color: #333;
+    word-break: break-word;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-empty {
+    color: #bbb;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #777;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-empty {
+    color: #999;
+    font-style: italic;
+}
+
 /* grey, so it reads as a warning label and not as part of the title */
 #mdb-pageCreator-beta {
     padding-left: 5px; /* it sits directly behind the score, which needs the air */

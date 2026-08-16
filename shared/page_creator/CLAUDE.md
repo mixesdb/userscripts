@@ -1,4 +1,4 @@
-# CLAUDE.md
+
 
 Name alias in prompts: `PC`, `page creator`
 
@@ -252,6 +252,14 @@ site's API gives it**, the upload date, the suggested title, the score and the c
 filled in,
 plus the reporter's "Mistake / learning" and "Expected …" lines. That is exactly the input a case
 needs - do not ask back for any of it when the box was used.
+
+Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`): title chunks,
+cleanup steps, the mdbnames lookups with their answers, and the created page's categories
+annotated from the lookup cache. Its sources are plain-data globals in `title_builder.js` -
+`mdbTitle_trace` (filled by every `buildMixesdbTitle()` run) and `mdbTitle_lookupLog` (every
+name `mdbTitle_lookupCategories()` was ever asked on this page; the answers stay in
+`mdbTitle_categoryCache`). Display only, rebuilt whole on every render; a title edit re-renders
+debounced and looks the current title's names up first (cache-aware).
 
 Every title reported as wrongly suggested lives in `title_examples.js` as its input and the
 title it should produce. Run them before and after touching anything the suggestion uses

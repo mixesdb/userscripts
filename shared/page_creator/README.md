@@ -18,6 +18,11 @@ title format (`YYYY-MM-DD - Artist - Show`). The field is editable – the sugge
 point, not a decision – and widens as you type so the whole title stays readable. A confidence
 score next to it says how sure the suggestion is.
 
+MixesDB's own category names sharpen the guess: the names in the title and the channel name are
+looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venue or event is
+read as exactly that – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
+`asa 808` becomes `ASA 808`).
+
 The row only appears for mixes that are **not on MixesDB yet**, and only for recordings of at
 least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
 [Toolkit](../toolkit/)'s answer, so the row shows up once the toolkit box next to it
@@ -34,6 +39,22 @@ what the title and its categories should have been.
 Copy the box, correct it and post it on Discord. It is always as tall as its text and grows as
 you type. Editing the title field above refills it, but anything typed into the box itself is
 never overwritten.
+
+Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
+learning" line can name the step that went wrong:
+
+1. **Title chunks** – the pieces the player title split into, plus the channel name
+2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, label credits,
+   the date that was read out, joiners rewritten, chunks a mix page title does not carry
+3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
+   category in the wiki's own spelling, its type (artist, podcast, venue, …) and how many
+   mixes it holds – or that no category of that name exists
+4. **Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes,
+   each annotated with what the lookup knows: a known artist is confirmed with its mix count,
+   an unknown one is flagged as possibly new or misspelled
+
+The panel follows the title field: correct the title above and, after a short pause, the
+categories are re-read from it and any new names are looked up on MixesDB.
 
 ### "Create" link
 
@@ -111,12 +132,10 @@ placeholder only holds the space below it.
 
 ## Known limitations
 
-- The title suggestion leans on hand-maintained word lists (`title_definitions.js`), so shows,
-  labels and venues it has not seen before can end up in the wrong part of the title. Report a
-  wrong suggestion on Discord – the **Report** box has the whole case ready – and it becomes a
-  test case.
-- MixesDB category names are not yet used to resolve artists, shows and venues – that work waits
-  on a wiki API endpoint.
+- The title suggestion leans on hand-maintained word lists (`title_definitions.js`) next to the
+  MixesDB category lookup, so shows, labels and venues neither has seen before can end up in the
+  wrong part of the title. Report a wrong suggestion on Discord – the **Report** box has the
+  whole case ready – and it becomes a test case.
 - Only tracklists written as a run of neighbouring lines are detected. A tracklist scattered
   through a description is left alone on purpose: a wrong tracklist on a new page is worse than
   none.
