@@ -309,6 +309,41 @@ var mdbTitleUsernameConversions = {
 
 
 /*
+ * mdbTitleChannelSeriesConversions
+ *
+ * mdbTitleUsernameConversions' sibling for the show whose title only names it HALF: the word
+ * in the title is generic ("DJ Mix") and the channel is what says whose it is. Keys are
+ * channel names as the site's API gives them, exactly like mdbTitleUsernameConversions; the
+ * value maps the words the title carries to the show MixesDB files the mix under:
+ *
+ *     "Dance TV": { "DJ Mix": "Dance TV DJ Mix" }
+ *     ->  "DJ MIX #679 - Miss Luna" on the channel "Dance TV"
+ *         becomes  2026-08-04 - Miss Luna - Dance TV DJ Mix 679
+ *
+ * Read as: on this channel, a title carrying "DJ Mix" is an episode of "Dance TV DJ Mix".
+ * The words grow into the curated name INSIDE the title, so every rule that follows finds the
+ * full name standing where the half one stood, and the channel counts as mapped to it - the
+ * entity in the title and the entity category (number stripped) both come out curated.
+ *
+ * Why mdbTitleUsernameConversions cannot carry this: mapping "Dance TV" -> "Dance TV DJ Mix"
+ * outright would stamp the show onto EVERY upload of the channel, festival sets and specials
+ * included. Here the title has to say the word first - an upload without it falls through to
+ * the ordinary rules untouched.
+ *
+ * Notes:
+ * - the channel lookup is case-insensitive, so a casing slip in a key still works
+ * - the words are matched in any case and with their inner spaces optional ("DJ MIX",
+ *   "DJMix"), always as whole words - the same looseness a mapped channel name gets
+ * - a title already carrying the FULL curated name is recognised before the bare words, so
+ *   "Dance TV DJ Mix #680" does not grow a second "Dance TV" in front of itself
+ * - several word entries per channel are fine; the first one found in the title wins
+ */
+var mdbTitleChannelSeriesConversions = {
+    "Dance TV": { "DJ Mix": "Dance TV DJ Mix" }
+};
+
+
+/*
  * mdbTitleTypoFixes
  *
  * Misspellings corrected before the title is parsed at all, i.e. before any rule reads a word
@@ -1386,6 +1421,102 @@ var mdbTitleDroppedBitPatterns = [
     /\bstage$/i,
     /\bfloor$/i,
     /\bcamp$/i
+];
+
+
+/*
+ * mdbTitleCountries
+ *
+ * The countries a player title writes behind an artist to say where they are FROM, with the
+ * acronym forms next to their long ones. What it recognises is a chunk that is a PLACE LIST -
+ * names separated by "," or "/" with a country as the last one:
+ *
+ *     "DJ MIX #679 - Miss Luna ( Ibiza/ Dusseldorf, Germany)"  (channel "Dance TV")
+ *     WRONG: 2026-08-04 - Miss Luna Ibiza/ Dusseldorf, Germany - DJ Mix 679
+ *     RIGHT: 2026-08-04 - Miss Luna - Dance TV DJ Mix 679
+ *
+ * Where the artist is from is none of a mix page title's business, so the chunk goes
+ * (mdbTitle_dropLocationChunks in title_builder.js) - but only from a title that is NOT a
+ * live recording, i.e. carries no "@" once the joiners have run. On a live recording the
+ * places next to the venue are the venue's city and country, which MixesDB DOES write
+ * ("@ Ritter Butzke, Berlin"), so a live title keeps every place it names.
+ *
+ * A country standing ALONE never drops a chunk: "Georgia", "France" and "Japan" are artists
+ * and mix names as readily as countries, and a lone name says too little. The reported shape
+ * is the LIST ending in a country, and only that is matched - which is also what keeps
+ * "Techno Germany Podcast 226" safe, where the country stands inside a name rather than
+ * ending a place list.
+ *
+ * Compared with mdbTitle_normalizeCompare(), which folds to a-z0-9 - so case and dots cost
+ * nothing and "U.S.A.", "USA", "usa" are one entry. The dotted spellings are listed anyway:
+ * this list is a register of what a title may write, and a reader checking whether a spelling
+ * is covered should not have to know the compare function to answer it. Countries written in
+ * a non-latin alphabet cannot be matched and do not belong here yet.
+ */
+var mdbTitleCountries = [
+    "Argentina",
+    "Australia",
+    "Austria",
+    "Belgium",
+    "Brazil",
+    "Bulgaria",
+    "Canada",
+    "Chile",
+    "China",
+    "Colombia",
+    "Croatia",
+    "Czech Republic", "Czechia",
+    "Denmark",
+    "Egypt",
+    "England",
+    "Estonia",
+    "Finland",
+    "France",
+    "Georgia",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "India",
+    "Indonesia",
+    "Iran",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Japan",
+    "Latvia",
+    "Lebanon",
+    "Lithuania",
+    "Malta",
+    "Mexico",
+    "Morocco",
+    "Netherlands", "Holland",
+    "New Zealand",
+    "Norway",
+    "Peru",
+    "Philippines",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Russia",
+    "Scotland",
+    "Serbia",
+    "Singapore",
+    "Slovakia",
+    "Slovenia",
+    "South Africa",
+    "South Korea",
+    "Spain",
+    "Sweden",
+    "Switzerland",
+    "Thailand",
+    "Tunisia",
+    "Turkey", "Türkiye",
+    "Ukraine",
+    "United Arab Emirates", "UAE", "U.A.E.",
+    "United Kingdom", "UK", "U.K.",
+    "United States of America", "United States", "USA", "U.S.A.", "US", "U.S.",
+    "Vietnam",
+    "Wales"
 ];
 
 
