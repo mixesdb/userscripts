@@ -354,6 +354,17 @@ var mdbTitleExamples = [
         expectArtists: [ "Miss Luna" ],
         expect: "2026-08-04 - Miss Luna - Dance TV DJ Mix 679"
     },
+    {
+        url: "https://soundcloud.com/privateplaces/779-sascha-sibler",
+        title: "Guestroom 779 by Sascha Sibler",
+        channel: "PRIVATEPLACES Mixtapes",
+        date: "2022-06-15",
+        // the lowercase "by" is the only separator in the title, and the number alone would
+        // never have been read as an episode - "Guestroom" carries no series word and the
+        // channel is nowhere in the title
+        expectArtists: [ "Sascha Sibler" ],
+        expect: "2022-06-15 - Sascha Sibler - Guestroom 779"
+    },
 
     // Reported before the URLs were kept
     {
@@ -629,6 +640,24 @@ var mdbTitleExamples = [
         channel: "Some Channel",
         date: "2026-08-05",
         expect: "2026-08-05 - Stand By Me - Some Podcast 12"
+    },
+    {
+        // the "by" as the ONLY separator, with the number the sole thing saying that the front
+        // is a series - the reported "Guestroom 779 by Sascha Sibler" without its keyword-free
+        // twin sister. The name behind it carries a series word, so the scores alone would put
+        // the two the wrong way round: the "by" is what settles it
+        title: "Somewhere 779 by Radio Kid",
+        channel: "Some Channel",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Radio Kid - Somewhere 779"
+    },
+    {
+        // the border of that rule: with nothing series-shaped in front of it, a lowercase "by"
+        // is an ordinary English word and splits nothing - the title is one name
+        title: "Side by Side",
+        channel: "Some Channel",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Side by Side - Some Channel"
     },
     {
         title: "SEVEN Mix 084 Theo Scuera",

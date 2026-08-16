@@ -3134,7 +3134,24 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( !isMappedChannel && !taken.taken && !showFromEpisodeRule && !episode &&
             rest.indexOf( "@" ) === -1 ) {
 
-            var splitParts = rest.split( mdbTitle_bitSplitRe() );
+            var splitParts = rest.split( mdbTitle_bitSplitRe() ),
+                // A lowercase "by" is the separator where the uploader typed none:
+                // "Guestroom 779 by Sascha Sibler" on the channel "PRIVATEPLACES Mixtapes".
+                // Only asked when nothing else split the title - a title that HAS separators is
+                // already read by the bits it was written in. See the "by" block in
+                // title_definitions.js for which "by" counts; the flags are what keeps the "By"
+                // of a name ("Stand By Me") out. Non-greedy, so the FIRST one splits.
+                byMatch = splitParts.length === 1
+                            ? new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( rest ) ).exec( rest )
+                            : null,
+                // ... and what stands in front of it has to look like a SERIES or a mix - a
+                // number or a series word. A lowercase "by" is an ordinary English preposition
+                // as well ("Live by the Sea", "Side by Side"), and with no separator in the
+                // title there is nothing else left to tell the two apart. The number is what
+                // says that something numbered its episodes and a name follows.
+                bySplit = ( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) ? byMatch : null;
+
+            if( bySplit ) splitParts = [ bySplit[1], bySplit[2] ];
 
             if( splitParts.length === 2 ) {
                 var leftPart = mdbTitle_cleanArtist( splitParts[0] ),
@@ -3153,7 +3170,20 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                         rightScore = -1;
                     }
 
-                    if( leftScore !== rightScore ) {
+                    if( bySplit ) {
+                        // The "by" says which side is which outright, so the scores are not
+                        // asked: what stands in FRONT of it was made, who stands behind it made
+                        // it. They would mostly agree ("Guestroom 779" carries the number), but
+                        // not always - "Guestroom 779 by Radio Slave" has a series word in the
+                        // NAME and would come out backwards. Nothing is charged, exactly as in
+                        // the score branch: the word IS the answer, nothing was guessed.
+                        // No "(Promo Mix)" either - the guard above let this through because the
+                        // entity reads as a series, which is the opposite of a self-released mix.
+                        splitArtist = rightPart;
+                        splitEntity = leftPart;
+                        splitPromo = false;
+
+                    } else if( leftScore !== rightScore ) {
                         // the side that looks more like a series is the show. Told apart by
                         // the title itself, so nothing was guessed and nothing is charged -
                         // swapping the two groups around is not a doubt about the result.
