@@ -93,6 +93,13 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Prefer plain JS, but do not change existing jQuery code
 - Wrap script body in an IIFE: `(function() { ... })();` right after `// ==/UserScript==`, closed at end of file. No `'use strict'` – too risky to audit every implicit global across this much legacy jQuery code; a silent bug would become a hard `ReferenceError`.
 - If the script declares `scriptName`, add `window.scriptName = scriptName;` right after – `shared/toolkit/funcs.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
+- The `Load @ressource files with variables` block (`var cacheVersion = N, scriptName = "...";`
+  plus `window.scriptName` and the `loadRawCss()` calls) is the FIRST thing inside the IIFE –
+  see TrackId.net. Never let it sink into a constants section further down: `cacheVersion` is
+  bumped on most shared-file changes and must be findable without scrolling. Where something
+  genuinely has to run even earlier (YouTube's dependency-free startup diagnostics, SoundCloud's
+  frame opt-out that no CSS may precede), only the `loadRawCss()` calls stay down there – the
+  `cacheVersion`/`scriptName` declarations still go on top.
 - Use the log()/logVar()/logFunc() helpers from global.js and a `DEBUG` flag if logging is needed during development
 
 ## Single-page apps (all the sites we run on)

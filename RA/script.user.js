@@ -24,15 +24,6 @@
 (function() {
 
 
-/*
-https://ra.co/news/*
-https://ra.co/podcast/970
-https://de.ra.co/podcast/970
-https://ra.co/events/2232716
-https://de.ra.co/events/2232716
-*/
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Load @ressource files with variables
@@ -46,6 +37,15 @@ window.scriptName = scriptName; // toolkit.js reads this global directly
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
+
+
+/*
+https://ra.co/news/*
+https://ra.co/podcast/970
+https://de.ra.co/podcast/970
+https://ra.co/events/2232716
+https://de.ra.co/events/2232716
+*/
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
