@@ -10,6 +10,8 @@ off the SoundCloud API and hands them over in one `mdbPageCreator_add({...})` ca
 `api_funcs`/track-header block of `script.user.js`), plus `mdbPageCreator_watchToolkit()`
 wherever `getToolkit()` is called.
 
+On a track page the SoundCloud API for that track should only be called once in total.
+
 SoundCloud-only bits that must stay on this side, not move into the page creator:
 
 - `scArtworkOriginalUrl()` - asking the CDN for the "-original" size is a SoundCloud trick.
