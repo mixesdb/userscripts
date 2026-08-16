@@ -56,6 +56,9 @@ learning" line can name the step that went wrong:
 The panel follows the title field: correct the title above and, after a short pause, the
 categories are re-read from it and any new names are looked up on MixesDB.
 
+Opened while MixesDB is still being asked, the panel holds its space with grey pulsing
+placeholder rows and shows the real content in one step once the answers are in.
+
 ### "Create" link
 
 Opens the edit form of the new page, prefilled with:

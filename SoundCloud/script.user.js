@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 113,
+var cacheVersion = 114,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1837,7 +1837,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
- * 2026.08.16.12
+ * 2026.08.16.13
  * The "Report" box got a reasoning panel above the textarea (shared/page_creator/:
  * page_creator.js v_24, title_builder.js v_23, page_creator.css): four sections showing the
  * chunks the player title split into, what the cleanup fixed and removed (typos, decoration,
@@ -1845,7 +1845,11 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * knows them as, and the categories the created page would be filed under - each annotated
  * from the lookup cache (known artist with mix count vs. "no category of this name yet").
  * Editing the title re-renders the panel after a short pause and looks the new names up
- * first (cache-aware, one request at most).
+ * first (cache-aware, one request at most). Dark surface like the loading skeleton (both
+ * sites are dark-themed; grey-on-white was hard to read next to them), one accent colour
+ * per section, semantic tones on the notes (green = confirmed, amber = check this, red =
+ * request died). Opened before every lookup answered, the panel shows pulsing stand-in
+ * rows of its own and swaps to the real content once everything is in.
  *
  * 2026.08.16.7
  * The red duration of a too-short track is a plain label now, not a button: short tracks are

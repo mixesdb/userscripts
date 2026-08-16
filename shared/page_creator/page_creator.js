@@ -121,6 +121,8 @@ var mdbPageCreator_title = "",
     // the debounce behind the reasoning panel's title-edit refresh - see
     // mdbPageCreator_queueReasoningUpdate()
     mdbPageCreator_reasoningTimer = null,
+    // the poll behind the panel's own loading state - see mdbPageCreator_watchReasoningReady()
+    mdbPageCreator_reasoningReadyPoll = null,
     // where the row goes - see the note on selector strings in the header comment
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
@@ -1036,7 +1038,10 @@ function mdbPageCreator_reasoningSection( no, title, hint ) {
 
     if( hint ) head.append( $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( hint ) );
 
-    return $("<div>").addClass( "mdb-pageCreator-reasoning-section" ).append( head );
+    // the numbered class carries the section's accent colour (bubble + left bar) in the CSS
+    return $("<div>")
+        .addClass( "mdb-pageCreator-reasoning-section mdb-pageCreator-reasoning-section-" + no )
+        .append( head );
 }
 
 // mdbPageCreator_reasoningChips
@@ -1090,10 +1095,31 @@ function mdbPageCreator_reasoningMatch( match ) {
 }
 
 // mdbPageCreator_reasoningNote
-function mdbPageCreator_reasoningNote( text, known ) {
+// tone: "good" (the wiki confirms it), "info" (worth knowing), "warn" (check this before
+// creating), "bad" (the request itself died), "muted" (a plain fact). The colour IS the
+// message, so the tone is picked per statement at the call site, not per section.
+function mdbPageCreator_reasoningNote( text, tone ) {
     return $("<span>")
-        .addClass( known ? "mdb-pageCreator-known" : "mdb-pageCreator-unknown" )
+        .addClass( "mdb-pageCreator-reasoning-note mdb-pageCreator-note-" + ( tone || "muted" ) )
         .text( text );
+}
+
+// mdbPageCreator_reasoningDetail
+// The step detail with its " -> " rendered as a coloured arrow, so before and after are told
+// apart at a glance. Split on the exact spaced " -> " the trace writes - an arrow a title
+// itself carries is glued to its words and stays text.
+function mdbPageCreator_reasoningDetail( detail ) {
+    var span = $("<span>").addClass( "mdb-pageCreator-reasoning-step-detail" ),
+        parts = String( detail || "" ).split( " -> " ),
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        if( i ) span.append( $("<span>").addClass( "mdb-pageCreator-reasoning-arrow" ).text( "→" ) );
+
+        span.append( document.createTextNode( parts[i] ) );
+    }
+
+    return span;
 }
 
 // mdbPageCreator_reasoningCategoryRow
@@ -1112,7 +1138,7 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
 
     switch( entry.role ) {
         case "year":
-            note.append( mdbPageCreator_reasoningNote( "the year of the date group", false ) );
+            note.append( mdbPageCreator_reasoningNote( "the year of the date group", "muted" ) );
             break;
 
         case "artist":
@@ -1123,10 +1149,10 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
 
                 // a match whose spelling differs is knowledge worth a look, not a rewrite
                 if( match.title && match.title !== entry.name ) {
-                    note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", false ) );
+                    note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", "info" ) );
                 }
             } else {
-                note.append( mdbPageCreator_reasoningNote( "no artist category of this name yet - a new name, or misspelled", false ) );
+                note.append( mdbPageCreator_reasoningNote( "no artist category of this name yet - a new name, or misspelled", "warn" ) );
             }
             break;
 
@@ -1137,26 +1163,26 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
                 note.append( mdbPageCreator_reasoningMatch( match ) );
 
                 if( match.title && match.title !== entry.name ) {
-                    note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", false ) );
+                    note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", "info" ) );
                 }
             } else {
-                note.append( mdbPageCreator_reasoningNote( "no category of this name yet", false ) );
+                note.append( mdbPageCreator_reasoningNote( "no category of this name yet", "warn" ) );
             }
             break;
 
         case "promo":
-            note.append( mdbPageCreator_reasoningNote( "self-released, so no entity category - see Help:Add a new mix page", false ) );
+            note.append( mdbPageCreator_reasoningNote( "self-released, so no entity category - see Help:Add a new mix page", "info" ) );
             break;
 
         case "style":
             note.append( mdbPageCreator_reasoningNote(
                 entry.name ? "style suggested by this site" : "style - left empty, that call is the editor's",
-                false
+                "muted"
             ) );
             break;
 
         case "tracklist":
-            note.append( mdbPageCreator_reasoningNote( "what the Tracklist Editor last said about the tracklist box", false ) );
+            note.append( mdbPageCreator_reasoningNote( "what the Tracklist Editor last said about the tracklist box", "muted" ) );
             break;
     }
 
@@ -1165,13 +1191,97 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
     return row;
 }
 
+// mdbPageCreator_reasoningReady
+// Whether the panel has everything it wants to show: the loading skeleton is gone (the page's
+// pieces are on screen) and no name lookup is still in flight. Rendered before that, the panel
+// would show half-answered lookups and categories that flip a moment later.
+function mdbPageCreator_reasoningReady() {
+    if( $("#mdb-skeleton").length ) return false;
+
+    var lookupLog = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        i;
+
+    for( i = 0; i < lookupLog.length; i++ ) {
+        if( lookupLog[i].pending ) return false;
+    }
+
+    return true;
+}
+
+// mdbPageCreator_reasoningSkeleton
+// The panel's own loading state: four grey stand-in rows shaped like the numbered sections,
+// pulsing with the page skeleton's keyframes. Shown when "Report" is clicked before every
+// answer is in, and swapped for the real content in one step.
+function mdbPageCreator_reasoningSkeleton() {
+    var box = $("<div>").addClass( "mdb-pageCreator-reasoning-skeleton" ),
+        widths = [ 60, 45, 70, 50 ], // % - varied like real section content, not a uniform block
+        i;
+
+    for( i = 0; i < widths.length; i++ ) {
+        box.append(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-skeleton-row" ).append(
+                $("<span>").addClass( "mdb-pageCreator-reasoning-skeleton-bubble" ),
+                $("<span>").addClass( "mdb-pageCreator-reasoning-skeleton-bar" ).css( "width", widths[i] + "%" )
+            )
+        );
+    }
+
+    return box;
+}
+
+// mdbPageCreator_watchReasoningReady
+// Polls until the panel's sources are ready, then renders for real. The usual wait is well
+// under a second (one lookup answer); the cap is for a request that never comes back - then
+// whatever is known by now is shown rather than pulsing forever, hence the force flag.
+function mdbPageCreator_watchReasoningReady() {
+    if( mdbPageCreator_reasoningReadyPoll ) return; // already waiting for this very thing
+
+    var tries = 0,
+        maxTries = 40; // 40 * 300ms = 12s
+
+    mdbPageCreator_reasoningReadyPoll = setInterval(function() {
+        // panel closed or gone (navigation) - nothing to wait for anymore
+        if( !mdbPageCreator_reportOpen || !$("#mdb-pageCreator-reasoning").length ) {
+            clearInterval( mdbPageCreator_reasoningReadyPoll );
+            mdbPageCreator_reasoningReadyPoll = null;
+            return;
+        }
+
+        if( !mdbPageCreator_reasoningReady() && ++tries < maxTries ) return;
+
+        clearInterval( mdbPageCreator_reasoningReadyPoll );
+        mdbPageCreator_reasoningReadyPoll = null;
+
+        if( tries >= maxTries ) log( "mdbPageCreator_watchReasoningReady: gave up waiting after " + maxTries + " tries - showing what is known." );
+
+        mdbPageCreator_renderReasoning( $("#mdb-pageCreator"), true );
+    }, 300);
+}
+
 // mdbPageCreator_renderReasoning
 // Builds the whole panel from the current state of its sources. Cheap enough to run whole on
-// every refresh, and stateless on purpose - see the section header.
-function mdbPageCreator_renderReasoning( wrapper ) {
+// every refresh, and stateless on purpose - see the section header. force skips the readiness
+// gate: the watch's cap uses it to show what is known rather than pulsing forever.
+function mdbPageCreator_renderReasoning( wrapper, force ) {
     var panel = wrapper.find( "#mdb-pageCreator-reasoning" );
 
     if( !panel.length || !mdbPageCreator_reportOpen ) return;
+
+    // Not everything is on the page yet - hold the space with the panel's skeleton and come
+    // back. Every settle path re-renders (the refresh after the lookup answer, the debounced
+    // edit path), the poll is only the safety net behind them.
+    if( !force && !mdbPageCreator_reasoningReady() ) {
+        log( "mdbPageCreator_renderReasoning: lookups still in flight (or the page skeleton is up) - showing the panel skeleton." );
+        panel.empty().append( mdbPageCreator_reasoningSkeleton() );
+        mdbPageCreator_watchReasoningReady();
+        return;
+    }
+
+    // content is about to render - a safety-net poll still ticking would only re-render it
+    if( mdbPageCreator_reasoningReadyPoll ) {
+        clearInterval( mdbPageCreator_reasoningReadyPoll );
+        mdbPageCreator_reasoningReadyPoll = null;
+    }
 
     logFunc( "mdbPageCreator_renderReasoning" );
 
@@ -1213,7 +1323,7 @@ function mdbPageCreator_renderReasoning( wrapper ) {
                 steps.append(
                     $("<div>").addClass( "mdb-pageCreator-reasoning-step" ).append(
                         $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( trace.steps[i].label ),
-                        $("<span>").addClass( "mdb-pageCreator-reasoning-step-detail" ).text( trace.steps[i].detail )
+                        mdbPageCreator_reasoningDetail( trace.steps[i].detail )
                     )
                 );
             }
@@ -1225,7 +1335,8 @@ function mdbPageCreator_renderReasoning( wrapper ) {
 
         s2.append(
             $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Left for the parser:" ),
-            mdbPageCreator_reasoningChips( mdbTitle_traceChunks( trace.cleaned ) )
+            // green-tinted: these chunks survived the cleanup and are what the parse works on
+            mdbPageCreator_reasoningChips( mdbTitle_traceChunks( trace.cleaned ), "mdb-pageCreator-chip-kept" )
         );
     }
 
@@ -1249,13 +1360,15 @@ function mdbPageCreator_renderReasoning( wrapper ) {
                     result.append( mdbPageCreator_reasoningMatch( matches[m] ) );
                 }
             } else if( entry.pending ) {
-                result.append( mdbPageCreator_reasoningNote( "looking it up …", false ) );
+                result.append( mdbPageCreator_reasoningNote( "looking it up …", "info" ) );
             } else if( entry.skipped ) {
-                result.append( mdbPageCreator_reasoningNote( "not asked - over the 10-name request limit", false ) );
+                result.append( mdbPageCreator_reasoningNote( "not asked - over the 10-name request limit", "muted" ) );
             } else if( entry.failed ) {
-                result.append( mdbPageCreator_reasoningNote( "lookup failed", false ) );
+                result.append( mdbPageCreator_reasoningNote( "lookup failed", "bad" ) );
             } else {
-                result.append( mdbPageCreator_reasoningNote( "no category of this name", false ) );
+                // the normal outcome for most title bits, so muted rather than a warning -
+                // section 4 is where an unknown name matters
+                result.append( mdbPageCreator_reasoningNote( "no category of this name", "muted" ) );
             }
 
             lookups.append(
@@ -1369,9 +1482,11 @@ function mdbPageCreator_resetForNewPage() {
     if( mdbPageCreator_toolkitPoll ) clearInterval( mdbPageCreator_toolkitPoll );
     if( mdbPageCreator_tracklistPoll ) clearInterval( mdbPageCreator_tracklistPoll );
     if( mdbPageCreator_reasoningTimer ) clearTimeout( mdbPageCreator_reasoningTimer );
+    if( mdbPageCreator_reasoningReadyPoll ) clearInterval( mdbPageCreator_reasoningReadyPoll );
     mdbPageCreator_toolkitPoll = null;
     mdbPageCreator_tracklistPoll = null;
     mdbPageCreator_reasoningTimer = null;
+    mdbPageCreator_reasoningReadyPoll = null;
     mdbPageCreator_toolkitVerdict = null;
 
     // The reasoning panel's sources (title_builder.js, @require'd before this file): the trace

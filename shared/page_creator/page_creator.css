@@ -174,9 +174,14 @@
 
 /*
  * The reasoning panel above the report box (mdbPageCreator_renderReasoning in page_creator.js):
- * how the suggestion was built, in four numbered sections. Same fixed light surface as the
- * report box below it - the two open together and read as one thing, whatever the page's own
- * theme is, which is also why fixed colours are safe in here.
+ * how the suggestion was built, in four numbered sections. Hardcoded dark greys like the
+ * loading skeleton, and for the same reason: both sites showing it (SoundCloud, TrackId.net)
+ * are dark-themed, and grey-on-white next to their pages was hard to read.
+ *
+ * Each section carries an accent colour - bubble and left bar - so the four read as four at a
+ * glance: blue (chunks), amber (cleanup), purple (lookups), green (categories). The tones on
+ * the notes are semantic, stated at .mdb-pageCreator-note-*: green = the wiki confirms it,
+ * blue = worth knowing, amber = check before creating, red = the request died, grey = a fact.
  *
  * Generous spacing on purpose: the panel is read once, carefully, when something went wrong -
  * it is allowed to take room.
@@ -186,26 +191,25 @@
     box-sizing: border-box;
     width: 100%;
     margin-top: 8px;
-    padding: 14px 16px 16px;
-    color: #444;
+    padding: 16px 18px;
+    color: #c9c9c9;
     font-size: 13px;
     line-height: 1.5;
     text-align: left;
-    background-color: #fcfcfc;
-    border: 1px solid rgba(127, 127, 127, 0.45);
-    border-radius: 4px;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
 }
 
+/* the left accent bar is what separates the sections - no ruled lines needed on top of it */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px dashed rgba(127, 127, 127, 0.35);
+    margin-top: 20px;
+    padding-left: 14px;
+    border-left: 3px solid rgba(255, 255, 255, 0.15);
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section:first-child {
     margin-top: 0;
-    padding-top: 0;
-    border-top: none;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-head {
@@ -215,9 +219,10 @@
     margin-bottom: 10px;
     font-weight: bold;
     font-size: 13px;
+    color: #f0f0f0;
 }
 
-/* the little count bubble in front of each heading */
+/* the little count bubble in front of each heading - tinted per section below */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
     flex: 0 0 auto;
     display: inline-flex;
@@ -227,13 +232,24 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background-color: rgba(127, 127, 127, 0.18);
+    background-color: rgba(255, 255, 255, 0.12);
     font-size: 11px;
     line-height: 1;
 }
 
+/* the four accents: blue, amber, purple, green */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1 { border-left-color: rgba(77, 159, 236, 0.65); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2 { border-left-color: rgba(232, 147, 12, 0.65); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 { border-left-color: rgba(177, 140, 255, 0.65); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 { border-left-color: rgba(46, 184, 46, 0.65); }
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1 .mdb-pageCreator-reasoning-no { color: #6cb2f7; background-color: rgba(77, 159, 236, 0.18); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2 .mdb-pageCreator-reasoning-no { color: #f0a943; background-color: rgba(232, 147, 12, 0.18); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 .mdb-pageCreator-reasoning-no { color: #b18cff; background-color: rgba(177, 140, 255, 0.18); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 .mdb-pageCreator-reasoning-no { color: #58c96b; background-color: rgba(46, 184, 46, 0.18); }
+
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-hint {
-    color: #999;
+    color: #8b8b8b;
     font-weight: normal;
     font-size: 11.5px;
 }
@@ -252,18 +268,25 @@
     font-family: Consolas, monospace;
     font-size: 12px;
     line-height: 1.5;
-    color: #333;
-    background-color: rgba(127, 127, 127, 0.10);
-    border: 1px solid rgba(127, 127, 127, 0.30);
+    color: #e0e0e0;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.20);
     border-radius: 999px;
     white-space: pre-wrap;
     word-break: break-word;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-chip-channel {
-    color: #2f6fb7;
-    background-color: rgba(47, 111, 183, 0.10);
-    border-color: rgba(47, 111, 183, 0.35);
+    color: #6cb2f7;
+    background-color: rgba(77, 159, 236, 0.12);
+    border-color: rgba(77, 159, 236, 0.40);
+}
+
+/* what survived the cleanup - green, "this is what the parse works on" */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-kept {
+    color: #58c96b;
+    background-color: rgba(46, 184, 46, 0.10);
+    border-color: rgba(46, 184, 46, 0.35);
 }
 
 /* the "Channel:" / "Left for the parser:" side lines */
@@ -273,7 +296,7 @@
     align-items: center;
     gap: 6px;
     margin-top: 10px;
-    color: #777;
+    color: #9a9a9a;
     font-size: 12px;
 }
 
@@ -298,13 +321,21 @@
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-label {
     font-weight: 600;
     font-size: 12px;
+    color: #e6e6e6;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-detail {
     font-family: Consolas, monospace;
     font-size: 12px;
-    color: #666;
+    color: #a8a8a8;
     word-break: break-word;
+}
+
+/* the "before -> after" arrow inside a step detail - amber like the section it lives in */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-arrow {
+    padding: 0 5px;
+    color: #f0a943;
+    font-weight: bold;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {
@@ -334,7 +365,7 @@
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-mixes {
-    color: #999;
+    color: #8b8b8b;
     font-size: 11.5px;
     white-space: nowrap;
 }
@@ -351,22 +382,28 @@
     white-space: nowrap;
 }
 
-#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-artist { color: #2f6fb7; background-color: rgba(47, 111, 183, 0.12); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-series { color: #7c4dbe; background-color: rgba(124, 77, 190, 0.12); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-venue  { color: #1f9d55; background-color: rgba(31, 157, 85, 0.12); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-event  { color: #d97706; background-color: rgba(217, 119, 6, 0.12); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-other  { color: #777;    background-color: rgba(127, 127, 127, 0.12); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-artist { color: #6cb2f7; background-color: rgba(77, 159, 236, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-series { color: #b18cff; background-color: rgba(177, 140, 255, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-venue  { color: #58c96b; background-color: rgba(46, 184, 46, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-event  { color: #f0a943; background-color: rgba(232, 147, 12, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-other  { color: #aaa;    background-color: rgba(255, 255, 255, 0.10); }
 
-/* the same green the high confidence score wears - "the wiki confirms this" */
+/* a name the wiki confirms, in the wiki's spelling - the panel's strongest signal */
 #mdb-pageCreator-reasoning .mdb-pageCreator-known {
-    color: #2eb82e;
+    color: #58c96b;
     font-weight: 600;
 }
 
-#mdb-pageCreator-reasoning .mdb-pageCreator-unknown {
-    color: #999;
+/* the annotations - the tone states what the reader should DO with the line */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-note {
     font-style: italic;
 }
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-good  { color: #58c96b; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-info  { color: #6cb2f7; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-warn  { color: #e8a33d; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-bad   { color: #ef6a6a; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-muted { color: #8b8b8b; }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cats {
     display: grid;
@@ -382,12 +419,12 @@
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-name {
     font-family: Consolas, monospace;
     font-size: 12px;
-    color: #333;
+    color: #e0e0e0;
     word-break: break-word;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-empty {
-    color: #bbb;
+    color: #5f5f5f;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-note {
@@ -396,12 +433,44 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: #777;
+    color: #9a9a9a;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-empty {
-    color: #999;
+    color: #8b8b8b;
     font-style: italic;
+}
+
+/*
+ * The panel's own loading state (mdbPageCreator_reasoningSkeleton): "Report" clicked before
+ * every lookup answered - four stand-in rows shaped like the numbered sections, pulsing with
+ * the page skeleton's keyframes below. Swapped for the real content in one render.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-row:first-child {
+    margin-top: 0;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bubble {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.10);
+    animation: mdb-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bar {
+    height: 12px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.10);
+    animation: mdb-skeleton-pulse 1.6s ease-in-out infinite;
 }
 
 /* grey, so it reads as a warning label and not as part of the title */
@@ -580,7 +649,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #mdb-skeleton .mdb-skeleton-bar {
+    #mdb-skeleton .mdb-skeleton-bar,
+    #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bubble,
+    #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bar {
         animation: none;
     }
 }
