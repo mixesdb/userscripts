@@ -503,10 +503,6 @@ body.soundcloud-com {
  * trackid.net
  */
 body.trackid-net {
-    & #mdb-pageCreator {
-        margin: 30px 0 0;
-    }
-
     & #mdb-skeleton {
         height: 125px;
     }
