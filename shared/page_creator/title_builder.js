@@ -1712,17 +1712,27 @@ function mdbTitle_knownEntityType( known, name ) {
 // "Asa 808" -> "ASA 808". Only when the match IS this name (compared normalized) - a fuzzy
 // server match like "Truancy Volume" -> "Truancy Volumes" names a different string, and
 // rewriting the title to it would change what the uploader said, not how it is spelled.
+// A redirect gives the name-for-name test a second chance: for "dekmantel" the canonical
+// title is "Dekmantel Festival" (a different name - no rewrite), but the REDIRECT the input
+// hit is spelled "Dekmantel", and that casing is the wiki's own for the alias. matchedTitle
+// carries it (mdbnames, both modes).
 // preferTypes ranks same-named matches of different types ("fabric" the venue vs "Fabric"
 // the artist); pass nothing to take the server's best.
 function mdbTitle_canonicalName( known, name, preferTypes ) {
     if( !name ) return name;
 
     var match = ( preferTypes && mdbTitle_knownMatch( known, name, preferTypes ) ) ||
-                mdbTitle_knownMatch( known, name, null );
+                mdbTitle_knownMatch( known, name, null ),
+        cmp = mdbTitle_normalizeCompare( name );
 
-    if( match && match.title &&
-        mdbTitle_normalizeCompare( match.title ) === mdbTitle_normalizeCompare( name ) ) {
+    if( !match ) return name;
+
+    if( match.title && mdbTitle_normalizeCompare( match.title ) === cmp ) {
         return match.title;
+    }
+
+    if( match.matchedTitle && mdbTitle_normalizeCompare( match.matchedTitle ) === cmp ) {
+        return match.matchedTitle;
     }
 
     return name;
@@ -1743,12 +1753,14 @@ function mdbTitle_canonicalArtists( known, group ) {
 }
 
 // mdbTitle_categoryCandidates
-// The names worth asking about: the channel, and every bit the title splits into.
+// The names worth asking about: the channel, and every chunk of the title. The chunks are the
+// SHARED split (mdbTitle_titleChunks): brackets read as separators and the series-"by" split
+// included, so a venue in brackets ("Tonino (Ritter Butzke)") and the artist behind a "by"
+// ("Guestroom 779 by Sascha Sibler") are asked about too - a raw separator-only split kept
+// both glued to their neighbours and the second pass never learned what the wiki knows.
 function mdbTitle_categoryCandidates( playerTitle, username ) {
     var names = [],
-        // spaced the same way buildMixesdbTitle spaces them, or a name the wiki is asked about
-        // carries an underscore no category has
-        bits = mdbTitle_spaced( playerTitle ).split( mdbTitle_bitSplitRe() ),
+        bits = mdbTitle_titleChunks( playerTitle, username ),
         channelNames = mdbTitle_channelNames( mdbTitle_spaced( username ) ),
         i;
 
@@ -2494,18 +2506,52 @@ function mdbTitle_traceCleaned( text ) {
 
 // mdbTitle_traceChunks
 // A title as the trimmed, non-empty chunks it splits into - what the panel renders as chips.
+// Splits at the separator runs, and inside a chunk at the lowercase "by" in front of a
+// numbered series - the same guarded reading the parser does ("Guestroom 779 by Sascha
+// Sibler" is two units, "Live by the Sea" is one), so the chunks shown are the units the
+// parse really works with.
 function mdbTitle_traceChunks( text ) {
     var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
         out = [],
-        i, bit;
+        i, bit, byMatch;
 
     for( i = 0; i < bits.length; i++ ) {
         bit = mdbTitle_trimSeparators( bits[i] );
 
-        if( bit ) out.push( bit );
+        if( !bit ) continue;
+
+        byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( bit ) ).exec( bit );
+
+        if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
+            out.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
+        } else {
+            out.push( bit );
+        }
     }
 
     return out;
+}
+
+// mdbTitle_titleChunks
+// THE chunk split: the player title as the chunks everything downstream shares - the panel's
+// "Title chunks" section and the lookup candidates alike. Prepared the way the parser prepares
+// the title (underscores as spaces, typos fixed, decoration dropped, brackets read as
+// separators - the channel's own bracket excepted), THEN split: a bracketed "(Ritter Butzke)"
+// or a "<series> by <artist>" is a unit of its own, and a "[FREE DOWNLOAD]" is not a chunk at
+// all. One function, so the chunks shown, the names looked up and the units parsed cannot
+// drift apart.
+function mdbTitle_titleChunks( playerTitle, username ) {
+    var text = mdbTitle_fixTypos( mdbTitle_spaced( playerTitle ).replace( /\s+/g, " " ).trim() ),
+        n;
+
+    if( typeof mdbTitleNoise !== "undefined" && mdbTitleNoise ) {
+        for( n = 0; n < mdbTitleNoise.length; n++ ) {
+            mdbTitleNoise[n].lastIndex = 0;
+            text = text.replace( mdbTitleNoise[n], " " );
+        }
+    }
+
+    return mdbTitle_traceChunks( mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ) );
 }
 
 // buildMixesdbTitle
@@ -2539,11 +2585,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         logVar( "playerTitle", rest );
         logVar( "username", username );
 
-        // the report panel's record of this run - see "The build trace" above
+        // The report panel's record of this run - see "The build trace" above. The chunks are
+        // the SHARED split (mdbTitle_titleChunks), the same one the lookup candidates are
+        // built from - so what the panel shows as the units IS what was asked about.
         mdbTitle_trace = {
             playerTitle: rest,
             channel: username,
-            chunks: mdbTitle_traceChunks( rest ),
+            chunks: mdbTitle_titleChunks( playerTitle, username ),
             cleaned: rest,
             steps: []
         };

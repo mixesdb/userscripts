@@ -49,7 +49,9 @@ never overwritten.
 Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
 learning" line can name the step that went wrong:
 
-1. **Title chunks** – the pieces the player title split into, plus the channel name
+1. **Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
+   a separator, at a bracket, and at the `by` in front of a numbered series (`Guestroom 779 by
+   Sascha Sibler` is two chunks) – the same units the lookups are sent for
 2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, label credits,
    the date that was read out, joiners rewritten, chunks a mix page title does not carry
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
@@ -153,7 +155,7 @@ placeholder only holds the space below it.
 
 1. ✅ **MixesDB name lookup** – live since 2026-08-16. The wiki answers what a name is – artist,
    podcast, show, venue, event – case-insensitively and in its own spelling, and the suggested
-   title uses that answer (`trommel` → `Trommel.251`, `asa 808` → `ASA 808`, known venues become
+   title uses that answer (`asa 808` → `ASA 808`, known venues become
    `@ Venue, City`, known podcasts stop getting `(Promo Mix)` wrongly).
 2. **Double-check info in the row** – links to the found categories with type and mix count, the
    category *family* around a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
