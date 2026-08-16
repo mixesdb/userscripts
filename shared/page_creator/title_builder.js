@@ -924,13 +924,55 @@ function mdbTitle_takeMonthlyEdition( name, date ) {
     }
 
     var front = mdbTitle_trimSeparators( result.text.slice( 0, m.index ) ),
-        series = new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")\\b", "i" );
+        seriesBody = "\\b(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")\\b",
+        series = new RegExp( seriesBody, "i" );
 
     if( !front || !series.test( front ) ) return result;
+
+    // What is left in front has to be a NAME, not just the word. Strip the series words out of
+    // "Mix August 2026" and nothing remains: there is no series called "Mix", the title has no
+    // name of its own at all, and taking the stamp off would leave the bare word as the name.
+    // mdbTitle_datedMixName reads that one, and moves the word instead of dropping anything.
+    if( !mdbTitle_trimSeparators( front.replace( new RegExp( seriesBody, "gi" ), " " ) ) ) return result;
 
     result.text = front;
     result.taken = true;
     result.stamp = mdbTitle_trimSeparators( m[0] );
+
+    return result;
+}
+
+// mdbTitle_datedMixName
+// "Mix August 2026" -> { text: "August 2026 Mix", taken: true }: a title that is a mix word
+// and a date and NOTHING else has no name of its own, so the month and year are the name and
+// MixesDB writes the word behind them. Works either way round, since an uploader types the
+// word in front as readily as behind ("August 2026 Mix" is already in that order and comes
+// back unchanged, which is what makes it safe to run over both).
+// Nothing is dropped, only moved - see mdbTitleDatedMixWords in title_definitions.js. Anchored
+// at both ends, so a name with anything else in it is never touched: "House Set August 2026"
+// and "E-L-E-C-T-R-O MIx August 2026" both name something and go to mdbTitle_takeMonthlyEdition.
+// No two-digit year check here, unlike the monthly edition: whether "August 26" is the year or
+// the 26th does not change the answer, since either way the words only swap places.
+function mdbTitle_datedMixName( name ) {
+    var words = ( typeof mdbTitleDatedMixWords !== "undefined" && mdbTitleDatedMixWords ) ? mdbTitleDatedMixWords : [ "mix" ],
+        result = { text: String( name || "" ), taken: false };
+
+    if( !words.length ) return result;
+
+    // the same flexible blank the live markers get, so "DJ-Mix" and "DJmix" are the same word
+    var word = "(?:" + mdbTitle_liveWordAlternation( words ) + ")",
+        re = new RegExp( "^(?:(" + word + ")\\s+)?([a-zäöü]{3,9})\\.?\\s+((?:19|20)\\d{2}|\\d{2})(?:\\s+(" + word + "))?$", "i" ),
+        m = re.exec( result.text.trim() );
+
+    if( !m ) return result;
+
+    // exactly one of the two positions carries the word - "Mix August 2026 Mix" is neither
+    var mixWord = m[1] || m[4];
+
+    if( !mixWord || ( m[1] && m[4] ) || !mdbTitle_monthFromName( m[2] ) ) return result;
+
+    result.text = m[2] + " " + m[3] + " " + mixWord;
+    result.taken = true;
 
     return result;
 }
@@ -1919,6 +1961,23 @@ function mdbTitle_trimSeparators( s ) {
         .trim();
 }
 
+// mdbTitle_isShortAcronym
+// Whether a bit of the title is nothing but a SHORT word written in caps - "KCE". Three
+// letters standing alone are an artist's initials or a brand, never a word worth shouting, and
+// no test inside the word says so: "KCE" holds a vowel, so mdbTitle_hasVowel passes it on to
+// be re-cased into the "Kce" that is nobody.
+// Only for a bit that is nothing BUT the word. The same three letters inside a phrase are an
+// ordinary word ("MOLTO IN THE MIX" -> "Molto In The Mix"), which is why this is asked in
+// mdbTitle_cleanArtist, where the string IS one bit of the title, and not per word inside
+// mdbTitle_toNormalCase.
+function mdbTitle_isShortAcronym( s ) {
+    s = String( s || "" ).trim();
+
+    if( s.length > 3 || !/^\S+$/.test( s ) ) return false;
+
+    return s === s.toUpperCase() && s !== s.toLowerCase();
+}
+
 // mdbTitle_cleanArtist
 function mdbTitle_cleanArtist( s ) {
     s = String( s || "" ).replace( /\s+/g, " " );
@@ -1937,8 +1996,9 @@ function mdbTitle_cleanArtist( s ) {
     s = mdbTitle_trimSeparators( s );
 
     // Normal Case for a bit that was shouted in caps or typed all lowercase, the channel's own
-    // spelling excepted
-    var normalCased = mdbTitle_toNormalCaseKeeping( s );
+    // spelling excepted - and a bit that is nothing but a short word in caps excepted too,
+    // since that is an acronym rather than a shouted word
+    var normalCased = mdbTitle_isShortAcronym( s ) ? s : mdbTitle_toNormalCaseKeeping( s );
     if( normalCased !== s ) {
         logVar( "mdbTitle_cleanArtist: re-cased", s + " -> " + normalCased );
         mdbTitle_reCased = true;
@@ -2763,6 +2823,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // is expected to carry, so charging for one in the artist would be charging for the
         // very thing this rule reads. See title_definitions.js for the two guards.
         var seriesName = mdbTitle_joinArtists( mdbTitle_cleanArtist( restWithEpisode ), extraArtists ),
+            // "Mix August 2026": a mix word and a date and nothing else - no name at all, so
+            // the month IS the name and the word goes behind it. Nothing is dropped here.
+            dated = mdbTitle_datedMixName( seriesName ),
             // "<name> Mix August 2026": a series stamps its edition with the month instead of
             // a number, and the stamp reads exactly like the number does - the title is a
             // series and names nobody, so the channel is the artist. The stamp itself leaves
@@ -2772,9 +2835,16 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( show && seriesName && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
             seriesName.indexOf( "@" ) === -1 &&
             mdbTitle_seriesScore( show ) === 0 &&
-            ( !!foundEpisode || monthly.taken || mdbTitle_looksNumberedSeries( seriesName ) ) ) {
+            ( !!foundEpisode || dated.taken || monthly.taken || mdbTitle_looksNumberedSeries( seriesName ) ) ) {
 
-            if( monthly.taken ) {
+            // The dated mix first: it is the narrower shape of the two (the WHOLE name is the
+            // word and the date), and there the stamp is the only name there is - so it is
+            // moved, never stripped.
+            if( dated.taken ) {
+                seriesName = dated.text;
+                conf.drop( 5, "the title is a mix word and a date and names nothing else - the month was read as the mix's name, with the word behind it as MixesDB writes it" );
+
+            } else if( monthly.taken ) {
                 seriesName = monthly.text;
                 conf.drop( 5, "\"" + monthly.stamp + "\" was read as the edition's month, not as part of the name - the date group already carries when the mix is from" );
             }
@@ -2788,8 +2858,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             var seriesPromo = mdbTitle_saysPromoMix( seriesName );
 
             logVar( "buildMixesdbTitle: the title is a numbered series, so the channel is the artist", show );
-            conf.drop( 5, "the title reads as a " + ( monthly.taken ? "monthly" : "numbered" ) +
-                          " series and names nobody, so the channel was taken as the artist" );
+            conf.drop( 5, "the title reads as a " +
+                          ( dated.taken ? "dated" : monthly.taken ? "monthly" : "numbered" ) +
+                          " mix and names nobody, so the channel was taken as the artist" );
 
             return mdbTitle_result( date, show, seriesName, null, seriesPromo, [], conf );
         }
