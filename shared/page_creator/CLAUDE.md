@@ -235,14 +235,34 @@ Rules the implementation follows, settled before it was built - do not re-litiga
 The one place the order of this work is written down. Every design decision lives in the plan
 file named on the line, not here.
 
+The order is the one decided on 2026-08-16 (README's Roadmap section is the human-readable
+mirror of this table - keep the two in step):
+
 | # | Work | Plan file | State |
 | --- | --- | --- | --- |
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
-| 0a | `insource:` mirror-URL check as second layer of the toolkit's player search | `row_enrichment.md` §4 | open - toolkit-side, independent of everything |
-| 0b | Sanity check on Create click, two-step "Yes, still create" button | `row_enrichment.md` §3 | open - plain `action=query`, natural bundle with 2 |
-| 2 | Row enrichment: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | open, unblocked; waiting on the maintainer's `match=prefix` + `matchedTitle` (offered 2026-08-16, row-only - the title builder stays on exact match) |
-| 3 | Page text learned from siblings: `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | open, unblocked (`recentlimit` exists but wikitext still needs the generator call) |
-| later | Tracklist transfer into the new page (then `Tracklist: complete/incomplete`) | not planned yet | out of scope until the above ships |
+| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | open; the family part waits on the maintainer's `match=prefix` + `matchedTitle` (offered 2026-08-16, row-only - the title builder stays on exact match), the rest is unblocked |
+| 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
+| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | open, unblocked (`recentlimit` exists but the wikitext still needs the generator call) |
+| 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
+
+**Step 5 in full.** Today `window.mdbPageCreator_showForUsedPlayers = true` ships in both site
+scripts ("True as default for the beta phase"), which is what `mdbPageCreator_showForUsed()`
+reads and what lets `mdbPageCreator_render()` build the row for a used player - with "Exists"
+in place of "Create". Ending the beta means shipping it `false` (and then dropping the flag,
+the `isUsed` branch and the `used` styling once nobody needs the comparison). Note the "Debug
+settings" comment block in the site scripts claims "All off in the shipped script", which this
+one is not - fix that line as part of the same work.
+
+It is LAST on purpose and not a code cleanup to do early: while the row still fires for used
+players it is a free safety net, because a mix whose page we FAILED to find is still shown to a
+human who can spot the duplicate. Steps 2 and 3 are what make that failure unlikely, so the net
+may only be removed after them.
+
+Tracklist transfer is NOT on this roadmap because it already shipped - the description/comment
+tracklist ends up on the created page and `Tracklist: complete/incomplete/none` follows the
+Tracklist Editor API's verdict (see "The tracklist" above). An old plan note calling it "much
+later" predates that work.
 
 ## Title suggestion reports
 

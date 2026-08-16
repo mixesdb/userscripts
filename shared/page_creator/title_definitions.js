@@ -1016,9 +1016,27 @@ var mdbTitleRecordingNoteFillers = [
  * - written "By" inside a bit that is not, it is a word of the NAME ("Stand By Me"), and
  *   nothing follows it
  *
- * Read in two places: mdbTitle_cleanArtist drops it off the front of what is left over
- * ("... podcast by Neryn" leaves " by Neryn"), and rule 5b of buildMixesdbTitle takes it as the
- * separator between an episode number and the artist behind it.
+ * Read in three places: mdbTitle_cleanArtist drops it off the front of what is left over
+ * ("... podcast by Neryn" leaves " by Neryn"), rule 5b of buildMixesdbTitle takes it as the
+ * separator between an episode number and the artist behind it, and rule 5c takes it as the
+ * SEPARATOR ITSELF where the uploader typed none:
+ *
+ *     "Guestroom 779 by Sascha Sibler"  (channel "PRIVATEPLACES Mixtapes")
+ *     WRONG: 2022-06-15 - Guestroom 779 by Sascha Sibler - PRIVATEPLACES Mixtapes
+ *     ->     2022-06-15 - Sascha Sibler - Guestroom 779
+ *
+ * Nothing marks the number there - no keyword in front of it, no "#", and the channel name is
+ * nowhere in the title - so 5b never sees an episode and the whole title would go into the
+ * artist slot with the channel behind it. The "by" is the only separator the uploader wrote,
+ * and it also says which side is which: what stands in FRONT of it was made, who stands behind
+ * it made it. That direction is the point of the rule - reading the two by their shape alone
+ * puts "Somewhere 779 by Radio Kid" the wrong way round, because the NAME carries the series
+ * word there.
+ *
+ * The front has to look like a series for this - a number or a series word
+ * (mdbTitleShowSuffixWords). With no separator in the title, nothing else is left to tell the
+ * preposition from the ordinary English word: "Side by Side" and "Live by the Sea" are names,
+ * and splitting one of those invents an artist out of half a phrase.
  */
 var mdbTitleGuestMarkers = [
     "guest mix",

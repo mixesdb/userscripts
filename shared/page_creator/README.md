@@ -23,10 +23,16 @@ looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venu
 read as exactly that – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`).
 
-The row only appears for mixes that are **not on MixesDB yet**, and only for recordings of at
+The row is meant for mixes that are **not on MixesDB yet**, and only for recordings of at
 least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
 [Toolkit](../toolkit/)'s answer, so the row shows up once the toolkit box next to it
 has one.
+
+**During the beta** it also appears for mixes that already have a page – without the **Create**
+link, with an **Exists** link to that page instead. That is on purpose: comparing the suggestion
+against the title a human actually chose is the fastest way to find what the suggestion still
+gets wrong, and it is exactly when the **Report** box is worth filling in. It ends when the beta
+does (see the roadmap).
 
 ### "Report" box
 
@@ -142,3 +148,37 @@ placeholder only holds the space below it.
 - Only tracklists written as a run of neighbouring lines are detected. A tracklist scattered
   through a description is left alone on purpose: a wrong tracklist on a new page is worse than
   none.
+
+## Roadmap
+
+1. ✅ **MixesDB name lookup** – live since 2026-08-16. The wiki answers what a name is – artist,
+   podcast, show, venue, event – case-insensitively and in its own spelling, and the suggested
+   title uses that answer (`trommel` → `Trommel.251`, `asa 808` → `ASA 808`, known venues become
+   `@ Venue, City`, known podcasts stop getting `(Promo Mix)` wrongly).
+2. **Double-check info in the row** – links to the found categories with type and mix count, the
+   category *family* around a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
+   `Dekmantel São Paulo Podcast`, … – needs the wiki's planned `match=prefix` mode), and the most
+   recent + same-date mix pages of the artist and the show. So "this page may already exist" is
+   visible **before** creating.
+3. **Duplicate protection on Create** – a mix page that carries the track's URL only as a
+   commented-out mirror looks like "not on MixesDB yet" today and invites duplicates; a search in
+   the page source catches it. Plus a sanity check when **Create** is clicked – exact and fuzzy
+   title match against existing pages – with the button turning into **"Yes, still create"** when
+   something similar is found. Nothing is ever blocked, the row only shows the evidence.
+4. **Page text learned from the show's existing pages** – read the last ~8 pages of the entity's
+   category and copy what they agree on: the episode number format (`Trommel.234` vs
+   `HATE Podcast 498` vs `RA Podcast (RA.1051)`), the leading
+   `[[File:{{subst:PAGENAME}}.jpg|right|360px]]` where the series uses one, `{{StandardShow2h}}`
+   instead of the file details table where that is the house style, and a style category only
+   when at least 90% of the recent episodes agree (measured: that fires almost only on
+   genre-locked series – HATE Podcast → Techno).
+
+5. **End of the beta** – the row stops appearing altogether for a mix that already has a page.
+   The **Exists** row is a beta device for comparing the suggestion against the title a human
+   chose; once the suggestion is good enough that this is not worth reading any more, a mix with
+   a page gets no row at all. Only worth doing after steps 2 and 3, since those are what make a
+   *missed* existing page unlikely – the row may only go quiet once it is trustworthy about
+   duplicates.
+
+Design decisions and the measurements behind each step: `row_enrichment.md`,
+`page_text_learning.md`, `mixesdb_api_request.md`.
