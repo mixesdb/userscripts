@@ -97,6 +97,16 @@ On TrackId.net the description is not searched at all: the **Create** link reads
 [tracklist box](../../TrackId.net/#tracklist-in-wiki-syntax) the TrackId.net script itself builds
 from the identified tracks, which is the better tracklist anyway.
 
+### Loading placeholder
+
+The MixesDB additions around a player arrive from different API answers – the toolkit, the title
+row, buttons, the tracklist box – each a moment after the other. Until they are all in, a dark
+grey pulsing placeholder holds their space, and the finished block then appears in one step
+instead of piece by piece. If an answer takes too long, whatever has arrived is shown after a
+few seconds.
+
+Where it shows: SoundCloud's redesigned track pages and TrackId.net's audiostream pages.
+
 ## Known limitations
 
 - The title suggestion leans on hand-maintained word lists (`title_definitions.js`), so shows,

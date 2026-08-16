@@ -282,7 +282,7 @@ The endpoint stays a pure name → type lookup that happens to hand us a few sam
 
 Roughly 10 userscript users. We currently make **1** request per opened track page, cached for
 the life of the page. The full feature set we are planning around this lookup (sibling-title
-listings and duplicate warnings in the creator row, all plain `action=query` — nothing further
+listings and duplicate warnings in the creator row, all plain `action=query` – nothing further
 is asked of you for those) lands at **3–4 requests per opened track page**, plus **1** more at
 the moment a user actually clicks Create, which only the handful of pages that get created ever
 pay. With `recent` included in `mdbnames`, one of the 3–4 falls away.

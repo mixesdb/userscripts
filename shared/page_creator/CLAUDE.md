@@ -14,11 +14,11 @@ reads the values off its own page/API and hands them over.
 
 | File | What it is |
 | --- | --- |
-| `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options |
+| `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options. Also the loading skeleton (`mdbSkeleton_*`, entry point `mdbSkeleton_show(options)`) - see its section comment |
 | `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup. Also `mdbTitle_titleCategories()`, the way back: a finished title -> the year, the artists and the entity the page is filed under |
 | `title_definitions.js` | The word lists and channel->show mappings the parser uses. Plain data, meant to be extended by hand - this is where the learning from each report goes |
 | `tracklist_detector.js` | `mdbTracklist_detectInText()` / `mdbTracklist_detectInComments()`: which lines of a description are the tracklist. No DOM, no network - see below |
-| `page_creator.css` | Styles the row and the tracklist box. Loaded with `loadRawCss()` by each site script |
+| `page_creator.css` | Styles the row, the tracklist box and the loading skeleton. Loaded with `loadRawCss()` by each site script |
 | `title_examples.js` | Test data: every title ever reported as wrong |
 | `title_examples_test.js` | The deno runner for it |
 | `tracklist_examples.js` | Test data: real descriptions and the tracklist that has to come out of them |
@@ -62,6 +62,17 @@ feet, and the string is looked up again on every render.
 `sourceLabel` is the site's short name as a reported title is written with it (`"SC"`), used by
 the "Report" box for its `SC title:`/`SC date:` lines. `window.scriptName` is only the fallback -
 the script name and the name reports use are not always the same.
+
+A site whose additions build up inside ONE container it owns can cover that build-up with the
+loading skeleton: call `mdbSkeleton_show({ target, rows, height, extraReady })` right after
+creating the container (and again whenever the site wipes and the script recreates it). All
+other children of `target` are `display:none` until the toolkit verdict is in, `extraReady()` -
+if given - says the site's own async pieces are done, and the container's DOM has been quiet for
+a settle window; then skeleton and content swap in one step (6s cap either way). `rows` composes
+the grey stand-ins from a shared vocabulary (`head`, `dates`, `buttons`, `player`, `toolkit`);
+`window.mdbSkeleton_enabled = false` (site debug settings) turns it into timing-only mode, which
+logs the same "everything loaded" line without covering anything. SoundCloud and TrackId.net
+are the two callers.
 
 ## The tracklist
 

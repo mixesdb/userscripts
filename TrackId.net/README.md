@@ -43,6 +43,12 @@ hearthis.at) and the [Toolkit](../shared/toolkit/) below it says whether that pl
 already used on MixesDB – including a hint when the TID page is newer than the last edit of the
 MixesDB page.
 
+### Loading placeholder
+
+Until the embedded player, the toolkit and the page creator row have all arrived, a grey pulsing
+placeholder holds their space and the finished block appears in one step – see
+[Page creator](../shared/page_creator/#loading-placeholder).
+
 ### MixesDB page creator
 
 On audiostream pages whose source player is on SoundCloud, the suggested page title and the

@@ -353,3 +353,155 @@ body.trackid-net #mdb-pageCreator-createColumn a {
         color: var(--main-very-dark);
     }
 }
+
+/*
+ * Loading skeleton (mdbSkeleton_* in page_creator.js)
+ *
+ * While mdb-skeleton-loading is on the covered container, everything real in it is
+ * display:none and only #mdb-skeleton shows: pulsing grey stand-ins shaped (and sized) like
+ * the content being built underneath, so the swap lands where the grey stood.
+ * mdbSkeleton_reveal() removes class and skeleton in one step.
+ * display:none is safe for everything built in there - the one thing that MEASURES itself
+ * (the tracklist textarea) sizes via its rows attribute, counted from the text, not from
+ * the DOM. Hardcoded dark greys: both sites showing it (SoundCloud's redesigned track
+ * pages, TrackId.net) are dark-themed.
+ */
+.mdb-skeleton-loading > :not(#mdb-skeleton) {
+    display: none !important;
+}
+
+/* Fixed height (the height option of mdbSkeleton_show() overrides inline), not the
+   stand-ins' natural height - the box reserves the space of the TYPICAL final content, and
+   an area that ends up taller simply grows in the one reveal step. Flex column: the fixed
+   rows keep their size and the toolkit stand-in absorbs whatever height is left. */
+#mdb-skeleton {
+    box-sizing: border-box;
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #1c1c1c;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#mdb-skeleton > div {
+    flex: 0 0 auto;
+}
+
+#mdb-skeleton .mdb-skeleton-bar {
+    background-color: #2e2e2e;
+    border-radius: 4px;
+    animation: mdb-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mdb-skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #mdb-skeleton .mdb-skeleton-bar {
+        animation: none;
+    }
+}
+
+/* "head" row: headline left, artwork bar right (mirrors SC's floated #mdb-sc-trackHead) */
+#mdb-skeleton .mdb-skeleton-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 14px;
+}
+
+#mdb-skeleton .mdb-skeleton-headline {
+    height: 22px;
+    width: 60%;
+    max-width: 560px;
+}
+
+/* same 336px as SC's .mdb-artwork-input-wrapper-trackHeader, shrinking on narrow windows */
+#mdb-skeleton .mdb-skeleton-artwork {
+    height: 26px;
+    width: 336px;
+    max-width: 35%;
+    margin-right: 24px;
+}
+
+#mdb-skeleton .mdb-skeleton-row {
+    display: flex;
+    align-items: center;
+}
+
+/* "dates" row */
+#mdb-skeleton .mdb-skeleton-dates {
+    gap: 10px;
+    margin-bottom: 14px;
+}
+#mdb-skeleton .mdb-skeleton-dates .mdb-skeleton-bar {
+    height: 10px;
+    width: 110px;
+}
+#mdb-skeleton .mdb-skeleton-dates .mdb-skeleton-bar:nth-child(2) { width: 90px; }
+#mdb-skeleton .mdb-skeleton-dates .mdb-skeleton-bar:nth-child(3) { width: 100px; }
+
+/* "buttons" row - the 40px pills of SC's #mdb-sc-trackButtons */
+#mdb-skeleton .mdb-skeleton-buttons {
+    gap: 15px;
+    margin-bottom: 15px;
+}
+#mdb-skeleton .mdb-skeleton-buttons .mdb-skeleton-bar {
+    height: 40px;
+    width: 86px;
+    border-radius: 999px;
+}
+#mdb-skeleton .mdb-skeleton-buttons .mdb-skeleton-bar:nth-child(2) { width: 52px; }
+#mdb-skeleton .mdb-skeleton-buttons .mdb-skeleton-bar:nth-child(3) { width: 46px; }
+
+/* "player" row - one embed-sized block (the audiostream iframes are 120-166px) */
+#mdb-skeleton .mdb-skeleton-player {
+    height: 150px;
+    width: 100%;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+/* "toolkit" stand-in - the flex absorber that fills the box below the other rows */
+#mdb-skeleton .mdb-skeleton-block {
+    background-color: #212121;
+    border-radius: 6px;
+    padding: 12px;
+}
+#mdb-skeleton .mdb-skeleton-block .mdb-skeleton-bar {
+    height: 9px;
+    background-color: #2b2b2b;
+}
+#mdb-skeleton .mdb-skeleton-toolkit {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar {
+    width: 45%;
+}
+#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar + .mdb-skeleton-bar {
+    margin-top: 8px;
+}
+#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar:nth-child(2) { width: 30%; }
+
+/*
+ * The one-step reveal: a short fade on the container's direct children instead of a hard
+ * swap. Direct children only - nested toggled content (SC's #mdb-toggle-target boxes) would
+ * re-run the animation on every display toggle.
+ */
+.mdb-skeleton-revealed > * {
+    animation: mdb-skeleton-reveal .18s ease-out;
+}
+
+@keyframes mdb-skeleton-reveal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
