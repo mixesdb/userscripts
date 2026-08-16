@@ -288,6 +288,7 @@ var mdbTitlePromoMixImpliedWords = [
  *   case of an unmapped show still produces something usable.
  */
 var mdbTitleUsernameConversions = {
+    "Frenzy": "Frenzy Podcast", // Not FrenzyPodcast
     "NTS Latest": "NTS Radio",
     "Resident Advisor": "RA Podcast"
 };
