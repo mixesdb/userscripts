@@ -27,6 +27,12 @@ reads the values off its own page/API and hands them over.
 | `page_text_learning.md` | Plan: reading the recent sibling pages' wikitext to shape the new page's text. Not built |
 | `row_enrichment.md` | Plan: category links, sibling titles and duplicate checks in the row. Not built, except the `insource:` mirror-URL check, which needs no endpoint |
 
+In `page_creator.css` the `Site specific rules` block stays at the BOTTOM of the file - new rules
+go ABOVE it, never after it and never in the middle of it unless they are site specific themselves.
+Those rules are `body.<site>`-scoped overrides of the shared ones above them, so they have to come
+last to win on equal specificity, and keeping them in one closing block is what makes "is anything
+here site specific?" a question the end of the file answers.
+
 ## Adding a site script
 
 `@require` the four JS files in this order (they are plain scripts, not modules, so order is

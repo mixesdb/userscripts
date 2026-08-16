@@ -321,6 +321,7 @@
 #mdb-skeleton {
     box-sizing: border-box;
     height: 280px;
+    max-height: 280px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -503,7 +504,7 @@ body.soundcloud-com {
  */
 body.trackid-net {
     & #mdb-skeleton {
-        height: 120px;
+        height: 125px;
     }
     
     & #mdb-pageCreator-confidence * {
