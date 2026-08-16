@@ -31,11 +31,23 @@ let failed = 0;
 
 for( const example of mdbTitleExamples ) {
     // A case's "known" stands in for the MixesDB category lookup, which runs over the network
-    // in the browser: name -> "artist" | "venue" | "other", exactly what the API answered when
-    // the case was added. Without it the examples could not test anything the wiki knows.
+    // in the browser - exactly what the API answered when the case was added. Three spellings
+    // per name, from terse to verbatim:
+    //     "Daniel Bortz": "artist"                          type only
+    //     "Trommel":      { type: "podcast", mixes: 29 }    one match with details
+    //     "fabric":       { matches: [ ... ] }              the raw mdbnames matches array
+    // The KEY doubles as the wiki's canonical spelling (write it the way the wiki does), which
+    // is what the canonicalization in mdbTitle_result rewrites the title with.
     const known = {};
     for( const name in ( example.known || {} ) ) {
-        known[ mdbTitle_normalizeCompare( name ) ] = example.known[name];
+        const value = example.known[name];
+
+        known[ mdbTitle_normalizeCompare( name ) ] =
+            typeof value === "string"
+                ? { matches: [ { title: name, type: value, mixes: 1, exactCase: true } ] }
+                : ( value.matches
+                    ? value
+                    : { matches: [ { title: name, mixes: 1, exactCase: true, ...value } ] } );
     }
 
     // createdAt, releaseDate - the same two the track page passes in. description is optional

@@ -177,7 +177,9 @@ var mdbTitleExamples = [
         title: "Trommel.251 - Arno",
         channel: "trommel",
         date: "2026-08-06",
-        expect: "2026-08-06 - Arno - trommel.251"
+        // the wiki knows the series and its spelling wins over the channel's lowercase
+        known: { "Trommel": "podcast" },
+        expect: "2026-08-06 - Arno - Trommel.251"
     },
     {
         url: "https://soundcloud.com/deep-space-series/solma",

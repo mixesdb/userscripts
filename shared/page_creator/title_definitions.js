@@ -1473,7 +1473,7 @@ var mdbTitleCountries = [
     "Finland",
     "France",
     "Georgia",
-    "Germany", "GER"
+    "Germany", "GER",
     "Greece",
     "Hungary",
     "India",

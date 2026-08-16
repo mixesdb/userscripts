@@ -37,6 +37,23 @@ and the type and count the lookup returned: `Trommel (Podcast, 29)`. This is the
 the category" advice turned into one click, and it costs zero extra requests - it is the
 lookup's own response.
 
+**The category FAMILY, via `match=prefix`.** The maintainer offered (2026-08-16) an opt-in
+prefix mode on `action=mdbnames`: `names=dekmantel&match=prefix` returns not just the
+exact/redirect match but every typed category starting with the name - `Dekmantel Festival`
+(event), `Dekmantel Mix` (podcast), `Dekmantel Soundsystem` (artist), `Dekmantel São Paulo
+Podcast` (podcast), ... - exact and redirect first, prefix matches ranked by mix count.
+
+That is exactly the "double-check" material: one extra call per row, made for the ENTITY and
+the CHANNEL only, renders the family with links, types, counts and (`recentlimit=2`) their
+recent page titles - which also covers most of addition 2 below in the same response.
+
+**The row uses prefix mode. The title builder NEVER does.** The builder asks "what IS this
+name", and only the exact/qualified/redirect answer is safe there: with prefix matches in the
+cache, "Dekmantel" would read as a podcast (Dekmantel São Paulo Podcast is one), suppress
+"(Promo Mix)" wrongly, and the whole left-strip discipline would be undone from the server
+side. Two different questions, two match modes - keep the flag out of
+`mdbTitle_lookupCategories` entirely and call prefix mode only from the row code.
+
 ### 2. Sibling titles: the two most recent, and around the mix date
 
 Under each matched category (the artist's and the entity's - not every candidate), show:
