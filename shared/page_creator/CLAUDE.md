@@ -259,7 +259,10 @@ annotated from the lookup cache. Its sources are plain-data globals in `title_bu
 `mdbTitle_trace` (filled by every `buildMixesdbTitle()` run) and `mdbTitle_lookupLog` (every
 name `mdbTitle_lookupCategories()` was ever asked on this page; the answers stay in
 `mdbTitle_categoryCache`). Display only, rebuilt whole on every render; a title edit re-renders
-debounced and looks the current title's names up first (cache-aware).
+debounced and looks the current title's names up first (cache-aware). Hardcoded dark like the
+loading skeleton (both sites are dark-themed). Opened while a lookup is still pending (or the
+page skeleton is up), it renders its own stand-in rows and a safety-net poll re-renders when
+everything settled - the normal path is the refresh after the lookup answer.
 
 Every title reported as wrongly suggested lives in `title_examples.js` as its input and the
 title it should produce. Run them before and after touching anything the suggestion uses

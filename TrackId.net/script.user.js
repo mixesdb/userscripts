@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 120,
+var cacheVersion = 121,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1912,12 +1912,15 @@ function on_submitrequest() {
 /*
  * Changelog
  *
- * 2026.08.16.13
+ * 2026.08.16.14
  * The "Report" box got a reasoning panel above the textarea (shared/page_creator/:
  * page_creator.js v_24, title_builder.js v_22, page_creator.css) - how the suggestion was
  * built, in four sections: title chunks, cleanup steps, the action=mdbnames lookups with
  * their answers, and the created page's categories annotated from the lookup cache. Editing
  * the title re-renders the panel after a short pause and looks the new names up first.
+ * Dark surface like the loading skeleton, one accent colour per section, semantic tones on
+ * the notes; opened before every lookup answered, the panel shows pulsing stand-in rows of
+ * its own and swaps to the real content once everything is in.
  *
  * 2026.08.16.8
  * ONE skeleton for page creator row + toolkit, and the CSS owns the height. The row was
