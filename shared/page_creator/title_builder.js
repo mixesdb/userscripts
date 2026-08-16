@@ -1509,6 +1509,88 @@ function mdbTitle_dropBits( text ) {
     return result;
 }
 
+// mdbTitle_isCountry
+// Whether a name is on mdbTitleCountries (title_definitions.js). Compared with
+// mdbTitle_normalizeCompare, so case and the dots of an acronym cost nothing - "U.S.A.",
+// "USA" and "usa" are one entry.
+function mdbTitle_isCountry( name ) {
+    var list = ( typeof mdbTitleCountries !== "undefined" && mdbTitleCountries ) ? mdbTitleCountries : [],
+        cmp = mdbTitle_normalizeCompare( name ),
+        i;
+
+    if( !cmp ) return false;
+
+    for( i = 0; i < list.length; i++ ) {
+        if( mdbTitle_normalizeCompare( list[i] ) === cmp ) return true;
+    }
+
+    return false;
+}
+
+// mdbTitle_isLocationChunk
+// Whether a whole chunk reads as WHERE the artist is from: a list of place names separated by
+// "," or "/" whose LAST one is a country - "Ibiza/ Dusseldorf, Germany". At least TWO parts:
+// a country standing alone is an artist or a mix name as readily as a place ("Georgia",
+// "France", "Japan"), so a lone name never drops a chunk. Every part has to look like a place
+// NAME - short, no digits - or a sentence that happens to end in a country would go with it.
+// See mdbTitleCountries in title_definitions.js.
+function mdbTitle_isLocationChunk( chunk ) {
+    var parts = String( chunk || "" ).split( /\s*[,\/;]+\s*/ ),
+        i;
+
+    if( parts.length < 2 ) return false;
+    if( !mdbTitle_isCountry( parts[ parts.length - 1 ] ) ) return false;
+
+    for( i = 0; i < parts.length; i++ ) {
+        if( !parts[i] || /\d/.test( parts[i] ) ) return false;
+        if( parts[i].split( /\s+/ ).length > 4 ) return false;
+    }
+
+    return true;
+}
+
+// mdbTitle_dropLocationChunks
+// Takes the place lists out of a title - "Miss Luna | Ibiza/ Dusseldorf, Germany" (the
+// bracket became a chunk of its own long before this) loses the chunk that only says where
+// Miss Luna is from. Returns { text, dropped: [] }, built exactly like mdbTitle_dropBits.
+// The caller guards this with "no @ in the title": on a live recording the places are the
+// venue's city and country, which MixesDB writes - see mdbTitleCountries.
+function mdbTitle_dropLocationChunks( text ) {
+    var result = { text: String( text || "" ), dropped: [] };
+
+    // the separator is captured, so parts reads [ chunk, sep, chunk, sep, chunk, ... ]
+    var parts = result.text.split( new RegExp( "((?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+)" ) ),
+        kept = [],
+        i;
+
+    // one chunk is the whole title - there is nothing to drop it in favour of
+    if( parts.length < 3 ) return result;
+
+    for( i = 0; i < parts.length; i += 2 ) {
+        var bit = mdbTitle_trimSeparators( parts[i] );
+
+        // each chunk carries the separator that stood in FRONT of it, so dropping a chunk
+        // drops that separator with it and never leaves a dangling " | " behind
+        if( bit && mdbTitle_isLocationChunk( bit ) ) {
+            result.dropped.push( bit );
+        } else {
+            kept.push( { sep: i ? parts[i - 1] : "", text: parts[i] } );
+        }
+    }
+
+    // a title made of nothing but place lists stays as it is - something wrong beats nothing
+    if( !result.dropped.length || !kept.length ) {
+        return { text: result.text, dropped: [] };
+    }
+
+    result.text = "";
+    for( i = 0; i < kept.length; i++ ) {
+        result.text += ( i ? kept[i].sep : "" ) + kept[i].text;
+    }
+
+    return result;
+}
+
 /*
  * What MixesDB already knows
  *
@@ -2162,6 +2244,57 @@ function mdbTitle_showFromUsername( username ) {
     return key ? mdbTitleUsernameConversions[key] : username;
 }
 
+// mdbTitle_channelSeriesConversion
+// mdbTitleChannelSeriesConversions (title_definitions.js): the channel and a word in the title
+// name the show TOGETHER. Returns { text, entity, words } with the words grown into the curated
+// name inside the text, or null when the channel is not listed or the title carries none of its
+// words. The full curated name is tried before the bare words, so a title already carrying it
+// only gets its spelling corrected and never grows a second channel name in front of itself.
+function mdbTitle_channelSeriesConversion( text, username ) {
+    var map = ( typeof mdbTitleChannelSeriesConversions !== "undefined" && mdbTitleChannelSeriesConversions ) ? mdbTitleChannelSeriesConversions : {},
+        key = "",
+        k;
+
+    if( !username ) return null;
+
+    for( k in map ) {
+        if( Object.prototype.hasOwnProperty.call( map, k ) && k.toLowerCase() === username.toLowerCase() ) {
+            key = k;
+            break;
+        }
+    }
+
+    if( !key ) return null;
+
+    var entries = map[key],
+        words, entity, candidates, re, c;
+
+    for( words in entries ) {
+        if( !Object.prototype.hasOwnProperty.call( entries, words ) ) continue;
+
+        entity = entries[words];
+        if( !entity ) continue;
+
+        candidates = [ entity, words ];
+
+        for( c = 0; c < candidates.length; c++ ) {
+            // the same looseness a mapped channel name gets: any case, inner spaces optional,
+            // word boundaries around the whole name (see mdbTitle_escapeReLooseSpaces)
+            re = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSpaces( candidates[c] ) + "(?![\\w])", "i" );
+
+            if( re.test( text ) ) {
+                return {
+                    text: text.replace( re, function( all, lead ) { return lead + entity; } ),
+                    entity: entity,
+                    words: words
+                };
+            }
+        }
+    }
+
+    return null;
+}
+
 // buildMixesdbTitle
 // Returns { title, confidence, reasons }. title is "" when there is not enough to work with.
 // known is the { name -> "artist"|"venue"|"other" } map from mdbTitle_lookupCategories(), or
@@ -2267,6 +2400,21 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         var isMappedChannel = mdbTitle_usernameConversionKey( username ) !== "",
             show = mdbTitle_showFromUsername( username );
         logVar( "show", show + ( isMappedChannel ? " (mapped)" : " (raw channel name)" ) );
+
+        // 2a) the channel and a word in the title name the show TOGETHER: "DJ MIX #679" on the
+        // channel "Dance TV" is an episode of "Dance TV DJ Mix" - the bare words would read as
+        // a generic series and lose whose it is. The words grow into the curated name inside
+        // the title, so every rule below finds the full name where the half one stood, and the
+        // channel counts as mapped to it. See mdbTitleChannelSeriesConversions.
+        var seriesConversion = mdbTitle_channelSeriesConversion( rest, username );
+
+        if( seriesConversion ) {
+            logVar( "buildMixesdbTitle: channel and title words name the show together",
+                    seriesConversion.words + " -> " + seriesConversion.entity );
+            rest = seriesConversion.text;
+            show = seriesConversion.entity;
+            isMappedChannel = true;
+        }
 
         // 3) date. The creation date only DISAMBIGUATES a date written in the title
         // (DDMMYY vs MMDDYY vs YYMMDD) - it is used as the date itself only when the title
@@ -2451,6 +2599,22 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 rest = live.group;
             } else {
                 conf.drop( 15, uploadDateReason );
+            }
+        }
+
+        // 3h) A place list in a NON-live title says where the artist is from, which a mix page
+        // title does not carry: "DJ MIX #679 - Miss Luna | Ibiza/ Dusseldorf, Germany" (the
+        // bracket became a chunk in 1b) plays nowhere, so the chunk goes. After the joiners and
+        // the event/venue branches, because "no @" is what says the title is not a live
+        // recording - on a live one the places are the venue's city and country, which MixesDB
+        // writes ("@ Ritter Butzke, Berlin"). See mdbTitleCountries in title_definitions.js.
+        if( rest.indexOf( "@" ) === -1 ) {
+            var locations = mdbTitle_dropLocationChunks( rest );
+
+            if( locations.dropped.length ) {
+                logVar( "buildMixesdbTitle: location chunks dropped", locations.dropped.join( " | " ) );
+                conf.drop( 3, "\"" + locations.dropped.join( "\", \"" ) + "\" was left out - it says where the artist is from, which a mix page title does not carry" );
+                rest = locations.text;
             }
         }
 

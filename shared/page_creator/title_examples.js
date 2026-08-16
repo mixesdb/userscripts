@@ -341,6 +341,17 @@ var mdbTitleExamples = [
         // carried by promoCategory and not written into the title
         expect: "2026-08-07 - Christian Laurien - August 2026 Mix"
     },
+    {
+        url: "https://soundcloud.com/dancetelevision/dj-mix-679-miss-luna-dusseldorf-germany",
+        title: "DJ MIX #679 - Miss Luna ( Ibiza/ Dusseldorf, Germany)",
+        channel: "Dance TV",
+        date: "2026-08-04",
+        // two rules at once: the channel and "DJ Mix" name the show together
+        // (mdbTitleChannelSeriesConversions), and the bracketed place list says where Miss Luna
+        // is from, which a non-live title does not carry (mdbTitleCountries)
+        expectArtists: [ "Miss Luna" ],
+        expect: "2026-08-04 - Miss Luna - Dance TV DJ Mix 679"
+    },
 
     // Reported before the URLs were kept
     {
@@ -766,5 +777,21 @@ var mdbTitleExamples = [
         channel: "Some Label",
         date: "2026-08-07",
         expect: "2026-08-07 - Some DJ - Live Sessions 12"
+    },
+    {
+        // the place list without the Dance TV channel map: "City, Country" behind the artist
+        // says where they are from, which a non-live title does not carry
+        title: "Some Podcast 12 - Some DJ (Warsaw, Poland)",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Some DJ - Some Podcast 12"
+    },
+    {
+        // a country standing ALONE is an artist or a mix name as readily as a place - only the
+        // place LIST ending in a country is location info, so this chunk has to survive
+        title: "Some Podcast 12 - Georgia",
+        channel: "Some Podcast",
+        date: "2026-08-05",
+        expect: "2026-08-05 - Georgia - Some Podcast 12"
     }
 ];
