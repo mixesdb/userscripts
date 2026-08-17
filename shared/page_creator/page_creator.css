@@ -364,6 +364,81 @@
     line-height: 1;
 }
 
+/*
+ * The round "?" behind a cleanup step's label and the block it toggles: the
+ * title_definitions.js list the step worked off. The block is the step row's third child and
+ * spans both grid columns - the row is display:contents, so a wrapper of its own would take
+ * the label and the detail out of the shared columns.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    border-radius: 50%;
+    color: #b9b9b9;
+    font-family: Consolas, monospace;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-toggle:hover,
+#mdb-pageCreator-reasoning .mdb-pageCreator-defs-open {
+    color: #f0a943;
+    border-color: rgba(232, 147, 12, 0.65);
+    background-color: rgba(232, 147, 12, 0.14);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs {
+    grid-column: 1 / -1;
+    margin: 2px 0 4px;
+    padding: 9px 11px;
+    border-left: 2px solid rgba(232, 147, 12, 0.45);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-name {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f0a943;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-what {
+    margin: 3px 0 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #9a9a9a;
+}
+
+/* a long list (the countries) scrolls in place rather than pushing the report box away */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-pre {
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    max-height: 240px;
+    overflow: auto;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.30);
+    font-family: Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #cfcfcf;
+    white-space: pre;
+    tab-size: 4;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-pre:last-child {
+    margin-bottom: 0;
+}
+
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {
     display: grid;
     grid-template-columns: fit-content(45%) 1fr;

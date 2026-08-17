@@ -58,11 +58,18 @@ learning" line can name the step that went wrong:
    the lookup
 2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, the date that
    was read out, joiners rewritten, chunks a mix page title does not carry (what the
-   `Removed:` line of section 1 already names is not repeated here) – and the channel →
-   show mappings, whose work is otherwise invisible, drawn as chips with the channel in blue
-   and the show in green: a channel on the known-shows list as `Resident Advisor → RA
-   Podcast`, and a show the channel and the title name together as `"DJ MIX" on the channel
-   Dance TV → Dance TV DJ Mix`
+   `Removed:` line of section 1 already names is not repeated here, in no step) – and the
+   curated channel → show rules, whose work is otherwise invisible, drawn as chips with the
+   channel in blue and the show in green: a channel on the known-shows list as
+   `Resident Advisor → RA Podcast`, and a curated channel rule under which the title's own
+   words name the show as `"DJ MIX" on the channel Dance TV → Dance TV DJ Mix`. Both names are
+   hand-written for that channel, so a wrong one is fixed in the script, not in the title.
+
+   A step that worked off one of the script's word lists carries a round **?**: it opens the
+   list itself – its name, one sentence on what it is for, and every entry as it is written in
+   the script. So "Decoration removed" can be checked against the rule that removed it, and a
+   report can say which entry is wrong (or which one is missing) instead of only what came
+   out. Open lists stay open while the title above is corrected
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
    category in the wiki's own spelling, its type (artist, podcast, venue, …) and how many
    mixes it holds – or that no category of that name exists. The asked name's chip answers
