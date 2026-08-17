@@ -3892,6 +3892,18 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         entity = mdbTitle_canonicalName( mdbTitle_knownNow, entity, mdbTitle_entityTypes );
     }
 
+    // The one-" @ " rule holds at the exit, whatever branch built the group: the event and
+    // venue branches compose "<artist bit> @ <place>" AFTER the title-wide rewrite (3c2), and
+    // an artist bit that already carried an "@" would put a second one into the title -
+    // "Kernel Existence @ Utopia | Ritter Butzke | Berlin" composes
+    // "... @ Utopia @ Ritter Butzke, Berlin". Same rule, same spelling, no charge.
+    var oneAtGroup = mdbTitle_joinPlaceGroups( artist );
+
+    if( oneAtGroup !== artist ) {
+        logVar( "mdbTitle_result: further \"@\" joined into the place group", artist + " -> " + oneAtGroup );
+        artist = oneAtGroup;
+    }
+
     // "Live PA" said by the title or the description is written behind the artist's NAME, the
     // way MixesDB spells it: "Kernel Existence (Live PA) @ 3000Grad Festival". Only behind
     // ONE name - with several artists only the uploader knows whose set it was. The

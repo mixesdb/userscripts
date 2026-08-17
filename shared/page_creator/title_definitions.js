@@ -988,6 +988,14 @@ var mdbTitleLiveAtWords = [
  * Festival"), never the joined list - the venue behind the comma is not what the page is
  * filed under (mdbTitle_titleCategories).
  *
+ * Enforced TWICE, and the second one is the one that holds: once on the whole title before
+ * the venue rules read it (3c2), and once at the single exit (mdbTitle_result) - the event
+ * and venue branches compose "<artist bit> @ <place>" after 3c2, and an artist bit that
+ * already carried an "@" would put a second one into the title ("Kernel Existence @ Utopia |
+ * Ritter Butzke | Berlin" composes "... @ Utopia @ Ritter Butzke, Berlin", which has to come
+ * out as "@ Utopia, Ritter Butzke, Berlin" - also exactly how MixesDB writes a party at a
+ * venue in a city).
+ *
  * The chunk split says the same thing in units: every " @ " separates, so the title above is
  * the chunks "Kernel Existence | 3000Grad Festival | Utopia" - each asked about on its own,
  * never a glued "3000Grad Festival @ Utopia". (The year is gone from the last one because

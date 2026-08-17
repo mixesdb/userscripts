@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.22
+// @version      2026.08.17.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,8 +12,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_26
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_32
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_27
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_33
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_37
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
@@ -1836,6 +1836,16 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.17.23
+ * The one-" @ " rule now also holds at the builder's exit (title_builder.js v_33,
+ * title_definitions.js v_27): the event and venue branches compose "<artist bit> @ <place>"
+ * AFTER the title-wide rewrite, so an artist bit already carrying an "@" put a second one
+ * into the title ("Kernel Existence @ Utopia | Ritter Butzke | Berlin" composed
+ * "... @ Utopia @ Ritter Butzke, Berlin" once the wiki knew the venue). Enforced in
+ * mdbTitle_result, where every branch converges - "@ Utopia, Ritter Butzke, Berlin" is also
+ * exactly how MixesDB writes a party at a venue in a city. The require params are bumped so
+ * a Tampermonkey that cached the previous ?v_32 before the push reached the CDN refetches.
  *
  * 2026.08.17.10
  * From the "Kernel Existence - live@3000Grad Festival @Utopia 2021" report
