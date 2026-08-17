@@ -352,6 +352,13 @@ everything settled - the normal path is the refresh after the lookup answer.
 
 Settled about what it shows:
 
+- **Both chip lists are split by ONE function** - `mdbTitle_traceChunks()`, separator runs, the
+  series-"by" and every " @ ". Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
+  calls it; section 2 ("Left for the parser") calls it directly on `trace.cleaned`. A split rule
+  added to only one of the two makes section 2 look like it re-joined a chunk, and a reporter
+  then reports a parse step that never ran. What the two sections may still differ in is
+  CLEANUP, not the split: section 2 quotes the title as it stands after the cleanup, where a
+  live title's place groups are already comma-joined ("3000Grad Festival, Utopia").
 - **No step re-lists what the chunk section shows as removed** - a label credit, a place list.
   Done once, in `mdbTitle_traceStep()`, over every step's detail: a step quotes the title as it
   stands at that moment, which is WITH those words (the parse drops them later), and quoted
