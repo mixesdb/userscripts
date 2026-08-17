@@ -42,6 +42,16 @@ details table, and the `[[File:…]]` line is pointed at the new page's name.
 
 Nothing is ever saved automatically, and a field that already holds something is left alone.
 
+### Edit form: the "Tracklist:" indicator follows the text
+
+Under the edit box sit three indicator icons for the tracklist filing – none, incomplete,
+complete. The one matching the `[[Category:Tracklist: …]]` the edit box actually carries is lit,
+the other two stay dim, and this keeps tracking while the text changes: type the category, paste
+a page text, or arrive through another script's **Create** link, and the right icon lights up –
+no category in the text means none lit. MixesDB itself never lights them from the box's text, so
+a page text that arrived filled in used to show three dark icons however clearly it named the
+category.
+
 ### Edit form: AI formatting review
 
 The formatting review section is moved below the form buttons, where it does not sit between the
