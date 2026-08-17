@@ -10,6 +10,10 @@
 > empty, so the left-strip danger stayed out. `origin=*` CORS works. The client lives in
 > `title_builder.js` (`mdbTitle_lookupCategories`). This document stays as the contract's
 > rationale.
+>
+> **Follow-up, same day:** `match=prefix` went live too (opt-in, default stays strict), with
+> `matchType` (`exact`|`redirect`|`prefix`), `matchedTitle`, prefix results ranked by mix count
+> and capped at 10 - see `row_enrichment.md` §1 for the verified details and what uses it.
 
 **What we would like:** one API call that takes a list of names and answers, for each, *does
 MixesDB have a category of that name, and what kind of thing is it* – matched

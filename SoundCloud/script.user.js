@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.16.15
+// @version      2026.08.16.16
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_24
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_24
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_25
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_24
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
@@ -1837,13 +1837,17 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
- * 2026.08.16.13
+ * 2026.08.16.15
  * The "Report" box got a reasoning panel above the textarea (shared/page_creator/:
  * page_creator.js v_24, title_builder.js v_23, page_creator.css): four sections showing the
  * chunks the player title split into, what the cleanup fixed and removed (typos, decoration,
  * label credits, the date), which names were looked up via action=mdbnames and what the wiki
  * knows them as, and the categories the created page would be filed under - each annotated
  * from the lookup cache (known artist with mix count vs. "no category of this name yet").
+ * The chunks are THE shared split (mdbTitle_titleChunks): typos/decoration out first,
+ * brackets read as separators and the parser's guarded series-"by" split included - so
+ * "Guestroom 779 by Sascha Sibler" shows (and looks up) both halves, and a venue in
+ * brackets becomes a candidate the second build pass can recognise.
  * Editing the title re-renders the panel after a short pause and looks the new names up
  * first (cache-aware, one request at most). Dark surface like the loading skeleton (both
  * sites are dark-themed; grey-on-white was hard to read next to them), one accent colour

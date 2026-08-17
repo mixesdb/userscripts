@@ -37,11 +37,21 @@ and the type and count the lookup returned: `Trommel (Podcast, 29)`. This is the
 the category" advice turned into one click, and it costs zero extra requests - it is the
 lookup's own response.
 
-**The category FAMILY, via `match=prefix`.** The maintainer offered (2026-08-16) an opt-in
-prefix mode on `action=mdbnames`: `names=dekmantel&match=prefix` returns not just the
-exact/redirect match but every typed category starting with the name - `Dekmantel Festival`
+**The category FAMILY, via `match=prefix` - LIVE since 2026-08-16, verified.** An opt-in
+prefix mode on `action=mdbnames`: `names=dekmantel&match=prefix&recentlimit=1` returns not just
+the exact/redirect match but every typed category starting with the name - `Dekmantel Festival`
 (event), `Dekmantel Mix` (podcast), `Dekmantel Soundsystem` (artist), `Dekmantel São Paulo
-Podcast` (podcast), ... - exact and redirect first, prefix matches ranked by mix count.
+Podcast` (podcast), ... - exact and redirect first, prefix matches ranked by mix count,
+**capped at 10 per name**. Every match carries `matchType` (`exact` | `redirect` | `prefix`)
+and `matchedTitle` (the title the input actually hit, e.g. the redirect's own name), so the
+row can label and filter mechanically. Prefix matching follows redirects too: `Selectors
+Podcast` turns up for "dekmantel" because its redirect `Dekmantel Selectors Podcast` starts
+with the name. An unknown `match=` value errors cleanly (`badvalue`), and the DEFAULT stays
+the strict mode the title builder ships on - verified unchanged.
+
+`matchedTitle` is already consumed by the builder: `mdbTitle_canonicalName()` uses it to
+case-correct a redirect ALIAS name-for-name ("dekmantel" -> "Dekmantel") without rewriting it
+to the canonical target ("Dekmantel Festival"), which the normalized-equality rule forbids.
 
 That is exactly the "double-check" material: one extra call per row, made for the ENTITY and
 the CHANNEL only, renders the family with links, types, counts and (`recentlimit=2`) their

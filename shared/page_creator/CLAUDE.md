@@ -203,6 +203,11 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `Trommel.251`, `asa 808` -> `ASA 808`. Done at the single exit (`mdbTitle_result`), but ONLY
   name-for-name: a server match whose normalized name differs (`Truancy Volume` ->
   `Truancy Volumes`) is knowledge, not a spelling, and never rewrites the title.
+- **Candidates come from THE shared chunk split** (`mdbTitle_titleChunks`): typos and
+  decoration out first, brackets read as separators (the channel's own bracket excepted), and
+  the parser's guarded series-"by" split - `Guestroom 779 by Sascha Sibler` asks about both
+  halves, `(Ritter Butzke)` is asked on its own. One function also feeds the report panel's
+  "Title chunks" section, so what is shown, what is asked and what is parsed cannot drift.
 - **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
@@ -241,7 +246,7 @@ mirror of this table - keep the two in step):
 | # | Work | Plan file | State |
 | --- | --- | --- | --- |
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
-| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | open; the family part waits on the maintainer's `match=prefix` + `matchedTitle` (offered 2026-08-16, row-only - the title builder stays on exact match), the rest is unblocked |
+| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
 | 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | open, unblocked (`recentlimit` exists but the wikitext still needs the generator call) |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
