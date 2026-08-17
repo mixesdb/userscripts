@@ -1403,8 +1403,16 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s2 );
 
-    // 3) the MixesDB lookups
-    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are" );
+    // 3) the MixesDB lookups. The categories of section 4 are computed here already: the
+    // asked-name chips answer that section by colour - green when the name ended up a
+    // category of the new page, red when it did not.
+    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are - green chips became categories in 4, red ones did not" ),
+        entries = mdbPageCreator_categoryEntries( title ),
+        catKeys = {};
+
+    for( i = 0; i < entries.length; i++ ) {
+        if( entries[i].name ) catKeys[ mdbTitle_normalizeCompare( entries[i].name ) ] = true;
+    }
 
     if( lookupLog.length ) {
         var lookups = $("<div>").addClass( "mdb-pageCreator-reasoning-lookups" );
@@ -1414,7 +1422,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 cached = Object.prototype.hasOwnProperty.call( cache, entry.key ) ? cache[entry.key] : "",
                 matches = ( cached && cached.matches ) ? cached.matches : [],
                 result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
-                m;
+                m, st, mp;
 
             if( matches.length ) {
                 for( m = 0; m < matches.length; m++ ) {
@@ -1432,9 +1440,28 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 result.append( mdbPageCreator_reasoningNote( "no category of this name", "muted" ) );
             }
 
+            // A curated channel mapping outranks whatever the wiki knows under the bare
+            // words - without this line, an answer like "DJ Mix, show, 369 mixes" reads
+            // like the row the title should have used.
+            if( trace && trace.steps ) {
+                for( st = 0; st < trace.steps.length; st++ ) {
+                    mp = trace.steps[st].mapping;
+
+                    if( mp && mp.words && mp.to && mdbTitle_normalizeCompare( mp.words ) === entry.key ) {
+                        result.append( mdbPageCreator_reasoningNote(
+                            "overruled - on this channel these words name \"" + mp.to + "\" (curated mapping, section 2)", "info" ) );
+                        break;
+                    }
+                }
+            }
+
             lookups.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ).append(
-                    $("<span>").addClass( "mdb-pageCreator-chip" ).text( entry.name ),
+                    $("<span>")
+                        .addClass( "mdb-pageCreator-chip " + ( catKeys[ entry.key ]
+                            ? "mdb-pageCreator-chip-kept"
+                            : "mdb-pageCreator-chip-notCat" ) )
+                        .text( entry.name ),
                     result
                 )
             );
@@ -1447,9 +1474,9 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s3 );
 
-    // 4) the categories of the created page - read off the CURRENT title, like the page text
+    // 4) the categories of the created page - read off the CURRENT title (the same entries
+    // section 3's chip colours were computed from), like the page text
     var s4 = mdbPageCreator_reasoningSection( "4", "Categories for the new page", "read off the title above" ),
-        entries = mdbPageCreator_categoryEntries( title ),
         cats = $("<div>").addClass( "mdb-pageCreator-reasoning-cats" );
 
     for( i = 0; i < entries.length; i++ ) {

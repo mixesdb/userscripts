@@ -2589,6 +2589,28 @@ function mdbTitle_traceChunks( text ) {
     return out;
 }
 
+// mdbTitle_traceTextWithout
+// A step's quoted text with the chunks the shared split removes outright (label credits,
+// place lists) excised - in their bracketed spelling first, then bare, each with the
+// separator run in front of it, so the cut leaves no " - |" debris. The step must not
+// re-list what the chunk section's "Removed:" line already names: quoted again it reads as
+// kept. Display only - the parse works on the full text and drops these chunks where its
+// own rules do.
+function mdbTitle_traceTextWithout( text, removed ) {
+    var out = String( text || "" ),
+        i, esc;
+
+    for( i = 0; removed && i < removed.length; i++ ) {
+        esc = mdbTitle_escapeRe( removed[i].text );
+
+        out = out
+            .replace( new RegExp( "[(\\[{]\\s*" + esc + "\\s*[)\\]}]" ), " " )
+            .replace( new RegExp( "(?:\\s*[|\\/•\\-–]+\\s*|\\s+|^)" + esc + "(?=\\s*(?:[|\\/•\\-–]+\\s*|$))" ), " " );
+    }
+
+    return mdbTitle_trimSeparators( out.replace( /\s+/g, " " ) );
+}
+
 // mdbTitle_titleChunks
 // THE chunk split: the player title as the chunks everything downstream shares - the panel's
 // "Title chunks" section and the lookup candidates alike. Prepared the way the parser prepares
@@ -2733,7 +2755,19 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( unbracketed !== rest ) {
             logVar( "buildMixesdbTitle: brackets read as separators", rest + " -> " + unbracketed );
-            mdbTitle_traceStep( "Brackets read as separators", rest + " -> " + unbracketed );
+
+            // The step quotes both sides WITHOUT the chunks the shared split removes outright
+            // (chunksRemoved: label credits, place lists) - section 1's "Removed:" line
+            // already names those, and 1a skips its step for the same reason. A bracket
+            // rewrite that only concerned such a chunk leaves nothing to say: no step.
+            var removedForTrace = mdbTitle_trace ? mdbTitle_trace.chunksRemoved : null,
+                stepBefore = mdbTitle_traceTextWithout( rest, removedForTrace ),
+                stepAfter = mdbTitle_traceTextWithout( unbracketed, removedForTrace );
+
+            if( stepBefore !== stepAfter ) {
+                mdbTitle_traceStep( "Brackets read as separators", stepBefore + " -> " + stepAfter );
+            }
+
             rest = unbracketed;
         }
 
