@@ -112,7 +112,7 @@ Settled, so it does not get re-litigated:
   nothing) and re-renders the reasoning panel - only its section 4 comes out different, and
   no name lookup fires, because the tracklist takes no part in the title.
 - **While the caret is in the box, only the FEEDBACK follows the typing - never the text**, and
-  only when the reader switched it on (the "auto-check" chip in the feedback box, OFF by
+  only when the reader switched it on (the "Live updates" switch in the feedback box, OFF by
   default - a half-written line honestly reads as a warning, which is help while writing one
   out and noise while fixing a finished one). The debounced check (`tlBoxTypeUpdate`, 800ms,
   flushed at once on Enter and on a click into the box) calls
