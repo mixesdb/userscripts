@@ -126,8 +126,8 @@ textarea.mdb-tlBox {
 textarea#mixesdb-TLbox.mdb-tlBox-updating,
 textarea.mixesdb-TLbox.mdb-tlBox-updating,
 textarea.mdb-tlBox.mdb-tlBox-updating {
-    color: #999 !important;
-    background-color: #ececec !important;
+    color: #fff !important;
+    background-color: #fff !important;
 }
 
 /* formActions */

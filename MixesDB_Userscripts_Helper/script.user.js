@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.3
+// @version      2026.08.17.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -543,6 +543,76 @@ d.ready(function () {
     textbox[0].setSelectionRange( 0, 0 );
 
     log( "Edit: insert - filled the edit box with the " + insertText.length + " characters from the URL." );
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Edit: light the "Tracklist:" indicator matching the edit box
+ *
+ * Under the edit box sit three indicator buttons for the tracklist filing (#afterTextbox1,
+ * inside .textareaBottomInfo): TLn = none, TLi = incomplete, TLc = complete. Each holds a
+ * dimmed icon that lights up when the button carries the .op1 class - but nothing on the site
+ * lights them from the TEXT in the box, so a page text that arrived filled in (the "insert"
+ * section above - the page creator's "Create" link) showed three dark icons however clearly
+ * it said [[Category:Tracklist: ...]].
+ *
+ * So this owns the lighting: the button matching the category the text actually carries is
+ * lit, the other two are not, and no category in the text means none lit. Tracked two ways,
+ * because two kinds of change reach the box: the input events cover typing, and the interval
+ * covers every .val() a script sets - the insert fill above, TrackId.net's siteHasTl category
+ * swap (toolkit/funcs.js), a paste by another helper - which fires no event at all. The
+ * interval is cheap: one string compare per second, and only on pages that have the edit box.
+ *
+ * No fight with TrackId.net's siteHasTl block, which also sets .op1: it rewrites the category
+ * in the text first, so re-deriving from the text agrees with it - whichever of the two runs
+ * last says the same thing.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var tlButtons_lastSyncedText = null;
+
+function syncTracklistButtons() {
+    var textbox = $("#wpTextbox1"),
+        buttons = $("#button-after-TLn, #button-after-TLi, #button-after-TLc");
+
+    // the button row is the MixesWiki extension's and can render after us - as long as it is
+    // not complete, nothing is marked synced, so the interval simply tries again
+    if( !textbox.length || buttons.length < 3 ) return;
+
+    var text = textbox.val() || "";
+
+    if( text === tlButtons_lastSyncedText ) return;
+
+    tlButtons_lastSyncedText = text;
+
+    // sortkey tolerated ([[Category:Tracklist: none|...]]), space after the colon optional -
+    // the first Tracklist category in the text decides
+    var m = text.match( /\[\[Category:Tracklist: ?(complete|incomplete|none)(?:\|[^\]]*)?\]\]/i ),
+        filing = m ? m[1].toLowerCase() : "";
+
+    buttons.removeClass( "op1" );
+
+    if( filing ) {
+        buttons.filter( filing == "complete" ? "#button-after-TLc"
+                      : filing == "incomplete" ? "#button-after-TLi"
+                      : "#button-after-TLn" ).addClass( "op1" );
+    }
+
+    log( "syncTracklistButtons: " + ( filing ? "\"" + filing + "\" lit" : "no [[Category:Tracklist: ...]] in the text - none lit" ) );
+}
+
+d.ready(function () {
+    if( !$("#wpTextbox1").length ) return;
+
+    logFunc( "Edit: track the Tracklist indicator buttons" );
+
+    // registered after the "insert" section's ready handler, so the first sync already sees
+    // the filled box
+    $("#wpTextbox1").on( "input change", syncTracklistButtons );
+    setInterval( syncTracklistButtons, 1000 );
+
+    syncTracklistButtons();
 });
 
 
