@@ -1618,10 +1618,19 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
  * was detected. The box is there to be corrected, and a tracklist nobody checked is exactly the
  * kind that needs to be.
  *
- * Which also decides the "Tracklist:" category: the box is asked of the API once more on the way
- * into the click, and only the FEEDBACK of that answer is used (the colour, the category). The
- * text stays the editor's - re-formatting what someone just typed, under their hands, at the
- * moment they click away, would be the worst possible time for it.
+ * An edited box re-formats itself when the editor LEAVES it: the shared blur update in
+ * ../tracklist_editor/funcs.js (tlBoxBlurUpdate) sends the text through the API again, writes
+ * the answer back and hands the verdict to this file (mdbPageCreator_tracklistBoxUpdated), so
+ * the "Tracklist:" category and the reasoning panel follow the edit while it is still on
+ * screen. The click-time ask below stays as the safety net for the text no blur ever saw -
+ * Enter in the title field, say, fires "Create" while the caret is nowhere near the box.
+ *
+ * That safety net decides the "Tracklist:" category the same way: the box is asked of the API
+ * once more on the way into the click, and only the FEEDBACK of that answer is used (the
+ * colour, the category). THIS path never touches the text - re-formatting what someone just
+ * typed, under their hands, at the very moment they click away, would be the worst possible
+ * time for it. The blur update is different precisely because leaving the box says the typing
+ * is done.
  *
  *
  * Detected, formatted, shown - three steps, not one
@@ -2039,6 +2048,43 @@ function mdbPageCreator_validateTracklist() {
     fixTLbox( mdbPageCreator_tracklistFeedback, mdbPageCreator_tracklistBoxSite || "#mdb-pageCreator-tracklist", false );
 
     mdbPageCreator_tracklistLive = mdbPageCreator_tracklistText();
+}
+
+// mdbPageCreator_tracklistBoxUpdated
+// Called by the shared blur update (tlBoxBlurUpdate in ../tracklist_editor/funcs.js) after it
+// wrote the API's answer into a box the reader edited. Only the boxes the "Create" link reads
+// concern the creator: its own, or the one the site named (tracklistBox option) - a box some
+// other feature put on the page is none of its business.
+//
+// The fresh verdict is kept exactly as mdbPageCreator_validateTracklist() would keep it, so
+// the way into the click finds the text already validated and asks nothing. And the reasoning
+// panel is re-rendered, because its section 4 files the "Tracklist:" category off this very
+// status: the render is the whole stateless panel, but with the title untouched sections 1-3
+// come out unchanged - what the reader sees change is the category row. Deliberately NOT
+// mdbPageCreator_queueReasoningUpdate(), which is the title-edit path and would fire a name
+// lookup the tracklist cannot have changed.
+function mdbPageCreator_tracklistBoxUpdated( box, res ) {
+    var isOwn = box.closest( "#mdb-pageCreator-tracklist" ).length > 0,
+        isSite = mdbPageCreator_tracklistBoxSite && box.is( mdbPageCreator_tracklistBoxSite );
+
+    if( !isOwn && !isSite ) return;
+
+    logFunc( "mdbPageCreator_tracklistBoxUpdated" );
+
+    // the creator's own box: keep the live value in step, so a re-render puts the updated
+    // text back (the blur update sets .val(), which fires no input event)
+    if( isOwn ) mdbPageCreator_tracklistLive = box.val();
+
+    if( res.feedback ) {
+        mdbPageCreator_tracklistValidated = $.trim( box.val() || "" );
+        mdbPageCreator_tracklistFeedback = res.feedback;
+        mdbPageCreator_tracklistStatus = res.feedback.status || "";
+
+        logVar( "mdbPageCreator_tracklistBoxUpdated: status", mdbPageCreator_tracklistStatus || "(neither)" );
+    }
+
+    // no-op unless the report box is open and the panel is on the page
+    mdbPageCreator_renderReasoning( $("#mdb-pageCreator") );
 }
 
 // mdbPageCreator_tracklistFiling

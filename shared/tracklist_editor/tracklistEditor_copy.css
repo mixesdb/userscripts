@@ -110,6 +110,26 @@
     /* color: transparent; */
 }
 
+/* Blur update (tlBoxBlurUpdate in funcs.js): while the Tracklist Editor API re-formats a box
+ * the reader just left, the box greys out - and stays grey for a forced minimum, so the
+ * update never passes as an invisible flash. The transition sits on the box itself so the
+ * grey fades in and out instead of snapping.
+ * id+class on purpose: global.css colours these textareas via plain-id selectors with
+ * !important, and only higher specificity wins against that. */
+#tlEditor textarea,
+textarea#mixesdb-TLbox,
+textarea.mixesdb-TLbox,
+textarea.mdb-tlBox {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+#tlEditor textarea.mdb-tlBox-updating,
+textarea#mixesdb-TLbox.mdb-tlBox-updating,
+textarea.mixesdb-TLbox.mdb-tlBox-updating,
+textarea.mdb-tlBox.mdb-tlBox-updating {
+    color: #999 !important;
+    background-color: #ececec !important;
+}
+
 /* formActions */
 #tlEditor-formActions-replace,
 #tlEditor-formActions-findReplace-actions,
