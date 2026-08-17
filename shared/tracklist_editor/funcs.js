@@ -226,17 +226,20 @@ function tlBoxRenderFeedback( tl, feedback ) {
  * children of that box - neither would ever compare equal.
  */
 function tlBoxSetFeedbackHtml( tl, html ) {
-    var current = tl.nextAll( "#tlEditor-feedback" ).first();
+    var current = tl.nextAll( "#tlEditor-feedback" ).first(),
+        // The RAW answer is the comparison key, plus the switch state: the same answer is
+        // shown differently with live updates on and off (see tlBoxCleanFeedbackHtml), so the
+        // state has to be part of "is what is on screen still right?" - otherwise flipping the
+        // switch would leave the previous rendering standing.
+        key = ( tlBoxAutoUpdate() ? "live:" : "static:" ) + html;
 
-    // the raw answer is the comparison key, cleaned or not - what is stripped below never
-    // differs between two answers, so it cannot decide whether something changed
-    if( current.length && current.data( "mdbFeedbackHtml" ) === html ) return;
+    if( current.length && current.data( "mdbFeedbackHtml" ) === key ) return;
 
     var clean = tlBoxCleanFeedbackHtml( html );
 
     if( !current.length ) {
         tl.after( clean );
-        tl.nextAll( "#tlEditor-feedback" ).first().data( "mdbFeedbackHtml", html );
+        tl.nextAll( "#tlEditor-feedback" ).first().data( "mdbFeedbackHtml", key );
         return;
     }
 
@@ -245,7 +248,7 @@ function tlBoxSetFeedbackHtml( tl, html ) {
     var parsed = $( "<div>" ).append( clean ).children( "#tlEditor-feedback" ).first(),
         from = current.outerHeight();
 
-    current.html( parsed.length ? parsed.html() : clean ).data( "mdbFeedbackHtml", html );
+    current.html( parsed.length ? parsed.html() : clean ).data( "mdbFeedbackHtml", key );
 
     tlBoxSettleFeedbackHeight( current, from );
 }
@@ -253,23 +256,24 @@ function tlBoxSetFeedbackHtml( tl, html ) {
 /*
  * tlBoxCleanFeedbackHtml
  *
- * Takes "No changes were made." out of the answer.
+ * Takes "No changes were made." out of the answer - but ONLY while live updates are on.
  *
- * The message is honest where it was written for - MixesDB's own Tracklist Editor, where you
- * paste a tracklist, press a button and want to know whether pressing it did anything. It says
- * "the formatter found nothing to fix in what you sent", and it is what an ALREADY formatted
- * tracklist gets.
+ * The message says "the formatter found nothing to fix in what you sent", which is what an
+ * already formatted tracklist gets. Whether that is worth reading depends entirely on who
+ * asked:
  *
- * In this box that is the normal state of affairs and the wrong sentence entirely: the box asks
- * on its own after every typing pause and every edit, so the message turns up right after
- * someone changed something and reads as "your edit did nothing" - which is the opposite of
- * what it means. The colour and the rest of the answer already say what the tracklist is;
- * whether the formatter had work to do is our business, not the reader's.
+ *   - switch OFF: the box only asks when you LEAVE it or click "Create", so the message
+ *     answers an edit you finished - "nothing here needed fixing" is a real answer to that,
+ *     and it stays.
+ *   - switch ON: the box asks after every typing pause, so the message turns up mid-sentence,
+ *     right after a keystroke, and reads as "your edit did nothing" - the opposite of what it
+ *     means. There it is noise and goes.
  *
  * Its wrapper goes with it when nothing else is left in it - an empty bold line would keep the
  * gap the message used to sit in.
  */
 function tlBoxCleanFeedbackHtml( html ) {
+    if( !tlBoxAutoUpdate() ) return html;
     if( String( html ).indexOf( "tlEditor-feedback-noChanges" ) === -1 ) return html;
 
     var holder = $( "<div>" ).append( html ),
@@ -398,14 +402,22 @@ function tlBoxShowApiCount() {
                     tlBoxSetAutoUpdate( nowOn );
                     tlBoxShowApiCount();
 
-                    // Switched on with something already typed: check it now rather than
-                    // waiting for the next keystroke - the click asked for an answer. Costs
-                    // nothing when the text is the one the feedback already describes.
-                    if( nowOn ) {
-                        $("textarea[data-mdb-tlbox-live]").each(function() {
-                            tlBoxTypeUpdate( $(this) );
-                        });
-                    }
+                    $("textarea[data-mdb-tlbox-live]").each(function() {
+                        var box = $(this);
+
+                        // "No changes were made." belongs to one state and not to the other
+                        // (see tlBoxCleanFeedbackHtml), so the answer on screen is re-rendered
+                        // from the markup it was built from - no request, and the line appears
+                        // or disappears with the click rather than at the next update.
+                        var shown = box.nextAll( "#tlEditor-feedback" ).first().data( "mdbFeedbackHtml" );
+
+                        if( shown ) tlBoxSetFeedbackHtml( box, String( shown ).replace( /^(live|static):/, "" ) );
+
+                        // Switched on with something already typed: check it now rather than
+                        // waiting for the next keystroke - the click asked for an answer. Costs
+                        // nothing when the text is the one the feedback already describes.
+                        if( nowOn ) tlBoxTypeUpdate( box );
+                    });
                 });
 
             countChip.after( autoChip );

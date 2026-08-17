@@ -72,10 +72,10 @@ Above the box, what the Tracklist Editor API said about its content:
 Editing the box and asking again re-colours the same box rather than stacking a second answer
 under the first.
 
-The Tracklist Editor's "No changes were made." line is left out here. It means "the formatter
-found nothing to fix in what was sent", which is the normal state of a tracklist that is already
-formatted – but since this box asks on its own after every edit, the line turned up right after
-someone changed something and read as if the edit had been ignored.
+With **Live updates** on, the Tracklist Editor's "No changes were made." line is left out. It
+means "the formatter found nothing to fix in what was sent" – a fair answer when you have
+finished an edit and left the box, which is why it still appears with the switch off, but
+mid-sentence after a typing pause it reads as if your edit had been ignored.
 
 ### Copying out
 
