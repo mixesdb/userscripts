@@ -196,7 +196,7 @@ function mdbPageCreator_add( options ) {
 
     mdbPageCreator_setTitle( first, o.durationMs );
 
-    mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel ), function( known ) {
+    mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel, description ), function( known ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );
@@ -1060,6 +1060,34 @@ function mdbPageCreator_reasoningChips( names, chipClass ) {
     return row;
 }
 
+// mdbPageCreator_reasoningRemoved
+// The "Removed:" side line of the chunk section: the names the shared split took out for one
+// reason ("label" | "location"), struck through, with the reason spelled out behind them.
+// An empty jQuery object when the trace has none of this reason (or none at all - a stale
+// cached title_builder.js from before chunksRemoved existed), so the append is a no-op.
+function mdbPageCreator_reasoningRemoved( removed, reason, why ) {
+    var names = [],
+        i;
+
+    for( i = 0; removed && i < removed.length; i++ ) {
+        if( removed[i].reason === reason ) names.push( removed[i].text );
+    }
+
+    if( !names.length ) return $();
+
+    var aside = $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+            $("<span>").text( "Removed:" )
+        );
+
+    for( i = 0; i < names.length; i++ ) {
+        aside.append(
+            $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-removed" ).text( names[i] )
+        );
+    }
+
+    return aside.append( $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( why ) );
+}
+
 // mdbPageCreator_reasoningTypeBadge
 // One class per broad kind rather than per server type, so the CSS does not have to name every
 // type the module may ever answer with - unknown ones fall into the grey "other".
@@ -1301,6 +1329,13 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     if( trace ) {
         s1.append(
             mdbPageCreator_reasoningChips( trace.chunks ),
+            // what the split removed outright (trace.chunksRemoved, see mdbTitle_titleChunks):
+            // shown struck through, so a reporter sees the label credit or the place list was
+            // dropped on purpose - and that its names were never looked up
+            mdbPageCreator_reasoningRemoved( trace.chunksRemoved, "label",
+                "label credit - known label names never join the title and are not looked up" ),
+            mdbPageCreator_reasoningRemoved( trace.chunksRemoved, "location",
+                "location info - says where the artist is from, which the title never carries; not looked up" ),
             $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
                 $("<span>").text( "Channel:" ),
                 $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-channel" ).text( trace.channel || "(none)" )
