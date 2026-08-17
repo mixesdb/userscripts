@@ -114,14 +114,21 @@ Settled, so it does not get re-litigated:
 - **On the way into the click the API is asked once more if the box changed since, and its
   TEXT is applied like on blur** (since 2026-08-17, second round: "Create" clicked straight
   out of the textarea fires BEFORE the box's blur, so the blur update alone left such a page
-  with the raw typed text). The click-time ask stays synchronous - the navigation reads the
-  href the moment it returns - applies the answer through the shared `tlBoxApplyResult()`
-  (which bumps the box's request sequence, so a blur answer still in flight drops itself),
-  flashes the box's updating state briefly after the fact, and hands the bookkeeping to
-  `mdbPageCreator_tracklistBoxUpdated()`. Rewriting the text at the click is as safe as on
-  blur, for the same reason: clicking "Create" says the typing is done. The blur update still
-  drops its own answer unapplied when the box was refocused or changed while the API was
-  thinking.
+  with the raw typed text). Rewriting the text at the click is as safe as on blur, for the
+  same reason: clicking "Create" says the typing is done. Both click paths apply through the
+  shared `tlBoxApplyResult()` and hand the bookkeeping to
+  `mdbPageCreator_tracklistBoxUpdated()`; the request-sequence bump outdates a blur answer
+  still in flight, so nothing applies twice.
+- **The plain left click (and Enter) holds the navigation back until the update was SEEN**
+  (third round, same day: on TrackId.net the synchronous ask was invisible - it blocked the
+  paint and the new tab took the screen the moment it returned).
+  `mdbPageCreator_createAfterTracklistUpdate()` intercepts the click, greys the box for the
+  shared minimum, scrolls it into view when it sits below the fold, applies the answer, and
+  only then opens the edit form - `window.open` inside the click's transient activation, with
+  a same-tab fallback if a blocker disagrees, and a pending flag so a double click cannot open
+  two tabs. Middle, right and cmd/ctrl/shift-clicks navigate natively off the href and keep
+  the synchronous ask at mousedown (`mdbPageCreator_validateTracklist()`) - their flash after
+  the fact is visible because those clicks leave the page on screen.
 - **Only the API's own `"complete"` earns `Tracklist: complete`.** A warning, a hint or its
   `"incomplete"` all file as incomplete, which is the value that costs nothing if it is wrong.
 - **`<list>` or not is read off the API's answer, not off the status.** MixesDB writes a
