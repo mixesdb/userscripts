@@ -352,14 +352,18 @@ everything settled - the normal path is the refresh after the lookup answer.
 
 Settled about what it shows:
 
-- **Section 3 is a table with two answer columns** - "Artist category candidates" and
-  "Entity category candidates". An answer lands by its TYPE ("artist" left, everything else -
-  podcast, show, venue, event, ... - right), a name the wiki knows as both stands in both
-  columns, and an empty side shows a muted "–": the wiki offering nothing for a role is an
-  answer too. A name with no category at all - and every pending/failed/overruled note -
-  spans both columns, since a non-answer names no role. Built off the MONUMENT report
-  (2026-08-17), where a podcast answer standing in one flat list read as if it backed an
-  artist.
+- **Section 3 is two candidate columns, filled BEFORE the wiki answers** - "Artist category
+  candidates" and "Entity category candidates". The ROLE comes from the title's shape
+  (mdbTitle_candidateRoles, recorded by mdbTitle_categoryCandidates): names in front of the
+  "@" ask as the artist; series-looking names, everything behind the "@" and a curated show
+  name as the entity; the channel as both - so the chips say what a name was asked FOR, not
+  merely what came back. Within a column only that role's answers render ("artist" types
+  left, everything else right); an answer of an unexpected type still pulls the chip into
+  its column, an answer list that is all of the other kind shows a muted "–", and a name
+  with no answer shows its status note in its candidate column(s) only - never as an
+  artist-column line for a series or a place. The place group's country is no candidate at
+  all: kept in the title, never a category. Built off the MONUMENT report (2026-08-17),
+  where a podcast answer standing in one flat list read as if it backed an artist.
 - **Section 3's percentage is scored per ANSWER, not per asked name** -
   `mdbTitle_matchConfidence( name, matches, index, overruled )` in `title_builder.js`, returning
   `{ percent, reasons }` out of the same `mdbTitle_confidence()` object the title score uses, so

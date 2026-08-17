@@ -439,28 +439,41 @@
     margin-bottom: 0;
 }
 
-/* the asked names and their answers, the answers split into the two roles a category can
-   play in the title: artist candidates left, entity candidates (podcast, show, venue,
-   event, ...) right */
+/* section 3: the two candidate columns side by side - who could be the ARTIST, what could
+   be the ENTITY, decided from the title's shape before the lookup fires. Each column holds
+   the chips asked for that role, with the wiki's answers of that kind next to them. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {
     display: grid;
-    grid-template-columns: fit-content(38%) 1fr 1fr;
-    gap: 8px 14px;
-    align-items: center;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 28px;
+    align-items: start;
 }
 
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup {
-    display: contents;
+/* min-width lets the inner grid shrink instead of pushing the panel wide */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookupCol {
+    min-width: 0;
 }
 
-/* the two candidate column headings - the name column needs none, the chips are their own
-   label */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-colHead {
+    display: block;
+    margin-bottom: 9px;
     font-size: 10.5px;
     font-weight: bold;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     color: #9a9a9a;
+}
+
+/* one column's rows: chip left, that role's answers right */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookupCol-rows {
+    display: grid;
+    grid-template-columns: fit-content(45%) 1fr;
+    gap: 8px 12px;
+    align-items: center;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup {
+    display: contents;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-result {
@@ -471,18 +484,7 @@
     font-size: 12px;
 }
 
-/* a note about the whole name (no category, pending, overruled): a non-answer names no
-   role, so it spans both candidate columns */
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-note {
-    grid-column: 2 / -1;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 14px;
-    font-size: 12px;
-}
-
-/* the "–" of a role the wiki offers no category for */
+/* the "–" of a name whose answers are all of the other column's kind */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-none {
     color: #6f6f6f;
     font-size: 12px;

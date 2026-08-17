@@ -510,16 +510,18 @@ var mdbTitleExamples = [
             ] },
             "Adjust": { type: "artist" }
         },
-        // Two rules from one report. "(BE)" is a bracketed country behind the artist - where
-        // Adjust is from, so it goes even though the title is a live one, and it is no chunk
-        // and no lookup candidate. And the "@" glued to "Adjust" already names the artist:
+        // Three rules from one report. "(BE)" is a bracketed country behind the artist -
+        // where Adjust is from, so it goes even though the title is a live one, and it is no
+        // chunk and no lookup candidate. The "@" glued to "Adjust" already names the artist:
         // the event branch must read it instead of falling back to the first bit, which is
         // the SERIES here ("MNMT Recordings") - the wiki knowing Adjust as an artist and
-        // Monument as a podcast says as much.
+        // Monument as a podcast says as much. And "Hungary", the country standing behind the
+        // event, stays in the title as the place group's second part - it is a chunk but no
+        // lookup candidate, since a country is never a category.
         expectChunks: [ "MNMT Recordings", "Adjust", "S.U.N Festival", "Hungary" ],
         expectArtists: [ "Adjust" ],
         expectEntity: "S.U.N Festival",
-        expect: "2026 - Adjust @ S.U.N Festival"
+        expect: "2026 - Adjust @ S.U.N Festival, Hungary"
     },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit

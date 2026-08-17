@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.27
+// @version      2026.08.17.28
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_28
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_36
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_29
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_37
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_40
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 120,
+var cacheVersion = 121,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1836,6 +1836,23 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.17.28
+ * Same report, second round. Section 3 now sorts its CHIPS into the two columns, decided
+ * from the title's shape BEFORE the lookup fires (mdbTitle_candidateRoles, title_builder.js
+ * v_37): names in front of the "@" ask as the artist; series-looking names ("recordings"
+ * joined the series words for it), everything behind the "@" and a curated show name as the
+ * entity; the channel as both. Within a column only that role's answers render, an answer
+ * of an unexpected type still pulls the chip in, and "no category of this name" shows only
+ * in the name's own column - never as an artist-column line for a series or a place
+ * (page_creator.js v_41, page_creator.css).
+ * "Hungary", the country behind the event, now stays in the title as the place group's
+ * second part ("@ S.U.N Festival, Hungary" - the way the venue branch keeps its city) and
+ * is not looked up at all: a country is never a category, and the 10-name limit is real.
+ * Also found while rendering the panel against fixtures: section 4 died on any page whose
+ * artist or entity IS a known category - the row handed a bare match to
+ * mdbPageCreator_reasoningMatch, which had grown the per-answer-scoring signature, so
+ * sections 1-3 painted and section 4 never appeared.
  *
  * 2026.08.17.27
  * From the "MNMT Recordings : Adjust (BE) @ S.U.N Festival - Hungary" report

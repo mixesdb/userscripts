@@ -1292,7 +1292,9 @@ var mdbTitleGuestMarkers = [
  */
 var mdbTitleShowSuffixWords = [
     "podcast", "radio", "radioshow", "show", "mixshow", "mix", "mixtape", "mixseries",
-    "series", "sessions", "session", "cast", "fm"
+    "series", "sessions", "session", "cast", "fm",
+    // a label's series carries the label's name: "MNMT Recordings" is a series, no artist
+    "recordings"
 ];
 
 
@@ -1544,6 +1546,12 @@ var mdbTitleDroppedBitPatterns = [
  * byline about that name, so it goes even when it is a lone code and even on a live title.
  * The one place it survives is BEHIND the "@", where the places are the venue's city and
  * country. A bracket OPENING a title is never one: it names what follows it.
+ *
+ * Behind the "@" a country is the PLACE GROUP's own country, and the opposite of dropping
+ * applies (same report): it STAYS in the title - the event branch keeps it as the place's
+ * second part ("@ S.U.N Festival, Hungary"), the way the venue branch keeps its city - but
+ * it is never sent to the category lookup, because a country is never a category and the
+ * 10-name request limit is real.
  *
  * Compared with mdbTitle_normalizeCompare(), which folds to a-z0-9 - so case and dots cost
  * nothing and "U.S.A.", "USA", "usa" are one entry. The dotted spellings are listed anyway:
