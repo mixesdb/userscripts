@@ -1538,6 +1538,13 @@ var mdbTitleDroppedBitPatterns = [
  * "Techno Germany Podcast 226" safe, where the country stands inside a name rather than
  * ending a place list.
  *
+ * A BRACKET is the exception to both of those rules (mdbTitle_dropLocationBrackets in
+ * title_builder.js, from the "MNMT Recordings : Adjust (BE) @ S.U.N Festival" report): a
+ * bracket behind a name holding nothing but a country - alone or as a place list - is a
+ * byline about that name, so it goes even when it is a lone code and even on a live title.
+ * The one place it survives is BEHIND the "@", where the places are the venue's city and
+ * country. A bracket OPENING a title is never one: it names what follows it.
+ *
  * Compared with mdbTitle_normalizeCompare(), which folds to a-z0-9 - so case and dots cost
  * nothing and "U.S.A.", "USA", "usa" are one entry. The dotted spellings are listed anyway:
  * this list is a register of what a title may write, and a reader checking whether a spelling
@@ -1746,7 +1753,7 @@ var mdbTitleDefinitionDocs = {
         data: mdbTitleGuestMarkers
     },
     mdbTitleCountries: {
-        what: "Country names and codes, for spotting a bracket that only says where an artist is from (\"(Detroit, U.S.A.)\") - which a mix page title never carries. Not used on a live title, where the same words are the venue's city and country.",
+        what: "Country names and codes, for spotting what only says where an artist is from - which a mix page title never carries. A bracket behind a name goes even when it holds a lone code (\"Adjust (BE)\") and even on a live title, as long as it stands in front of the \"@\"; an unbracketed chunk only goes as a place LIST ending in a country (\"Ibiza/ Dusseldorf, Germany\"), and only on a non-live title, where the same words are not the venue's city and country.",
         data: mdbTitleCountries
     }
 };

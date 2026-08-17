@@ -1678,7 +1678,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     // 3) the MixesDB lookups. The categories of section 4 are computed here already: the
     // asked-name chips answer that section by colour - green when the name ended up a
     // category of the new page, red when it did not.
-    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are - green chips became categories in 4, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
+    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are, sorted by the role an answer can play in the title - green chips became categories in 4, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
         entries = mdbPageCreator_categoryEntries( title ),
         catKeys = {};
 
@@ -1689,6 +1689,16 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     if( lookupLog.length ) {
         var lookups = $("<div>").addClass( "mdb-pageCreator-reasoning-lookups" );
 
+        // The two candidate columns are the table's whole point: an answer lands under the
+        // role its TYPE can play in the title - "artist" left, everything else (podcast,
+        // show, venue, event, ...) right - so a podcast answer can never read as backing an
+        // artist. The name column carries no heading: the chips are their own label.
+        lookups.append(
+            $("<span>"),
+            $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-colHead" ).text( "Artist category candidates" ),
+            $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-colHead" ).text( "Entity category candidates" )
+        );
+
         for( i = 0; i < lookupLog.length; i++ ) {
             var entry = lookupLog[i],
                 cached = Object.prototype.hasOwnProperty.call( cache, entry.key ) ? cache[entry.key] : "",
@@ -1696,45 +1706,69 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 // read before the matches are rendered: it is part of what each answer is worth,
                 // not only a line under them
                 overruledBy = mdbPageCreator_lookupOverruledBy( trace, entry.key ),
-                result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
+                row = $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ),
                 m;
 
+            row.append(
+                $("<span>")
+                    .addClass( "mdb-pageCreator-chip " + ( catKeys[ entry.key ]
+                        ? "mdb-pageCreator-chip-kept"
+                        : "mdb-pageCreator-chip-notCat" ) )
+                    .text( entry.name )
+            );
+
             if( matches.length ) {
+                var artistCell = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
+                    entityCell = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" );
+
                 for( m = 0; m < matches.length; m++ ) {
-                    result.append( mdbPageCreator_reasoningMatch( entry.name, matches, m, !!overruledBy ) );
+                    ( String( matches[m].type || "" ) === "artist" ? artistCell : entityCell )
+                        .append( mdbPageCreator_reasoningMatch( entry.name, matches, m, !!overruledBy ) );
                 }
-            } else if( entry.pending ) {
-                result.append( mdbPageCreator_reasoningNote( "looking it up …", "info" ) );
-            } else if( entry.skipped ) {
-                result.append( mdbPageCreator_reasoningNote( "not asked - over the 10-name request limit", "muted" ) );
-            } else if( entry.failed ) {
-                result.append( mdbPageCreator_reasoningNote( "lookup failed", "bad" ) );
+
+                // an empty side is an answer too: the wiki offers nothing for that role
+                if( !artistCell.children().length ) {
+                    artistCell.append( $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-none" )
+                        .attr( "title", "no category reads this name as an artist" ).text( "–" ) );
+                }
+                if( !entityCell.children().length ) {
+                    entityCell.append( $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-none" )
+                        .attr( "title", "no category reads this name as an entity (podcast, show, venue, event, ...)" ).text( "–" ) );
+                }
+
+                row.append( artistCell, entityCell );
             } else {
-                // the normal outcome for most title bits, so muted rather than a warning -
-                // section 4 is where an unknown name matters
-                result.append( mdbPageCreator_reasoningNote( "no category of this name", "muted" ) );
+                // a non-answer names no role, so these notes span both candidate columns
+                var note;
+
+                if( entry.pending ) {
+                    note = mdbPageCreator_reasoningNote( "looking it up …", "info" );
+                } else if( entry.skipped ) {
+                    note = mdbPageCreator_reasoningNote( "not asked - over the 10-name request limit", "muted" );
+                } else if( entry.failed ) {
+                    note = mdbPageCreator_reasoningNote( "lookup failed", "bad" );
+                } else {
+                    // the normal outcome for most title bits, so muted rather than a warning -
+                    // section 4 is where an unknown name matters
+                    note = mdbPageCreator_reasoningNote( "no category of this name", "muted" );
+                }
+
+                row.append( $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-note" ).append( note ) );
             }
 
             // A curated channel mapping outranks whatever the wiki knows under the bare
             // words - without this line, an answer like "DJ Mix, show, 369 mixes" reads
-            // like the row the title should have used.
+            // like the row the title should have used. Muted like the row's other notes -
+            // the red chip already carries the verdict, this line only explains it - and
+            // spanning both columns like them: it concerns the name, not one role.
             if( overruledBy ) {
-                // muted like the row's other notes - the red chip already carries the
-                // verdict, this line only explains it
-                result.append( mdbPageCreator_reasoningNote(
-                    "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2)", "muted" ) );
+                row.append( $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-note" ).append(
+                    mdbPageCreator_reasoningNote(
+                        "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2)", "muted" )
+                ) );
             }
 
-            lookups.append(
-                $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ).append(
-                    $("<span>")
-                        .addClass( "mdb-pageCreator-chip " + ( catKeys[ entry.key ]
-                            ? "mdb-pageCreator-chip-kept"
-                            : "mdb-pageCreator-chip-notCat" ) )
-                        .text( entry.name ),
-                    result
-                )
-            );
+            lookups.append( row );
         }
 
         s3.append( lookups );

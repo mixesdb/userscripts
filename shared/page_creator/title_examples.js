@@ -498,6 +498,29 @@ var mdbTitleExamples = [
         // title carries - the title's glued "FrenzyPodcast" must not override it
         expect: "2026-08-14 - Glia - Frenzy Podcast 233"
     },
+    {
+        url: "https://soundcloud.com/monument-podcast/mnmt-recordings-adjust-be-s-u",
+        title: "MNMT Recordings : Adjust (BE) @ S.U.N Festival – Hungary",
+        channel: "MONUMENT",
+        date: "2026-08-17",
+        known: {
+            "Monument": { matches: [
+                { title: "Monument", type: "podcast", mixes: 425 },
+                { title: "Monument (Jordan Smith)", type: "artist", mixes: 3 }
+            ] },
+            "Adjust": { type: "artist" }
+        },
+        // Two rules from one report. "(BE)" is a bracketed country behind the artist - where
+        // Adjust is from, so it goes even though the title is a live one, and it is no chunk
+        // and no lookup candidate. And the "@" glued to "Adjust" already names the artist:
+        // the event branch must read it instead of falling back to the first bit, which is
+        // the SERIES here ("MNMT Recordings") - the wiki knowing Adjust as an artist and
+        // Monument as a podcast says as much.
+        expectChunks: [ "MNMT Recordings", "Adjust", "S.U.N Festival", "Hungary" ],
+        expectArtists: [ "Adjust" ],
+        expectEntity: "S.U.N Festival",
+        expect: "2026 - Adjust @ S.U.N Festival"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {

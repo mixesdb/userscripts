@@ -352,6 +352,14 @@ everything settled - the normal path is the refresh after the lookup answer.
 
 Settled about what it shows:
 
+- **Section 3 is a table with two answer columns** - "Artist category candidates" and
+  "Entity category candidates". An answer lands by its TYPE ("artist" left, everything else -
+  podcast, show, venue, event, ... - right), a name the wiki knows as both stands in both
+  columns, and an empty side shows a muted "–": the wiki offering nothing for a role is an
+  answer too. A name with no category at all - and every pending/failed/overruled note -
+  spans both columns, since a non-answer names no role. Built off the MONUMENT report
+  (2026-08-17), where a podcast answer standing in one flat list read as if it backed an
+  artist.
 - **Section 3's percentage is scored per ANSWER, not per asked name** -
   `mdbTitle_matchConfidence( name, matches, index, overruled )` in `title_builder.js`, returning
   `{ percent, reasons }` out of the same `mdbTitle_confidence()` object the title score uses, so
