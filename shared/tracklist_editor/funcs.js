@@ -233,7 +233,7 @@ function tlBoxShowApiCount() {
         var feedbackBox = $(this),
             rows = feedbackBox.find( "#tlEditor-feedback-rows" ),
             countChip = feedbackBox.find( ".mdb-tlEditor-apiCalls" ),
-            autoChip = feedbackBox.find( ".mdb-tlEditor-autoUpdate" );
+            autoChip = feedbackBox.find( ".mdb-tlEditor-liveUpdates" );
 
         if( !countChip.length ) {
             countChip = $("<div>")

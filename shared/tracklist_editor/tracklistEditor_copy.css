@@ -245,9 +245,9 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     font-weight: 600;
     text-shadow: none !important;
     margin-top: -.2em;
-    margin-left: .4em;
+    margin-left: .8em;
     padding: .2em .4em;
-    background: rgba(255, 255, 255, 0.5);
+    background: #ff660040;
     border-radius: .2em;
 }
 #tlEditor-feedback #tlEditor-feedback-rows {
