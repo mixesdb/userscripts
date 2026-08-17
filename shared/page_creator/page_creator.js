@@ -1811,7 +1811,14 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 // read before the matches are rendered: it is part of what each answer is worth,
                 // not only a line under them
                 overruledBy = mdbPageCreator_lookupOverruledBy( trace, entry.key ),
-                role = roles[ entry.key ] || { artist: true, entity: true },
+                // The recorded role is a STRING - "artist" | "entity" - and a name without one
+                // (an edited title's extra lookups) files in both columns. Reading .artist off
+                // the string was the bug that dropped every answerless candidate from the
+                // panel: a string has neither property, so a name the wiki answered empty for
+                // ("MNMT Recordings", asked as the entity) rendered in no column at all.
+                roleName = roles[ entry.key ] || "",
+                askArtist = roleName !== "entity",
+                askEntity = roleName !== "artist",
                 isCat = !!catKeys[ entry.key ],
                 hasArtistAnswer = false,
                 hasEntityAnswer = false;
@@ -1827,10 +1834,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
             // no role argument: the COLUMN is the role, and passing one shifted isCat and
             // overruledBy a slot along - which painted every chip green ("artist" is truthy)
             // and put the boolean into the overruled note
-            if( role.artist || hasArtistAnswer ) {
+            if( askArtist || hasArtistAnswer ) {
                 mdbPageCreator_reasoningLookupRow( artistCol, entry, matches, isCat, overruledBy );
             }
-            if( role.entity || hasEntityAnswer ) {
+            if( askEntity || hasEntityAnswer ) {
                 mdbPageCreator_reasoningLookupRow( entityCol, entry, matches, isCat, overruledBy );
             }
         }

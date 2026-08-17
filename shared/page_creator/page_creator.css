@@ -340,8 +340,11 @@
     color: #e6e6e6;
 }
 
+/* The panel's own font, not monospace: a detail is as often a prose sentence ("the upload
+ * date stands in: ...") as a quoted title, and the arrow and the chips already mark the
+ * quoted halves - code styling on prose read as a style break. The definition blocks
+ * (-defs-pre) keep their monospace: those really are the JS they quote. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-detail {
-    font-family: Consolas, monospace;
     font-size: 12px;
     color: #a8a8a8;
     word-break: break-word;
