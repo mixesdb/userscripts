@@ -627,14 +627,16 @@ function mdbPageCreator_watchToolkit() {
 // mdbPageCreator_growTitleInput
 // The input's width IS its size attribute (monospace font + content-box, page_creator.css), so
 // this keeps it as wide as what is in it - called on every keystroke and on every programmatic
-// .val(). Grow only: a width once reached is kept, because a field that narrows while someone
-// deletes in the middle of it pulls the text away under their cursor. The CSS max-width caps
-// the growth either way, so a long title never pushes the row's buttons off screen.
+// .val(). It follows the text in BOTH directions: a field that stays at the width of a title
+// that was deleted leaves an empty stretch next to the row's buttons. The CSS max-width caps
+// the growth, so a long title never pushes those buttons off screen.
 function mdbPageCreator_growTitleInput( input ) {
     var current = parseInt( input.attr( "size" ), 10 ) || 0,
-        wanted = Math.max( 20, input.val().length ); // floored: an empty-looking 1-char box is useless
+        // 1 is the floor, not a nicer-looking minimum: size="0" is invalid and browsers fall
+        // back to their default width (~20 characters), which is the opposite of shrinking.
+        wanted = Math.max( 1, input.val().length );
 
-    if( wanted > current ) {
+    if( wanted !== current ) {
         // The width in ch on top of size: size alone is only the browser's estimate and pads
         // the field wider than the text even in monospace, where N ch IS N characters. The size
         // attribute stays as the fallback for when the inline style loses (or CSS is off).
@@ -798,7 +800,7 @@ function mdbPageCreator_render() {
 
     // The report quotes the title that is in the field, so a correction typed above lands in it
     // - unless the box has been written in by then, see mdbPageCreator_fillReport().
-    // The grow first: typing and refreshes alike land here, so the field widens with its text.
+    // The resize first: typing and refreshes alike land here, so the field follows its text.
     input.on( "input change", function() {
         mdbPageCreator_growTitleInput( input );
         mdbPageCreator_fillReport( wrapper );
