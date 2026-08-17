@@ -229,36 +229,38 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
  * count, our call counter and "Live updates" switch (tlBoxShowApiCount in funcs.js), and the
  * Tracklist Cue Switcher's format button.
  *
- * A translucent tint of the MixesDB orange, not a solid colour: the box sits on a different
- * background per status (green, yellow, red, and the sites' own colours behind that), so a
- * tint that lets the status through stays at home on all of them, where a fixed fill would
- * clash with two out of three. Dark grey text on top, readable on every one of them - the
- * white text and its shadow the rows chip used to have are dropped here, since white on a pale
- * background is what made the count hard to read in the first place.
+ * The look is the cue switch button's - the grey-bordered, quiet chip global.css gives
+ * "#tlEditor-feedback-topInfo button" - because that button was here first and reads well on
+ * every one of the box's status backgrounds (green, yellow, red, and the sites' own colours
+ * behind them) without competing with the message.
  *
- * Two IDs on the rows rule (and !important on the shadow) because it is stated twice elsewhere
- * - global.css and further down this file - and has to lose against this.
+ * Every property is stated rather than inherited, and that is the point: three of the four are
+ * <div>s and one is a real <button>, which browsers give a font, a background and a border of
+ * their own. Left to the defaults the same chip would look different per element and per
+ * browser, so font, background, border and radius are named here for all of them.
+ *
+ * Two IDs on the rows rule (and !important on shadow and border) because both are stated
+ * elsewhere - global.css and further down this file - and have to lose against this.
  */
 #tlEditor-feedback #tlEditor-feedback-rows,
 #tlEditor-feedback button#switchCueFormat,
 .mdb-tlEditor-apiCalls,
 .mdb-tlEditor-liveUpdates {
-    color: #444;
+    color: #777;
+    font-family: inherit;
     font-size: .85em;
     font-weight: 600;
     text-shadow: none !important;
     padding: .2em .4em;
-    background: #ff660040;
-    border: 0 !important;
+    background: #eee;
+    border: 1px solid #ccc !important;
     border-radius: .2em;
 }
 
 /*
- * The cue format switch (Tracklist Cue Switcher, button#switchCueFormat) wears the same chip,
- * but not the chip row's spacing: it is no float, it sits in the message list inside the box.
- * Two IDs and "!important" on the border because global.css states
- * "#tlEditor-feedback-topInfo button { border: 1px solid #ccc !important }" - only a stronger
- * !important beats an !important, and only the higher specificity decides between the two.
+ * The spacing belongs to the floated chip row alone. The cue format switch wears the same chip
+ * but none of this: it is no float, it sits in the message list inside the box, where a left
+ * margin would only indent it away from the text it belongs to.
  */
 #tlEditor-feedback #tlEditor-feedback-rows,
 .mdb-tlEditor-apiCalls,
@@ -267,10 +269,13 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     margin-left: .8em;
 }
 
-/* the same "clickable" hint the switch gives, in place of global.css's grey-to-black */
+/* Hover only on the two that DO something - the button and the switch. The rows count and the
+ * call counter are read, not clicked, and a chip that lights up under the pointer without
+ * being clickable is a promise it cannot keep. Grey to near-black, the button's own hint. */
 #tlEditor-feedback button#switchCueFormat:hover,
-#tlEditor-feedback button#switchCueFormat:active {
-    color: #f60;
+#tlEditor-feedback button#switchCueFormat:active,
+.mdb-tlEditor-liveUpdates:hover {
+    color: #111;
 }
 
 .mdb-tlEditor-apiCalls {
@@ -294,9 +299,6 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     display: inline-flex;
     align-items: center;
     gap: .4em;
-}
-.mdb-tlEditor-liveUpdates:hover {
-    color: #f60;
 }
 .mdb-tlEditor-switch {
     position: relative;
