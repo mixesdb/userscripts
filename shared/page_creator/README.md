@@ -155,8 +155,11 @@ says where the tracklist was read from. What is in the box at the moment **Creat
 what goes onto the page, so corrections stick. The box is the shared
 [Tracklist box](../tracklist_editor/), so it behaves like every other one: correct it and leave
 it, and it greys out for a moment while the Tracklist Editor re-formats it and re-answers its
-feedback. The `[[Category:Tracklist: …]]` of the new page follows what the Tracklist Editor API
-says about the box's final content – already while it is on screen, not only at the click.
+feedback. Clicking **Create** straight out of the box works the same – the click runs that
+update a final time before the edit form opens, so the page carries the formatted tracklist even
+when the box never got its moment. The `[[Category:Tracklist: …]]` of the new page follows what
+the Tracklist Editor API says about the box's final content – already while it is on screen, not
+only at the click.
 
 Mixes that are already on MixesDB get the headline only – the tracklist is formatted on the first
 click, not before, so no request is wasted.

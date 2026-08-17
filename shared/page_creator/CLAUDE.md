@@ -111,12 +111,17 @@ Settled, so it does not get re-litigated:
   click-time validation would (so that validation then finds the text unchanged and asks
   nothing) and re-renders the reasoning panel - only its section 4 comes out different, and
   no name lookup fires, because the tracklist takes no part in the title.
-- **On the way into the click the API is asked once more if the box changed since, and only
-  its FEEDBACK is used** - the colour and the `[[Category:Tracklist: …]]`. THIS path never
-  touches the text: re-formatting what someone just typed, under their hands, at the moment
-  they click away, is the worst possible time for it. The blur update may rewrite the text
-  precisely because leaving the box says the typing is done - and it drops its answer
-  unapplied when the box was refocused or changed while the API was thinking.
+- **On the way into the click the API is asked once more if the box changed since, and its
+  TEXT is applied like on blur** (since 2026-08-17, second round: "Create" clicked straight
+  out of the textarea fires BEFORE the box's blur, so the blur update alone left such a page
+  with the raw typed text). The click-time ask stays synchronous - the navigation reads the
+  href the moment it returns - applies the answer through the shared `tlBoxApplyResult()`
+  (which bumps the box's request sequence, so a blur answer still in flight drops itself),
+  flashes the box's updating state briefly after the fact, and hands the bookkeeping to
+  `mdbPageCreator_tracklistBoxUpdated()`. Rewriting the text at the click is as safe as on
+  blur, for the same reason: clicking "Create" says the typing is done. The blur update still
+  drops its own answer unapplied when the box was refocused or changed while the API was
+  thinking.
 - **Only the API's own `"complete"` earns `Tracklist: complete`.** A warning, a hint or its
   `"incomplete"` all file as incomplete, which is the value that costs nothing if it is wrong.
 - **`<list>` or not is read off the API's answer, not off the status.** MixesDB writes a
