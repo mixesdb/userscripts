@@ -104,10 +104,19 @@ Settled, so it does not get re-litigated:
 - **The box wins over the detection.** What is in it at the moment "Create" is clicked is what
   goes onto the page - it is there to be corrected. Hiding it does not drop it from the page:
   that is a display state, not a decision about the tracklist.
-- **The API is asked once more on the way into the click, and only its FEEDBACK is used** - the
-  colour and the `[[Category:Tracklist: …]]`. The text stays the editor's: re-formatting what
-  someone just typed, under their hands, at the moment they click away, is the worst possible
-  time for it.
+- **An edited box re-formats itself on blur, and the click-time ask is the safety net.** The
+  shared blur update (`tlBoxBlurUpdate` in `../tracklist_editor/funcs.js`, since 2026-08-17)
+  sends an edited box through the API when the editor leaves it, writes the answer back and
+  hands the verdict to `mdbPageCreator_tracklistBoxUpdated()`, which keeps it exactly as the
+  click-time validation would (so that validation then finds the text unchanged and asks
+  nothing) and re-renders the reasoning panel - only its section 4 comes out different, and
+  no name lookup fires, because the tracklist takes no part in the title.
+- **On the way into the click the API is asked once more if the box changed since, and only
+  its FEEDBACK is used** - the colour and the `[[Category:Tracklist: …]]`. THIS path never
+  touches the text: re-formatting what someone just typed, under their hands, at the moment
+  they click away, is the worst possible time for it. The blur update may rewrite the text
+  precisely because leaving the box says the typing is done - and it drops its answer
+  unapplied when the box was refocused or changed while the API was thinking.
 - **Only the API's own `"complete"` earns `Tracklist: complete`.** A warning, a hint or its
   `"incomplete"` all file as incomplete, which is the value that costs nothing if it is wrong.
 - **`<list>` or not is read off the API's answer, not off the status.** MixesDB writes a

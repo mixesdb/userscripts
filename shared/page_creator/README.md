@@ -92,7 +92,10 @@ learning" line can name the step that went wrong:
    an unknown one is flagged as possibly new or misspelled
 
 The panel follows the title field: correct the title above and, after a short pause, the
-categories are re-read from it and any new names are looked up on MixesDB.
+categories are re-read from it and any new names are looked up on MixesDB. It follows the
+tracklist box too: leave the box after an edit and the `Tracklist:` line in section 4 answers
+the fresh verdict – nothing else in the panel changes, since the tracklist takes no part in the
+title.
 
 Opened while MixesDB is still being asked, the panel holds its space with grey pulsing
 placeholder rows and shows the real content in one step once the answers are in.
@@ -149,8 +152,11 @@ dash of a line is the separator; anything further right belongs to the title and
 
 The box is behind a **Tracklist** headline that toggles it, and a bracket behind that headline
 says where the tracklist was read from. What is in the box at the moment **Create** is clicked is
-what goes onto the page, so corrections stick. The `[[Category:Tracklist: …]]` of the new page
-follows what the Tracklist Editor API says about the box's final content.
+what goes onto the page, so corrections stick. The box is the shared
+[Tracklist box](../tracklist_editor/), so it behaves like every other one: correct it and leave
+it, and it greys out for a moment while the Tracklist Editor re-formats it and re-answers its
+feedback. The `[[Category:Tracklist: …]]` of the new page follows what the Tracklist Editor API
+says about the box's final content – already while it is on screen, not only at the click.
 
 Mixes that are already on MixesDB get the headline only – the tracklist is formatted on the first
 click, not before, so no request is wasted.

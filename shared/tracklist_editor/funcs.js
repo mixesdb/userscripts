@@ -3,8 +3,10 @@
  * Tracklist Editor (TLE)
  *
  * Everything between a scraped tracklist and MixesDB wiki syntax: the Tracklist Editor API
- * (apiTracklist()), the editable #tlEditor box that shows its answer (fixTLbox()) and the
- * array helpers the site scripts build a tracklist with before handing it over.
+ * (apiTracklist() / apiTracklistAsync()), the editable #tlEditor box that shows its answer
+ * (fixTLbox(), which also wires the box up to grow while typing and to re-ask the API when
+ * an edited box loses focus - see tlBoxBindLive()) and the array helpers the site scripts
+ * build a tracklist with before handing it over.
  *
  * Split out of global.js, which still holds everything these rely on (log(), loadRawCss(),
  * apiUrlTools, the duration converters), so global.js has to be @require'd FIRST.
@@ -72,6 +74,12 @@ function fixTLbox( feedback, target, focus=true ) {
         // other class we add. (TheLotRadio/script.user.js still strips the old name off; its
         // global.js is a cached older one, so leave that alone until it is bumped.)
         tl.show().addClass("mdb-tlBox-fixed");
+
+        // what the API last saw of this box - the blur update compares against it, so a blur
+        // without an edit stays quiet (no request, no grey flash)
+        tl.data( "mdbTlboxKnown", tl.val() );
+        tlBoxBindLive( tl );
+
         if( focus ) tl.select();
     });
 
@@ -95,6 +103,125 @@ function fixTLbox( feedback, target, focus=true ) {
         tl.after( feedback.text );
     }
     loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/tracklistEditor_copy.css" );
+}
+
+/*
+ * The box keeps itself in shape while it is edited - on every site, because the wiring rides
+ * along in fixTLbox(), which every box that shows API feedback passes through:
+ *
+ * - while typing, the rows attribute follows the line count, so the box grows and shrinks
+ *   with its text instead of scrolling inside itself
+ * - when an EDITED box loses focus, the text goes through the Tracklist Editor API once more:
+ *   the box greys out (mdb-tlBox-updating, styled in tracklistEditor_copy.css), and the answer
+ *   replaces the text and re-colours the feedback - exactly as if the tracklist had arrived
+ *   that way. The grey state holds at least tlBoxUpdateMinMs, however fast the API answers:
+ *   a correction that lands as an invisible flash looks like it never happened.
+ *
+ * The marker attribute (not a jQuery .data flag) keeps a box from being bound twice: two of
+ * our userscripts can share one page (TrackId.net + Tracklist Merger on trackid.net), and a
+ * DOM attribute is the one flag both of them can see.
+ */
+var tlBoxUpdateMinMs = 400;
+
+// tlBoxBindLive
+function tlBoxBindLive( tl ) {
+    if( tl.attr( "data-mdb-tlbox-live" ) ) return;
+    tl.attr( "data-mdb-tlbox-live", "1" );
+
+    tl.on( "input", function() {
+        tl.attr( "rows", String( tl.val() ).split( "\n" ).length );
+    });
+
+    tl.on( "blur", function() {
+        tlBoxBlurUpdate( tl );
+    });
+}
+
+// tlBoxBlurUpdate
+function tlBoxBlurUpdate( tl ) {
+    var sent = tl.val();
+
+    // unchanged since the API last saw it - a blur that merely moves the focus must not
+    // flash the box grey, let alone cost a request
+    if( sent === tl.data( "mdbTlboxKnown" ) ) return;
+
+    // an emptied box is not sent (the API answers an empty body with no JSON) - but the
+    // emptiness is remembered, so leaving the empty box again stays quiet too
+    if( $.trim( sent ) === "" ) {
+        tl.data( "mdbTlboxKnown", sent );
+        return;
+    }
+
+    log( "tlBoxBlurUpdate: the box was edited - asking the Tracklist Editor API." );
+
+    // Numbered per box: with two quick edit-and-leave rounds the first answer can come home
+    // while the second is still out, and it must neither apply nor end the grey state the
+    // second round owns.
+    var seq = ( tl.data( "mdbTlboxSeq" ) || 0 ) + 1,
+        startedAt = Date.now();
+
+    tl.data( "mdbTlboxSeq", seq );
+    tl.addClass( "mdb-tlBox-updating" );
+
+    // "standard" whatever type the site first formatted with: what sits IN a box is wiki
+    // syntax already, and "standard" is the type that validates that - the same call the
+    // page creator makes about this box on the way into its "Create" click.
+    apiTracklistAsync( sent, "standard", "", function( res ) {
+        var wait = Math.max( 0, tlBoxUpdateMinMs - ( Date.now() - startedAt ) );
+
+        setTimeout(function() {
+            // a newer request is out - leave the grey state to it and drop this answer
+            if( tl.data( "mdbTlboxSeq" ) !== seq ) {
+                log( "tlBoxBlurUpdate: a newer update is running - dropping this answer." );
+                return;
+            }
+
+            tl.removeClass( "mdb-tlBox-updating" );
+
+            // the box left the page while the API was thinking (SPA navigation removes it) -
+            // writing into the detached node would only leak the previous page's verdict into
+            // the next one's page creator state
+            if( !$.contains( document.documentElement, tl.get( 0 ) ) ) {
+                log( "tlBoxBlurUpdate: the box is no longer on the page - dropping the answer." );
+                return;
+            }
+
+            // the box no longer shows what was sent (the reader went back in and typed, or
+            // another script rewrote it) - this answer is about a text that is gone. The next
+            // blur asks again.
+            if( tl.val() !== sent ) {
+                log( "tlBoxBlurUpdate: the box changed while the API was thinking - dropping the answer." );
+                return;
+            }
+
+            // the reader is back in the box - never rewrite under the caret; mdbTlboxKnown
+            // still holds the old text, so the next blur re-asks
+            if( tl.is( ":focus" ) ) {
+                log( "tlBoxBlurUpdate: the box is focused again - dropping the answer." );
+                return;
+            }
+
+            if( !res.text ) {
+                log( "tlBoxBlurUpdate: no usable answer - keeping the text as typed, the next blur retries." );
+                return;
+            }
+
+            tl.val( res.text );
+
+            // re-sizes, re-colours, replaces the printed feedback - and refreshes
+            // mdbTlboxKnown to the text as the API returned it
+            fixTLbox( res.feedback, tl.get( 0 ), false );
+
+            log( "tlBoxBlurUpdate: box updated (status " + ( res.feedback && res.feedback.status ? res.feedback.status : "(none)" ) + ")." );
+
+            // the page creator reads this box for the page its "Create" link starts - hand it
+            // the fresh verdict so the "Tracklist:" category and the reasoning panel follow.
+            // typeof-guarded: most site scripts do not load page_creator.js at all.
+            if( typeof mdbPageCreator_tracklistBoxUpdated === "function" ) {
+                mdbPageCreator_tracklistBoxUpdated( tl, res );
+            }
+        }, wait );
+    });
 }
 
 // apiTracklist
@@ -123,6 +250,36 @@ function apiTracklist( tl, type, genType ) {
         log( "apiTracklist: the API did not answer with JSON (status " + jqXHR.status + "): " + e );
         return { text: "", rows: 0, feedback: null };
     }
+}
+
+// apiTracklistAsync
+// The same request without freezing the page while the API thinks. apiTracklist() blocks on
+// purpose - its callers need the answer before their next line - but the blur update above
+// runs when the reader has already moved on to something else on the page, where a locked-up
+// tab (and a grey animation that never paints because the thread is busy) is not an option.
+// done() always gets a res with a .text to check, exactly like apiTracklist() returns.
+function apiTracklistAsync( tl, type, genType, done ) {
+    var data = { query: "tracklistEditor",
+                 type: type,
+                 genType: genType,
+                 text: tl
+               };
+
+    $.ajax({
+        type: "POST",
+        url: apiUrlTools,
+        data: data
+    }).done(function( response, textStatus, jqXHR ) {
+        try {
+            done( JSON.parse( jqXHR.responseText ) );
+        } catch( e ) {
+            log( "apiTracklistAsync: the API did not answer with JSON (status " + jqXHR.status + "): " + e );
+            done( { text: "", rows: 0, feedback: null } );
+        }
+    }).fail(function( jqXHR ) {
+        log( "apiTracklistAsync: the request failed (status " + jqXHR.status + ")." );
+        done( { text: "", rows: 0, feedback: null } );
+    });
 }
 
 /*
