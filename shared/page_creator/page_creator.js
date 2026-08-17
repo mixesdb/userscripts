@@ -1299,32 +1299,19 @@ function mdbPageCreator_reasoningLookupColumn( heading ) {
 }
 
 // mdbPageCreator_reasoningLookupRow
-// One asked name in ONE candidate column: the chip, and what the wiki offers for this role -
-// the matches of the column's kind ("artist" answers left of the divide, everything else
-// right), a "–" when every answer is of the other kind, or the request's status note when
-// there is no answer at all. The overruled line concerns the words, so it renders wherever
-// the chip does.
-function mdbPageCreator_reasoningLookupRow( column, entry, matches, kind, isCat, overruledBy ) {
+// One asked name in its ONE candidate column: the chip, and EVERYTHING the wiki says about
+// the name, whatever the type - the badge tells an artist answer from a podcast one, which
+// is how "asked as the series, known as an artist too" stays visible without the chip
+// showing up twice. No answer at all shows the request's status note instead.
+function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overruledBy ) {
     var result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
-        added = 0,
         m;
 
     for( m = 0; m < matches.length; m++ ) {
-        if( ( String( matches[m].type || "" ) === "artist" ) === ( kind === "artist" ) ) {
-            result.append( mdbPageCreator_reasoningMatch( entry.name, matches, m, !!overruledBy ) );
-            added++;
-        }
+        result.append( mdbPageCreator_reasoningMatch( entry.name, matches, m, !!overruledBy ) );
     }
 
-    if( matches.length && !added ) {
-        result.append(
-            $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-none" )
-                .attr( "title", kind === "artist"
-                    ? "no category reads this name as an artist"
-                    : "no category reads this name as an entity (podcast, show, venue, event, ...)" )
-                .text( "–" )
-        );
-    } else if( !matches.length ) {
+    if( !matches.length ) {
         if( entry.pending ) {
             result.append( mdbPageCreator_reasoningNote( "looking it up …", "info" ) );
         } else if( entry.skipped ) {
