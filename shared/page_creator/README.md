@@ -52,15 +52,17 @@ learning" line can name the step that went wrong:
 1. **Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
    a separator, at a bracket, and at the `by` in front of a numbered series (`Guestroom 779 by
    Sascha Sibler` is two chunks) – the same units the lookups are sent for. What the parse
-   removes outright is shown struck through on a `Removed:` line instead – a bracket crediting
+   removes outright is shown in red on a `Removed:` line instead – a bracket crediting
    the artist's labels (`Tooker (SONARA / Crosstown Rebels)`) or a list of places saying where
    the artist is from – with the reason spelled out behind it; those names are never sent to
    the lookup
-2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, label credits,
-   the date that was read out, joiners rewritten, chunks a mix page title does not carry –
-   and the channel → show mappings, whose work is otherwise invisible: a channel on the
-   known-shows list is shown as `Resident Advisor → RA Podcast`, and a show the channel and
-   the title name together as `"DJ MIX" on the channel Dance TV → Dance TV DJ Mix`
+2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, the date that
+   was read out, joiners rewritten, chunks a mix page title does not carry (what the
+   `Removed:` line of section 1 already names is not repeated here) – and the channel →
+   show mappings, whose work is otherwise invisible, drawn as chips with the channel in blue
+   and the show in green: a channel on the known-shows list as `Resident Advisor → RA
+   Podcast`, and a show the channel and the title name together as `"DJ MIX" on the channel
+   Dance TV → Dance TV DJ Mix`
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
    category in the wiki's own spelling, its type (artist, podcast, venue, …) and how many
    mixes it holds – or that no category of that name exists

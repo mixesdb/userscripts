@@ -1005,16 +1005,25 @@ function mdbPageCreator_queueReasoningUpdate() {
         var wrapper = $("#mdb-pageCreator"),
             title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
             read = mdbTitle_titleCategories( title ),
-            names = read.artists.slice();
+            names = read.artists.slice(),
+            // The category section annotates the entity CATEGORY (episode number stripped),
+            // and that spelling is the only one worth asking about: the entity WITH its
+            // number ("HATE Podcast 496") is never a category name and could only answer
+            // empty - the same reduction the first-round candidates make
+            // (mdbTitle_categoryCandidates).
+            entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity ),
+            i;
 
-        if( read.entity ) names.push( read.entity );
+        if( read.entity ) {
+            names.push( entityCategory && entityCategory !== "Promo Mix" ? entityCategory : read.entity );
+        }
 
-        // the category section annotates the entity CATEGORY (episode number stripped), so
-        // that spelling has to be asked about too - "HATE Podcast", not just "HATE Podcast 496"
-        var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
-
-        if( entityCategory && entityCategory !== "Promo Mix" && entityCategory !== read.entity ) {
-            names.push( entityCategory );
+        // a name the conversion maps curate for this channel is already the wiki's own
+        // spelling - the lookup has nothing to add, the same skip the first round makes
+        for( i = names.length - 1; i >= 0; i-- ) {
+            if( mdbTitle_isCuratedName( mdbTitle_spaced( mdbPageCreator_sourceChannel ), names[i] ) ) {
+                names.splice( i, 1 );
+            }
         }
 
         logVar( "mdbPageCreator_queueReasoningUpdate: looking up", names.join( " | " ) || "(nothing)" );
@@ -1148,6 +1157,32 @@ function mdbPageCreator_reasoningDetail( detail ) {
     }
 
     return span;
+}
+
+// mdbPageCreator_reasoningStepDetail
+// The detail of one cleanup step. A channel -> show mapping (step.mapping, see
+// mdbTitle_traceStep) renders as chips - the channel in the blue of the chunk section's
+// channel chip, the show it became in green - with the title's own words quoted in front
+// when they took part ("DJ MIX" on the channel [Dance TV] -> [Dance TV DJ Mix]). Everything
+// else is the plain before -> after text.
+function mdbPageCreator_reasoningStepDetail( step ) {
+    var mapping = step.mapping;
+
+    if( !mapping || !mapping.from || !mapping.to ) {
+        return mdbPageCreator_reasoningDetail( step.detail );
+    }
+
+    var span = $("<span>").addClass( "mdb-pageCreator-reasoning-step-detail" );
+
+    if( mapping.words ) {
+        span.append( document.createTextNode( "\"" + mapping.words + "\" on the channel " ) );
+    }
+
+    return span.append(
+        $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-channel" ).text( mapping.from ),
+        $("<span>").addClass( "mdb-pageCreator-reasoning-arrow" ).text( "→" ),
+        $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-kept" ).text( mapping.to )
+    );
 }
 
 // mdbPageCreator_reasoningCategoryRow
@@ -1358,7 +1393,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 steps.append(
                     $("<div>").addClass( "mdb-pageCreator-reasoning-step" ).append(
                         $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( trace.steps[i].label ),
-                        mdbPageCreator_reasoningDetail( trace.steps[i].detail )
+                        mdbPageCreator_reasoningStepDetail( trace.steps[i] )
                     )
                 );
             }

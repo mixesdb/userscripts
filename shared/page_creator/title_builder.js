@@ -1761,18 +1761,25 @@ function mdbTitle_canonicalArtists( known, group ) {
 // description is the player page's description, when the site has one - the split's label
 // test reads the labels the tracklist credits out of it, so a credited label in a bracket is
 // no candidate either.
+// A name the conversion maps curate for this channel is NO candidate (mdbTitle_isCuratedName):
+// it is hand-written in the wiki's own spelling, so the lookup has nothing left to answer.
 function mdbTitle_categoryCandidates( playerTitle, username, description ) {
     var names = [],
         bits = mdbTitle_titleChunks( playerTitle, username, description ).chunks,
-        channelNames = mdbTitle_channelNames( mdbTitle_spaced( username ) ),
+        spacedUser = mdbTitle_spaced( username ),
+        channelNames = mdbTitle_channelNames( spacedUser ),
         i;
 
-    if( username ) names.push( mdbTitle_spaced( username ) );
+    function take( name ) {
+        if( name && !mdbTitle_isCuratedName( spacedUser, name ) ) names.push( name );
+    }
+
+    take( spacedUser );
 
     // A channel naming several names is asked about each of them: which one gets used is
     // decided off the title, and the wiki's answer is worth having for whichever it is.
     for( i = 0; channelNames.length > 1 && i < channelNames.length; i++ ) {
-        names.push( channelNames[i] );
+        take( channelNames[i] );
     }
 
     for( i = 0; i < bits.length; i++ ) {
@@ -1780,19 +1787,26 @@ function mdbTitle_categoryCandidates( playerTitle, username, description ) {
 
         // a page title that long is not a name, and asking wastes the request
         if( bit && bit.length <= 80 ) {
-            names.push( bit );
-
-            // the same bit with a trailing episode number or year taken off, because that is
-            // how a series name stands in a title: "HATE Podcast 496" is filed as
-            // "HATE Podcast", "Trommel.251" as "Trommel", "Landjuweel Festival 2026" as
-            // "Landjuweel Festival". From the RIGHT only - with 57,000+ artist categories
-            // nearly every common word is one, so shortening a name from the left invents
-            // matches ("MOLTO IN THE MIX" must not find the show "In The Mix").
+            // a trailing episode number or year taken off, because that is how a series name
+            // stands in a title: "HATE Podcast 496" is filed as "HATE Podcast", "Trommel.251"
+            // as "Trommel", "Landjuweel Festival 2026" as "Landjuweel Festival". From the
+            // RIGHT only - with 57,000+ artist categories nearly every common word is one, so
+            // shortening a name from the left invents matches ("MOLTO IN THE MIX" must not
+            // find the show "In The Mix").
             var stripped = bit
                 .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?\s*\d{1,4}\s*$/i, "" )
                 .trim();
 
-            if( stripped && stripped !== bit && stripped.length >= 3 ) names.push( stripped );
+            // Only the REDUCED form is asked: a category name never carries the episode
+            // number, so the full "DJ Mix #677" could only answer empty - and finding the
+            // episode family behind "DJ Mix" is the row's planned prefix round
+            // (row_enrichment.md), never this exact-match lookup. Accepted price: an artist
+            // whose name ends in digits ("Asa 808") loses its exact match here.
+            if( stripped && stripped !== bit && stripped.length >= 3 ) {
+                take( stripped );
+            } else {
+                take( bit );
+            }
         }
     }
 
@@ -1807,20 +1821,24 @@ function mdbTitle_lookupCategories( names, callback ) {
     logFunc( "mdbTitle_lookupCategories" );
 
     var wanted = [],
-        i, key;
+        i, key, name;
 
     for( i = 0; i < names.length; i++ ) {
-        key = mdbTitle_normalizeCompare( names[i] );
+        // "#" is illegal in a wiki title, so a name carrying one ("DJ Mix #677") could only
+        // ever answer empty - it is asked with the "#" written out. The cache key ignores
+        // punctuation anyway, so the answer lands where every reader looks it up.
+        name = String( names[i] || "" ).replace( /#/g, " " ).replace( /\s+/g, " " ).trim();
+        key = mdbTitle_normalizeCompare( name );
 
         if( !key ) continue;
 
         // the report panel's record of every name asked about on this page - cached ones too,
         // they were asked and their answer is worth showing
-        mdbTitle_lookupLogEntry( names[i] );
+        mdbTitle_lookupLogEntry( name );
 
         if( Object.prototype.hasOwnProperty.call( mdbTitle_categoryCache, key ) ) continue;
 
-        wanted.push( names[i] );
+        wanted.push( name );
     }
 
     // the module takes 10 names per request. The list is in priority order - the channel
@@ -2479,6 +2497,52 @@ function mdbTitle_channelSeriesConversion( text, username ) {
     return null;
 }
 
+// mdbTitle_isCuratedName
+// Whether this name is one the conversion maps (title_definitions.js) already curate for this
+// channel: the channel name itself when it is listed, the show mdbTitleUsernameConversions
+// maps it to, or a series out of mdbTitleChannelSeriesConversions. A curated name is
+// hand-written in the wiki's own spelling and the parser never overrides it, so the category
+// lookup has nothing left to answer - the candidate builders skip it rather than spend one of
+// the request's 10 name slots on it. Scoped to the channel on purpose: the maps are patch
+// lists that keep growing, and a global skip would swallow an unrelated artist who happens to
+// share a name with someone else's entry ("Frenzy" the mapped channel vs. an artist "Frenzy"
+// in another channel's title).
+function mdbTitle_isCuratedName( username, name ) {
+    var cmp = mdbTitle_normalizeCompare( name );
+
+    if( !cmp || !username ) return false;
+
+    var curated = [],
+        key = mdbTitle_usernameConversionKey( username ),
+        seriesMap = ( typeof mdbTitleChannelSeriesConversions !== "undefined" && mdbTitleChannelSeriesConversions ) ? mdbTitleChannelSeriesConversions : {},
+        k, words, i;
+
+    if( key ) {
+        curated.push( key );
+        if( mdbTitleUsernameConversions[key] ) curated.push( mdbTitleUsernameConversions[key] );
+    }
+
+    for( k in seriesMap ) {
+        if( !Object.prototype.hasOwnProperty.call( seriesMap, k ) || k.toLowerCase() !== String( username ).toLowerCase() ) continue;
+
+        curated.push( k );
+
+        for( words in seriesMap[k] ) {
+            if( Object.prototype.hasOwnProperty.call( seriesMap[k], words ) && seriesMap[k][words] ) {
+                curated.push( seriesMap[k][words] );
+            }
+        }
+
+        break;
+    }
+
+    for( i = 0; i < curated.length; i++ ) {
+        if( mdbTitle_normalizeCompare( curated[i] ) === cmp ) return true;
+    }
+
+    return false;
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * The build trace
@@ -2500,13 +2564,20 @@ var mdbTitle_trace = null;
 // One thing the cleanup did, named for a reader: label says what, detail quotes it (usually
 // the same "before -> after" string the logVar line next to it builds). Whitespace collapsed,
 // so a removal that left a double blank behind does not show one.
-function mdbTitle_traceStep( label, detail ) {
+// mapping is optional, for the channel -> show steps: { from, to, words? } - the panel
+// renders it as chips (channel blue, show green) instead of the plain detail, which stays
+// alongside as what a stale cached page_creator.js falls back to.
+function mdbTitle_traceStep( label, detail, mapping ) {
     if( !mdbTitle_trace ) return;
 
-    mdbTitle_trace.steps.push( {
+    var step = {
         label: label,
         detail: String( detail || "" ).replace( /\s+/g, " " ).trim()
-    } );
+    };
+
+    if( mapping ) step.mapping = mapping;
+
+    mdbTitle_trace.steps.push( step );
 }
 
 // mdbTitle_traceCleaned
@@ -2675,7 +2746,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( labelBrackets.dropped.length ) {
             logVar( "buildMixesdbTitle: label credit dropped", labelBrackets.dropped.join( " | " ) );
-            mdbTitle_traceStep( "Label credit removed", labelBrackets.dropped.join( " | " ) );
+            // no trace step: the chunk section's "Removed:" line already names these (the
+            // shared split runs the same drop on the same text), and twice is noise
             rest = labelBrackets.text;
         }
 
@@ -2738,9 +2810,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // The mapping changes nothing in the TITLE, so without a step the panel could not
         // answer "why did Resident Advisor become RA Podcast?" - the one curated rule whose
         // work is otherwise invisible. See mdbTitleUsernameConversions in title_definitions.js.
+        // The mapping field renders as chips; an entry mapped to "" ("no show") stays plain
+        // text - there is no show to paint green.
         if( isMappedChannel ) {
             mdbTitle_traceStep( "Channel is on the known-shows list",
-                username + " -> " + ( show || "(no show)" ) );
+                username + " -> " + ( show || "(no show)" ),
+                show ? { from: username, to: show } : null );
         }
 
         // 2a) the channel and a word in the title name the show TOGETHER: "DJ MIX #679" on the
@@ -2754,7 +2829,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             logVar( "buildMixesdbTitle: channel and title words name the show together",
                     seriesConversion.words + " -> " + seriesConversion.entity );
             mdbTitle_traceStep( "Channel and title words name the show together",
-                "\"" + seriesConversion.found + "\" on the channel " + username + " -> " + seriesConversion.entity );
+                "\"" + seriesConversion.found + "\" on the channel " + username + " -> " + seriesConversion.entity,
+                { from: username, to: seriesConversion.entity, words: seriesConversion.found } );
             rest = seriesConversion.text;
             show = seriesConversion.entity;
             isMappedChannel = true;
@@ -2973,7 +3049,32 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             if( locations.dropped.length ) {
                 logVar( "buildMixesdbTitle: location chunks dropped", locations.dropped.join( " | " ) );
                 conf.drop( 3, "\"" + locations.dropped.join( "\", \"" ) + "\" was left out - it says where the artist is from, which a mix page title does not carry" );
-                mdbTitle_traceStep( "Location chunk dropped", locations.dropped.join( " | " ) );
+
+                // The chunk section's "Removed:" line already names what the shared split
+                // took out - a step here would say it twice. Only drift is worth a line: a
+                // chunk the split KEPT (its live-title reading is an approximation of this
+                // guard) but the parse drops after all.
+                var locationsNotShown = [],
+                    li, lr, seen;
+
+                for( li = 0; li < locations.dropped.length; li++ ) {
+                    seen = false;
+
+                    for( lr = 0; lr < chunkSplit.removed.length; lr++ ) {
+                        if( chunkSplit.removed[lr].reason === "location" &&
+                            mdbTitle_normalizeCompare( chunkSplit.removed[lr].text ) === mdbTitle_normalizeCompare( locations.dropped[li] ) ) {
+                            seen = true;
+                            break;
+                        }
+                    }
+
+                    if( !seen ) locationsNotShown.push( locations.dropped[li] );
+                }
+
+                if( locationsNotShown.length ) {
+                    mdbTitle_traceStep( "Location chunk dropped", locationsNotShown.join( " | " ) );
+                }
+
                 rest = locations.text;
                 mdbTitle_traceCleaned( rest );
             }

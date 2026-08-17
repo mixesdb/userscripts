@@ -213,13 +213,30 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   tracklist-credited labels, so the split takes it as its third parameter) and a place list
   saying where the artist is from (rule 3h, mirrored with the same live-title guard). The
   split returns them under `removed`, each `{ text, reason: "label" | "location" }`, and the
-  panel shows them struck through with the reason - asking the wiki about a record label
-  wastes the request.
+  panel shows them as red chips on the chunk section's "Removed:" line with the reason -
+  the cleanup section does NOT repeat them - asking the wiki about a record label wastes
+  the request.
 - **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
   genuine Show with 779 mixes, and wreck the title. (Verified the server does not left-match
-  either.)
+  either.) **Only the reduced form is asked** - `DJ Mix #677` asks as `DJ Mix` alone, and the
+  reasoning panel's re-lookup asks the entity category, not the numbered entity: a category
+  name never carries the episode number, so the full form could only answer empty, and the
+  episode family behind the reduced name is the row's planned prefix round
+  (`row_enrichment.md`), never this exact-match lookup. Accepted price: an artist whose name
+  ends in digits ("Asa 808") loses its exact match.
+- **A name the conversion maps curate for the channel is no candidate** - the channel name
+  itself, the show `mdbTitleUsernameConversions` maps it to, a series out of
+  `mdbTitleChannelSeriesConversions` ("Dance TV", "Dance TV DJ Mix"): curated means
+  hand-written in the wiki's own spelling and never overridden, so the lookup has nothing
+  left to answer. Scoped to the channel (`mdbTitle_isCuratedName`), never a global skip - an
+  unrelated artist sharing a name with someone's entry must still be asked about. The generic
+  words themselves ("DJ Mix") stay candidates.
+- **"#" is never sent** - `mdbTitle_lookupCategories` writes it out (`X #12` asks as `X 12`):
+  the character is illegal in a wiki title, so a name carrying one can only answer empty.
+  Sits in the one funnel both lookup rounds pass through, so an edited title's names are
+  covered too.
 - **All matches per name are kept**, because one name is legitimately several things:
   `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
   a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never
