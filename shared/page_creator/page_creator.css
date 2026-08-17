@@ -586,6 +586,13 @@
     color: #9a9a9a;
 }
 
+/* Why this name got this slot - the answer the section leads with, so it takes the note's
+ * first line for itself instead of sitting between the lookup chips. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-why {
+    flex: 0 0 100%;
+    color: #c8c8c8;
+}
+
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-empty {
     color: #8b8b8b;
     font-style: italic;

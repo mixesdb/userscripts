@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.28
+// @version      2026.08.18.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,10 +13,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_28
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_36
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_29
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_38
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_41
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_42
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 127,
+var cacheVersion = 128,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1911,6 +1911,30 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.18.2
+ * Section 4 of the reasoning panel now says WHY each name got its slot, in one line above the
+ * lookup answer (title_builder.js v_38, page_creator.js v_42, page_creator.css) - "picked as
+ * the artist: the channel's own name stands in the title - the uploader and the title say the
+ * same thing". From a SoundCloud report where a festival the wiki has never heard of became
+ * the entity while the channel, a podcast with 425 mixes, sat unused and nothing on screen
+ * said what decided it. The sentence is written by the branch that decided
+ * (mdbTitle_trace.picks, filled at mdbTitle_result's ten call sites), never re-derived in the
+ * panel.
+ * Also fixed while there: section 3 painted EVERY chip green. The role argument added in
+ * .28 shifted the row renderer's isCat and overruledBy a slot along, so "artist" arrived as
+ * "did this become a category".
+ *
+ * 2026.08.18.1
+ * The reasoning panel's per-answer percentage (title_builder.js v_38) no longer leans on the
+ * mix count: a category with 500 mixes can be the wrong reading of the words just as easily
+ * as an empty one, so the count only says how well the wiki knows the name. The ladder is
+ * -10 for a category holding one mix or none and -5 for two to four; the -12 and -5 brackets
+ * below 10 and 25 mixes are gone. What a name IS (spelling, several readings at once, a
+ * channel rule saying otherwise, a single word the wiki barely knows) still decides the rest.
+ * Also caught up with the two shared files this script had been left behind on
+ * (title_definitions.js v_29, title_builder.js - the .27/.28 rounds bumped SoundCloud only,
+ * so a TrackId.net install kept serving the older cached copies).
  *
  * 2026.08.17.28
  * Second round of the same report, via the shared page creator (title_definitions.js v_28,

@@ -370,13 +370,31 @@ Settled about what it shows:
   both are clamped to 10-95 and coloured by `mdbPageCreator_confidenceBand()`. A name the wiki
   knows as several things ("fabric" the club, "Fabric" the artist) has one number per reading -
   that is the whole point, one number for the row could only be about one of them. Nothing in
-  the parse reads it: it weighs the wiki's answer (is the category THIS name, does the mix count
-  vouch for it, is the name specific enough, does a curated channel rule overrule it), never
-  whether the parse picked the right chunk - "Leon" with 69 mixes scores 95% and is still the
-  wrong reading of "Leon Row x Shimon". A row with no answer at all (unknown, pending, failed,
+  the parse reads it: it weighs the wiki's answer (is the category THIS name, is the name
+  specific enough, does a curated channel rule overrule it), never whether the parse picked the
+  right chunk - "Leon" with 69 mixes scores 95% and is still the wrong reading of
+  "Leon Row x Shimon". **The mix count is deliberately worth almost nothing** (-10 for a
+  category holding one mix or none, -5 for two to four, nothing above): it says how well the
+  wiki knows the name, not whether the name is the right reading of these words - a category
+  with 500 mixes can be the wrong word just as easily as an empty one. It used to cost up to
+  35, which put every thinly-filled but perfectly correct artist in the yellow band. A row with no answer at all (unknown, pending, failed,
   over the request limit) gets no number - there is nothing to score. The reasons are shown on
   hover under "What lowered it", so the rule the confidence reasons live by holds here too: each
   one names something the reporter can go and check.
+- **Section 4 leads with WHY the name got the slot, and the deciding branch writes that
+  sentence** - `mdbTitle_trace.picks` (`{ artist, entity }`, one sentence per ROLE), passed as
+  the last argument of `mdbTitle_result()` by each of its ten call sites and rendered above the
+  lookup answer by `mdbPageCreator_reasoningCategoryRow()`. Built from the MONUMENT report's
+  second round: the panel filed `S.U.N Festival`, a name the wiki has never heard of, as the
+  entity while `MONUMENT` (podcast, 425 mixes) went unused, and every line on screen was either
+  "no category of this name yet" or section 3's answer repeated - none of them said that the
+  event word and the " @ " are what decided it. The panel must NEVER re-derive this from the
+  title's shape: a second opinion that disagrees with the parse misleads the reporter, and a
+  new branch that forgets its sentence must show no line rather than a guessed one. Say what
+  actually decided - the event branch reads a word list, not the wiki, so its sentence may not
+  claim MixesDB knows the name (the venue branch is the one that asks). A branch reached
+  through several sub-readings (5c's "by", the series score, the plain order) carries the
+  sentence in a variable set where the reading is decided, not one written at the return.
 - **Both chip lists are split by ONE function** - `mdbTitle_traceChunks()`, separator runs, the
   series-"by" and every " @ ". Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
   calls it; section 2 ("Left for the parser") calls it directly on `trace.cleaned`. A split rule

@@ -1508,11 +1508,20 @@ function mdbPageCreator_reasoningCategoryMatch( cache, name, match ) {
 }
 
 // mdbPageCreator_reasoningCategoryRow
-// One "[[Category:...]]" line with what is known about it: an artist the wiki has is confirmed
-// with its mix count, one it does not have is flagged as possibly new or misspelled.
-function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
+// One "[[Category:...]]" line with WHY this name got this slot, and then what is known about it:
+// an artist the wiki has is confirmed with its mix count, one it does not have is flagged as
+// possibly new or misspelled.
+// The "why" leads, because it is the question the panel used to leave open - "Adjust @ S.U.N
+// Festival" files a festival the wiki has never heard of as the entity while the channel MONUMENT
+// is a podcast with 425 mixes, and nothing on screen said that the "@" is what decided it. The
+// sentence comes from the branch that decided (mdbTitle_trace.picks, written in mdbTitle_result),
+// never re-derived here: a panel that reasons on its own can disagree with the parse, and then it
+// is the reporter who is misled. picks is one sentence per ROLE - the artist rows of a title
+// naming several artists were all picked by the same rule.
+function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
     var row = $("<div>").addClass( "mdb-pageCreator-reasoning-cat" ),
         note = $("<span>").addClass( "mdb-pageCreator-reasoning-cat-note" ),
+        why = ( picks && ( entry.role === "artist" || entry.role === "entity" ) ) ? picks[ entry.role ] : "",
         match;
 
     row.append(
@@ -1520,6 +1529,14 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache ) {
             .addClass( "mdb-pageCreator-reasoning-cat-name" + ( entry.name ? "" : " mdb-pageCreator-reasoning-cat-empty" ) )
             .text( "[[Category:" + entry.name + "]]" )
     );
+
+    if( why && entry.name ) {
+        note.append(
+            $("<span>")
+                .addClass( "mdb-pageCreator-reasoning-cat-why" )
+                .text( "picked as the " + entry.role + ": " + why )
+        );
+    }
 
     switch( entry.role ) {
         case "year":
@@ -1807,11 +1824,14 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 else { hasEntityAnswer = true; }
             }
 
+            // no role argument: the COLUMN is the role, and passing one shifted isCat and
+            // overruledBy a slot along - which painted every chip green ("artist" is truthy)
+            // and put the boolean into the overruled note
             if( role.artist || hasArtistAnswer ) {
-                mdbPageCreator_reasoningLookupRow( artistCol, entry, matches, "artist", isCat, overruledBy );
+                mdbPageCreator_reasoningLookupRow( artistCol, entry, matches, isCat, overruledBy );
             }
             if( role.entity || hasEntityAnswer ) {
-                mdbPageCreator_reasoningLookupRow( entityCol, entry, matches, "entity", isCat, overruledBy );
+                mdbPageCreator_reasoningLookupRow( entityCol, entry, matches, isCat, overruledBy );
             }
         }
 
@@ -1830,8 +1850,12 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     var s4 = mdbPageCreator_reasoningSection( "4", "Categories for the new page", "read off the title above" ),
         cats = $("<div>").addClass( "mdb-pageCreator-reasoning-cats" );
 
+    // typeof-guarded like the rest of the trace: a stale cached title_builder.js without picks
+    // must cost the reader the "why" line, not the section
+    var picks = ( trace && trace.picks ) ? trace.picks : null;
+
     for( i = 0; i < entries.length; i++ ) {
-        cats.append( mdbPageCreator_reasoningCategoryRow( entries[i], cache ) );
+        cats.append( mdbPageCreator_reasoningCategoryRow( entries[i], cache, picks ) );
     }
 
     s4.append( cats );

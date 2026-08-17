@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.28
+// @version      2026.08.18.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_29
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_37
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_38
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_41
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_42
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 121,
+var cacheVersion = 122,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1836,6 +1836,29 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.18.2
+ * Section 4 of the reasoning panel now says WHY each name got its slot, in one line above the
+ * lookup answer (title_builder.js v_38, page_creator.js v_42, page_creator.css): "picked as
+ * the entity: "S.U.N Festival" carries an event word, so the title reads as a set PLAYED at
+ * it - it becomes the place behind the " @ ", and the channel is not used as a show on top of
+ * that". From the report on "MNMT Recordings : Adjust (BE) @ S.U.N Festival - Hungary", where
+ * the panel showed a festival the wiki has never heard of as the entity while MONUMENT, a
+ * podcast with 425 mixes, sat unused - and said nothing about what decided it. The sentence is
+ * written by the branch that decided (mdbTitle_trace.picks, filled at mdbTitle_result's ten
+ * call sites), never re-derived in the panel.
+ * Also fixed while there: section 3 painted EVERY chip green. The role argument added in
+ * .28 shifted the row renderer's isCat and overruledBy a slot along, so "artist" arrived as
+ * "did this become a category" - which is exactly what made the reported page unreadable.
+ *
+ * 2026.08.18.1
+ * The reasoning panel's per-answer percentage (title_builder.js v_38) no longer leans on the
+ * mix count: a category with 500 mixes can be the wrong reading of the words just as easily
+ * as an empty one, so the count only says how well the wiki knows the name. The ladder is
+ * -10 for a category holding one mix or none and -5 for two to four; the -12 and -5 brackets
+ * below 10 and 25 mixes are gone. "Adjust" found as an artist with a single mix reads 70%
+ * instead of 45%. What a name IS (spelling, several readings at once, a channel rule saying
+ * otherwise, a single word the wiki barely knows) still decides the rest.
  *
  * 2026.08.17.28
  * Same report, second round. Section 3 now sorts its CHIPS into the two columns, decided
