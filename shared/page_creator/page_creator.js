@@ -282,9 +282,12 @@ function mdbPageCreator_syncCreateHref( input, link ) {
 // same handler): when the box was edited, its update is SHOWN before the tab opens. The old
 // synchronous ask could never be seen - the request blocked the paint, and the moment it
 // returned the new tab took the screen - which on TrackId.net left the impression nothing had
-// happened at all. So the navigation waits: the box greys out for the shared minimum, is
-// scrolled into view if it sits below the fold, the answer lands in it, and only then the
-// edit form opens - off an href that by then carries the formatted tracklist.
+// happened at all. So the navigation waits, in two halves of tlBoxUpdateMinMs each: the box
+// greys out for the first (scrolled into view if it sits below the fold, the API asked
+// within), then the answer lands in it and stays on screen for the second - and only then the
+// edit form opens, off an href that by then carries the formatted tracklist. Both halves,
+// because a tab that opens the moment the grey ends steals the screen before the result was
+// ever visible - seen once as "box goes white, stalls, tab opens".
 //
 // Bumping the box's request sequence BEFORE sending outdates a blur update already in flight
 // for the same edit (the click straight out of the textarea starts one in the very same
@@ -330,12 +333,12 @@ function mdbPageCreator_createAfterTracklistUpdate( input, create ) {
         var wait = Math.max( 0, tlBoxUpdateMinMs - ( Date.now() - startedAt ) );
 
         setTimeout(function() {
-            mdbPageCreator_createPending = false;
             box.removeClass( "mdb-tlBox-updating" );
 
             // the reader navigated on while the box was grey - a create form about the
             // previous page must not pop up over the next one
             if( !mdbIsCurrentPage( pageGeneration ) ) {
+                mdbPageCreator_createPending = false;
                 log( "mdbPageCreator_createAfterTracklistUpdate: the page changed while updating - not opening the edit form." );
                 return;
             }
@@ -349,7 +352,19 @@ function mdbPageCreator_createAfterTracklistUpdate( input, create ) {
             }
 
             mdbPageCreator_syncCreateHref( input, create );
-            mdbPageCreator_openCreate( create );
+
+            // The second half of the moment: the fade back and the APPLIED answer get the
+            // same minimum on screen the grey state had. Opening the tab in the same tick
+            // cut the animation in half - the box went grey, stalled, and the screen was
+            // gone before the result ever showed. createPending stays up until the open,
+            // so a click landing in this window cannot start a second tab.
+            setTimeout(function() {
+                mdbPageCreator_createPending = false;
+
+                if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+                mdbPageCreator_openCreate( create );
+            }, tlBoxUpdateMinMs );
         }, wait );
     });
 }

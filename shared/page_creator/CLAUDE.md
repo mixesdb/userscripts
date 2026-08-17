@@ -122,11 +122,13 @@ Settled, so it does not get re-litigated:
 - **The plain left click (and Enter) holds the navigation back until the update was SEEN**
   (third round, same day: on TrackId.net the synchronous ask was invisible - it blocked the
   paint and the new tab took the screen the moment it returned).
-  `mdbPageCreator_createAfterTracklistUpdate()` intercepts the click, greys the box for the
-  shared minimum, scrolls it into view when it sits below the fold, applies the answer, and
-  only then opens the edit form - `window.open` inside the click's transient activation, with
-  a same-tab fallback if a blocker disagrees, and a pending flag so a double click cannot open
-  two tabs. Middle, right and cmd/ctrl/shift-clicks navigate natively off the href and keep
+  `mdbPageCreator_createAfterTracklistUpdate()` intercepts the click and waits two halves of
+  `tlBoxUpdateMinMs`: grey for the first (scrolled into view when the box sits below the
+  fold), the applied answer on screen for the second - opening on the grey's end alone was
+  seen as "box goes white, stalls, tab opens", the result never visible. Only then the edit
+  form opens - `window.open` inside the click's transient activation, with a same-tab
+  fallback if a blocker disagrees, and a pending flag held up to the open so a click in
+  either half cannot start a second tab. Middle, right and cmd/ctrl/shift-clicks navigate natively off the href and keep
   the synchronous ask at mousedown (`mdbPageCreator_validateTracklist()`) - their flash after
   the fact is visible because those clicks leave the page on screen.
 - **Only the API's own `"complete"` earns `Tracklist: complete`.** A warning, a hint or its
