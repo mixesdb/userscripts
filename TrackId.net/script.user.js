@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.23
+// @version      2026.08.17.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_26
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_32
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_33
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_37
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -1911,6 +1911,14 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.17.24
+ * The reasoning panel's sections 1 and 2 split the title the same way again
+ * (title_builder.js v_33): the "@" pass sat in mdbTitle_titleChunks, one level above the
+ * splitter the panel calls for its "Left for the parser" chips, so section 2 showed an
+ * "<artist> @ <event>" bit as ONE chip where section 1 showed two. Moved into
+ * mdbTitle_traceChunks, which both go through. Display only: the chunks, the lookups and the
+ * suggested title are unchanged, all 113 examples pass.
  *
  * 2026.08.17.23
  * The one-" @ " rule now also holds at the builder's exit (title_builder.js v_32,

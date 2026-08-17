@@ -2688,14 +2688,21 @@ function mdbTitle_traceCleaned( text ) {
 
 // mdbTitle_traceChunks
 // A title as the trimmed, non-empty chunks it splits into - what the panel renders as chips.
-// Splits at the separator runs, and inside a chunk at the lowercase "by" in front of a
-// numbered series - the same guarded reading the parser does ("Guestroom 779 by Sascha
-// Sibler" is two units, "Live by the Sea" is one), so the chunks shown are the units the
+// Splits at the separator runs, inside a chunk at the lowercase "by" in front of a numbered
+// series - the same guarded reading the parser does ("Guestroom 779 by Sascha Sibler" is two
+// units, "Live by the Sea" is one) - and at every " @ ", so the chunks shown are the units the
 // parse really works with.
+//
+// The "@" pass sits HERE and not in mdbTitle_titleChunks, which is the only place it used to
+// run: the panel splits its second section's chips with this function directly (see
+// mdbPageCreator_renderReasoning), so an "@" pass one level up left section 2 showing
+// "Green Lake Project @ 3000Grad Festival 3021" as one chip where section 1 showed two. One
+// splitter, so the two sections cannot disagree about what a unit is.
 function mdbTitle_traceChunks( text ) {
     var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
+        units = [],
         out = [],
-        i, bit, byMatch;
+        i, p, bit, byMatch, atParts, part;
 
     for( i = 0; i < bits.length; i++ ) {
         bit = mdbTitle_trimSeparators( bits[i] );
@@ -2705,9 +2712,22 @@ function mdbTitle_traceChunks( text ) {
         byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( bit ) ).exec( bit );
 
         if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
-            out.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
+            units.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
         } else {
-            out.push( bit );
+            units.push( bit );
+        }
+    }
+
+    // every " @ " separates: the name in front of the joiner and each place behind it are
+    // units of their own - "Kernel Existence @ 3000Grad Festival @ Utopia" is three chunks,
+    // and each is asked about on its own
+    for( i = 0; i < units.length; i++ ) {
+        atParts = units[i].split( /\s*@\s*/ );
+
+        for( p = 0; p < atParts.length; p++ ) {
+            part = mdbTitle_trimSeparators( atParts[p] );
+
+            if( part ) out.push( part );
         }
     }
 
@@ -2809,23 +2829,9 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
         joined = mdbTitle_takeRecordingMonth( joined ).text;
     }
 
-    // every " @ " separates: the name in front of the joiner and each place behind it are
-    // units of their own - "Kernel Existence @ 3000Grad Festival @ Utopia" is three chunks,
-    // and each is asked about on its own
-    var pieces = mdbTitle_traceChunks( joined ),
-        chunks = [],
-        kept = [],
-        p, part, atParts;
-
-    for( i = 0; i < pieces.length; i++ ) {
-        atParts = pieces[i].split( /\s*@\s*/ );
-
-        for( p = 0; p < atParts.length; p++ ) {
-            part = mdbTitle_trimSeparators( atParts[p] );
-
-            if( part ) chunks.push( part );
-        }
-    }
+    // the shared split, "@"s and all - see mdbTitle_traceChunks
+    var chunks = mdbTitle_traceChunks( joined ),
+        kept = [];
 
     for( i = 0; i < chunks.length; i++ ) {
         if( !live && mdbTitle_isLocationChunk( chunks[i] ) ) {
