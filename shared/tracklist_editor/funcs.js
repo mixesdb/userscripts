@@ -238,9 +238,59 @@ function tlBoxSetFeedbackHtml( tl, html ) {
 
     // the API answers with the whole <div id="tlEditor-feedback">; what goes into the box on
     // the page is its CONTENT, so the box itself stays the node it was
-    var parsed = $( "<div>" ).append( html ).children( "#tlEditor-feedback" ).first();
+    var parsed = $( "<div>" ).append( html ).children( "#tlEditor-feedback" ).first(),
+        from = current.outerHeight();
 
     current.html( parsed.length ? parsed.html() : html ).data( "mdbFeedbackHtml", html );
+
+    tlBoxSettleFeedbackHeight( current, from );
+}
+
+/*
+ * tlBoxSettleFeedbackHeight
+ *
+ * The answer above is swapped into the existing box, so nothing is ever removed from the page -
+ * but the answers themselves are different heights ("valid and complete" is one line, "these
+ * tracks seem to miss the artist names" is that line plus every track it means), and while
+ * typing the box alternates between them. Left alone it snaps: small, big, small, and the whole
+ * page under it jumps with it.
+ *
+ * So the height is animated from the old to the new one, and NOT touched at all when the two
+ * are the same - which is the common case, and then nothing on the page moves. The measuring
+ * waits a frame because the caller adds our chips right after us, and they are part of what is
+ * being measured.
+ *
+ * The "animate to auto" dance is the usual one: height cannot transition to "auto", so the
+ * natural height is measured once, set as a number, and released back to "auto" when the
+ * transition is over.
+ */
+var tlBoxFeedbackResizeMs = 180;
+
+function tlBoxSettleFeedbackHeight( box, from ) {
+    // no baseline to animate from (the box was just built, or is hidden) - leave it be
+    if( !from ) return;
+
+    var raf = window.requestAnimationFrame || function( fn ) { return setTimeout( fn, 16 ); };
+
+    raf(function() {
+        if( !box.get( 0 ) || !$.contains( document.documentElement, box.get( 0 ) ) ) return;
+
+        var to = box.css( "height", "auto" ).outerHeight();
+
+        if( to === from ) return; // same size - the swap was invisible, keep it that way
+
+        clearTimeout( box.data( "mdbFeedbackResizeTimer" ) );
+
+        box.css({ height: from + "px", overflow: "hidden" });
+
+        box.get( 0 ).offsetHeight; // reflow, so the browser has the old height to start from
+
+        box.addClass( "mdb-tlEditor-feedback-resizing" ).css( "height", to + "px" );
+
+        box.data( "mdbFeedbackResizeTimer", setTimeout(function() {
+            box.removeClass( "mdb-tlEditor-feedback-resizing" ).css({ height: "", overflow: "" });
+        }, tlBoxFeedbackResizeMs + 40 ) );
+    });
 }
 
 /*
@@ -495,6 +545,12 @@ function tlBoxApplyWhileTyping( tl, sent, res ) {
     // half-composed characters out from under the input method
     if( tl.data( "mdbTlboxComposing" ) ) return false;
 
+    // The caret sits on an EMPTY line - the reader just hit Enter and is about to type the
+    // next track into it. An empty line is not a track, so the formatter drops it, and
+    // applying that here would delete the row out from under them the instant they opened it.
+    // The feedback still updates; the text waits for the first word typed on that line.
+    if( $.trim( tlBoxCaretLine( sent, el.selectionStart ) ) === "" ) return false;
+
     // already formatted - nothing to write, but the box DOES hold the API's own text, so the
     // blur pass can be spared the round trip and the caller may treat it as applied
     if( res.text === sent ) {
@@ -529,6 +585,15 @@ function tlBoxApplyWhileTyping( tl, sent, res ) {
     log( "tlBoxApplyWhileTyping: formatted while typing, caret " + start + " -> " + newStart + "." );
 
     return true;
+}
+
+// tlBoxCaretLine
+// The one line an offset sits on, without its newlines.
+function tlBoxCaretLine( text, offset ) {
+    var start = text.lastIndexOf( "\n", offset - 1 ) + 1,
+        end = text.indexOf( "\n", offset );
+
+    return text.slice( start, end === -1 ? text.length : end );
 }
 
 // tlBoxLineWiseOffset
