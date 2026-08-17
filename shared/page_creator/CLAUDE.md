@@ -226,13 +226,16 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   episode family behind the reduced name is the row's planned prefix round
   (`row_enrichment.md`), never this exact-match lookup. Accepted price: an artist whose name
   ends in digits ("Asa 808") loses its exact match.
-- **A name the conversion maps curate for the channel is no candidate** - the channel name
-  itself, the show `mdbTitleUsernameConversions` maps it to, a series out of
-  `mdbTitleChannelSeriesConversions` ("Dance TV", "Dance TV DJ Mix"): curated means
-  hand-written in the wiki's own spelling and never overridden, so the lookup has nothing
-  left to answer. Scoped to the channel (`mdbTitle_isCuratedName`), never a global skip - an
-  unrelated artist sharing a name with someone's entry must still be asked about. The generic
-  words themselves ("DJ Mix") stay candidates.
+- **Only the REPLACED channel name is no candidate** - a channel name a conversion map
+  replaces ("Dance TV", "Resident Advisor") is the one name not worth a request: the map
+  overrides whatever the wiki would answer for it. The curated show standing in its place
+  ("Dance TV DJ Mix", "RA Podcast") IS asked, in the channel's priority slot - not for its
+  spelling (curated, never overridden) but for what hangs off the category: the mix count the
+  panel annotates today, the recent sibling pages of roadmap step 4 tomorrow. Replaced means
+  replaced: a series-map channel whose title carries none of its words falls through to the
+  ordinary rules and keeps its lookup, and so does a channel mapped to "" - "no show" still
+  leaves the name standing as the likely artist. The generic words ("DJ Mix") stay
+  candidates too.
 - **"#" is never sent** - `mdbTitle_lookupCategories` writes it out (`X #12` asks as `X 12`):
   the character is illegal in a wiki title, so a name carrying one can only answer empty.
   Sits in the one funnel both lookup rounds pass through, so an edited title's names are

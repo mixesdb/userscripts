@@ -1011,19 +1011,10 @@ function mdbPageCreator_queueReasoningUpdate() {
             // number ("HATE Podcast 496") is never a category name and could only answer
             // empty - the same reduction the first-round candidates make
             // (mdbTitle_categoryCandidates).
-            entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity ),
-            i;
+            entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
 
         if( read.entity ) {
             names.push( entityCategory && entityCategory !== "Promo Mix" ? entityCategory : read.entity );
-        }
-
-        // a name the conversion maps curate for this channel is already the wiki's own
-        // spelling - the lookup has nothing to add, the same skip the first round makes
-        for( i = names.length - 1; i >= 0; i-- ) {
-            if( mdbTitle_isCuratedName( mdbTitle_spaced( mdbPageCreator_sourceChannel ), names[i] ) ) {
-                names.splice( i, 1 );
-            }
         }
 
         logVar( "mdbPageCreator_queueReasoningUpdate: looking up", names.join( " | " ) || "(nothing)" );

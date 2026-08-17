@@ -1761,18 +1761,38 @@ function mdbTitle_canonicalArtists( known, group ) {
 // description is the player page's description, when the site has one - the split's label
 // test reads the labels the tracklist credits out of it, so a credited label in a bracket is
 // no candidate either.
-// A name the conversion maps curate for this channel is NO candidate (mdbTitle_isCuratedName):
-// it is hand-written in the wiki's own spelling, so the lookup has nothing left to answer.
+// A channel name a conversion map REPLACES (title_definitions.js) is the one name not asked
+// about - the map overrides whatever the wiki would answer for it. The curated show standing
+// in its place is asked INSTEAD, in the channel's priority slot: its spelling needs no answer,
+// but the mix count the panel annotates does, and so will the recent sibling pages the page
+// text is to learn from (roadmap step 4).
 function mdbTitle_categoryCandidates( playerTitle, username, description ) {
     var names = [],
         bits = mdbTitle_titleChunks( playerTitle, username, description ).chunks,
         spacedUser = mdbTitle_spaced( username ),
         channelNames = mdbTitle_channelNames( spacedUser ),
+        convKey = mdbTitle_usernameConversionKey( spacedUser ),
+        convShow = convKey ? mdbTitleUsernameConversions[convKey] : "",
+        // tested on the raw spaced title where the parse tests the cleaned one - the words
+        // are matched loosely anyway (any case, inner spaces optional), so the difference is
+        // a typo in a trigger word, which only costs one spare lookup of the channel name
+        seriesConv = mdbTitle_channelSeriesConversion( mdbTitle_spaced( playerTitle ), spacedUser ),
+        // a channel mapped to "" is NOT replaced: "no show" leaves the name standing as the
+        // likely artist, and the wiki's answer about an artist name is real signal
+        channelReplaced = !!convShow || !!seriesConv,
         i;
 
     function take( name ) {
-        if( name && !mdbTitle_isCuratedName( spacedUser, name ) ) names.push( name );
+        if( !name ) return;
+
+        // the replaced channel name - the one name the maps already answer for
+        if( channelReplaced && mdbTitle_normalizeCompare( name ) === mdbTitle_normalizeCompare( spacedUser ) ) return;
+
+        names.push( name );
     }
+
+    if( convShow ) take( convShow );
+    if( seriesConv ) take( seriesConv.entity );
 
     take( spacedUser );
 
@@ -2495,52 +2515,6 @@ function mdbTitle_channelSeriesConversion( text, username ) {
     }
 
     return null;
-}
-
-// mdbTitle_isCuratedName
-// Whether this name is one the conversion maps (title_definitions.js) already curate for this
-// channel: the channel name itself when it is listed, the show mdbTitleUsernameConversions
-// maps it to, or a series out of mdbTitleChannelSeriesConversions. A curated name is
-// hand-written in the wiki's own spelling and the parser never overrides it, so the category
-// lookup has nothing left to answer - the candidate builders skip it rather than spend one of
-// the request's 10 name slots on it. Scoped to the channel on purpose: the maps are patch
-// lists that keep growing, and a global skip would swallow an unrelated artist who happens to
-// share a name with someone else's entry ("Frenzy" the mapped channel vs. an artist "Frenzy"
-// in another channel's title).
-function mdbTitle_isCuratedName( username, name ) {
-    var cmp = mdbTitle_normalizeCompare( name );
-
-    if( !cmp || !username ) return false;
-
-    var curated = [],
-        key = mdbTitle_usernameConversionKey( username ),
-        seriesMap = ( typeof mdbTitleChannelSeriesConversions !== "undefined" && mdbTitleChannelSeriesConversions ) ? mdbTitleChannelSeriesConversions : {},
-        k, words, i;
-
-    if( key ) {
-        curated.push( key );
-        if( mdbTitleUsernameConversions[key] ) curated.push( mdbTitleUsernameConversions[key] );
-    }
-
-    for( k in seriesMap ) {
-        if( !Object.prototype.hasOwnProperty.call( seriesMap, k ) || k.toLowerCase() !== String( username ).toLowerCase() ) continue;
-
-        curated.push( k );
-
-        for( words in seriesMap[k] ) {
-            if( Object.prototype.hasOwnProperty.call( seriesMap[k], words ) && seriesMap[k][words] ) {
-                curated.push( seriesMap[k][words] );
-            }
-        }
-
-        break;
-    }
-
-    for( i = 0; i < curated.length; i++ ) {
-        if( mdbTitle_normalizeCompare( curated[i] ) === cmp ) return true;
-    }
-
-    return false;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
