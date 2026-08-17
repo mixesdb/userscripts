@@ -1763,9 +1763,9 @@ var mdbTitle_categoryCache = {},
     // mdbPageCreator_resetForNewPage(), unlike the cache, which is deliberately kept.
     mdbTitle_lookupLog = [],
     // Which ROLE each candidate was asked for, decided from the title's shape BEFORE the
-    // lookup fires (mdbTitle_categoryCandidates): { artist: bool, entity: bool } per
-    // normalized name. The panel's section 3 sorts its chips into the two candidate columns
-    // by it. Reset with the log - the same name can play a different role on the next page.
+    // lookup fires (mdbTitle_categoryCandidates): "artist" | "entity" per normalized name -
+    // exactly one, the panel's section 3 files each chip into exactly one candidate column.
+    // Reset with the log - the same name can play a different role on the next page.
     mdbTitle_candidateRoles = {};
 
 // mdbTitle_lookupLogEntry
@@ -1801,17 +1801,13 @@ function mdbTitle_lookupLogSettle( names, failed ) {
 }
 
 // mdbTitle_noteCandidateRole
-// Records what a candidate was asked FOR - "artist", "entity" or "both". Merging, never
-// clearing: a name asked twice with different readings is genuinely both.
+// Records the ONE role a candidate is asked for - "artist" or "entity". Last write wins:
+// the title's bits are recorded after the channel, and an edited title after the first
+// build, so the role always describes the latest reading of the name.
 function mdbTitle_noteCandidateRole( name, role ) {
     var key = mdbTitle_normalizeCompare( name );
 
-    if( !key ) return;
-
-    var r = mdbTitle_candidateRoles[key] || ( mdbTitle_candidateRoles[key] = { artist: false, entity: false } );
-
-    if( role !== "entity" ) r.artist = true;
-    if( role !== "artist" ) r.entity = true;
+    if( key ) mdbTitle_candidateRoles[key] = role;
 }
 
 // mdbTitle_knownAs
@@ -2022,14 +2018,16 @@ function mdbTitle_categoryCandidates( playerTitle, username, description ) {
     if( convShow ) take( convShow, "entity" );
     if( seriesConv ) take( seriesConv.entity, "entity" );
 
-    // the channel is genuinely open: an artist uploading their own mixes as readily as the
-    // series the mixes belong to - which of the two is exactly what the lookup answers
-    take( spacedUser, "both" );
+    // The channel is asked as the entity: a channel is first read as the series the mixes
+    // belong to. The wiki answering "artist" instead still shows under that one chip (the
+    // type badge carries it), and the channel-as-artist branches still read the answer -
+    // the role is what the parse EXPECTS, not a verdict.
+    take( spacedUser, "entity" );
 
     // A channel naming several names is asked about each of them: which one gets used is
     // decided off the title, and the wiki's answer is worth having for whichever it is.
     for( i = 0; channelNames.length > 1 && i < channelNames.length; i++ ) {
-        take( channelNames[i], "both" );
+        take( channelNames[i], "entity" );
     }
 
     for( i = 0; i < bits.length; i++ ) {
