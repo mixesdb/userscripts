@@ -1761,7 +1761,12 @@ var mdbTitle_categoryCache = {},
     // ANSWERS live in mdbTitle_categoryCache; this only remembers the asking, in the original
     // spelling (the cache keys are normalized beyond recognition). Reset per page by
     // mdbPageCreator_resetForNewPage(), unlike the cache, which is deliberately kept.
-    mdbTitle_lookupLog = [];
+    mdbTitle_lookupLog = [],
+    // Which ROLE each candidate was asked for, decided from the title's shape BEFORE the
+    // lookup fires (mdbTitle_categoryCandidates): { artist: bool, entity: bool } per
+    // normalized name. The panel's section 3 sorts its chips into the two candidate columns
+    // by it. Reset with the log - the same name can play a different role on the next page.
+    mdbTitle_candidateRoles = {};
 
 // mdbTitle_lookupLogEntry
 // The log entry for a name, created on first sight. pending/failed/skipped describe the
@@ -1793,6 +1798,20 @@ function mdbTitle_lookupLogSettle( names, failed ) {
 
         if( entry ) { entry.pending = false; entry.failed = failed; }
     }
+}
+
+// mdbTitle_noteCandidateRole
+// Records what a candidate was asked FOR - "artist", "entity" or "both". Merging, never
+// clearing: a name asked twice with different readings is genuinely both.
+function mdbTitle_noteCandidateRole( name, role ) {
+    var key = mdbTitle_normalizeCompare( name );
+
+    if( !key ) return;
+
+    var r = mdbTitle_candidateRoles[key] || ( mdbTitle_candidateRoles[key] = { artist: false, entity: false } );
+
+    if( role !== "entity" ) r.artist = true;
+    if( role !== "artist" ) r.entity = true;
 }
 
 // mdbTitle_knownAs
@@ -1970,7 +1989,10 @@ function mdbTitle_canonicalArtists( known, group ) {
 // text is to learn from (roadmap step 4).
 function mdbTitle_categoryCandidates( playerTitle, username, description ) {
     var names = [],
-        bits = mdbTitle_titleChunks( playerTitle, username, description ).chunks,
+        split = mdbTitle_titleChunks( playerTitle, username, description ),
+        bits = split.chunks,
+        // everything from the first "@" on is a place, never a possible artist
+        placeFrom = ( typeof split.placeFrom === "number" ) ? split.placeFrom : -1,
         spacedUser = mdbTitle_spaced( username ),
         channelNames = mdbTitle_channelNames( spacedUser ),
         convKey = mdbTitle_usernameConversionKey( spacedUser ),
@@ -1984,28 +2006,48 @@ function mdbTitle_categoryCandidates( playerTitle, username, description ) {
         channelReplaced = !!convShow || !!seriesConv,
         i;
 
-    function take( name ) {
+    // role is what the name is a candidate FOR - "artist", "entity" or "both" - read off the
+    // title's shape before the lookup fires. The panel's section 3 sorts its chips by it.
+    function take( name, role ) {
         if( !name ) return;
 
         // the replaced channel name - the one name the maps already answer for
         if( channelReplaced && mdbTitle_normalizeCompare( name ) === mdbTitle_normalizeCompare( spacedUser ) ) return;
 
+        mdbTitle_noteCandidateRole( name, role );
         names.push( name );
     }
 
-    if( convShow ) take( convShow );
-    if( seriesConv ) take( seriesConv.entity );
+    // a curated show name can only be the entity
+    if( convShow ) take( convShow, "entity" );
+    if( seriesConv ) take( seriesConv.entity, "entity" );
 
-    take( spacedUser );
+    // the channel is genuinely open: an artist uploading their own mixes as readily as the
+    // series the mixes belong to - which of the two is exactly what the lookup answers
+    take( spacedUser, "both" );
 
     // A channel naming several names is asked about each of them: which one gets used is
     // decided off the title, and the wiki's answer is worth having for whichever it is.
     for( i = 0; channelNames.length > 1 && i < channelNames.length; i++ ) {
-        take( channelNames[i] );
+        take( channelNames[i], "both" );
     }
 
     for( i = 0; i < bits.length; i++ ) {
-        var bit = mdbTitle_cleanArtist( bits[i] );
+        var bit = mdbTitle_cleanArtist( bits[i] ),
+            inPlace = placeFrom !== -1 && i >= placeFrom;
+
+        // The place group's country ("@ S.U.N Festival - Hungary") stays in the title but is
+        // not worth a request: a country is never a category, and the 10-name limit is real.
+        // Behind the "@" only - a lone "Georgia" in front of it is an artist as readily as a
+        // country, and its lookup is what says which.
+        if( inPlace && bit && mdbTitle_isCountry( bit ) ) continue;
+
+        // behind the "@" everything is a place - an entity candidate, never an artist. In
+        // front of it a series-looking bit ("MNMT Recordings", "HATE Podcast") asks as the
+        // entity, anything else as the artist.
+        var bitRole = inPlace ? "entity"
+                    : mdbTitle_seriesScore( bit ) > 0 ? "entity"
+                    : "artist";
 
         // a page title that long is not a name, and asking wastes the request
         if( bit && bit.length <= 80 ) {
@@ -2024,10 +2066,13 @@ function mdbTitle_categoryCandidates( playerTitle, username, description ) {
             // episode family behind "DJ Mix" is the row's planned prefix round
             // (row_enrichment.md), never this exact-match lookup. Accepted price: an artist
             // whose name ends in digits ("Asa 808") loses its exact match here.
+            // a stripped name always asks as the entity: the strip requires a trailing
+            // number, and a numbered name is a series - which is also what bitRole says,
+            // since the digit alone already scores
             if( stripped && stripped !== bit && stripped.length >= 3 ) {
-                take( stripped );
+                take( stripped, bitRole );
             } else {
-                take( bit );
+                take( bit, bitRole );
             }
         }
     }
@@ -2182,7 +2227,8 @@ function mdbTitle_takeVenueTitle( text, known ) {
 // mdbTitle_takeEventTitle
 // A live recording at an event: "<artists> | <event> <year>" - or "<artists> @ <event>"
 // standing glued in one bit, where the "@" itself names the artist.
-// Returns { artist, event, year } or null when the title is not one.
+// Returns { artist, event, year, city } or null when the title is not one; city is the
+// country standing right behind the event, kept as the place group's second part.
 // The "Part 2"/stage chunks such a title carries are already gone - mdbTitle_dropBits takes
 // them out of every title, not just out of this one.
 function mdbTitle_takeEventTitle( text ) {
@@ -2228,11 +2274,22 @@ function mdbTitle_takeEventTitle( text ) {
     }
 
     // otherwise the first bit that is not the event names the artists
+    var artistIndex = -1;
+
     for( i = 0; !artist && i < kept.length; i++ ) {
-        if( i !== eventIndex ) { artist = kept[i]; }
+        if( i !== eventIndex ) { artist = kept[i]; artistIndex = i; }
     }
 
     if( !artist ) return null;
+
+    // The bit right BEHIND the event says where it is: MixesDB writes the place group as
+    // "@ Event, Country" the same way it writes "@ Venue, City", so the country stays in the
+    // title ("... @ S.U.N Festival, Hungary"). Countries only - a name this rule cannot
+    // vouch for is better dropped than glued to the place - and never the bit that already
+    // names the artist.
+    var cityIndex = eventIndex + 1,
+        city = ( cityIndex < kept.length && cityIndex !== artistIndex &&
+                 mdbTitle_isCountry( kept[cityIndex] ) ) ? kept[cityIndex] : "";
 
     // "Landjuweel Festival 2026" -> the event is "Landjuweel Festival", the year is the date
     var year = "",
@@ -2248,7 +2305,7 @@ function mdbTitle_takeEventTitle( text ) {
     // in it, while "Festival Mix 12" has both.
     if( !event || mdbTitle_seriesScore( event ) > 0 ) return null;
 
-    return { artist: artist, event: event, year: year };
+    return { artist: artist, event: event, year: year, city: city };
 }
 
 // mdbTitle_joinArtists
@@ -2967,6 +3024,18 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
     var chunks = mdbTitle_traceChunks( joined ),
         kept = [];
 
+    // Where the place group starts in the chunks: everything from the first "@" on is a
+    // place, never a possible artist. The candidate roles and the country skip
+    // (mdbTitle_categoryCandidates) read this; -1 on a non-live title. Index math is safe:
+    // the location-chunk removal below only runs when NOT live, and a place group only
+    // exists when live, so the two never apply to the same title.
+    var placeFrom = -1,
+        atIdx = live ? joined.indexOf( "@" ) : -1;
+
+    if( atIdx !== -1 ) {
+        placeFrom = mdbTitle_traceChunks( joined.slice( 0, atIdx ) ).length;
+    }
+
     for( i = 0; i < chunks.length; i++ ) {
         if( !live && mdbTitle_isLocationChunk( chunks[i] ) ) {
             removed.push( { text: chunks[i], reason: "location" } );
@@ -2975,7 +3044,7 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
         }
     }
 
-    return { chunks: kept, removed: removed };
+    return { chunks: kept, removed: removed, placeFrom: placeFrom };
 }
 
 // buildMixesdbTitle
@@ -3342,7 +3411,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( eventTitle ) {
             logVar( "buildMixesdbTitle: event title", eventTitle.artist + " @ " + eventTitle.event + " (" + eventTitle.year + ")" );
 
-            var eventGroup = eventTitle.artist + " @ " + eventTitle.event;
+            var eventGroup = eventTitle.artist + " @ " + eventTitle.event +
+                             ( eventTitle.city ? ", " + eventTitle.city : "" );
 
             if( dateFromUpload ) {
                 // A festival set is uploaded whenever the recording is ready, so the upload date

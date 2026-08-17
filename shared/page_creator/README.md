@@ -83,17 +83,20 @@ learning" line can name the step that went wrong:
    the script. So "Decoration removed" can be checked against the rule that removed it, and a
    report can say which entry is wrong (or which one is missing) instead of only what came
    out. Open lists stay open while the title above is corrected
-3. **MixesDB lookups** – which names were asked about on the wiki and what came back, as a
-   table with two answer columns: **Artist category candidates** and **Entity category
-   candidates**. Every answer – the category in the wiki's own spelling, its type and how
-   many mixes it holds – stands in the column of the role it could play in the title, so a
-   name the wiki files as a podcast is visibly no artist, and a name it knows as both shows
-   one answer per column (`Monument` the podcast next to `Monument (Jordan Smith)` the
-   artist). A `–` means the wiki offers nothing for that role; a name with no category at
-   all says so across both columns. The asked name's chip answers section 4 by colour: green
-   when it ended up a category of the new page, red when it did not. A name a curated
-   channel mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel
-   Dance TV those words name `Dance TV DJ Mix`
+3. **MixesDB lookups** – two candidate columns, **Artist category candidates** and **Entity
+   category candidates**, filled from the title's shape BEFORE the wiki answers: names in
+   front of the `@` are asked as the artist; series-looking names, everything behind the `@`
+   and a curated show name as the entity; the channel – genuinely either – in both columns.
+   Next to each chip stands what the wiki's own category names answered for that role: the
+   category in the wiki's spelling, its type and how many mixes it holds, `no category of
+   this name` when it has none – or a `–` when its answers all belong to the other column.
+   An answer of an unexpected type pulls the chip into that column too, so `MONUMENT` shows
+   the podcast on the entity side and the wiki's `Monument (Jordan Smith)` on the artist
+   side. The place group's own country (`… @ S.U.N Festival – Hungary`) is not looked up at
+   all – a country is never a category. The chips answer section 4 by colour: green when the
+   name ended up a category of the new page, red when it did not. A name a curated channel
+   mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
+   those words name `Dance TV DJ Mix`
 
    Behind every answer stands a **percentage**: how strongly that answer backs the name it was
    asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
