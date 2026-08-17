@@ -1448,8 +1448,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                     mp = trace.steps[st].mapping;
 
                     if( mp && mp.words && mp.to && mdbTitle_normalizeCompare( mp.words ) === entry.key ) {
+                        // muted like the row's other notes - the red chip already carries
+                        // the verdict, this line only explains it
                         result.append( mdbPageCreator_reasoningNote(
-                            "overruled - on this channel these words name \"" + mp.to + "\" (curated mapping, section 2)", "info" ) );
+                            "overruled - on this channel these words name \"" + mp.to + "\" (curated mapping, section 2)", "muted" ) );
                         break;
                     }
                 }
