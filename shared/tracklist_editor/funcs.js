@@ -228,22 +228,59 @@ function tlBoxRenderFeedback( tl, feedback ) {
 function tlBoxSetFeedbackHtml( tl, html ) {
     var current = tl.nextAll( "#tlEditor-feedback" ).first();
 
+    // the raw answer is the comparison key, cleaned or not - what is stripped below never
+    // differs between two answers, so it cannot decide whether something changed
     if( current.length && current.data( "mdbFeedbackHtml" ) === html ) return;
 
+    var clean = tlBoxCleanFeedbackHtml( html );
+
     if( !current.length ) {
-        tl.after( html );
+        tl.after( clean );
         tl.nextAll( "#tlEditor-feedback" ).first().data( "mdbFeedbackHtml", html );
         return;
     }
 
     // the API answers with the whole <div id="tlEditor-feedback">; what goes into the box on
     // the page is its CONTENT, so the box itself stays the node it was
-    var parsed = $( "<div>" ).append( html ).children( "#tlEditor-feedback" ).first(),
+    var parsed = $( "<div>" ).append( clean ).children( "#tlEditor-feedback" ).first(),
         from = current.outerHeight();
 
-    current.html( parsed.length ? parsed.html() : html ).data( "mdbFeedbackHtml", html );
+    current.html( parsed.length ? parsed.html() : clean ).data( "mdbFeedbackHtml", html );
 
     tlBoxSettleFeedbackHeight( current, from );
+}
+
+/*
+ * tlBoxCleanFeedbackHtml
+ *
+ * Takes "No changes were made." out of the answer.
+ *
+ * The message is honest where it was written for - MixesDB's own Tracklist Editor, where you
+ * paste a tracklist, press a button and want to know whether pressing it did anything. It says
+ * "the formatter found nothing to fix in what you sent", and it is what an ALREADY formatted
+ * tracklist gets.
+ *
+ * In this box that is the normal state of affairs and the wrong sentence entirely: the box asks
+ * on its own after every typing pause and every edit, so the message turns up right after
+ * someone changed something and reads as "your edit did nothing" - which is the opposite of
+ * what it means. The colour and the rest of the answer already say what the tracklist is;
+ * whether the formatter had work to do is our business, not the reader's.
+ *
+ * Its wrapper goes with it when nothing else is left in it - an empty bold line would keep the
+ * gap the message used to sit in.
+ */
+function tlBoxCleanFeedbackHtml( html ) {
+    if( String( html ).indexOf( "tlEditor-feedback-noChanges" ) === -1 ) return html;
+
+    var holder = $( "<div>" ).append( html ),
+        noChanges = holder.find( "#tlEditor-feedback-noChanges" ),
+        wrapper = noChanges.parent( "#tlEditor-feedback-topInfo-noList" );
+
+    noChanges.remove();
+
+    if( wrapper.length && $.trim( wrapper.text() ) === "" && !wrapper.children().length ) wrapper.remove();
+
+    return holder.html();
 }
 
 /*
