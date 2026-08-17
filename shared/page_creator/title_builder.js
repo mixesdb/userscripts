@@ -1800,6 +1800,74 @@ function mdbTitle_knownEntityType( known, name ) {
     return !!mdbTitle_knownMatch( known, name, mdbTitle_entityTypes );
 }
 
+// mdbTitle_matchConfidence
+// How strongly ONE lookup answer backs the candidate it was asked for: { percent, reasons }, in
+// the shape and the 10-95 band of the title score, so the panel colours both with one function.
+// Display only - nothing in the parse reads it. It exists because the reasoning panel's section 3
+// asked the reader to weigh "artist, 1 mix" against "podcast, 498 mixes" by eye, and the same
+// three things decide it every time: is the wiki's category THIS name, does its mix count vouch
+// for it, and is the name specific enough to be worth a hit at all (mixesdb_api_request.md §5 -
+// "Daniel", "Asa", "Black" are all real artist categories with one mix each).
+// matches is the name's WHOLE answer list and index the match being scored: a name the wiki knows
+// as several things is a weaker answer for each of them, since only the title's context can pick.
+// overruled says a curated channel rule reads these words as something else - the answer may be
+// perfectly true about the bare words and still not be what the title means.
+function mdbTitle_matchConfidence( name, matches, index, overruled ) {
+    var conf = mdbTitle_confidence(),
+        list = matches || [],
+        match = list[ index || 0 ] || {},
+        asked = String( name || "" ).trim(),
+        title = String( match.title || "" ),
+        askedKey = mdbTitle_normalizeCompare( asked ),
+        mixes = match.mixes;
+
+    // 1) is the wiki's category this very name? Only the spelling may differ - the whole point of
+    // the lookup is that the wiki knows the casing ("trommel" -> "Trommel"), so a case-only
+    // difference is not a doubt.
+    if( String( match.matchType || "" ) === "prefix" ) {
+        conf.drop( 30, "the name is only the START of \"" + title + "\" - the wiki has no category of the name itself" );
+    } else if( askedKey && askedKey === mdbTitle_normalizeCompare( title ) ) {
+        // the wiki has exactly this name - nothing to doubt about the spelling
+    } else if( askedKey && match.matchedTitle && askedKey === mdbTitle_normalizeCompare( match.matchedTitle ) ) {
+        conf.drop( 10, "\"" + asked + "\" is a redirect - the wiki files these mixes under \"" + title + "\"" );
+    } else if( askedKey && askedKey === mdbTitle_normalizeCompare( title.replace( /\s*\([^()]*\)\s*$/, "" ) ) ) {
+        conf.drop( 5, "the wiki spells it \"" + title + "\" - matched without the qualifier" );
+    } else {
+        conf.drop( 25, "the wiki's category is spelled \"" + title + "\", not \"" + asked + "\"" );
+    }
+
+    // 2) the mix count, the one thing that separates a real hit from a near-empty coincidence
+    if( typeof mixes === "number" ) {
+        if( mixes <= 1 ) {
+            conf.drop( 35, "the category holds " + ( mixes === 1 ? "a single mix" : "no mixes yet" ) +
+                           " - about as likely a coincidence as a real hit" );
+        } else if( mixes < 5 ) {
+            conf.drop( 20, "the category holds only " + mixes + " mixes" );
+        } else if( mixes < 10 ) {
+            conf.drop( 12, "the category holds only " + mixes + " mixes" );
+        } else if( mixes < 25 ) {
+            conf.drop( 5, "the category holds " + mixes + " mixes" );
+        }
+    }
+
+    // 3) a single word is what a fragment of a longer name looks like, and with 57,000 artist
+    // categories almost every word is somebody. Charged only where the count does not vouch for
+    // the name anyway - "Trommel" with 29 mixes is a name, not a fragment.
+    if( typeof mixes === "number" && mixes < 10 && asked && asked.indexOf( " " ) === -1 ) {
+        conf.drop( 20, "\"" + asked + "\" is a single word, and the mix count does not vouch for it" );
+    }
+
+    if( list.length > 1 ) {
+        conf.drop( 10, "the wiki knows this name as " + list.length + " different things - only the rest of the title can pick" );
+    }
+
+    if( overruled ) {
+        conf.drop( 30, "a curated channel rule reads these words as something else on this channel" );
+    }
+
+    return { percent: conf.percent(), reasons: conf.reasons };
+}
+
 // mdbTitle_canonicalName
 // The wiki's own spelling of a name: "trommel" -> "Trommel", "BASSIANI" -> "Bassiani",
 // "Asa 808" -> "ASA 808". Only when the match IS this name (compared normalized) - a fuzzy
