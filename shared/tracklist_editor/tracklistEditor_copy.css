@@ -224,31 +224,72 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     border-radius: .2em;
 }
 
-/* Our own two chips (tlBoxShowApiCount in funcs.js), sitting in front of the API's rows chip:
- * the call counter and the switch for checking while typing. Shaped like the rows chip but
- * hollow and quieter - they are our bookkeeping, not something the Tracklist Editor said
- * about this tracklist. */
+/*
+ * The chip row in the top right of the feedback box: the API's own rows count plus our two
+ * (tlBoxShowApiCount in funcs.js) - the call counter and the "Live updates" switch.
+ *
+ * One look for all three. The feedback box sits on a different background per status (green,
+ * yellow, red, and the sites' own colours behind that), so the chips carry a half-transparent
+ * WHITE that lightens whatever is underneath instead of a fixed grey that clashes with two
+ * statuses out of three - with dark grey text on top, which stays readable on every one of
+ * them. The white text and its shadow the rows chip used to have are dropped here: white on a
+ * pale background is what made the count hard to read in the first place.
+ * Two IDs on the rows rule (and !important on the shadow) because it is stated twice
+ * elsewhere - global.css and further down this file - and has to lose against this.
+ */
+#tlEditor-feedback #tlEditor-feedback-rows,
 .mdb-tlEditor-apiCalls,
-.mdb-tlEditor-autoUpdate {
-    color: #aaa;
+.mdb-tlEditor-liveUpdates {
+    color: #444;
     font-size: .85em;
+    font-weight: 600;
+    text-shadow: none !important;
     margin-top: -.2em;
-    margin-right: .4em;
-    padding: .2em .4em .2em .3em;
-    border: 1px solid hsla(0, 0%, 87%, 0.7);
+    margin-left: .4em;
+    padding: .2em .4em;
+    background: rgba(255, 255, 255, 0.5);
     border-radius: .2em;
+}
+#tlEditor-feedback #tlEditor-feedback-rows {
+    margin-left: 0;
 }
 .mdb-tlEditor-apiCalls {
     cursor: help;
 }
 
-/* The switch reads as a switch: hover says it is clickable, and ON is the orange MixesDB
- * uses for "active" everywhere else in this file. */
-.mdb-tlEditor-autoUpdate:hover {
-    color: #f60;
-    border-color: #f60;
+/* The switch: a track with a knob that sits left when off and right when on, in the orange
+ * MixesDB uses for "active" everywhere else in this file. Inline-flex so label and switch
+ * share one baseline whatever the site's line-height is. */
+.mdb-tlEditor-liveUpdates {
+    display: inline-flex;
+    align-items: center;
+    gap: .4em;
 }
-.mdb-tlEditor-autoUpdate-on {
+.mdb-tlEditor-liveUpdates:hover {
     color: #f60;
-    border-color: #f60;
+}
+.mdb-tlEditor-switch {
+    position: relative;
+    display: inline-block;
+    width: 1.9em;
+    height: 1em;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 1em;
+    transition: background-color .15s ease;
+}
+.mdb-tlEditor-switch-knob {
+    position: absolute;
+    top: .1em;
+    left: .1em;
+    width: .8em;
+    height: .8em;
+    background: #fff;
+    border-radius: 50%;
+    transition: left .15s ease;
+}
+.mdb-tlEditor-liveUpdates-on .mdb-tlEditor-switch {
+    background: #f60;
+}
+.mdb-tlEditor-liveUpdates-on .mdb-tlEditor-switch-knob {
+    left: 1em;
 }

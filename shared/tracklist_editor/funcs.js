@@ -246,8 +246,18 @@ function tlBoxShowApiCount() {
         countChip.text( count );
 
         if( !autoChip.length ) {
+            // A real switch, not a word that changes: the state has to be readable at a
+            // glance from across the box, and a knob left/right says "off/on" without being
+            // read at all. The label stays put so the chip does not change width when it is
+            // flipped - a chip that resizes under the pointer invites a second, unwanted click.
             autoChip = $("<div>")
-                .addClass( "mdb-tlEditor-autoUpdate mdb-element floatR hand" )
+                .addClass( "mdb-tlEditor-liveUpdates mdb-element floatR hand" )
+                .append(
+                    $("<span>").addClass( "mdb-tlEditor-liveUpdates-label" ).text( "Live updates" ),
+                    $("<span>").addClass( "mdb-tlEditor-switch" ).append(
+                        $("<span>").addClass( "mdb-tlEditor-switch-knob" )
+                    )
+                )
                 .on( "click", function() {
                     var nowOn = !tlBoxAutoUpdate();
 
@@ -268,11 +278,10 @@ function tlBoxShowApiCount() {
         }
 
         autoChip
-            .toggleClass( "mdb-tlEditor-autoUpdate-on", on )
+            .toggleClass( "mdb-tlEditor-liveUpdates-on", on )
             .attr( "title", on
-                ? "Checking while you type is ON: after a typing pause - and at once on Enter or a click in the box - the tracklist is checked and this feedback follows it. Your text is never rewritten while typing.\nClick to switch off."
-                : "Checking while you type is OFF: the feedback only updates when you leave the box or click \"Create\".\nClick to switch on - useful while writing a tracklist out, at one API call per typing pause." )
-            .text( on ? "auto-check on" : "auto-check off" );
+                ? "Live updates are ON: after a typing pause - and at once on Enter or a click in the box - the tracklist is checked, this feedback follows it and every line except the one you are typing on is formatted.\nClick to switch off."
+                : "Live updates are OFF: the box is only checked and formatted when you leave it or click \"Create\".\nClick to switch on - useful while writing a tracklist out, at one API call per typing pause." );
     });
 }
 
@@ -356,12 +365,101 @@ function tlBoxTypeUpdate( tl ) {
 
         tlBoxRenderFeedback( tl, res.feedback );
 
-        // false: feedback only - the text was NOT applied, so the page creator must not mark
-        // it validated (the blur or the "Create" click still owes it the formatting pass)
+        // the formatted lines, except the one being typed on - see tlBoxApplyWhileTyping
+        tlBoxApplyWhileTyping( tl, sent, res );
+
+        // false: feedback only - the LINE UNDER THE CARET was not formatted, so the page
+        // creator must not mark the box validated (the blur or the "Create" click still owes
+        // it the full pass)
         if( typeof mdbPageCreator_tracklistBoxUpdated === "function" ) {
             mdbPageCreator_tracklistBoxUpdated( tl, res, false );
         }
     });
+}
+
+/*
+ * tlBoxApplyWhileTyping
+ *
+ * Formatting the box WHILE it is being typed in, without the caret ever moving under the
+ * reader's hands. The trick is not to restore the caret after a full replacement - the
+ * formatter changes exactly the characters a caret offset is counted in, so any such attempt
+ * guesses - but to leave the line the caret is on ALONE and format the others around it:
+ *
+ *   - line count unchanged (the formatter did not merge or drop lines): every line except the
+ *     caret's is taken from the answer, the caret's stays exactly as typed. The new caret
+ *     offset is then not guessed but COMPUTED - it is the length of the merged lines in front
+ *     of it plus the untouched column.
+ *   - line count changed: nothing is applied. Lines moved, so there is no honest mapping for
+ *     the caret; the blur pass formats the whole thing a moment later anyway.
+ *
+ * The line being typed is also the one that should not be touched: it is half-written, and
+ * "01. Artist" turns into something else entirely one keystroke before it is finished.
+ *
+ * mdbTlboxKnown is deliberately NOT refreshed here - the caret's line is still unformatted, so
+ * the blur update still has work to do and must not think the box is done.
+ */
+function tlBoxApplyWhileTyping( tl, sent, res ) {
+    var el = tl.get( 0 );
+
+    if( !res.text || res.text === sent ) return false;
+    if( !el || typeof el.selectionStart !== "number" ) return false;
+
+    // typed on since the request went out - this answer describes text that is gone
+    if( tl.val() !== sent ) return false;
+
+    var oldLines = sent.split( "\n" ),
+        newLines = res.text.split( "\n" );
+
+    if( oldLines.length !== newLines.length ) {
+        log( "tlBoxApplyWhileTyping: the formatter changed the line count - leaving the text to the blur pass." );
+        return false;
+    }
+
+    var start = el.selectionStart,
+        end = el.selectionEnd,
+        pos = 0,
+        caretLine = oldLines.length - 1,
+        caretCol = 0,
+        i;
+
+    for( i = 0; i < oldLines.length; i++ ) {
+        // <= : a caret at the very end of a line belongs to that line, not to the next
+        if( start <= pos + oldLines[i].length ) {
+            caretLine = i;
+            caretCol = start - pos;
+            break;
+        }
+
+        pos += oldLines[i].length + 1; // + the "\n"
+    }
+
+    // a selection reaching into another line has no single home line to protect
+    if( end > pos + oldLines[caretLine].length ) return false;
+
+    var merged = newLines.slice();
+
+    merged[caretLine] = oldLines[caretLine];
+
+    var mergedText = merged.join( "\n" );
+
+    // only the caret's own line would have changed - nothing to do until it is left
+    if( mergedText === sent ) return false;
+
+    var newStart = 0;
+
+    for( i = 0; i < caretLine; i++ ) {
+        newStart += merged[i].length + 1;
+    }
+
+    newStart += caretCol;
+
+    tl.val( mergedText );
+    tl.attr( "rows", merged.length );
+    el.setSelectionRange( newStart, newStart + ( end - start ) );
+
+    log( "tlBoxApplyWhileTyping: formatted every line but the one being typed (line " + ( caretLine + 1 ) + ")." );
+
+    return true;
 }
 
 // tlBoxApplyResult
