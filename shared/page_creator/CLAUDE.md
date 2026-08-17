@@ -111,15 +111,17 @@ Settled, so it does not get re-litigated:
   click-time validation would (so that validation then finds the text unchanged and asks
   nothing) and re-renders the reasoning panel - only its section 4 comes out different, and
   no name lookup fires, because the tracklist takes no part in the title.
-- **While the caret is in the box, only the FEEDBACK follows the typing - never the text**, and
-  only when the reader switched it on (the "Live updates" switch in the feedback box, OFF by
-  default - a half-written line honestly reads as a warning, which is help while writing one
-  out and noise while fixing a finished one). The debounced check (`tlBoxTypeUpdate`, 800ms,
-  flushed at once on Enter and on a click into the box) calls
-  `mdbPageCreator_tracklistBoxUpdated( box, res, false )`: the status and the
-  `[[Category:Tracklist: …]]` follow every pause, but `_tracklistValidated` stays put, so the
-  blur and the "Create" click still owe the box its formatting pass. Rewriting under the caret
-  would move it, and `fixTLbox()` collapses spaces while it is being typed.
+- **While the caret is in the box the text is formatted too, not only the feedback** (since
+  2026-08-17, fourth round - protecting the caret's own line left it visibly unformatted while
+  every line around it changed), and only when the reader switched it on (the "Live updates"
+  switch in the feedback box, OFF by default). The debounced check (`tlBoxTypeUpdate`, 800ms,
+  flushed at once on Enter and on a click into the box) writes the answer and remaps the caret:
+  line-wise while the line count holds (the caret's line keeps its index, only its column is
+  mapped), whole-text otherwise - `tlBoxRemapOffset()` is the common-prefix/common-suffix
+  mapping input-formatting code uses. It skips the write mid-composition (IME) and when the box
+  was typed on since the request went out, and reports back whether the box now HOLDS the
+  answer: that boolean is what `mdbPageCreator_tracklistBoxUpdated( box, res, applied )` files
+  as validated, so a skipped write still leaves the blur pass its work.
 - **On the way into the click the API is asked once more if the box changed since, and its
   TEXT is applied like on blur** (since 2026-08-17, second round: "Create" clicked straight
   out of the textarea fires BEFORE the box's blur, so the blur update alone left such a page

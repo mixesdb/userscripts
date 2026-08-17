@@ -98,9 +98,9 @@ function fixTLbox( feedback, target, focus=true ) {
 
         tle.removeClass( tlEditorFeedbackClasses ).addClass( tlEditorFeedbackClass( feedback ) );
 
-        // a re-run replaces the previous answer instead of stacking a second box under the first
-        tl.nextAll("#tlEditor-feedback").remove();
-        tl.after( feedback.text );
+        // a re-run replaces the ANSWER inside the existing box rather than the box itself -
+        // see tlBoxSetFeedbackHtml. Never a second box stacked under the first either way.
+        tlBoxSetFeedbackHtml( tl, feedback.text );
 
         tlBoxShowApiCount();
     }
@@ -167,6 +167,18 @@ function tlBoxBindLive( tl ) {
         clearTimeout( tl.data( "mdbTlboxTypeTimer" ) );
         tlBoxBlurUpdate( tl );
     });
+
+    // While an input method is composing (IME, or a dead key on the way to an accented
+    // character), the value on screen is half-finished and belongs to the input method, not
+    // to us - rewriting it then tears the composition apart. tlBoxApplyWhileTyping() checks
+    // this flag before it touches the text.
+    tl.on( "compositionstart", function() {
+        tl.data( "mdbTlboxComposing", true );
+    });
+
+    tl.on( "compositionend", function() {
+        tl.data( "mdbTlboxComposing", false );
+    });
 }
 
 // tlBoxTypeUpdateNow
@@ -189,11 +201,46 @@ function tlBoxRenderFeedback( tl, feedback ) {
     tle.addClass( "bot10" ).removeClass( tlEditorFeedbackClasses ).addClass( tlEditorFeedbackClass( feedback ) );
     tl.addClass( "tlEditor-textarea" );
 
-    // a re-run replaces the previous answer instead of stacking a second box under the first
-    tl.nextAll( "#tlEditor-feedback" ).remove();
-    tl.after( feedback.text );
+    tlBoxSetFeedbackHtml( tl, feedback.text );
 
     tlBoxShowApiCount();
+}
+
+/*
+ * tlBoxSetFeedbackHtml
+ *
+ * The feedback box, put on the page without the flash that taking it out and putting a new one
+ * in produced on every single typing pause.
+ *
+ * Two steps, both about leaving the DOM alone unless something actually changed:
+ *
+ *   - the SAME answer as the one on screen (which is what most typing pauses produce - the
+ *     status of a tracklist does not change with every word) touches nothing at all
+ *   - a different answer is swapped into the EXISTING box rather than replacing it, so the
+ *     element, its position and its height survive the swap. The box then only visibly moves
+ *     when the new answer really is taller or shorter than the old one, which is the one case
+ *     where something has to give.
+ *
+ * The raw markup is remembered on the node to compare against, rather than read back off the
+ * DOM: the browser rewrites attribute order and entities on parse, and our own chips are
+ * children of that box - neither would ever compare equal.
+ */
+function tlBoxSetFeedbackHtml( tl, html ) {
+    var current = tl.nextAll( "#tlEditor-feedback" ).first();
+
+    if( current.length && current.data( "mdbFeedbackHtml" ) === html ) return;
+
+    if( !current.length ) {
+        tl.after( html );
+        tl.nextAll( "#tlEditor-feedback" ).first().data( "mdbFeedbackHtml", html );
+        return;
+    }
+
+    // the API answers with the whole <div id="tlEditor-feedback">; what goes into the box on
+    // the page is its CONTENT, so the box itself stays the node it was
+    var parsed = $( "<div>" ).append( html ).children( "#tlEditor-feedback" ).first();
+
+    current.html( parsed.length ? parsed.html() : html ).data( "mdbFeedbackHtml", html );
 }
 
 /*
@@ -365,101 +412,152 @@ function tlBoxTypeUpdate( tl ) {
 
         tlBoxRenderFeedback( tl, res.feedback );
 
-        // the formatted lines, except the one being typed on - see tlBoxApplyWhileTyping
-        tlBoxApplyWhileTyping( tl, sent, res );
+        // the formatted text, caret and all - see tlBoxApplyWhileTyping. Its answer is
+        // whether the box now HOLDS that text, which is exactly what decides whether the page
+        // creator may treat the tracklist as validated: if the write was skipped (composing,
+        // typed on since), the blur pass still owes it the formatting.
+        var applied = tlBoxApplyWhileTyping( tl, sent, res );
 
-        // false: feedback only - the LINE UNDER THE CARET was not formatted, so the page
-        // creator must not mark the box validated (the blur or the "Create" click still owes
-        // it the full pass)
         if( typeof mdbPageCreator_tracklistBoxUpdated === "function" ) {
-            mdbPageCreator_tracklistBoxUpdated( tl, res, false );
+            mdbPageCreator_tracklistBoxUpdated( tl, res, applied );
         }
     });
 }
 
 /*
+ * tlBoxRemapOffset
+ *
+ * Where a caret offset in oldText lands in newText. The standard trick input-formatting code
+ * uses (and the only honest one, since the formatter rewrites exactly the characters an offset
+ * is counted in): find how much of the two texts is identical at the FRONT and at the BACK,
+ * and place the caret relative to whichever side it sits on.
+ *
+ *   before the changed part -> the offset is still valid, keep it
+ *   after it                -> keep the distance to the END of the text
+ *   inside it               -> the end of the changed part, which is where the words the
+ *                              caret was in have gone
+ *
+ * "01. Artist - Title" -> "Artist - Title" with the caret at the end is the everyday case: the
+ * common tail is the whole title, the caret keeps its distance to the end, and it stays where
+ * the typing left it.
+ */
+function tlBoxRemapOffset( oldText, newText, offset ) {
+    var max = Math.min( oldText.length, newText.length ),
+        prefix = 0,
+        suffix = 0;
+
+    while( prefix < max && oldText.charAt( prefix ) === newText.charAt( prefix ) ) prefix++;
+
+    // the suffix may not reach back into the prefix - the two have to stay disjoint
+    var maxSuffix = Math.min( oldText.length - prefix, newText.length - prefix );
+
+    while( suffix < maxSuffix
+           && oldText.charAt( oldText.length - 1 - suffix ) === newText.charAt( newText.length - 1 - suffix ) ) suffix++;
+
+    var mapped;
+
+    if( offset <= prefix ) {
+        mapped = offset;
+    } else if( offset >= oldText.length - suffix ) {
+        mapped = newText.length - ( oldText.length - offset );
+    } else {
+        mapped = newText.length - suffix;
+    }
+
+    return Math.max( 0, Math.min( newText.length, mapped ) );
+}
+
+/*
  * tlBoxApplyWhileTyping
  *
- * Formatting the box WHILE it is being typed in, without the caret ever moving under the
- * reader's hands. The trick is not to restore the caret after a full replacement - the
- * formatter changes exactly the characters a caret offset is counted in, so any such attempt
- * guesses - but to leave the line the caret is on ALONE and format the others around it:
+ * Formatting the box WHILE it is being typed in - every line of it, the one under the caret
+ * included - and putting the caret back where the reader would expect it.
  *
- *   - line count unchanged (the formatter did not merge or drop lines): every line except the
- *     caret's is taken from the answer, the caret's stays exactly as typed. The new caret
- *     offset is then not guessed but COMPUTED - it is the length of the merged lines in front
- *     of it plus the untouched column.
- *   - line count changed: nothing is applied. Lines moved, so there is no honest mapping for
- *     the caret; the blur pass formats the whole thing a moment later anyway.
+ * The caret is mapped LINE-WISE whenever the formatter left the line count alone, which is
+ * nearly always: the caret's line keeps its index, and the column is mapped inside that line
+ * only (tlBoxRemapOffset). That way a line elsewhere in the tracklist losing its "01. " cannot
+ * drag the caret along - the offsets of everything in front of it change, its line index does
+ * not. Only when lines were merged or dropped is the whole text mapped in one go.
  *
- * The line being typed is also the one that should not be touched: it is half-written, and
- * "01. Artist" turns into something else entirely one keystroke before it is finished.
- *
- * mdbTlboxKnown is deliberately NOT refreshed here - the caret's line is still unformatted, so
- * the blur update still has work to do and must not think the box is done.
+ * After this the box holds exactly what the API returned, so mdbTlboxKnown is refreshed: the
+ * blur pass has nothing left to do and stays quiet, which is one request saved per edit.
  */
 function tlBoxApplyWhileTyping( tl, sent, res ) {
     var el = tl.get( 0 );
 
-    if( !res.text || res.text === sent ) return false;
+    if( !res.text ) return false;
     if( !el || typeof el.selectionStart !== "number" ) return false;
 
     // typed on since the request went out - this answer describes text that is gone
     if( tl.val() !== sent ) return false;
 
-    var oldLines = sent.split( "\n" ),
-        newLines = res.text.split( "\n" );
+    // mid-composition (IME, dead keys for accents): replacing the value now would tear the
+    // half-composed characters out from under the input method
+    if( tl.data( "mdbTlboxComposing" ) ) return false;
 
-    if( oldLines.length !== newLines.length ) {
-        log( "tlBoxApplyWhileTyping: the formatter changed the line count - leaving the text to the blur pass." );
-        return false;
+    // already formatted - nothing to write, but the box DOES hold the API's own text, so the
+    // blur pass can be spared the round trip and the caller may treat it as applied
+    if( res.text === sent ) {
+        tl.data( "mdbTlboxKnown", sent );
+        return true;
     }
 
     var start = el.selectionStart,
         end = el.selectionEnd,
-        pos = 0,
-        caretLine = oldLines.length - 1,
-        caretCol = 0,
+        oldLines = sent.split( "\n" ),
+        newLines = res.text.split( "\n" ),
+        newStart, newEnd;
+
+    if( oldLines.length === newLines.length ) {
+        newStart = tlBoxLineWiseOffset( oldLines, newLines, start );
+        newEnd = ( end === start ) ? newStart : tlBoxLineWiseOffset( oldLines, newLines, end );
+    } else {
+        newStart = tlBoxRemapOffset( sent, res.text, start );
+        newEnd = ( end === start ) ? newStart : tlBoxRemapOffset( sent, res.text, end );
+    }
+
+    tl.val( res.text );
+    tl.attr( "rows", newLines.length );
+    el.setSelectionRange( newStart, Math.max( newStart, newEnd ) );
+
+    // The box now holds the API's own text: the next blur has nothing to format, and the
+    // typing memo has to name THIS text rather than the one it replaced - otherwise typing the
+    // stripped numbering back in would land on the old memo and be waved through unformatted.
+    tl.data( "mdbTlboxKnown", res.text );
+    tl.data( "mdbTlboxTypeAsked", res.text );
+
+    log( "tlBoxApplyWhileTyping: formatted while typing, caret " + start + " -> " + newStart + "." );
+
+    return true;
+}
+
+// tlBoxLineWiseOffset
+// The caret's line keeps its index; only its column is mapped, inside that one line. Used
+// whenever the formatter did not change the number of lines.
+function tlBoxLineWiseOffset( oldLines, newLines, offset ) {
+    var pos = 0,
+        line = oldLines.length - 1,
+        col = 0,
         i;
 
     for( i = 0; i < oldLines.length; i++ ) {
-        // <= : a caret at the very end of a line belongs to that line, not to the next
-        if( start <= pos + oldLines[i].length ) {
-            caretLine = i;
-            caretCol = start - pos;
+        // <= : an offset at the very end of a line belongs to that line, not to the next
+        if( offset <= pos + oldLines[i].length ) {
+            line = i;
+            col = offset - pos;
             break;
         }
 
         pos += oldLines[i].length + 1; // + the "\n"
     }
 
-    // a selection reaching into another line has no single home line to protect
-    if( end > pos + oldLines[caretLine].length ) return false;
+    var out = 0;
 
-    var merged = newLines.slice();
-
-    merged[caretLine] = oldLines[caretLine];
-
-    var mergedText = merged.join( "\n" );
-
-    // only the caret's own line would have changed - nothing to do until it is left
-    if( mergedText === sent ) return false;
-
-    var newStart = 0;
-
-    for( i = 0; i < caretLine; i++ ) {
-        newStart += merged[i].length + 1;
+    for( i = 0; i < line; i++ ) {
+        out += newLines[i].length + 1;
     }
 
-    newStart += caretCol;
-
-    tl.val( mergedText );
-    tl.attr( "rows", merged.length );
-    el.setSelectionRange( newStart, newStart + ( end - start ) );
-
-    log( "tlBoxApplyWhileTyping: formatted every line but the one being typed (line " + ( caretLine + 1 ) + ")." );
-
-    return true;
+    return out + tlBoxRemapOffset( oldLines[line], newLines[line], col );
 }
 
 // tlBoxApplyResult
