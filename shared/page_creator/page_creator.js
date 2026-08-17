@@ -277,6 +277,101 @@ function mdbPageCreator_syncCreateHref( input, link ) {
     link.attr( "href", href );
 }
 
+// mdbPageCreator_createAfterTracklistUpdate
+// The plain left click on "Create" (and the Enter path, whose programmatic click lands in the
+// same handler): when the box was edited, its update is SHOWN before the tab opens. The old
+// synchronous ask could never be seen - the request blocked the paint, and the moment it
+// returned the new tab took the screen - which on TrackId.net left the impression nothing had
+// happened at all. So the navigation waits: the box greys out for the shared minimum, is
+// scrolled into view if it sits below the fold, the answer lands in it, and only then the
+// edit form opens - off an href that by then carries the formatted tracklist.
+//
+// Bumping the box's request sequence BEFORE sending outdates a blur update already in flight
+// for the same edit (the click straight out of the textarea starts one in the very same
+// breath) - its answer then drops itself instead of applying twice.
+var mdbPageCreator_createPending = false;
+
+function mdbPageCreator_createAfterTracklistUpdate( input, create ) {
+    // an update is already on its way to opening the form - a second click (double-clickers
+    // exist) must not start a second one and end in two tabs
+    if( mdbPageCreator_createPending ) {
+        log( "mdbPageCreator_createAfterTracklistUpdate: already updating - ignoring the second click." );
+        return;
+    }
+
+    var tl = mdbPageCreator_tracklistText(),
+        box = $( mdbPageCreator_tracklistBoxSite || mdbPageCreator_tracklistBoxSelector ).first(),
+        needsUpdate = tl && tl !== mdbPageCreator_tracklistValidated && box.length
+                      && typeof apiTracklistAsync === "function" && typeof tlBoxApplyResult === "function";
+
+    if( !needsUpdate ) {
+        // nothing to show (or a stale cached funcs.js without the async pieces) - the
+        // synchronous safety net still files the right category, then straight out
+        mdbPageCreator_validateTracklist();
+        mdbPageCreator_syncCreateHref( input, create );
+        mdbPageCreator_openCreate( create );
+        return;
+    }
+
+    logFunc( "mdbPageCreator_createAfterTracklistUpdate" );
+
+    mdbPageCreator_createPending = true;
+
+    box.data( "mdbTlboxSeq", ( box.data( "mdbTlboxSeq" ) || 0 ) + 1 );
+    box.addClass( "mdb-tlBox-updating" );
+
+    // "nearest" scrolls only when the box is actually out of view - a visible box stays put
+    if( box[0].scrollIntoView ) box[0].scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    var startedAt = Date.now(),
+        pageGeneration = mdbPageGeneration;
+
+    apiTracklistAsync( tl, "standard", "", function( res ) {
+        var wait = Math.max( 0, tlBoxUpdateMinMs - ( Date.now() - startedAt ) );
+
+        setTimeout(function() {
+            mdbPageCreator_createPending = false;
+            box.removeClass( "mdb-tlBox-updating" );
+
+            // the reader navigated on while the box was grey - a create form about the
+            // previous page must not pop up over the next one
+            if( !mdbIsCurrentPage( pageGeneration ) ) {
+                log( "mdbPageCreator_createAfterTracklistUpdate: the page changed while updating - not opening the edit form." );
+                return;
+            }
+
+            if( res && res.text && res.feedback && tlBoxApplyResult( box, res ) ) {
+                // the same bookkeeping the blur update hands over - live and validated text,
+                // feedback, status, the reasoning panel's category row
+                mdbPageCreator_tracklistBoxUpdated( box, res );
+            } else {
+                log( "mdbPageCreator_createAfterTracklistUpdate: no usable answer - creating with the text as typed." );
+            }
+
+            mdbPageCreator_syncCreateHref( input, create );
+            mdbPageCreator_openCreate( create );
+        }, wait );
+    });
+}
+
+// mdbPageCreator_openCreate
+// The deferred navigation of the intercepted click. Still inside the click's transient
+// activation - the wait above is well under the ~5s browsers grant - so this opens as a
+// normal user-initiated tab, like the href would have. A blocker that disagrees gets the
+// same page in this tab rather than a dead click.
+function mdbPageCreator_openCreate( create ) {
+    var href = create.attr( "href" );
+
+    if( !href ) return;
+
+    var w = window.open( href, "_blank" );
+
+    if( !w ) {
+        log( "mdbPageCreator_openCreate: the new tab was blocked - opening in this tab instead." );
+        window.location.assign( href );
+    }
+}
+
 // mdbPageCreator_artwork
 // The artwork URL to hand over. #mdb-artwork-input is the shared convention across the site
 // scripts for "the artwork URL that has actually been tried against the server" - what loaded
@@ -735,32 +830,43 @@ function mdbPageCreator_render() {
 
         // The page text is more than the title: the file details table lands in the DOM a
         // moment after this row is built, and nothing about that fires an input event. So the
-        // href is refreshed once more on the way into the click - mousedown covers left,
-        // middle and cmd/ctrl-click alike, focus covers reaching the link by keyboard.
-        // The tracklist is re-checked in the same breath, since the box is editable and the
-        // "Tracklist:" category has to describe what is about to be written, not what the API
-        // said about the version nobody kept.
-        create.on( "mousedown focus", function() {
+        // href is refreshed once more on the way in. Two ways in, two treatments:
+        //
+        // - middle, right and cmd/ctrl/shift-clicks NAVIGATE NATIVELY off the href, so it has
+        //   to be correct before the browser reads it - this mousedown keeps the synchronous
+        //   validation for exactly them
+        // - a PLAIN left press does nothing here: its click is intercepted below and the
+        //   update is shown before the tab opens, which only works if this handler has not
+        //   already consumed the change invisibly
+        create.on( "mousedown", function( e ) {
+            if( e.which === 1 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey ) return;
+
             mdbPageCreator_validateTracklist();
             mdbPageCreator_syncCreateHref( input, create );
+        });
+
+        // The plain left click (keyboard activation of the link and the Enter path's
+        // programmatic click land here too): the navigation is held back until the box's
+        // update has been SEEN - see mdbPageCreator_createAfterTracklistUpdate.
+        create.on( "click", function( e ) {
+            if( e.which !== 1 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ) return;
+
+            e.preventDefault();
+            mdbPageCreator_createAfterTracklistUpdate( input, create );
         });
 
         // Enter in the title field is "I am done with the title" - that is the whole reason
         // the field is there, so it starts the page rather than doing nothing. preventDefault
         // because SoundCloud renders our row inside its own forms in places, where Enter would
-        // submit one. The href is refreshed by hand first: a scripted .click() fires no
-        // mousedown, so the handler above never runs on this path.
+        // submit one.
         input.on( "keydown", function( e ) {
             if( e.which !== 13 ) return;
 
             e.preventDefault();
             logFunc( "mdbPageCreator: Enter in the title field -> Create" );
 
-            mdbPageCreator_validateTracklist();
-            mdbPageCreator_syncCreateHref( input, create );
-
-            // the DOM node, not .trigger(): jQuery's synthetic click runs the handlers but does
-            // not follow the href, which is the entire point here
+            // the DOM node, not .trigger(): the native click runs the click handler above,
+            // which is the same "show the update, then open" path a real click takes
             create[0].click();
         });
 
@@ -1624,13 +1730,22 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
  * the "Tracklist:" category and the reasoning panel follow the edit while it is still on
  * screen.
  *
- * The click-time ask (mdbPageCreator_validateTracklist) is the safety net behind it, for the
- * text no blur got to finish: "Create" clicked straight out of the textarea fires BEFORE the
- * box's blur ever runs, and Enter in the title field fires with the caret nowhere near the
- * box. It does the same work the blur update does - the answer's TEXT lands in the box and on
- * the page, the FEEDBACK decides the colour and the "Tracklist:" category - just synchronously,
- * because the navigation reads the href the moment it returns. Rewriting the text here is as
- * safe as on blur, and for the same reason: clicking "Create" says the typing is done.
+ * The way into the click is the safety net behind it, for the text no blur got to finish:
+ * "Create" clicked straight out of the textarea fires BEFORE the box's blur ever runs, and
+ * Enter in the title field fires with the caret nowhere near the box. It does the same work
+ * the blur update does - the answer's TEXT lands in the box and on the page, the FEEDBACK
+ * decides the colour and the "Tracklist:" category - and rewriting here is as safe as on
+ * blur, for the same reason: clicking "Create" says the typing is done.
+ *
+ * Two ways in, because the update must also be SEEN:
+ * - a PLAIN left click (and Enter) is intercepted and the navigation HELD BACK: the box greys
+ *   out for the shared minimum, scrolled into view if it sits below the fold, and the edit
+ *   form only opens once the answer is in the box (mdbPageCreator_createAfterTracklistUpdate).
+ *   A synchronous ask could never be seen - it blocks the paint, and the moment it returned
+ *   the new tab took the screen.
+ * - middle, right and cmd/ctrl/shift-clicks navigate natively off the href, so for them the
+ *   ask stays synchronous at mousedown (mdbPageCreator_validateTracklist) - and their flash
+ *   after the fact IS visible, since these clicks leave the page on screen.
  *
  *
  * Detected, formatted, shown - three steps, not one
@@ -2016,17 +2131,18 @@ function mdbPageCreator_tracklistText() {
 }
 
 // mdbPageCreator_validateTracklist
-// Asks the API what it makes of the box AS IT STANDS, on the way into the "Create" click -
-// the safety net behind the box's own blur update (tlBoxBlurUpdate), for the text no blur got
-// to finish: "Create" clicked straight out of the textarea fires BEFORE the box's blur, and
-// Enter in the title field fires with the caret nowhere near the box.
+// Asks the API what it makes of the box AS IT STANDS - the SYNCHRONOUS way into "Create",
+// for the paths that navigate natively off the href and cannot wait for a callback: middle,
+// right and cmd/ctrl/shift-clicks (their mousedown), plus the fallback of the intercepted
+// click when there is no box or no async pieces. The plain left click takes
+// mdbPageCreator_createAfterTracklistUpdate instead, which shows the update before opening.
 //
 // Since 2026-08-17 this path takes the API's TEXT too, exactly like the blur update: the
 // click says the typing is done, and the page must not open with a rawer tracklist than the
-// box would have shown a moment later. The request is synchronous on purpose - the "Create"
-// navigation reads the href right after this returns, so the answer has to be in the box by
-// then; the box flashes its updating state briefly AFTER the fact, since the blocked thread
-// could not have painted it during the request anyway.
+// box would have shown a moment later. The request blocks until the answer is in the box -
+// these callers read the href right after - and the box flashes its updating state briefly
+// AFTER the fact, since the blocked thread could not have painted it during the request;
+// for these clicks the page stays on screen, so the flash is actually seen.
 function mdbPageCreator_validateTracklist() {
     var tl = mdbPageCreator_tracklistText();
 
