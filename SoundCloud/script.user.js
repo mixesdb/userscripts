@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.2
+// @version      2026.08.18.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_38
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_42
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 122,
+var cacheVersion = 123,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1836,6 +1836,16 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.18.3
+ * Third bug out of the .28 round, same reported page (page_creator.js v_43): section 3
+ * dropped every candidate the wiki answered EMPTY for - "MNMT Recordings" and
+ * "S.U.N Festival" were asked and appeared in no column, while section 2 still showed their
+ * chips. The recorded role is a plain string ("artist"/"entity") and the panel read .artist
+ * off it as if it were an object, so only a name with an answer ever rendered, pulled in by
+ * the answer's own type. And the step details (section 2) lose their monospace
+ * (page_creator.css): a detail is as often a prose sentence ("the upload date stands in:
+ * ...") as a quoted title, and code styling on prose read as a style break.
  *
  * 2026.08.18.2
  * Section 4 of the reasoning panel now says WHY each name got its slot, in one line above the
