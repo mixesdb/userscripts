@@ -1861,9 +1861,10 @@ function mdbTitle_knownEntityType( known, name ) {
 // the shape and the 10-95 band of the title score, so the panel colours both with one function.
 // Display only - nothing in the parse reads it. It exists because the reasoning panel's section 3
 // asked the reader to weigh "artist, 1 mix" against "podcast, 498 mixes" by eye, and the same
-// three things decide it every time: is the wiki's category THIS name, does its mix count vouch
-// for it, and is the name specific enough to be worth a hit at all (mixesdb_api_request.md §5 -
-// "Daniel", "Asa", "Black" are all real artist categories with one mix each).
+// three things decide it every time: is the wiki's category THIS name, is the name specific
+// enough to be worth a hit at all (mixesdb_api_request.md §5 - "Daniel", "Asa", "Black" are all
+// real artist categories with one mix each), and how full the category is - the last one worth
+// little, since a well-filled category can be the wrong reading just as easily as an empty one.
 // matches is the name's WHOLE answer list and index the match being scored: a name the wiki knows
 // as several things is a weaker answer for each of them, since only the title's context can pick.
 // overruled says a curated channel rule reads these words as something else - the answer may be
@@ -1892,17 +1893,15 @@ function mdbTitle_matchConfidence( name, matches, index, overruled ) {
         conf.drop( 25, "the wiki's category is spelled \"" + title + "\", not \"" + asked + "\"" );
     }
 
-    // 2) the mix count, the one thing that separates a real hit from a near-empty coincidence
+    // 2) the mix count, worth little on purpose: it says how well the wiki knows the name, not
+    // whether the name is the right reading of these words. A category with 500 mixes can be the
+    // wrong word just as easily as one with two - so a full category vouches for nothing, and a
+    // near-empty one is only a small doubt about the name existing at all.
     if( typeof mixes === "number" ) {
         if( mixes <= 1 ) {
-            conf.drop( 35, "the category holds " + ( mixes === 1 ? "a single mix" : "no mixes yet" ) +
-                           " - about as likely a coincidence as a real hit" );
+            conf.drop( 10, "the category holds " + ( mixes === 1 ? "a single mix" : "no mixes yet" ) );
         } else if( mixes < 5 ) {
-            conf.drop( 20, "the category holds only " + mixes + " mixes" );
-        } else if( mixes < 10 ) {
-            conf.drop( 12, "the category holds only " + mixes + " mixes" );
-        } else if( mixes < 25 ) {
-            conf.drop( 5, "the category holds " + mixes + " mixes" );
+            conf.drop( 5, "the category holds only " + mixes + " mixes" );
         }
     }
 
@@ -3090,7 +3089,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             chunks: chunkSplit.chunks,
             chunksRemoved: chunkSplit.removed,
             cleaned: rest,
-            steps: []
+            steps: [],
+            // why the names that ended up on the page were picked for their slot - one
+            // sentence per ROLE, written by the branch that decided (see mdbTitle_result)
+            picks: null
         };
 
         // 0) typos in the words the parser itself reads, before any rule reads one
@@ -3397,7 +3399,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             conf.drop( 10, "the artists were read from behind \"with\", and the title in front of it taken as the show" );
 
-            return mdbTitle_result( date, extraArtists[0], extra.before, null, false, extraArtists.slice( 1 ), conf );
+            return mdbTitle_result( date, extraArtists[0], extra.before, null, false, extraArtists.slice( 1 ), conf, {
+                artist: "the title names them behind \"with\"",
+                entity: "what stands in front of \"with\" reads as a series name, so it is the show"
+            } );
         }
 
         // 3f) A live recording at an event: the event is the venue, the artists are the bit
@@ -3428,7 +3433,15 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             conf.drop( 10, "read as a live recording at an event - the event name was taken as the place it was played at" );
 
-            return mdbTitle_result( date, eventGroup, "", null, false, [], conf );
+            return mdbTitle_result( date, eventGroup, "", null, false, [], conf, {
+                artist: "the name standing in front of the event is who played there",
+                // The wiki is NOT what decides this one - the event word list is (the venue
+                // branch below is the one that asks MixesDB) - so the sentence must not claim
+                // the wiki knows the name. "Why this and not the channel?" is answered by the
+                // second half: a set played somewhere has a place, not a show.
+                entity: "\"" + eventTitle.event + "\" carries an event word, so the title reads as a set PLAYED at it - " +
+                        "it becomes the place behind the \" @ \", and the channel is not used as a show on top of that"
+            } );
         }
 
         // 3g) MixesDB knows one of the bits as a venue, so this was played somewhere rather
@@ -3450,7 +3463,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 conf.drop( 10, mdbTitle_liveDateReason( venueLive.month ) );
             }
 
-            return mdbTitle_result( date, venueGroup, "", null, false, [], conf );
+            return mdbTitle_result( date, venueGroup, "", null, false, [], conf, {
+                artist: "the name standing next to the venue is who played there",
+                entity: "MixesDB knows \"" + venueTitle.venue + "\" as a venue, so the title reads as a set PLAYED there - " +
+                        "it becomes the place behind the \" @ \", and the channel is not used as a show on top of that"
+            } );
         }
 
         // The same for a live recording the title itself marks with an "@" - every branch below
@@ -3539,7 +3556,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             if( ownEntity ) {
                 logVar( "buildMixesdbTitle: MixesDB knows the channel as an artist", username );
 
-                return mdbTitle_result( date, username, ownEntity, null, false, extraArtists, conf );
+                return mdbTitle_result( date, username, ownEntity, null, false, extraArtists, conf, {
+                    artist: "MixesDB knows the channel \"" + username + "\" as an artist, and the title names nobody else",
+                    entity: "with the channel as the artist, what the title says is the name of what they made"
+                } );
             }
         }
 
@@ -3568,7 +3588,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
                     return mdbTitle_result( date, taken.show, presEntity,
                                             { text: presEpisode.text, kind: presEpisode.kind },
-                                            false, extraArtists, conf );
+                                            false, extraArtists, conf, {
+                        artist: "the channel's own name stands in the title, in front of \"presents\"",
+                        entity: "what the channel presents is numbered (" + presEpisode.text + "), and only a series is presented episode by episode"
+                    } );
                 }
             }
         }
@@ -3619,7 +3642,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             }
 
             // taken.show, not show: the title may spell an all-caps channel name better
-            return mdbTitle_result( date, taken.show, entity, null, promoMix, extraArtists, conf );
+            return mdbTitle_result( date, taken.show, entity, null, promoMix, extraArtists, conf, {
+                artist: "the channel's own name stands in the title - the uploader and the title say the same thing",
+                entity: promoMix
+                        ? "what is left of the title once the channel's name is out of it - it is no known show, venue or event, so the page is filed as a Promo Mix"
+                        : "what is left of the title once the channel's name is out of it"
+            } );
         }
 
         // 4c) The channel name is in the title and an episode number is too, but they stand in
@@ -3657,7 +3685,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
                         return mdbTitle_result( date, taken.show, numberedSeries,
                                                 { text: titleEpisode.text, kind: titleEpisode.kind },
-                                                false, extraArtists, conf );
+                                                false, extraArtists, conf, {
+                            artist: "the channel's own name stands in the title, and the episode number belongs to the other bit",
+                            entity: "the bit carrying the episode number (" + titleEpisode.text + ") is the series"
+                        } );
                     }
                 }
             }
@@ -3805,7 +3836,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                     rightScore = mdbTitle_seriesScore( rightPart );
 
                 if( leftPart && rightPart ) {
-                    var splitArtist, splitEntity, splitPromo;
+                    var splitArtist, splitEntity, splitPromo, splitWhy;
 
                     // A bit named as the guest artist is the artist, whatever else it looks
                     // like: "RAW-ARTES GUEST MIX" would otherwise read as a series of its own.
@@ -3827,6 +3858,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                         splitArtist = rightPart;
                         splitEntity = leftPart;
                         splitPromo = false;
+                        splitWhy = {
+                            artist: "\"by\" names them as who made it",
+                            entity: "\"by\" says that what stands in front of it is what was made"
+                        };
 
                     } else if( leftScore !== rightScore ) {
                         // the side that looks more like a series is the show. Told apart by
@@ -3835,6 +3870,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                         splitArtist = leftScore > rightScore ? rightPart : leftPart;
                         splitEntity = leftScore > rightScore ? leftPart : rightPart;
                         splitPromo = false;
+                        splitWhy = {
+                            artist: "the other half of the title looks more like a series name than this one",
+                            entity: "of the title's two halves this one looks more like a series name (a number, or a word like \"Podcast\")"
+                        };
                     } else {
                         // neither side looks like a series, so this is the order alone
                         splitArtist = leftPart;
@@ -3843,6 +3882,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                                      !mdbTitle_knownEntityType( known, splitEntity );
 
                         conf.drop( 10, "nothing in the title says which half is the artist - it was read in the order they stand" );
+                        splitWhy = {
+                            artist: "nothing in the title says which half is which, so the FIRST half was read as the artist",
+                            entity: "nothing in the title says which half is which, so the SECOND half was read as the show"
+                        };
                     }
 
                     logVar( "buildMixesdbTitle: title splits into artist/entity, channel not used", splitArtist + " | " + splitEntity );
@@ -3850,7 +3893,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                         conf.drop( 10, "\"(Promo Mix)\" is assumed - it is not a known show, venue or event" );
                     }
 
-                    return mdbTitle_result( date, splitArtist, splitEntity, null, splitPromo, extraArtists, conf );
+                    return mdbTitle_result( date, splitArtist, splitEntity, null, splitPromo, extraArtists, conf, splitWhy );
                 }
             }
         }
@@ -3976,7 +4019,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                           ( dated.taken ? "dated" : monthly.taken ? "monthly" : "numbered" ) +
                           " mix and names nobody, so the channel was taken as the artist" );
 
-            return mdbTitle_result( date, show, seriesName, null, seriesPromo, [], conf );
+            return mdbTitle_result( date, show, seriesName, null, seriesPromo, [], conf, {
+                artist: "the title is a numbered series and names nobody, so the channel was taken as who made it",
+                entity: "the title is the series name, with its number written behind it"
+            } );
         }
 
         // leftovers in the artist mean the title was not fully understood
@@ -4042,7 +4088,17 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         }
 
         // 7) assemble
-        return mdbTitle_result( date, artist, show, episode, false, extraArtists, conf );
+        // Where the show came from is the same fact unknownShowReason is built on, so the two
+        // are decided from the same flags - a reader must not be told the channel is mapped by
+        // one line and doubted for not being a known show by the other.
+        return mdbTitle_result( date, artist, show, episode, false, extraArtists, conf, {
+            artist: "what the title names once the date, the decoration and the show name are out of it",
+            entity: !show ? ""
+                    : isMappedChannel ? "the channel \"" + username + "\" is mapped to this show by hand (curated list, section 2)"
+                    : showFromEpisodeRule ? "the title reads \"<Show> <Word> <Number> - <Artist>\", so what stands in front of the number is the show"
+                    : ( taken.extended || taken.taken ) ? "the channel's own name stands in the title too"
+                    : "the title carries no show of its own, so the channel it was uploaded to was taken as the one it belongs to"
+        } );
 
     } catch( e ) {
         log( "buildMixesdbTitle FAILED: " + e );
@@ -4095,7 +4151,14 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
 // the three-group rule "Date - Artist - Entity" (see title_definitions.js). A 4th group is
 // never a richer title, it always means a part of the player title was misread - it
 // cannot be repaired blindly here, so it is flagged hard instead.
-function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists, conf ) {
+function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists, conf, picked ) {
+    // Why these names got their slot, straight from the branch that decided it - the reasoning
+    // panel prints it under the green chips, where "why S.U.N Festival and not MONUMENT?" is
+    // the question a reader is left with. One sentence per ROLE, not per name: a name is green
+    // because it became the page's artist or its entity, and that is what needs explaining.
+    // Written even when the title comes out empty - a branch that returned has decided.
+    if( mdbTitle_trace ) mdbTitle_trace.picks = picked || null;
+
     // wikiSafe first (what a wiki title may hold at all), then tidy (how MixesDB spells it),
     // then the joiners, which stand between NAMES and so only apply to the artist group
     artist = mdbTitle_normalizeJoiners( mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) ) ) );

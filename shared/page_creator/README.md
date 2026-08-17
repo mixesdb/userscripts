@@ -100,14 +100,18 @@ learning" line can name the step that went wrong:
 
    Behind every answer stands a **percentage**: how strongly that answer backs the name it was
    asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
-   found as `HATE Podcast` with 498 mixes is 95%; `Daniel` found as an artist category holding
-   a single mix is 45% – with 57,000 artist categories on the wiki, a short name almost always
-   finds somebody, and the mix count is what tells that apart from a real hit. A spelling the
-   wiki writes differently, a name it knows as several things at once, and a name a channel
-   rule overrules all cost as well
-4. **Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes,
-   each annotated with what the lookup knows: a known artist is confirmed with its mix count,
-   an unknown one is flagged as possibly new or misspelled
+   found as `HATE Podcast` is 95%; `Daniel` found as an artist category holding a single mix is
+   70% – with 57,000 artist categories on the wiki, a short name almost always finds somebody.
+   A spelling the wiki writes differently, a name it knows as several things at once, and a name
+   a channel rule overrules all cost as well. How full the category is barely counts: a category
+   with 500 mixes can be the wrong reading of the words just as easily as an empty one
+4. **Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes.
+   The artist and the entity line each start with **why that name got the slot** – `picked as
+   the entity: "S.U.N Festival" carries an event word, so the title reads as a set PLAYED at
+   it – it becomes the place behind the " @ ", and the channel is not used as a show on top of
+   that`. That is the line to quote in a report when the wrong name ended up in a slot: it
+   names the rule that put it there. Under it stands what the lookup knows – a known artist
+   confirmed with its mix count, an unknown one flagged as possibly new or misspelled
 
 The panel follows the title field: correct the title above and, after a short pause, the
 categories are re-read from it and any new names are looked up on MixesDB. It follows the
