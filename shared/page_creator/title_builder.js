@@ -415,22 +415,62 @@ function mdbTitle_takeRecordingMonth( text ) {
     return result;
 }
 
+// mdbTitle_takeTrailingYear
+// A four-digit year ending the text, taken off together with the blank and a dangling comma
+// in front of it. Returns { text, year }, year "" when the text does not end in one. Something
+// has to be left standing - a text that IS the year is not dated by it.
+// No rule of its own about WHEN a trailing year is a date rather than part of a name - the
+// callers say that (mdbTitle_takeRecordingYear, the chunk split's live mirror).
+function mdbTitle_takeTrailingYear( text ) {
+    var result = { text: String( text || "" ), year: "" },
+        m = /\s((?:19|20)\d{2})\s*$/.exec( result.text );
+
+    if( !m || !mdbTitle_trimSeparators( result.text.slice( 0, m.index ) ) ) return result;
+
+    result.text = result.text.slice( 0, m.index ).replace( /[\s,]+$/, "" );
+    result.year = m[1];
+
+    return result;
+}
+
+// mdbTitle_takeRecordingYear
+// A YEAR ending a live recording's PLACE LIST says when the gig was, not what the place is
+// called: "@ 3000Grad Festival, Utopia 2021" was played at Utopia, in 2021. Returns
+// { text, year }, year "" when the title does not date itself that way.
+//
+// Only behind the "," of a place group ("@ Event, Venue" / "@ Venue, City") - a venue or a
+// city is not named after a year, so a year trailing the LIST dates the recording. A year
+// glued to the ONE place name a title carries may be the edition's own name and stays where
+// it stands: "DJ Set @ What Happens Label Night 2026" keeps its 2026. See "The date of a
+// live recording" in title_definitions.js.
+function mdbTitle_takeRecordingYear( group ) {
+    var text = String( group || "" ),
+        at = text.lastIndexOf( "@" );
+
+    if( at === -1 || text.indexOf( ",", at ) === -1 ) return { text: text, year: "" };
+
+    return mdbTitle_takeTrailingYear( text );
+}
+
 // mdbTitle_liveDate
 // The date and the artist group of a LIVE recording whose player title carries no date of its
 // own. Such a set is uploaded whenever the recording is ready - days, months or years after it
-// was played - so the upload date is never the gig date and only its YEAR is claimed. A month
-// the place names refines that year, and leaves the place name as it goes.
+// was played - so the upload date is never the gig date and only its YEAR is claimed. A year
+// the place list names wins over the upload year - the title is the only source that dates
+// the gig - and a month the place names refines the year; both leave the place name as they go.
 // See "The date of a live recording" in title_definitions.js.
 function mdbTitle_liveDate( date, group ) {
-    var year = mdbTitle_yearOf( date ),
-        result = { date: date, group: group, month: 0 };
+    var result = { date: date, group: group, month: 0 },
+        withoutYear = mdbTitle_takeRecordingYear( group ),
+        year = withoutYear.year || mdbTitle_yearOf( date );
 
     if( !year ) return result;
 
-    var withoutMonth = mdbTitle_takeRecordingMonth( group );
+    var withoutMonth = mdbTitle_takeRecordingMonth( withoutYear.text );
 
     result.date = year;
     result.month = withoutMonth.month;
+    result.group = withoutYear.text;
 
     if( withoutMonth.month ) {
         result.date = year + "-" + mdbTitle_pad( withoutMonth.month );
@@ -1220,6 +1260,59 @@ function mdbTitle_applyJoiners( text ) {
     }
 
     return { text: text, read: read, dropped: dropped };
+}
+
+// mdbTitle_joinPlaceGroups
+// A MixesDB title carries " @ " ONCE: everything behind the joiner is one place group,
+// written "@ Event, Venue" and "@ Venue, City". A player title that says "@" twice names the
+// place in two steps - the festival and where it was held - so every "@" after the first
+// becomes the "," of that group:
+//     "Kernel Existence @ 3000Grad Festival @ Utopia" -> "... @ 3000Grad Festival, Utopia"
+// Runs after mdbTitle_applyJoiners, which wrote every "@" as " @ " - so a plain replace is
+// enough. A spelling rule, not a guess: both "@" were the uploader's own, only the second is
+// written the way MixesDB writes it. See "Only one \" @ \" per title" in title_definitions.js.
+function mdbTitle_joinPlaceGroups( text ) {
+    text = String( text || "" );
+
+    var first = text.indexOf( "@" );
+
+    if( first === -1 ) return text;
+
+    return text.slice( 0, first + 1 ) + text.slice( first + 1 ).replace( /\s*@\s*/g, ", " );
+}
+
+// mdbTitle_takeLivePa
+// The one HOW-marker MixesDB does write: "Live PA" says the act performed its own tracks
+// live, and a title carries it as "(Live PA)" behind the artist's name. Here the phrase is
+// only TAKEN OUT of the text, with the separator run in front of it - the marker and the name
+// it annotates are one group, like the live markers; mdbTitle_result writes it back behind
+// the finished artist. Returns { text, taken }.
+// Two spellings: a bracket holding nothing but the phrase, and the bare phrase ("Live PA",
+// "Live P.A.", "LivePA", any case). A bracket holding MORE than the phrase is left alone -
+// cutting the words out of it would leave the bracket unbalanced around a rest nobody
+// understood. A bare "live" is never this marker: without the "PA" it only says where, and
+// mdbTitleLiveAtWords owns it. See "Live PA" in title_definitions.js.
+function mdbTitle_takeLivePa( text ) {
+    var result = { text: String( text || "" ), taken: false },
+        phrase = "live[\\s\\-._]*p\\.?\\s*a\\.?",
+        lead = "\\s*(?:[" + mdbTitle_sepInner + "*]\\s*)*",
+        bracketed = new RegExp( lead + "[(\\[{]\\s*" + phrase + "\\s*[)\\]}]", "i" ),
+        bare = new RegExp( lead + "\\b" + phrase + "(?![a-z0-9])", "i" ),
+        m = bracketed.exec( result.text ) || bare.exec( result.text );
+
+    if( !m ) return result;
+
+    result.text = mdbTitle_cut( result.text, m.index, m[0].length );
+    result.taken = true;
+
+    return result;
+}
+
+// mdbTitle_livePaSaid
+// Whether a text says the phrase at all - the description is asked with this, since there the
+// phrase is not cut out, only read.
+function mdbTitle_livePaSaid( text ) {
+    return /\blive[\s\-._]*p\.?\s*a\.?(?![a-z0-9])/i.test( String( text || "" ) );
 }
 
 // mdbTitle_takeGuestMarker
@@ -2061,8 +2154,9 @@ function mdbTitle_splitArtists( artistField ) {
 
     for( i = 0; i < parts.length; i++ ) {
         // no episode stripping on an artist: "Asa 808" is a name, and the number belongs to it.
-        // The "(Promo Mix)" suffix is not part of the last one's name either.
-        name = mdbTitle_trimSeparators( String( parts[i] || "" ).replace( /\s*\(\s*Promo Mix\s*\)\s*$/i, "" ) );
+        // The "(Promo Mix)" behind the last one and the "(Live PA)" behind a name are markers,
+        // not part of the name - the category is the bare name.
+        name = mdbTitle_trimSeparators( String( parts[i] || "" ).replace( /\s*\(\s*(?:Promo Mix|Live\s*P\.?\s*A\.?)\s*\)\s*$/i, "" ) );
 
         if( name ) names.push( name );
     }
@@ -2084,14 +2178,17 @@ function mdbTitle_titleCategories( title ) {
 
     // A live recording has no third bit: what stands behind the "@" is the entity there. The
     // city behind the venue is not a category of its own - "... @ Wire Club, Leeds" is filed
-    // under Wire Club alone - so only the part in front of the comma is taken.
+    // under Wire Club alone - so only the part in front of the comma is taken. The FIRST
+    // place alone, even in an edited title still holding a second " @ ": a MixesDB title
+    // never carries the joiner twice, and the venue behind the festival is not what the page
+    // is filed under either.
     var atParts = artistField.split( /\s+@\s+/ );
 
     if( atParts.length > 1 ) {
         artistField = atParts[0];
 
         if( !entity ) {
-            entity = atParts.slice( 1 ).join( " @ " ).split( "," )[0];
+            entity = atParts[1].split( "," )[0];
         }
     }
 
@@ -2198,6 +2295,15 @@ var mdbTitle_channelSpelling = "";
 // in buildMixesdbTitle, next to mdbTitle_channelSpelling and for the same reason: Normal Case
 // runs deep inside the parser and cannot be handed the channel through every caller.
 var mdbTitle_channelInitials = "";
+
+// Whether this upload says the set was a LIVE PA - the act performing its own tracks - and
+// where it said so. Set once per suggestion in buildMixesdbTitle, read in mdbTitle_result,
+// which writes " (Live PA)" behind the artist's name. Two flags because the two sources carry
+// different weight: the TITLE saying it is the uploader labelling this very set, the
+// DESCRIPTION saying it may describe another act on the bill - so the description only counts
+// on a title that reads as a live recording, and it costs confidence there.
+var mdbTitle_livePaTitle = false;
+var mdbTitle_livePaDescription = false;
 
 // mdbTitle_isChannelInitials
 // Whether an all-caps word is the channel abbreviating itself: "IA" on "Illegal Alien Records".
@@ -2668,6 +2774,10 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
         }
     }
 
+    // the same Live PA take the parse runs (1a0): the phrase is written back behind the
+    // artist at the exit, so it is no unit of the title and no lookup candidate
+    text = mdbTitle_takeLivePa( text ).text;
+
     // the same label-credit drop the parse runs (1a), while the brackets are still brackets
     var labels = mdbTitle_dropLabelBrackets( text, description );
 
@@ -2678,13 +2788,44 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
     text = labels.text;
 
     var unbracketed = mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ),
-        chunks = mdbTitle_traceChunks( unbracketed ),
-        // the parse's 3h guard, mirrored: only a NON-live title drops its place lists - on a
-        // live one they are the venue's city and country, which MixesDB writes. Whether the
-        // parse will read the title as live is what applyJoiners decides ("Live at" -> "@"),
-        // so it is asked rather than re-implemented here.
-        live = mdbTitle_applyJoiners( unbracketed ).text.indexOf( "@" ) !== -1,
-        kept = [];
+        // The units are the units the PARSE works with, so the joiners run first: a live
+        // marker is gone ("live@3000Grad Festival" holds no chunk "live"), an "at" in front
+        // of a place is the " @ " it will be read as. Also what the parse's 3h guard needs:
+        // only a NON-live title drops its place lists - on a live one they are the venue's
+        // city and country, which MixesDB writes.
+        joined = mdbTitle_applyJoiners( unbracketed ).text,
+        live = joined.indexOf( "@" ) !== -1;
+
+    // The live-date mirror: what mdbTitle_liveDate takes off the END of a live group - the
+    // gig year behind the place list, a trailing month - dates the recording and is no part
+    // of the last chunk. The year's guard is the parse's own rule, asked over the joined
+    // place group; only the raw strip runs on the pre-join text, so the "@"s are still there
+    // to split at below.
+    if( live ) {
+        if( mdbTitle_takeRecordingYear( mdbTitle_joinPlaceGroups( joined ) ).year ) {
+            joined = mdbTitle_takeTrailingYear( joined ).text;
+        }
+
+        joined = mdbTitle_takeRecordingMonth( joined ).text;
+    }
+
+    // every " @ " separates: the name in front of the joiner and each place behind it are
+    // units of their own - "Kernel Existence @ 3000Grad Festival @ Utopia" is three chunks,
+    // and each is asked about on its own
+    var pieces = mdbTitle_traceChunks( joined ),
+        chunks = [],
+        kept = [],
+        p, part, atParts;
+
+    for( i = 0; i < pieces.length; i++ ) {
+        atParts = pieces[i].split( /\s*@\s*/ );
+
+        for( p = 0; p < atParts.length; p++ ) {
+            part = mdbTitle_trimSeparators( atParts[p] );
+
+            if( part ) chunks.push( part );
+        }
+    }
 
     for( i = 0; i < chunks.length; i++ ) {
         if( !live && mdbTitle_isLocationChunk( chunks[i] ) ) {
@@ -2716,6 +2857,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_channelInitials = "";
     // for mdbTitle_result, which canonicalizes the finished groups against the wiki
     mdbTitle_knownNow = known || null;
+    mdbTitle_livePaTitle = false;
+    mdbTitle_livePaDescription = false;
 
     try {
         // "_" is a space on MediaWiki and a word character to a regex, so it is written out
@@ -2764,6 +2907,23 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( rest !== beforeNoise ) {
             mdbTitle_traceStep( "Decoration removed", beforeNoise + " -> " + rest, null, [ "mdbTitleNoise" ] );
+        }
+
+        // 1a0) "Live PA" - the one marker of HOW a set was played that MixesDB writes. Taken
+        // out here, before the label test reads its bracket and before 1b makes it a chunk;
+        // mdbTitle_result writes it back behind the finished artist as " (Live PA)". The
+        // DESCRIPTION saying the phrase counts too, but only on a title that comes out as a
+        // live recording - see mdbTitle_livePaTitle above mdbTitle_result.
+        var livePa = mdbTitle_takeLivePa( rest );
+
+        if( livePa.taken ) {
+            logVar( "buildMixesdbTitle: Live PA marker taken", rest + " -> " + livePa.text );
+            mdbTitle_traceStep( "Live PA marker read", rest + " -> " + livePa.text );
+            mdbTitle_livePaTitle = true;
+            rest = livePa.text;
+        } else if( mdbTitle_livePaSaid( description ) ) {
+            logVar( "buildMixesdbTitle: the description says Live PA", true );
+            mdbTitle_livePaDescription = true;
         }
 
         // 1a) a bracket crediting the artist's label(s) - "Tooker (SONARA / Crosstown Rebels)".
@@ -2971,6 +3131,18 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                           "and the title names no venue or event to put behind an \"@\"" );
             mdbTitle_traceStep( "Live marker dropped", "\"" + joined.dropped + "\" says how the set was played, not where",
                 null, [ "mdbTitleLiveAtWords" ] );
+        }
+
+        // 3c2) A second "@" never survives: everything behind the joiner is ONE place group,
+        // "@ Event, Venue" - see mdbTitle_joinPlaceGroups. A spelling rule, so it costs
+        // nothing: both "@" were the uploader's own.
+        var onePlace = mdbTitle_joinPlaceGroups( rest );
+
+        if( onePlace !== rest ) {
+            logVar( "buildMixesdbTitle: further \"@\" joined into the place group", rest + " -> " + onePlace );
+            mdbTitle_traceStep( "Only one \"@\" per title", rest + " -> " + onePlace );
+            rest = onePlace;
+            mdbTitle_traceCleaned( rest );
         }
 
         // A title that is nothing but the place ("Live at Docklands") names no artist, so the
@@ -3718,6 +3890,33 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
             artist = mdbTitle_canonicalArtists( mdbTitle_knownNow, artist );
         }
         entity = mdbTitle_canonicalName( mdbTitle_knownNow, entity, mdbTitle_entityTypes );
+    }
+
+    // "Live PA" said by the title or the description is written behind the artist's NAME, the
+    // way MixesDB spells it: "Kernel Existence (Live PA) @ 3000Grad Festival". Only behind
+    // ONE name - with several artists only the uploader knows whose set it was. The
+    // description's word counts on a live recording alone (the phrase there may describe
+    // another act on the bill) and stays a guess worth a drop; the title's own marker was
+    // read, not guessed, and costs nothing. See "Live PA" in title_definitions.js.
+    var livePa = mdbTitle_livePaTitle ||
+                 ( mdbTitle_livePaDescription && artist.indexOf( "@" ) !== -1 );
+
+    if( livePa && artist && !/\(\s*live\s*p\.?\s*a\.?\s*\)/i.test( artist ) ) {
+        var livePaAt = artist.indexOf( "@" ),
+            livePaName = ( livePaAt === -1 ? artist : artist.slice( 0, livePaAt ) ).replace( /\s+$/, "" );
+
+        if( livePaName && mdbTitle_splitArtists( livePaName ).length > 1 ) {
+            if( mdbTitle_livePaTitle ) {
+                conf.drop( 3, "the title says \"Live PA\" but names several artists - put \" (Live PA)\" behind the right name by hand" );
+            }
+        } else if( livePaName ) {
+            artist = livePaAt === -1 ? livePaName + " (Live PA)"
+                                     : livePaName + " (Live PA) " + artist.slice( livePaAt );
+
+            if( !mdbTitle_livePaTitle ) {
+                conf.drop( 5, "\"(Live PA)\" was read out of the description - check that it describes this set's act" );
+            }
+        }
     }
 
     // " (Promo Mix)" only where the name does not already say it - the page still goes into

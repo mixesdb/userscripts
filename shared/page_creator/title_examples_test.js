@@ -58,10 +58,14 @@ for( const example of mdbTitleExamples ) {
 
     // A case may also state the artist categories the page has to be filed under - one per
     // artist, which is what a joiner between two names decides. Read off the built title, the
-    // same way the "Create" link reads it off the (editable) input.
-    const artists = mdbTitle_titleCategories( got.title ).artists,
+    // same way the "Create" link reads it off the (editable) input. expectEntity guards the
+    // entity category the same way - a live title is filed under its FIRST place alone.
+    const categories = mdbTitle_titleCategories( got.title ),
+          artists = categories.artists,
           artistsOk = !example.expectArtists ||
-                      artists.join( " | " ) === example.expectArtists.join( " | " );
+                      artists.join( " | " ) === example.expectArtists.join( " | " ),
+          entityOk = !( "expectEntity" in example ) ||
+                     categories.entity === example.expectEntity;
 
     // And the chunks of the SHARED split (mdbTitle_titleChunks) - the units the report panel
     // shows and the lookup candidates come from. What a case states here is what may be ASKED
@@ -72,10 +76,10 @@ for( const example of mdbTitleExamples ) {
           chunksOk = !example.expectChunks ||
                      chunks.join( " | " ) === example.expectChunks.join( " | " );
 
-    if( !titleOk || !artistsOk || !chunksOk ) failed++;
+    if( !titleOk || !artistsOk || !entityOk || !chunksOk ) failed++;
 
     console.log(
-        ( titleOk && artistsOk && chunksOk ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk && entityOk && chunksOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
         "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
@@ -83,6 +87,10 @@ for( const example of mdbTitleExamples ) {
         ( example.expectArtists
             ? "\n              " + ( artistsOk ? "" : "got      " ) + "categories " + JSON.stringify( artists ) +
               ( artistsOk ? "" : "\n              expected   categories " + JSON.stringify( example.expectArtists ) )
+            : "" ) +
+        ( "expectEntity" in example
+            ? "\n              " + ( entityOk ? "" : "got      " ) + "entity " + JSON.stringify( categories.entity ) +
+              ( entityOk ? "" : "\n              expected   entity " + JSON.stringify( example.expectEntity ) )
             : "" ) +
         ( example.expectChunks
             ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +
