@@ -30,18 +30,22 @@ gets copied or written onto a page, not the version that was scraped. While you 
 grows and shrinks with its lines, so the whole tracklist stays visible without scrolling inside
 the box.
 
-### Feedback while you type
+### Feedback while you type (switchable, off by default)
 
-The feedback above the box follows what is in it: after a short typing pause – and right away
-when you press Enter or click somewhere in the box – the tracklist is checked and the colour and
-the notes answer the text as it stands. Useful while writing one out, since a line that is still
-missing its artist is flagged as you go.
+**auto-check off** in the feedback box is a switch. Click it and the feedback starts following
+what you type: after a short typing pause – and right away when you press Enter or click
+somewhere in the box – the tracklist is checked, and the colour and the notes answer the text as
+it stands. Useful while writing a tracklist out, since a line still missing its artist is
+flagged as you go. Click it again to switch it back off.
 
-Your text is never touched while you are typing in the box, only the feedback is. A line you are
-still in the middle of will often read as a warning – that is the check being honest about an
-unfinished line, not a problem with the tracklist.
+It is off by default because a half-written line honestly reads as a warning: the feedback goes
+red mid-line and back on the next word, which is help while writing and noise while fixing one
+cue in a finished tracklist. The choice is remembered per site.
 
-Behind the feedback sits a counter of the Tracklist Editor requests the page has made, next to
+Your text is never rewritten while you are typing in the box – only the feedback changes.
+Formatting still happens when you leave the box or click **Create**.
+
+Next to the switch, a counter of the Tracklist Editor requests the page has made, in front of
 the API's own row count. Nothing is asked twice about the same text.
 
 ### The box updates itself when you leave it
@@ -79,8 +83,10 @@ the caret and scroll the page to the box.
 - The first formatting request per tracklist is synchronous, so a very long tracklist holds the
   page up briefly while it is formatted. The checks while typing and the re-check after an edit
   are not – there the box only greys out while the editor thinks.
-- The check while typing judges the text exactly as it stands, so a half-written line reads as a
-  warning until it is finished.
+- With **auto-check** on, the text is judged exactly as it stands, so a half-written line reads
+  as a warning until it is finished.
+- The **auto-check** setting is stored per site, so switching it on for one site does not switch
+  it on for the others.
 - Only the separator, the numbering and the cue position are normalised before the API sees the
   text. A tracklist written in a shape the API cannot read at all comes back red rather than
   fixed.

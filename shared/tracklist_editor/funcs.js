@@ -113,11 +113,12 @@ function fixTLbox( feedback, target, focus=true ) {
  *
  * - while typing, the rows attribute follows the line count, so the box grows and shrinks
  *   with its text instead of scrolling inside itself
- * - while typing, the FEEDBACK follows too: a debounced live check (one request per typing
- *   pause, the web-standard debounce) asks the API about the text as it stands and re-colours
- *   the box and the printed feedback - but NEVER touches the text and NEVER refreshes
- *   mdbTlboxKnown. The caret is in the box (a rewrite would move it), and mdbTlboxKnown is
- *   what tells the blur update the text still needs formatting.
+ * - while typing, the FEEDBACK can follow too, when the reader switched the live check ON
+ *   (OFF by default - see tlBoxAutoUpdate): a debounced check (one request per typing pause,
+ *   the web-standard debounce) asks the API about the text as it stands and re-colours the box
+ *   and the printed feedback - but NEVER touches the text and NEVER refreshes mdbTlboxKnown.
+ *   The caret is in the box (a rewrite would move it), and mdbTlboxKnown is what tells the
+ *   blur update the text still needs formatting.
  * - when an EDITED box loses focus, the text goes through the Tracklist Editor API once more:
  *   the box greys out (mdb-tlBox-updating, styled in tracklistEditor_copy.css), and the answer
  *   replaces the text and re-colours the feedback - exactly as if the tracklist had arrived
@@ -219,31 +220,59 @@ function tlApiCountCall( type ) {
 }
 
 // tlBoxShowApiCount
-// Puts the chip into every feedback box on the page, or refreshes the number in the one that
-// already has it. Inserted AFTER the rows chip, which puts it visually in FRONT of it: both
-// float right, so the later element sits further left.
+// Puts our two chips into every feedback box on the page - the call counter and the switch
+// that decides whether the box checks while typing - or refreshes the ones already there.
+// Inserted AFTER the rows chip, which puts them visually in FRONT of it: they all float right,
+// so the later element sits further left. Called after every feedback render (the box is
+// rebuilt from the API's HTML each time) and after every counted call.
 function tlBoxShowApiCount() {
-    var text = tlApiCalls + ( tlApiCalls === 1 ? " API call" : " API calls" );
+    var count = tlApiCalls + ( tlApiCalls === 1 ? " API call" : " API calls" ),
+        on = tlBoxAutoUpdate();
 
     $("#tlEditor-feedback").each(function() {
         var feedbackBox = $(this),
-            chip = feedbackBox.find( ".mdb-tlEditor-apiCalls" );
+            rows = feedbackBox.find( "#tlEditor-feedback-rows" ),
+            countChip = feedbackBox.find( ".mdb-tlEditor-apiCalls" ),
+            autoChip = feedbackBox.find( ".mdb-tlEditor-autoUpdate" );
 
-        if( !chip.length ) {
-            chip = $("<div>")
+        if( !countChip.length ) {
+            countChip = $("<div>")
                 .addClass( "mdb-tlEditor-apiCalls mdb-element floatR" )
-                .attr( "title", "Tracklist Editor API calls made on this page.\nThe box asks after a typing pause, on Enter, on a click into it, when it loses focus and on \"Create\" - and never twice about the same text." );
+                .attr( "title", "Tracklist Editor API calls made on this page.\nThe box always asks when it loses focus after an edit and on \"Create\" - and never twice about the same text." );
 
-            var rows = feedbackBox.find( "#tlEditor-feedback-rows" );
-
-            if( rows.length ) {
-                rows.after( chip );
-            } else {
-                feedbackBox.prepend( chip );
-            }
+            if( rows.length ) rows.after( countChip ); else feedbackBox.prepend( countChip );
         }
 
-        chip.text( text );
+        countChip.text( count );
+
+        if( !autoChip.length ) {
+            autoChip = $("<div>")
+                .addClass( "mdb-tlEditor-autoUpdate mdb-element floatR hand" )
+                .on( "click", function() {
+                    var nowOn = !tlBoxAutoUpdate();
+
+                    tlBoxSetAutoUpdate( nowOn );
+                    tlBoxShowApiCount();
+
+                    // Switched on with something already typed: check it now rather than
+                    // waiting for the next keystroke - the click asked for an answer. Costs
+                    // nothing when the text is the one the feedback already describes.
+                    if( nowOn ) {
+                        $("textarea[data-mdb-tlbox-live]").each(function() {
+                            tlBoxTypeUpdate( $(this) );
+                        });
+                    }
+                });
+
+            countChip.after( autoChip );
+        }
+
+        autoChip
+            .toggleClass( "mdb-tlEditor-autoUpdate-on", on )
+            .attr( "title", on
+                ? "Checking while you type is ON: after a typing pause - and at once on Enter or a click in the box - the tracklist is checked and this feedback follows it. Your text is never rewritten while typing.\nClick to switch off."
+                : "Checking while you type is OFF: the feedback only updates when you leave the box or click \"Create\".\nClick to switch on - useful while writing a tracklist out, at one API call per typing pause." )
+            .text( on ? "auto-check on" : "auto-check off" );
     });
 }
 
@@ -254,10 +283,53 @@ function tlBoxClearFeedback( tl ) {
     tl.closest( "#tlEditor, .tlEditor" ).removeClass( tlEditorFeedbackClasses );
 }
 
+/*
+ * The live check switch
+ *
+ * OFF by default, and deliberately so: checking while typing means a request per typing pause
+ * and a box that judges half-written lines - a line missing its artist IS a warning until it
+ * is finished, so the feedback goes red mid-line and back on the next word. Useful when
+ * writing a tracklist out by hand, noise when fixing one cue in a finished one. The reader
+ * decides, per site, by clicking the chip in the feedback box.
+ *
+ * localStorage, so the choice survives a reload: per site, since that is what localStorage is
+ * (switching it on for TrackId.net leaves SoundCloud alone), and in a try/catch, since a
+ * browser with storage blocked must not take the box down with it. window.mdbTlBoxAutoUpdate
+ * in a site script sets the default for a site whose reader has not chosen yet.
+ */
+var tlBoxAutoUpdateKey = "mdb-tlBox-autoUpdate";
+
+// tlBoxAutoUpdate
+function tlBoxAutoUpdate() {
+    try {
+        var stored = localStorage.getItem( tlBoxAutoUpdateKey );
+
+        if( stored !== null ) return stored === "1";
+    } catch( e ) {
+        log( "tlBoxAutoUpdate: localStorage is not readable (" + e.message + ") - taking the default." );
+    }
+
+    return window.mdbTlBoxAutoUpdate === true;
+}
+
+// tlBoxSetAutoUpdate
+function tlBoxSetAutoUpdate( on ) {
+    try {
+        localStorage.setItem( tlBoxAutoUpdateKey, on ? "1" : "0" );
+    } catch( e ) {
+        log( "tlBoxSetAutoUpdate: could not remember the choice (" + e.message + ") - it holds for this page only." );
+    }
+
+    log( "tlBoxSetAutoUpdate: checking while typing is now " + ( on ? "ON" : "OFF" ) + "." );
+}
+
 // tlBoxTypeUpdate
 // The debounced live check behind the input handler above. No grey animation - the reader is
 // typing, and a box that keeps flashing under the caret is noise, not feedback.
 function tlBoxTypeUpdate( tl ) {
+    // read at call time, not at binding time - the switch may be flipped mid-edit
+    if( !tlBoxAutoUpdate() ) return;
+
     var sent = tl.val();
 
     if( $.trim( sent ) === "" ) {
