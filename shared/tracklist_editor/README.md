@@ -34,14 +34,12 @@ the box.
 
 **Live updates** in the top right of the feedback box is a switch. Flip it on and the box keeps
 up with you while you type: after a short typing pause – and right away when you press Enter or
-click somewhere in the box – the tracklist is checked, the feedback answers the text as it
-stands, and the lines are formatted.
+click somewhere in the box – the tracklist is checked and formatted, and the feedback answers
+the text as it stands. Numbering typed in front of a track disappears as you go, dashes are
+written the way MixesDB writes them, and the cursor stays where you were typing.
 
-**The line you are typing on is never touched**, only the ones around it. That is what keeps the
-cursor exactly where you left it: your own line stays character for character as you typed it,
-and it gets formatted like the rest the moment you leave the box. If the formatter would merge
-or drop lines, nothing is rewritten at all until then – there would be no honest place to put
-the cursor.
+The feedback box itself only changes when the answer changes, so a pause that confirms what is
+already on screen is completely silent.
 
 It is off by default because a half-written line honestly reads as a warning: the feedback goes
 red mid-line and back on the next word, which is help while writing a tracklist out and noise
@@ -86,8 +84,8 @@ the caret and scroll the page to the box.
   page up briefly while it is formatted. The checks while typing and the re-check after an edit
   are not – there the box only greys out while the editor thinks.
 - With **Live updates** on, the text is judged exactly as it stands, so a half-written line
-  reads as a warning until it is finished, and the line under the cursor stays unformatted until
-  you leave the box.
+  reads as a warning until it is finished – and a line can be reformatted under you mid-sentence,
+  which is the price of seeing the finished shape as you write.
 - The **Live updates** setting is stored per site, so switching it on for one site does not
   switch it on for the others.
 - Only the separator, the numbering and the cue position are normalised before the API sees the
