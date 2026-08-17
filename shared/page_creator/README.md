@@ -23,6 +23,15 @@ looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venu
 read as exactly that – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`).
 
+A set that was played somewhere comes out the way MixesDB writes a live recording: one `@` and
+one place group behind it. `Live at`, `live@` and a typed `@` all read the same, and a second
+`@` folds into the place group – `live@3000Grad Festival @Utopia` becomes
+`@ 3000Grad Festival, Utopia`, filed under the first place alone. Such a title claims only the
+year, and a year the place list itself names wins over the upload year and leaves the list
+(`… @Utopia 2021` becomes a `2021 - …` title ending in `, Utopia`). The one played-how marker
+that stays is `Live PA`: said by the title – or by the description of a live recording – it is
+written as `(Live PA)` behind the artist's name, while the artist category stays the bare name.
+
 The row is meant for mixes that are **not on MixesDB yet**, and only for recordings of at
 least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
 [Toolkit](../toolkit/)'s answer, so the row shows up once the toolkit box next to it
@@ -50,8 +59,10 @@ Above the box, a **reasoning panel** shows how the suggestion was built, so the 
 learning" line can name the step that went wrong:
 
 1. **Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
-   a separator, at a bracket, and at the `by` in front of a numbered series (`Guestroom 779 by
-   Sascha Sibler` is two chunks) – the same units the lookups are sent for. What the parse
+   a separator, at a bracket, at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
+   is the chunks `Kernel Existence | 3000Grad Festival | Utopia` – the live marker is no
+   chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
+   two chunks) – the same units the lookups are sent for. What the parse
    removes outright is shown in red on a `Removed:` line instead – a bracket crediting
    the artist's labels (`Tooker (SONARA / Crosstown Rebels)`) or a list of places saying where
    the artist is from – with the reason spelled out behind it; those names are never sent to

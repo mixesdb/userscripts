@@ -22,7 +22,9 @@
  * expectArtists is optional and holds the ARTIST CATEGORIES the finished title has to be filed
  * under, as reported. Only worth writing down where the split is the point of the case - a
  * title naming two artists, a name that must NOT be split - since for a single artist it only
- * repeats the middle group of expect.
+ * repeats the middle group of expect. expectEntity is its sibling for the ENTITY category,
+ * worth writing down where reading it off the title is the point - a live title's first
+ * place, say.
  *
  * Why a case matters is not written per case either: it is in the rule it belongs to, in
  * title_definitions.js. A case that fails sends you there.
@@ -372,6 +374,21 @@ var mdbTitleExamples = [
         // channel is nowhere in the title
         expectArtists: [ "Sascha Sibler" ],
         expect: "2022-06-15 - Sascha Sibler - Guestroom 779"
+    },
+    {
+        url: "https://soundcloud.com/kernelexistence/kernel-existence-live3000grad-festival-utopia-2021",
+        title: "Kernel Existence - live@3000Grad Festival @Utopia 2021",
+        channel: "kernel existence",
+        date: "2021-08-10",
+        // a second "@" never survives into the title: the festival and the venue it was held
+        // at are ONE place group, joined with ",". The chunks still separate at every "@",
+        // the year behind the place list is the gig year (the date group carries it), and the
+        // entity category is the FIRST place alone. The bare "live" marks nothing - it is no
+        // "Live PA"
+        expectArtists: [ "Kernel Existence" ],
+        expectEntity: "3000Grad Festival",
+        expectChunks: [ "Kernel Existence", "3000Grad Festival", "Utopia" ],
+        expect: "2021 - Kernel Existence @ 3000Grad Festival, Utopia"
     },
 
     // Reported before the URLs were kept
@@ -855,5 +872,33 @@ var mdbTitleExamples = [
         channel: "Some Podcast",
         date: "2026-08-05",
         expect: "2026-08-05 - CAN - Some Podcast 12"
+    },
+    {
+        // the marker MixesDB DOES write for how a set was played: "Live PA" - the act
+        // performing its own tracks - goes behind the artist's name. A bare "live" never
+        // becomes this, see the reported "live@3000Grad Festival" above
+        title: "Kernel Existence - Live PA @ 3000Grad Festival",
+        channel: "kernel existence",
+        date: "2021-08-10",
+        expectArtists: [ "Kernel Existence" ],
+        expect: "2021 - Kernel Existence (Live PA) @ 3000Grad Festival"
+    },
+    {
+        // the phrase found in the DESCRIPTION instead of the title - counts on a live
+        // recording, with a confidence drop, since it may describe another act on the bill
+        title: "Kernel Existence @ 3000Grad Festival",
+        channel: "kernel existence",
+        date: "2021-08-10",
+        description: "Our live PA from the festival's opening night.",
+        expect: "2021 - Kernel Existence (Live PA) @ 3000Grad Festival"
+    },
+    {
+        // the same phrase in the description of a NON-live title marks nothing: no "@" means
+        // no "(Live PA)" - the description's word alone is too little off a place
+        title: "Some Artist - Some Mix",
+        channel: "Some Artist",
+        date: "2026-08-05",
+        description: "More live PA dates coming soon.",
+        expect: "2026-08-05 - Some Artist - Some Mix"
     }
 ];

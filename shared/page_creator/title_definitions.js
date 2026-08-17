@@ -249,6 +249,18 @@ var mdbTitlePromoMixImpliedWords = [
  * The year there comes from the UPLOAD DATE, not from the "2026" the event writes into its own
  * name - that one stays where it stands, as part of the name.
  *
+ * A year behind the place LIST is the other case. "@ Event, Venue" and "@ Venue, City" name
+ * places, and a place is not named after a year - so a year trailing the list is the gig
+ * year: it beats the upload year (the title is the only source that dates the gig) and it
+ * leaves the title, since the date group carries it from then on:
+ *
+ *     "Kernel Existence - live@3000Grad Festival @Utopia 2021"  (uploaded 2021-08-10)
+ *     ->  2021 - Kernel Existence @ 3000Grad Festival, Utopia
+ *
+ * The "," is what tells the two apart: a year glued to the ONE place name a title carries
+ * ("... Label Night 2026") may be the edition's own name and stays, a year behind the comma
+ * of the place list dates the recording (mdbTitle_takeRecordingYear in title_builder.js).
+ *
  * The "@" is what says it, whichever rule put it there: the words of mdbTitleLiveAtWords, the
  * mdbTitleVenueConnectors, an event name (mdbTitleEventWords), a venue MixesDB knows, or an "@"
  * the uploader typed. All of them mean the same thing, so they get the same date.
@@ -955,6 +967,59 @@ var mdbTitleLiveAtWords = [
     "dj mix",
     "live"
 ];
+
+
+/*
+ * Only one " @ " per title
+ *
+ * A MixesDB title writes the joiner ONCE: everything behind it is one place group, joined
+ * with "," - "@ Event, Venue", "@ Venue, City", "@ WE, Dolton Expo Center, Chicago". A player
+ * title saying "@" twice names the place in two steps - the festival and where it was held -
+ * so every "@" after the first becomes the "," of that group (mdbTitle_joinPlaceGroups in
+ * title_builder.js):
+ *
+ *     "Kernel Existence - live@3000Grad Festival @Utopia 2021"  (channel "kernel existence")
+ *     WRONG: 2021 - Kernel Existence @ 3000Grad Festival @ Utopia 2021
+ *     RIGHT: 2021 - Kernel Existence @ 3000Grad Festival, Utopia
+ *
+ * A spelling rule, not a guess - both "@" were the uploader's own, only the second is written
+ * the way MixesDB writes it - so it costs no confidence. The categories read the same rule
+ * from the other end: the ENTITY of a live title is the FIRST place alone ("3000Grad
+ * Festival"), never the joined list - the venue behind the comma is not what the page is
+ * filed under (mdbTitle_titleCategories).
+ *
+ * The chunk split says the same thing in units: every " @ " separates, so the title above is
+ * the chunks "Kernel Existence | 3000Grad Festival | Utopia" - each asked about on its own,
+ * never a glued "3000Grad Festival @ Utopia". (The year is gone from the last one because
+ * the date group claimed it - see "The date of a live recording" above.)
+ */
+
+
+/*
+ * "Live PA"
+ *
+ * The words of mdbTitleLiveAtWords say only that a set was played somewhere, and go with the
+ * joiner. "Live PA" says MORE - the act performed its own tracks live, not a DJ set - and
+ * that MixesDB DOES write, as "(Live PA)" behind the artist's name:
+ *
+ *     "Kernel Existence - Live PA @ 3000Grad Festival"
+ *     ->  2021 - Kernel Existence (Live PA) @ 3000Grad Festival
+ *
+ * A bare "live" is never this marker: "live@3000Grad Festival" says where, not how, and the
+ * word goes exactly like "Live at". Only the phrase itself counts - "Live PA", "Live P.A.",
+ * "LivePA", bracketed or bare, in any case (mdbTitle_takeLivePa in title_builder.js) - and it
+ * is written behind the ONE artist name. With several artists nothing is written and the
+ * confidence says so: only the uploader knows whose set it was.
+ *
+ * The DESCRIPTION may say the phrase where the title does not, and it counts there too - but
+ * only on a title that reads as a live recording (an "@"), and it costs confidence: a
+ * description's "Live PA" can describe another act on the bill, so the reader is told to
+ * check. On anything else - a podcast episode, a promo mix - the description's word alone
+ * marks nothing.
+ *
+ * The artist CATEGORY stays the bare name either way: "Kernel Existence (Live PA)" is filed
+ * under Kernel Existence (mdbTitle_splitArtists).
+ */
 
 
 /*

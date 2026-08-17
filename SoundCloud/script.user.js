@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.9
+// @version      2026.08.17.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,8 +12,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_59
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_25
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_31
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_26
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_31
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
@@ -1836,6 +1836,20 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.17.10
+ * From the "Kernel Existence - live@3000Grad Festival @Utopia 2021" report
+ * (title_definitions.js v_26, title_builder.js v_32): a MixesDB title carries " @ " once -
+ * every "@" after the first folds into the place group as its "," ("@ 3000Grad Festival,
+ * Utopia"), the entity category is the FIRST place alone, and a year trailing that place
+ * list is the gig year: it wins over the upload year and leaves the title, since the date
+ * group carries it from then on. The chunk split runs the joiners first and separates at
+ * every "@", so a live marker is no chunk and each place is looked up on its own
+ * ("Kernel Existence | 3000Grad Festival | Utopia").
+ * New: "Live PA", the one how-it-was-played marker MixesDB writes. Said by the title - or
+ * by the description of a live recording - it comes out as "(Live PA)" behind the artist's
+ * name, while the artist category stays the bare name. A bare "live"/"live@" still marks
+ * nothing.
  *
  * 2026.08.17.3
  * The shared chunk split (mdbTitle_titleChunks, title_builder.js v_26) now removes what the
