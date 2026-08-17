@@ -30,13 +30,28 @@ gets copied or written onto a page, not the version that was scraped. While you 
 grows and shrinks with its lines, so the whole tracklist stays visible without scrolling inside
 the box.
 
+### Feedback while you type
+
+The feedback above the box follows what is in it: after a short typing pause – and right away
+when you press Enter or click somewhere in the box – the tracklist is checked and the colour and
+the notes answer the text as it stands. Useful while writing one out, since a line that is still
+missing its artist is flagged as you go.
+
+Your text is never touched while you are typing in the box, only the feedback is. A line you are
+still in the middle of will often read as a warning – that is the check being honest about an
+unfinished line, not a problem with the tracklist.
+
+Behind the feedback sits a counter of the Tracklist Editor requests the page has made, next to
+the API's own row count. Nothing is asked twice about the same text.
+
 ### The box updates itself when you leave it
 
 Click or tab out of an edited box and the text goes through the Tracklist Editor once more: the
 box greys out for a moment, then shows the tracklist as the editor returns it – re-formatted
-where needed – and the printed feedback and its colour answer the new content. Leaving the box
-without having changed anything does nothing, and a box you are already typing in again when
-the answer arrives is left alone.
+where needed – and the printed feedback and its colour answer the new content. This is the step
+that rewrites, which is why it waits until you have left the box. Leaving the box without having
+changed anything does nothing, and a box you are already typing in again when the answer arrives
+is left alone.
 
 On pages with the [Page creator](../page_creator/), the `Tracklist:` category of the page the
 **Create** link would start follows the fresh verdict, and so does the reasoning panel's
@@ -62,8 +77,10 @@ the caret and scroll the page to the box.
 ## Known limitations
 
 - The first formatting request per tracklist is synchronous, so a very long tracklist holds the
-  page up briefly while it is formatted. The re-check after an edit is not – there the box only
-  greys out while the editor thinks.
+  page up briefly while it is formatted. The checks while typing and the re-check after an edit
+  are not – there the box only greys out while the editor thinks.
+- The check while typing judges the text exactly as it stands, so a half-written line reads as a
+  warning until it is finished.
 - Only the separator, the numbering and the cue position are normalised before the API sees the
   text. A tracklist written in a shape the API cannot read at all comes back red rather than
   fixed.

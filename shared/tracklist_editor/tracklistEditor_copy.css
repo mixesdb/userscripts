@@ -223,3 +223,17 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     padding: .2em .4em .2em .3em;
     border-radius: .2em;
 }
+
+/* The API call counter (tlBoxShowApiCount in funcs.js), sitting in front of the rows chip.
+ * Shaped like it but hollow and quieter: it is our own bookkeeping, not something the
+ * Tracklist Editor said about this tracklist. */
+.mdb-tlEditor-apiCalls {
+    color: #aaa;
+    font-size: .85em;
+    margin-top: -.2em;
+    margin-right: .4em;
+    padding: .2em .4em .2em .3em;
+    border: 1px solid hsla(0, 0%, 87%, 0.7);
+    border-radius: .2em;
+    cursor: help;
+}

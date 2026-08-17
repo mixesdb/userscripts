@@ -111,6 +111,12 @@ Settled, so it does not get re-litigated:
   click-time validation would (so that validation then finds the text unchanged and asks
   nothing) and re-renders the reasoning panel - only its section 4 comes out different, and
   no name lookup fires, because the tracklist takes no part in the title.
+- **While the caret is in the box, only the FEEDBACK follows the typing - never the text.**
+  The debounced live check (`tlBoxTypeUpdate`, 800ms, flushed at once on Enter and on a click
+  into the box) calls `mdbPageCreator_tracklistBoxUpdated( box, res, false )`: the status and
+  the `[[Category:Tracklist: …]]` follow every pause, but `_tracklistValidated` stays put, so
+  the blur and the "Create" click still owe the box its formatting pass. Rewriting under the
+  caret would move it, and `fixTLbox()` collapses spaces while it is being typed.
 - **On the way into the click the API is asked once more if the box changed since, and its
   TEXT is applied like on blur** (since 2026-08-17, second round: "Create" clicked straight
   out of the textarea fires BEFORE the box's blur, so the blur update alone left such a page

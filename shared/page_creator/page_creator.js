@@ -2214,19 +2214,24 @@ function mdbPageCreator_validateTracklist() {
 }
 
 // mdbPageCreator_tracklistBoxUpdated
-// Called by the shared blur update (tlBoxBlurUpdate in ../tracklist_editor/funcs.js) after it
-// wrote the API's answer into a box the reader edited. Only the boxes the "Create" link reads
-// concern the creator: its own, or the one the site named (tracklistBox option) - a box some
-// other feature put on the page is none of its business.
+// Called by the shared box updates in ../tracklist_editor/funcs.js after the API answered
+// about a box: the blur update and the "Create" click, which wrote the answer's TEXT into the
+// box, and the live check while typing, which only re-coloured it. Only the boxes the "Create"
+// link reads concern the creator: its own, or the one the site named (tracklistBox option) -
+// a box some other feature put on the page is none of its business.
 //
-// The fresh verdict is kept exactly as mdbPageCreator_validateTracklist() would keep it, so
-// the way into the click finds the text already validated and asks nothing. And the reasoning
-// panel is re-rendered, because its section 4 files the "Tracklist:" category off this very
-// status: the render is the whole stateless panel, but with the title untouched sections 1-3
-// come out unchanged - what the reader sees change is the category row. Deliberately NOT
+// applied (default true) is that difference. The FEEDBACK is taken either way - it is what
+// files the "Tracklist:" category, and a category that follows the typing is the point of the
+// live check. The text is only marked validated when it was actually applied: while typing,
+// the box still holds unformatted text that the blur or the click owes a formatting pass, and
+// marking it validated would skip exactly that pass.
+//
+// The reasoning panel is re-rendered because its section 4 files that category: the render is
+// the whole stateless panel, but with the title untouched sections 1-3 come out unchanged -
+// what the reader sees change is the category row. Deliberately NOT
 // mdbPageCreator_queueReasoningUpdate(), which is the title-edit path and would fire a name
 // lookup the tracklist cannot have changed.
-function mdbPageCreator_tracklistBoxUpdated( box, res ) {
+function mdbPageCreator_tracklistBoxUpdated( box, res, applied ) {
     var isOwn = box.closest( "#mdb-pageCreator-tracklist" ).length > 0,
         isSite = mdbPageCreator_tracklistBoxSite && box.is( mdbPageCreator_tracklistBoxSite );
 
@@ -2235,11 +2240,13 @@ function mdbPageCreator_tracklistBoxUpdated( box, res ) {
     logFunc( "mdbPageCreator_tracklistBoxUpdated" );
 
     // the creator's own box: keep the live value in step, so a re-render puts the updated
-    // text back (the blur update sets .val(), which fires no input event)
+    // text back (the updates set .val(), which fires no input event)
     if( isOwn ) mdbPageCreator_tracklistLive = box.val();
 
     if( res.feedback ) {
-        mdbPageCreator_tracklistValidated = $.trim( box.val() || "" );
+        // only the text the API actually rewrote counts as validated - see above
+        if( applied !== false ) mdbPageCreator_tracklistValidated = $.trim( box.val() || "" );
+
         mdbPageCreator_tracklistFeedback = res.feedback;
         mdbPageCreator_tracklistStatus = res.feedback.status || "";
 

@@ -101,6 +101,8 @@ function fixTLbox( feedback, target, focus=true ) {
         // a re-run replaces the previous answer instead of stacking a second box under the first
         tl.nextAll("#tlEditor-feedback").remove();
         tl.after( feedback.text );
+
+        tlBoxShowApiCount();
     }
     loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/tracklistEditor_copy.css" );
 }
@@ -111,6 +113,11 @@ function fixTLbox( feedback, target, focus=true ) {
  *
  * - while typing, the rows attribute follows the line count, so the box grows and shrinks
  *   with its text instead of scrolling inside itself
+ * - while typing, the FEEDBACK follows too: a debounced live check (one request per typing
+ *   pause, the web-standard debounce) asks the API about the text as it stands and re-colours
+ *   the box and the printed feedback - but NEVER touches the text and NEVER refreshes
+ *   mdbTlboxKnown. The caret is in the box (a rewrite would move it), and mdbTlboxKnown is
+ *   what tells the blur update the text still needs formatting.
  * - when an EDITED box loses focus, the text goes through the Tracklist Editor API once more:
  *   the box greys out (mdb-tlBox-updating, styled in tracklistEditor_copy.css), and the answer
  *   replaces the text and re-colours the feedback - exactly as if the tracklist had arrived
@@ -121,7 +128,8 @@ function fixTLbox( feedback, target, focus=true ) {
  * our userscripts can share one page (TrackId.net + Tracklist Merger on trackid.net), and a
  * DOM attribute is the one flag both of them can see.
  */
-var tlBoxUpdateMinMs = 400;
+var tlBoxUpdateMinMs = 400,
+    tlBoxTypeDelayMs = 800; // same pause the reasoning panel's title edit waits out
 
 // tlBoxBindLive
 function tlBoxBindLive( tl ) {
@@ -130,10 +138,157 @@ function tlBoxBindLive( tl ) {
 
     tl.on( "input", function() {
         tl.attr( "rows", String( tl.val() ).split( "\n" ).length );
+
+        clearTimeout( tl.data( "mdbTlboxTypeTimer" ) );
+        tl.data( "mdbTlboxTypeTimer", setTimeout(function() {
+            tlBoxTypeUpdate( tl );
+        }, tlBoxTypeDelayMs ) );
+    });
+
+    // Enter and a click into the box are both "I am done with that line" - the two moments a
+    // typist pauses on purpose - so they ask straight away instead of sitting out the debounce.
+    // keyup, not keydown: the newline is only in the value once the key is released.
+    // Both are cheap by construction: tlBoxTypeUpdate() returns without a request when the
+    // text has not changed since the last answer, which is what a bare click into the box is.
+    tl.on( "keyup", function( e ) {
+        if( e.which !== 13 ) return;
+
+        tlBoxTypeUpdateNow( tl );
+    });
+
+    tl.on( "click", function() {
+        tlBoxTypeUpdateNow( tl );
     });
 
     tl.on( "blur", function() {
+        // the blur update supersedes a pending typing check - it does everything the check
+        // would have done, plus the text
+        clearTimeout( tl.data( "mdbTlboxTypeTimer" ) );
         tlBoxBlurUpdate( tl );
+    });
+}
+
+// tlBoxTypeUpdateNow
+// Runs the live check at once and drops the pending debounce, so the two never both fire for
+// the same text.
+function tlBoxTypeUpdateNow( tl ) {
+    clearTimeout( tl.data( "mdbTlboxTypeTimer" ) );
+    tlBoxTypeUpdate( tl );
+}
+
+// tlBoxRenderFeedback
+// The feedback part of fixTLbox() alone: the colour class on the wrapper and the printed
+// feedback under the box - and NOTHING about the text or mdbTlboxKnown. This is what the
+// typing update is allowed to do while the caret is in the box; see the section comment.
+function tlBoxRenderFeedback( tl, feedback ) {
+    if( !feedback || !feedback.text ) return;
+
+    var tle = tl.closest( "#tlEditor, .tlEditor" );
+
+    tle.addClass( "bot10" ).removeClass( tlEditorFeedbackClasses ).addClass( tlEditorFeedbackClass( feedback ) );
+    tl.addClass( "tlEditor-textarea" );
+
+    // a re-run replaces the previous answer instead of stacking a second box under the first
+    tl.nextAll( "#tlEditor-feedback" ).remove();
+    tl.after( feedback.text );
+
+    tlBoxShowApiCount();
+}
+
+/*
+ * The API call counter
+ *
+ * Every Tracklist Editor request this page has made, printed as a chip in the feedback box
+ * next to the API's own "N rows". The box asks on its own now - on every typing pause, on
+ * Enter, on a click into it, on blur, on "Create" - and a number on screen is the honest way
+ * to see what that actually costs, rather than trusting that the guards hold.
+ *
+ * Counted where the requests are made, so nothing can be missed: both apiTracklist() and
+ * apiTracklistAsync() report here, whoever called them and for whatever type.
+ *
+ * A class, not an id: a page can hold several tracklist boxes (Player Checker lists one per
+ * player), and each of their feedback boxes shows the same page-wide number.
+ */
+var tlApiCalls = 0;
+
+// tlApiCountCall
+function tlApiCountCall( type ) {
+    tlApiCalls++;
+    log( "Tracklist Editor API call #" + tlApiCalls + " (type: " + ( type || "(none)" ) + ")" );
+    tlBoxShowApiCount();
+}
+
+// tlBoxShowApiCount
+// Puts the chip into every feedback box on the page, or refreshes the number in the one that
+// already has it. Inserted AFTER the rows chip, which puts it visually in FRONT of it: both
+// float right, so the later element sits further left.
+function tlBoxShowApiCount() {
+    var text = tlApiCalls + ( tlApiCalls === 1 ? " API call" : " API calls" );
+
+    $("#tlEditor-feedback").each(function() {
+        var feedbackBox = $(this),
+            chip = feedbackBox.find( ".mdb-tlEditor-apiCalls" );
+
+        if( !chip.length ) {
+            chip = $("<div>")
+                .addClass( "mdb-tlEditor-apiCalls mdb-element floatR" )
+                .attr( "title", "Tracklist Editor API calls made on this page.\nThe box asks after a typing pause, on Enter, on a click into it, when it loses focus and on \"Create\" - and never twice about the same text." );
+
+            var rows = feedbackBox.find( "#tlEditor-feedback-rows" );
+
+            if( rows.length ) {
+                rows.after( chip );
+            } else {
+                feedbackBox.prepend( chip );
+            }
+        }
+
+        chip.text( text );
+    });
+}
+
+// tlBoxClearFeedback
+// An emptied box: whatever the feedback said, it was about text that is gone.
+function tlBoxClearFeedback( tl ) {
+    tl.nextAll( "#tlEditor-feedback" ).remove();
+    tl.closest( "#tlEditor, .tlEditor" ).removeClass( tlEditorFeedbackClasses );
+}
+
+// tlBoxTypeUpdate
+// The debounced live check behind the input handler above. No grey animation - the reader is
+// typing, and a box that keeps flashing under the caret is noise, not feedback.
+function tlBoxTypeUpdate( tl ) {
+    var sent = tl.val();
+
+    if( $.trim( sent ) === "" ) {
+        tlBoxClearFeedback( tl );
+        return;
+    }
+
+    // matches the last formatted state, or the last text already asked about - the feedback
+    // on the page answers this very text, nothing to ask
+    if( sent === tl.data( "mdbTlboxKnown" ) || sent === tl.data( "mdbTlboxTypeAsked" ) ) return;
+
+    tl.data( "mdbTlboxTypeAsked", sent );
+
+    apiTracklistAsync( sent, "standard", "", function( res ) {
+        // typed on while the API was thinking - the next pause asks about the newer text
+        if( tl.val() !== sent ) return;
+
+        if( !res || !res.feedback ) {
+            // forget the ask, so the next pause on the same text retries instead of
+            // remembering a failure as answered
+            tl.removeData( "mdbTlboxTypeAsked" );
+            return;
+        }
+
+        tlBoxRenderFeedback( tl, res.feedback );
+
+        // false: feedback only - the text was NOT applied, so the page creator must not mark
+        // it validated (the blur or the "Create" click still owes it the formatting pass)
+        if( typeof mdbPageCreator_tracklistBoxUpdated === "function" ) {
+            mdbPageCreator_tracklistBoxUpdated( tl, res, false );
+        }
     });
 }
 
@@ -148,6 +303,11 @@ function tlBoxApplyResult( tl, res ) {
 
     tl.data( "mdbTlboxSeq", ( tl.data( "mdbTlboxSeq" ) || 0 ) + 1 );
     tl.removeClass( "mdb-tlBox-updating" );
+
+    // The typing check's memo is about the text this is replacing. Kept, it would swallow the
+    // check on a reader who edits back to that exact version, leaving the feedback of THIS
+    // answer standing over text it does not describe.
+    tl.removeData( "mdbTlboxTypeAsked" );
 
     tl.val( res.text );
 
@@ -251,6 +411,8 @@ function apiTracklist( tl, type, genType ) {
                  text: tl
                };
 
+    tlApiCountCall( type );
+
     var jqXHR = $.ajax({
         type: "POST",
         url: apiUrlTools,
@@ -281,6 +443,8 @@ function apiTracklistAsync( tl, type, genType, done ) {
                  genType: genType,
                  text: tl
                };
+
+    tlApiCountCall( type );
 
     $.ajax({
         type: "POST",
