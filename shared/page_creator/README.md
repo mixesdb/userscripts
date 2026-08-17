@@ -65,9 +65,10 @@ learning" line can name the step that went wrong:
    chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
    two chunks) – the same units the lookups are sent for. What the parse
    removes outright is shown in red on a `Removed:` line instead – a bracket crediting
-   the artist's labels (`Tooker (SONARA / Crosstown Rebels)`) or a list of places saying where
-   the artist is from – with the reason spelled out behind it; those names are never sent to
-   the lookup
+   the artist's labels (`Tooker (SONARA / Crosstown Rebels)`), a list of places saying where
+   the artist is from, or a bracketed country behind the artist's name (the `(BE)` of
+   `Adjust (BE)`, even in a live title) – with the reason spelled out behind it; those names
+   are never sent to the lookup
 2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, the date that
    was read out, joiners rewritten, chunks a mix page title does not carry (what the
    `Removed:` line of section 1 already names is not repeated here, in no step) – and the
@@ -82,12 +83,17 @@ learning" line can name the step that went wrong:
    the script. So "Decoration removed" can be checked against the rule that removed it, and a
    report can say which entry is wrong (or which one is missing) instead of only what came
    out. Open lists stay open while the title above is corrected
-3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
-   category in the wiki's own spelling, its type (artist, podcast, venue, …) and how many
-   mixes it holds – or that no category of that name exists. The asked name's chip answers
-   section 4 by colour: green when it ended up a category of the new page, red when it did
-   not. A name a curated channel mapping overrules says so – `DJ Mix` is a show on the wiki,
-   but on the channel Dance TV those words name `Dance TV DJ Mix`
+3. **MixesDB lookups** – which names were asked about on the wiki and what came back, as a
+   table with two answer columns: **Artist category candidates** and **Entity category
+   candidates**. Every answer – the category in the wiki's own spelling, its type and how
+   many mixes it holds – stands in the column of the role it could play in the title, so a
+   name the wiki files as a podcast is visibly no artist, and a name it knows as both shows
+   one answer per column (`Monument` the podcast next to `Monument (Jordan Smith)` the
+   artist). A `–` means the wiki offers nothing for that role; a name with no category at
+   all says so across both columns. The asked name's chip answers section 4 by colour: green
+   when it ended up a category of the new page, red when it did not. A name a curated
+   channel mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel
+   Dance TV those words name `Dance TV DJ Mix`
 
    Behind every answer stands a **percentage**: how strongly that answer backs the name it was
    asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`

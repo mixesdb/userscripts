@@ -439,9 +439,12 @@
     margin-bottom: 0;
 }
 
+/* the asked names and their answers, the answers split into the two roles a category can
+   play in the title: artist candidates left, entity candidates (podcast, show, venue,
+   event, ...) right */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {
     display: grid;
-    grid-template-columns: fit-content(45%) 1fr;
+    grid-template-columns: fit-content(38%) 1fr 1fr;
     gap: 8px 14px;
     align-items: center;
 }
@@ -450,12 +453,40 @@
     display: contents;
 }
 
+/* the two candidate column headings - the name column needs none, the chips are their own
+   label */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-colHead {
+    font-size: 10.5px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #9a9a9a;
+}
+
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-result {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 14px;
     font-size: 12px;
+}
+
+/* a note about the whole name (no category, pending, overruled): a non-answer names no
+   role, so it spans both candidate columns */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-note {
+    grid-column: 2 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    font-size: 12px;
+}
+
+/* the "–" of a role the wiki offers no category for */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-none {
+    color: #6f6f6f;
+    font-size: 12px;
+    cursor: help;
 }
 
 /* one server match: the wiki's spelling, the type badge, the mix count */

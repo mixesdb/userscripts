@@ -1684,6 +1684,47 @@ function mdbTitle_dropLocationChunks( text ) {
     return result;
 }
 
+// mdbTitle_dropLocationBrackets
+// "Adjust (BE) @ S.U.N Festival" -> "Adjust @ S.U.N Festival": a bracket holding nothing but a
+// country - or a place list - says where the artist is FROM, which a mix page title never
+// carries. The bracket is what makes a LONE country safe to read as a place: as a chunk of its
+// own, "Georgia" or "France" is an artist or a mix name as readily as a country
+// (mdbTitle_isLocationChunk demands a place LIST for exactly that reason), but written into a
+// bracket behind a name it is a byline about that name.
+// Runs while the brackets are still brackets, like the label-credit drop next to it - and
+// unlike the chunk drop (3h) it does not step aside on a live title: a bracket standing in
+// FRONT of the "@" is glued to the artist, not to the venue. One BEHIND an "@" is left alone -
+// there the places are the venue's city and country, which MixesDB writes.
+// Only a bracket standing BEHIND something is one - a bracket opening the title names what
+// follows it, the same rule the label credit lives by.
+function mdbTitle_dropLocationBrackets( text ) {
+    var result = { text: String( text || "" ), dropped: [] };
+
+    if( !/[\(\[\{]/.test( result.text ) ) return result;
+
+    var out = result.text.replace( mdbTitle_bracketPairRe(), function( all, inside, offset, whole ) {
+        var before = whole.slice( 0, offset );
+
+        if( !mdbTitle_trimSeparators( before ) ) return all;
+        if( before.indexOf( "@" ) !== -1 ) return all;
+
+        var content = mdbTitle_trimSeparators( inside );
+
+        if( content && ( mdbTitle_isCountry( content ) || mdbTitle_isLocationChunk( content ) ) ) {
+            result.dropped.push( content );
+            return " ";
+        }
+
+        return all;
+    } );
+
+    if( result.dropped.length ) {
+        result.text = out.replace( /\s+/g, " " ).trim();
+    }
+
+    return result;
+}
+
 /*
  * What MixesDB already knows
  *
@@ -2139,7 +2180,8 @@ function mdbTitle_takeVenueTitle( text, known ) {
 }
 
 // mdbTitle_takeEventTitle
-// A live recording at an event: "<artists> | <event> <year>".
+// A live recording at an event: "<artists> | <event> <year>" - or "<artists> @ <event>"
+// standing glued in one bit, where the "@" itself names the artist.
 // Returns { artist, event, year } or null when the title is not one.
 // The "Part 2"/stage chunks such a title carries are already gone - mdbTitle_dropBits takes
 // them out of every title, not just out of this one.
@@ -2169,17 +2211,31 @@ function mdbTitle_takeEventTitle( text ) {
 
     if( eventIndex === -1 ) return null;
 
-    // the first bit that is not the event names the artists
-    var artist = "";
-    for( i = 0; i < kept.length; i++ ) {
-        if( i !== eventIndex ) { artist = kept[i]; break; }
+    var event = kept[eventIndex],
+        artist = "";
+
+    // An "@" inside the event bit already answers who the artist is: "Adjust @ S.U.N
+    // Festival" says Adjust plays there, and no other bit may override that - the bits
+    // around it are the series and leftovers ("MNMT Recordings : Adjust @ S.U.N Festival
+    // - Hungary"). Only when the event word stands BEHIND the "@" - in "<event> @ <place>"
+    // the front is no artist. Non-greedy, so the FIRST "@" splits and a second one stays
+    // in the event, where the one-" @ "-per-title fold reads it as its ",".
+    var atSplit = /^(.*?\S)\s*@\s*(\S.*)$/.exec( event );
+
+    if( atSplit && eventRe.test( atSplit[2] ) ) {
+        artist = mdbTitle_trimSeparators( atSplit[1] );
+        event = mdbTitle_trimSeparators( atSplit[2] );
+    }
+
+    // otherwise the first bit that is not the event names the artists
+    for( i = 0; !artist && i < kept.length; i++ ) {
+        if( i !== eventIndex ) { artist = kept[i]; }
     }
 
     if( !artist ) return null;
 
     // "Landjuweel Festival 2026" -> the event is "Landjuweel Festival", the year is the date
-    var event = kept[eventIndex],
-        year = "",
+    var year = "",
         m = /^\s*((?:19|20)\d{2})\b\s*|\s*\b((?:19|20)\d{2})\s*$/.exec( event );
 
     if( m ) {
@@ -2875,6 +2931,16 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
 
     text = labels.text;
 
+    // ... and the bracketed-country drop (1a2): "Adjust (BE)" loses the "(BE)" even on a live
+    // title, so the code is no chunk and no lookup candidate
+    var locationBrackets = mdbTitle_dropLocationBrackets( text );
+
+    for( i = 0; i < locationBrackets.dropped.length; i++ ) {
+        removed.push( { text: locationBrackets.dropped[i], reason: "location" } );
+    }
+
+    text = locationBrackets.text;
+
     var unbracketed = mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ),
         // The units are the units the PARSE works with, so the joiners run first: a live
         // marker is gone ("live@3000Grad Festival" holds no chunk "live"), an "at" in front
@@ -3009,6 +3075,18 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // no trace step: the chunk section's "Removed:" line already names these (the
             // shared split runs the same drop on the same text), and twice is noise
             rest = labelBrackets.text;
+        }
+
+        // 1a2) a bracket holding nothing but a country (or a place list) - "Adjust (BE)" says
+        // where the artist is from, which the title never carries. While the brackets are
+        // still brackets, and regardless of a live "@" further right - the function itself
+        // leaves brackets BEHIND an "@" alone, where the places are the venue's.
+        var locationBrackets = mdbTitle_dropLocationBrackets( rest );
+
+        if( locationBrackets.dropped.length ) {
+            logVar( "buildMixesdbTitle: location bracket dropped", locationBrackets.dropped.join( " | " ) );
+            // no trace step, same reason as the label credit above
+            rest = locationBrackets.text;
         }
 
         // 1b) brackets are a chunk of their own, exactly like a "|" - written out as one here,
