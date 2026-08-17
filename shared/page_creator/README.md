@@ -51,7 +51,11 @@ learning" line can name the step that went wrong:
 
 1. **Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
    a separator, at a bracket, and at the `by` in front of a numbered series (`Guestroom 779 by
-   Sascha Sibler` is two chunks) – the same units the lookups are sent for
+   Sascha Sibler` is two chunks) – the same units the lookups are sent for. What the parse
+   removes outright is shown struck through on a `Removed:` line instead – a bracket crediting
+   the artist's labels (`Tooker (SONARA / Crosstown Rebels)`) or a list of places saying where
+   the artist is from – with the reason spelled out behind it; those names are never sent to
+   the lookup
 2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, label credits,
    the date that was read out, joiners rewritten, chunks a mix page title does not carry
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the

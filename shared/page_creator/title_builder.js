@@ -1758,9 +1758,12 @@ function mdbTitle_canonicalArtists( known, group ) {
 // included, so a venue in brackets ("Tonino (Ritter Butzke)") and the artist behind a "by"
 // ("Guestroom 779 by Sascha Sibler") are asked about too - a raw separator-only split kept
 // both glued to their neighbours and the second pass never learned what the wiki knows.
-function mdbTitle_categoryCandidates( playerTitle, username ) {
+// description is the player page's description, when the site has one - the split's label
+// test reads the labels the tracklist credits out of it, so a credited label in a bracket is
+// no candidate either.
+function mdbTitle_categoryCandidates( playerTitle, username, description ) {
     var names = [],
-        bits = mdbTitle_titleChunks( playerTitle, username ),
+        bits = mdbTitle_titleChunks( playerTitle, username, description ).chunks,
         channelNames = mdbTitle_channelNames( mdbTitle_spaced( username ) ),
         i;
 
@@ -2473,9 +2476,10 @@ function mdbTitle_channelSeriesConversion( text, username ) {
  * The build trace
  *
  * How the LAST buildMixesdbTitle() run read the title, as plain data: the chunks the player
- * title split into, every fix/removal of standard stuff by name, and the title as it stood
- * once the cleanup was done. The "Report" panel (page_creator.js) renders it above the report
- * box, so a reporter sees WHY the suggestion looks the way it does.
+ * title split into (plus what the split removed outright - see mdbTitle_titleChunks), every
+ * fix/removal of standard stuff by name, and the title as it stood once the cleanup was done.
+ * The "Report" panel (page_creator.js) renders it above the report box, so a reporter sees
+ * WHY the suggestion looks the way it does.
  *
  * Overwritten on every run - the second, lookup-informed pass replaces the first pass's
  * trace, which is right: the panel describes the suggestion that is on screen.
@@ -2535,14 +2539,22 @@ function mdbTitle_traceChunks( text ) {
 // mdbTitle_titleChunks
 // THE chunk split: the player title as the chunks everything downstream shares - the panel's
 // "Title chunks" section and the lookup candidates alike. Prepared the way the parser prepares
-// the title (underscores as spaces, typos fixed, decoration dropped, brackets read as
-// separators - the channel's own bracket excepted), THEN split: a bracketed "(Ritter Butzke)"
-// or a "<series> by <artist>" is a unit of its own, and a "[FREE DOWNLOAD]" is not a chunk at
-// all. One function, so the chunks shown, the names looked up and the units parsed cannot
-// drift apart.
-function mdbTitle_titleChunks( playerTitle, username ) {
+// the title (underscores as spaces, typos fixed, decoration dropped, label-credit brackets
+// dropped, brackets read as separators - the channel's own bracket excepted), THEN split: a
+// bracketed "(Ritter Butzke)" or a "<series> by <artist>" is a unit of its own, and a
+// "[FREE DOWNLOAD]" is not a chunk at all. One function, so the chunks shown, the names looked
+// up and the units parsed cannot drift apart.
+//
+// Returns { chunks, removed }. "removed" is what the parse takes out ENTIRELY, each as
+// { text, reason: "label" | "location" } - a label credit ("Tooker (SONARA / Crosstown
+// Rebels)", see 1a in buildMixesdbTitle) or a place list saying where the artist is from
+// ("Ibiza/ Dusseldorf, Germany", see 3h). Those names never join the title, so they are no
+// chunks and no lookup candidates - asking the wiki about a record label wastes the request.
+// The panel shows them struck through, so a reporter sees they were dropped on purpose.
+function mdbTitle_titleChunks( playerTitle, username, description ) {
     var text = mdbTitle_fixTypos( mdbTitle_spaced( playerTitle ).replace( /\s+/g, " " ).trim() ),
-        n;
+        removed = [],
+        n, i;
 
     if( typeof mdbTitleNoise !== "undefined" && mdbTitleNoise ) {
         for( n = 0; n < mdbTitleNoise.length; n++ ) {
@@ -2551,7 +2563,33 @@ function mdbTitle_titleChunks( playerTitle, username ) {
         }
     }
 
-    return mdbTitle_traceChunks( mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ) );
+    // the same label-credit drop the parse runs (1a), while the brackets are still brackets
+    var labels = mdbTitle_dropLabelBrackets( text, description );
+
+    for( i = 0; i < labels.dropped.length; i++ ) {
+        removed.push( { text: labels.dropped[i], reason: "label" } );
+    }
+
+    text = labels.text;
+
+    var unbracketed = mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ),
+        chunks = mdbTitle_traceChunks( unbracketed ),
+        // the parse's 3h guard, mirrored: only a NON-live title drops its place lists - on a
+        // live one they are the venue's city and country, which MixesDB writes. Whether the
+        // parse will read the title as live is what applyJoiners decides ("Live at" -> "@"),
+        // so it is asked rather than re-implemented here.
+        live = mdbTitle_applyJoiners( unbracketed ).text.indexOf( "@" ) !== -1,
+        kept = [];
+
+    for( i = 0; i < chunks.length; i++ ) {
+        if( !live && mdbTitle_isLocationChunk( chunks[i] ) ) {
+            removed.push( { text: chunks[i], reason: "location" } );
+        } else {
+            kept.push( chunks[i] );
+        }
+    }
+
+    return { chunks: kept, removed: removed };
 }
 
 // buildMixesdbTitle
@@ -2587,11 +2625,15 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         // The report panel's record of this run - see "The build trace" above. The chunks are
         // the SHARED split (mdbTitle_titleChunks), the same one the lookup candidates are
-        // built from - so what the panel shows as the units IS what was asked about.
+        // built from - so what the panel shows as the units IS what was asked about, and what
+        // the split removed (label credits, place lists) is shown as removed.
+        var chunkSplit = mdbTitle_titleChunks( playerTitle, username, description );
+
         mdbTitle_trace = {
             playerTitle: rest,
             channel: username,
-            chunks: mdbTitle_titleChunks( playerTitle, username ),
+            chunks: chunkSplit.chunks,
+            chunksRemoved: chunkSplit.removed,
             cleaned: rest,
             steps: []
         };

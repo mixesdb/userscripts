@@ -236,6 +236,9 @@ var mdbTitleExamples = [
         title: "HMWL Podcast 439: Tooker (SONARA / Crosstown Rebels)",
         channel: "House Music With Love (HMWL)",
         date: "2026-08-05",
+        // the label bracket is no chunk: its names are on mdbTitleKnownLabels, so they are
+        // dropped by the shared split too and never sent to the mdbnames lookup
+        expectChunks: [ "HMWL Podcast 439", "Tooker" ],
         expect: "2026-08-05 - Tooker - HMWL Podcast 439"
     },
     {
@@ -246,6 +249,9 @@ var mdbTitleExamples = [
         channel: "House Music With Love (HMWL)",
         date: "2026-08-05",
         description: "01. Some DJ - A Track [Nightshade Audio]\n02. Another One - B Track [Unlisted Tapes - NUT123]\n\nFollow us!",
+        // chunks guarded too: the split only knows these are labels from the description, so
+        // this is the case that fails if the description stops reaching it
+        expectChunks: [ "HMWL Podcast 440", "Some DJ" ],
         expect: "2026-08-05 - Some DJ - HMWL Podcast 440"
     },
     {
@@ -350,8 +356,10 @@ var mdbTitleExamples = [
         date: "2026-08-04",
         // two rules at once: the channel and "DJ Mix" name the show together
         // (mdbTitleChannelSeriesConversions), and the bracketed place list says where Miss Luna
-        // is from, which a non-live title does not carry (mdbTitleCountries)
+        // is from, which a non-live title does not carry (mdbTitleCountries). The place list is
+        // no chunk either - it never joins the title, so it is never looked up
         expectArtists: [ "Miss Luna" ],
+        expectChunks: [ "DJ MIX #679", "Miss Luna" ],
         expect: "2026-08-04 - Miss Luna - Dance TV DJ Mix 679"
     },
     {

@@ -208,6 +208,13 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   the parser's guarded series-"by" split - `Guestroom 779 by Sascha Sibler` asks about both
   halves, `(Ritter Butzke)` is asked on its own. One function also feeds the report panel's
   "Title chunks" section, so what is shown, what is asked and what is parsed cannot drift.
+  What the parse removes OUTRIGHT is no chunk and no candidate: a label-credit bracket
+  (`Tooker (SONARA / Crosstown Rebels)`, rule 1a - needs the description for the
+  tracklist-credited labels, so the split takes it as its third parameter) and a place list
+  saying where the artist is from (rule 3h, mirrored with the same live-title guard). The
+  split returns them under `removed`, each `{ text, reason: "label" | "location" }`, and the
+  panel shows them struck through with the reason - asking the wiki about a record label
+  wastes the request.
 - **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a

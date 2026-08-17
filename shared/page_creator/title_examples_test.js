@@ -24,8 +24,8 @@ const source = [ "title_definitions.js", "title_builder.js", "title_examples.js"
     .map( file => Deno.readTextFileSync( dir + file ) )
     .join( "\n" );
 
-const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitleExamples ] =
-    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitleExamples ]" );
+const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitleExamples ] =
+    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitleExamples ]" );
 
 let failed = 0;
 
@@ -63,10 +63,19 @@ for( const example of mdbTitleExamples ) {
           artistsOk = !example.expectArtists ||
                       artists.join( " | " ) === example.expectArtists.join( " | " );
 
-    if( !titleOk || !artistsOk ) failed++;
+    // And the chunks of the SHARED split (mdbTitle_titleChunks) - the units the report panel
+    // shows and the lookup candidates come from. What a case states here is what may be ASKED
+    // about: a label credit or a place list must not show up as a chunk.
+    const chunks = example.expectChunks
+              ? mdbTitle_titleChunks( example.title, example.channel, example.description || "" ).chunks
+              : null,
+          chunksOk = !example.expectChunks ||
+                     chunks.join( " | " ) === example.expectChunks.join( " | " );
+
+    if( !titleOk || !artistsOk || !chunksOk ) failed++;
 
     console.log(
-        ( titleOk && artistsOk ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk && chunksOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
         "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
@@ -74,6 +83,10 @@ for( const example of mdbTitleExamples ) {
         ( example.expectArtists
             ? "\n              " + ( artistsOk ? "" : "got      " ) + "categories " + JSON.stringify( artists ) +
               ( artistsOk ? "" : "\n              expected   categories " + JSON.stringify( example.expectArtists ) )
+            : "" ) +
+        ( example.expectChunks
+            ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +
+              ( chunksOk ? "" : "\n              expected   chunks " + JSON.stringify( example.expectChunks ) )
             : "" )
     );
 }
