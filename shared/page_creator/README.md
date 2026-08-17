@@ -15,7 +15,8 @@ behaves the same everywhere.
 
 Built from the player title, the uploader/channel name and the upload date, in MixesDB's own
 title format (`YYYY-MM-DD - Artist - Show`). The field is editable – the suggestion is a starting
-point, not a decision – and widens as you type so the whole title stays readable. A confidence
+point, not a decision – and follows its text as you type, widening and narrowing again, so the
+whole title stays readable without leaving an empty stretch behind it. A confidence
 score next to it says how sure the suggestion is.
 
 MixesDB's own category names sharpen the guess: the names in the title and the channel name are
