@@ -225,36 +225,66 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 }
 
 /*
- * The chip row in the top right of the feedback box: the API's own rows count plus our two
- * (tlBoxShowApiCount in funcs.js) - the call counter and the "Live updates" switch.
+ * Everything the feedback box carries besides its message wears ONE chip: the API's own rows
+ * count, our call counter and "Live updates" switch (tlBoxShowApiCount in funcs.js), and the
+ * Tracklist Cue Switcher's format button.
  *
- * One look for all three. The feedback box sits on a different background per status (green,
- * yellow, red, and the sites' own colours behind that), so the chips carry a half-transparent
- * WHITE that lightens whatever is underneath instead of a fixed grey that clashes with two
- * statuses out of three - with dark grey text on top, which stays readable on every one of
- * them. The white text and its shadow the rows chip used to have are dropped here: white on a
- * pale background is what made the count hard to read in the first place.
- * Two IDs on the rows rule (and !important on the shadow) because it is stated twice
- * elsewhere - global.css and further down this file - and has to lose against this.
+ * A translucent tint of the MixesDB orange, not a solid colour: the box sits on a different
+ * background per status (green, yellow, red, and the sites' own colours behind that), so a
+ * tint that lets the status through stays at home on all of them, where a fixed fill would
+ * clash with two out of three. Dark grey text on top, readable on every one of them - the
+ * white text and its shadow the rows chip used to have are dropped here, since white on a pale
+ * background is what made the count hard to read in the first place.
+ *
+ * Two IDs on the rows rule (and !important on the shadow) because it is stated twice elsewhere
+ * - global.css and further down this file - and has to lose against this.
  */
 #tlEditor-feedback #tlEditor-feedback-rows,
+#tlEditor-feedback button#switchCueFormat,
 .mdb-tlEditor-apiCalls,
 .mdb-tlEditor-liveUpdates {
     color: #444;
     font-size: .85em;
     font-weight: 600;
     text-shadow: none !important;
-    margin-top: -.2em;
-    margin-left: .8em;
     padding: .2em .4em;
     background: #ff660040;
+    border: 0 !important;
     border-radius: .2em;
 }
-#tlEditor-feedback #tlEditor-feedback-rows {
-    margin-left: 0;
+
+/*
+ * The cue format switch (Tracklist Cue Switcher, button#switchCueFormat) wears the same chip,
+ * but not the chip row's spacing: it is no float, it sits in the message list inside the box.
+ * Two IDs and "!important" on the border because global.css states
+ * "#tlEditor-feedback-topInfo button { border: 1px solid #ccc !important }" - only a stronger
+ * !important beats an !important, and only the higher specificity decides between the two.
+ */
+#tlEditor-feedback #tlEditor-feedback-rows,
+.mdb-tlEditor-apiCalls,
+.mdb-tlEditor-liveUpdates {
+    margin-top: -.2em;
+    margin-left: .8em;
 }
+
+/* the same "clickable" hint the switch gives, in place of global.css's grey-to-black */
+#tlEditor-feedback button#switchCueFormat:hover,
+#tlEditor-feedback button#switchCueFormat:active {
+    color: #f60;
+}
+
 .mdb-tlEditor-apiCalls {
     cursor: help;
+}
+
+/* While a new answer is swapped into the feedback box (tlBoxSettleFeedbackHeight in funcs.js),
+ * its height is animated from the old one to the new instead of snapping - the answers are
+ * genuinely different heights ("valid and complete" is one line, a warning is that line plus
+ * every track it names), and while typing the box would otherwise jump between them and drag
+ * the page with it. Only set for the length of the transition, and only when the two heights
+ * actually differ. */
+.mdb-tlEditor-feedback-resizing {
+    transition: height 0.18s ease;
 }
 
 /* The switch: a track with a knob that sits left when off and right when on, in the orange
