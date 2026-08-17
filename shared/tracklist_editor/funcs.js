@@ -137,6 +137,27 @@ function tlBoxBindLive( tl ) {
     });
 }
 
+// tlBoxApplyResult
+// Writes an API answer into a box: text, size, colour, printed feedback. Bumps the request
+// sequence first, so a blur update still in flight for this box finds itself outdated and
+// drops its answer instead of overwriting this newer one. The one place both appliers share -
+// the blur update below and the page creator's way into its "Create" click, which must not
+// outrun the box (mdbPageCreator_validateTracklist).
+function tlBoxApplyResult( tl, res ) {
+    if( !res || !res.text ) return false;
+
+    tl.data( "mdbTlboxSeq", ( tl.data( "mdbTlboxSeq" ) || 0 ) + 1 );
+    tl.removeClass( "mdb-tlBox-updating" );
+
+    tl.val( res.text );
+
+    // re-sizes, re-colours, replaces the printed feedback - and refreshes mdbTlboxKnown to
+    // the text as the API returned it, so the next blur stays quiet
+    fixTLbox( res.feedback, tl.get( 0 ), false );
+
+    return true;
+}
+
 // tlBoxBlurUpdate
 function tlBoxBlurUpdate( tl ) {
     var sent = tl.val();
@@ -206,11 +227,7 @@ function tlBoxBlurUpdate( tl ) {
                 return;
             }
 
-            tl.val( res.text );
-
-            // re-sizes, re-colours, replaces the printed feedback - and refreshes
-            // mdbTlboxKnown to the text as the API returned it
-            fixTLbox( res.feedback, tl.get( 0 ), false );
+            tlBoxApplyResult( tl, res );
 
             log( "tlBoxBlurUpdate: box updated (status " + ( res.feedback && res.feedback.status ? res.feedback.status : "(none)" ) + ")." );
 

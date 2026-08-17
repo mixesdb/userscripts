@@ -1622,15 +1622,15 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
  * ../tracklist_editor/funcs.js (tlBoxBlurUpdate) sends the text through the API again, writes
  * the answer back and hands the verdict to this file (mdbPageCreator_tracklistBoxUpdated), so
  * the "Tracklist:" category and the reasoning panel follow the edit while it is still on
- * screen. The click-time ask below stays as the safety net for the text no blur ever saw -
- * Enter in the title field, say, fires "Create" while the caret is nowhere near the box.
+ * screen.
  *
- * That safety net decides the "Tracklist:" category the same way: the box is asked of the API
- * once more on the way into the click, and only the FEEDBACK of that answer is used (the
- * colour, the category). THIS path never touches the text - re-formatting what someone just
- * typed, under their hands, at the very moment they click away, would be the worst possible
- * time for it. The blur update is different precisely because leaving the box says the typing
- * is done.
+ * The click-time ask (mdbPageCreator_validateTracklist) is the safety net behind it, for the
+ * text no blur got to finish: "Create" clicked straight out of the textarea fires BEFORE the
+ * box's blur ever runs, and Enter in the title field fires with the caret nowhere near the
+ * box. It does the same work the blur update does - the answer's TEXT lands in the box and on
+ * the page, the FEEDBACK decides the colour and the "Tracklist:" category - just synchronously,
+ * because the navigation reads the href the moment it returns. Rewriting the text here is as
+ * safe as on blur, and for the same reason: clicking "Create" says the typing is done.
  *
  *
  * Detected, formatted, shown - three steps, not one
@@ -2016,8 +2016,17 @@ function mdbPageCreator_tracklistText() {
 }
 
 // mdbPageCreator_validateTracklist
-// Asks the API what it makes of the box AS IT STANDS, on the way into the "Create" click.
-// Only the feedback is taken from the answer - see the section header on why the text is not.
+// Asks the API what it makes of the box AS IT STANDS, on the way into the "Create" click -
+// the safety net behind the box's own blur update (tlBoxBlurUpdate), for the text no blur got
+// to finish: "Create" clicked straight out of the textarea fires BEFORE the box's blur, and
+// Enter in the title field fires with the caret nowhere near the box.
+//
+// Since 2026-08-17 this path takes the API's TEXT too, exactly like the blur update: the
+// click says the typing is done, and the page must not open with a rawer tracklist than the
+// box would have shown a moment later. The request is synchronous on purpose - the "Create"
+// navigation reads the href right after this returns, so the answer has to be in the box by
+// then; the box flashes its updating state briefly AFTER the fact, since the blocked thread
+// could not have painted it during the request anyway.
 function mdbPageCreator_validateTracklist() {
     var tl = mdbPageCreator_tracklistText();
 
@@ -2037,6 +2046,29 @@ function mdbPageCreator_validateTracklist() {
         return;
     }
 
+    // The box the "Create" link reads - the site's own when one was named, the creator's
+    // otherwise. typeof-guarded like every stale-cache seam: a page_creator.js ahead of its
+    // cached tracklist_editor/funcs.js must fall back to the feedback-only path, not break
+    // the click.
+    var box = $( mdbPageCreator_tracklistBoxSite || mdbPageCreator_tracklistBoxSelector ).first();
+
+    if( box.length && typeof tlBoxApplyResult === "function" && tlBoxApplyResult( box, res ) ) {
+        log( "mdbPageCreator_validateTracklist: the API's text is in the box - the page carries it formatted." );
+
+        // announce the rewrite the way the blur update announces its own
+        box.addClass( "mdb-tlBox-updating" );
+        setTimeout(function() {
+            box.removeClass( "mdb-tlBox-updating" );
+        }, tlBoxUpdateMinMs );
+
+        // the same bookkeeping the blur update hands over: live and validated text, feedback,
+        // status - and the reasoning panel's category row
+        mdbPageCreator_tracklistBoxUpdated( box, res );
+        return;
+    }
+
+    // No box on the page (a re-render just took it), or no usable text in the answer: keep
+    // the text as it stands, take the feedback - the click still files the right category.
     mdbPageCreator_tracklistValidated = tl;
     mdbPageCreator_tracklistFeedback = res.feedback;
     mdbPageCreator_tracklistStatus = res.feedback.status || "";
