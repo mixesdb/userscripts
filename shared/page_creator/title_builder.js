@@ -2459,10 +2459,18 @@ function mdbTitle_channelSeriesConversion( text, username ) {
             re = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSpaces( candidates[c] ) + "(?![\\w])", "i" );
 
             if( re.test( text ) ) {
+                // "found" keeps the words as the TITLE wrote them ("DJ MIX"), so the panel's
+                // step can quote the title rather than the curated key
+                var found = "";
+
                 return {
-                    text: text.replace( re, function( all, lead ) { return lead + entity; } ),
+                    text: text.replace( re, function( all, lead ) {
+                        found = all.slice( lead.length );
+                        return lead + entity;
+                    } ),
                     entity: entity,
-                    words: words
+                    words: words,
+                    found: found
                 };
             }
         }
@@ -2727,6 +2735,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             show = mdbTitle_showFromUsername( username );
         logVar( "show", show + ( isMappedChannel ? " (mapped)" : " (raw channel name)" ) );
 
+        // The mapping changes nothing in the TITLE, so without a step the panel could not
+        // answer "why did Resident Advisor become RA Podcast?" - the one curated rule whose
+        // work is otherwise invisible. See mdbTitleUsernameConversions in title_definitions.js.
+        if( isMappedChannel ) {
+            mdbTitle_traceStep( "Channel is on the known-shows list",
+                username + " -> " + ( show || "(no show)" ) );
+        }
+
         // 2a) the channel and a word in the title name the show TOGETHER: "DJ MIX #679" on the
         // channel "Dance TV" is an episode of "Dance TV DJ Mix" - the bare words would read as
         // a generic series and lose whose it is. The words grow into the curated name inside
@@ -2737,9 +2753,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( seriesConversion ) {
             logVar( "buildMixesdbTitle: channel and title words name the show together",
                     seriesConversion.words + " -> " + seriesConversion.entity );
+            mdbTitle_traceStep( "Channel and title words name the show together",
+                "\"" + seriesConversion.found + "\" on the channel " + username + " -> " + seriesConversion.entity );
             rest = seriesConversion.text;
             show = seriesConversion.entity;
             isMappedChannel = true;
+            mdbTitle_traceCleaned( rest );
         }
 
         // 3) date. The creation date only DISAMBIGUATES a date written in the title

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.1
+// @version      2026.08.17.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1912,7 +1912,7 @@ function on_submitrequest() {
 /*
  * Changelog
  *
- * 2026.08.17.1
+ * 2026.08.17.2
  * The shared chunk split (mdbTitle_titleChunks, title_builder.js v_25) now removes what the
  * parse removes: a bracket crediting the artist's labels ("Tooker (SONARA / Crosstown
  * Rebels)") and a place list saying where the artist is from. Those names showed up as
@@ -1920,6 +1920,11 @@ function on_submitrequest() {
  * asking the wiki about a record label wasted the request. The reasoning panel
  * (page_creator.js v_25, page_creator.css) shows them struck through on a "Removed:" line
  * with the reason spelled out, so a reporter sees the drop was on purpose.
+ * The panel's "Fixed and cleaned" section also names the channel -> show mappings, whose
+ * work was invisible (nothing in the title text changes): a channel on the known-shows list
+ * (mdbTitleUsernameConversions) as "Resident Advisor -> RA Podcast", and a show the channel
+ * and the title name together (mdbTitleChannelSeriesConversions) as '"DJ MIX" on the channel
+ * Dance TV -> Dance TV DJ Mix'.
  *
  * 2026.08.16.15
  * The "Report" box got a reasoning panel above the textarea (shared/page_creator/:

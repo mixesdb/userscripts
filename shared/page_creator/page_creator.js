@@ -1348,7 +1348,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.append( s1 );
 
     // 2) the cleanup
-    var s2 = mdbPageCreator_reasoningSection( "2", "Fixed and cleaned", "typos, decoration, credits and the date, taken out before the parse" );
+    var s2 = mdbPageCreator_reasoningSection( "2", "Fixed and cleaned", "typos, decoration, credits and the date, taken out before the parse - and the channel → show mapping when one applied" );
 
     if( trace ) {
         if( trace.steps.length ) {

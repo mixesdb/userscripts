@@ -57,7 +57,10 @@ learning" line can name the step that went wrong:
    the artist is from – with the reason spelled out behind it; those names are never sent to
    the lookup
 2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, label credits,
-   the date that was read out, joiners rewritten, chunks a mix page title does not carry
+   the date that was read out, joiners rewritten, chunks a mix page title does not carry –
+   and the channel → show mappings, whose work is otherwise invisible: a channel on the
+   known-shows list is shown as `Resident Advisor → RA Podcast`, and a show the channel and
+   the title name together as `"DJ MIX" on the channel Dance TV → Dance TV DJ Mix`
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
    category in the wiki's own spelling, its type (artist, podcast, venue, …) and how many
    mixes it holds – or that no category of that name exists
