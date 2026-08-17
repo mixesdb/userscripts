@@ -123,6 +123,11 @@ var mdbPageCreator_title = "",
     mdbPageCreator_reasoningTimer = null,
     // the poll behind the panel's own loading state - see mdbPageCreator_watchReasoningReady()
     mdbPageCreator_reasoningReadyPoll = null,
+    // which of the cleanup steps' "?" definition blocks the reader opened, keyed by the lists
+    // shown in it. The panel is otherwise stateless and rebuilt whole; this one thing is kept
+    // because the rebuild is what a title EDIT triggers, and a rule list opened to compare the
+    // title against would close on the first keystroke.
+    mdbPageCreator_openDefinitions = {},
     // where the row goes - see the note on selector strings in the header comment
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
@@ -977,7 +982,10 @@ function mdbPageCreator_reportDay( date ) {
  * the field - debounced, because a corrected name may need a lookup of its own and firing one
  * per keystroke would spam the wiki.
  *
- * Display only, rebuilt whole on every render: nothing in the panel holds state worth keeping.
+ * Display only, rebuilt whole on every render. The one thing it remembers is which of the
+ * cleanup steps' "?" rule lists the reader opened (mdbPageCreator_openDefinitions) - the
+ * rebuild is what a title EDIT triggers, and a list opened to compare the title against would
+ * close on the first keystroke.
  * Everything is written with .text(), never with HTML strings - player titles are hostile
  * free text.
  *
@@ -1148,6 +1156,81 @@ function mdbPageCreator_reasoningDetail( detail ) {
     }
 
     return span;
+}
+
+// mdbPageCreator_definitionLiteral
+// A definition list as the JS it is written as in title_definitions.js: regexes as regexes
+// (JSON.stringify writes them as "{}"), strings quoted, one entry per line. Printed rather
+// than described, because a rule is only checkable in its own spelling - a reporter compares
+// the entry against the title in front of them.
+// A short object stays on one line ({ wrong: /\bpodcats\b/gi, right: "podcast" }): broken over
+// five lines it reads as five facts, and mdbTitleTypoFixes is 3 entries.
+function mdbPageCreator_definitionLiteral( value, indent ) {
+    if( value instanceof RegExp ) return String( value );
+    if( typeof value !== "object" || value === null ) return JSON.stringify( value );
+
+    var pad = new Array( ( indent || 0 ) + 1 ).join( "    " ),
+        inner = pad + "    ",
+        isArray = Object.prototype.toString.call( value ) === "[object Array]",
+        parts = [],
+        flat = [],
+        k, i, text;
+
+    if( isArray ) {
+        for( i = 0; i < value.length; i++ ) {
+            text = mdbPageCreator_definitionLiteral( value[i], ( indent || 0 ) + 1 );
+            parts.push( inner + text );
+            flat.push( text );
+        }
+    } else {
+        for( k in value ) {
+            if( !Object.prototype.hasOwnProperty.call( value, k ) ) continue;
+
+            // quoted the way the file writes it: a plain identifier bare ("wrong:"), a name
+            // with blanks in quotes ("Dance TV":) - the block is there to be compared with
+            // title_definitions.js line for line
+            text = ( /^[A-Za-z_$][\w$]*$/.test( k ) ? k : JSON.stringify( k ) ) + ": " +
+                   mdbPageCreator_definitionLiteral( value[k], ( indent || 0 ) + 1 );
+            parts.push( inner + text );
+            flat.push( text );
+        }
+    }
+
+    if( !parts.length ) return isArray ? "[]" : "{}";
+
+    var oneLine = ( isArray ? "[ " : "{ " ) + flat.join( ", " ) + ( isArray ? " ]" : " }" );
+
+    if( indent && oneLine.length <= 72 && oneLine.indexOf( "\n" ) === -1 ) return oneLine;
+
+    return ( isArray ? "[\n" : "{\n" ) + parts.join( ",\n" ) + "\n" + pad + ( isArray ? "]" : "}" );
+}
+
+// mdbPageCreator_reasoningDefinitions
+// The block behind a step's "?": per list its variable name (which says where to go and fix a
+// wrong entry), the one-liner from mdbTitleDefinitionDocs and the list itself in a <pre>.
+// Hidden unless the reader opened it - see mdbPageCreator_openDefinitions.
+function mdbPageCreator_reasoningDefinitions( defs ) {
+    var docs = ( typeof mdbTitleDefinitionDocs !== "undefined" && mdbTitleDefinitionDocs ) ? mdbTitleDefinitionDocs : {},
+        box = $("<div>").addClass( "mdb-pageCreator-reasoning-defs" ),
+        shown = 0,
+        i, doc;
+
+    for( i = 0; i < defs.length; i++ ) {
+        doc = Object.prototype.hasOwnProperty.call( docs, defs[i] ) ? docs[defs[i]] : null;
+
+        if( !doc ) continue;
+
+        box.append(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-defs-name" ).text( defs[i] ),
+            $("<div>").addClass( "mdb-pageCreator-reasoning-defs-what" ).text( doc.what || "" ),
+            $("<pre>").addClass( "mdb-pageCreator-reasoning-defs-pre" )
+                .text( mdbPageCreator_definitionLiteral( doc.data, 0 ) )
+        );
+
+        shown++;
+    }
+
+    return shown ? box : $();
 }
 
 // mdbPageCreator_reasoningStepDetail
@@ -1374,19 +1457,50 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.append( s1 );
 
     // 2) the cleanup
-    var s2 = mdbPageCreator_reasoningSection( "2", "Fixed and cleaned", "typos, decoration, credits and the date, taken out before the parse - and the channel → show mapping when one applied" );
+    var s2 = mdbPageCreator_reasoningSection( "2", "Fixed and cleaned", "typos, decoration, credits and the date, taken out before the parse - and the curated channel → show rules when one applied. \"?\" shows the rule list a step worked off" );
 
     if( trace ) {
         if( trace.steps.length ) {
             var steps = $("<div>").addClass( "mdb-pageCreator-reasoning-steps" );
 
             for( i = 0; i < trace.steps.length; i++ ) {
-                steps.append(
-                    $("<div>").addClass( "mdb-pageCreator-reasoning-step" ).append(
-                        $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( trace.steps[i].label ),
-                        mdbPageCreator_reasoningStepDetail( trace.steps[i] )
-                    )
-                );
+                var step = trace.steps[i],
+                    label = $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( step.label ),
+                    row = $("<div>").addClass( "mdb-pageCreator-reasoning-step" ),
+                    // a step that worked off a title_definitions.js list (step.defs) offers it
+                    // behind a "?"; one that decided on its own has nothing to show
+                    defs = step.defs ? mdbPageCreator_reasoningDefinitions( step.defs ) : $();
+
+                if( defs.length ) {
+                    // the open ones survive a re-render (a title edit rebuilds the panel, and a
+                    // list the reader opened to compare against must not close under them) -
+                    // keyed by the lists themselves, so the same rule stays open on any step
+                    var defsKey = step.defs.join( "|" ),
+                        open = mdbPageCreator_openDefinitions[ defsKey ] === true;
+
+                    defs.toggle( open );
+
+                    label.append(
+                        $("<span>")
+                            .addClass( "mdb-pageCreator-reasoning-defs-toggle" + ( open ? " mdb-pageCreator-defs-open" : "" ) )
+                            .attr( "title", "Show the rule list this step worked off: " + step.defs.join( ", " ) )
+                            .text( "?" )
+                            .on( "click", function( key, panel ) {
+                                return function() {
+                                    var nowOpen = !panel.is( ":visible" );
+
+                                    mdbPageCreator_openDefinitions[ key ] = nowOpen;
+                                    $(this).toggleClass( "mdb-pageCreator-defs-open", nowOpen );
+                                    panel.toggle( nowOpen );
+                                };
+                            }( defsKey, defs ) )
+                    );
+                }
+
+                // the panel is a third child of a display:contents row, spanning both grid
+                // columns (see page_creator.css) - a nested wrapper would break the alignment
+                // every other row shares
+                steps.append( row.append( label, mdbPageCreator_reasoningStepDetail( step ), defs ) );
             }
 
             s2.append( steps );
@@ -1451,7 +1565,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                         // muted like the row's other notes - the red chip already carries
                         // the verdict, this line only explains it
                         result.append( mdbPageCreator_reasoningNote(
-                            "overruled - on this channel these words name \"" + mp.to + "\" (curated mapping, section 2)", "muted" ) );
+                            "overruled - on this channel these words name \"" + mp.to + "\" (curated channel rule, section 2)", "muted" ) );
                         break;
                     }
                 }
@@ -1566,6 +1680,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_sourceDate = "";
     mdbPageCreator_sourceLabel = "";
     mdbPageCreator_reportOpen = false;
+    mdbPageCreator_openDefinitions = {};
 
     // The polls are the reason this cannot just null the values: each is an interval still
     // asking about the mix the reader has already left.

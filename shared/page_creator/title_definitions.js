@@ -1610,3 +1610,70 @@ var mdbTitleNormalCaseKeepUpper = [
 ];
 
 var mdbTitleNormalCaseKeepLower = [];
+
+
+/*
+ * mdbTitleDefinitionDocs
+ *
+ * What the reasoning panel shows behind the round "?" next to a cleanup step: the list the
+ * step worked off, one short sentence saying what it is for, and the list itself.
+ *
+ * A reporter who sees "Decoration removed" cannot tell whether the words went because a rule
+ * says so or because the parser guessed - and a maintainer reading the report cannot tell
+ * either. The "?" answers both in place: this list, these entries, and the entry that fired is
+ * in there to be pointed at.
+ *
+ * Keys are the variable names above, and the panel prints the key as the heading - so it also
+ * says WHERE to go and fix a wrong entry. Values are read live (the arrays are never
+ * reassigned, only extended), so nothing here can drift out of step with the data.
+ *
+ * A new list in this file needs an entry here as soon as a trace step names it - see the defs
+ * parameter of mdbTitle_traceStep() in title_builder.js. A list no step names needs none: the
+ * panel only ever asks for what a step points at.
+ */
+var mdbTitleDefinitionDocs = {
+    mdbTitleTypoFixes: {
+        what: "Misspellings corrected before any rule reads a word. A typo in an ordinary word costs a letter; a typo in a word the parser reads (\"podcats\") costs the whole title.",
+        data: mdbTitleTypoFixes
+    },
+    mdbTitleNoise: {
+        what: "Decoration a mix page title never carries: free-download tags, premiere and exclusive markers, and the like. Taken out of the title before it is split into chunks.",
+        data: mdbTitleNoise
+    },
+    mdbTitleDroppedBitPatterns: {
+        what: "Chunks that name a piece of a recording or a corner of a festival site - a part, a day, a stage, a camp. The mix page covers the whole recording, so these never join the title.",
+        data: mdbTitleDroppedBitPatterns
+    },
+    mdbTitleUsernameConversions: {
+        what: "Channel name -> the show MixesDB files that channel's uploads under. Hand-written per channel, and the value is the spelling both the title and the category use.",
+        data: mdbTitleUsernameConversions
+    },
+    mdbTitleChannelSeriesConversions: {
+        what: "For a title that names its show only HALF: the channel plus the generic words the title uses (\"DJ Mix\") name the show together. An upload whose title carries none of the words is untouched.",
+        data: mdbTitleChannelSeriesConversions
+    },
+    mdbTitleExtraArtistConnectors: {
+        what: "Connectors behind which FURTHER artists stand. What follows one is taken out of the title and joined to the artist group with a comma.",
+        data: mdbTitleExtraArtistConnectors
+    },
+    mdbTitleTogetherArtistJoiners: {
+        what: "Words between two artists who played TOGETHER, rewritten to the \"&\" MixesDB writes.",
+        data: mdbTitleTogetherArtistJoiners
+    },
+    mdbTitleVenueConnectors: {
+        what: "Words in front of a place, rewritten to the \"@\" MixesDB writes.",
+        data: mdbTitleVenueConnectors
+    },
+    mdbTitleLiveAtWords: {
+        what: "Live and DJ-set markers. They say a set was played somewhere, which is what turns the words behind them into a venue - and a marker with no place to point at is dropped.",
+        data: mdbTitleLiveAtWords
+    },
+    mdbTitleGuestMarkers: {
+        what: "Phrases marking a guest mix. The name in front of one is the artist, and the phrase itself is no part of the title.",
+        data: mdbTitleGuestMarkers
+    },
+    mdbTitleCountries: {
+        what: "Country names and codes, for spotting a bracket that only says where an artist is from (\"(Detroit, U.S.A.)\") - which a mix page title never carries. Not used on a live title, where the same words are the venue's city and country.",
+        data: mdbTitleCountries
+    }
+};

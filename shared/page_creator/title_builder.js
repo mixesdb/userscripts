@@ -2541,15 +2541,34 @@ var mdbTitle_trace = null;
 // mapping is optional, for the channel -> show steps: { from, to, words? } - the panel
 // renders it as chips (channel blue, show green) instead of the plain detail, which stays
 // alongside as what a stale cached page_creator.js falls back to.
-function mdbTitle_traceStep( label, detail, mapping ) {
+// defs names the title_definitions.js lists the step worked off, in the order they were read.
+// The panel offers them behind a "?" (mdbTitleDefinitionDocs holds the text and the data), so
+// a reporter can see the rule rather than infer it. A step that decided something on its own -
+// the date, the brackets - names none, and gets no "?".
+function mdbTitle_traceStep( label, detail, mapping, defs ) {
     if( !mdbTitle_trace ) return;
+
+    // No step re-lists what the chunk section already shows as removed (a label credit, a
+    // place list). Every step that quotes the title quotes it as it stands at that moment,
+    // which is WITH those words - the parse drops them later - and quoted again they read as
+    // kept. Central, so the answer is the same in every step. A step whose detail is those
+    // names ("Location chunk dropped") is unaffected: it only ever names what section 1 did
+    // NOT show.
+    var text = mdbTitle_traceTextWithout( detail, mdbTitle_trace.chunksRemoved ).replace( /\s+/g, " " ).trim(),
+        sides = text.split( " -> " );
+
+    // ... and a step whose two sides came out IDENTICAL concerned nothing but such a chunk
+    // (its brackets, its separators). "X -> X" is not a step, it is a step that has already
+    // been reported one section higher.
+    if( sides.length === 2 && sides[0] === sides[1] ) return;
 
     var step = {
         label: label,
-        detail: String( detail || "" ).replace( /\s+/g, " " ).trim()
+        detail: text
     };
 
     if( mapping ) step.mapping = mapping;
+    if( defs && defs.length ) step.defs = defs;
 
     mdbTitle_trace.steps.push( step );
 }
@@ -2592,10 +2611,9 @@ function mdbTitle_traceChunks( text ) {
 // mdbTitle_traceTextWithout
 // A step's quoted text with the chunks the shared split removes outright (label credits,
 // place lists) excised - in their bracketed spelling first, then bare, each with the
-// separator run in front of it, so the cut leaves no " - |" debris. The step must not
-// re-list what the chunk section's "Removed:" line already names: quoted again it reads as
-// kept. Display only - the parse works on the full text and drops these chunks where its
-// own rules do.
+// separator run in front of it, so the cut leaves no " - |" debris. Run over EVERY step's
+// detail by mdbTitle_traceStep(); the reason is written there. Display only - the parse works
+// on the full text and drops these chunks where its own rules do.
 function mdbTitle_traceTextWithout( text, removed ) {
     var out = String( text || "" ),
         i, esc;
@@ -2603,12 +2621,24 @@ function mdbTitle_traceTextWithout( text, removed ) {
     for( i = 0; removed && i < removed.length; i++ ) {
         esc = mdbTitle_escapeRe( removed[i].text );
 
+        // global: a step quotes the title twice ("before -> after") and the chunk has to go
+        // from BOTH sides - cutting only the first leaves the step contradicting itself
         out = out
-            .replace( new RegExp( "[(\\[{]\\s*" + esc + "\\s*[)\\]}]" ), " " )
-            .replace( new RegExp( "(?:\\s*[|\\/•\\-–]+\\s*|\\s+|^)" + esc + "(?=\\s*(?:[|\\/•\\-–]+\\s*|$))" ), " " );
+            .replace( new RegExp( "[(\\[{]\\s*" + esc + "\\s*[)\\]}]", "g" ), " " )
+            .replace( new RegExp( "(?:\\s*[|\\/•\\-–]+\\s*|\\s+|^)" + esc + "(?=\\s*(?:[|\\/•\\-–]+\\s*|$))", "g" ), " " );
     }
 
-    return mdbTitle_trimSeparators( out.replace( /\s+/g, " " ) );
+    // Each side of a "before -> after" quote is a title of its own and is trimmed like one:
+    // a chunk cut off the END of a side leaves behind the separator that used to join it
+    // ("Mister Joshooa |"), which reads as a title missing something.
+    var sides = out.replace( /\s+/g, " " ).split( " -> " ),
+        s;
+
+    for( s = 0; s < sides.length; s++ ) {
+        sides[s] = mdbTitle_trimSeparators( sides[s] );
+    }
+
+    return sides.join( " -> " );
 }
 
 // mdbTitle_titleChunks
@@ -2718,7 +2748,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( spelled !== rest ) {
             logVar( "buildMixesdbTitle: typo corrected", rest + " -> " + spelled );
-            mdbTitle_traceStep( "Typo fixed", rest + " -> " + spelled );
+            mdbTitle_traceStep( "Typo fixed", rest + " -> " + spelled, null, [ "mdbTitleTypoFixes" ] );
             rest = spelled;
         }
 
@@ -2733,7 +2763,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         }
 
         if( rest !== beforeNoise ) {
-            mdbTitle_traceStep( "Decoration removed", beforeNoise + " -> " + rest );
+            mdbTitle_traceStep( "Decoration removed", beforeNoise + " -> " + rest, null, [ "mdbTitleNoise" ] );
         }
 
         // 1a) a bracket crediting the artist's label(s) - "Tooker (SONARA / Crosstown Rebels)".
@@ -2756,17 +2786,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( unbracketed !== rest ) {
             logVar( "buildMixesdbTitle: brackets read as separators", rest + " -> " + unbracketed );
 
-            // The step quotes both sides WITHOUT the chunks the shared split removes outright
-            // (chunksRemoved: label credits, place lists) - section 1's "Removed:" line
-            // already names those, and 1a skips its step for the same reason. A bracket
-            // rewrite that only concerned such a chunk leaves nothing to say: no step.
-            var removedForTrace = mdbTitle_trace ? mdbTitle_trace.chunksRemoved : null,
-                stepBefore = mdbTitle_traceTextWithout( rest, removedForTrace ),
-                stepAfter = mdbTitle_traceTextWithout( unbracketed, removedForTrace );
-
-            if( stepBefore !== stepAfter ) {
-                mdbTitle_traceStep( "Brackets read as separators", stepBefore + " -> " + stepAfter );
-            }
+            // A bracket rewrite that concerned ONLY a chunk section 1 already shows as removed
+            // ("Mister Joshooa ( Detroit, U.S.A.)") drops out in mdbTitle_traceStep, which
+            // takes those chunks out of what it quotes and keeps no "X -> X" step.
+            mdbTitle_traceStep( "Brackets read as separators", rest + " -> " + unbracketed );
 
             rest = unbracketed;
         }
@@ -2803,7 +2826,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( withoutDropped.dropped ) {
             logVar( "buildMixesdbTitle: chunks dropped", rest + " -> " + withoutDropped.text );
-            mdbTitle_traceStep( "Chunk dropped (a part, a stage or the like)", rest + " -> " + withoutDropped.text );
+            mdbTitle_traceStep( "Chunk dropped (a part, a stage or the like)", rest + " -> " + withoutDropped.text,
+                null, [ "mdbTitleDroppedBitPatterns" ] );
             conf.drop( 5, "a part of the title was left out - it named a part, a stage or the like, which a mix page title does not carry" );
             rest = withoutDropped.text;
         }
@@ -2823,7 +2847,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( isMappedChannel ) {
             mdbTitle_traceStep( "Channel is on the known-shows list",
                 username + " -> " + ( show || "(no show)" ),
-                show ? { from: username, to: show } : null );
+                show ? { from: username, to: show } : null,
+                [ "mdbTitleUsernameConversions" ] );
         }
 
         // 2a) the channel and a word in the title name the show TOGETHER: "DJ MIX #679" on the
@@ -2834,11 +2859,16 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         var seriesConversion = mdbTitle_channelSeriesConversion( rest, username );
 
         if( seriesConversion ) {
-            logVar( "buildMixesdbTitle: channel and title words name the show together",
+            logVar( "buildMixesdbTitle: curated channel rule, title words name the show",
                     seriesConversion.words + " -> " + seriesConversion.entity );
-            mdbTitle_traceStep( "Channel and title words name the show together",
+            // The label says WHERE the show name comes from, not just what happened: this
+            // name is hand-written for this channel in title_definitions.js, not read off
+            // the title and not looked up. A reporter who reads "these words name the show"
+            // alone looks for the rule in the title and does not find it.
+            mdbTitle_traceStep( "Curated channel rule: title words name the show",
                 "\"" + seriesConversion.found + "\" on the channel " + username + " -> " + seriesConversion.entity,
-                { from: username, to: seriesConversion.entity, words: seriesConversion.found } );
+                { from: username, to: seriesConversion.entity, words: seriesConversion.found },
+                [ "mdbTitleChannelSeriesConversions" ] );
             rest = seriesConversion.text;
             show = seriesConversion.entity;
             isMappedChannel = true;
@@ -2907,7 +2937,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( extraArtists.length ) {
             logVar( "extra artists", extraArtists.join( " | " ) + " (behind: " + extra.before + ")" );
-            mdbTitle_traceStep( "Further artists taken out (\"w/\", \"with\")", extraArtists.join( ", " ) );
+            mdbTitle_traceStep( "Further artists taken out (\"w/\", \"with\")", extraArtists.join( ", " ),
+                null, [ "mdbTitleExtraArtistConnectors" ] );
             mdbTitle_traceCleaned( rest );
         }
 
@@ -2917,7 +2948,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( joined.text !== rest ) {
             logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined.text );
-            mdbTitle_traceStep( "Joiners rewritten", rest + " -> " + joined.text );
+            mdbTitle_traceStep( "Joiners rewritten", rest + " -> " + joined.text, null,
+                [ "mdbTitleVenueConnectors", "mdbTitleTogetherArtistJoiners", "mdbTitleLiveAtWords" ] );
             rest = joined.text;
             mdbTitle_traceCleaned( rest );
         }
@@ -2937,7 +2969,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( joined.dropped ) {
             conf.drop( 5, "\"" + joined.dropped + "\" was dropped - it says how the set was played, not where, " +
                           "and the title names no venue or event to put behind an \"@\"" );
-            mdbTitle_traceStep( "Live marker dropped", "\"" + joined.dropped + "\" says how the set was played, not where" );
+            mdbTitle_traceStep( "Live marker dropped", "\"" + joined.dropped + "\" says how the set was played, not where",
+                null, [ "mdbTitleLiveAtWords" ] );
         }
 
         // A title that is nothing but the place ("Live at Docklands") names no artist, so the
@@ -2956,7 +2989,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         if( guestArtist ) {
             logVar( "guest artist", guestArtist );
-            mdbTitle_traceStep( "Guest-mix marker read", "the guest artist is " + guestArtist );
+            mdbTitle_traceStep( "Guest-mix marker read", "the guest artist is " + guestArtist,
+                null, [ "mdbTitleGuestMarkers" ] );
             mdbTitle_traceCleaned( rest );
         }
 
@@ -3080,7 +3114,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 }
 
                 if( locationsNotShown.length ) {
-                    mdbTitle_traceStep( "Location chunk dropped", locationsNotShown.join( " | " ) );
+                    mdbTitle_traceStep( "Location chunk dropped", locationsNotShown.join( " | " ),
+                        null, [ "mdbTitleCountries" ] );
                 }
 
                 rest = locations.text;

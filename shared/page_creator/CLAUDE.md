@@ -316,6 +316,26 @@ loading skeleton (both sites are dark-themed). Opened while a lookup is still pe
 page skeleton is up), it renders its own stand-in rows and a safety-net poll re-renders when
 everything settled - the normal path is the refresh after the lookup answer.
 
+Settled about what it shows:
+
+- **No step re-lists what the chunk section shows as removed** - a label credit, a place list.
+  Done once, in `mdbTitle_traceStep()`, over every step's detail: a step quotes the title as it
+  stands at that moment, which is WITH those words (the parse drops them later), and quoted
+  again they read as kept. A step whose two sides come out identical after the cut concerned
+  nothing else and is dropped whole - "X -> X" is not a step.
+- **A step that worked off a `title_definitions.js` list offers it behind a round "?"** -
+  the list's name, one sentence, and the entries printed as the JS they are written as. A
+  reporter can then name the entry that is wrong instead of only the outcome. The step names
+  its lists in the `defs` parameter of `mdbTitle_traceStep()`, `mdbTitleDefinitionDocs` (bottom
+  of `title_definitions.js`) holds the sentence and the data, and `mdbPageCreator_definitionLiteral()`
+  prints it - regexes as regexes, identifier keys bare, so the block reads like the file.
+  **A new list needs an entry there as soon as a step names it**; a list no step points at
+  needs none. A step that decided something on its own (the date, the brackets) names no list
+  and gets no "?".
+- The open "?" blocks are the one thing the panel remembers across a re-render
+  (`mdbPageCreator_openDefinitions`) - the rebuild is what a title EDIT triggers, and a list
+  opened to compare the title against must not close on the first keystroke.
+
 Every title reported as wrongly suggested lives in `title_examples.js` as its input and the
 title it should produce. Run them before and after touching anything the suggestion uses
 (`title_definitions.js`, `title_builder.js`):
