@@ -289,13 +289,12 @@
     border-color: rgba(46, 184, 46, 0.35);
 }
 
-/* what the split removed outright (label credits, place lists) - red and struck through,
+/* what the split removed outright (label credits, place lists) - red,
    "this never played a part and was not looked up" */
 #mdb-pageCreator-reasoning .mdb-pageCreator-chip-removed {
     color: #ef6a6a;
     background-color: rgba(217, 83, 83, 0.10);
     border-color: rgba(217, 83, 83, 0.35);
-    text-decoration: line-through;
 }
 
 /* the "Channel:" / "Left for the parser:" side lines */
@@ -338,6 +337,12 @@
     font-size: 12px;
     color: #a8a8a8;
     word-break: break-word;
+}
+
+/* chips inside a step's detail (the channel -> show mappings): a hair of vertical margin so
+   wrapped lines do not touch */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-detail .mdb-pageCreator-chip {
+    margin: 1px 0;
 }
 
 /* the "before -> after" arrow inside a step detail - amber like the section it lives in */
