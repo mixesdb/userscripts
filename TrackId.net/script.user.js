@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.22
+// @version      2026.08.17.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_25
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_31
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_26
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_37
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -1911,6 +1911,14 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.17.23
+ * The one-" @ " rule now also holds at the builder's exit (title_builder.js v_32,
+ * title_definitions.js v_26): the event and venue branches compose "<artist bit> @ <place>"
+ * AFTER the title-wide rewrite, so an artist bit already carrying an "@" put a second one
+ * into the title once the wiki knew the venue. Enforced in mdbTitle_result, where every
+ * branch converges. Require params bumped so a Tampermonkey that cached the previous
+ * versions before the push reached the CDN refetches.
  *
  * 2026.08.17.10
  * From a SoundCloud report ("Kernel Existence - live@3000Grad Festival @Utopia 2021"), via

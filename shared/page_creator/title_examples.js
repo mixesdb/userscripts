@@ -874,6 +874,17 @@ var mdbTitleExamples = [
         expect: "2026-08-05 - CAN - Some Podcast 12"
     },
     {
+        // the venue branch composes its "@" AFTER the title-wide one-"@" rewrite, off an
+        // artist bit that may already carry one - the single exit is where the rule holds
+        // for every branch, so this must never come out as "@ Utopia @ Ritter Butzke".
+        // "@ Party, Venue, City" is also how MixesDB writes exactly this shape
+        title: "Kernel Existence @ Utopia | Ritter Butzke | Berlin",
+        channel: "kernel existence",
+        date: "2021-08-10",
+        known: { "Ritter Butzke": "venue", "Berlin": "other" },
+        expect: "2021 - Kernel Existence @ Utopia, Ritter Butzke, Berlin"
+    },
+    {
         // the marker MixesDB DOES write for how a set was played: "Live PA" - the act
         // performing its own tracks - goes behind the artist's name. A bare "live" never
         // becomes this, see the reported "live@3000Grad Festival" above
