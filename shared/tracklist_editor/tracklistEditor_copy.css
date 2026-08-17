@@ -223,3 +223,32 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     padding: .2em .4em .2em .3em;
     border-radius: .2em;
 }
+
+/* Our own two chips (tlBoxShowApiCount in funcs.js), sitting in front of the API's rows chip:
+ * the call counter and the switch for checking while typing. Shaped like the rows chip but
+ * hollow and quieter - they are our bookkeeping, not something the Tracklist Editor said
+ * about this tracklist. */
+.mdb-tlEditor-apiCalls,
+.mdb-tlEditor-autoUpdate {
+    color: #aaa;
+    font-size: .85em;
+    margin-top: -.2em;
+    margin-right: .4em;
+    padding: .2em .4em .2em .3em;
+    border: 1px solid hsla(0, 0%, 87%, 0.7);
+    border-radius: .2em;
+}
+.mdb-tlEditor-apiCalls {
+    cursor: help;
+}
+
+/* The switch reads as a switch: hover says it is clickable, and ON is the orange MixesDB
+ * uses for "active" everywhere else in this file. */
+.mdb-tlEditor-autoUpdate:hover {
+    color: #f60;
+    border-color: #f60;
+}
+.mdb-tlEditor-autoUpdate-on {
+    color: #f60;
+    border-color: #f60;
+}
