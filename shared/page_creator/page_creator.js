@@ -1234,11 +1234,31 @@ function mdbPageCreator_reasoningTypeBadge( type ) {
         .text( type );
 }
 
+// mdbPageCreator_matchScore
+// The confidence badge behind one answer, coloured by the same bands as the row's title score.
+// typeof-guarded like everything else the panel reads out of title_builder.js: a stale cached
+// copy from before this existed must cost the reader a badge, not the report box.
+function mdbPageCreator_matchScore( name, matches, index, overruled ) {
+    if( typeof mdbTitle_matchConfidence !== "function" ) return null;
+
+    var conf = mdbTitle_matchConfidence( name, matches, index, overruled ),
+        intro = "How strongly this answer backs \"" + name + "\".";
+
+    return $("<span>")
+        .addClass( "mdb-pageCreator-matchScore mdb-pageCreator-score-" + mdbPageCreator_confidenceBand( conf.percent ) )
+        .attr( "title", conf.reasons.length
+            ? intro + "\n\nWhat lowered it:\n- " + conf.reasons.join( "\n- " )
+            : intro + "\nThe wiki has this exact name and its category is well filled." )
+        .text( conf.percent + "%" );
+}
+
 // mdbPageCreator_reasoningMatch
-// One server match as "Name [type] N mixes" - the spelling is the wiki's own, which is half of
-// what makes the lookup worth showing.
-function mdbPageCreator_reasoningMatch( match ) {
-    var out = $("<span>").addClass( "mdb-pageCreator-reasoning-match" ).append(
+// One server match as "Name [type] N mixes NN%" - the spelling is the wiki's own, which is half
+// of what makes the lookup worth showing. The whole answer list is passed rather than the one
+// match: the score of an answer depends on how many OTHER things the wiki knows the name as.
+function mdbPageCreator_reasoningMatch( name, matches, index, overruled ) {
+    var match = matches[index],
+        out = $("<span>").addClass( "mdb-pageCreator-reasoning-match" ).append(
             $("<span>").addClass( "mdb-pageCreator-known" ).text( match.title || "?" ),
             mdbPageCreator_reasoningTypeBadge( String( match.type || "?" ) )
         );
@@ -1250,7 +1270,22 @@ function mdbPageCreator_reasoningMatch( match ) {
         );
     }
 
-    return out;
+    return out.append( mdbPageCreator_matchScore( name, matches, index, overruled ) );
+}
+
+// mdbPageCreator_lookupOverruledBy
+// The show a curated channel rule reads this name as on THIS channel, or "". A mapping outranks
+// whatever the wiki knows under the bare words, so both the note and the score have to see it.
+function mdbPageCreator_lookupOverruledBy( trace, key ) {
+    if( !trace || !trace.steps ) return "";
+
+    for( var st = 0; st < trace.steps.length; st++ ) {
+        var mp = trace.steps[st].mapping;
+
+        if( mp && mp.words && mp.to && mdbTitle_normalizeCompare( mp.words ) === key ) return mp.to;
+    }
+
+    return "";
 }
 
 // mdbPageCreator_reasoningNote
@@ -1643,7 +1678,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     // 3) the MixesDB lookups. The categories of section 4 are computed here already: the
     // asked-name chips answer that section by colour - green when the name ended up a
     // category of the new page, red when it did not.
-    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are - green chips became categories in 4, red ones did not" ),
+    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "what the wiki's own category names say these are - green chips became categories in 4, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
         entries = mdbPageCreator_categoryEntries( title ),
         catKeys = {};
 
@@ -1658,12 +1693,15 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
             var entry = lookupLog[i],
                 cached = Object.prototype.hasOwnProperty.call( cache, entry.key ) ? cache[entry.key] : "",
                 matches = ( cached && cached.matches ) ? cached.matches : [],
+                // read before the matches are rendered: it is part of what each answer is worth,
+                // not only a line under them
+                overruledBy = mdbPageCreator_lookupOverruledBy( trace, entry.key ),
                 result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
-                m, st, mp;
+                m;
 
             if( matches.length ) {
                 for( m = 0; m < matches.length; m++ ) {
-                    result.append( mdbPageCreator_reasoningMatch( matches[m] ) );
+                    result.append( mdbPageCreator_reasoningMatch( entry.name, matches, m, !!overruledBy ) );
                 }
             } else if( entry.pending ) {
                 result.append( mdbPageCreator_reasoningNote( "looking it up …", "info" ) );
@@ -1680,18 +1718,11 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
             // A curated channel mapping outranks whatever the wiki knows under the bare
             // words - without this line, an answer like "DJ Mix, show, 369 mixes" reads
             // like the row the title should have used.
-            if( trace && trace.steps ) {
-                for( st = 0; st < trace.steps.length; st++ ) {
-                    mp = trace.steps[st].mapping;
-
-                    if( mp && mp.words && mp.to && mdbTitle_normalizeCompare( mp.words ) === entry.key ) {
-                        // muted like the row's other notes - the red chip already carries
-                        // the verdict, this line only explains it
-                        result.append( mdbPageCreator_reasoningNote(
-                            "overruled - on this channel these words name \"" + mp.to + "\" (curated channel rule, section 2)", "muted" ) );
-                        break;
-                    }
-                }
+            if( overruledBy ) {
+                // muted like the row's other notes - the red chip already carries the
+                // verdict, this line only explains it
+                result.append( mdbPageCreator_reasoningNote(
+                    "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2)", "muted" ) );
             }
 
             lookups.append(

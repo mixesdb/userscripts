@@ -352,6 +352,19 @@ everything settled - the normal path is the refresh after the lookup answer.
 
 Settled about what it shows:
 
+- **Section 3's percentage is scored per ANSWER, not per asked name** -
+  `mdbTitle_matchConfidence( name, matches, index, overruled )` in `title_builder.js`, returning
+  `{ percent, reasons }` out of the same `mdbTitle_confidence()` object the title score uses, so
+  both are clamped to 10-95 and coloured by `mdbPageCreator_confidenceBand()`. A name the wiki
+  knows as several things ("fabric" the club, "Fabric" the artist) has one number per reading -
+  that is the whole point, one number for the row could only be about one of them. Nothing in
+  the parse reads it: it weighs the wiki's answer (is the category THIS name, does the mix count
+  vouch for it, is the name specific enough, does a curated channel rule overrule it), never
+  whether the parse picked the right chunk - "Leon" with 69 mixes scores 95% and is still the
+  wrong reading of "Leon Row x Shimon". A row with no answer at all (unknown, pending, failed,
+  over the request limit) gets no number - there is nothing to score. The reasons are shown on
+  hover under "What lowered it", so the rule the confidence reasons live by holds here too: each
+  one names something the reporter can go and check.
 - **Both chip lists are split by ONE function** - `mdbTitle_traceChunks()`, separator runs, the
   series-"by" and every " @ ". Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
   calls it; section 2 ("Left for the parser") calls it directly on `trace.cleaned`. A split rule

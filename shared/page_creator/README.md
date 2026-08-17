@@ -88,6 +88,14 @@ learning" line can name the step that went wrong:
    section 4 by colour: green when it ended up a category of the new page, red when it did
    not. A name a curated channel mapping overrules says so – `DJ Mix` is a show on the wiki,
    but on the channel Dance TV those words name `Dance TV DJ Mix`
+
+   Behind every answer stands a **percentage**: how strongly that answer backs the name it was
+   asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
+   found as `HATE Podcast` with 498 mixes is 95%; `Daniel` found as an artist category holding
+   a single mix is 45% – with 57,000 artist categories on the wiki, a short name almost always
+   finds somebody, and the mix count is what tells that apart from a real hit. A spelling the
+   wiki writes differently, a name it knows as several things at once, and a name a channel
+   rule overrules all cost as well
 4. **Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes,
    each annotated with what the lookup knows: a known artist is confirmed with its mix count,
    an unknown one is flagged as possibly new or misspelled

@@ -471,6 +471,22 @@
     white-space: nowrap;
 }
 
+/*
+ * How strongly one answer backs the name it was asked for. Same bands as the row's score, but
+ * the panel's own greens and reds - the row has to stay readable on a light page, this box is
+ * always dark.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore {
+    font-size: 11.5px;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore.mdb-pageCreator-score-high { color: #58c96b; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore.mdb-pageCreator-score-mid  { color: #f0a943; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore.mdb-pageCreator-score-low  { color: #ef4444; }
+
 #mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge {
     display: inline-block;
     padding: 1px 7px;
