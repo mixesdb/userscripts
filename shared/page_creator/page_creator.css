@@ -297,6 +297,14 @@
     border-color: rgba(217, 83, 83, 0.35);
 }
 
+/* a looked-up name that did NOT end up a category of the new page - same red as removed,
+   but its own class: this one WAS asked about, the message differs */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-notCat {
+    color: #ef6a6a;
+    background-color: rgba(217, 83, 83, 0.10);
+    border-color: rgba(217, 83, 83, 0.35);
+}
+
 /* the "Channel:" / "Left for the parser:" side lines */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-aside {
     display: flex;
@@ -345,11 +353,15 @@
     margin: 1px 0;
 }
 
-/* the "before -> after" arrow inside a step detail - amber like the section it lives in */
+/* the "before -> after" arrow inside a step detail - amber like the section it lives in.
+   Larger than the detail's 12px on purpose: at text size the glyph reads as a speck;
+   line-height 1 keeps the bigger glyph from stretching the row */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-arrow {
     padding: 0 5px;
     color: #f0a943;
     font-weight: bold;
+    font-size: 17px;
+    line-height: 1;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {

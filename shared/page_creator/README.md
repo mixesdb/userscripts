@@ -65,7 +65,10 @@ learning" line can name the step that went wrong:
    Dance TV → Dance TV DJ Mix`
 3. **MixesDB lookups** – which names were asked about on the wiki and what came back: the
    category in the wiki's own spelling, its type (artist, podcast, venue, …) and how many
-   mixes it holds – or that no category of that name exists
+   mixes it holds – or that no category of that name exists. The asked name's chip answers
+   section 4 by colour: green when it ended up a category of the new page, red when it did
+   not. A name a curated channel mapping overrules says so – `DJ Mix` is a show on the wiki,
+   but on the channel Dance TV those words name `Dance TV DJ Mix`
 4. **Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes,
    each annotated with what the lookup knows: a known artist is confirmed with its mix count,
    an unknown one is flagged as possibly new or misspelled
