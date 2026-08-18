@@ -159,7 +159,7 @@
     grid-column: 1 / -1;
     box-sizing: border-box;
     width: 100%;
-    margin-top: 8px;
+    margin-top: 15px;
     padding: 4px 6px;
     overflow: hidden;
     color: #444;
@@ -190,7 +190,7 @@
     grid-column: 1 / -1;
     box-sizing: border-box;
     width: 100%;
-    margin-top: 8px;
+    margin-top: 15px;
     padding: 16px 18px;
     color: #c9c9c9;
     font-size: 13px;
@@ -212,10 +212,16 @@
     margin-top: 0;
 }
 
+/* Three columns - bubble, heading, hint - instead of packing them into a flex row: the five
+   headings differ by more than ten characters, so behind a flex row every section's grey hint
+   started at a different x and the panel read as five unrelated blocks. The heading column is
+   capped, not fixed, so a narrow player column shrinks it rather than pushing the hint out of
+   the panel; a heading too long for it wraps and keeps the column. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-head {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 280px) minmax(0, 1fr);
     align-items: baseline;
-    gap: 8px;
+    column-gap: 10px;
     margin-bottom: 10px;
     font-weight: bold;
     font-size: 13px;
@@ -224,7 +230,6 @@
 
 /* the little count bubble in front of each heading - tinted per section below */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
-    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;

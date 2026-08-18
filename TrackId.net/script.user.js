@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.13
+// @version      2026.08.18.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 132,
+var cacheVersion = 133,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1911,6 +1911,14 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.18.14
+ * The reasoning panel's section headings now stand in a column of their own
+ * (page_creator.css). The five headings differ by more than ten characters, and with the
+ * grey hint packed straight behind each of them every section started its hint at a
+ * different x, so the panel read as five unrelated blocks rather than one list. The
+ * heading column is capped, not fixed: a narrow player column shrinks it instead of
+ * pushing the hint out of the panel.
  *
  * 2026.08.18.13
  * The reasoning panel's sections are renumbered 1..5 as shown - the 2a/2b pair is gone - and
