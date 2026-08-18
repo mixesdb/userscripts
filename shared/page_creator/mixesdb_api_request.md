@@ -190,8 +190,8 @@ Per field:
 - **`exactCase`** – `true` when the input matched the canonical title byte-for-byte.
 - **`recent`** – *optional, see section 6.* The titles of the N most recently added mix pages
   (ns 0) in that category, newest first, **for every type including `artist`** (it was asked
-  for non-artist types only until 2026-08-18 - see section 6 for why the artist categories want
-  it just as much). This is the one field that is
+  for non-artist types only until 2026-08-18, and **live for every type since 2026-08-19** -
+  see section 6 for why the artist categories wanted it just as much). This is the one field that is
   a genuine addition rather than a rearrangement of what `prop=categories` already returns, and
   the one we would understand being dropped – we can fetch it ourselves at one extra call per
   entity.

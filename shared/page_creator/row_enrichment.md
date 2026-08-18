@@ -10,10 +10,11 @@ as the row's hints bar (`#mdb-pageCreator-hints`, `mdbPageCreator_renderHints()`
 green and linked when the wiki has them (with the mix count behind the name), red when it does
 not - the red name itself searching MixesDB, a loupe icon marking it. It costs no request of its own - it reads the answers the title
 lookup already had. **Also since 2026-08-18: the "most recent" half of addition 2** -
-the title lookup asks `recentlimit=10` (the server attaches `recent` to non-artist matches
-only), an artist category fetches its pages on the chip's first open (one `list=categorymembers`
-call, the sortkey trick below), and every green chip's mix count toggles the category's recent
-mix pages open inside the chip, each linked. On a desktop-wide window all these links open the
+the title lookup asks `recentlimit=10` and every green chip's mix count toggles the category's
+recent mix pages open inside the chip, each linked. `recent` covers every type including
+`artist` and arrives in sortkey order since 2026-08-19 (both asked for after the endpoint's
+first version shipped a non-artist, cl_timestamp-sorted list - `mixesdb_api_request.md` §6);
+the per-artist `list=categorymembers` call the chip made until then is gone with it. On a desktop-wide window all these links open the
 MixesDB page in a modal on the page (`mdbPageCreator_modalOpen()`), prefetched while the bar
 stands. The category FAMILY (`match=prefix`) below is still open, and so are the
 around-the-date window of addition 2 and everything in additions 3-4.

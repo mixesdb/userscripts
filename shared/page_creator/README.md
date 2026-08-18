@@ -76,8 +76,8 @@ one chip per name, its colour saying whether MixesDB already has it:
   the category, and its mix count stands behind it. The count is a toggle: a click
   folds the category's most recently added mix pages out inside the chip, in the order
   MixesDB lists them there itself, each linking to its page – the quickest way to see how pages of this series are named, and whether
-  the mix is already among them. A show's pages arrive with the category answer itself; an
-  artist's are fetched the first time the chip opens.
+  the mix is already among them. The pages come with the category answer itself, for artists
+  as well as for shows, so the list is there the moment the chip is opened.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki

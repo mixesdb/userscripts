@@ -1387,9 +1387,10 @@ function mdbPageCreator_usedCatLoupe() {
 // The "N mixes" behind a confirmed name - the same count the reasoning panel writes behind
 // its matches, and ALWAYS the toggle for the category's recent mix pages, which fold out
 // under the name, inside the chip: the fastest "does this page already exist?" look there is
-// (row_enrichment.md §2). Non-artist categories bring the pages with the lookup answer;
-// an artist category's are fetched the first time its chip opens
-// (mdbPageCreator_usedCatFetchRecent) - the server ships "recent" for non-artist types only.
+// (row_enrichment.md §2). The pages ride along with the lookup answer for EVERY type, artist
+// categories included (mdbnames ships "recent" for all of them since 2026-08-19), so a chip
+// opens on what it already has and asks nothing on the click. A category the answer brought no
+// pages for keeps a plain count and no toggle - there is nothing to fold out.
 // Open ones survive the bar's re-renders - see mdbPageCreator_openUsedCatRecent.
 // A bucket category (mdbPageCreator_bucketCategories) gets neither the count nor the toggle:
 // its pages are unrelated mixes, so "recently filed there" answers nothing about this one.
@@ -1403,6 +1404,12 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
         list = $("<span>").addClass( "mdb-pageCreator-usedCat-recent" ),
         i;
 
+    // nothing to fold out - the count stays the plain side note it was before the toggle
+    if( !recent.length ) {
+        chip.append( $("<span>").addClass( "mdb-pageCreator-usedCat-mixes" ).text( text ) );
+        return;
+    }
+
     for( i = 0; i < recent.length; i++ ) {
         list.append(
             $("<a>")
@@ -1413,19 +1420,6 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
                 .attr( "title", "Open this mix page on MixesDB" )
                 .text( recent[i] )
         );
-    }
-
-    // the list's word while it has no links: being fetched, failed, or genuinely empty. An
-    // un-asked artist category shows nothing - its first open starts the fetch, and the
-    // re-render lands here again with recentPending set.
-    if( !recent.length ) {
-        var note = "";
-
-        if( match.recentPending )     note = "looking the pages up …";
-        else if( match.recentFailed ) note = "the lookup failed - open the category itself";
-        else if( match.recent )       note = "no mix pages in this category yet";
-
-        if( note ) list.append( $("<span>").addClass( "mdb-pageCreator-usedCat-recent-note" ).text( note ) );
     }
 
     chip.toggleClass( "mdb-pageCreator-usedCat-open", mdbPageCreator_openUsedCatRecent[ key ] === true );
@@ -1443,78 +1437,11 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
                 mdbPageCreator_openUsedCatRecent[ key ] = nowOpen;
                 chip.toggleClass( "mdb-pageCreator-usedCat-open", nowOpen );
 
-                if( !nowOpen ) return;
-
-                if( !match.recent && !match.recentPending && !match.recentFailed ) {
-                    mdbPageCreator_usedCatFetchRecent( match );
-                    // re-render at once: this chip comes back open, now saying "looking
-                    // the pages up …" - the fetch's own re-render brings the links
-                    mdbPageCreator_renderHints( $("#mdb-pageCreator") );
-                    return;
-                }
-
-                // pages already on hand - warm the cache for the ones now on screen
-                mdbPageCreator_prefetchHintLinks( chip );
+                // the pages are already on hand - warm the cache for the ones now on screen
+                if( nowOpen ) mdbPageCreator_prefetchHintLinks( chip );
             }),
         list
     );
-}
-
-// mdbPageCreator_usedCatFetchRecent
-// The recent mix pages of a category whose lookup answer brought none - in practice the
-// artist categories. One list=categorymembers call, cmsort=sortkey&cmdir=desc: mix page
-// titles start with their date, so sortkey order is date order, and it follows an editor's
-// manual sortkey where one files a page under its broadcast date (row_enrichment.md §2).
-// The titles are written onto the MATCH object in mdbTitle_categoryCache, so the answer
-// survives every re-render - and, like the cache, the page's navigations.
-function mdbPageCreator_usedCatFetchRecent( match ) {
-    // no chip ever offers the toggle for a bucket category (mdbPageCreator_usedCatMixes), so
-    // this is the safety net behind that: never spend a request on pages that are no siblings
-    if( mdbPageCreator_isBucketCategory( match.title ) ) {
-        log( "mdbPageCreator_usedCatFetchRecent: \"" + match.title + "\" is a bucket category - not fetched." );
-        return;
-    }
-
-    logVar( "mdbPageCreator_usedCatFetchRecent", match.title );
-
-    match.recentPending = true;
-
-    $.ajax({
-        url: mdbTitle_categoryApiUrl,
-        type: "get",
-        dataType: "json",
-        data: {
-            action: "query",
-            format: "json",
-            formatversion: 2,
-            origin: "*",
-            list: "categorymembers",
-            cmtitle: "Category:" + match.title,
-            cmnamespace: 0, // without it the answer is half File: pages
-            cmsort: "sortkey",
-            cmdir: "desc",
-            cmlimit: 10
-        },
-        success: function( data ) {
-            var members = ( data && data.query && data.query.categorymembers ) || [],
-                titles = [],
-                i;
-
-            for( i = 0; i < members.length; i++ ) {
-                if( members[i].title ) titles.push( members[i].title );
-            }
-
-            match.recentPending = false;
-            match.recent = titles;
-            mdbPageCreator_renderHints( $("#mdb-pageCreator") );
-        },
-        error: function( xhr, status ) {
-            log( "mdbPageCreator_usedCatFetchRecent FAILED (" + status + ") for " + match.title );
-            match.recentPending = false;
-            match.recentFailed = true;
-            mdbPageCreator_renderHints( $("#mdb-pageCreator") );
-        }
-    });
 }
 
 // mdbPageCreator_usedCatRecent
@@ -1526,10 +1453,10 @@ function mdbPageCreator_usedCatFetchRecent( match ) {
 // 2025-05-30, its release date, and belongs among the 2025 episodes rather than at the bottom
 // of the list (mixesdb_api_request.md §6).
 //
-// The lookup's own "recent" is the one list that arrives in no useful order (cl_timestamp -
-// see mdbTitle_categoryCache in title_builder.js). It is shown as it comes too: a title sort
-// would not repair it either, and mdbPageCreator_recentFetch replaces it with the
-// sortkey-true list as soon as that lands.
+// The lookup's own "recent" is sorted that way too since 2026-08-19 - it arrived in
+// cl_timestamp order until then, which is why this rule had to be written down at all
+// (mixesdb_api_request.md §6). mdbPageCreator_recentFetch still writes the entity's list back:
+// the same pages in the same order, plus the wikitext it read for the refinement.
 function mdbPageCreator_usedCatRecent( match ) {
     return ( match && match.recent && match.recent.length ) ? match.recent.slice() : [];
 }
@@ -1821,17 +1748,14 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
 
             logVar( "mdbPageCreator_recentFetch: " + catTitle, entry.titles.length + " pages, newest \"" + ( entry.titles[0] || "-" ) + "\"" );
 
-            // the hints bar's list for this category rides along: sortkey order really holds
-            // the newest pages, which the lookup answer's own timestamp-sorted "recent" misses
+            // the hints bar's list for this category rides along - the same pages in the same
+            // order the lookup answer carries, kept in one place so the chip and the refinement
+            // can never quote two different "recent" lists
             var match = ( typeof mdbTitle_categoryCache !== "undefined" )
                 ? mdbTitle_knownMatch( mdbTitle_categoryCache, catTitle, null )
                 : null;
 
-            if( match && match.title === catTitle ) {
-                match.recent = entry.titles.slice();
-                match.recentPending = false;
-                match.recentFailed = false;
-            }
+            if( match && match.title === catTitle ) match.recent = entry.titles.slice();
 
             mdbPageCreator_recentSettled();
         },
