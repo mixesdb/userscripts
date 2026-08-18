@@ -905,6 +905,14 @@ function mdbTitle_hasKeywordEpisode( text ) {
     return !!( found && found.word );
 }
 
+// mdbTitle_hasSeriesWord
+// Whether a bit carries a word off mdbTitleShowSuffixWords at all - the word half of
+// mdbTitle_seriesScore, for the readers that must not count digits: "Bonobo 2026" is no
+// series, "UNCODED BIRTHDAY Radioshow" is one.
+function mdbTitle_hasSeriesWord( part ) {
+    return new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")\\b", "i" ).test( part );
+}
+
 // mdbTitle_seriesScore
 // How much a bit of the title looks like a series rather than an artist name. A series WORD
 // outweighs a bare number, which is what tells "IT.podcast.s15e06" (podcast + digits) from
@@ -916,10 +924,9 @@ function mdbTitle_hasKeywordEpisode( text ) {
 // "Yoyaku Instore Sessions with ..." was read as a series and "Yoyaku Instore Session with ..."
 // was not. One list cannot drift from itself.
 function mdbTitle_seriesScore( part ) {
-    var words = new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")\\b", "i" ),
-        score = 0;
+    var score = 0;
 
-    if( words.test( part ) ) score += 2;
+    if( mdbTitle_hasSeriesWord( part ) ) score += 2;
     if( /\d/.test( part ) ) score += 1;
 
     return score;
@@ -2517,6 +2524,24 @@ function mdbTitle_hasVowel( word ) {
     return /[aeiouyàáâãäåèéêëìíîïòóôõöùúûü]/i.test( word );
 }
 
+// mdbTitle_isSeriesWordToken
+// Whether a single token IS a series word off mdbTitleShowSuffixWords ("Radioshow", "Mix."),
+// compared normalized so case and a trailing dot cost nothing. The whole token only - the
+// "podcast" inside "IT.podcast.s15e06" is part of an ID, not a word of its own.
+function mdbTitle_isSeriesWordToken( token ) {
+    var words = mdbTitle_showSuffixWords(),
+        cmp = mdbTitle_normalizeCompare( token ),
+        i;
+
+    if( !cmp ) return false;
+
+    for( i = 0; i < words.length; i++ ) {
+        if( mdbTitle_normalizeCompare( words[i] ) === cmp ) return true;
+    }
+
+    return false;
+}
+
 // mdbTitle_toNormalCase
 // "NO SIGNAL" -> "No Signal". A bit of the title written entirely in caps (or entirely in
 // lowercase) is a typing habit, not a spelling - MixesDB writes titles in Normal Case.
@@ -2527,10 +2552,38 @@ function mdbTitle_toNormalCase( s ) {
 
     // toUpperCase/toLowerCase are unicode-aware, so this also sees "Ø" and "η" as letters
     var hasLower = s.toUpperCase() !== s,
-        hasUpper = s.toLowerCase() !== s;
+        hasUpper = s.toLowerCase() !== s,
+        // the bit mixes its cases ONLY because of a series word - decided below, and what
+        // makes "UNCODED BIRTHDAY Radioshow" a shouted name rather than a deliberate spelling
+        mixedBySeriesWords = false;
 
     // mixed case = a deliberate spelling; no case at all = no letters to fix
-    if( hasLower === hasUpper ) return s;
+    if( hasLower === hasUpper ) {
+        if( !hasUpper ) return s;
+
+        // Judged once more with the series words (and the caseless digit tokens) set aside:
+        // the generic word off the curated list is typed in Normal Case by habit even inside
+        // a shouted name, so it says nothing about how the NAME is cased. Uniform without
+        // them means the name is shouted and the word only rode along - the shouted words
+        // are re-cased below and the set-aside tokens keep their typed case ("Radioshow"
+        // stays "Radioshow", the "MIx" of "E-L-E-C-T-R-O MIx" stays "MIx"). Anything still
+        // mixed without them is a deliberate spelling as before ("Nina ØDB", "MIT DIR '23
+        // Warm Up Session") and stays verbatim.
+        var tokens = s.split( /\s+/ ),
+            rest = "",
+            t;
+
+        for( t = 0; t < tokens.length; t++ ) {
+            if( !/\d/.test( tokens[t] ) && !mdbTitle_isSeriesWordToken( tokens[t] ) ) rest += tokens[t];
+        }
+
+        var restLower = rest.toUpperCase() !== rest,
+            restUpper = rest.toLowerCase() !== rest;
+
+        if( restLower === restUpper ) return s;
+
+        mixedBySeriesWords = true;
+    }
 
     var keepUpper = ( typeof mdbTitleNormalCaseKeepUpper !== "undefined" && mdbTitleNormalCaseKeepUpper ) ? mdbTitleNormalCaseKeepUpper : [],
         keepLower = ( typeof mdbTitleNormalCaseKeepLower !== "undefined" && mdbTitleNormalCaseKeepLower ) ? mdbTitleNormalCaseKeepLower : [],
@@ -2542,6 +2595,12 @@ function mdbTitle_toNormalCase( s ) {
     for( i = 0; i < keepLower.length; i++ ) keepLowerCmp.push( mdbTitle_normalizeCompare( keepLower[i] ) );
 
     return s.replace( /\S+/g, function( word, offset ) {
+        // the token set aside above keeps its typed case - it is the one word of the bit
+        // that was NOT shouted, and re-casing it would rewrite exactly the word that needed
+        // no fixing. Only in the mixed-by-series-words reading: a bit uniform throughout
+        // ("MOLTO IN THE MIX") re-cases its series word with everything else.
+        if( mixedBySeriesWords && mdbTitle_isSeriesWordToken( word ) ) return word;
+
         // "XLR8R700", "808", "2026" - an ID or a number, not a word to re-case
         if( /\d/.test( word ) ) return word;
 
@@ -2975,9 +3034,10 @@ function mdbTitle_traceCleaned( text ) {
 
 // mdbTitle_traceChunks
 // A title as the trimmed, non-empty chunks it splits into - what the panel renders as chips.
-// Splits at the separator runs, inside a chunk at the lowercase "by" in front of a numbered
-// series - the same guarded reading the parser does ("Guestroom 779 by Sascha Sibler" is two
-// units, "Live by the Sea" is one) - and at every " @ ", so the chunks shown are the units the
+// Splits at the separator runs, inside a chunk at "presents"/"pres." (the presenter and what
+// they present are two names) and at the lowercase "by" in front of a numbered series - the
+// same guarded reading the parser does ("Guestroom 779 by Sascha Sibler" is two units,
+// "Live by the Sea" is one) - and at every " @ ", so the chunks shown are the units the
 // parse really works with.
 //
 // The "@" pass sits HERE and not in mdbTitle_titleChunks, which is the only place it used to
@@ -2989,19 +3049,32 @@ function mdbTitle_traceChunks( text ) {
     var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
         units = [],
         out = [],
-        i, p, bit, byMatch, atParts, part;
+        i, p, q, bit, presParts, byMatch, atParts, part;
 
     for( i = 0; i < bits.length; i++ ) {
         bit = mdbTitle_trimSeparators( bits[i] );
 
         if( !bit ) continue;
 
-        byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( bit ) ).exec( bit );
+        // "presents"/"pres." separates two names the way a "|" does - the presenter and what
+        // they present are never one name ("Mat.Theo present UNCODED BIRTHDAY Radioshow",
+        // "fabric presents Bonobo"), so each side is a unit and a candidate of its own.
+        // Unlike the "by" below it needs no guard: the word introduces a name wherever it
+        // stands, and no name carries it as an ordinary word.
+        presParts = bit.split( /\s+(?:presents?|pres\.?)\s+/i );
 
-        if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
-            units.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
-        } else {
-            units.push( bit );
+        for( q = 0; q < presParts.length; q++ ) {
+            part = mdbTitle_trimSeparators( presParts[q] );
+
+            if( !part ) continue;
+
+            byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( part ) ).exec( part );
+
+            if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
+                units.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
+            } else {
+                units.push( part );
+            }
         }
     }
 
@@ -3147,6 +3220,17 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
         }
 
         joined = mdbTitle_takeRecordingMonth( joined ).text;
+    }
+
+    // The monthly-edition mirror: a "<Month> <Year>" stamp ending a series title dates the
+    // edition the way an episode number counts one, and the parse's series branches drop it
+    // (mdbTitle_takeMonthlyEdition - its guards, the series word in front included, live in
+    // there). Cut like the date above: the parse writes nothing of it into the title, so it
+    // is no chunk and no lookup candidate - "(JUNE 26)" must not be asked about as "JUNE".
+    // The dated-mix shape steps aside the way 6b's reading does: there the stamp IS the
+    // name, and only the mix word moves.
+    if( !live && !mdbTitle_datedMixName( joined ).taken ) {
+        joined = mdbTitle_takeMonthlyEdition( joined, refDate || "" ).text;
     }
 
     // the shared split, "@"s and all - see mdbTitle_traceChunks
@@ -3725,6 +3809,31 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                                             false, extraArtists, conf, {
                         artist: "the channel's own name stands in the title, in front of \"presents\"",
                         entity: "what the channel presents is numbered (" + presEpisode.text + "), and only a series is presented episode by episode"
+                    } );
+                }
+
+                // No episode number, but the name itself carries a series WORD: "Mat.Theo
+                // present UNCODED BIRTHDAY Radioshow" presents a show - a guest would be a
+                // bare NAME, and nobody is called "... Radioshow". The word does the number's
+                // job, so the channel is the artist here too. A monthly-edition stamp behind
+                // the name ("(JUNE 26)", a chunk of its own by now) dates the edition the way
+                // a number counts one and goes the same way - the date group already carries
+                // when the mix is from. Digits alone decide nothing here, unlike the word:
+                // "X presents Bonobo 2026" still reads as a guest.
+                var presMonthly = mdbTitle_takeMonthlyEdition( presSeries[1], date ),
+                    presWordEntity = mdbTitle_hasSeriesWord( presMonthly.text )
+                        ? mdbTitle_cleanArtist( presMonthly.text ) : "";
+
+                if( presWordEntity ) {
+                    logVar( "buildMixesdbTitle: the channel presents a series named by its word", presWordEntity );
+
+                    if( presMonthly.taken ) {
+                        conf.drop( 5, "\"" + presMonthly.stamp + "\" was read as the edition's month, not as part of the name - the date group already carries when the mix is from" );
+                    }
+
+                    return mdbTitle_result( date, taken.show, presWordEntity, null, false, extraArtists, conf, {
+                        artist: "the channel's own name stands in the title, in front of \"presents\"",
+                        entity: "what the channel presents carries a series word, and a series is the channel's own show - a guest would be a bare name"
                     } );
                 }
             }
