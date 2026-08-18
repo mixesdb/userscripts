@@ -1022,6 +1022,8 @@ function mdbPageCreator_renderHints( wrapper ) {
     // where jQuery has no computed display to restore and guesses one. Clearing the inline
     // property lets the stylesheet's "display: flex" stand, whatever the wrapper's state.
     bar.css( "display", bar.children().length ? "" : "none" );
+
+    mdbPageCreator_prefetchHintLinks( bar );
 }
 
 // mdbPageCreator_usedCategoriesHint
@@ -1198,24 +1200,19 @@ function mdbPageCreator_usedCatLoupe() {
 }
 
 // mdbPageCreator_usedCatMixes
-// The "N mixes" behind a confirmed name - the same count the reasoning panel writes behind its
-// matches. Where the answer brought the category's recent mix pages (non-artist categories -
-// the server ships none for artists), the count is a TOGGLE and the pages fold out under the
-// name, inside the chip: the fastest "does this page already exist?" look there is
-// (row_enrichment.md §2). Open ones survive the bar's re-renders - see
-// mdbPageCreator_openUsedCatRecent.
+// The "N mixes" behind a confirmed name - the same count the reasoning panel writes behind
+// its matches, and ALWAYS the toggle for the category's recent mix pages, which fold out
+// under the name, inside the chip: the fastest "does this page already exist?" look there is
+// (row_enrichment.md §2). Non-artist categories bring the pages with the lookup answer;
+// an artist category's are fetched the first time its chip opens
+// (mdbPageCreator_usedCatFetchRecent) - the server ships "recent" for non-artist types only.
+// Open ones survive the bar's re-renders - see mdbPageCreator_openUsedCatRecent.
 function mdbPageCreator_usedCatMixes( chip, entry, match ) {
     if( typeof match.mixes !== "number" ) return;
 
     var text = match.mixes + ( match.mixes === 1 ? " mix" : " mixes" ),
-        recent = mdbPageCreator_usedCatRecent( match );
-
-    if( !recent.length ) {
-        chip.append( $("<span>").addClass( "mdb-pageCreator-usedCat-mixes" ).text( text ) );
-        return;
-    }
-
-    var key = mdbTitle_normalizeCompare( match.title || entry.name ),
+        key = mdbTitle_normalizeCompare( match.title || entry.name ),
+        recent = mdbPageCreator_usedCatRecent( match ),
         list = $("<span>").addClass( "mdb-pageCreator-usedCat-recent" ),
         i;
 
@@ -1229,6 +1226,19 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
                 .attr( "title", "Open this mix page on MixesDB" )
                 .text( recent[i] )
         );
+    }
+
+    // the list's word while it has no links: being fetched, failed, or genuinely empty. An
+    // un-asked artist category shows nothing - its first open starts the fetch, and the
+    // re-render lands here again with recentPending set.
+    if( !recent.length ) {
+        var note = "";
+
+        if( match.recentPending )     note = "looking the pages up …";
+        else if( match.recentFailed ) note = "the lookup failed - open the category itself";
+        else if( match.recent )       note = "no mix pages in this category yet";
+
+        if( note ) list.append( $("<span>").addClass( "mdb-pageCreator-usedCat-recent-note" ).text( note ) );
     }
 
     chip.toggleClass( "mdb-pageCreator-usedCat-open", mdbPageCreator_openUsedCatRecent[ key ] === true );
@@ -1245,9 +1255,72 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
 
                 mdbPageCreator_openUsedCatRecent[ key ] = nowOpen;
                 chip.toggleClass( "mdb-pageCreator-usedCat-open", nowOpen );
+
+                if( !nowOpen ) return;
+
+                if( !match.recent && !match.recentPending && !match.recentFailed ) {
+                    mdbPageCreator_usedCatFetchRecent( match );
+                    // re-render at once: this chip comes back open, now saying "looking
+                    // the pages up …" - the fetch's own re-render brings the links
+                    mdbPageCreator_renderHints( $("#mdb-pageCreator") );
+                    return;
+                }
+
+                // pages already on hand - warm the cache for the ones now on screen
+                mdbPageCreator_prefetchHintLinks( chip );
             }),
         list
     );
+}
+
+// mdbPageCreator_usedCatFetchRecent
+// The recent mix pages of a category whose lookup answer brought none - in practice the
+// artist categories. One list=categorymembers call, cmsort=sortkey&cmdir=desc: mix page
+// titles start with their date, so sortkey order is date order, and it follows an editor's
+// manual sortkey where one files a page under its broadcast date (row_enrichment.md §2).
+// The titles are written onto the MATCH object in mdbTitle_categoryCache, so the answer
+// survives every re-render - and, like the cache, the page's navigations.
+function mdbPageCreator_usedCatFetchRecent( match ) {
+    logVar( "mdbPageCreator_usedCatFetchRecent", match.title );
+
+    match.recentPending = true;
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: {
+            action: "query",
+            format: "json",
+            formatversion: 2,
+            origin: "*",
+            list: "categorymembers",
+            cmtitle: "Category:" + match.title,
+            cmnamespace: 0, // without it the answer is half File: pages
+            cmsort: "sortkey",
+            cmdir: "desc",
+            cmlimit: 10
+        },
+        success: function( data ) {
+            var members = ( data && data.query && data.query.categorymembers ) || [],
+                titles = [],
+                i;
+
+            for( i = 0; i < members.length; i++ ) {
+                if( members[i].title ) titles.push( members[i].title );
+            }
+
+            match.recentPending = false;
+            match.recent = titles;
+            mdbPageCreator_renderHints( $("#mdb-pageCreator") );
+        },
+        error: function( xhr, status ) {
+            log( "mdbPageCreator_usedCatFetchRecent FAILED (" + status + ") for " + match.title );
+            match.recentPending = false;
+            match.recentFailed = true;
+            mdbPageCreator_renderHints( $("#mdb-pageCreator") );
+        }
+    });
 }
 
 // mdbPageCreator_usedCatRecent
@@ -1304,7 +1377,43 @@ function mdbPageCreator_searchUrl( name ) {
  * forbids the frame (verified 2026-08-18), and the header's "Open on MixesDB" link is the
  * way out where a quick look turns into real reading.
  */
-var mdbPageCreator_modalMinWidth = 1024;
+var mdbPageCreator_modalMinWidth = 1024,
+    // every MixesDB page already prefetched, by URL - the bar rebuilds constantly and the
+    // browser must not be told twice. Never reset: the prefetched bytes do not expire with
+    // a navigation any more than the category cache does.
+    mdbPageCreator_prefetched = {};
+
+// mdbPageCreator_prefetchHintLinks
+// Warms the browser's cache for the MixesDB pages the bar's links can reach RIGHT NOW - the
+// category pages, a red name's search, an open chip's recent mix pages - so the modal paints
+// at once instead of loading on the click. Only on a modal-wide window, and not as stinginess:
+// the prefetch cache is partitioned by the top-level site, so what these warm is OUR iframe -
+// a tab opened on a narrow window would not touch it. A closed chip's list is skipped by
+// STRUCTURE, not :visible - the first render fills the bar while the row is still detached,
+// where nothing computes as visible - and prefetched later, by the toggle that opens it.
+function mdbPageCreator_prefetchHintLinks( scope ) {
+    if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
+
+    scope.find( "a[href]" ).each( function() {
+        var inRecent = $(this).closest( ".mdb-pageCreator-usedCat-recent" );
+
+        if( inRecent.length && !inRecent.closest( ".mdb-pageCreator-usedCat" ).hasClass( "mdb-pageCreator-usedCat-open" ) ) return;
+
+        mdbPageCreator_prefetch( this.href );
+    });
+}
+
+// mdbPageCreator_prefetch
+// One <link rel="prefetch"> per page, appended to the head and left there - removing it can
+// cancel the fetch. No "as": a plain prefetch is what browsers reuse for a navigation, and
+// the modal's iframe navigates.
+function mdbPageCreator_prefetch( url ) {
+    if( !url || mdbPageCreator_prefetched[ url ] ) return;
+
+    mdbPageCreator_prefetched[ url ] = true;
+
+    $("<link>").attr( "rel", "prefetch" ).attr( "href", url ).appendTo( "head" );
+}
 
 // Bound once, on the document, so it survives every rebuild of the bar; the width is tested
 // INSIDE the handler because the window resizes. Only links WITH an href: the "N mixes"

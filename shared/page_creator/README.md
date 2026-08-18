@@ -56,10 +56,11 @@ one chip per name, its colour saying whether MixesDB already has it:
 
 - **green** – the category exists. The name links to it, and its mix count stands behind it.
   Where the wiki spells the name differently than the title does, the tooltip says so – that is
-  a correction worth making in the field above before creating. On a podcast, show, venue or
-  event category the count is a toggle: a click folds the category's most recently added mix
-  pages out inside the chip, newest first, each linking to its page – the quickest way to see
-  how pages of this series are named, and whether the mix is already among them.
+  a correction worth making in the field above before creating. The count is a toggle: a click
+  folds the category's most recently added mix pages out inside the chip, newest first, each
+  linking to its page – the quickest way to see how pages of this series are named, and whether
+  the mix is already among them. A show's pages arrive with the category answer itself; an
+  artist's are fetched the first time the chip opens.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
@@ -68,7 +69,8 @@ one chip per name, its colour saying whether MixesDB already has it:
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+serve is a five-second one. The pages behind the links on screen are prefetched, so the modal
+is usually there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 
@@ -301,12 +303,10 @@ placeholder only holds the space below it.
    `@ Venue, City`, known podcasts stop getting `(Promo Mix)` wrongly).
 2. **Double-check info in the row** – live since 2026-08-18 as the
    [Used categories](#hints-under-the-title) chips: which of the page's categories MixesDB
-   already has, the mix count of each, and – behind the count of a podcast, show, venue or
-   event – the category's most recently added mix pages. Still to come: the category *family*
-   around a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`, `Dekmantel São Paulo
-   Podcast`, …), the artist category's recent pages (the wiki only ships them for non-artist
-   categories) and the pages around the mix date. So "this page may already exist" is visible
-   **before** creating.
+   already has, the mix count of each, and – behind every count – the category's most recently
+   added mix pages. Still to come: the category *family* around a name (`Dekmantel` →
+   `Dekmantel Mix`, `Dekmantel Selectors`, `Dekmantel São Paulo Podcast`, …) and the pages
+   around the mix date. So "this page may already exist" is visible **before** creating.
 3. **Duplicate protection on Create** – a mix page that carries the track's URL only as a
    commented-out mirror looks like "not on MixesDB yet" today and invites duplicates; a search in
    the page source catches it. Plus a sanity check when **Create** is clicked – exact and fuzzy
