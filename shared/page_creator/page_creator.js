@@ -201,7 +201,8 @@ function mdbPageCreator_add( options ) {
 
     mdbPageCreator_setTitle( first, o.durationMs );
 
-    mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel, description ), function( known ) {
+    // the upload date goes along for the chunk split's date cut - see mdbTitle_titleChunks
+    mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel, description, createdAt || releaseDate ), function( known ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );

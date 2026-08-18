@@ -71,7 +71,7 @@ for( const example of mdbTitleExamples ) {
     // shows and the lookup candidates come from. What a case states here is what may be ASKED
     // about: a label credit or a place list must not show up as a chunk.
     const chunks = example.expectChunks
-              ? mdbTitle_titleChunks( example.title, example.channel, example.description || "" ).chunks
+              ? mdbTitle_titleChunks( example.title, example.channel, example.description || "", example.date ).chunks
               : null,
           chunksOk = !example.expectChunks ||
                      chunks.join( " | " ) === example.expectChunks.join( " | " );

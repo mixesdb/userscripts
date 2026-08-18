@@ -936,5 +936,17 @@ var mdbTitleExamples = [
         date: "2026-08-05",
         description: "More live PA dates coming soon.",
         expect: "2026-08-05 - Some Artist - Some Mix"
+    },
+    {
+        // Reported: the date sat glued to the venue with no space in front of it, so it rode
+        // into the chunk and the wiki was asked about "The Lot Radio 08-15" - the trailing
+        // number strip in mdbTitle_categoryCandidates takes one number, and a US-format date
+        // holds three. The chunk split cuts the date the way the parse does, so the name
+        // asked about is the venue's own.
+        title: "Blackmoonchild @ The Lot Radio 08-15-2026",
+        channel: "thelotradio",
+        date: "2026-08-15",
+        expectChunks: [ "Blackmoonchild", "The Lot Radio" ],
+        expect: "2026-08-15 - Blackmoonchild @ The Lot Radio"
     }
 ];

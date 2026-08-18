@@ -1982,9 +1982,9 @@ function mdbTitle_canonicalArtists( known, group ) {
 // in its place is asked INSTEAD, in the channel's priority slot: its spelling needs no answer,
 // but the mix count the panel annotates does, and so will the recent sibling pages the page
 // text is to learn from (roadmap step 4).
-function mdbTitle_categoryCandidates( playerTitle, username, description ) {
+function mdbTitle_categoryCandidates( playerTitle, username, description, refDate ) {
     var names = [],
-        split = mdbTitle_titleChunks( playerTitle, username, description ),
+        split = mdbTitle_titleChunks( playerTitle, username, description, refDate ),
         bits = split.chunks,
         // everything from the first "@" on is a place, never a possible artist
         placeFrom = ( typeof split.placeFrom === "number" ) ? split.placeFrom : -1,
@@ -2960,7 +2960,11 @@ function mdbTitle_traceTextWithout( text, removed ) {
 // ("Ibiza/ Dusseldorf, Germany", see 3h). Those names never join the title, so they are no
 // chunks and no lookup candidates - asking the wiki about a record label wastes the request.
 // The panel shows them struck through, so a reporter sees they were dropped on purpose.
-function mdbTitle_titleChunks( playerTitle, username, description ) {
+//
+// refDate is the upload date the parse disambiguates a title's date with (createdAt ||
+// releaseDate). Only needed so the date cut below lands on the same digits the parse cuts;
+// without it a title carrying two dates could have its chunks cut at the other one.
+function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
     var text = mdbTitle_fixTypos( mdbTitle_spaced( playerTitle ).replace( /\s+/g, " " ).trim() ),
         removed = [],
         n, i;
@@ -3003,6 +3007,25 @@ function mdbTitle_titleChunks( playerTitle, username, description ) {
         // city and country, which MixesDB writes.
         joined = mdbTitle_applyJoiners( unbracketed ).text,
         live = joined.indexOf( "@" ) !== -1;
+
+    // The date mirror: the parse reads the date out of the title and writes it in FRONT of
+    // the finished one (3 in buildMixesdbTitle), so the digits belong to no chunk and to no
+    // lookup candidate. Without this they rode along inside their chunk
+    // ("Blackmoonchild @ The Lot Radio 08-15-2026" -> chunk "The Lot Radio 08-15-2026") and
+    // the trailing-number strip in mdbTitle_categoryCandidates then took only the LAST number
+    // off it: the wiki was asked about "The Lot Radio 08-15", which can only answer empty,
+    // while "The Lot Radio" itself was never asked - and section 1 of the panel contradicted
+    // section 2, which shows the title after the parse's own cut.
+    //
+    // Before the live year/month strip, the same order the parse runs them in (3, then
+    // mdbTitle_liveDate). They cannot take each other's work anyway: mdbTitle_findDate has no
+    // year-only and no bare-month pattern, which is exactly what the strip below is for.
+    var dateInTitle = mdbTitle_findDate( joined, refDate || "" );
+
+    if( dateInTitle ) {
+        joined = mdbTitle_cut( joined, dateInTitle.index, dateInTitle.length );
+        logVar( "mdbTitle_titleChunks: date taken out before the split", dateInTitle.out + " -> " + joined );
+    }
 
     // The live-date mirror: what mdbTitle_liveDate takes off the END of a live group - the
     // gig year behind the place list, a trailing month - dates the recording and is no part
@@ -3081,7 +3104,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // the SHARED split (mdbTitle_titleChunks), the same one the lookup candidates are
         // built from - so what the panel shows as the units IS what was asked about, and what
         // the split removed (label credits, place lists) is shown as removed.
-        var chunkSplit = mdbTitle_titleChunks( playerTitle, username, description );
+        // the same reference date step 3 disambiguates the title's date with, so the chunks
+        // are cut at the digits the parse cuts
+        var chunkSplit = mdbTitle_titleChunks( playerTitle, username, description, createdAt || releaseDate || "" );
 
         mdbTitle_trace = {
             playerTitle: rest,
