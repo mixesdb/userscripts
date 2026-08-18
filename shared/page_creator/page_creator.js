@@ -118,9 +118,12 @@ var mdbPageCreator_title = "",
     // whether the report box is open. Not sticky the way the tracklist box is: it is opened for
     // one title, and a refined suggestion refills it rather than the reader reopening it.
     mdbPageCreator_reportOpen = false,
-    // the debounce behind the reasoning panel's title-edit refresh - see
-    // mdbPageCreator_queueReasoningUpdate()
-    mdbPageCreator_reasoningTimer = null,
+    // the hints bar's last logged verdicts - see mdbPageCreator_logHints(). Only there to keep
+    // the log quiet: the bar re-renders on every keystroke, its content usually unchanged.
+    mdbPageCreator_hintsLogged = "",
+    // the debounce behind the title-edit category refresh - the hints bar's "Used categories"
+    // line and the reasoning panel's section 5. See mdbPageCreator_queueCategoryUpdate()
+    mdbPageCreator_categoryTimer = null,
     // the poll behind the panel's own loading state - see mdbPageCreator_watchReasoningReady()
     mdbPageCreator_reasoningReadyPoll = null,
     // The trace of the FIRST build - the one that ran before the wiki was asked, section 2 of
@@ -832,9 +835,10 @@ function mdbPageCreator_render() {
         // names now in the title
         mdbPageCreator_renderHints( wrapper );
         mdbPageCreator_fillReport( wrapper );
-        // the reasoning panel follows the title too, but debounced - its category section is
-        // read off the field, and a corrected name may need a lookup the cache has not seen
-        mdbPageCreator_queueReasoningUpdate();
+        // the categories follow the title too - the bar above and the panel's section 5 - but
+        // debounced: they are read off the field, and a corrected name may need a lookup the
+        // cache has not seen
+        mdbPageCreator_queueCategoryUpdate();
     });
 
     if( isUsed ) {
@@ -931,6 +935,13 @@ function mdbPageCreator_render() {
     // reasoning panel are ever built, which is what keeps it above them.
     mdbPageCreator_renderHints( wrapper );
 
+    // The bar names the categories of the FINISHED title, and those are not always the names
+    // the build asked about: an artist field with a joiner ("See Bastian b2b Afin") is one
+    // chunk to the lookup and two categories to the page. So the row asks about its own names
+    // once - cache-aware, so on the usual row where the build already covered them this costs
+    // no request at all, and without it those names could only ever stand grey.
+    mdbPageCreator_queueCategoryUpdate();
+
     mdbPageCreator_place( wrapper, target );
 }
 
@@ -978,6 +989,9 @@ function mdbPageCreator_confidenceTitle() {
 // Fills the bar, creating it on first use. Hidden while it has nothing to say, so a row whose
 // title names neither an artist nor an entity keeps the height it has today.
 function mdbPageCreator_renderHints( wrapper ) {
+    // the row can be gone by the time a lookup answers - the reader clicked on to the next mix
+    if( !wrapper.length ) return;
+
     var bar = wrapper.find( "#mdb-pageCreator-hints" );
 
     if( !bar.length ) {
@@ -996,7 +1010,10 @@ function mdbPageCreator_renderHints( wrapper ) {
 
     if( usedCats ) bar.append( usedCats );
 
-    bar.toggle( bar.children().length > 0 );
+    // Not .toggle(): the bar is filled while the wrapper is still DETACHED on the first render,
+    // where jQuery has no computed display to restore and guesses one. Clearing the inline
+    // property lets the stylesheet's "display: flex" stand, whatever the wrapper's state.
+    bar.css( "display", bar.children().length ? "" : "none" );
 }
 
 // mdbPageCreator_usedCategoriesHint
@@ -1018,26 +1035,66 @@ function mdbPageCreator_usedCategoriesHint( title ) {
         }
     }
 
-    if( !wanted.length ) return null;
+    if( !wanted.length ) {
+        mdbPageCreator_logHints( "(no artist or entity category)" );
+        return null;
+    }
 
     var hint = $("<span>")
-            .addClass( "mdb-pageCreator-hint" )
             .attr( "id", "mdb-pageCreator-usedCats" )
             .append(
                 $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Used categories:" )
-            );
+            ),
+        logged = [];
 
     for( i = 0; i < wanted.length; i++ ) {
         if( i ) hint.append( $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( "," ) );
 
-        hint.append( mdbPageCreator_usedCategory( wanted[i] ) );
+        var state = mdbPageCreator_usedCategoryState( wanted[i] );
+
+        hint.append( mdbPageCreator_usedCategory( wanted[i], state ) );
+        logged.push( wanted[i].name + " [" + wanted[i].role + ": " + state.verdict + "]" );
     }
+
+    mdbPageCreator_logHints( logged.join( " | " ) );
 
     return hint;
 }
 
+// mdbPageCreator_logHints
+// The bar's verdicts, logged the once they change. Straight logging would put a line in the
+// console for every keystroke in the title field, where the answer is the same one all the way
+// through - and the line worth seeing is the one where a name turns green or red.
+function mdbPageCreator_logHints( summary ) {
+    if( summary === mdbPageCreator_hintsLogged ) return;
+
+    mdbPageCreator_hintsLogged = summary;
+
+    logVar( "mdbPageCreator hints: used categories", summary );
+}
+
+// mdbPageCreator_usedCategoryState
+// What the wiki says about one category name, as data - so the markup below and the log line
+// above can never tell two different stories about the same name. One of three verdicts:
+//
+// - known    MixesDB has the category; .match carries its own spelling, type and mix count
+// - missing  MixesDB was asked and has no such category
+// - unknown  MixesDB has not been asked (yet) - no answer either way
+//
+// Read the same way the reasoning panel's category rows read it, off the same cache, so the
+// two can never contradict each other: an artist has to be known AS an artist, an entity as
+// anything at all ("fabric" is a venue, and that answers the entity slot).
+function mdbPageCreator_usedCategoryState( entry ) {
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        match = mdbTitle_knownMatch( cache, entry.name, entry.role === "artist" ? [ "artist" ] : null );
+
+    if( match ) return { verdict: "known", match: match };
+
+    return { verdict: mdbPageCreator_categoryUnanswered( entry.name ) ? "unknown" : "missing", match: null };
+}
+
 // mdbPageCreator_usedCategory
-// One category name, in one of three states - the wiki's answer, not a guess of ours:
+// One category name in the colour of its verdict:
 //
 // - known    green, linked to the category page. The link carries the WIKI's spelling, which
 //            is the page that really exists; where that differs from what the title writes,
@@ -1045,24 +1102,17 @@ function mdbPageCreator_usedCategoriesHint( title ) {
 // - missing  red and unlinked - there is no page to open - with "(Search)" behind it. The
 //            search is the point: a red name is either new or misspelled, and only a look at
 //            what MixesDB does have under that name tells which.
-// - unknown  grey, while the lookup is still out or was never made. Never red: a name nobody
-//            asked about is not a name the wiki denied.
-//
-// The verdicts are read the same way the reasoning panel's category rows read them, off the
-// same cache, so the two can never contradict each other: an artist has to be known AS an
-// artist, an entity as anything at all ("fabric" is a venue, and that answers the entity slot).
-function mdbPageCreator_usedCategory( entry ) {
-    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
-        match = mdbTitle_knownMatch( cache, entry.name, entry.role === "artist" ? [ "artist" ] : null ),
-        out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
+// - unknown  grey. Never red: a name nobody asked about is not a name the wiki denied.
+function mdbPageCreator_usedCategory( entry, state ) {
+    var out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
 
-    if( match ) {
-        var spelled = match.title || entry.name,
+    if( state.verdict === "known" ) {
+        var spelled = state.match.title || entry.name,
             note = spelled !== entry.name
                 ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
                 : "";
 
-        out.addClass( "mdb-pageCreator-usedCat-known" ).append(
+        return out.addClass( "mdb-pageCreator-usedCat-known" ).append(
             $("<a>")
                 // _blank, not the usual _top: looking a category up is a side trip taken
                 // while judging the title on THIS page, and the row has to still be here
@@ -1072,11 +1122,9 @@ function mdbPageCreator_usedCategory( entry ) {
                 .attr( "title", "MixesDB has this category - opens [[Category:" + spelled + "]]." + note )
                 .text( entry.name )
         );
-
-        return out;
     }
 
-    if( mdbPageCreator_categoryUnanswered( entry.name ) ) {
+    if( state.verdict === "unknown" ) {
         return out.addClass( "mdb-pageCreator-usedCat-unknown" ).append(
             $("<span>")
                 .attr( "title", "Not looked up on MixesDB (yet) - no answer either way about this category." )
@@ -1108,12 +1156,15 @@ function mdbPageCreator_usedCategorySearch( name ) {
 }
 
 // mdbPageCreator_categoryUnanswered
-// Whether the wiki still owes an answer about this name: its lookup is in flight, it was never
-// asked at all, or an edit has queued a lookup that has not fired yet. The last one is what
-// keeps the bar from flashing red through every keystroke of a name being typed.
+// Whether the wiki still owes an answer about this name - its request is in flight, or it was
+// never asked at all. Read off the lookup log, which records the ASKING; the cache alone
+// cannot tell "asked and unknown" from "never asked", and only the first of those is a red name.
+//
+// This is also what keeps the bar from flashing red through every keystroke: a half-typed name
+// has never been asked, so it stands grey until mdbPageCreator_queueCategoryUpdate() has asked
+// about it. A name that HAS a settled answer keeps its colour meanwhile - it was asked, the
+// answer has not changed, and greying it out again on every keystroke would only flicker.
 function mdbPageCreator_categoryUnanswered( name ) {
-    if( mdbPageCreator_reasoningTimer ) return true;
-
     var log = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
         key = mdbTitle_normalizeCompare( name ),
         i;
@@ -1199,7 +1250,7 @@ function mdbPageCreator_toggleReport( wrapper ) {
     // The current title's names may not all be in the cache yet (the box can be opened before
     // the lookup answered, and a corrected title names new ones) - the same delayed, cache-aware
     // lookup a title edit gets.
-    mdbPageCreator_queueReasoningUpdate();
+    mdbPageCreator_queueCategoryUpdate();
 
     // After show(): a hidden textarea measures 0, so the first grow has to happen once the box
     // is on the page. fillReport() grows it too, but it does nothing on a box already written in.
@@ -1341,24 +1392,29 @@ function mdbPageCreator_reportDay( date ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// mdbPageCreator_queueReasoningUpdate
-// A title edit changes the categories the panel shows, and can name someone the cache has
-// never heard of - so the re-render waits out the typing and only then asks the wiki about
-// the names of the CURRENT title (one cache-aware request at most; unchanged names cost none).
-var mdbPageCreator_reasoningDelayMs = 800;
+// mdbPageCreator_queueCategoryUpdate
+// A title edit changes the categories - the hints bar's "Used categories" line and the panel's
+// section 5 alike - and can name someone the cache has never heard of, so the re-render waits
+// out the typing and only then asks the wiki about the names of the CURRENT title (one
+// cache-aware request at most; unchanged names cost none).
+//
+// Fired whether or not the report box is open, unlike before the hints bar existed: the bar is
+// always on screen, and a green/red verdict that only updates for reporters would be a verdict
+// about the title as it was first suggested. (The panel's own render still bails when the box
+// is closed - there is nothing on screen to draw into.) A name this has not asked about yet
+// stands grey in the bar meanwhile, never red - see mdbPageCreator_categoryUnanswered().
+var mdbPageCreator_categoryDelayMs = 800;
 
-function mdbPageCreator_queueReasoningUpdate() {
-    if( !mdbPageCreator_reportOpen ) return;
-
-    if( mdbPageCreator_reasoningTimer ) clearTimeout( mdbPageCreator_reasoningTimer );
+function mdbPageCreator_queueCategoryUpdate() {
+    if( mdbPageCreator_categoryTimer ) clearTimeout( mdbPageCreator_categoryTimer );
 
     // the answer may arrive after the reader clicked on to the next mix - see mdbPageGeneration
     var pageGeneration = mdbPageGeneration;
 
-    mdbPageCreator_reasoningTimer = setTimeout(function() {
-        mdbPageCreator_reasoningTimer = null;
+    mdbPageCreator_categoryTimer = setTimeout(function() {
+        mdbPageCreator_categoryTimer = null;
 
-        if( !mdbIsCurrentPage( pageGeneration ) || !mdbPageCreator_reportOpen ) return;
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         var wrapper = $("#mdb-pageCreator"),
             title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
@@ -1395,14 +1451,19 @@ function mdbPageCreator_queueReasoningUpdate() {
             }
         }
 
-        logVar( "mdbPageCreator_queueReasoningUpdate: looking up", names.join( " | " ) || "(nothing)" );
+        logVar( "mdbPageCreator_queueCategoryUpdate: looking up", names.join( " | " ) || "(nothing)" );
 
         mdbTitle_lookupCategories( names, function() {
             if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-            mdbPageCreator_renderReasoning( $("#mdb-pageCreator") );
+            // looked up again rather than closed over: seconds have passed, and on these
+            // sites the row of the moment is the one to draw into
+            var row = $("#mdb-pageCreator");
+
+            mdbPageCreator_renderHints( row );
+            mdbPageCreator_renderReasoning( row );
         });
-    }, mdbPageCreator_reasoningDelayMs );
+    }, mdbPageCreator_categoryDelayMs );
 }
 
 // mdbPageCreator_reasoningSection
@@ -2427,17 +2488,18 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_sourceDate = "";
     mdbPageCreator_sourceLabel = "";
     mdbPageCreator_reportOpen = false;
+    mdbPageCreator_hintsLogged = "";
     mdbPageCreator_openDefinitions = {};
 
     // The polls are the reason this cannot just null the values: each is an interval still
     // asking about the mix the reader has already left.
     if( mdbPageCreator_toolkitPoll ) clearInterval( mdbPageCreator_toolkitPoll );
     if( mdbPageCreator_tracklistPoll ) clearInterval( mdbPageCreator_tracklistPoll );
-    if( mdbPageCreator_reasoningTimer ) clearTimeout( mdbPageCreator_reasoningTimer );
+    if( mdbPageCreator_categoryTimer ) clearTimeout( mdbPageCreator_categoryTimer );
     if( mdbPageCreator_reasoningReadyPoll ) clearInterval( mdbPageCreator_reasoningReadyPoll );
     mdbPageCreator_toolkitPoll = null;
     mdbPageCreator_tracklistPoll = null;
-    mdbPageCreator_reasoningTimer = null;
+    mdbPageCreator_categoryTimer = null;
     mdbPageCreator_reasoningReadyPoll = null;
     mdbPageCreator_toolkitVerdict = null;
 
@@ -2845,7 +2907,7 @@ function mdbPageCreator_validateTracklist() {
 // The reasoning panel is re-rendered because its section 5 files that category: the render is
 // the whole stateless panel, but with the title untouched sections 1-3 come out unchanged -
 // what the reader sees change is the category row. Deliberately NOT
-// mdbPageCreator_queueReasoningUpdate(), which is the title-edit path and would fire a name
+// mdbPageCreator_queueCategoryUpdate(), which is the title-edit path and would fire a name
 // lookup the tracklist cannot have changed.
 function mdbPageCreator_tracklistBoxUpdated( box, res, applied ) {
     var isOwn = box.closest( "#mdb-pageCreator-tracklist" ).length > 0,

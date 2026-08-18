@@ -1,8 +1,15 @@
 # Plan: enriching the page creator row against duplicates
 
-**Status: planned, not built.** Same gate as everything else - the category lookup from
+**Status: mostly planned, not built.** Same gate as everything else - the category lookup from
 `mixesdb_api_request.md` - except the mirror-URL check, which needs nothing and is marked so.
 Measurements below were taken against the live API on 2026-08-15.
+
+**Built since 2026-08-18: the first half of addition 1**, the links to the found categories -
+as the row's hints bar (`#mdb-pageCreator-hints`, `mdbPageCreator_renderHints()` in
+`page_creator.js`). It shows the artist and entity categories the page text writes, green and
+linked when the wiki has them, red with a `Search` link when it does not. It costs no request of
+its own - it reads the answers the title lookup already had. The category FAMILY (`match=prefix`)
+below is still open, and so is everything in additions 2-4.
 
 ## The problem: the player URL is the only thing checked
 
@@ -25,6 +32,9 @@ because a legitimate new page can look similar to an existing one (a weekly show
 ## The four additions
 
 ### 1. Links to the found categories
+
+**The plain links are built** - see the status note at the top; what follows describes the
+whole addition, of which the category FAMILY is the part still open.
 
 Every candidate the lookup resolves is rendered as a link:
 

@@ -766,6 +766,123 @@
 }
 
 /*
+ * The hints bar - the row's second line (mdbPageCreator_renderHints in page_creator.js): what
+ * the title itself cannot say, above all which of the categories the page would be filed under
+ * MixesDB actually has.
+ *
+ * "grid-column: 1 / -1" is what makes it a line of its own rather than a fifth item in the row,
+ * the same way the report box and the reasoning panel sit under it - it spans every column
+ * INCLUDING the 1fr filler.
+ *
+ * Framed and dark like the reasoning panel, and for the same reason: both sites showing it are
+ * dark-themed, and this is the second panel of the row rather than a note tacked onto it - so it
+ * takes the panel's box (#1d1d1d, the same border and radius) and, with it, the panel's palette:
+ * #58c96b / #ef6a6a / #6cb2f7 read against that background, where the row's own greens and reds
+ * (picked for a site background that may be white) would be too dark on it.
+ *
+ * Tighter padding than the panel: that one is read once, carefully, and may take room; this one
+ * is on screen the whole time and holds a line or two.
+ *
+ * A COLUMN, not a row of hints side by side - more hints are coming (row_enrichment.md), and
+ * they are sentences, not chips. INSIDE a hint everything is plain inline flow, spaced by
+ * margins rather than by a flex gap: a gap would space the comma and the brackets like words,
+ * and those have to sit against what they belong to - "Horst Festival (Search)", never
+ * "Horst Festival ( Search )".
+ */
+#mdb-pageCreator-hints {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 14px;
+    color: #c9c9c9;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+}
+
+/* the "Used categories:" in front - the panel's muted grey, the same as its own side notes */
+#mdb-pageCreator-hints .mdb-pageCreator-hint-label {
+    color: #8b8b8b;
+}
+
+/*
+ * The punctuation between and around the names: the comma separating two of them and the
+ * brackets around "Search". Grey and NOT part of the coloured name, so the colour says
+ * something about the name alone - a red bracket would read as part of the verdict. No margin
+ * of their own: each sits directly against what it belongs to.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-hint-sep {
+    color: #8b8b8b;
+}
+
+/*
+ * One name. The space in front is the entry's own margin rather than the label's or the comma's,
+ * so the first entry (which follows the label) and every later one (which follows a comma) are
+ * spaced by the same rule. nowrap keeps a name and its "(Search)" together - a hint wraps
+ * between entries, never inside one.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat {
+    margin-left: 5px;
+    white-space: nowrap;
+}
+
+/*
+ * The three states of a category name. Written with the wrapper's ID in front of the link ones
+ * for the same reason as "Report", "Create" and the panel's confirmed names above: these are
+ * <a>s, and the sites style their <a>s hard enough to beat a single class - SoundCloud paints
+ * ours blue and underlines them. :visited is spelled out for the same reason the panel spells
+ * it out: an unstated visited colour turns the name purple on the second look, and the colour
+ * here IS the verdict.
+ */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known a:visited {
+    color: #58c96b;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known a:hover {
+    color: #58c96b;
+    text-decoration: underline;
+}
+
+/* no link: there is no category page to open. cursor: help, because the tooltip is the answer */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > span:first-child {
+    color: #ef6a6a;
+    font-weight: 600;
+    cursor: help;
+}
+
+/* the wiki has not been asked (yet) - grey, never red: nobody denied this name */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-unknown > span {
+    color: #8b8b8b;
+    cursor: help;
+}
+
+/* "(Search)" behind a red name - the brackets grey, only the word is the link */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-search {
+    margin-left: 5px;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-search a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-search a:visited {
+    color: #6cb2f7;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-search a:hover {
+    color: #6cb2f7;
+    text-decoration: underline;
+}
+
+/*
  * The tracklist found in the player's description (page_creator.js, "Tracklist" section). Sits
  * wherever the site script put it - above the description it was read out of - and not inside
  * #mdb-pageCreator, which is one flex row and no place for a textarea.

@@ -46,6 +46,30 @@ against the title a human actually chose is the fastest way to find what the sug
 gets wrong, and it is exactly when the **Report** box is worth filling in. It ends when the beta
 does (see the roadmap).
 
+### Hints under the title
+
+A box under the title field – framed like the reasoning panel, and always there – for what the
+title itself cannot say: things worth checking before clicking **Create**.
+
+**Used categories** lists the artist and the entity category the new page would be filed under,
+and says for each whether MixesDB already has it:
+
+- **green** – the category exists. The name links to it, opening in a new tab so the player page
+  stays where it is. Where the wiki spells the name differently than the title does, the tooltip
+  says so – that is a correction worth making in the field above before creating.
+- **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
+  first page), but it is exactly where a typo or a second spelling hides, so a **Search** link
+  behind the name looks the name up on MixesDB: a hit there means the wiki knows it under
+  another name.
+- **grey** – MixesDB has not been asked about this name (yet), so there is no answer either way.
+
+An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
+files it as, since a podcast, a show, a venue and a festival can all stand in that slot. The year
+and the style categories are not listed – neither is a name anyone could spell wrong.
+
+The line follows the title field: correct the title and, after a short pause, the categories are
+re-read from it and any new names are looked up.
+
 ### "Report" box
 
 **Report** under the confidence score opens a text box under the row, already filled with
@@ -266,11 +290,12 @@ placeholder only holds the space below it.
    podcast, show, venue, event – case-insensitively and in its own spelling, and the suggested
    title uses that answer (`asa 808` → `ASA 808`, known venues become
    `@ Venue, City`, known podcasts stop getting `(Promo Mix)` wrongly).
-2. **Double-check info in the row** – links to the found categories with type and mix count, the
-   category *family* around a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
-   `Dekmantel São Paulo Podcast`, … – needs the wiki's planned `match=prefix` mode), and the most
-   recent + same-date mix pages of the artist and the show. So "this page may already exist" is
-   visible **before** creating.
+2. **Double-check info in the row** – the first part is live since 2026-08-18: the
+   [Used categories](#hints-under-the-title) line says which of the page's categories MixesDB
+   already has. Still to come: the type and mix count next to each, the category *family* around
+   a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`, `Dekmantel São Paulo Podcast`,
+   …), and the most recent + same-date mix pages of the artist and the show. So "this page may
+   already exist" is visible **before** creating.
 3. **Duplicate protection on Create** – a mix page that carries the track's URL only as a
    commented-out mirror looks like "not on MixesDB yet" today and invites duplicates; a search in
    the page source catches it. Plus a sanity check when **Create** is clicked – exact and fuzzy
