@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.9
+// @version      2026.08.18.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_31
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_43
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -1911,6 +1911,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.18.10
+ * Via the shared title builder (title_builder.js v_44, title_definitions.js v_32), from a
+ * SoundCloud report: the presenter rule now reads a series WORD behind "presents"/"pres."
+ * as the channel's own show, not only an episode number; a month-year edition stamp behind
+ * the series name is dropped (the date group already carries when the mix is from); Normal
+ * Case reaches a shouted name whose only lowercase is a series word ("UNCODED BIRTHDAY
+ * Radioshow" -> "Uncoded Birthday Radioshow", the word kept as typed); and the chunk split
+ * separates at "presents", so presenter and presented are asked about as two names.
  *
  * 2026.08.18.3
  * Third bug out of the .28 round (page_creator.js v_43): section 3 dropped every candidate

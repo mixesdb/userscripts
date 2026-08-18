@@ -960,5 +960,24 @@ var mdbTitleExamples = [
         date: "2026-08-18",
         expectEntity: "Unedited",
         expect: "2026-07-31 - DJ Spun - Unedited (Promo Mix)"
+    },
+    {
+        // Reported: the presenter rule only knew a NUMBERED series, so "present" with a
+        // series word behind it fell through and everything left of the title became the
+        // artist - stamp, caps and all ("UNCODED BIRTHDAY Radioshow JUNE 26" as the artist
+        // category). Three rules from the report: a series word behind "present(s)" says
+        // show as loudly as a number does; the bracketed "(JUNE 26)" is the edition's
+        // month-year stamp and goes (the date group already carries when the mix is from,
+        // and a date belongs in no category name); and shouted words around a Normal Case
+        // series word are a shouted NAME, re-cased with the series word kept as typed.
+        // "present" also separates the chunks: presenter and presented are two names.
+        url: "https://soundcloud.com/mat_theo/mat-theo-uncoded-birthday",
+        title: "Mat.Theo present UNCODED BIRTHDAY Radioshow (JUNE 26)",
+        channel: "Mat.Theo",
+        date: "2026-06-23",
+        expectArtists: [ "Mat.Theo" ],
+        expectEntity: "Uncoded Birthday Radioshow",
+        expectChunks: [ "Mat.Theo", "UNCODED BIRTHDAY Radioshow" ],
+        expect: "2026-06-23 - Mat.Theo - Uncoded Birthday Radioshow"
     }
 ];

@@ -1168,25 +1168,37 @@ var mdbTitleGuestMarkers = [
 
 
 /*
- * The channel presenting a numbered series
+ * The channel presenting a series
  *
  * "pres." behind the channel's own name introduces what the channel PRESENTS, and what
  * follows it decides which side is the artist:
  *
- *     "Lilly Palmer pres. Spannung Radio Show #069"  (channel "Lilly Palmer")
+ *     "Lilly Palmer pres. Spannung Radio Show #069"           (channel "Lilly Palmer")
  *     ->  2026-08-14 - Lilly Palmer - Spannung Radio 069
- *     "fabric presents Bonobo"                       (channel "fabric")
+ *     "Mat.Theo present UNCODED BIRTHDAY Radioshow (JUNE 26)" (channel "Mat.Theo")
+ *     ->  2026-06-23 - Mat.Theo - Uncoded Birthday Radioshow
+ *     "fabric presents Bonobo"                                (channel "fabric")
  *     ->  2026-04-03 - Bonobo - fabric
  *
- * A numbered SERIES behind the "pres." is the channel's own show, so the channel is the
- * artist and the series the entity - the words keep the order they stand in, nothing is
- * moved around the number. A bare NAME behind it is a guest, so the channel is the presenter
- * (the entity) and the name the artist. The episode number is what tells the two apart:
- * only a series is presented episode by episode.
+ * A SERIES behind the "pres." is the channel's own show, so the channel is the artist and
+ * the series the entity - the words keep the order they stand in, nothing is moved around
+ * the number. A bare NAME behind it is a guest, so the channel is the presenter (the entity)
+ * and the name the artist. What tells the two apart is the series saying it IS one: an
+ * episode number (only a series is presented episode by episode), or a series word off
+ * mdbTitleShowSuffixWords - a guest is a bare name, and nobody is called "... Radioshow".
+ * Digits alone are NOT the word's equal there: "X presents Bonobo 2026" still reads as a
+ * guest.
  *
  * The keyword that carried the number goes with it - "Radio Show #069" comes out as
  * "Radio 069", because the word stood there to introduce the number and the name in front of
- * it is what the show is called.
+ * it is what the show is called. A monthly-edition stamp behind the series name ("(JUNE 26)")
+ * dates the edition the way the number counts one and goes the same way - the date group
+ * already carries when the mix is from, and a date belongs in no category name.
+ *
+ * "presents"/"pres." is also a SEPARATOR to the chunk split (mdbTitle_traceChunks): the
+ * presenter and what they present are never one name, so each side is a unit and a lookup
+ * candidate of its own - "Mat.Theo" and "UNCODED BIRTHDAY Radioshow" are asked about
+ * separately, never as one glued name.
  */
 
 
@@ -1685,7 +1697,18 @@ var mdbTitleCountries = [
  *
  * Only bits that are cased UNIFORMLY are touched. Anything mixing upper and lower case is a
  * deliberate spelling and stays verbatim: "Nina ØDB", "UηκηΘωN", "Hit the Breaks", and so is
- * "SEVEN Mix 084". Two kinds of word are left alone even inside a bit that is re-cased:
+ * "SEVEN Mix 084". One mixture does NOT count as deliberate: a bit that is uniform once its
+ * series words (mdbTitleShowSuffixWords) and its digit tokens are set aside is a SHOUTED name
+ * with a generic word behind it - the word is typed in Normal Case by habit and says nothing
+ * about the name around it:
+ *
+ *     "Mat.Theo present UNCODED BIRTHDAY Radioshow"  ->  "Uncoded Birthday Radioshow"
+ *
+ * The shouted words are re-cased, the series word keeps its typed case - which is also what
+ * keeps "E-L-E-C-T-R-O MIx" whole: the "MIx" is set aside verbatim, and the dash-spelled
+ * name re-cases to itself. "SEVEN Mix 084" still stays: the title spells the channel name
+ * the channel's way, and that guard runs first. Two kinds of word are left alone even inside
+ * a bit that is re-cased:
  * - words containing digits, which are IDs and not words: "XLR8R700", "808"
  * - words without a vowel, which cannot be words either, so they are abbreviations and keep
  *   their caps: "DSS 139" stays "DSS 139", never "Dss 139". That is what covers the acronyms
