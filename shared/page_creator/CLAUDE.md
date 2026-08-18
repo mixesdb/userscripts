@@ -345,7 +345,14 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   the `recent` field of `mdbnames` was built to - so `recent` misses the newest pages until the
   endpoint is changed; `mdbPageCreator_usedCatFetchRecent()` asks correctly, and the analysis
   fetch writes its sortkey-true titles back onto the match's `recent`, so the hints bar heals
-  too). This is what settles episode
+  too). **The sortkey order is taken from the API, never rebuilt from the titles**: the
+  generator's order does not survive the response (`query.pages` comes back in pageid order,
+  with no index to restore it from), so the same category rides along in the same request as a
+  plain `list=categorymembers`, and `query.categorymembers` is the order the wikitext is filed
+  into. A title sort would look like date order and quietly mis-file every page carrying a
+  manual sortkey - `2023-09-18 - Dan Andrei @ Sunwaves 31, Romania (Trommel.220)` is filed at
+  its release date 2025-05-30 and belongs among the 2025 episodes. For the same reason
+  `mdbPageCreator_usedCatRecent()` shows `recent` exactly as it arrived. This is what settles episode
   number padding (`Zenaari Mix 025`), separators (`Trommel.234`), formats no rule would invent
   (`RA Podcast (RA.1051)`), whether there is a number at all (`Essential Mix`), the name's
   spelling as the titles write it, and the city of a

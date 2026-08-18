@@ -12,6 +12,17 @@
  * Deliberately theme-neutral (inherited colour, translucent background/border): the same markup
  * is used on light pages and dark ones (SoundCloud alone has both).
  */
+
+/*
+ * The corner radius of everything that SHOWS THE TITLE: the input of the row and the chips of
+ * the reasoning panel that carry a whole title (sections 2, 4 and 5). Those chips quote the
+ * field, so they have to round like it - one value, changed in one place. Every OTHER chip
+ * keeps its pill radius: it carries a chunk or a name, not the title.
+ */
+:root {
+    --title-element-radius: .4em;
+}
+
 #mdb-pageCreator {
     display: grid;
     /*
@@ -50,7 +61,7 @@
     color: inherit;
     background-color: rgba(127, 127, 127, 0.12);
     border: 1px solid rgba(127, 127, 127, 0.45);
-    border-radius: 4px;
+    border-radius: var(--title-element-radius);
 }
 
 #mdb-pageCreator-title::selection {
@@ -324,6 +335,16 @@
     border-radius: 999px;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/*
+ * A chip that is a whole TITLE, not a chunk or a name: the "Title candidate:" of 2, the "Title
+ * after lookup:" of 4 and the "Final title:" of 5. It rounds like the title input above
+ * (--title-element-radius) instead of wearing the pill, because it quotes that field - and
+ * because a pill around a title long enough to wrap reads as a blob, not as a chip.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-title {
+    border-radius: var(--title-element-radius);
 }
 
 /* .mdb-pageCreator-chip-channel keeps the base grey on purpose: chips are coloured by
