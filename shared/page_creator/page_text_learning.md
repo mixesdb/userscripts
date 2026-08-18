@@ -1,7 +1,32 @@
 # Plan: learning the page text from sibling mix pages
 
-**Status: planned, not built.** Waiting on the same lookup as everything else - see
-`mixesdb_api_request.md`. This file is the design so it does not have to be re-derived.
+> **BUILT 2026-08-18** as roadmap step 4, in `page_creator.js`: `mdbPageCreator_recentFetch()`
+> (the generator call below, cached per category in `mdbPageCreator_recentAnalysisCache`),
+> `mdbPageCreator_recentPageTextFindings()` (signals A-C), `mdbPageCreator_recentTitleFindings()`
+> (the episode format / spelling / city read off the same pages' TITLES, applied to the
+> suggestion by `mdbPageCreator_applyRecentToSuggestion()`), rendered as reasoning panel
+> sections 5 and 7. This file stays as the design rationale. **Deltas against the plan below,
+> all decided 2026-08-18:**
+>
+> - **One threshold instead of two: every signal needs 90%** ("Leite Regeln ab wenn 90% der
+>   Seiten die Anforderungen erfüllen"), not 75/75/90 - AND the unanimous newest 5 override a
+>   disagreeing sample ("Neuere Seiten haben Vorrang"): a 7/8 whose dissenter is the OLDEST
+>   page still fires, one whose dissent sits among the newest 5 abstains. That keeps most of
+>   what 75% caught (the plan's 6/8 image cases pass when the two odd pages are old or the
+>   newest run is clean) while a genuinely split category still abstains.
+> - **The extension IS voted on** (majority among the same-named lead artworks, tie -> `.jpg`),
+>   against the "always .jpg" section below - the example the feature was asked with names a
+>   `.png`, and the inline uploader's rewrite makes a wrong vote as free as a wrong constant.
+> - **The literal final title instead of `{{subst:PAGENAME}}`** in the `[[File:]]` line - the
+>   image line is built from the (editable) title field at click time like the categories, so
+>   a corrected title still takes the image name with it, and the inline uploader can match
+>   the referenced name while the page is still unsaved.
+> - **Bucket categories are skipped outright** (`mdbPageCreator_bucketCategories` - "Promo
+>   Mix"): their pages are no siblings, so neither the analyses nor the hints bar's "N mixes"
+>   toggle touch them.
+> - **A `{{StandardShow*}}` verdict is dropped at use when the player duration is off its
+>   stated length by more than ±30%** - written as the table then, not only noted, since a far-off
+>   duration is a hint the category was misread.
 
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already
@@ -19,7 +44,7 @@ siblings **with their wikitext**:
 
 ```
 generator=categorymembers & gcmtitle=Category:<entity> & gcmnamespace=0
-  & gcmsort=timestamp & gcmdir=desc & gcmlimit=8
+  & gcmsort=sortkey & gcmdir=desc & gcmlimit=8
   & prop=revisions & rvprop=content & rvslots=main & origin=*
 ```
 

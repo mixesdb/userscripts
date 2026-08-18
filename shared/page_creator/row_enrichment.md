@@ -111,7 +111,8 @@ Call plan per category, exploiting that a new upload is usually fresh:
 - older mix date: the `desc` call plus one `cmstartsortkeyprefix` call for the window.
 
 For the entity category the recent titles are already in hand - the page-text learning call
-(`page_text_learning.md`) fetches the 8 most recent siblings - so this adds nothing there. Only
+(`page_text_learning.md`, live since 2026-08-18 as `mdbPageCreator_recentFetch()`) fetches the
+10 most recent siblings - so this adds nothing there. Only
 the artist category and the old-mix window cost a call.
 
 ### 3. The sanity check on the built title - fired on Create, not on load
@@ -168,8 +169,8 @@ carry the insource clause, so existence + mirror check are one call.
 
 | # | Call | When | Cost |
 | --- | --- | --- | --- |
-| 1 | category lookup (`mdbnames`, or the casing-variant batch) | page load | exists in plan |
-| 2 | entity siblings with wikitext (page-text learning + recent titles) | page load | exists in plan |
+| 1 | category lookup (`mdbnames`, or the casing-variant batch) | page load | live |
+| 2 | entity siblings with wikitext (page-text learning + recent titles) | page load | live since 2026-08-18 |
 | 3 | artist category sortkey listing | page load | new, 1 call |
 | 4 | date-window call, only when the mix date is old | page load | new, 0-1 call |
 | 5 | exact title + `intitle` net + `insource` mirror check, combined | **Create click** | new, 1 call |
