@@ -250,6 +250,12 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   panel shows them as red chips on the chunk section's "Removed:" line with the reason -
   the cleanup section does NOT repeat them - asking the wiki about a record label wastes
   the request.
+  **The DATE is cut there too** (`mdbTitle_findDate`, mirroring rule 3), with the upload date
+  as the split's fourth parameter so both cuts land on the same digits. The parse writes the
+  date in FRONT of the finished title, so it is part of no chunk and of no name - and the
+  trailing-number reduction below only ever takes ONE number off, so a date left in its chunk
+  becomes a name that cannot exist: `The Lot Radio 08-15-2026` was asked about as
+  `The Lot Radio 08-15` while the venue itself was never asked.
 - **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
@@ -401,7 +407,10 @@ Settled about what it shows:
   added to only one of the two makes section 2 look like it re-joined a chunk, and a reporter
   then reports a parse step that never ran. What the two sections may still differ in is
   CLEANUP, not the split: section 2 quotes the title as it stands after the cleanup, where a
-  live title's place groups are already comma-joined ("3000Grad Festival, Utopia").
+  live title's place groups are already comma-joined ("3000Grad Festival, Utopia"). A cleanup
+  step that takes something out of a NAME belongs in both, though - the date used to be gone
+  in section 2 and still sitting in section 1's chip, which reads as the parse having put it
+  back.
 - **No step re-lists what the chunk section shows as removed** - a label credit, a place list.
   Done once, in `mdbTitle_traceStep()`, over every step's detail: a step quotes the title as it
   stands at that moment, which is WITH those words (the parse drops them later), and quoted
