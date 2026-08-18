@@ -1265,14 +1265,43 @@ function mdbPageCreator_matchScore( name, matches, index, overruled ) {
         .text( conf.percent + "%" );
 }
 
+// mdbPageCreator_categoryUrl
+// The MixesDB page of a category the lookup answered with. The article path is /w/<page>, so
+// the name only has to be spelled the way MediaWiki spells a title in a URL: spaces as
+// underscores, the rest percent-escaped. The ":" is put back after encoding - it separates the
+// namespace from the name here, it is not data. The API answers with bare names, but a "Category:"
+// that did slip through is stripped rather than doubled.
+function mdbPageCreator_categoryUrl( title ) {
+    var name = String( title || "" ).replace( /^\s*Category:\s*/i, "" ).replace( / /g, "_" );
+
+    // A "/" in the name cannot ride in the path at all - the escaped slash is refused by the
+    // server before MediaWiki ever sees it - so those few names take the query form instead.
+    if( name.indexOf( "/" ) !== -1 ) {
+        return mdbPageCreator_editUrl + "?title=" + encodeURIComponent( "Category:" + name );
+    }
+
+    return "https://www.mixesdb.com/w/" + encodeURIComponent( "Category:" + name ).replace( /%3A/gi, ":" );
+}
+
 // mdbPageCreator_reasoningMatch
 // One server match as "Name [type] N mixes NN%" - the spelling is the wiki's own, which is half
 // of what makes the lookup worth showing. The whole answer list is passed rather than the one
 // match: the score of an answer depends on how many OTHER things the wiki knows the name as.
+// The name links to its category page - _blank, not the usual _top, because looking a name up
+// is a side trip: the reader is in the middle of judging a title on THIS page and comes back
+// to it (same case as the toolkit's EDIT/HIST links). An answer without a title stays a plain
+// span - there is nothing to open.
 function mdbPageCreator_reasoningMatch( name, matches, index, overruled ) {
     var match = matches[index],
+        known = match.title
+            ? $("<a>")
+                .attr( "href", mdbPageCreator_categoryUrl( match.title ) )
+                .attr( "target", "_blank" )
+                .attr( "title", "Open [[Category:" + match.title + "]] on MixesDB" )
+                .text( match.title )
+            : $("<span>").text( "?" ),
         out = $("<span>").addClass( "mdb-pageCreator-reasoning-match" ).append(
-            $("<span>").addClass( "mdb-pageCreator-known" ).text( match.title || "?" ),
+            known.addClass( "mdb-pageCreator-known" ),
             mdbPageCreator_reasoningTypeBadge( String( match.type || "?" ) )
         );
 

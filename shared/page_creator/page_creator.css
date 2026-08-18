@@ -541,10 +541,27 @@
 #mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-event  { color: #f0a943; background-color: rgba(232, 147, 12, 0.16); }
 #mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-other  { color: #aaa;    background-color: rgba(255, 255, 255, 0.10); }
 
-/* a name the wiki confirms, in the wiki's spelling - the panel's strongest signal */
-#mdb-pageCreator-reasoning .mdb-pageCreator-known {
+/*
+ * A name the wiki confirms, in the wiki's spelling - the panel's strongest signal, and a link to
+ * that category page. Written with the wrapper's ID in front of the panel's, like "Report" and
+ * "Exists" above: it is an <a> now, and these sites style their <a>s hard enough to beat a single
+ * ID (SoundCloud paints them blue and underlines them). Two IDs keep the green without
+ * !important. The underline is kept for the hover, where it is the only thing that has to say
+ * "this opens something" - the colour is carrying the meaning, not the link-ness.
+ */
+#mdb-pageCreator #mdb-pageCreator-reasoning .mdb-pageCreator-known {
     color: #58c96b;
     font-weight: 600;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-reasoning a.mdb-pageCreator-known:visited {
+    color: #58c96b;
+}
+
+#mdb-pageCreator #mdb-pageCreator-reasoning a.mdb-pageCreator-known:hover {
+    color: #58c96b;
+    text-decoration: underline;
 }
 
 /* the annotations - the tone states what the reader should DO with the line */
