@@ -243,7 +243,7 @@ a.sc_button-mdb:hover {
     flex-wrap: wrap;
     align-items: center;
     gap: 15px;
-    margin: 10px 0px 5px; /* bottom tighter to the toolkit */
+    margin: 15px 0px 5px; /* bottom tighter to the toolkit */
 }
 
 /* the dates paragraph is one flex item of that row - no paragraph spacing there */

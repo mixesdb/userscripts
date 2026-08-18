@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.20
+// @version      2026.08.19.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_52
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_53
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -1836,6 +1836,16 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.1
+ * The suggested title now spells a name the way its MixesDB category does even when no
+ * chunk carries the name on its own: the first parse's artists and entity category join
+ * the lookup candidates (page_creator.js v_53, mdbPageCreator_addParsedNames). Reported
+ * on "RA.971 DJ MARIA." - the whole title is ONE chunk, so the lookup only ever asked a
+ * name that cannot exist, and the title said "DJ Maria." while the wiki files her 8 mixes
+ * under "Category:DJ MARIA.". Category names are the last word on spelling. The new
+ * candidates are appended last (an over-full list drops them first), deduped against the
+ * chunk candidates, origin "first parse" in the reasoning panel's section 3.
  *
  * 2026.08.18.14
  * The reasoning panel's section headings now stand in a column of their own

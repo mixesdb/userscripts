@@ -539,6 +539,22 @@ var mdbTitleExamples = [
         expectEntity: "S.U.N Festival",
         expect: "2026 - Adjust @ S.U.N Festival, Hungary"
     },
+    {
+        url: "https://soundcloud.com/resident-advisor/ra971-djmaria",
+        title: "RA.971 DJ MARIA.",
+        channel: "Resident Advisor",
+        date: "2025-01-12",
+        known: { "DJ MARIA.": { type: "artist", mixes: 8 } },
+        // The category name is the last word on spelling. The re-caser reads the shouted
+        // "DJ MARIA." as a typing habit and makes it "DJ Maria." - right as a guess, wrong
+        // once the wiki has answered: her 8 mixes are filed under "DJ MARIA.", spelled in
+        // caps with the trailing dot, and the title has to write the name the way the
+        // category does. The chunk is "RA.971 DJ MARIA." in ONE piece (the episode id is no
+        // separator), so the browser only learns the category because the first parse's own
+        // names are candidates too (mdbPageCreator_addParsedNames in page_creator.js).
+        expectArtists: [ "DJ MARIA." ],
+        expect: "2025-01-12 - DJ MARIA. - RA Podcast (RA.971)"
+    },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
     {

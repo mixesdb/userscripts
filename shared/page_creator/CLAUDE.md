@@ -246,10 +246,21 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `Trommel.251`, `asa 808` -> `ASA 808`. Done at the single exit (`mdbTitle_result`), but ONLY
   name-for-name: a server match whose normalized name differs (`Truancy Volume` ->
   `Truancy Volumes`) is knowledge, not a spelling, and never rewrites the title.
+- **The first pass's own names are candidates too** (`mdbPageCreator_addParsedNames()` in
+  `page_creator.js`, since 2026-08-19): the artists and the entity category of the title the
+  first parse built, appended LAST (an over-full list drops them first) and deduped against
+  the chunk candidates, so on the usual title - where the parse's names ARE chunks - they add
+  nothing. They exist for the name only the parse can see: `RA.971 DJ MARIA.` is ONE chunk,
+  the episode id being no separator, so the chunk side asked a name that cannot exist while
+  the artist inside it was never asked - the wiki's `Category:DJ MARIA.` (8 mixes) then never
+  reached the title, which said "DJ Maria." while the page was filed under the right spelling.
+  Category names are the last word on spelling, and this is what puts them into the second
+  pass's hands. Origin `first parse` in the panel's section 3.
 - **The CATEGORY is respelled too, and separately from the title**
   (`mdbPageCreator_categoryEntry()` in `page_creator.js`, since 2026-08-18): the artist and
-  entity entries carry the wiki's spelling, so the page text writes `[[Category:DJ MARIA.]]`
-  where the title says "DJ Maria." - a category spelled our way is a second, EMPTY category
+  entity entries carry the wiki's spelling even where the TITLE does not - an EDITED title is
+  never rewritten, so the page text writes `[[Category:DJ MARIA.]]` under whatever spelling
+  the editor typed - a category spelled our way is a second, EMPTY category
   next to the one holding the 8 mixes, which is the one thing a category line may never be.
   Done again there rather than left to the title's canonicalization because the two are not
   the same question: a title keeps what its own rules made of a name, a category has to be the
