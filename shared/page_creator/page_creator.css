@@ -280,7 +280,7 @@
 /* the heading in the section's colour rather than white: the bar alone had to carry the
    grouping, and at 3px next to a long grey hint it was easy to read past */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-title {
-    color: var(--mdb-reasoning-accent, #f0f0f0);
+    color: var(--mdb-reasoning-accent-bar, #f0f0f0);
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
