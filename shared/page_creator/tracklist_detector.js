@@ -105,7 +105,14 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  *
  * Tidying, before the API sees it
  * -------------------------------
- * The block is handed over as the uploader wrote it, with four exceptions.
+ * The block is handed over as the uploader wrote it, with five exceptions.
+ *
+ * A list bullet in front of the track is taken off: "- Eddie Richards - Someday" -> "Eddie
+ * Richards - Someday". The hyphen is the expensive one - the Tracklist Editor API reads it as
+ * "this line continues the one above" and glues the tracks together, so a list written with "- "
+ * comes back as one row and, once it is long enough, as nothing at all. An en dash, a "•", a "·",
+ * a ">" or a "~" survives into the artist name instead. No majority rule: a single bulleted line
+ * already swallows the track above it.
  *
  * The numbering is evened out. "12 - Wassu & Haums" and "13 - Juju" in a list otherwise numbered
  * "11 Dino Lenny", "14 JUNO (DE)" is one tracklist to a reader and two kinds of line to the
@@ -182,6 +189,15 @@ var mdbTracklist_indexRe = /^([#(]?)(\d{1,3})([.):\]]+|\s*[-–—])?[ \t]+/;
 
 // A cue in front of the artist: "[000]", "[00:12:30]", "[cue]"
 var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
+
+// The bullet an uploader writes a list with instead of numbering it: "- Artist - Title",
+// "• Artist - Title". Same characters mdbTracklist_chapterName() peels off a headline, plus the
+// three dashes - see mdbTracklist_stripBullets() for what each of them costs.
+//
+// The blank behind it is what makes it a bullet and not a name: "-Ms- - Bad Boy" opens with a
+// hyphen that belongs to the artist, and every real bullet seen so far is written with a space
+// after it. Repeated ("-- Artist") because that is one bullet to whoever typed it.
+var mdbTracklist_bulletRe = /^[*=~>|•·\-–—]+[ \t]+/;
 
 // "Artist - Title", with the dash SoundCloud uploaders actually type - hyphen, en dash or em
 // dash. A space on at least ONE side of it is required, and that alone is what keeps
@@ -338,6 +354,44 @@ function mdbTracklist_indexStyle( line ) {
     return m ? ( m[1] || "" ) + "|" + ( m[3] || "" ) : null;
 }
 
+// mdbTracklist_stripBullets
+// The list bullet in front of the track taken off: "- Eddie Richards - Someday" -> "Eddie
+// Richards - Someday". The FIRST thing the block gets, so that everything after it - the
+// numbering, the separator, the cue - looks at the track itself and not at a decoration in front
+// of it.
+//
+// A leading hyphen is the one that turns a whole tracklist into nothing: the Tracklist Editor API
+// reads it as "this line continues the one above" and glues the tracks together, so a 32-line
+// list written with "- " comes back as ONE row - and once that row is long enough, as an empty
+// text with "No tracklist received." under it, which is a box that never opens. The others cost
+// less but are just as wrong: an en dash, a "•", a "·", a ">" or a "~" survives into the artist
+// name, and every track of the created page starts with it.
+//
+// No majority rule, unlike the slash: a bullet is not a separator anyone could have meant, and a
+// SINGLE hyphen line already swallows the track above it - there is no pattern to wait for. Only
+// lines that made it into the run are seen here, and those are track lines or numbered lines,
+// where nothing in front of the artist belongs to the artist.
+function mdbTracklist_stripBullets( lines ) {
+    var out = [],
+        changed = 0,
+        i, line;
+
+    for( i = 0; i < lines.length; i++ ) {
+        line = String( lines[i] ).replace( mdbTracklist_bulletRe, "" );
+
+        if( line !== lines[i] ) changed++;
+
+        out.push( line );
+    }
+
+    if( changed ) {
+        log( "mdbTracklist_stripBullets: " + changed + " of the " + lines.length +
+             " lines open with a list bullet - taken off." );
+    }
+
+    return out;
+}
+
 // mdbTracklist_evenIndexes
 // One numbering style for the whole block. An uploader who typed "12 - " and "13 - " into a list
 // otherwise numbered "12 " wrote one tracklist and meant one thing by it, but the Tracklist
@@ -412,10 +466,10 @@ function mdbTracklist_evenIndexLine( line, style, lead, sep ) {
 
 // mdbTracklist_tidy
 // Everything the block gets on the way to the API, in the order the steps read the line: the
-// numbering at the front evened out first, then the separator in the middle, then the cue behind
-// the track moved in front of it.
+// bullet in front of it off first, then the numbering behind that evened out, then the separator
+// in the middle, then the cue behind the track moved in front of it.
 function mdbTracklist_tidy( lines ) {
-    return mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( lines ) ) ) );
+    return mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( mdbTracklist_stripBullets( lines ) ) ) ) );
 }
 
 // mdbTracklist_dashifySeparators

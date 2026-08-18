@@ -224,6 +224,19 @@ var mdbTracklistExamples = [
             lines: 20,
             text: ";Ollie Blackmore\n01. Soul Slayerz Feat Karina Nistal - Call Me (Vocal Mix)\n02. Mark De Clive-Lowe - Worth The Wait (Mark De Clive-Lowe Remix)\n03. Jimpster - Silent Stars\n04. Sir LSG, Clara Hill - Circles (Sir LSG Main Mix)\n05. Alan De Laniere, Tribalizer - Believe Me (Tribalizer Mix)\n06. Inaky Garcia, Moon Rocket - Dum Dum (Moon Rocket Organ Rmx)\n07. Souldynamic, Miranda Nicole - For Love (Original Mix)\n08. Reelsou - Get Myself Together (Mr. V Remix)\n09. AFRICAN WOMAN (YASS REVIVAL MIX)\n10. Kiko Navarro ft HanLe - Right On (Extended Version)\n\n;Natasha Kitty Katt\n01. Twisted Katt - Natasha Kitty Katt & Twisted Soul Collective\n02. Acid Indie Club - Funky Jaws\n03. Beat The Street - Sharon Redd\n04. Roll The Dice - Misiu\n05. Keep Fighting - The Popular People's Front\n06. Birthday of Blackness - Cazz Ear & Natasha Kitty Katt\n07. Summertime (TZ Remix) - Judy Hipps\n08. Music People - Moodymann\n09. Cosmic Bitch - Natasha Kitty Katt\n10. Cat Lady - Fouk"
         }
+    },
+    {
+        // A list bulleted with "- " instead of numbered. The Tracklist Editor API reads a leading
+        // hyphen as "this line continues the one above": all 32 tracks arrived as ONE row, which
+        // at that length comes back empty with "No tracklist received." - the box stayed shut and
+        // clicking the "Tracklist" headline looked like a dead link.
+        url: "https://soundcloud.com/frida_carlos/frida_carlos_3000grad_festival_3026_schiff_ahoi",
+        text: "This might have been my favourite festival sunrise yet!\nThank you to everyone who came by and stayed even after realising, that I was not the name on the timetable. As I jumped in kind of last minute, I did not have time to dig for new music, which is why this set is more of a wild mixture of my latest sets, just mixed differently.\nIt was lovely to see, that even broken cables and stubborn needles could not stop us from having a great time!\nTo be fair, this is not the actual live-recording from the festival, because I forgot to bring a recorder, but I really enjoyed the selection and still wanted to share it. :)Tracklist:\n- Eddie Richards - Someday\n- Preesh - Timeworn\n- Per Hammer & Malin Genie - Disposer\n- Aron - Delaware\n- Barac - Superlate Check In\n- Zlene, Mathias Hinds - Trumpetsvamp\n- stbr - From The Past To The Present\n- Tommy Vicari Jnr - Dreams (Paolo Rocco Deep Mix)\n- Beiger - Lost Casanova\n- Zenk - Day Of Reckoning\n- Gudj - Steady Mind\n- remus - Skyfall\n- Mirko Loko - Evolyon (Livio & Roby Remix)\n- stbr, Davy - Reservoir\n- Nibaaldo - Me encuentro en cualquier parte\n- Interstellar Beats - Trigger Happy\n- Frida Carlos - Frog (unreleased)\n- Silat Beksi - Iteration\n- Mikhu, Lorik - WVKD\n- Beiger - Reflections\n- stbr, Davy - Talk To Me\n- Sublee - The Road Runner\n- Nicolas Duvoisin & Borgò - White Box (Johnny D Remix)\n- Arapu - First New Dance\n- Frida Carlos - Broken Glass (unreleased)\n- DJ Tennis, Pillowtalk - The Outcast (Frida Carlos Edit) (unreleased)\n- Aron - magnetic\n- Huerta - Amaso\n- Ohm Hourani, Do Mi - Bursting Light (Sublee)\n- Frida Carlos - Termination (unreleased)\n- UnknownArtist - Food (Edit) (unreleased)\n- NTFO - Synopsis",
+        expect: {
+            lines: 32,
+            first: "Eddie Richards - Someday",
+            last:  "NTFO - Synopsis"
+        }
     }
 ];
 

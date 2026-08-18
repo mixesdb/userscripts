@@ -190,6 +190,13 @@ Links never end up in the box. Some uploaders put a shop or label link under eve
 track – usually without `http://` – and the tracklist is still found in one piece: the link
 lines are skipped, and a link written inside a track line is removed from it.
 
+A tracklist written as a bulleted list instead of a numbered one is read as well. The bullet in
+front of the track – `- `, `• `, `· `, `> `, `* ` and the like – is taken off before the box is
+filled. A leading hyphen especially has to go: the Tracklist Editor reads it as "this line
+continues the one above", so a list written `- Artist - Title` all the way down used to arrive as
+one single track, and a long one arrived as nothing at all. A bullet always has a blank behind
+it, so an artist writing itself `-Ms-` keeps its hyphen.
+
 A tracklist whose lines split artist and title with a slash (`Ackermann / Pure`, and the same
 with `//`, `\` or `\\`) is read as well, and arrives in the box written with the dash MixesDB
 uses. Only the first slash of a line moves, and only when the whole block is written that way –
