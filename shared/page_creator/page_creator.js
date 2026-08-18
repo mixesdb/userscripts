@@ -688,6 +688,7 @@ function mdbPageCreator_refresh( wrapper ) {
         .text( mdbPageCreator_confidencePercent + "%" );
 
     mdbPageCreator_syncPromoNote( wrapper );
+    mdbPageCreator_renderHints( wrapper );
     mdbPageCreator_fillReport( wrapper );
     // the trace and the lookup log just changed with the refined suggestion - redraw right
     // away, no debounce: nothing here waits on typing
@@ -826,6 +827,10 @@ function mdbPageCreator_render() {
     // The resize first: typing and refreshes alike land here, so the field follows its text.
     input.on( "input change", function() {
         mdbPageCreator_growTitleInput( input );
+        // the categories are read off the field, so they follow every keystroke - into the
+        // grey "not answered" state until the debounced lookup below has asked about the
+        // names now in the title
+        mdbPageCreator_renderHints( wrapper );
         mdbPageCreator_fillReport( wrapper );
         // the reasoning panel follows the title too, but debounced - its category section is
         // read off the field, and a corrected name may need a lookup the cache has not seen
@@ -922,6 +927,10 @@ function mdbPageCreator_render() {
         mdbPageCreator_syncPromoNote( wrapper );
     }
 
+    // Last, so it forms the second line of the row - and before the report box and the
+    // reasoning panel are ever built, which is what keeps it above them.
+    mdbPageCreator_renderHints( wrapper );
+
     mdbPageCreator_place( wrapper, target );
 }
 
@@ -943,6 +952,186 @@ function mdbPageCreator_confidenceTitle() {
     }
 
     return intro + "\n\nWhat lowered it:\n- " + mdbPageCreator_confidenceReasons.join( "\n- " );
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The hints bar
+ *
+ * A second line under the row (#mdb-pageCreator-hints), holding what the title itself cannot
+ * say: refinements to make before creating, and hints about what the created page would be.
+ * Always visible, unlike the report box - these are for the editor who is about to click
+ * "Create", not for the one reporting a wrong suggestion.
+ *
+ * One item so far, "Used categories" (row_enrichment.md, addition 1): the artist and entity
+ * categories the page text writes, each answered by the wiki. Green means MixesDB has that
+ * category, red means it has not - a new name, or the name is spelled differently there, and
+ * the "Search" link next to it is the fastest way to tell those two apart.
+ *
+ * Everything here is rebuilt whole on every render and reads the title out of the FIELD, the
+ * same way the page text does: a corrected title has to take its categories with it.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// mdbPageCreator_renderHints
+// Fills the bar, creating it on first use. Hidden while it has nothing to say, so a row whose
+// title names neither an artist nor an entity keeps the height it has today.
+function mdbPageCreator_renderHints( wrapper ) {
+    var bar = wrapper.find( "#mdb-pageCreator-hints" );
+
+    if( !bar.length ) {
+        // Built with the row rather than on demand: it is not a panel someone opens, it is
+        // part of what the row says. Appended before the report box and the reasoning panel
+        // ever exist, and document order is vertical order in this grid, so it stays above
+        // both without either of them having to know about it.
+        bar = $("<div>").attr( "id", "mdb-pageCreator-hints" );
+        wrapper.append( bar );
+    }
+
+    bar.empty();
+
+    var title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
+        usedCats = mdbPageCreator_usedCategoriesHint( title );
+
+    if( usedCats ) bar.append( usedCats );
+
+    bar.toggle( bar.children().length > 0 );
+}
+
+// mdbPageCreator_usedCategoriesHint
+// "Used categories: Dave Huismans, Horst Festival (Search)" - the artist and entity categories
+// of the page text, each in the colour of the wiki's answer about it.
+//
+// Only those two roles: the year category always exists, the styles are the editor's own call
+// and the "Tracklist:" filing is the API's - none of them is a name anyone could have spelled
+// wrong, which is the whole question this line answers. "Promo Mix" is left out for the same
+// reason, and is already named under the "Create" link (mdbPageCreator_syncPromoNote).
+function mdbPageCreator_usedCategoriesHint( title ) {
+    var entries = mdbPageCreator_categoryEntries( title ),
+        wanted = [],
+        i;
+
+    for( i = 0; i < entries.length; i++ ) {
+        if( entries[i].name && ( entries[i].role === "artist" || entries[i].role === "entity" ) ) {
+            wanted.push( entries[i] );
+        }
+    }
+
+    if( !wanted.length ) return null;
+
+    var hint = $("<span>")
+            .addClass( "mdb-pageCreator-hint" )
+            .attr( "id", "mdb-pageCreator-usedCats" )
+            .append(
+                $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Used categories:" )
+            );
+
+    for( i = 0; i < wanted.length; i++ ) {
+        if( i ) hint.append( $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( "," ) );
+
+        hint.append( mdbPageCreator_usedCategory( wanted[i] ) );
+    }
+
+    return hint;
+}
+
+// mdbPageCreator_usedCategory
+// One category name, in one of three states - the wiki's answer, not a guess of ours:
+//
+// - known    green, linked to the category page. The link carries the WIKI's spelling, which
+//            is the page that really exists; where that differs from what the title writes,
+//            the tooltip says so, since that difference is a refinement worth making.
+// - missing  red and unlinked - there is no page to open - with "(Search)" behind it. The
+//            search is the point: a red name is either new or misspelled, and only a look at
+//            what MixesDB does have under that name tells which.
+// - unknown  grey, while the lookup is still out or was never made. Never red: a name nobody
+//            asked about is not a name the wiki denied.
+//
+// The verdicts are read the same way the reasoning panel's category rows read them, off the
+// same cache, so the two can never contradict each other: an artist has to be known AS an
+// artist, an entity as anything at all ("fabric" is a venue, and that answers the entity slot).
+function mdbPageCreator_usedCategory( entry ) {
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        match = mdbTitle_knownMatch( cache, entry.name, entry.role === "artist" ? [ "artist" ] : null ),
+        out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
+
+    if( match ) {
+        var spelled = match.title || entry.name,
+            note = spelled !== entry.name
+                ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
+                : "";
+
+        out.addClass( "mdb-pageCreator-usedCat-known" ).append(
+            $("<a>")
+                // _blank, not the usual _top: looking a category up is a side trip taken
+                // while judging the title on THIS page, and the row has to still be here
+                // afterwards (same case as the toolkit's EDIT/HIST links)
+                .attr( "href", mdbPageCreator_categoryUrl( spelled ) )
+                .attr( "target", "_blank" )
+                .attr( "title", "MixesDB has this category - opens [[Category:" + spelled + "]]." + note )
+                .text( entry.name )
+        );
+
+        return out;
+    }
+
+    if( mdbPageCreator_categoryUnanswered( entry.name ) ) {
+        return out.addClass( "mdb-pageCreator-usedCat-unknown" ).append(
+            $("<span>")
+                .attr( "title", "Not looked up on MixesDB (yet) - no answer either way about this category." )
+                .text( entry.name )
+        );
+    }
+
+    return out.addClass( "mdb-pageCreator-usedCat-missing" ).append(
+        $("<span>")
+            .attr( "title", "MixesDB has no " + ( entry.role === "artist" ? "artist " : "" ) + "category of this name - a new name, or spelled differently there." )
+            .text( entry.name ),
+        mdbPageCreator_usedCategorySearch( entry.name )
+    );
+}
+
+// mdbPageCreator_usedCategorySearch
+// The "(Search)" behind a name the wiki does not have. The brackets are grey text, only the
+// word is the link - the same way the row writes every other side note.
+function mdbPageCreator_usedCategorySearch( name ) {
+    return $("<span>").addClass( "mdb-pageCreator-usedCat-search" ).append(
+        $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( "(" ),
+        $("<a>")
+            .attr( "href", mdbPageCreator_searchUrl( name ) )
+            .attr( "target", "_blank" )
+            .attr( "title", "Search MixesDB for \"" + name + "\" - is it really new, or does the wiki spell it differently?" )
+            .text( "Search" ),
+        $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( ")" )
+    );
+}
+
+// mdbPageCreator_categoryUnanswered
+// Whether the wiki still owes an answer about this name: its lookup is in flight, it was never
+// asked at all, or an edit has queued a lookup that has not fired yet. The last one is what
+// keeps the bar from flashing red through every keystroke of a name being typed.
+function mdbPageCreator_categoryUnanswered( name ) {
+    if( mdbPageCreator_reasoningTimer ) return true;
+
+    var log = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        key = mdbTitle_normalizeCompare( name ),
+        i;
+
+    for( i = 0; i < log.length; i++ ) {
+        if( log[i].key === key ) return !!log[i].pending;
+    }
+
+    return true; // never asked - see the "unknown" state above
+}
+
+// mdbPageCreator_searchUrl
+// A MixesDB search for a name. Deliberately NOT makeMixesdbSearchUrl() from the toolkit: that
+// one normalizes a MIX TITLE for searching - it takes out brackets, dots and month names, which
+// is right for "Trommel.038 (Promo Mix)" and wrong for a category name, where "Trommel.038"
+// IS the term. A category name needs nothing done to it.
+function mdbPageCreator_searchUrl( name ) {
+    return mdbPageCreator_editUrl + "?title=&search=" + encodeURIComponent( name );
 }
 
 

@@ -379,8 +379,10 @@ order the build RAN - **1 -> 2 -> 3 -> 4 -> 5**: the title chunks, the first par
 their answers, the second parse (what those answers changed, closing with the green "Final
 title:" chip), and the created page's categories annotated from the lookup cache. 2 and 4 are
 ONE stage run twice, on either side of the lookup - their shared orange accent (the copy
-button's colour, vs the grey of 1/3 and the green of 5) says so. Chips and accents are coloured
-by STATE, never by type: grey candidate, red ignored, green used. Its
+button's colour, vs the blue of 1/3 and the green of 5) says so; the accent paints the count
+bubble, the left bar AND the heading, stated once per section as the
+`--mdb-reasoning-accent*` properties in `page_creator.css`. The CHIPS are a different
+question and stay coloured by STATE, never by type: grey candidate, red ignored, green used. Its
 sources are plain-data globals in `title_builder.js` - `mdbTitle_trace` (filled by every
 `buildMixesdbTitle()` run), `mdbTitle_lookupLog` (every name `mdbTitle_lookupCategories()` was
 ever asked on this page; the answers stay in `mdbTitle_categoryCache`) and

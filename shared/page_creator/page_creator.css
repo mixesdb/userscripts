@@ -174,13 +174,14 @@
 
 /*
  * The reasoning panel above the report box (mdbPageCreator_renderReasoning in page_creator.js):
- * how the suggestion was built, in four numbered sections. Hardcoded dark greys like the
+ * how the suggestion was built, in five numbered sections. Hardcoded dark greys like the
  * loading skeleton, and for the same reason: both sites showing it (SoundCloud, TrackId.net)
  * are dark-themed, and grey-on-white next to their pages was hard to read.
  *
- * Each section carries an accent colour - bubble and left bar - so the four read as four at a
- * glance: blue (chunks), amber (cleanup), purple (lookups), green (categories). The tones on
- * the notes are semantic, stated at .mdb-pageCreator-note-*: green = the wiki confirms it,
+ * Each section carries an accent colour - count bubble, left bar and heading - so the five read
+ * as five at a glance: blue for the raw material (1 chunks, 3 lookups), orange for the two title
+ * builds (2, 4), green for the categories (5). The tones on the notes are semantic, stated at
+ * .mdb-pageCreator-note-*: green = the wiki confirms it,
  * blue = worth knowing, amber = check before creating, red = the request died, grey = a fact.
  *
  * Generous spacing on purpose: the panel is read once, carefully, when something went wrong -
@@ -219,7 +220,7 @@
    the panel; a heading too long for it wraps and keeps the column. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-head {
     display: grid;
-    grid-template-columns: auto minmax(0, 280px) minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 130px) minmax(0, 1fr);
     align-items: baseline;
     column-gap: 10px;
     margin-bottom: 10px;
@@ -239,26 +240,53 @@
     height: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background-color: rgba(255, 255, 255, 0.12);
     font-size: 11px;
     line-height: 1;
 }
 
-/* The accents, tinted by STATE like the chips: grey for the raw-material sections (the
-   chunks, the lookups), the copy button's orange (#f60/#f90, see global.css) for the two
-   title builds - 2 and 4 are the same stage run on either side of the lookup, and sharing
-   the accent says so - and green for the final categories. */
+/* The accents: blue for the raw-material sections (the chunks, the lookups), the copy button's
+   orange (#f60/#f90, see global.css) for the two title builds - 2 and 4 are the same stage run
+   on either side of the lookup, and sharing the accent says so - and green for the final
+   categories. Each section states its accent ONCE as three custom properties and the three
+   rules under them paint the bar, the heading and the count bubble off it, so a section's
+   colour is one block to read and one block to change - the chips keep their own STATE colours
+   (grey candidate, red ignored, green used), which is a different question from which section
+   they stand in. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1,
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 { border-left-color: rgba(255, 255, 255, 0.30); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2,
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 { border-left-color: rgba(255, 102, 0, 0.65); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-5 { border-left-color: rgba(46, 184, 46, 0.65); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 {
+    --mdb-reasoning-accent: #6cb2f7;
+    --mdb-reasoning-accent-bar: rgba(77, 159, 236, 0.65);
+    --mdb-reasoning-accent-soft: rgba(77, 159, 236, 0.18);
+}
 
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1 .mdb-pageCreator-reasoning-no,
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 .mdb-pageCreator-reasoning-no { color: #c9c9c9; background-color: rgba(255, 255, 255, 0.12); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2 .mdb-pageCreator-reasoning-no,
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 .mdb-pageCreator-reasoning-no { color: #ff9900; background-color: rgba(255, 102, 0, 0.16); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-5 .mdb-pageCreator-reasoning-no { color: #58c96b; background-color: rgba(46, 184, 46, 0.18); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 {
+    --mdb-reasoning-accent: #ff9900;
+    --mdb-reasoning-accent-bar: rgba(255, 102, 0, 0.65);
+    --mdb-reasoning-accent-soft: rgba(255, 102, 0, 0.16);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-5 {
+    --mdb-reasoning-accent: #58c96b;
+    --mdb-reasoning-accent-bar: rgba(46, 184, 46, 0.65);
+    --mdb-reasoning-accent-soft: rgba(46, 184, 46, 0.18);
+}
+
+/* the fallbacks are what an unnumbered section gets - the panel's own greys, as before */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section {
+    border-left-color: var(--mdb-reasoning-accent-bar, rgba(255, 255, 255, 0.15));
+}
+
+/* the heading in the section's colour rather than white: the bar alone had to carry the
+   grouping, and at 3px next to a long grey hint it was easy to read past */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-title {
+    color: var(--mdb-reasoning-accent, #f0f0f0);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
+    color: var(--mdb-reasoning-accent, #c9c9c9);
+    background-color: var(--mdb-reasoning-accent-soft, rgba(255, 255, 255, 0.12));
+}
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-hint {
     color: #8b8b8b;
