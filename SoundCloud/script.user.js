@@ -1843,7 +1843,11 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * grey hint packed straight behind each of them every section started its hint at a
  * different x, so the panel read as five unrelated blocks rather than one list. The
  * heading column is capped, not fixed: a narrow player column shrinks it instead of
- * pushing the hint out of the panel.
+ * pushing the hint out of the panel. The headings are no longer white either - each one
+ * takes its section's accent, and the raw-material sections 1 and 3 are back on the blue
+ * they had before .13 rather than the grey that made them look switched off. A section
+ * now states its colour once as three custom properties and bar, heading and count bubble
+ * are painted off them.
  *
  * 2026.08.18.13
  * The reasoning panel's sections are renumbered 1..5 as shown - the 2a/2b pair is gone - and

@@ -63,7 +63,8 @@ learning" line can name the step that went wrong. Its five sections are numbered
 the build really ran: the title is parsed once before MixesDB is asked anything, and once more
 with its answers, so the same cleanup appears twice, on either side of the lookup – sections
 **2** and **4** are that one stage run twice, and their shared orange accent (the copy
-button's colour) marks them against the grey of 1/3 and the green of 5. That is also why the
+button's colour) marks them against the blue of 1/3 and the green of 5 – the number, the bar
+down the left and the heading itself all carry it. That is also why the
 names in 3 are not read off the title of 2: the lookup is built from the chunks of **1**,
 never from the cleaned title. Chips everywhere are coloured by **state**, not by what they
 name – grey while something is still a candidate, red for what was ignored, green for what
