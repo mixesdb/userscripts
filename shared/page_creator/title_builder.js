@@ -1372,6 +1372,32 @@ function mdbTitle_bitSplitRe() {
     return new RegExp( "(?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+", "g" );
 }
 
+// mdbTitle_eventWordRe
+// A name carrying one of mdbTitleEventWords ("Horst Festival", "Dekmantel Open Air"), as one
+// regex. null when the list is not loaded. "open air" is also typed "open  air", so the blank
+// inside a two-word marker reads as "\s+" - the replacement string is inserted verbatim, which
+// is why it says "\\s+" and not an escaped backslash.
+function mdbTitle_eventWordRe() {
+    var words = ( typeof mdbTitleEventWords !== "undefined" && mdbTitleEventWords ) ? mdbTitleEventWords : [];
+
+    if( !words.length ) return null;
+
+    return new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( words ).replace( /\s+/g, "\\s+" ) + ")\\b", "i" );
+}
+
+// mdbTitle_endsWithEventWord
+// Whether a name ENDS in an event word - "Horst Festival" and "Dekmantel Open Air" do, "Dark
+// Skies" and "Utopia" do not. The end is what says the name IS the event rather than merely
+// mentioning one ("Festival Mix 12"), and a trailing dot ("Sonar Fest.") is written decoration.
+function mdbTitle_endsWithEventWord( text ) {
+    var words = ( typeof mdbTitleEventWords !== "undefined" && mdbTitleEventWords ) ? mdbTitleEventWords : [];
+
+    if( !words.length ) return false;
+
+    return new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( words ).replace( /\s+/g, "\\s+" ) + ")\\.?$", "i" )
+        .test( String( text || "" ).trim() );
+}
+
 // mdbTitle_bracketPairRe
 // One innermost bracket pair of any kind, with its content. Innermost, so a bracket inside a
 // bracket cannot pair up with the wrong one.
@@ -2344,9 +2370,7 @@ function mdbTitle_takeEventTitle( text ) {
         if( bit ) kept.push( bit );
     }
 
-    // "open air" is also written "open  air" - the replacement string is inserted verbatim,
-    // so it has to read "\s+" and not an escaped backslash
-    var eventRe = new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( eventWords ).replace( /\s+/g, "\\s+" ) + ")\\b", "i" ),
+    var eventRe = mdbTitle_eventWordRe(),
         eventIndex = -1;
 
     for( i = 0; i < kept.length; i++ ) {
@@ -2478,7 +2502,7 @@ function mdbTitle_titleCategories( title ) {
         artistField = atParts[0];
 
         if( !entity ) {
-            entity = atParts[1].split( "," )[0];
+            entity = mdbTitle_placeGroupEntity( atParts[1] );
         }
     }
 
@@ -2491,6 +2515,29 @@ function mdbTitle_titleCategories( title ) {
         artists: mdbTitle_splitArtists( artistField ),
         entity: mdbTitle_trimSeparators( mdbTitle_dropMarkers( entity ) )
     };
+}
+
+// mdbTitle_placeGroupEntity
+// Which part of a live title's place group the page is filed under. The FIRST part as a rule -
+// "@ Wire Club, Leeds" is filed under Wire Club and "@ 3000Grad Festival, Utopia" under the
+// festival - because MixesDB writes the group from the outside in, the bigger name first.
+//
+// Unless another part NAMES AN EVENT: "Dave Huismans @ Dark Skies, Horst Festival" is the group
+// written the other way round, the stage first, and the festival is the name the page belongs
+// under either way. Only an event word overrules the order - a city or a venue behind the comma
+// says nothing about which of the two is the bigger name, so there the order stays the answer.
+function mdbTitle_placeGroupEntity( group ) {
+    var parts = String( group || "" ).split( "," ),
+        eventRe = mdbTitle_eventWordRe(),
+        i, part;
+
+    for( i = 0; eventRe && i < parts.length; i++ ) {
+        part = mdbTitle_trimSeparators( parts[i] );
+
+        if( part && eventRe.test( part ) ) return part;
+    }
+
+    return parts[0];
 }
 
 // mdbTitle_capitalizeFirst
@@ -3049,7 +3096,7 @@ function mdbTitle_traceChunks( text ) {
     var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
         units = [],
         out = [],
-        i, p, q, bit, presParts, byMatch, atParts, part;
+        i, p, q, c, bit, presParts, byMatch, atParts, commaParts, part;
 
     for( i = 0; i < bits.length; i++ ) {
         bit = mdbTitle_trimSeparators( bits[i] );
@@ -3085,10 +3132,57 @@ function mdbTitle_traceChunks( text ) {
         atParts = units[i].split( /\s*@\s*/ );
 
         for( p = 0; p < atParts.length; p++ ) {
-            part = mdbTitle_trimSeparators( atParts[p] );
+            commaParts = mdbTitle_splitEventComma( atParts[p] );
 
-            if( part ) out.push( part );
+            for( c = 0; c < commaParts.length; c++ ) {
+                part = mdbTitle_trimSeparators( commaParts[c] );
+
+                if( part ) out.push( part );
+            }
         }
+    }
+
+    return out;
+}
+
+// mdbTitle_splitEventComma
+// A chunk cut at the comma that stands in FRONT of an event name: "Dark Skies, Horst Festival"
+// is a stage and the festival it stands on, and the wiki knows the two as their own categories -
+// asked as one glued name it can only answer empty, while "Horst Festival" itself is never
+// asked at all.
+//
+// Only that one comma cuts, and only when the part BEHIND it ends in an event word. The comma
+// joins everywhere else and must keep doing so: it is how MixesDB writes an artist list ("ANA,
+// Johnny D, DJ Koze" is one group of names, never a title split into artist and show) and how it
+// writes a place group - and there the event stands in FRONT of the comma ("3000Grad Festival,
+// Utopia", "Wire Club, Leeds"), so nothing behind it ends in an event word and the group stays
+// whole. What this catches is the uploader who wrote the group the other way round.
+//
+// Splitting here and not in mdbTitle_bitSplitRe on purpose: this is the chunk split, which feeds
+// the panel's chips and the lookup candidates. The parse works on the full text and keeps writing
+// the place group with its comma - the suggested title does not change.
+function mdbTitle_splitEventComma( text ) {
+    var parts = String( text || "" ).split( "," ),
+        out = [],
+        current = parts[0],
+        i;
+
+    if( parts.length < 2 ) return [ text ];
+
+    for( i = 1; i < parts.length; i++ ) {
+        if( mdbTitle_endsWithEventWord( parts[i] ) ) {
+            out.push( current );
+            current = parts[i];
+        } else {
+            // not this comma - written back exactly where the uploader put it
+            current += "," + parts[i];
+        }
+    }
+
+    out.push( current );
+
+    if( out.length > 1 ) {
+        logVar( "mdbTitle_splitEventComma: a comma in front of an event name separates", text + " -> " + out.join( " | " ) );
     }
 
     return out;

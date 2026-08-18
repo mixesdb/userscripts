@@ -27,7 +27,9 @@ read as exactly that – and written in the wiki's own spelling (`trommel` becom
 A set that was played somewhere comes out the way MixesDB writes a live recording: one `@` and
 one place group behind it. `Live at`, `live@` and a typed `@` all read the same, and a second
 `@` folds into the place group – `live@3000Grad Festival @Utopia` becomes
-`@ 3000Grad Festival, Utopia`, filed under the first place alone. Such a title claims only the
+`@ 3000Grad Festival, Utopia`, filed under the first place alone – unless a place further back
+names the event (`… @ Dark Skies, Horst Festival`), which is the same group written the other way
+round and is filed under the festival. Such a title claims only the
 year, and a year the place list itself names wins over the upload year and leaves the list
 (`… @Utopia 2021` becomes a `2021 - …` title ending in `, Utopia`). The one played-how marker
 that stays is `Live PA`: said by the title – or by the description of a live recording – it is

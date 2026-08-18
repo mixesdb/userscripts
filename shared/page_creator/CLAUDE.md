@@ -449,7 +449,10 @@ Settled about what it shows:
   through several sub-readings (5c's "by", the series score, the plain order) carries the
   sentence in a variable set where the reading is decided, not one written at the return.
 - **Both chip lists are split by ONE function** - `mdbTitle_traceChunks()`, separator runs, the
-  series-"by" and every " @ ". Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
+  series-"by", every " @ " and the comma standing in FRONT of an event name
+  (`mdbTitle_splitEventComma`: `Dark Skies, Horst Festival` is two chunks, `ANA, Johnny D` and
+  `3000Grad Festival, Utopia` stay one - the comma joins everywhere else, and a place group
+  written the usual way round carries its event in front of the comma). Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
   calls it; section 2a ("Left for the parser") calls it directly on `trace.cleaned`. A split rule
   added to only one of the two makes section 2a look like it re-joined a chunk, and a reporter
   then reports a parse step that never ran. What the two sections may still differ in is

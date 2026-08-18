@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.11
+// @version      2026.08.18.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_44
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_45
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -1911,6 +1911,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.18.12
+ * A place group an uploader wrote the other way round is now read as two names
+ * (title_builder.js v_45). From the report on "Dave Huismans at Dark Skies, Horst Festival
+ * 2026": the suggested title was already right, but MixesDB was asked about the glued
+ * "Dark Skies, Horst Festival", which can only answer empty, while "Horst Festival" itself
+ * was never asked - and the page came out filed under "Dark Skies", the stage, because a
+ * live title is filed under the FIRST place of its group. A comma with an EVENT name behind
+ * it now separates, so both are asked on their own, and the part naming the event is the
+ * entity category wherever it stands in the group. Only an event word overrules the order:
+ * "@ Wire Club, Leeds" and "@ 3000Grad Festival, Utopia" are unchanged, an artist list
+ * ("ANA, Johnny D, DJ Koze") stays one name group, and no suggested title changes.
  *
  * 2026.08.18.11
  * A tracklist an uploader wrote as a bulleted list instead of a numbered one now opens
