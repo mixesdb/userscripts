@@ -105,9 +105,10 @@ built from the chunks of **1**, never from the cleaned title.
   number. A chunk that was deliberately NOT asked about stands at the end of the section on a
   `Not asked:` line with its reason: the place group's own country
   (`… @ S.U.N Festival – Hungary`) – a country is never a category – a chunk that is nothing
-  but a counting word (`Episode`, `Episode 72`), which says which episode this is and files
-  nothing on MixesDB, or a chunk too long to be a name. Every chunk of section 1 is therefore
-  either a chip here or a line saying why it is not. The chips answer section 4 by colour:
+  but a counting word and its number (`Episode 72`, `Part 2`, `Pt.3`), which says which
+  episode or which part this is and files nothing on MixesDB, or a chunk too long to be a
+  name. Every chunk of section 1 is therefore either a chip here or a line saying why it is
+  not. The chips answer section 4 by colour:
   green when the
   name ended up a category of the new page, red when it did not. A name a curated channel
   mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
