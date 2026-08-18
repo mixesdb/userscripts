@@ -236,8 +236,18 @@ function mdbPageCreator_add( options ) {
 
     mdbPageCreator_setTitle( first, o.durationMs );
 
-    // the upload date goes along for the chunk split's date cut - see mdbTitle_titleChunks
-    mdbTitle_lookupCategories( mdbTitle_categoryCandidates( playerTitle, channel, description, createdAt || releaseDate ), function( known ) {
+    // the upload date goes along for the chunk split's date cut - see mdbTitle_titleChunks.
+    // The first pass's own names ride along as candidates: a parse can unglue a name no chunk
+    // carries - "RA.971 DJ MARIA." is ONE chunk (the episode id is no separator), so the chunk
+    // side asks a name that cannot exist while the artist inside it is never asked. Asked in
+    // the same request, the wiki's answer reaches the SECOND pass, whose exit writes the
+    // category's own spelling into the title ("DJ Maria." -> "DJ MARIA.") - category names
+    // are the last word on spelling.
+    var candidates = mdbPageCreator_addParsedNames(
+            mdbTitle_categoryCandidates( playerTitle, channel, description, createdAt || releaseDate ),
+            first.title );
+
+    mdbTitle_lookupCategories( candidates, function( known ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );
@@ -257,6 +267,67 @@ function mdbPageCreator_add( options ) {
         mdbPageCreator_applyRecentToSuggestion();
         mdbPageCreator_render();
     });
+}
+
+// mdbPageCreator_addParsedNames
+// The first pass's own names, appended to the lookup candidates: the artists and the entity
+// category of the title it built - the same reading mdbPageCreator_queueCategoryUpdate takes
+// off the field after an edit. On the usual title the chunk candidates already cover them, so
+// this adds nothing (deduped normalized); it exists for the name only the PARSE can see:
+// "RA.971 DJ MARIA." is one chunk, and the artist inside it has no candidate of its own until
+// the parse has taken the episode id off. Appended LAST, so an over-full list drops these
+// first - the chunk candidates are the ones the second pass's branches depend on. Only a
+// genuinely new name notes a role and an origin; a name the chunks already ask keeps its
+// first source (mdbTitle_noteCandidateSource is first-write-wins anyway).
+function mdbPageCreator_addParsedNames( names, title ) {
+    if( !title || typeof mdbTitle_titleCategories !== "function" ) return names;
+
+    var read = mdbTitle_titleCategories( title ),
+        parsed = [],
+        i, j;
+
+    for( i = 0; i < read.artists.length; i++ ) {
+        parsed.push( { name: read.artists[i], role: "artist" } );
+    }
+
+    if( read.entity ) {
+        // the entity CATEGORY (episode number stripped) is the only spelling worth asking
+        // about - same reduction the edit round makes. For a promo the "category" is the
+        // Promo Mix bucket, so the entity's own name is what the wiki is asked about.
+        var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
+
+        parsed.push( {
+            name: entityCategory && entityCategory !== "Promo Mix" ? entityCategory : read.entity,
+            role: "entity"
+        } );
+    }
+
+    for( i = 0; i < parsed.length; i++ ) {
+        var key = mdbTitle_normalizeCompare( parsed[i].name ),
+            have = false;
+
+        if( !key ) continue;
+
+        for( j = 0; j < names.length; j++ ) {
+            if( mdbTitle_normalizeCompare( names[j] ) === key ) { have = true; break; }
+        }
+
+        if( have ) continue;
+
+        // typeof-guarded like the edit round's notes: a stale cached title_builder.js may
+        // know neither roles nor sources yet
+        if( typeof mdbTitle_noteCandidateRole === "function" ) {
+            mdbTitle_noteCandidateRole( parsed[i].name, parsed[i].role );
+        }
+        if( typeof mdbTitle_noteCandidateSource === "function" ) {
+            mdbTitle_noteCandidateSource( parsed[i].name, "first parse" );
+        }
+
+        logVar( "mdbPageCreator_addParsedNames: asking the first parse's name", parsed[i].name );
+        names.push( parsed[i].name );
+    }
+
+    return names;
 }
 
 // mdbPageCreator_showForUsed
@@ -2859,11 +2930,12 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
 
 // mdbPageCreator_reasoningOrigin
 // Where an asked name came from, as a note - or nothing when the name IS the chunk section 1
-// shows, which needs no explaining. The four that do: the channel (asked though it stands
-// nowhere in the title), a channel that names several, a curated show name, and a chunk the
+// shows, which needs no explaining. The five that do: the channel (asked though it stands
+// nowhere in the title), a channel that names several, a curated show name, a chunk the
 // candidate reduced (the trailing episode number comes off, since a category name never
-// carries one). A name typed into the title field afterwards says so too, so it is not read
-// as something the player title contained.
+// carries one), and a name the first parse read out of its chunk (the chunk itself carries
+// more than the name, so the chunk side could never ask it). A name typed into the title
+// field afterwards says so too, so it is not read as something the player title contained.
 function mdbPageCreator_reasoningOrigin( name, source ) {
     if( !source || !source.origin ) return null;
 
@@ -2883,6 +2955,9 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
             break;
         case "title field":
             text = "read off the title in the field, not off the player title";
+            break;
+        case "first parse":
+            text = "a name the first parse read out of the title - its chunk carries more than the name, so only the parse could ask about it";
             break;
         case "chunk":
             // only worth a line when the two differ - otherwise the chip already says it
@@ -3623,7 +3698,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     // 3) the MixesDB lookups. The categories of section 6 are computed here already: the
     // asked-name chips answer that section by colour - green when the name ended up a
     // category of the new page, red when it did not.
-    var s3 = mdbPageCreator_reasoningSection( "3", "Category candidate lookups on MixesDB", "one request, fired off the CHUNKS of 1 (plus the channel) - not off the cleaned title of 2. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories of 6, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
+    var s3 = mdbPageCreator_reasoningSection( "3", "Category candidate lookups on MixesDB", "one request, fired off the CHUNKS of 1 (plus the channel and the names the first parse read out of them) - not off the cleaned title of 2. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories of 6, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
         entries = mdbPageCreator_categoryEntries( title ),
         catKeys = {};
 

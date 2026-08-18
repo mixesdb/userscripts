@@ -22,7 +22,8 @@ score next to it says how sure the suggestion is.
 MixesDB's own category names sharpen the guess: the names in the title and the channel name are
 looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venue or event is
 read as exactly that – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
-`asa 808` becomes `ASA 808`).
+`asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
+tamed to "DJ Maria.", because the category holding her mixes is spelled that way).
 
 The series' own recent pages then settle the format. Once the entity resolves to a MixesDB
 category, its newest mix pages are read, and where at least 90% of them agree – or all of the
@@ -67,9 +68,10 @@ title itself cannot say: things worth checking before clicking **Create**.
 one chip per name, its colour saying whether MixesDB already has it:
 
 - **green** – the category exists. The chip – and the category the page is really filed
-  under – carries **MixesDB's own spelling** of the name, not the title's: a title saying
-  "DJ Maria." files the page under `[[Category:DJ MARIA.]]`, where the wiki's 8 mixes are,
-  rather than opening a second, empty category beside it. Where the two differ the tooltip says
+  under – carries **MixesDB's own spelling** of the name. The suggested title writes it that
+  way itself; a title **you** have edited keeps your spelling, but a title saying "DJ Maria."
+  still files the page under `[[Category:DJ MARIA.]]`, where the wiki's 8 mixes are, rather
+  than opening a second, empty category beside it. Where the two differ the tooltip says
   so, because the title in the field above is then still worth correcting. The name links to
   the category, and its mix count stands behind it. The count is a toggle: a click
   folds the category's most recently added mix pages out inside the chip, newest first, each
