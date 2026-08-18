@@ -122,7 +122,7 @@ var mdbPageCreator_title = "",
     // the log quiet: the bar re-renders on every keystroke, its content usually unchanged.
     mdbPageCreator_hintsLogged = "",
     // the debounce behind the title-edit category refresh - the hints bar's "Used categories"
-    // line and the reasoning panel's section 5. See mdbPageCreator_queueCategoryUpdate()
+    // line and the reasoning panel's section 6. See mdbPageCreator_queueCategoryUpdate()
     mdbPageCreator_categoryTimer = null,
     // the poll behind the panel's own loading state - see mdbPageCreator_watchReasoningReady()
     mdbPageCreator_reasoningReadyPoll = null,
@@ -150,6 +150,14 @@ var mdbPageCreator_title = "",
     // the bar rebuilds on every keystroke and on every lookup answer, and a list opened to
     // check for a duplicate must not close under the reader.
     mdbPageCreator_openUsedCatRecent = {},
+    // What the recent-pages TITLE analysis did to this page's suggestion - the reasoning
+    // panel's "Title analysis of recent mixes" section reads these. Pre/post around the
+    // refinement (mdbPageCreator_applyRecentToSuggestion), plus the step rows it wrote.
+    // Per page, unlike mdbPageCreator_recentAnalysisCache: what was learned about a CATEGORY
+    // survives a navigation, what was done to THIS title does not.
+    mdbPageCreator_titlePreRecent = "",
+    mdbPageCreator_titlePostRecent = "",
+    mdbPageCreator_recentTitleChanges = [],
     // where the row goes - see the note on selector strings in the header comment
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
@@ -242,6 +250,12 @@ function mdbPageCreator_add( options ) {
         }
 
         mdbPageCreator_setTitle( second, o.durationMs );
+
+        // The third title stage: the newest pages of the entity's own category. Their titles
+        // are the series' real format, so once they are on hand the suggestion is refined to
+        // match them; the first call also STARTS their fetch, whose settle path re-applies.
+        mdbPageCreator_applyRecentToSuggestion();
+        mdbPageCreator_render();
     });
 }
 
@@ -433,11 +447,30 @@ function mdbPageCreator_artwork() {
 // The wikitext a new mix page starts as. Only what the site page can actually answer for is
 // filled in: the file details, the player, the tracklist the description gave away and the
 // categories the title itself spells out. The styles are the editor's work and are left as the
-// empty shape they have on every mix page, so nothing here has to be undone before it can be
-// finished.
+// empty shape they have on every mix page - unless the entity's own recent pages settled them
+// (mdbPageCreator_categoryEntries). Two more things those pages decide (page_text_learning.md,
+// rendered in the reasoning panel's "Page text analysis of recent mixes" section):
+//
+// - the leading artwork line, written with the LITERAL title (read off the field like the
+//   categories, so a corrected title takes the image name with it). The extension is the one
+//   the siblings use - a wrong guess costs nothing, MixesDB's inline uploader rewrites the
+//   extension in the page text when the uploaded file differs.
+// - the file details body: where the series uses a {{StandardShow*}} template, the table (and
+//   with it this file's duration) must not be written - the template states the show's
+//   standard length instead.
 function mdbPageCreator_pageText( title ) {
-    return "== File details ==\n\n" +
-           mdbPageCreator_fileDetails() + "\n\n" +
+    var info = mdbPageCreator_recentAnalysisFor( title ),
+        findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
+        lead = "",
+        body = mdbPageCreator_recentBodyChoice( findings );
+
+    if( findings && findings.image && findings.image.value === "same" ) {
+        lead = "[[File:" + title + "." + ( findings.imageExt || "jpg" ) + "|right|360px]]\n\n";
+    }
+
+    return lead +
+           "== File details ==\n\n" +
+           ( body ? "{{" + body + "}}" : mdbPageCreator_fileDetails() ) + "\n\n" +
            "{{Player\n |" + mdbPageCreator_playerUrl + "\n}}\n\n" +
            "== Tracklist ==\n\n" +
            mdbPageCreator_tracklistWikitext() + "\n\n" +
@@ -537,13 +570,25 @@ function mdbPageCreator_categoryEntries( title ) {
     var styles = mdbPageCreator_styleCategories();
 
     if( styles.length ) {
-        // the site's own style suggestions (stylesBox option), read at click time
+        // the site's own style suggestions (stylesBox option), read at click time - read off
+        // THIS mix, so they beat anything learned from the siblings
         for( i = 0; i < styles.length; i++ ) {
             entries.push( { name: styles[i], role: "style" } );
         }
     } else {
-        // styles - the editor's call, so two empty rows to fill in
-        entries.push( { name: "", role: "style" }, { name: "", role: "style" } );
+        // Styles are the editor's call - two empty rows - unless the entity's recent sibling
+        // pages agree on one at 90% (page_text_learning.md, signal C): only a genre-locked
+        // series clears that bar, and its style is the one guess that is not a guess. Never
+        // more than the two lines the shape has anyway; what is not learned stays blank.
+        var learned = mdbPageCreator_recentLearnedStyles( title );
+
+        for( i = 0; i < learned.length && i < 2; i++ ) {
+            entries.push( { name: learned[i].name, role: "style", source: "recent",
+                            count: learned[i].count, n: learned[i].n } );
+        }
+        for( i = learned.length; i < 2; i++ ) {
+            entries.push( { name: "", role: "style" } );
+        }
     }
 
     entries.push( { name: "Tracklist: " + mdbPageCreator_tracklistFiling(), role: "tracklist" } );
@@ -604,6 +649,31 @@ function mdbPageCreator_entityCategory( entity ) {
         .replace( /\s*\([^()]*\)\s*$/, "" )
         .replace( /[\s.]+\d+$/, "" )
         .trim();
+}
+
+// mdbPageCreator_bucketCategories
+// Entity categories that COLLECT mixes rather than name a series: "Promo Mix" holds every
+// self-released mix there is, so its member pages have nothing in common with each other or
+// with the mix being created. For a category on this list:
+// - the hints bar's chip gets no "N mixes" toggle and its recent pages are never fetched
+// - the recent-pages analyses skip it entirely: neither the title format nor the page text
+//   can be learned from pages that are no siblings of this mix
+// Extend by hand when another filing bucket turns up; compared case-/punctuation-insensitively
+// (mdbPageCreator_isBucketCategory).
+var mdbPageCreator_bucketCategories = [ "Promo Mix" ];
+
+// mdbPageCreator_isBucketCategory
+function mdbPageCreator_isBucketCategory( name ) {
+    var key = mdbTitle_normalizeCompare( name ),
+        i;
+
+    if( !key ) return false;
+
+    for( i = 0; i < mdbPageCreator_bucketCategories.length; i++ ) {
+        if( mdbTitle_normalizeCompare( mdbPageCreator_bucketCategories[i] ) === key ) return true;
+    }
+
+    return false;
 }
 
 // Help:File_Details#Minimum_duration - MixesDB does not take recordings under 20 minutes, so
@@ -841,7 +911,7 @@ function mdbPageCreator_render() {
     // page that already has it, which is exactly when something worth reporting turns up.
     var report = $("<a>")
             .attr( "id", "mdb-pageCreator-report" )
-            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, and the categories." )
+            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, the format read off the entity's recent pages, the categories, and the page text learned from those same pages." )
             .text( "Report" );
 
     report.on( "click", function() {
@@ -871,7 +941,7 @@ function mdbPageCreator_render() {
         // names now in the title
         mdbPageCreator_renderHints( wrapper );
         mdbPageCreator_fillReport( wrapper );
-        // the categories follow the title too - the bar above and the panel's section 5 - but
+        // the categories follow the title too - the bar above and the panel's section 6 - but
         // debounced: they are read off the field, and a corrected name may need a lookup the
         // cache has not seen
         mdbPageCreator_queueCategoryUpdate();
@@ -1250,8 +1320,11 @@ function mdbPageCreator_usedCatLoupe() {
 // an artist category's are fetched the first time its chip opens
 // (mdbPageCreator_usedCatFetchRecent) - the server ships "recent" for non-artist types only.
 // Open ones survive the bar's re-renders - see mdbPageCreator_openUsedCatRecent.
+// A bucket category (mdbPageCreator_bucketCategories) gets neither the count nor the toggle:
+// its pages are unrelated mixes, so "recently filed there" answers nothing about this one.
 function mdbPageCreator_usedCatMixes( chip, entry, match ) {
     if( typeof match.mixes !== "number" ) return;
+    if( mdbPageCreator_isBucketCategory( match.title || entry.name ) ) return;
 
     var text = match.mixes + ( match.mixes === 1 ? " mix" : " mixes" ),
         key = mdbTitle_normalizeCompare( match.title || entry.name ),
@@ -1324,6 +1397,13 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
 // The titles are written onto the MATCH object in mdbTitle_categoryCache, so the answer
 // survives every re-render - and, like the cache, the page's navigations.
 function mdbPageCreator_usedCatFetchRecent( match ) {
+    // no chip ever offers the toggle for a bucket category (mdbPageCreator_usedCatMixes), so
+    // this is the safety net behind that: never spend a request on pages that are no siblings
+    if( mdbPageCreator_isBucketCategory( match.title ) ) {
+        log( "mdbPageCreator_usedCatFetchRecent: \"" + match.title + "\" is a bucket category - not fetched." );
+        return;
+    }
+
     logVar( "mdbPageCreator_usedCatFetchRecent", match.title );
 
     match.recentPending = true;
@@ -1408,6 +1488,743 @@ function mdbPageCreator_categoryUnanswered( name ) {
 function mdbPageCreator_searchUrl( name ) {
     return mdbPageCreator_editUrl + "?title=&search=" + encodeURIComponent( name );
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Recent sibling analysis
+ *
+ * Roadmap step 4 (design and measurements in page_text_learning.md): once the title resolves
+ * to an entity category, the newest mix pages IN that category are the series' house style -
+ * how its titles write the episode number, whether its pages open with an artwork line, a
+ * {{StandardShow*}} template or the dur table, and the styles a genre-locked series always
+ * carries. One request fetches those pages WITH their wikitext (generator=categorymembers +
+ * prop=revisions), cached per category for the life of the tab like the name lookup's cache.
+ *
+ * The method is consensus or abstain: a rule only counts when 90% of the fetched pages agree.
+ * Newer pages take precedence twice over - only the ~10 newest are fetched at all
+ * (conventions change: Slave To The Rhythm renamed its episodes from "Ep.393" to "716"), and
+ * when the whole sample disagrees but the 5 newest agree among themselves, that unanimous
+ * newest run IS the current convention and wins (mdbPageCreator_recentConsensus). Everything
+ * that clears no bar degrades to today's behaviour, so an unknown category, an empty one or a
+ * failed request all cost nothing.
+ *
+ * Bucket categories (mdbPageCreator_bucketCategories - "Promo Mix") are skipped outright:
+ * their pages are unrelated mixes, and a "convention" read off them would be noise.
+ *
+ * What it feeds:
+ * - the SUGGESTION: mdbPageCreator_applyRecentToSuggestion() rewrites the entity part of the
+ *   title to the siblings' format ("Trommel 251" -> "Trommel.251"), reasoning panel section 5
+ * - the PAGE TEXT: the artwork line, the file details body and the style categories
+ *   (mdbPageCreator_pageText / _categoryEntries), reasoning panel section 7
+ * - the hints bar: the fetched titles replace a match's server-side "recent" list, which is
+ *   timestamp-sorted on the server and misses the newest pages (see CLAUDE.md)
+ *
+ * `Tracklist:` is NEVER learned here - it describes the page's own tracklist, which the
+ * Tracklist Editor API decides. page_text_learning.md says why.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// what was fetched and learned per entity category, keyed by the normalized category title:
+// { status: "pending"|"done"|"failed", catTitle, pages: [{title, text}] (newest first),
+//   titles: [...], text: <page text findings> }. Never reset: what Category:Trommel's pages
+// agree on does not change from one player page to the next.
+var mdbPageCreator_recentAnalysisCache = {};
+
+// mdbPageCreator_recentConsensus
+// The one vote counter every learned signal runs through. values is one vote per sibling page,
+// NEWEST FIRST. Returns { value, count, n, recentOnly } or null:
+// - fewer than 3 pages decide nothing (a convention needs witnesses)
+// - the most common value wins when at least 90% of the pages carry it (ceil - 7 of 8 is not
+//   90%, 8 of 8 is)
+// - otherwise the 5 newest pages win when they are unanimous: the sample disagreeing while
+//   the newest run agrees is what a changed convention looks like, and newer pages take
+//   precedence (recentOnly marks such a verdict for the reasoning panel)
+function mdbPageCreator_recentConsensus( values ) {
+    var n = values.length,
+        counts = {},
+        top = null,
+        i;
+
+    if( n < 3 ) return null;
+
+    for( i = 0; i < n; i++ ) {
+        counts[ values[i] ] = ( counts[ values[i] ] || 0 ) + 1;
+
+        if( top === null || counts[ values[i] ] > counts[ top ] ) top = values[i];
+    }
+
+    if( counts[ top ] >= Math.ceil( n * 0.9 ) ) {
+        return { value: top, count: counts[ top ], n: n, recentOnly: false };
+    }
+
+    if( n > 5 ) {
+        for( i = 1; i < 5; i++ ) {
+            if( values[i] !== values[0] ) return null;
+        }
+
+        return { value: values[0], count: 5, n: 5, recentOnly: true };
+    }
+
+    return null;
+}
+
+// mdbPageCreator_recentAnalysisFor
+// What the recent-pages analyses know about one title's ENTITY, resolved fresh off the title
+// every time (the field is editable, and an edited entity is a different category). Returns
+// { entity, catName, catTitle, match, isPlace, entry, skip }:
+// - skip names the reason nothing can be learned ("no-entity" | "bucket" | "pending-lookup" |
+//   "unknown" | "artist" | "empty"), "" when analysis is possible
+// - entry is the category's cache entry when one exists (fetched or in flight) - resolving
+//   never STARTS a fetch, that is mdbPageCreator_recentEnsureFor()
+function mdbPageCreator_recentAnalysisFor( title ) {
+    var read = mdbTitle_titleCategories( title ),
+        info = { entity: read.entity || "", catName: "", catTitle: "", match: null, isPlace: false, entry: null, skip: "" },
+        catName = mdbPageCreator_entityCategoryFor( title, read.entity );
+
+    if( !info.entity || !catName ) {
+        info.skip = "no-entity";
+        return info;
+    }
+
+    info.catName = catName;
+
+    if( mdbPageCreator_isBucketCategory( catName ) ) {
+        info.catTitle = catName;
+        info.skip = "bucket";
+        return info;
+    }
+
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        // the entity reading first: "fabric" the venue is the entity even where "Fabric" the
+        // artist answers too - only a name the wiki knows as NOTHING else falls to the artist
+        // match, which is then a skip
+        match = mdbTitle_knownMatch( cache, catName, [ "podcast", "show", "radio", "internet radio", "internetradio", "venue", "event", "recordlabel", "record label" ] ) ||
+                mdbTitle_knownMatch( cache, catName, null );
+
+    if( !match ) {
+        info.skip = mdbPageCreator_categoryUnanswered( catName ) ? "pending-lookup" : "unknown";
+        return info;
+    }
+
+    info.match = match;
+    info.catTitle = match.title || catName;
+    info.isPlace = /^(venue|event)$/.test( String( match.type || "" ) );
+
+    if( String( match.type || "" ) === "artist" ) {
+        // an artist category holds that artist's sets of every kind - there is no series
+        // format in it, and the page text signals would average club nights with podcasts
+        info.skip = "artist";
+        return info;
+    }
+
+    if( mdbPageCreator_isBucketCategory( info.catTitle ) ) {
+        info.skip = "bucket";
+        return info;
+    }
+
+    if( !match.mixes ) {
+        info.skip = "empty";
+        return info;
+    }
+
+    info.entry = mdbPageCreator_recentAnalysisCache[ mdbTitle_normalizeCompare( info.catTitle ) ] || null;
+
+    return info;
+}
+
+// mdbPageCreator_recentEnsureFor
+// Resolves like mdbPageCreator_recentAnalysisFor and STARTS the category's page fetch where
+// none ran yet. Called wherever a title settles: the suggestion's lookup callback and the
+// debounced edit path - never from a render, which must stay free of side effects.
+function mdbPageCreator_recentEnsureFor( title ) {
+    var info = mdbPageCreator_recentAnalysisFor( title );
+
+    if( info.skip || !info.catTitle ) return info;
+
+    var key = mdbTitle_normalizeCompare( info.catTitle );
+
+    if( !mdbPageCreator_recentAnalysisCache[ key ] ) {
+        mdbPageCreator_recentAnalysisCache[ key ] = {
+            status: "pending",
+            catTitle: info.catTitle,
+            titles: [],
+            pages: [],
+            text: null
+        };
+
+        mdbPageCreator_recentFetch( info.catTitle, key );
+    }
+
+    info.entry = mdbPageCreator_recentAnalysisCache[ key ];
+
+    return info;
+}
+
+// mdbPageCreator_recentFetch
+// The one request behind everything learned: the ~10 newest pages of the category WITH their
+// wikitext. generator=categorymembers with gcmsort=sortkey&gcmdir=desc - a mix page title
+// starts with its date, so the sortkey IS the date, and it honours an editor's manual sortkey
+// on top. NEVER gcmsort=timestamp, which sorts by when a page was (re)filed into the category
+// and floats every re-saved old page to the top (see CLAUDE.md and mixesdb_api_request.md §6).
+function mdbPageCreator_recentFetch( catTitle, key ) {
+    logVar( "mdbPageCreator_recentFetch", catTitle );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: {
+            action: "query",
+            format: "json",
+            formatversion: 2,
+            origin: "*",
+            generator: "categorymembers",
+            gcmtitle: "Category:" + catTitle,
+            gcmnamespace: 0, // without it the answer is half File: pages
+            gcmsort: "sortkey",
+            gcmdir: "desc",
+            gcmlimit: 10,
+            prop: "revisions",
+            rvprop: "content",
+            rvslots: "main"
+        },
+        success: function( data ) {
+            var entry = mdbPageCreator_recentAnalysisCache[ key ],
+                pages = ( data && data.query && data.query.pages ) || [],
+                got = [],
+                i, rev, slot;
+
+            for( i = 0; i < pages.length; i++ ) {
+                if( !pages[i].title ) continue;
+
+                rev = ( pages[i].revisions && pages[i].revisions[0] ) || null;
+                slot = rev && rev.slots && rev.slots.main ? rev.slots.main : null;
+
+                got.push( { title: pages[i].title, text: String( ( slot && slot.content ) || "" ) } );
+            }
+
+            // the generator returns its pages unordered - titles start with the date, so a
+            // lexical sort IS date order, newest first (same trick as mdbPageCreator_usedCatRecent)
+            got.sort( function( a, b ) { return a.title < b.title ? 1 : a.title > b.title ? -1 : 0; } );
+
+            entry.status = "done";
+            entry.pages = got;
+            entry.titles = got.map( function( p ) { return p.title; } );
+            entry.text = mdbPageCreator_recentPageTextFindings( catTitle, got );
+
+            logVar( "mdbPageCreator_recentFetch: " + catTitle, entry.titles.length + " pages" );
+
+            // the hints bar's list for this category rides along: sortkey order really holds
+            // the newest pages, which the lookup answer's own timestamp-sorted "recent" misses
+            var match = ( typeof mdbTitle_categoryCache !== "undefined" )
+                ? mdbTitle_knownMatch( mdbTitle_categoryCache, catTitle, null )
+                : null;
+
+            if( match && match.title === catTitle ) {
+                match.recent = entry.titles.slice();
+                match.recentPending = false;
+                match.recentFailed = false;
+            }
+
+            mdbPageCreator_recentSettled();
+        },
+        error: function( xhr, status ) {
+            log( "mdbPageCreator_recentFetch FAILED (" + status + ") for " + catTitle );
+
+            mdbPageCreator_recentAnalysisCache[ key ].status = "failed";
+
+            mdbPageCreator_recentSettled();
+        }
+    });
+}
+
+// mdbPageCreator_recentSettled
+// The one settle path for success and failure. No page-generation bookkeeping on purpose: the
+// refinement resolves the CURRENT title's entity itself, so an answer landing after the reader
+// navigated on refines nothing (the categories differ), and the render is a no-op without a row.
+function mdbPageCreator_recentSettled() {
+    mdbPageCreator_applyRecentToSuggestion();
+    mdbPageCreator_render();
+}
+
+// mdbPageCreator_recentNameVariants
+// The spellings under which the entity may stand in a sibling title, most canonical first: the
+// wiki's category title, the redirect that found it, and the name OUR title writes - each
+// without a "(...)" qualifier ("Autonomic (Show)" stands in titles as "Autonomic"). The
+// variants matter: Category:Truancy Volumes files pages titled "... Truancy Volume 291", so
+// the category title alone would match nothing.
+function mdbPageCreator_recentNameVariants( info ) {
+    var raw = [ info.catTitle, ( info.match && info.match.matchedTitle ) || "", info.catName ],
+        seen = {},
+        names = [],
+        i, bare, key;
+
+    for( i = 0; i < raw.length; i++ ) {
+        bare = String( raw[i] || "" ).replace( /\s*\([^()]*\)\s*$/, "" ).trim();
+        key = mdbTitle_normalizeCompare( bare );
+
+        if( !key || seen[ key ] ) continue;
+
+        seen[ key ] = true;
+        names.push( bare );
+    }
+
+    return names;
+}
+
+// mdbPageCreator_recentEntitySuffix
+// Classifies what one sibling title writes BEHIND the entity name - the episode format vote.
+// Exactly one digit run counts (".234", " 498", " (RA.1051)", " Episode 72", "" for none);
+// anything else is "(other)", which supports no rule but keeps standing in the denominator -
+// a live recording's "(Essential Mix, 2026-06-27)" tail is exactly the exception the 90% bar
+// is measured against. The key doubles as the vote value; pre/N/post is how it is applied and
+// shown, with the digits kept for the padding question.
+function mdbPageCreator_recentEntitySuffix( suffix ) {
+    suffix = String( suffix || "" ).replace( /\s+$/, "" );
+
+    if( !suffix ) return { key: "", pre: "", post: "", digits: "" };
+
+    // an entity tail is short - anything longer is a second half of the title, not a format
+    if( suffix.length > 20 ) return { key: "(other)" };
+
+    // the divider between pre and post is a literal NUL, like mdbPageCreator_reasoningStepKey:
+    // the pre is usually itself a space, so any printable divider could collide with real text
+    var m = /^([^0-9]*)(\d+)([^0-9]*)$/.exec( suffix );
+
+    if( !m ) return { key: "(other)" };
+
+    return { key: m[1] + " " + m[3], pre: m[1], post: m[3], digits: m[2] };
+}
+
+// mdbPageCreator_recentTitleFindings
+// How the newest pages of the category write their titles: the name's spelling as the titles
+// write it, the episode number format behind it (a series), or the city behind the place (a
+// venue/event). Computed off the cached titles at every use rather than stored - it depends on
+// the name variants of the CURRENT title, and ten regex runs cost nothing.
+// Returns { n, matched, written, format, city }:
+// - written  consensus over the matched name text ("RA Podcast" on every page)
+// - format   { pre, post, none, pad, count, n, recentOnly, display } or null - the winning
+//            suffix template; pad > 0 means the digits are zero-padded to that width
+// - city     consensus over the ", City" behind a place, or null
+function mdbPageCreator_recentTitleFindings( info ) {
+    var titles = ( info.entry && info.entry.titles ) || [],
+        names = mdbPageCreator_recentNameVariants( info ),
+        writtenVotes = [],
+        formatVotes = [],
+        cityVotes = [],
+        digitsByKey = {},
+        out = { n: titles.length, matched: 0, written: null, format: null, city: null },
+        i, j, rest, m, re, suffix;
+
+    for( i = 0; i < titles.length; i++ ) {
+        // our own markers never join a format - a sibling that happens to be a promo mix
+        // still writes the series name and number the series' way
+        rest = mdbTitle_dropMarkers( titles[i] ).replace( /^\s*\d{4}(?:-\d{2}){0,2}\s*-\s*/, "" );
+        m = null;
+
+        for( j = 0; j < names.length && !m; j++ ) {
+            // loose inner spaces ("FrenzyPodcast"), never glued into a longer word on either
+            // side - the same guards the parser's name matching uses
+            re = new RegExp( "(^|[^0-9A-Za-z])(" + mdbTitle_escapeReLooseSpaces( names[j] ) + ")(?![0-9A-Za-z])", "i" );
+            m = re.exec( rest );
+        }
+
+        if( !m ) {
+            // the page does not write the name at all - it counts AGAINST every rule, since a
+            // convention 90% of pages carry has to be visible on 90% of pages
+            writtenVotes.push( "(no match)" );
+            formatVotes.push( "(no match)" );
+            cityVotes.push( "(no match)" );
+            continue;
+        }
+
+        out.matched++;
+        writtenVotes.push( m[2] );
+
+        var after = rest.slice( m.index + m[0].length );
+
+        if( info.isPlace ) {
+            // "@ Ritter Butzke, Berlin" - the city is whatever one comma puts behind the place
+            var cm = /^,\s*([^,()@]+?)\s*$/.exec( after.replace( /\s+$/, "" ) );
+
+            cityVotes.push( cm ? cm[1] : ( after.replace( /\s+$/, "" ) === "" ? "(none)" : "(other)" ) );
+        } else {
+            suffix = mdbPageCreator_recentEntitySuffix( after );
+            formatVotes.push( suffix.key );
+
+            if( suffix.digits ) {
+                ( digitsByKey[ suffix.key ] = digitsByKey[ suffix.key ] || [] ).push( suffix.digits );
+            }
+        }
+    }
+
+    var written = mdbPageCreator_recentConsensus( writtenVotes );
+
+    if( written && written.value !== "(no match)" ) out.written = written;
+
+    if( info.isPlace ) {
+        var city = mdbPageCreator_recentConsensus( cityVotes );
+
+        if( city && city.value !== "(none)" && city.value !== "(other)" && city.value !== "(no match)" ) {
+            out.city = city;
+        }
+
+        return out;
+    }
+
+    var format = mdbPageCreator_recentConsensus( formatVotes );
+
+    if( !format || format.value === "(other)" || format.value === "(no match)" ) return out;
+
+    if( format.value === "" ) {
+        out.format = { none: true, pre: "", post: "", pad: 0,
+                       count: format.count, n: format.n, recentOnly: format.recentOnly,
+                       display: "no episode number" };
+        return out;
+    }
+
+    var parts = format.value.split( " " ),
+        digits = digitsByKey[ format.value ] || [],
+        pad = 0,
+        zeroLed = false;
+
+    for( i = 0; i < digits.length; i++ ) {
+        if( /^0\d/.test( digits[i] ) ) zeroLed = true;
+        if( digits[i].length !== digits[0].length ) { zeroLed = false; break; }
+    }
+
+    // zero-padding is only a convention when every number has the same width AND at least one
+    // really leads with a zero - "251", "250", "249" are three digits by coincidence
+    if( zeroLed ) pad = digits[0].length;
+
+    out.format = { none: false, pre: parts[0], post: parts[1] || "", pad: pad,
+                   count: format.count, n: format.n, recentOnly: format.recentOnly,
+                   display: parts[0] + "N" + ( parts[1] || "" ) };
+
+    return out;
+}
+
+// mdbPageCreator_padNumber
+// A number written to the width the siblings pad to - from the bare value, so a source's own
+// "07" and a convention of three digits meet at "007", and no padding means "7".
+function mdbPageCreator_padNumber( digits, width ) {
+    var s = String( digits ).replace( /^0+(?=\d)/, "" );
+
+    while( s.length < width ) s = "0" + s;
+
+    return s;
+}
+
+// mdbPageCreator_refineTitleFromRecent
+// The title with its entity part rewritten to the recent pages' format, plus the step rows
+// saying what changed and why. Never invents: a spelling is only adopted where it is a
+// RESPELLING of the name our title already has (the categoryEntry rule - a really different
+// name is knowledge, not a spelling), an episode format only where the source gave a number
+// (or the convention is to carry none), the city only where the place stands last with none.
+// The rewritten entity has to file under the same category it was resolved by, or everything
+// is dropped - a format that changes the category was a misread, never a refinement.
+function mdbPageCreator_refineTitleFromRecent( title, info ) {
+    var out = { title: title, changes: [] },
+        f = mdbPageCreator_recentTitleFindings( info ),
+        groups = String( title || "" ).split( " - " );
+
+    if( info.isPlace ) {
+        // "YYYY-MM-DD - Artist @ Venue" - the city the siblings agree on, appended only where
+        // the place group ends bare: what the source page put behind the venue stays its own
+        if( f.city && groups.length === 2 && groups[1].indexOf( " @ " ) !== -1 ) {
+            var names = mdbPageCreator_recentNameVariants( info ),
+                endsWith = false,
+                i;
+
+            for( i = 0; i < names.length && !endsWith; i++ ) {
+                endsWith = new RegExp( "(^|[^0-9A-Za-z])" + mdbTitle_escapeReLooseSpaces( names[i] ) + "\\s*$", "i" ).test( groups[1] );
+            }
+
+            if( endsWith ) {
+                out.title = title + ", " + f.city.value;
+                out.changes.push( {
+                    label: "City from the recent pages",
+                    detail: title + " -> " + out.title
+                } );
+            }
+        }
+
+        return out;
+    }
+
+    if( groups.length !== 3 ) return out;
+
+    var entityGroup = groups[2],
+        base = mdbPageCreator_entityCategory( entityGroup ),
+        digitsMatch = /(\d+)\s*\)?\s*$/.exec( entityGroup ),
+        ourDigits = digitsMatch ? digitsMatch[1] : "",
+        newBase = base,
+        newEntity = "";
+
+    if( !base ) return out;
+
+    // the spelling the titles agree on - only ever name-for-name (case, blanks, punctuation)
+    if( f.written && f.written.value !== base &&
+        mdbTitle_normalizeCompare( f.written.value ) === mdbTitle_normalizeCompare( base ) ) {
+        newBase = f.written.value;
+    }
+
+    if( f.format ) {
+        if( f.format.none ) {
+            newEntity = newBase;
+        } else if( ourDigits ) {
+            newEntity = newBase + f.format.pre + mdbPageCreator_padNumber( ourDigits, f.format.pad ) + f.format.post;
+        } else {
+            // the series numbers its episodes but the source title gave none - a number is
+            // nothing to invent, so only the spelling may still apply below
+            newEntity = "";
+        }
+    }
+
+    if( !newEntity && newBase !== base ) {
+        // no format verdict (or none appliable): respell the name inside the entity as it
+        // stands, keeping whatever tail it has
+        newEntity = entityGroup.replace(
+            new RegExp( "(^|[^0-9A-Za-z])" + mdbTitle_escapeReLooseSpaces( base ) + "(?![0-9A-Za-z])", "i" ),
+            function( whole, lead ) { return lead + newBase; }
+        );
+    }
+
+    if( !newEntity || newEntity === entityGroup ) return out;
+
+    // the safety net: the refined entity must still file under the resolved category
+    if( mdbTitle_normalizeCompare( mdbPageCreator_entityCategory( newEntity ) ) !== mdbTitle_normalizeCompare( base ) ) {
+        log( "mdbPageCreator_refineTitleFromRecent: \"" + newEntity + "\" would change the category - dropped." );
+        return out;
+    }
+
+    var label = "Name as the recent pages write it";
+
+    if( f.format && ourDigits ) {
+        label = f.format.none ? "No episode number on the recent pages"
+                              : "Episode format from the recent pages";
+    }
+
+    out.title = groups[0] + " - " + groups[1] + " - " + newEntity;
+    out.changes.push( { label: label, detail: entityGroup + " -> " + newEntity } );
+
+    return out;
+}
+
+// mdbPageCreator_applyRecentToSuggestion
+// The third title stage, after the two builds: the SUGGESTION rewritten to the entity's own
+// recent format. Only ever the suggestion - a title the reader edited is theirs, the analysis
+// then still renders in the panel but rewrites nothing. Resolves the current suggestion's
+// entity itself, so the fetch's settle path can call it blind (an answer landing after a
+// navigation finds a different entity and applies nothing). Callers render.
+function mdbPageCreator_applyRecentToSuggestion() {
+    if( !mdbPageCreator_title ) return;
+
+    var info = mdbPageCreator_recentEnsureFor( mdbPageCreator_title );
+
+    mdbPageCreator_titlePreRecent = mdbPageCreator_title;
+    mdbPageCreator_titlePostRecent = "";
+    mdbPageCreator_recentTitleChanges = [];
+
+    if( info.skip || !info.entry || info.entry.status !== "done" ) return;
+
+    var refined = mdbPageCreator_refineTitleFromRecent( mdbPageCreator_title, info );
+
+    mdbPageCreator_titlePostRecent = refined.title;
+    mdbPageCreator_recentTitleChanges = refined.changes;
+
+    if( refined.title === mdbPageCreator_title ) return;
+
+    var input = $("#mdb-pageCreator-title");
+
+    if( input.length && input.data( "mdb-edited" ) ) {
+        log( "mdbPageCreator_applyRecentToSuggestion: the title was edited - not rewritten." );
+        return;
+    }
+
+    logVar( "mdbPageCreator_applyRecentToSuggestion: the recent pages knew better",
+            mdbPageCreator_title + "  ->  " + refined.title );
+
+    mdbPageCreator_title = refined.title;
+}
+
+// mdbPageCreator_recentLearnedStyles
+// The style categories the entity's recent pages settled for one title, or [] - what
+// mdbPageCreator_categoryEntries() fills the style slots with when the site suggested none.
+function mdbPageCreator_recentLearnedStyles( title ) {
+    var info = mdbPageCreator_recentAnalysisFor( title ),
+        findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null;
+
+    return ( findings && findings.styles && findings.styles.learned ) || [];
+}
+
+// mdbPageCreator_recentBodyChoice
+// The file details body the findings pick: a {{StandardShow*}} template name, or null for
+// today's dur table. The template only stands where the player duration ROUGHLY fits its
+// stated length (±30%) - a 40 minute file on a 2h show is a hint the category was misread,
+// and then the table with the real duration is the safer page. An unknown duration trusts
+// the siblings: the template says more than a table with an empty dur cell would.
+function mdbPageCreator_recentBodyChoice( findings ) {
+    var body = findings && findings.body;
+
+    if( !body || !/^StandardShow/.test( String( body.value || "" ) ) ) return null;
+
+    var minutes = {
+            StandardShow30min: 30,
+            StandardShow1h: 60,
+            StandardShow90min: 90,
+            StandardShow2h: 120,
+            StandardShow3h: 180,
+            StandardShow4h: 240
+        }[ body.value ];
+
+    if( minutes && mdbPageCreator_durationMs ) {
+        var ratio = mdbPageCreator_durationMs / ( minutes * 60000 );
+
+        if( ratio < 0.7 || ratio > 1.3 ) return null;
+    }
+
+    return body.value;
+}
+
+// mdbPageCreator_recentPageTextFindings
+// What the fetched pages' WIKITEXT agrees on - computed once at fetch time, since unlike the
+// title findings nothing here depends on the current title. Three signals, each consensus or
+// abstain (page_text_learning.md says why their thresholds are one and the same 90% now):
+// - image:  does the page open with an artwork named after the page itself? ("same" vs
+//           "other"/"none" - a venue's artwork is named after the venue, which no new page
+//           can predict). imageExt is the extension those artworks actually use.
+// - body:   {{StandardShow*}} vs the dur/MB/kbps table ("none" can win the vote, but wins
+//           nothing - mdbPageCreator_recentBodyChoice only acts on a template)
+// - styles: every category that is not the year, the entity, an artist of that page's title,
+//           Promo Mix or a "Tracklist:" filing - per style a yes/no vote across the pages,
+//           learned at the same 90%, at most two (the shape has two style lines)
+function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
+    var n = pages.length,
+        imageVotes = [],
+        exts = [],
+        bodyVotes = [],
+        styleVotes = {},
+        styleNames = {},
+        styleTally = {},
+        catKey = mdbTitle_normalizeCompare( catTitle ),
+        i, j, text, m;
+
+    for( i = 0; i < n; i++ ) {
+        text = pages[i].text;
+
+        // the FIRST image is the lead artwork - the 180px tracklist screenshots further down
+        // are the editor's later additions
+        m = /\[\[\s*(?:File|Image)\s*:\s*([^\]|]+?)\s*(?:\|[^\]]*)?\]\]/i.exec( text );
+
+        if( !m ) {
+            imageVotes.push( "none" );
+        } else {
+            var fname = m[1].replace( /_/g, " " ).trim(),
+                extMatch = /\.([A-Za-z0-9]+)$/.exec( fname ),
+                stem = extMatch ? fname.slice( 0, fname.length - extMatch[0].length ) : fname;
+
+            if( stem.toLowerCase() === pages[i].title.replace( /_/g, " " ).trim().toLowerCase() ) {
+                imageVotes.push( "same" );
+                exts.push( extMatch && extMatch[1].toLowerCase() === "png" ? "png" : "jpg" );
+            } else {
+                imageVotes.push( "other" );
+            }
+        }
+
+        m = /\{\{\s*(StandardShow[^}|]*?)\s*\}\}/.exec( text );
+
+        if( m ) {
+            bodyVotes.push( m[1] );
+        } else if( /\{\|\s*\{\{\s*NormalTableFormat\s*\}\}/.test( text ) || /^\s*!\s*dur\b/m.test( text ) ) {
+            bodyVotes.push( "table" );
+        } else {
+            bodyVotes.push( "none" );
+        }
+
+        // the page's own title says which categories describe the PAGE rather than the music
+        var own = mdbTitle_titleCategories( pages[i].title ),
+            skip = {},
+            catRe = /\[\[\s*Category\s*:\s*([^\]|]+)/g,
+            seenHere = {},
+            cm, name, key;
+
+        skip[ catKey ] = true;
+        skip[ mdbTitle_normalizeCompare( own.entity ) ] = true;
+        skip[ mdbTitle_normalizeCompare( "Promo Mix" ) ] = true;
+
+        for( j = 0; j < own.artists.length; j++ ) {
+            skip[ mdbTitle_normalizeCompare( own.artists[j] ) ] = true;
+        }
+
+        while( ( cm = catRe.exec( text ) ) ) {
+            name = cm[1].trim();
+            key = mdbTitle_normalizeCompare( name );
+
+            if( !key || seenHere[ key ] ) continue;
+            if( skip[ key ] || /^\d{4}$/.test( name ) || /^Tracklist\s*:/i.test( name ) ) continue;
+
+            seenHere[ key ] = true;
+
+            if( !styleVotes[ key ] ) {
+                styleVotes[ key ] = [];
+                styleNames[ key ] = name;
+                styleTally[ key ] = 0;
+
+                // pages already counted voted "no" on a style first seen now
+                for( j = 0; j < i; j++ ) styleVotes[ key ].push( "no" );
+            }
+
+            styleTally[ key ]++;
+        }
+
+        for( key in styleVotes ) {
+            if( !Object.prototype.hasOwnProperty.call( styleVotes, key ) ) continue;
+
+            if( styleVotes[ key ].length === i ) styleVotes[ key ].push( seenHere[ key ] ? "yes" : "no" );
+        }
+    }
+
+    var image = mdbPageCreator_recentConsensus( imageVotes ),
+        body = mdbPageCreator_recentConsensus( bodyVotes ),
+        ext = "jpg",
+        png = 0,
+        learned = [],
+        tally = [],
+        key;
+
+    for( i = 0; i < exts.length; i++ ) {
+        if( exts[i] === "png" ) png++;
+    }
+
+    // the majority extension among the lead artworks; a tie stays .jpg, the wiki's uploader
+    // rewrites a wrong one anyway (page_text_learning.md)
+    if( png * 2 > exts.length ) ext = "png";
+
+    for( key in styleVotes ) {
+        if( !Object.prototype.hasOwnProperty.call( styleVotes, key ) ) continue;
+
+        tally.push( { name: styleNames[ key ], count: styleTally[ key ], n: n } );
+
+        var vote = mdbPageCreator_recentConsensus( styleVotes[ key ] );
+
+        if( vote && vote.value === "yes" ) {
+            learned.push( { name: styleNames[ key ], count: vote.count, n: vote.n, recentOnly: vote.recentOnly } );
+        }
+    }
+
+    learned.sort( function( a, b ) { return b.count - a.count; } );
+    tally.sort( function( a, b ) { return b.count - a.count; } );
+
+    return {
+        n: n,
+        image: image,
+        imageExt: ext,
+        body: body,
+        styles: { learned: learned.slice( 0, 2 ), tally: tally }
+    };
+}
+
 
 /*
  * The MixesDB modal: on a desktop-wide window, a plain left click on any MixesDB link in the
@@ -1693,7 +2510,7 @@ function mdbPageCreator_reportDay( date ) {
  * The reasoning panel
  *
  * Opens with the report box, above it: the sections that say how the suggestion was built, in
- * the order the build really ran - 1 -> 2 -> 3 -> 4 -> 5.
+ * the order the build really ran - 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7.
  *
  *   (1) the chunks the player title split into - the lookup's raw material
  *   (2) what the FIRST parse fixed and removed, before the wiki was asked anything, closing
@@ -1701,21 +2518,28 @@ function mdbPageCreator_reportDay( date ) {
  *   (3) the one lookup request - built from the chunks of 1 plus the channel, and NOT from
  *       the cleaned title of 2, which is why its names are not that title's words
  *   (4) the SECOND parse: the same cleanup re-run with the answers in hand, listing only
- *       what they changed and closing with the final title as one green chip. This is the
- *       run the title on screen comes from
- *   (5) the categories the created page would be filed under, each annotated with what the
+ *       what they changed and closing with its title as one chip, still grey - one title
+ *       stage remains
+ *   (5) the recent-pages TITLE analysis: what the entity category's newest pages settled
+ *       about the format and what that rewrote, closing with the final title as one green
+ *       chip - the run the title on screen comes from
+ *   (6) the categories the created page would be filed under, each annotated with what the
  *       lookup cache says about it - exactly the check a reporter otherwise runs by hand
+ *   (7) the recent-pages PAGE TEXT analysis: what the same pages' wikitext settles about the
+ *       page the "Create" link writes - lead artwork, file details body, styles
  *
- * 2 and 4 are ONE stage run twice, on either side of the lookup - said by their shared
- * accent, the copy button's orange, against the grey of the raw-material sections 1/3 and
- * the green of 5. The chips are coloured the same way, by STATE and not by type: grey while
+ * 2, 4 and 5 are the title-shaping stages - 2 and 4 ONE stage run twice on either side of the
+ * lookup, 5 the format read off the wiki's own pages - said by their shared
+ * accent, the copy button's orange, against the grey of the raw-material sections 1/3, the
+ * green of 6 and the citrus of 7 (the same recent pages, about the PAGE rather than the
+ * title). The chips are coloured the same way, by STATE and not by type: grey while
  * a name or title is only a candidate, red for what was ignored, green for what ends up used.
  *
  * The sources are title_builder.js's plain-data globals (mdbTitle_trace, mdbTitle_lookupLog,
  * mdbTitle_categoryCache, mdbTitle_candidateSources) plus mdbPageCreator_tracePreLookup - the
  * first pass's trace, which only this file can keep, since the parser cannot tell its own
  * passes apart - plus the title as it stands in the field. Sections 1-4 describe the PLAYER
- * title and only change when the suggestion is rebuilt; section 5 follows every edit of the
+ * title and only change when the suggestion is rebuilt; 5, 6 and 7 follow every edit of the
  * field - debounced, because a corrected name may need a lookup of its own and firing one per
  * keystroke would spam the wiki.
  *
@@ -1730,7 +2554,7 @@ function mdbPageCreator_reportDay( date ) {
 
 // mdbPageCreator_queueCategoryUpdate
 // A title edit changes the categories - the hints bar's "Used categories" line and the panel's
-// section 5 alike - and can name someone the cache has never heard of, so the re-render waits
+// section 6 alike - and can name someone the cache has never heard of, so the re-render waits
 // out the typing and only then asks the wiki about the names of the CURRENT title (one
 // cache-aware request at most; unchanged names cost none).
 //
@@ -1791,6 +2615,11 @@ function mdbPageCreator_queueCategoryUpdate() {
 
         mdbTitle_lookupCategories( names, function() {
             if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            // an edited title may name a different series - the two recent-pages sections
+            // and the page text read that category's pages, so start their fetch here (the
+            // settle path re-renders; an already-fetched category costs nothing)
+            mdbPageCreator_recentEnsureFor( $.trim( $("#mdb-pageCreator-title").val() ) );
 
             // looked up again rather than closed over: seconds have passed, and on these
             // sites the row of the moment is the one to draw into
@@ -2382,10 +3211,18 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
             break;
 
         case "style":
-            note.append( mdbPageCreator_reasoningNote(
-                entry.name ? "style suggested by this site" : "style - left empty, that call is the editor's",
-                "muted"
-            ) );
+            if( entry.name && entry.source === "recent" ) {
+                // learned from the entity's recent sibling pages (section 7), not from this mix
+                note.append( mdbPageCreator_reasoningNote(
+                    "style carried by " + entry.count + " of the " + entry.n + " newest pages in the entity's category",
+                    "info"
+                ) );
+            } else {
+                note.append( mdbPageCreator_reasoningNote(
+                    entry.name ? "style suggested by this site" : "style - left empty, that call is the editor's",
+                    "muted"
+                ) );
+            }
             break;
 
         case "tracklist":
@@ -2396,6 +3233,237 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
     row.append( note );
 
     return row;
+}
+
+// mdbPageCreator_reasoningRecentState
+// The sentence both recent-pages sections (5 and 7) open with while there is nothing to show -
+// one function, so the two can never tell different stories about the same state. "" when the
+// findings are ready to render.
+function mdbPageCreator_reasoningRecentState( info ) {
+    switch( info.skip ) {
+        case "no-entity":
+            return "the title names no entity category - no series whose pages could teach anything";
+        case "bucket":
+            return "Category:" + ( info.catTitle || info.catName ) + " collects unrelated mixes (mdbPageCreator_bucketCategories) - its pages are no siblings of this mix, so nothing is read off them";
+        case "pending-lookup":
+            return "waiting for the category lookup's answer about \"" + info.catName + "\" …";
+        case "unknown":
+            return "MixesDB has no category \"" + info.catName + "\" (yet) - no pages to read";
+        case "artist":
+            return "\"" + info.catName + "\" is only known as an artist - an artist's pages are sets of every kind, not a series with one format";
+        case "empty":
+            return "Category:" + info.catTitle + " holds no mix pages yet";
+    }
+
+    if( !info.entry ) return "the category's pages have not been asked for yet";
+    if( info.entry.status === "pending" ) return "reading the newest pages of Category:" + info.catTitle + " …";
+    if( info.entry.status === "failed" ) return "the page fetch failed - nothing is learned and the page text stays the default";
+
+    if( info.entry.pages.length < 3 ) {
+        return "only " + info.entry.pages.length + " page" + ( info.entry.pages.length === 1 ? "" : "s" ) +
+               " in Category:" + info.catTitle + " - too few to call anything a convention";
+    }
+
+    return "";
+}
+
+// mdbPageCreator_reasoningRecentCount
+// How many pages carry a verdict, phrased the way the reader should weigh it: a plain
+// "9 of the 10 newest pages", or the unanimous newest run that overruled a disagreeing sample
+// (mdbPageCreator_recentConsensus's recentOnly).
+function mdbPageCreator_reasoningRecentCount( c ) {
+    return c.recentOnly
+        ? "all " + c.n + " newest pages (the older ones disagree - newer pages win)"
+        : c.count + " of the " + c.n + " newest pages";
+}
+
+// mdbPageCreator_reasoningRecentRead
+// The "Read:" line both sections open with: which pages the findings are read off.
+function mdbPageCreator_reasoningRecentRead( info ) {
+    return $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+        $("<span>").text( "Read:" ),
+        $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( "the " + info.entry.pages.length + " newest pages of" ),
+        $("<a>")
+            .addClass( "mdb-pageCreator-known" )
+            .attr( "href", mdbPageCreator_categoryUrl( info.catTitle ) )
+            .attr( "target", "_blank" )
+            .attr( "data-mdb-modal-label", "Category: " + info.catTitle )
+            .attr( "title", "Open [[Category:" + info.catTitle + "]] on MixesDB" )
+            .text( "Category:" + info.catTitle )
+    );
+}
+
+// mdbPageCreator_reasoningRecentTitle
+// Section 5, "Title analysis of recent mixes": how the entity's own newest pages write their
+// titles, and what that did to the suggestion. The third and last title stage - which is why
+// the green "Final title:" chip closes THIS section now and no longer 4 - so it shares the
+// title stages' orange accent. Findings first as they were read, then what was applied.
+function mdbPageCreator_reasoningRecentTitle( title ) {
+    var s = mdbPageCreator_reasoningSection( "5", "Title analysis of recent mixes",
+            "the newest pages of the entity's own category, newest first: how this series really writes its titles. A rule needs 90% of the pages behind it - or all of the 5 newest, where the older ones disagree (a changed convention). It rewrites only the SUGGESTION, never an edited title" ),
+        info = mdbPageCreator_recentAnalysisFor( title ),
+        state = mdbPageCreator_reasoningRecentState( info ),
+        input = $("#mdb-pageCreator-title"),
+        edited = !!( input.length && input.data( "mdb-edited" ) );
+
+    if( state ) {
+        s.append( mdbPageCreator_reasoningNote( state, "muted" ) );
+    } else {
+        var f = mdbPageCreator_recentTitleFindings( info ),
+            rows = [],
+            // The applied-change rows concern the SUGGESTION. Once the field was edited they
+            // may be about another entity entirely (the findings follow the field, the changes
+            // do not), so they only render while the field still holds what was applied.
+            showChanges = !edited || title === mdbPageCreator_titlePostRecent,
+            i;
+
+        s.append( mdbPageCreator_reasoningRecentRead( info ) );
+
+        // what was applied leads, like section 4's "The suggestion changed" - it is the headline
+        for( i = 0; showChanges && i < mdbPageCreator_recentTitleChanges.length; i++ ) {
+            rows.push( mdbPageCreator_recentTitleChanges[i] );
+        }
+
+        if( f.written ) {
+            rows.push( { label: "Name as written",
+                         detail: "\"" + f.written.value + "\" - " + mdbPageCreator_reasoningRecentCount( f.written ) } );
+        } else {
+            rows.push( { label: "Name as written",
+                         detail: "no 90% agreement (the name stands in " + f.matched + " of " + f.n + " titles)" } );
+        }
+
+        if( !info.isPlace ) {
+            if( f.format && f.format.none ) {
+                rows.push( { label: "Episode number",
+                             detail: "none - " + mdbPageCreator_reasoningRecentCount( f.format ) + " write the bare name" } );
+            } else if( f.format ) {
+                rows.push( { label: "Episode format",
+                             detail: "\"" + f.format.display + "\" - " + mdbPageCreator_reasoningRecentCount( f.format ) +
+                                     ( f.format.pad ? " - N zero-padded to " + f.format.pad + " digits" : "" ) } );
+            } else {
+                rows.push( { label: "Episode format", detail: "no 90% agreement - the title stays as built" } );
+            }
+        } else {
+            if( f.city ) {
+                rows.push( { label: "City behind the place",
+                             detail: "\"" + f.city.value + "\" - " + mdbPageCreator_reasoningRecentCount( f.city ) } );
+            } else {
+                rows.push( { label: "City behind the place", detail: "no 90% agreement - nothing appended" } );
+            }
+        }
+
+        s.append( mdbPageCreator_reasoningSteps( rows ) );
+
+        if( !mdbPageCreator_recentTitleChanges.length ) {
+            s.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                    mdbPageCreator_reasoningNote( "the suggestion already matches what the recent pages agree on", "muted" )
+                )
+            );
+        } else if( edited && mdbPageCreator_titlePostRecent && title !== mdbPageCreator_titlePostRecent ) {
+            s.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                    mdbPageCreator_reasoningNote( "the title above was edited by hand - the analysis is shown, nothing was rewritten", "muted" )
+                )
+            );
+        }
+    }
+
+    // The title whole and GREEN: every stage that shapes it has run. The field above may carry
+    // the reader's correction - that corrected title IS the final one, so the chip follows the
+    // field, not the frozen suggestion.
+    var finalTitle = title || mdbPageCreator_titlePostRecent || mdbPageCreator_titlePostLookup;
+
+    if( finalTitle ) {
+        s.append(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Final title:" ),
+            mdbPageCreator_reasoningChips( [ finalTitle ], "mdb-pageCreator-chip-kept" )
+        );
+    }
+
+    return s;
+}
+
+// mdbPageCreator_reasoningRecentText
+// Section 7, "Page text analysis of recent mixes": what the same pages' WIKITEXT settles about
+// the page the "Create" link writes - the lead artwork line, the file details body, the styles.
+// Rendered from the stored per-category findings (mdbPageCreator_recentPageTextFindings); the
+// duration cross-check runs here too, so the section says the same thing the page text does.
+function mdbPageCreator_reasoningRecentText( title ) {
+    var s = mdbPageCreator_reasoningSection( "7", "Page text analysis of recent mixes",
+            "the same pages' wikitext: what a page of this series starts as. Read at the same 90% bar; whatever clears no bar keeps today's default page text. \"Tracklist:\" is never read off siblings - it describes this page's own tracklist" ),
+        info = mdbPageCreator_recentAnalysisFor( title ),
+        state = mdbPageCreator_reasoningRecentState( info );
+
+    if( state ) {
+        s.append( mdbPageCreator_reasoningNote( state, "muted" ) );
+        return s;
+    }
+
+    var f = info.entry.text,
+        rows = [],
+        i;
+
+    s.append( mdbPageCreator_reasoningRecentRead( info ) );
+
+    // the lead artwork line
+    if( f.image && f.image.value === "same" ) {
+        rows.push( { label: "Lead artwork",
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " open with an artwork named after the page itself (." + f.imageExt + ") -> " +
+                             "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" } );
+    } else if( f.image && f.image.value === "none" ) {
+        rows.push( { label: "Lead artwork",
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " carry no artwork - no image line" } );
+    } else if( f.image ) {
+        rows.push( { label: "Lead artwork",
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " name their artwork after something else - nothing a new page could predict, no image line" } );
+    } else {
+        rows.push( { label: "Lead artwork", detail: "no 90% agreement - no image line" } );
+    }
+
+    // the file details body
+    var chosen = mdbPageCreator_recentBodyChoice( f ),
+        durText = mdbPageCreator_durationMs ? convertHMS( Math.floor( mdbPageCreator_durationMs / 1000 ) ) : "";
+
+    if( f.body && /^StandardShow/.test( String( f.body.value || "" ) ) ) {
+        if( chosen ) {
+            rows.push( { label: "File details",
+                         detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use {{" + f.body.value + "}} -> written instead of the dur table" +
+                                 ( durText ? " (this file's " + durText + " fits)" : "" ) } );
+        } else {
+            rows.push( { label: "File details",
+                         detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use {{" + f.body.value + "}}, but this file's " + ( durText || "unknown duration" ) +
+                                 " is too far off its stated length - the dur table stays (the category may be a misread)" } );
+        }
+    } else if( f.body && f.body.value === "table" ) {
+        rows.push( { label: "File details",
+                     detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use the dur/MB/kbps table - kept" } );
+    } else {
+        rows.push( { label: "File details", detail: "no 90% agreement - the dur table stays" } );
+    }
+
+    // the styles
+    if( f.styles.learned.length ) {
+        for( i = 0; i < f.styles.learned.length; i++ ) {
+            rows.push( { label: "Style",
+                         detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
+                                 " -> fills a style line" } );
+        }
+    } else {
+        var tally = "";
+
+        for( i = 0; i < f.styles.tally.length && i < 3; i++ ) {
+            tally += ( tally ? ", " : "" ) + f.styles.tally[i].name + " " + f.styles.tally[i].count + "/" + f.styles.tally[i].n;
+        }
+
+        rows.push( { label: "Styles",
+                     detail: ( tally ? "no style stands on 90% of the pages (" + tally + ")" : "the pages carry no style categories at all" ) +
+                             " - the two style lines stay empty" } );
+    }
+
+    s.append( mdbPageCreator_reasoningSteps( rows ) );
+
+    return s;
 }
 
 // mdbPageCreator_reasoningReady
@@ -2421,7 +3489,7 @@ function mdbPageCreator_reasoningReady() {
 // answer is in, and swapped for the real content in one step.
 function mdbPageCreator_reasoningSkeleton() {
     var box = $("<div>").addClass( "mdb-pageCreator-reasoning-skeleton" ),
-        widths = [ 60, 45, 70, 50 ], // % - varied like real section content, not a uniform block
+        widths = [ 60, 45, 70, 50, 55, 40 ], // % - varied like real section content, not a uniform block
         i;
 
     for( i = 0; i < widths.length; i++ ) {
@@ -2552,10 +3620,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s2 );
 
-    // 3) the MixesDB lookups. The categories of section 5 are computed here already: the
+    // 3) the MixesDB lookups. The categories of section 6 are computed here already: the
     // asked-name chips answer that section by colour - green when the name ended up a
     // category of the new page, red when it did not.
-    var s3 = mdbPageCreator_reasoningSection( "3", "Category candidate lookups on MixesDB", "one request, fired off the CHUNKS of 1 (plus the channel) - not off the cleaned title of 2. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories of 5, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
+    var s3 = mdbPageCreator_reasoningSection( "3", "Category candidate lookups on MixesDB", "one request, fired off the CHUNKS of 1 (plus the channel) - not off the cleaned title of 2. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories of 6, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
         entries = mdbPageCreator_categoryEntries( title ),
         catKeys = {};
 
@@ -2643,7 +3711,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     // 4) the SECOND parse - the same cleanup re-run with the answers of 3 in hand. The same
     // stage as 2, run again (the parse is a loop, not a line: 1 -> 2 -> 3 -> 4 -> 5 with the
     // wiki asked between the two builds), which is what the sections' shared accent says.
-    var s4 = mdbPageCreator_reasoningSection( "4", "Title refined after lookup learnings", "the same cleanup once more, now knowing what MixesDB has - this is the run the title on screen comes from. Only what the answers CHANGED is listed; everything else ran exactly as in 2" );
+    var s4 = mdbPageCreator_reasoningSection( "4", "Title refined after lookup learnings", "the same cleanup once more, now knowing what MixesDB has. Only what the answers CHANGED is listed; everything else ran exactly as in 2. One stage remains: 5 may still refine the format" );
 
     if( trace && mdbPageCreator_tracePreLookup && trace !== mdbPageCreator_tracePreLookup ) {
         var added = mdbPageCreator_reasoningStepsAdded( preTrace.steps, trace.steps ),
@@ -2672,7 +3740,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         if( titleChanged ) {
             s4.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
-                    mdbPageCreator_reasoningNote( "why this name and not that one is the \"picked as …\" line of each category in 5", "muted" )
+                    mdbPageCreator_reasoningNote( "why this name and not that one is the \"picked as …\" line of each category in 6", "muted" )
                 )
             );
         }
@@ -2697,20 +3765,18 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
                     mdbPageCreator_reasoningNote( titleChanged
                         ? "no cleanup step ran differently - the answers changed which name got which slot, not what was taken out of the title"
-                        : "the answers changed nothing - the suggestion is the one 2 built, and what they confirmed is in 5", "muted" )
+                        : "the answers changed nothing - the suggestion is the one 2 built, and what they confirmed is in 6", "muted" )
                 )
             );
         }
 
-        // The title again, whole and now GREEN: the answers are in, this build is final.
-        // The field above may carry the user's correction - that corrected title IS the
-        // final one, so the chip follows the field, not the frozen suggestion.
-        var finalTitle = title || mdbPageCreator_titlePostLookup;
-
-        if( finalTitle ) {
+        // The title this build made, still as a grey CANDIDATE chip: one title stage remains
+        // (the recent-pages analysis of 5), and the green "Final title:" chip closes THAT
+        // section now - two "final" chips would contradict each other.
+        if( mdbPageCreator_titlePostLookup ) {
             s4.append(
-                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Final title:" ),
-                mdbPageCreator_reasoningChips( [ finalTitle ], "mdb-pageCreator-chip-kept" )
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Title after lookup:" ),
+                mdbPageCreator_reasoningChips( [ mdbPageCreator_titlePostLookup ] )
             );
         }
     } else {
@@ -2720,9 +3786,13 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s4 );
 
-    // 5) the categories of the created page - read off the CURRENT title (the same entries
+    // 5) the recent-pages TITLE analysis - the third title stage, sharing 2/4's orange accent:
+    // what the entity's own newest pages settled about the format, and the final title
+    panel.append( mdbPageCreator_reasoningRecentTitle( title ) );
+
+    // 6) the categories of the created page - read off the CURRENT title (the same entries
     // section 3's chip colours were computed from), like the page text
-    var s5 = mdbPageCreator_reasoningSection( "5", "Categories for the mix page", "read off the title above" ),
+    var s6 = mdbPageCreator_reasoningSection( "6", "Categories for the mix page", "read off the title above" ),
         cats = $("<div>").addClass( "mdb-pageCreator-reasoning-cats" );
 
     // typeof-guarded like the rest of the trace: a stale cached title_builder.js without picks
@@ -2733,8 +3803,12 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         cats.append( mdbPageCreator_reasoningCategoryRow( entries[i], cache, picks ) );
     }
 
-    s5.append( cats );
-    panel.append( s5 );
+    s6.append( cats );
+    panel.append( s6 );
+
+    // 7) the recent-pages PAGE TEXT analysis - what the same pages' wikitext settles about
+    // the page the "Create" link writes. Last: it is about the page, no longer about the title
+    panel.append( mdbPageCreator_reasoningRecentText( title ) );
 }
 
 
@@ -2857,6 +3931,11 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_tracePreLookup = null;
     mdbPageCreator_titlePreLookup = "";
     mdbPageCreator_titlePostLookup = "";
+    // the recent-pages refinement is about the previous mix's title - what was LEARNED about
+    // its category stays, in mdbPageCreator_recentAnalysisCache
+    mdbPageCreator_titlePreRecent = "";
+    mdbPageCreator_titlePostRecent = "";
+    mdbPageCreator_recentTitleChanges = [];
     mdbTitle_lookupLog = [];
     if( typeof mdbTitle_candidateRoles !== "undefined" ) mdbTitle_candidateRoles = {};
     if( typeof mdbTitle_candidateSources !== "undefined" ) mdbTitle_candidateSources = {};
@@ -3249,7 +4328,7 @@ function mdbPageCreator_validateTracklist() {
 // the box still holds unformatted text that the blur or the click owes a formatting pass, and
 // marking it validated would skip exactly that pass.
 //
-// The reasoning panel is re-rendered because its section 5 files that category: the render is
+// The reasoning panel is re-rendered because its section 6 files that category: the render is
 // the whole stateless panel, but with the title untouched sections 1-3 come out unchanged -
 // what the reader sees change is the category row. Deliberately NOT
 // mdbPageCreator_queueCategoryUpdate(), which is the title-edit path and would fire a name

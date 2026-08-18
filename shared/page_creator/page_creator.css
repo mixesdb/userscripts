@@ -245,9 +245,12 @@
 }
 
 /* The accents: blue for the raw-material sections (the chunks, the lookups), the copy button's
-   orange (#f60/#f90, see global.css) for the two title builds - 2 and 4 are the same stage run
-   on either side of the lookup, and sharing the accent says so - and green for the final
-   categories. Each section states its accent ONCE as three custom properties and the three
+   orange (#f60/#f90, see global.css) for the title stages - 2 and 4 are the same stage run
+   on either side of the lookup, and 5 (the format read off the entity's recent pages) is the
+   third and last thing that shapes the title, so all three share the accent - green for the
+   final categories, and citrus for the page text learned from the same recent pages: the
+   yellow next to the title stages' orange says "same source, about the PAGE rather than the
+   title". Each section states its accent ONCE as three custom properties and the three
    rules under them paint the bar, the heading and the count bubble off it, so a section's
    colour is one block to read and one block to change - the chips keep their own STATE colours
    (grey candidate, red ignored, green used), which is a different question from which section
@@ -260,16 +263,23 @@
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2,
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 {
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-5 {
     --mdb-reasoning-accent: #ff9900;
     --mdb-reasoning-accent-bar: rgba(255, 102, 0, 0.65);
     --mdb-reasoning-accent-soft: rgba(255, 102, 0, 0.16);
 }
 
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-5 {
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-6 {
     --mdb-reasoning-accent: #58c96b;
     --mdb-reasoning-accent-bar: rgba(46, 184, 46, 0.65);
     --mdb-reasoning-accent-soft: rgba(46, 184, 46, 0.18);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-7 {
+    --mdb-reasoning-accent: #e8e05a;
+    --mdb-reasoning-accent-bar: rgba(219, 208, 51, 0.65);
+    --mdb-reasoning-accent-soft: rgba(219, 208, 51, 0.16);
 }
 
 /* the fallbacks are what an unnumbered section gets - the panel's own greys, as before */

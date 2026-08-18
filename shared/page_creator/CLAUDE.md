@@ -324,22 +324,37 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   "(Promo Mix)" and never charged the "not in the known-shows list" doubt.
 - The module takes **10 names max** per request - the candidate list is priority-ordered
   (channel first) and truncated, not split into a second request.
-- **A non-artist match then reads the last ~8 mix pages in that category and copies their
-  format**, rather than deriving it. `list=categorymembers` with `cmnamespace=0&cmsort=sortkey&
-  cmdir=desc` - a mix page title starts with its date, so the sortkey is the date. NEVER
+- **A non-artist match then reads the ~10 newest mix pages in that category and copies their
+  format** (built 2026-08-18, roadmap step 4 - `mdbPageCreator_recentFetch()` +
+  `mdbPageCreator_applyRecentToSuggestion()`), rather than deriving it. `generator=categorymembers`
+  with `gcmnamespace=0&gcmsort=sortkey&gcmdir=desc` - a mix page title starts with its date, so
+  the sortkey is the date. NEVER
   `cmsort=timestamp`, which sorts by when the page was added to the CATEGORY and floats every
   re-saved old page to the top (that was our own spec's mistake until 2026-08-18, and it is what
   the `recent` field of `mdbnames` was built to - so `recent` misses the newest pages until the
-  endpoint is changed; `mdbPageCreator_usedCatFetchRecent()` asks correctly). This is what settles episode
+  endpoint is changed; `mdbPageCreator_usedCatFetchRecent()` asks correctly, and the analysis
+  fetch writes its sortkey-true titles back onto the match's `recent`, so the hints bar heals
+  too). This is what settles episode
   number padding (`Zenaari Mix 025`), separators (`Trommel.234`), formats no rule would invent
-  (`RA Podcast (RA.1051)`), whether there is a number at all (`Essential Mix`), and the city of a
-  venue or event (`@ Ritter Butzke, Berlin`) - which today is taken from the player title and is
-  usually simply missing. Recent pages only: `Slave To The Rhythm` renamed its episodes from
-  `Ep.393` to `716` over the years, so a full listing misleads.
-- **The same call also brings those pages' wikitext, which shapes the new page's text** -
-  `{{StandardShow2h}}` instead of the file details table, the leading
-  `[[File:{{subst:PAGENAME}}.jpg|right|360px]]`. Design and measurements in
-  `page_text_learning.md`. Styles are only filled when 90% of the siblings agree (measured: that
+  (`RA Podcast (RA.1051)`), whether there is a number at all (`Essential Mix`), the name's
+  spelling as the titles write it, and the city of a
+  venue or event (`@ Ritter Butzke, Berlin`) - which otherwise is taken from the player title and
+  is usually simply missing. A rule needs 90% of the pages, or all of the unanimous newest 5
+  where the older ones disagree - newer pages take precedence, because conventions change:
+  `Slave To The Rhythm` renamed its episodes from
+  `Ep.393` to `716` over the years, so even the 10-page sample can straddle a rename. Only the
+  SUGGESTION is ever rewritten, never an edited title, and a refinement whose entity would file
+  under a different category is dropped. Bucket categories (`mdbPageCreator_bucketCategories`,
+  "Promo Mix") are skipped everywhere - their pages are no siblings.
+- **The same call also brings those pages' wikitext, which shapes the new page's text**
+  (`mdbPageCreator_recentPageTextFindings()`, applied in `mdbPageCreator_pageText()` /
+  `_categoryEntries()`) -
+  `{{StandardShow2h}}` instead of the file details table (only when the player duration roughly
+  fits its stated length, ±30%), the leading
+  `[[File:<literal title>.jpg|right|360px]]` in the extension the siblings use. Design and
+  measurements in
+  `page_text_learning.md` - its deltas section says where the built version deviates from the
+  plan and why. Styles are only filled when 90% of the siblings agree (measured: that
   fires on 1 category in 9), and `Tracklist:` is never learned from the siblings at all - it
   describes the page's own tracklist, which is what the section above decides. That file says
   why.
@@ -357,7 +372,7 @@ mirror of this table - keep the two in step):
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
 | 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` (the server attaches `recent` to non-artist matches only), an artist category fetches its pages on the chip's first open (`mdbPageCreator_usedCatFetchRecent()`, one `list=categorymembers` call), and every green chip's mix count toggles the pages open inside the chip (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
-| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | open, unblocked (`recentlimit` exists but the wikitext still needs the generator call) |
+| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension, `{{StandardShow*}}` when the duration roughly fits, styles at 90%) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
 
 **Step 5 in full.** Today `window.mdbPageCreator_showForUsedPlayers = true` ships in both site
@@ -388,12 +403,17 @@ plus the reporter's "Mistake / learning" and "Expected …" lines. That is exact
 needs - do not ask back for any of it when the box was used.
 
 Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`), numbered in the
-order the build RAN - **1 -> 2 -> 3 -> 4 -> 5**: the title chunks, the first parse's cleanup
-(closing with the title it built as one grey "Title candidate:" chip), the mdbnames lookups with
-their answers, the second parse (what those answers changed, closing with the green "Final
-title:" chip), and the created page's categories annotated from the lookup cache. 2 and 4 are
-ONE stage run twice, on either side of the lookup - their shared orange accent (the copy
-button's colour, vs the blue of 1/3 and the green of 5) says so; the accent paints the count
+order the build RAN - **1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7**: the title chunks, the first parse's
+cleanup (closing with the title it built as one grey "Title candidate:" chip), the mdbnames
+lookups with their answers, the second parse (what those answers changed, closing with the grey
+"Title after lookup:" chip), the recent-pages title analysis (what the entity's newest pages
+settled about the format, closing with the green "Final title:" chip - the green finale lives
+in the LAST title stage, and only there, or two "final" chips would contradict each other), the
+created page's categories annotated from the lookup cache, and the recent-pages page text
+analysis. 2, 4 and 5 are the title-shaping stages - 2 and 4 ONE stage run twice on either side
+of the lookup, 5 the format read off the wiki itself - and their shared orange accent (the copy
+button's colour, vs the blue of 1/3, the green of 6 and the citrus of 7, which says "same
+recent pages, about the PAGE rather than the title") says so; the accent paints the count
 bubble, the left bar AND the heading, stated once per section as the
 `--mdb-reasoning-accent*` properties in `page_creator.css`. The CHIPS are a different
 question and stay coloured by STATE, never by type: grey candidate, red ignored, green used. Its
