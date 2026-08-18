@@ -57,65 +57,89 @@ you type. Editing the title field above refills it, but anything typed into the 
 never overwritten.
 
 Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
-learning" line can name the step that went wrong:
+learning" line can name the step that went wrong. Its sections are numbered in the order the
+build really ran – **1 → 2a → 3 → 2b → 4**: the title is parsed once before MixesDB is asked
+anything, and once more with its answers, so the same cleanup appears twice, on either side of
+the lookup. That is also why the names in 3 are not the chunks left over in 2a: the lookup is
+built from the chunks of **1**, never from the cleaned title.
 
-1. **Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
-   a separator, at a bracket, at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
-   is the chunks `Kernel Existence | 3000Grad Festival | Utopia` – the live marker is no
-   chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
-   two chunks) – the same units the lookups are sent for. What the parse
-   removes outright is shown in red on a `Removed:` line instead – a bracket crediting
-   the artist's labels (`Tooker (SONARA / Crosstown Rebels)`), a list of places saying where
-   the artist is from, or a bracketed country behind the artist's name (the `(BE)` of
-   `Adjust (BE)`, even in a live title) – with the reason spelled out behind it; those names
-   are never sent to the lookup
-2. **Fixed and cleaned** – every fix and removal by name: typos, decoration, the date that
-   was read out, joiners rewritten, chunks a mix page title does not carry (what the
-   `Removed:` line of section 1 already names is not repeated here, in no step) – and the
-   curated channel → show rules, whose work is otherwise invisible, drawn as chips with the
-   channel in blue and the show in green: a channel on the known-shows list as
-   `Resident Advisor → RA Podcast`, and a curated channel rule under which the title's own
-   words name the show as `"DJ MIX" on the channel Dance TV → Dance TV DJ Mix`. Both names are
-   hand-written for that channel, so a wrong one is fixed in the script, not in the title.
+- **1 Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
+  a separator, at a bracket, at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
+  is the chunks `Kernel Existence | 3000Grad Festival | Utopia` – the live marker is no
+  chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
+  two chunks) – the units section 3's lookups are built from. What the parse
+  removes outright is shown in red on a `Removed:` line instead – a bracket crediting
+  the artist's labels (`Tooker (SONARA / Crosstown Rebels)`), a list of places saying where
+  the artist is from, or a bracketed country behind the artist's name (the `(BE)` of
+  `Adjust (BE)`, even in a live title) – with the reason spelled out behind it; those names
+  are never sent to the lookup
+- **2a Fixed and cleaned** – the first parse, before the wiki has been asked anything. Every
+  fix and removal by name: typos, decoration, the date that
+  was read out, joiners rewritten, chunks a mix page title does not carry (what the
+  `Removed:` line of section 1 already names is not repeated here, in no step) – and the
+  curated channel → show rules, whose work is otherwise invisible, drawn as chips with the
+  channel in blue and the show in green: a channel on the known-shows list as
+  `Resident Advisor → RA Podcast`, and a curated channel rule under which the title's own
+  words name the show as `"DJ MIX" on the channel Dance TV → Dance TV DJ Mix`. Both names are
+  hand-written for that channel, so a wrong one is fixed in the script, not in the title.
 
-   A step that worked off one of the script's word lists carries a round **?**: it opens the
-   list itself – its name, one sentence on what it is for, and every entry as it is written in
-   the script. So "Decoration removed" can be checked against the rule that removed it, and a
-   report can say which entry is wrong (or which one is missing) instead of only what came
-   out. Open lists stay open while the title above is corrected
-3. **MixesDB lookups** – two candidate columns, **Artist category candidates** and **Entity
-   category candidates**, filled from the title's shape BEFORE the wiki answers: names in
-   front of the `@` are asked as the artist; series-looking names, everything behind the `@`
-   and a curated show name as the entity; the channel – genuinely either – in both columns.
-   Next to each chip stands what the wiki's own category names answered for that role: the
-   category in the wiki's spelling, its type and how many mixes it holds, `no category of
-   this name` when it has none – or a `–` when its answers all belong to the other column.
-   An answer of an unexpected type pulls the chip into that column too, so `MONUMENT` shows
-   the podcast on the entity side and the wiki's `Monument (Jordan Smith)` on the artist
-   side. The place group's own country (`… @ S.U.N Festival – Hungary`) is not looked up at
-   all – a country is never a category – and neither is a chunk that is nothing but a counting
-   word (`Episode`, `Episode 72`): it says which episode this is, and MixesDB files nothing
-   under it. The chips answer section 4 by colour: green when the
-   name ended up a category of the new page, red when it did not. A name a curated channel
-   mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
-   those words name `Dance TV DJ Mix`. Every name the wiki confirms – here and in section 4 –
-   is a link to that category page on MixesDB, opening in a new tab so the player page stays
-   where it is
+  A step that worked off one of the script's word lists carries a round **?**: it opens the
+  list itself – its name, one sentence on what it is for, and every entry as it is written in
+  the script. So "Decoration removed" can be checked against the rule that removed it, and a
+  report can say which entry is wrong (or which one is missing) instead of only what came
+  out. Open lists stay open while the title above is corrected
+- **3 MixesDB lookups** – the one request, sent for the names built from the chunks of 1 plus
+  the channel. Two candidate columns, **Artist category candidates** and **Entity
+  category candidates**, filled from the title's shape BEFORE the wiki answers: names in
+  front of the `@` are asked as the artist; series-looking names, everything behind the `@`
+  and a curated show name as the entity; the channel – genuinely either – in both columns.
+  Next to each chip stands what the wiki's own category names answered for that role: the
+  category in the wiki's spelling, its type and how many mixes it holds, `no category of
+  this name` when it has none – or a `–` when its answers all belong to the other column.
+  An answer of an unexpected type pulls the chip into that column too, so `MONUMENT` shows
+  the podcast on the entity side and the wiki's `Monument (Jordan Smith)` on the artist
+  side. A name that is not simply a chunk of section 1 says underneath where it does come
+  from: the channel (asked as the series the mixes belong to, though it need not stand in the
+  title at all), a curated show name, or the chunk it was shortened from – `HMWL Podcast`
+  carries `from the chunk "HMWL Podcast 439"`, since a category name never holds the episode
+  number. A chunk that was deliberately NOT asked about stands at the end of the section on a
+  `Not asked:` line with its reason: the place group's own country
+  (`… @ S.U.N Festival – Hungary`) – a country is never a category – a chunk that is nothing
+  but a counting word (`Episode`, `Episode 72`), which says which episode this is and files
+  nothing on MixesDB, or a chunk too long to be a name. Every chunk of section 1 is therefore
+  either a chip here or a line saying why it is not. The chips answer section 4 by colour:
+  green when the
+  name ended up a category of the new page, red when it did not. A name a curated channel
+  mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
+  those words name `Dance TV DJ Mix`. Every name the wiki confirms – here and in section 4 –
+  is a link to that category page on MixesDB, opening in a new tab so the player page stays
+  where it is
 
-   Behind every answer stands a **percentage**: how strongly that answer backs the name it was
-   asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
-   found as `HATE Podcast` is 95%; `Daniel` found as an artist category holding a single mix is
-   70% – with 57,000 artist categories on the wiki, a short name almost always finds somebody.
-   A spelling the wiki writes differently, a name it knows as several things at once, and a name
-   a channel rule overrules all cost as well. How full the category is barely counts: a category
-   with 500 mixes can be the wrong reading of the words just as easily as an empty one
-4. **Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes.
-   The artist and the entity line each start with **why that name got the slot** – `picked as
-   the entity: "S.U.N Festival" carries an event word, so the title reads as a set PLAYED at
-   it – it becomes the place behind the " @ ", and the channel is not used as a show on top of
-   that`. That is the line to quote in a report when the wrong name ended up in a slot: it
-   names the rule that put it there. Under it stands what the lookup knows – a known artist
-   confirmed with its mix count, an unknown one flagged as possibly new or misspelled
+  Behind every answer stands a **percentage**: how strongly that answer backs the name it was
+  asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
+  found as `HATE Podcast` is 95%; `Daniel` found as an artist category holding a single mix is
+  70% – with 57,000 artist categories on the wiki, a short name almost always finds somebody.
+  A spelling the wiki writes differently, a name it knows as several things at once, and a name
+  a channel rule overrules all cost as well. How full the category is barely counts: a category
+  with 500 mixes can be the wrong reading of the words just as easily as an empty one
+- **2b Parsed again, with the answers** – the same cleanup a second time, now knowing what
+  MixesDB has. This is the run the title on screen comes from, and only what the answers
+  CHANGED is listed – on most titles that is nothing, and the section says so. When they do
+  change something, the suggestion before and after stands here as one line
+  (`kernel existence - Ritter Butzke Berlin (Promo Mix) → Kernel Existence @ Ritter Butzke,
+  Berlin`: MixesDB knowing `Ritter Butzke` as a venue is what turned the title into a set
+  played there). A cleanup step that only ran in this pass is listed like any other step, and
+  one the answers made stop happening on a `No longer done:` line. Why a particular name
+  ended up in a particular slot is not repeated here – that is the `picked as …` line of
+  section 4
+
+- **4 Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes.
+  The artist and the entity line each start with **why that name got the slot** – `picked as
+  the entity: "S.U.N Festival" carries an event word, so the title reads as a set PLAYED at
+  it – it becomes the place behind the " @ ", and the channel is not used as a show on top of
+  that`. That is the line to quote in a report when the wrong name ended up in a slot: it
+  names the rule that put it there. Under it stands what the lookup knows – a known artist
+  confirmed with its mix count, an unknown one flagged as possibly new or misspelled
 
 The panel follows the title field: correct the title above and, after a short pause, the
 categories are re-read from it and any new names are looked up on MixesDB. It follows the

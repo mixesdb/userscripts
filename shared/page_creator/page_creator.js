@@ -123,6 +123,20 @@ var mdbPageCreator_title = "",
     mdbPageCreator_reasoningTimer = null,
     // the poll behind the panel's own loading state - see mdbPageCreator_watchReasoningReady()
     mdbPageCreator_reasoningReadyPoll = null,
+    // The trace of the FIRST build - the one that ran before the wiki was asked, section 2a of
+    // the panel. mdbTitle_trace itself always holds the LAST run, which is the lookup-informed
+    // one, so without this the panel could only show the cleanup as it looked in hindsight.
+    // A reference is enough: the second pass builds a new trace object rather than adding to
+    // this one. Which build is the first is orchestration knowledge, so it is kept here and
+    // not in title_builder.js - the parser cannot tell its passes apart.
+    mdbPageCreator_tracePreLookup = null,
+    // What the two passes MADE of the title. The trace alone cannot answer that: the branches
+    // the wiki's answers open - the venue reading above all - write no cleanup step, so a run
+    // that turns "kernel existence - Ritter Butzke Berlin (Promo Mix)" into
+    // "Kernel Existence @ Ritter Butzke, Berlin" has an empty step diff, and section 2b would
+    // report that nothing had happened. These two say what did.
+    mdbPageCreator_titlePreLookup = "",
+    mdbPageCreator_titlePostLookup = "",
     // which of the cleanup steps' "?" definition blocks the reader opened, keyed by the lists
     // shown in it. The panel is otherwise stateless and rebuilt whole; this one thing is kept
     // because the rebuild is what a title EDIT triggers, and a rule list opened to compare the
@@ -199,6 +213,11 @@ function mdbPageCreator_add( options ) {
         // it would replace that mix's title with a refined guess about the previous one.
         pageGeneration = mdbPageGeneration;
 
+    // kept before the lookup can inform anything - see mdbPageCreator_tracePreLookup
+    mdbPageCreator_tracePreLookup = ( typeof mdbTitle_trace !== "undefined" ) ? mdbTitle_trace : null;
+    mdbPageCreator_titlePreLookup = first.title;
+    mdbPageCreator_titlePostLookup = "";
+
     mdbPageCreator_setTitle( first, o.durationMs );
 
     // the upload date goes along for the chunk split's date cut - see mdbTitle_titleChunks
@@ -206,6 +225,9 @@ function mdbPageCreator_add( options ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );
+
+        // section 2b of the reasoning panel is this difference, so it is kept, not only logged
+        mdbPageCreator_titlePostLookup = second.title;
 
         if( second.title !== first.title ) {
             logVar( "mdbPageCreator_add: MixesDB knew better", first.title + "  ->  " + second.title );
@@ -779,7 +801,7 @@ function mdbPageCreator_render() {
     // page that already has it, which is exactly when something worth reporting turns up.
     var report = $("<a>")
             .attr( "id", "mdb-pageCreator-report" )
-            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built: the title chunks, the cleanup, the MixesDB lookups and the categories." )
+            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, and the categories." )
             .text( "Report" );
 
     report.on( "click", function() {
@@ -1094,17 +1116,30 @@ function mdbPageCreator_reportDay( date ) {
  *
  * The reasoning panel
  *
- * Opens with the report box, above it: four numbered sections that say how the suggestion was
- * built. (1) the chunks the player title split into, (2) what the cleanup fixed and removed,
- * (3) which names were looked up on MixesDB and what the wiki knows them as, (4) the
- * categories the created page would be filed under - each annotated with what the lookup
- * cache says about it, which is exactly the check a reporter otherwise runs by hand.
+ * Opens with the report box, above it: the sections that say how the suggestion was built, in
+ * the order the build really ran - 1 -> 2a -> 3 -> 2b -> 4.
+ *
+ *   (1)  the chunks the player title split into
+ *   (2a) what the FIRST parse fixed and removed, before the wiki was asked anything
+ *   (3)  the one lookup request - built from the chunks of 1 plus the channel, and NOT from
+ *        the cleaned title of 2a, which is why its names are not 2a's chunks
+ *   (2b) the SECOND parse: the same cleanup re-run with the answers in hand, listing only
+ *        what they changed. This is the run the title on screen comes from
+ *   (4)  the categories the created page would be filed under, each annotated with what the
+ *        lookup cache says about it - exactly the check a reporter otherwise runs by hand
+ *
+ * The numbering says 2a/2b rather than 2/4 because the parse is a LOOP, not a line: the same
+ * cleanup runs twice, once on either side of the lookup. A straight 1..5 would claim the wiki
+ * was asked in the middle of one cleanup instead of between two of them, and a reporter who
+ * believes that reports a step that never ran.
  *
  * The sources are title_builder.js's plain-data globals (mdbTitle_trace, mdbTitle_lookupLog,
- * mdbTitle_categoryCache) plus the title as it stands in the field. Sections 1-3 describe the
- * PLAYER title and only change when the suggestion is rebuilt; section 4 follows every edit of
- * the field - debounced, because a corrected name may need a lookup of its own and firing one
- * per keystroke would spam the wiki.
+ * mdbTitle_categoryCache, mdbTitle_candidateSources) plus mdbPageCreator_tracePreLookup - the
+ * first pass's trace, which only this file can keep, since the parser cannot tell its own
+ * passes apart - plus the title as it stands in the field. Sections 1-2b describe the PLAYER
+ * title and only change when the suggestion is rebuilt; section 4 follows every edit of the
+ * field - debounced, because a corrected name may need a lookup of its own and firing one per
+ * keystroke would spam the wiki.
  *
  * Display only, rebuilt whole on every render. The one thing it remembers is which of the
  * cleanup steps' "?" rule lists the reader opened (mdbPageCreator_openDefinitions) - the
@@ -1158,6 +1193,14 @@ function mdbPageCreator_queueReasoningUpdate() {
             }
             if( read.entity ) {
                 mdbTitle_noteCandidateRole( names[ names.length - 1 ], "entity" );
+            }
+        }
+
+        // ... and where they come from, so section 3 does not show them as names out of
+        // nowhere: these were read off the FIELD, not off the player title's chunks
+        if( typeof mdbTitle_noteCandidateSource === "function" ) {
+            for( var s = 0; s < names.length; s++ ) {
+                mdbTitle_noteCandidateSource( names[s], "title field" );
             }
         }
 
@@ -1333,7 +1376,12 @@ function mdbPageCreator_reasoningLookupColumn( heading ) {
 // the name, whatever the type - the badge tells an artist answer from a podcast one, which
 // is how "asked as the series, known as an artist too" stays visible without the chip
 // showing up twice. No answer at all shows the request's status note instead.
-function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overruledBy ) {
+//
+// source is where the name came from (mdbTitle_candidateSources) and is printed whenever the
+// name is not simply a chunk as section 1 shows it: this section's names are built from the
+// chunks, not copied from them, and a reader who cannot see that reads the difference as the
+// panel contradicting itself.
+function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overruledBy, source ) {
     var result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" ),
         m;
 
@@ -1360,20 +1408,66 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
     // title should have used. Muted: the red chip already carries the verdict.
     if( overruledBy ) {
         result.append( mdbPageCreator_reasoningNote(
-            "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2)", "muted" ) );
+            "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2a)", "muted" ) );
     }
 
-    column.count++;
-    column.rows.append(
-        $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ).append(
+    // A third grid item, not a line inside the answers: it spans both tracks (see the CSS), so
+    // saying where a name came from costs the name and its answers no width. Squeezed into the
+    // answer column it pushed long ones off the panel.
+    var origin = mdbPageCreator_reasoningOrigin( entry.name, source ),
+        row = $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ).append(
             $("<span>")
                 .addClass( "mdb-pageCreator-chip " + ( isCat
                     ? "mdb-pageCreator-chip-kept"
                     : "mdb-pageCreator-chip-notCat" ) )
                 .text( entry.name ),
             result
-        )
-    );
+        );
+
+    if( origin ) {
+        row.append( $("<div>").addClass( "mdb-pageCreator-reasoning-lookup-origin" ).append( origin ) );
+    }
+
+    column.count++;
+    column.rows.append( row );
+}
+
+// mdbPageCreator_reasoningOrigin
+// Where an asked name came from, as a note - or nothing when the name IS the chunk section 1
+// shows, which needs no explaining. The four that do: the channel (asked though it stands
+// nowhere in the title), a channel that names several, a curated show name, and a chunk the
+// candidate reduced (the trailing episode number comes off, since a category name never
+// carries one). A name typed into the title field afterwards says so too, so it is not read
+// as something the player title contained.
+function mdbPageCreator_reasoningOrigin( name, source ) {
+    if( !source || !source.origin ) return null;
+
+    var text = "";
+
+    switch( source.origin ) {
+        case "channel":
+            // no claim about the title: a channel handle can also BE one of its chunks, in
+            // the channel's own spelling ("thelotradio" for the chunk "The Lot Radio")
+            text = "the channel this mix was uploaded on - asked as the series the mixes belong to";
+            break;
+        case "channel name":
+            text = "one of the names the channel carries";
+            break;
+        case "curated show":
+            text = "the show this channel is curated to in title_definitions.js";
+            break;
+        case "title field":
+            text = "read off the title in the field, not off the player title";
+            break;
+        case "chunk":
+            // only worth a line when the two differ - otherwise the chip already says it
+            if( source.chunk && mdbTitle_normalizeCompare( source.chunk ) !== mdbTitle_normalizeCompare( name ) ) {
+                text = "from the chunk \"" + source.chunk + "\" - a category name carries no episode number";
+            }
+            break;
+    }
+
+    return text ? mdbPageCreator_reasoningNote( text, "muted" ) : null;
 }
 
 // mdbPageCreator_lookupOverruledBy
@@ -1518,6 +1612,91 @@ function mdbPageCreator_reasoningStepDetail( step ) {
         $("<span>").addClass( "mdb-pageCreator-reasoning-arrow" ).text( "→" ),
         $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-kept" ).text( mapping.to )
     );
+}
+
+// mdbPageCreator_reasoningStepKey
+// What makes two steps of two different runs the same step. The parse runs TWICE - once
+// before the wiki is asked and once with its answers - and sections 2a/2b are that difference,
+// so "same step" has to be decided somewhere central. Label plus detail: a step that did the
+// same thing to the same text IS the same step, whichever run wrote it.
+function mdbPageCreator_reasoningStepKey( step ) {
+    return String( step.label || "" ) + " " + String( step.detail || "" );
+}
+
+// mdbPageCreator_reasoningSteps
+// The rendered list of cleanup steps, or an empty jQuery set when there are none. Shared by
+// the two cleanup sections (2a before the lookup, 2b what its answers changed), so a step
+// looks the same wherever it ran.
+function mdbPageCreator_reasoningSteps( steps ) {
+    if( !steps || !steps.length ) return $();
+
+    var list = $("<div>").addClass( "mdb-pageCreator-reasoning-steps" ),
+        i;
+
+    for( i = 0; i < steps.length; i++ ) {
+        var step = steps[i],
+            label = $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( step.label ),
+            row = $("<div>").addClass( "mdb-pageCreator-reasoning-step" ),
+            // a step that worked off a title_definitions.js list (step.defs) offers it
+            // behind a "?"; one that decided on its own has nothing to show
+            defs = step.defs ? mdbPageCreator_reasoningDefinitions( step.defs ) : $();
+
+        if( defs.length ) {
+            // the open ones survive a re-render (a title edit rebuilds the panel, and a
+            // list the reader opened to compare against must not close under them) -
+            // keyed by the lists themselves, so the same rule stays open on any step
+            var defsKey = step.defs.join( "|" ),
+                open = mdbPageCreator_openDefinitions[ defsKey ] === true;
+
+            defs.toggle( open );
+
+            label.append(
+                $("<span>")
+                    .addClass( "mdb-pageCreator-reasoning-defs-toggle" + ( open ? " mdb-pageCreator-defs-open" : "" ) )
+                    .attr( "title", "Show the rule list this step worked off: " + step.defs.join( ", " ) )
+                    .text( "?" )
+                    .on( "click", function( key, panel ) {
+                        return function() {
+                            var nowOpen = !panel.is( ":visible" );
+
+                            mdbPageCreator_openDefinitions[ key ] = nowOpen;
+                            $(this).toggleClass( "mdb-pageCreator-defs-open", nowOpen );
+                            panel.toggle( nowOpen );
+                        };
+                    }( defsKey, defs ) )
+            );
+        }
+
+        // the panel is a third child of a display:contents row, spanning both grid
+        // columns (see page_creator.css) - a nested wrapper would break the alignment
+        // every other row shares
+        list.append( row.append( label, mdbPageCreator_reasoningStepDetail( step ), defs ) );
+    }
+
+    return list;
+}
+
+// mdbPageCreator_reasoningStepsAdded
+// The steps of "after" that "before" does not have, in order. Counted, not just looked up:
+// the same step can legitimately run twice in one title, and a set would swallow the second.
+function mdbPageCreator_reasoningStepsAdded( before, after ) {
+    var seen = {},
+        out = [],
+        i, key;
+
+    for( i = 0; before && i < before.length; i++ ) {
+        key = mdbPageCreator_reasoningStepKey( before[i] );
+        seen[key] = ( seen[key] || 0 ) + 1;
+    }
+
+    for( i = 0; after && i < after.length; i++ ) {
+        key = mdbPageCreator_reasoningStepKey( after[i] );
+
+        if( seen[key] ) seen[key]--;
+        else out.push( after[i] );
+    }
+
+    return out;
 }
 
 // mdbPageCreator_reasoningCategoryMatch
@@ -1728,7 +1907,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.empty();
 
     // 1) the chunks the player title split into
-    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks", "the units of the parse - split at separators, brackets and a series' \"by\"; these are also the lookup candidates" );
+    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks", "the units of the parse - split at separators, brackets and a series' \"by\". The lookups of 3 are built from these, not from the cleaned title of 2a" );
 
     if( trace ) {
         s1.append(
@@ -1751,71 +1930,31 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s1 );
 
-    // 2) the cleanup
-    var s2 = mdbPageCreator_reasoningSection( "2", "Fixed and cleaned", "typos, decoration, credits and the date, taken out before the parse - and the curated channel → show rules when one applied. \"?\" shows the rule list a step worked off" );
+    // 2a) the cleanup as it ran BEFORE the wiki was asked - the first pass's trace. The panel
+    // used to show the second pass's here, one section above the lookups that fed it, which
+    // read as a pipeline that runs in an order it never ran in.
+    var preTrace = mdbPageCreator_tracePreLookup || trace,
+        s2a = mdbPageCreator_reasoningSection( "2a", "Fixed and cleaned", "the first parse, before the wiki was asked anything: typos, decoration, credits and the date, taken out of the player title - and the curated channel → show rules when one applied. \"?\" shows the rule list a step worked off" );
 
-    if( trace ) {
-        if( trace.steps.length ) {
-            var steps = $("<div>").addClass( "mdb-pageCreator-reasoning-steps" );
+    if( preTrace ) {
+        var preSteps = mdbPageCreator_reasoningSteps( preTrace.steps );
 
-            for( i = 0; i < trace.steps.length; i++ ) {
-                var step = trace.steps[i],
-                    label = $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( step.label ),
-                    row = $("<div>").addClass( "mdb-pageCreator-reasoning-step" ),
-                    // a step that worked off a title_definitions.js list (step.defs) offers it
-                    // behind a "?"; one that decided on its own has nothing to show
-                    defs = step.defs ? mdbPageCreator_reasoningDefinitions( step.defs ) : $();
+        if( preSteps.length ) s2a.append( preSteps );
+        else s2a.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "Nothing had to be fixed or removed." ) );
 
-                if( defs.length ) {
-                    // the open ones survive a re-render (a title edit rebuilds the panel, and a
-                    // list the reader opened to compare against must not close under them) -
-                    // keyed by the lists themselves, so the same rule stays open on any step
-                    var defsKey = step.defs.join( "|" ),
-                        open = mdbPageCreator_openDefinitions[ defsKey ] === true;
-
-                    defs.toggle( open );
-
-                    label.append(
-                        $("<span>")
-                            .addClass( "mdb-pageCreator-reasoning-defs-toggle" + ( open ? " mdb-pageCreator-defs-open" : "" ) )
-                            .attr( "title", "Show the rule list this step worked off: " + step.defs.join( ", " ) )
-                            .text( "?" )
-                            .on( "click", function( key, panel ) {
-                                return function() {
-                                    var nowOpen = !panel.is( ":visible" );
-
-                                    mdbPageCreator_openDefinitions[ key ] = nowOpen;
-                                    $(this).toggleClass( "mdb-pageCreator-defs-open", nowOpen );
-                                    panel.toggle( nowOpen );
-                                };
-                            }( defsKey, defs ) )
-                    );
-                }
-
-                // the panel is a third child of a display:contents row, spanning both grid
-                // columns (see page_creator.css) - a nested wrapper would break the alignment
-                // every other row shares
-                steps.append( row.append( label, mdbPageCreator_reasoningStepDetail( step ), defs ) );
-            }
-
-            s2.append( steps );
-        } else {
-            s2.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "Nothing had to be fixed or removed." ) );
-        }
-
-        s2.append(
+        s2a.append(
             $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Left for the parser:" ),
             // green-tinted: these chunks survived the cleanup and are what the parse works on
-            mdbPageCreator_reasoningChips( mdbTitle_traceChunks( trace.cleaned ), "mdb-pageCreator-chip-kept" )
+            mdbPageCreator_reasoningChips( mdbTitle_traceChunks( preTrace.cleaned ), "mdb-pageCreator-chip-kept" )
         );
     }
 
-    panel.append( s2 );
+    panel.append( s2a );
 
     // 3) the MixesDB lookups. The categories of section 4 are computed here already: the
     // asked-name chips answer that section by colour - green when the name ended up a
     // category of the new page, red when it did not.
-    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "the lookup candidates, sorted by the role the title's shape gives them BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories in 4, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
+    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "one request, fired off the CHUNKS of 1 (plus the channel) - not off the cleaned title of 2a. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories in 4, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
         entries = mdbPageCreator_categoryEntries( title ),
         catKeys = {};
 
@@ -1829,6 +1968,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         // FOR, not merely of what came back. typeof-guarded like the trace - a stale cached
         // title_builder.js without roles files every chip in both columns.
         var roles = ( typeof mdbTitle_candidateRoles !== "undefined" && mdbTitle_candidateRoles ) ? mdbTitle_candidateRoles : {},
+            // where each name came from (mdbTitle_candidateSources) - the channel stands in no
+            // chunk, and a chunk is asked without its episode number, so a chip that quotes
+            // neither section 1 nor section 2a reads as invented without this
+            sources = ( typeof mdbTitle_candidateSources !== "undefined" && mdbTitle_candidateSources ) ? mdbTitle_candidateSources : {},
             lookups = $("<div>").addClass( "mdb-pageCreator-reasoning-lookups" ),
             artistCol = mdbPageCreator_reasoningLookupColumn( "Artist category candidates" ),
             entityCol = mdbPageCreator_reasoningLookupColumn( "Entity category candidates" ),
@@ -1865,10 +2008,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
             // overruledBy a slot along - which painted every chip green ("artist" is truthy)
             // and put the boolean into the overruled note
             if( askArtist || hasArtistAnswer ) {
-                mdbPageCreator_reasoningLookupRow( artistCol, entry, matches, isCat, overruledBy );
+                mdbPageCreator_reasoningLookupRow( artistCol, entry, matches, isCat, overruledBy, sources[ entry.key ] );
             }
             if( askEntity || hasEntityAnswer ) {
-                mdbPageCreator_reasoningLookupRow( entityCol, entry, matches, isCat, overruledBy );
+                mdbPageCreator_reasoningLookupRow( entityCol, entry, matches, isCat, overruledBy, sources[ entry.key ] );
             }
         }
 
@@ -1880,7 +2023,99 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         s3.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "No names were looked up." ) );
     }
 
+    // the other half of "why is this name here / that chunk not?": chunks section 1 shows
+    // and this section deliberately never asked about
+    var notAsked = ( typeof mdbTitle_chunksNotAsked !== "undefined" && mdbTitle_chunksNotAsked ) ? mdbTitle_chunksNotAsked : [];
+
+    for( i = 0; i < notAsked.length; i++ ) {
+        s3.append(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                $("<span>").text( "Not asked:" ),
+                $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-removed" ).text( notAsked[i].text ),
+                $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( notAsked[i].why )
+            )
+        );
+    }
+
     panel.append( s3 );
+
+    // 2b) the SECOND parse - the same cleanup re-run with the answers of 3 in hand. Numbered
+    // 2b and not 4 because it is the same stage as 2a, run again: the parse is a loop
+    // (1 -> 2a -> 3 -> 2b -> 4), and a straight 1..5 would claim the wiki was asked in the
+    // middle of one cleanup instead of between two of them.
+    var s2b = mdbPageCreator_reasoningSection( "2b", "Parsed again, with the answers", "the same cleanup once more, now knowing what MixesDB has - this is the run the title on screen comes from. Only what the answers CHANGED is listed; everything else ran exactly as in 2a" );
+
+    if( trace && mdbPageCreator_tracePreLookup && trace !== mdbPageCreator_tracePreLookup ) {
+        var added = mdbPageCreator_reasoningStepsAdded( preTrace.steps, trace.steps ),
+            gone = mdbPageCreator_reasoningStepsAdded( trace.steps, preTrace.steps ),
+            titleChanged = mdbPageCreator_titlePostLookup &&
+                           mdbPageCreator_titlePostLookup !== mdbPageCreator_titlePreLookup,
+            // What the answers did to the SUGGESTION, written as a step of its own and put
+            // FIRST - it is the headline of this section, and on most titles the only thing
+            // in it: the branches the answers open write no cleanup step (the venue reading
+            // composes "A @ Venue, City" at the exit), so the diff below is empty while
+            // everything visible changed. One list, so it renders in one grid with the rest
+            // and the two columns line up.
+            rows = added.slice();
+
+        if( titleChanged ) {
+            rows.unshift( {
+                label: "The suggestion changed",
+                detail: mdbPageCreator_titlePreLookup + " -> " + mdbPageCreator_titlePostLookup
+            } );
+        }
+
+        var addedRows = mdbPageCreator_reasoningSteps( rows );
+
+        if( addedRows.length ) s2b.append( addedRows );
+
+        if( titleChanged ) {
+            s2b.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                    mdbPageCreator_reasoningNote( "why this name and not that one is the \"picked as …\" line of each category in 4", "muted" )
+                )
+            );
+        }
+
+        // a step the answers made STOP happening is the same news the other way round - the
+        // venue branch turning a title live is what drops its place-list removal, and a
+        // reader comparing 2a with the title on screen would otherwise miss it
+        for( i = 0; i < gone.length; i++ ) {
+            s2b.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                    $("<span>").text( "No longer done:" ),
+                    $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( gone[i].label ),
+                    $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( "the wiki's answers took this title down another branch" )
+                )
+            );
+        }
+
+        // added/gone, not addedRows: the suggestion row above is not a cleanup step, and
+        // counting it would swallow the one line that says the cleanup itself ran the same
+        if( !added.length && !gone.length ) {
+            s2b.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                    mdbPageCreator_reasoningNote( titleChanged
+                        ? "no cleanup step ran differently - the answers changed which name got which slot, not what was taken out of the title"
+                        : "the answers changed nothing - the suggestion is the one 2a built, and what they confirmed is in 4", "muted" )
+                )
+            );
+        }
+
+        // only when it really differs: the same chips twice read as a step that happened
+        // between them, and usually nothing here moves
+        if( trace.cleaned !== preTrace.cleaned ) {
+            s2b.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Left for the parser:" ),
+                mdbPageCreator_reasoningChips( mdbTitle_traceChunks( trace.cleaned ), "mdb-pageCreator-chip-kept" )
+            );
+        }
+    } else {
+        // before the answer is in (and after a title edit, which re-renders without rebuilding)
+        s2b.append( mdbPageCreator_reasoningNote( "the second parse has not run yet - the title on screen is the one 2a built", "muted" ) );
+    }
+
+    panel.append( s2b );
 
     // 4) the categories of the created page - read off the CURRENT title (the same entries
     // section 3's chip colours were computed from), like the page text
@@ -2014,8 +2249,13 @@ function mdbPageCreator_resetForNewPage() {
     // page. The candidate roles go with the log: the same name can play a different role in
     // the next mix's title. typeof-guarded - a stale cached title_builder.js has no roles.
     mdbTitle_trace = null;
+    mdbPageCreator_tracePreLookup = null;
+    mdbPageCreator_titlePreLookup = "";
+    mdbPageCreator_titlePostLookup = "";
     mdbTitle_lookupLog = [];
     if( typeof mdbTitle_candidateRoles !== "undefined" ) mdbTitle_candidateRoles = {};
+    if( typeof mdbTitle_candidateSources !== "undefined" ) mdbTitle_candidateSources = {};
+    if( typeof mdbTitle_chunksNotAsked !== "undefined" ) mdbTitle_chunksNotAsked = [];
 
     mdbPageCreator_tracklistFeedback = null;
     mdbPageCreator_tracklistDetected = null;
