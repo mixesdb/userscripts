@@ -522,13 +522,16 @@ function mdbPageCreator_categoryEntries( title ) {
     if( read.year ) entries.push( { name: read.year, role: "year" } );
 
     for( i = 0; i < read.artists.length; i++ ) {
-        entries.push( { name: read.artists[i], role: "artist" } );
+        entries.push( mdbPageCreator_categoryEntry( read.artists[i], "artist" ) );
     }
 
     var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
 
     if( entityCategory ) {
-        entries.push( { name: entityCategory, role: entityCategory === "Promo Mix" ? "promo" : "entity" } );
+        // "Promo Mix" is ours, not a name the wiki could spell differently
+        entries.push( entityCategory === "Promo Mix"
+            ? { name: entityCategory, role: "promo" }
+            : mdbPageCreator_categoryEntry( entityCategory, "entity" ) );
     }
 
     var styles = mdbPageCreator_styleCategories();
@@ -546,6 +549,34 @@ function mdbPageCreator_categoryEntries( title ) {
     entries.push( { name: "Tracklist: " + mdbPageCreator_tracklistFiling(), role: "tracklist" } );
 
     return entries;
+}
+
+// mdbPageCreator_categoryEntry
+// One artist or entity category, in the WIKI's spelling wherever the lookup answered about the
+// name: the title says "DJ Maria.", the wiki files 8 mixes under "DJ MARIA.", and the page text
+// has to write [[Category:DJ MARIA.]] - a category spelled our way is a second, empty category
+// next to the real one, which is the one thing a category line must never be. name is what goes
+// on the page and on screen from here on; titleName is kept where the two differ, because the
+// TITLE is then still worth correcting and the chip's tooltip is where that is said.
+//
+// Asked by ROLE, the same way the hints bar reads its verdict: an artist has to be known AS an
+// artist, so "fabric" the venue can never respell "Fabric" the artist.
+//
+// Only a RESPELLING is taken - same name, different case or punctuation. A match whose name
+// really differs ("Truancy Volume" -> "Truancy Volumes") is knowledge, not a spelling, and the
+// rule that keeps it out of the title (title_builder.js, the single exit) holds here too: the
+// chip's tooltip names it and the editor decides.
+function mdbPageCreator_categoryEntry( name, role ) {
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        match = mdbTitle_knownMatch( cache, name, role === "artist" ? [ "artist" ] : null );
+
+    if( !match || !match.title || match.title === name ) return { name: name, role: role };
+
+    if( mdbTitle_normalizeCompare( match.title ) !== mdbTitle_normalizeCompare( name ) ) {
+        return { name: name, role: role };
+    }
+
+    return { name: match.title, titleName: name, role: role };
 }
 
 // mdbPageCreator_entityCategoryFor
@@ -1050,10 +1081,16 @@ function mdbPageCreator_usedCategoriesHint( title ) {
         return null;
     }
 
-    var hint = $("<span>")
+    // The chips sit in a column of their OWN, next to the label rather than after it: an open
+    // chip is as tall as its list, so the chips wrap, and wrapped rows used to start under the
+    // label while the first row started behind it. The label's fixed width (page_creator.css)
+    // is the left edge they all share.
+    var chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
+        hint = $("<span>")
             .attr( "id", "mdb-pageCreator-usedCats" )
             .append(
-                $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Used categories:" )
+                $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Used categories:" ),
+                chips
             ),
         logged = [];
 
@@ -1062,7 +1099,7 @@ function mdbPageCreator_usedCategoriesHint( title ) {
     for( i = 0; i < wanted.length; i++ ) {
         var state = mdbPageCreator_usedCategoryState( wanted[i] );
 
-        hint.append( mdbPageCreator_usedCategory( wanted[i], state ) );
+        chips.append( mdbPageCreator_usedCategory( wanted[i], state ) );
         logged.push( wanted[i].name + " [" + wanted[i].role + ": " + state.verdict + "]" );
     }
 
@@ -1120,10 +1157,16 @@ function mdbPageCreator_usedCategory( entry, state ) {
     var out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
 
     if( state.verdict === "known" ) {
+        // entry.name is the wiki's spelling already (mdbPageCreator_categoryEntry), so the
+        // note is about the TITLE, not about the category: titleName is set exactly where the
+        // two differ. The second branch is the name the canonicalizer refused to take - a
+        // match that is not merely a respelling, where MixesDB's own name is the news.
         var spelled = state.match.title || entry.name,
-            note = spelled !== entry.name
-                ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
-                : "";
+            note = entry.titleName
+                ? "\nThe title above spells it \"" + entry.titleName + "\" - worth correcting there too."
+                : ( spelled !== entry.name
+                    ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
+                    : "" );
 
         out.addClass( "mdb-pageCreator-usedCat-known" ).append(
             $("<a>")

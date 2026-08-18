@@ -246,6 +246,16 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `Trommel.251`, `asa 808` -> `ASA 808`. Done at the single exit (`mdbTitle_result`), but ONLY
   name-for-name: a server match whose normalized name differs (`Truancy Volume` ->
   `Truancy Volumes`) is knowledge, not a spelling, and never rewrites the title.
+- **The CATEGORY is respelled too, and separately from the title**
+  (`mdbPageCreator_categoryEntry()` in `page_creator.js`, since 2026-08-18): the artist and
+  entity entries carry the wiki's spelling, so the page text writes `[[Category:DJ MARIA.]]`
+  where the title says "DJ Maria." - a category spelled our way is a second, EMPTY category
+  next to the one holding the 8 mixes, which is the one thing a category line may never be.
+  Done again there rather than left to the title's canonicalization because the two are not
+  the same question: a title keeps what its own rules made of a name, a category has to be the
+  page that really exists. Same guard as above - a respelling only (normalized names equal),
+  asked by ROLE (an artist has to be known AS an artist) - and the name the title spells is
+  kept as `titleName`, which is what the chip's tooltip says is worth correcting.
 - **Candidates come from THE shared chunk split** (`mdbTitle_titleChunks`): typos and
   decoration out first, brackets read as separators (the channel's own bracket excepted), and
   the parser's guarded series-"by" split - `Guestroom 779 by Sascha Sibler` asks about both
