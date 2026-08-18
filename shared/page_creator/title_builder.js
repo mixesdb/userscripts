@@ -2077,6 +2077,24 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
     return names;
 }
 
+// mdbTitle_isStaticName
+// Whether a name says nothing about THIS mix - a word every episode of every show carries
+// ("Episode", "Episode 72"), listed in mdbTitleStaticNames. Tested with a trailing number
+// taken off, because that is the only thing such a word ever stands next to, and against the
+// WHOLE name, so a real name carrying the word ("Radio Episode Berlin") is untouched.
+function mdbTitle_isStaticName( name ) {
+    var bare = mdbTitle_normalizeCompare( String( name || "" ).replace( /[\s.#-]*\d{1,4}\s*$/, "" ) ),
+        i;
+
+    if( !bare ) return false;
+
+    for( i = 0; i < mdbTitleStaticNames.length; i++ ) {
+        if( bare === mdbTitle_normalizeCompare( mdbTitleStaticNames[i] ) ) return true;
+    }
+
+    return false;
+}
+
 // mdbTitle_lookupCategories
 // Asks the wiki's action=mdbnames module what these names are, all in ONE request, then calls
 // back with the cache. Always calls back - a failed or blocked request just means the parser
@@ -2095,6 +2113,15 @@ function mdbTitle_lookupCategories( names, callback ) {
         key = mdbTitle_normalizeCompare( name );
 
         if( !key ) continue;
+
+        // A name that is nothing but a counting word can only answer empty, so it is not asked
+        // and gets no chip in the panel - it was never a candidate (mdbTitleStaticNames). In
+        // the funnel both lookup rounds pass through, like the "#" rewrite above: an edited
+        // title's names are covered too.
+        if( mdbTitle_isStaticName( name ) ) {
+            logVar( "mdbTitle_lookupCategories: static name, not asked", name );
+            continue;
+        }
 
         // the report panel's record of every name asked about on this page - cached ones too,
         // they were asked and their answer is worth showing

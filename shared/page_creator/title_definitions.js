@@ -1319,6 +1319,32 @@ var mdbTitleCounterWords = [
 
 
 /*
+ * mdbTitleStaticNames
+ *
+ * Names that are never sent to the category lookup, because they are the same on every mix
+ * ever uploaded: a chunk that is nothing but a counting word - "Episode", "Episode 72" -
+ * names no artist, no show and no venue. It says WHICH episode this is, and MixesDB files
+ * nothing under it, so the wiki can only ever answer empty. The 10-names-per-request limit is
+ * real, and the slot such a name takes is one a name that can answer does not get.
+ *
+ * Matched against the WHOLE name with a trailing number taken off (mdbTitle_isStaticName in
+ * title_builder.js), so it can never eat part of a real one: "Episode 72" is on the list,
+ * "Truancy Volume 300" and "Radio Episode Berlin" are not. Compared with
+ * mdbTitle_normalizeCompare(), so case and punctuation cost nothing.
+ *
+ * Not the same list as mdbTitleCounterWords above, although "Episode" is on both. There the
+ * word is taken OFF a name that has more to it ("Slave To The Rhythm Episode 72" -> "Slave To
+ * The Rhythm 72"); here the word IS the whole name, and what is left after taking it off is
+ * nothing. A word only belongs here when a category of that name would be meaningless -
+ * never one a series is named after ("Podcast", "Mix"), which is a real category on MixesDB
+ * hundreds of times over.
+ */
+var mdbTitleStaticNames = [
+    "Episode"
+];
+
+
+/*
  * A numbered series is the ENTITY, never the artist
  *
  * A series numbers its episodes and a person does not number themselves, so a title that is

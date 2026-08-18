@@ -276,6 +276,13 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   ordinary rules and keeps its lookup, and so does a channel mapped to "" - "no show" still
   leaves the name standing as the likely artist. The generic words ("DJ Mix") stay
   candidates too.
+- **A name that is nothing but a counting word is no candidate** - `mdbTitleStaticNames`
+  ("Episode", also as "Episode 72") is the list of names every mix carries, so MixesDB files
+  nothing under them and the wiki could only answer empty. Tested whole, with a trailing
+  number taken off (`mdbTitle_isStaticName`), so a real name carrying the word is untouched.
+  Not the same list as `mdbTitleCounterWords`, which takes the word OFF a name that has more
+  to it - a word only belongs here when a category of that name would be meaningless, never
+  one a series is named after ("Podcast", "Mix").
 - **"#" is never sent** - `mdbTitle_lookupCategories` writes it out (`X #12` asks as `X 12`):
   the character is illegal in a wiki title, so a name carrying one can only answer empty.
   Sits in the one funnel both lookup rounds pass through, so an edited title's names are

@@ -93,10 +93,14 @@ learning" line can name the step that went wrong:
    An answer of an unexpected type pulls the chip into that column too, so `MONUMENT` shows
    the podcast on the entity side and the wiki's `Monument (Jordan Smith)` on the artist
    side. The place group's own country (`… @ S.U.N Festival – Hungary`) is not looked up at
-   all – a country is never a category. The chips answer section 4 by colour: green when the
+   all – a country is never a category – and neither is a chunk that is nothing but a counting
+   word (`Episode`, `Episode 72`): it says which episode this is, and MixesDB files nothing
+   under it. The chips answer section 4 by colour: green when the
    name ended up a category of the new page, red when it did not. A name a curated channel
    mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
-   those words name `Dance TV DJ Mix`
+   those words name `Dance TV DJ Mix`. Every name the wiki confirms – here and in section 4 –
+   is a link to that category page on MixesDB, opening in a new tab so the player page stays
+   where it is
 
    Behind every answer stands a **percentage**: how strongly that answer backs the name it was
    asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
