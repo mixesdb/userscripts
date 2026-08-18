@@ -27,6 +27,15 @@
 > - **A `{{StandardShow*}}` verdict is dropped at use when the player duration is off its
 >   stated length by more than ±30%** - written as the table then, not only noted, since a far-off
 >   duration is a hint the category was misread.
+>
+> **Delta added 2026-08-19: the call carries a second module.** The generator answers in pageid
+> order - `gcmsort=sortkey` decides WHICH 10 pages come back, not the order they come back in,
+> and the response has no index to restore it from. So the same category rides along as a plain
+> `list=categorymembers & cmsort=sortkey & cmdir=desc & cmlimit=10` in the SAME request, and
+> `query.categorymembers` is the order the wikitext is filed into. It replaces the title sort
+> that stood here before, which mis-filed every page with a manual sortkey (`Trommel.220`,
+> dated 2023-09-18 in its title and filed at 2025-05-30) - and those pages are exactly the ones
+> the "newest 5 override" leans on.
 
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already

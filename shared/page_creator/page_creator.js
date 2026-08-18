@@ -1518,16 +1518,20 @@ function mdbPageCreator_usedCatFetchRecent( match ) {
 }
 
 // mdbPageCreator_usedCatRecent
-// The recent mix pages of one lookup match, newest first. The server walks cl_timestamp -
-// when a page was last (re)categorized, not the mix date - so its order is close to random.
-// Mix page titles START with their date, so a lexical sort IS date order.
+// The recent mix pages of one lookup match, in the order the API delivered them - never
+// re-sorted here. Both category fetches ask cmsort=sortkey&cmdir=desc and answer in that
+// order, and the sortkey is what MixesDB means by "recent": the title's date, until an editor
+// sets one by hand - and then that one. Re-sorting the titles here would throw exactly that
+// away - "2023-09-18 - Dan Andrei @ Sunwaves 31, Romania (Trommel.220)" carries the sortkey
+// 2025-05-30, its release date, and belongs among the 2025 episodes rather than at the bottom
+// of the list (mixesdb_api_request.md §6).
+//
+// The lookup's own "recent" is the one list that arrives in no useful order (cl_timestamp -
+// see mdbTitle_categoryCache in title_builder.js). It is shown as it comes too: a title sort
+// would not repair it either, and mdbPageCreator_recentFetch replaces it with the
+// sortkey-true list as soon as that lands.
 function mdbPageCreator_usedCatRecent( match ) {
-    var recent = ( match && match.recent && match.recent.length ) ? match.recent.slice() : [];
-
-    recent.sort();
-    recent.reverse();
-
-    return recent;
+    return ( match && match.recent && match.recent.length ) ? match.recent.slice() : [];
 }
 
 // mdbPageCreator_categoryUnanswered
@@ -1737,6 +1741,8 @@ function mdbPageCreator_recentEnsureFor( title ) {
 // starts with its date, so the sortkey IS the date, and it honours an editor's manual sortkey
 // on top. NEVER gcmsort=timestamp, which sorts by when a page was (re)filed into the category
 // and floats every re-saved old page to the top (see CLAUDE.md and mixesdb_api_request.md §6).
+// The same category rides along as a plain list=categorymembers, which is what carries that
+// order into the answer - see the data block below.
 function mdbPageCreator_recentFetch( catTitle, key ) {
     logVar( "mdbPageCreator_recentFetch", catTitle );
 
@@ -1757,11 +1763,25 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             gcmlimit: 10,
             prop: "revisions",
             rvprop: "content",
-            rvslots: "main"
+            rvslots: "main",
+            // The SAME category once more as a plain list, in the same request: the
+            // generator's sortkey order does not survive the response (query.pages comes
+            // back in pageid order, and there is no index to restore it from), while
+            // query.categorymembers IS that order. Rebuilding it from the titles instead
+            // would mis-file every page whose editor set a sortkey by hand. Costs no
+            // round trip and ~1 KB - see the success handler.
+            list: "categorymembers",
+            cmtitle: "Category:" + catTitle,
+            cmnamespace: 0,
+            cmsort: "sortkey",
+            cmdir: "desc",
+            cmlimit: 10
         },
         success: function( data ) {
             var entry = mdbPageCreator_recentAnalysisCache[ key ],
                 pages = ( data && data.query && data.query.pages ) || [],
+                ordered = ( data && data.query && data.query.categorymembers ) || [],
+                texts = {},
                 got = [],
                 i, rev, slot;
 
@@ -1771,19 +1791,35 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
                 rev = ( pages[i].revisions && pages[i].revisions[0] ) || null;
                 slot = rev && rev.slots && rev.slots.main ? rev.slots.main : null;
 
-                got.push( { title: pages[i].title, text: String( ( slot && slot.content ) || "" ) } );
+                texts[ pages[i].title ] = String( ( slot && slot.content ) || "" );
             }
 
-            // the generator returns its pages unordered - titles start with the date, so a
-            // lexical sort IS date order, newest first (same trick as mdbPageCreator_usedCatRecent)
-            got.sort( function( a, b ) { return a.title < b.title ? 1 : a.title > b.title ? -1 : 0; } );
+            // the list module's answer is the sortkey order - the wikitext is filed into it,
+            // and nothing here re-sorts anything. Both modules asked for the same 10 pages of
+            // the same category, so the titles line up.
+            for( i = 0; i < ordered.length; i++ ) {
+                if( !ordered[i].title || !( ordered[i].title in texts ) ) continue;
+
+                got.push( { title: ordered[i].title, text: texts[ ordered[i].title ] } );
+            }
+
+            // no list module in the answer, or not one title matched: the pages are still
+            // there, so show them in the one order the response does carry rather than
+            // nothing at all - newest first is what everything downstream expects
+            if( !got.length ) {
+                for( i = 0; i < pages.length; i++ ) {
+                    if( pages[i].title ) got.push( { title: pages[i].title, text: texts[ pages[i].title ] } );
+                }
+
+                got.sort( function( a, b ) { return a.title < b.title ? 1 : a.title > b.title ? -1 : 0; } );
+            }
 
             entry.status = "done";
             entry.pages = got;
             entry.titles = got.map( function( p ) { return p.title; } );
             entry.text = mdbPageCreator_recentPageTextFindings( catTitle, got );
 
-            logVar( "mdbPageCreator_recentFetch: " + catTitle, entry.titles.length + " pages" );
+            logVar( "mdbPageCreator_recentFetch: " + catTitle, entry.titles.length + " pages, newest \"" + ( entry.titles[0] || "-" ) + "\"" );
 
             // the hints bar's list for this category rides along: sortkey order really holds
             // the newest pages, which the lookup answer's own timestamp-sorted "recent" misses
@@ -2720,6 +2756,9 @@ function mdbPageCreator_reasoningSection( no, title, hint ) {
 }
 
 // mdbPageCreator_reasoningChips
+// chipClass is appended to every chip of the row and may name more than one class: a chip that
+// carries a whole TITLE (sections 2, 4, 5) gets .mdb-pageCreator-chip-title for the title
+// field's corner radius on top of whatever colour class the section asks for.
 function mdbPageCreator_reasoningChips( names, chipClass ) {
     var row = $("<div>").addClass( "mdb-pageCreator-reasoning-chips" ),
         i;
@@ -3452,7 +3491,7 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
     if( finalTitle ) {
         s.append(
             $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Final title:" ),
-            mdbPageCreator_reasoningChips( [ finalTitle ], "mdb-pageCreator-chip-kept" )
+            mdbPageCreator_reasoningChips( [ finalTitle ], "mdb-pageCreator-chip-kept mdb-pageCreator-chip-title" )
         );
     }
 
@@ -3688,7 +3727,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         if( mdbPageCreator_titlePreLookup ) {
             s2.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Title candidate:" ),
-                mdbPageCreator_reasoningChips( [ mdbPageCreator_titlePreLookup ] )
+                mdbPageCreator_reasoningChips( [ mdbPageCreator_titlePreLookup ], "mdb-pageCreator-chip-title" )
             );
         }
     }
@@ -3851,7 +3890,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         if( mdbPageCreator_titlePostLookup ) {
             s4.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Title after lookup:" ),
-                mdbPageCreator_reasoningChips( [ mdbPageCreator_titlePostLookup ] )
+                mdbPageCreator_reasoningChips( [ mdbPageCreator_titlePostLookup ], "mdb-pageCreator-chip-title" )
             );
         }
     } else {

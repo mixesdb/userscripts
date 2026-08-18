@@ -1781,10 +1781,13 @@ function mdbTitle_dropLocationBrackets( text ) {
  * The test fixtures write entries as plain type strings, which every reader below accepts too.
  *
  * "recent" (non-artist matches only - the server does not ship it for artists) holds the
- * titles of recently added mix pages in that category, in NO reliable order: the server walks
- * cl_timestamp, which is when the page was (re)categorized, not the mix date. Sort before
- * showing. The hints bar's category chips are the reader today; the page-text learning
- * (roadmap step 4) is the planned second one.
+ * titles of recently added mix pages in that category, in the order the server walks them:
+ * cl_timestamp, when the page was (re)categorized, not the mix date - so it is neither date
+ * order nor complete (a category's newest page can be missing from it). Show it AS IT COMES
+ * anyway - never re-sorted by title: that would only trade the server's order for a title
+ * order, which mis-files every page whose editor set a sortkey by hand. The sortkey-true
+ * list arrives with the page-text learning fetch (mdbPageCreator_recentFetch), which writes
+ * it back onto the match. The hints bar's category chips are the reader for both.
  */
 var mdbTitle_categoryCache = {},
     mdbTitle_categoryApiUrl = "https://www.mixesdb.com/w/api.php",

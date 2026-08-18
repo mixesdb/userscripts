@@ -74,8 +74,8 @@ one chip per name, its colour saying whether MixesDB already has it:
   than opening a second, empty category beside it. Where the two differ the tooltip says
   so, because the title in the field above is then still worth correcting. The name links to
   the category, and its mix count stands behind it. The count is a toggle: a click
-  folds the category's most recently added mix pages out inside the chip, newest first, each
-  linking to its page – the quickest way to see how pages of this series are named, and whether
+  folds the category's most recently added mix pages out inside the chip, in the order
+  MixesDB lists them there itself, each linking to its page – the quickest way to see how pages of this series are named, and whether
   the mix is already among them. A show's pages arrive with the category answer itself; an
   artist's are fetched the first time the chip opens.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
