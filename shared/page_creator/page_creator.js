@@ -145,6 +145,11 @@ var mdbPageCreator_title = "",
     // because the rebuild is what a title EDIT triggers, and a rule list opened to compare the
     // title against would close on the first keystroke.
     mdbPageCreator_openDefinitions = {},
+    // which category chips' recent-mixes lists are open in the hints bar, keyed by the
+    // normalized category name - kept across re-renders for the same reason as the "?" blocks:
+    // the bar rebuilds on every keystroke and on every lookup answer, and a list opened to
+    // check for a duplicate must not close under the reader.
+    mdbPageCreator_openUsedCatRecent = {},
     // where the row goes - see the note on selector strings in the header comment
     mdbPageCreator_target = null,
     mdbPageCreator_placement = "after",
@@ -975,10 +980,13 @@ function mdbPageCreator_confidenceTitle() {
  * Always visible, unlike the report box - these are for the editor who is about to click
  * "Create", not for the one reporting a wrong suggestion.
  *
- * One item so far, "Used categories" (row_enrichment.md, addition 1): the artist and entity
- * categories the page text writes, each answered by the wiki. Green means MixesDB has that
- * category, red means it has not - a new name, or the name is spelled differently there, and
- * the "Search" link next to it is the fastest way to tell those two apart.
+ * One item so far, "Used categories" (row_enrichment.md, additions 1 and 2): the artist and
+ * entity categories the page text writes, each a chip answered by the wiki. Green means
+ * MixesDB has that category - with its mix count, and the category's recent mix pages behind
+ * it where the lookup brought them - red means it has not: a new name, or the name is spelled
+ * differently there, and the red name searches MixesDB (the loupe behind it says so), which
+ * is the fastest way to tell those two apart. On a desktop-wide window the chips' MixesDB
+ * links open in a modal on the page (mdbPageCreator_modalOpen below) rather than a tab.
  *
  * Everything here is rebuilt whole on every render and reads the title out of the FIELD, the
  * same way the page text does: a corrected title has to take its categories with it.
@@ -1047,9 +1055,9 @@ function mdbPageCreator_usedCategoriesHint( title ) {
             ),
         logged = [];
 
+    // no separators between the entries: each is a bordered chip, and the bar's flex gap
+    // (page_creator.css) is the spacing
     for( i = 0; i < wanted.length; i++ ) {
-        if( i ) hint.append( $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( "," ) );
-
         var state = mdbPageCreator_usedCategoryState( wanted[i] );
 
         hint.append( mdbPageCreator_usedCategory( wanted[i], state ) );
@@ -1094,14 +1102,17 @@ function mdbPageCreator_usedCategoryState( entry ) {
 }
 
 // mdbPageCreator_usedCategory
-// One category name in the colour of its verdict:
+// One category name as a chip - the reasoning panel's chip look, coloured by the verdict:
 //
-// - known    green, linked to the category page. The link carries the WIKI's spelling, which
-//            is the page that really exists; where that differs from what the title writes,
-//            the tooltip says so, since that difference is a refinement worth making.
-// - missing  red and unlinked - there is no page to open - with "(Search)" behind it. The
-//            search is the point: a red name is either new or misspelled, and only a look at
-//            what MixesDB does have under that name tells which.
+// - known    green, linked to the category page, with its mix count behind it (a toggle for
+//            the category's recent mix pages where the lookup brought them - see
+//            mdbPageCreator_usedCatMixes). The link carries the WIKI's spelling, which is the
+//            page that really exists; where that differs from what the title writes, the
+//            tooltip says so, since that difference is a refinement worth making.
+// - missing  red, and the name IS the search link, the flat loupe behind it saying so - there
+//            is no category page to open, and the search is the point: a red name is either
+//            new or misspelled, and only a look at what MixesDB does have under that name
+//            tells which.
 // - unknown  grey. Never red: a name nobody asked about is not a name the wiki denied.
 function mdbPageCreator_usedCategory( entry, state ) {
     var out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
@@ -1112,16 +1123,23 @@ function mdbPageCreator_usedCategory( entry, state ) {
                 ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
                 : "";
 
-        return out.addClass( "mdb-pageCreator-usedCat-known" ).append(
+        out.addClass( "mdb-pageCreator-usedCat-known" ).append(
             $("<a>")
                 // _blank, not the usual _top: looking a category up is a side trip taken
                 // while judging the title on THIS page, and the row has to still be here
-                // afterwards (same case as the toolkit's EDIT/HIST links)
+                // afterwards (same case as the toolkit's EDIT/HIST links). On a desktop-wide
+                // window the modal intercepts the plain left click instead - see
+                // mdbPageCreator_modalOpen - and this href is what every other click keeps.
                 .attr( "href", mdbPageCreator_categoryUrl( spelled ) )
                 .attr( "target", "_blank" )
+                .attr( "data-mdb-modal-label", "Category: " + spelled )
                 .attr( "title", "MixesDB has this category - opens [[Category:" + spelled + "]]." + note )
                 .text( entry.name )
         );
+
+        mdbPageCreator_usedCatMixes( out, entry, state.match );
+
+        return out;
     }
 
     if( state.verdict === "unknown" ) {
@@ -1133,26 +1151,116 @@ function mdbPageCreator_usedCategory( entry, state ) {
     }
 
     return out.addClass( "mdb-pageCreator-usedCat-missing" ).append(
-        $("<span>")
-            .attr( "title", "MixesDB has no " + ( entry.role === "artist" ? "artist " : "" ) + "category of this name - a new name, or spelled differently there." )
-            .text( entry.name ),
-        mdbPageCreator_usedCategorySearch( entry.name )
+        $("<a>")
+            .attr( "href", mdbPageCreator_searchUrl( entry.name ) )
+            .attr( "target", "_blank" )
+            .attr( "data-mdb-modal-label", "MixesDB search: " + entry.name )
+            .attr( "title", "MixesDB has no " + ( entry.role === "artist" ? "artist " : "" ) + "category of this name - a new name, or spelled differently there. Search MixesDB for it to tell those two apart." )
+            .text( entry.name )
+            .append( mdbPageCreator_usedCatLoupe() )
     );
 }
 
-// mdbPageCreator_usedCategorySearch
-// The "(Search)" behind a name the wiki does not have. The brackets are grey text, only the
-// word is the link - the same way the row writes every other side note.
-function mdbPageCreator_usedCategorySearch( name ) {
-    return $("<span>").addClass( "mdb-pageCreator-usedCat-search" ).append(
-        $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( "(" ),
+// mdbPageCreator_usedCatLoupe
+// The flat loupe behind a red name - what marks the name as the search link, since there is
+// no category page the colour could promise. Built through createElementNS: jQuery's HTML
+// parsing would hand an <svg> string to innerHTML, which is exactly what a Trusted Types
+// policy is there to refuse. stroke="currentColor" keeps it in whatever red the link wears.
+function mdbPageCreator_usedCatLoupe() {
+    var ns = "http://www.w3.org/2000/svg",
+        svg = document.createElementNS( ns, "svg" ),
+        glass = document.createElementNS( ns, "circle" ),
+        handle = document.createElementNS( ns, "line" );
+
+    svg.setAttribute( "class", "mdb-pageCreator-usedCat-loupe" );
+    svg.setAttribute( "viewBox", "0 0 24 24" );
+    svg.setAttribute( "aria-hidden", "true" );
+
+    glass.setAttribute( "cx", "10.5" );
+    glass.setAttribute( "cy", "10.5" );
+    glass.setAttribute( "r", "6.5" );
+    glass.setAttribute( "fill", "none" );
+    glass.setAttribute( "stroke", "currentColor" );
+    glass.setAttribute( "stroke-width", "2.2" );
+
+    handle.setAttribute( "x1", "15.4" );
+    handle.setAttribute( "y1", "15.4" );
+    handle.setAttribute( "x2", "21" );
+    handle.setAttribute( "y2", "21" );
+    handle.setAttribute( "stroke", "currentColor" );
+    handle.setAttribute( "stroke-width", "2.2" );
+    handle.setAttribute( "stroke-linecap", "round" );
+
+    svg.appendChild( glass );
+    svg.appendChild( handle );
+
+    return $( svg );
+}
+
+// mdbPageCreator_usedCatMixes
+// The "N mixes" behind a confirmed name - the same count the reasoning panel writes behind its
+// matches. Where the answer brought the category's recent mix pages (non-artist categories -
+// the server ships none for artists), the count is a TOGGLE and the pages fold out under the
+// name, inside the chip: the fastest "does this page already exist?" look there is
+// (row_enrichment.md §2). Open ones survive the bar's re-renders - see
+// mdbPageCreator_openUsedCatRecent.
+function mdbPageCreator_usedCatMixes( chip, entry, match ) {
+    if( typeof match.mixes !== "number" ) return;
+
+    var text = match.mixes + ( match.mixes === 1 ? " mix" : " mixes" ),
+        recent = mdbPageCreator_usedCatRecent( match );
+
+    if( !recent.length ) {
+        chip.append( $("<span>").addClass( "mdb-pageCreator-usedCat-mixes" ).text( text ) );
+        return;
+    }
+
+    var key = mdbTitle_normalizeCompare( match.title || entry.name ),
+        list = $("<span>").addClass( "mdb-pageCreator-usedCat-recent" ),
+        i;
+
+    for( i = 0; i < recent.length; i++ ) {
+        list.append(
+            $("<a>")
+                // _blank as the fallback for the same reason as the category link above -
+                // the modal takes the plain left click on desktop
+                .attr( "href", mdbPageCreator_pageUrl( recent[i] ) )
+                .attr( "target", "_blank" )
+                .attr( "title", "Open this mix page on MixesDB" )
+                .text( recent[i] )
+        );
+    }
+
+    chip.toggleClass( "mdb-pageCreator-usedCat-open", mdbPageCreator_openUsedCatRecent[ key ] === true );
+
+    chip.append(
+        // an <a> without href on purpose: it navigates nowhere, and the modal's delegated
+        // handler only watches links WITH one
         $("<a>")
-            .attr( "href", mdbPageCreator_searchUrl( name ) )
-            .attr( "target", "_blank" )
-            .attr( "title", "Search MixesDB for \"" + name + "\" - is it really new, or does the wiki spell it differently?" )
-            .text( "Search" ),
-        $("<span>").addClass( "mdb-pageCreator-hint-sep" ).text( ")" )
+            .addClass( "mdb-pageCreator-usedCat-mixes" )
+            .attr( "title", "Show the mix pages most recently filed in this category" )
+            .text( text )
+            .on( "click", function() {
+                var nowOpen = !chip.hasClass( "mdb-pageCreator-usedCat-open" );
+
+                mdbPageCreator_openUsedCatRecent[ key ] = nowOpen;
+                chip.toggleClass( "mdb-pageCreator-usedCat-open", nowOpen );
+            }),
+        list
     );
+}
+
+// mdbPageCreator_usedCatRecent
+// The recent mix pages of one lookup match, newest first. The server walks cl_timestamp -
+// when a page was last (re)categorized, not the mix date - so its order is close to random.
+// Mix page titles START with their date, so a lexical sort IS date order.
+function mdbPageCreator_usedCatRecent( match ) {
+    var recent = ( match && match.recent && match.recent.length ) ? match.recent.slice() : [];
+
+    recent.sort();
+    recent.reverse();
+
+    return recent;
 }
 
 // mdbPageCreator_categoryUnanswered
@@ -1183,6 +1291,82 @@ function mdbPageCreator_categoryUnanswered( name ) {
 // IS the term. A category name needs nothing done to it.
 function mdbPageCreator_searchUrl( name ) {
     return mdbPageCreator_editUrl + "?title=&search=" + encodeURIComponent( name );
+}
+
+/*
+ * The MixesDB modal: on a desktop-wide window, a plain left click on any MixesDB link in the
+ * "Used categories" chips opens the page in an overlay ON this page instead of a tab - the
+ * reader is mid-judgement on a title, and "is this the right category?" or "does this page
+ * already exist?" is a five-second look, not a tab worth keeping. Everything that ASKS for a
+ * tab still gets one: cmd/ctrl/shift/alt and middle clicks fall through to the links' own
+ * href/target (they stay real links), and so does a narrow window, where the framed page
+ * would be smaller than a tab. MixesDB sends no X-Frame-Options and neither site's CSP
+ * forbids the frame (verified 2026-08-18), and the header's "Open on MixesDB" link is the
+ * way out where a quick look turns into real reading.
+ */
+var mdbPageCreator_modalMinWidth = 1024;
+
+// Bound once, on the document, so it survives every rebuild of the bar; the width is tested
+// INSIDE the handler because the window resizes. Only links WITH an href: the "N mixes"
+// toggle is an <a> without one.
+$(document).on( "click", "#mdb-pageCreator-usedCats a[href]", function( e ) {
+    if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.which !== 1 ) return;
+    if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
+
+    e.preventDefault();
+    mdbPageCreator_modalOpen( this.href, $(this).attr( "data-mdb-modal-label" ) || $(this).text() );
+});
+
+// mdbPageCreator_modalOpen
+// One modal at a time - opening replaces whatever is up. The overlay is class mdb-element,
+// so the shared navigation cleanup (onUrlChange in global.js) takes it down with the row.
+function mdbPageCreator_modalOpen( url, label ) {
+    logVar( "mdbPageCreator_modalOpen", url );
+
+    mdbPageCreator_modalClose();
+
+    var overlay = $("<div>")
+        .attr( "id", "mdb-pageCreator-modal" )
+        .addClass( "mdb-element" )
+        .on( "click", function( e ) {
+            // the dark backdrop closes, the box does not - e.target tells them apart
+            if( e.target === this ) mdbPageCreator_modalClose();
+        });
+
+    overlay.append(
+        $("<div>").addClass( "mdb-pageCreator-modal-box" ).append(
+            $("<div>").addClass( "mdb-pageCreator-modal-head" ).append(
+                $("<span>").addClass( "mdb-pageCreator-modal-title" ).text( label ),
+                $("<a>")
+                    .addClass( "mdb-pageCreator-modal-ext" )
+                    .attr( "href", url )
+                    .attr( "target", "_blank" )
+                    .attr( "title", "Open this page as its own tab" )
+                    .text( "Open on MixesDB" ),
+                $("<button>")
+                    .addClass( "mdb-pageCreator-modal-close" )
+                    .attr( "type", "button" )
+                    .attr( "title", "Close (Esc)" )
+                    .text( "×" )
+                    .on( "click", mdbPageCreator_modalClose )
+            ),
+            $("<iframe>").addClass( "mdb-pageCreator-modal-frame" ).attr( "src", url )
+        )
+    );
+
+    $("body").append( overlay );
+
+    $(document).on( "keydown.mdbPageCreatorModal", function( e ) {
+        if( e.key === "Escape" ) mdbPageCreator_modalClose();
+    });
+}
+
+// mdbPageCreator_modalClose
+// Removal is the whole close - the modal keeps no state. The namespaced Esc handler goes
+// with it, so a page with no modal up listens for nothing.
+function mdbPageCreator_modalClose() {
+    $(document).off( "keydown.mdbPageCreatorModal" );
+    $("#mdb-pageCreator-modal").remove();
 }
 
 
@@ -1560,22 +1744,30 @@ function mdbPageCreator_matchScore( name, matches, index, overruled ) {
         .text( conf.percent + "%" );
 }
 
-// mdbPageCreator_categoryUrl
-// The MixesDB page of a category the lookup answered with. The article path is /w/<page>, so
-// the name only has to be spelled the way MediaWiki spells a title in a URL: spaces as
-// underscores, the rest percent-escaped. The ":" is put back after encoding - it separates the
-// namespace from the name here, it is not data. The API answers with bare names, but a "Category:"
-// that did slip through is stripped rather than doubled.
-function mdbPageCreator_categoryUrl( title ) {
-    var name = String( title || "" ).replace( /^\s*Category:\s*/i, "" ).replace( / /g, "_" );
+// mdbPageCreator_pageUrl
+// The MixesDB page of any wiki title - a mix page out of a lookup answer's "recent" list, or
+// a category with its namespace already in front. The article path is /w/<page>, so the title
+// only has to be spelled the way MediaWiki spells one in a URL: spaces as underscores, the
+// rest percent-escaped. A ":" is put back after encoding - where one stands in a title it is
+// a namespace separator, not data.
+function mdbPageCreator_pageUrl( title ) {
+    var name = String( title || "" ).replace( / /g, "_" );
 
     // A "/" in the name cannot ride in the path at all - the escaped slash is refused by the
-    // server before MediaWiki ever sees it - so those few names take the query form instead.
+    // server before MediaWiki ever sees it - so those few titles take the query form instead.
+    // Mix pages carry one more often than category names: "... (Spectrum Radio 115/116)".
     if( name.indexOf( "/" ) !== -1 ) {
-        return mdbPageCreator_editUrl + "?title=" + encodeURIComponent( "Category:" + name );
+        return mdbPageCreator_editUrl + "?title=" + encodeURIComponent( name );
     }
 
-    return "https://www.mixesdb.com/w/" + encodeURIComponent( "Category:" + name ).replace( /%3A/gi, ":" );
+    return "https://www.mixesdb.com/w/" + encodeURIComponent( name ).replace( /%3A/gi, ":" );
+}
+
+// mdbPageCreator_categoryUrl
+// The MixesDB page of a category the lookup answered with. The API answers with bare names,
+// but a "Category:" that did slip through is stripped rather than doubled.
+function mdbPageCreator_categoryUrl( title ) {
+    return mdbPageCreator_pageUrl( "Category:" + String( title || "" ).replace( /^\s*Category:\s*/i, "" ) );
 }
 
 // mdbPageCreator_reasoningMatch
@@ -2490,6 +2682,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_reportOpen = false;
     mdbPageCreator_hintsLogged = "";
     mdbPageCreator_openDefinitions = {};
+    mdbPageCreator_openUsedCatRecent = {};
 
     // The polls are the reason this cannot just null the values: each is an interval still
     // asking about the mix the reader has already left.
