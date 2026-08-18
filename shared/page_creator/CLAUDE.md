@@ -173,6 +173,15 @@ Settled, so it does not get re-litigated:
   lowercase short TLD and a letter in the label before it, which is what keeps `Mono.xID` and
   `4.Slam` being tracks. A URL INSIDE a line is stripped and what remains is judged:
   `Buy it here - https://...` reads as a track with the URL in place and as nothing without it.
+- **A list bullet in front of the track is taken off before the API sees it** (`- Eddie Richards -
+  Someday` -> `Eddie Richards - Someday`), and it is the FIRST thing the block gets, so every step
+  after it looks at the track and not at a decoration. The hyphen is the expensive one: the API
+  reads it as "this line continues the one above" and glues the tracks together, so a 32-line list
+  written with `- ` came back as ONE row and, at that length, as an empty text with "No tracklist
+  received." - which is a box that never opens. An en dash, `•`, `·`, `>` or `~` costs less and is
+  just as wrong: it survives into the artist name of every track. No majority rule, unlike the
+  slash - a single bulleted line already swallows the track above it. A blank behind the bullet is
+  required, which is what keeps an artist called `-Ms-` intact.
 - **One numbering style per block, decided by the MAJORITY of its numbered lines.** An uploader
   who typed `12 - ` and `13 - ` into a list otherwise numbered `12 ` wrote one tracklist, but the
   API reads the block as a whole: it strips the numbering the block agrees on and leaves the odd

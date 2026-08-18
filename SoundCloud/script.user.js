@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.10
+// @version      2026.08.18.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_44
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_10
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
@@ -1836,6 +1836,19 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.18.11
+ * A tracklist an uploader wrote as a bulleted list instead of a numbered one now opens
+ * (tracklist_detector.js v_11). From the report on
+ * frida_carlos/frida_carlos_3000grad_festival_3026_schiff_ahoi, whose 32 tracks are each
+ * written "- Artist - Title": clicking the "Tracklist" headline did nothing at all. The
+ * Tracklist Editor API reads a leading hyphen as "this line continues the one above" and had
+ * glued all 32 into one row, which at that length comes back as an empty text with "No
+ * tracklist received." - and an empty answer means no box, so the headline looked like a dead
+ * link. The bullet is now taken off every line before the block is handed over, hyphen, en
+ * dash, em dash, "*", "•", "·", ">", "~", "=" and "|" alike - the ones the API does not strip
+ * itself otherwise survive into the artist name. A blank behind the bullet is required, so an
+ * artist called "-Ms-" keeps its hyphen.
  *
  * 2026.08.18.10
  * The presenter rule now reads a series WORD, not only a number (title_builder.js v_44,
