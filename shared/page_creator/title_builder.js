@@ -1774,11 +1774,17 @@ function mdbTitle_dropLocationBrackets( text ) {
  * mix count. The answers are cached for the life of the page, so the same channel is never
  * asked about twice.
  *
- * A cache entry is { matches: [ { title, type, mixes, exactCase } ] } - all matches, because
- * one name can be several things at once and only the title's context can pick: "fabric" is
- * the London club (venue) and "Fabric" an artist. "" is both "never asked" and "MixesDB has
- * no such category", which are the same thing to a caller: no help from here. The test
- * fixtures write entries as plain type strings, which every reader below accepts too.
+ * A cache entry is { matches: [ { title, type, mixes, exactCase, recent } ] } - all matches,
+ * because one name can be several things at once and only the title's context can pick:
+ * "fabric" is the London club (venue) and "Fabric" an artist. "" is both "never asked" and
+ * "MixesDB has no such category", which are the same thing to a caller: no help from here.
+ * The test fixtures write entries as plain type strings, which every reader below accepts too.
+ *
+ * "recent" (non-artist matches only - the server does not ship it for artists) holds the
+ * titles of recently added mix pages in that category, in NO reliable order: the server walks
+ * cl_timestamp, which is when the page was (re)categorized, not the mix date. Sort before
+ * showing. The hints bar's category chips are the reader today; the page-text learning
+ * (roadmap step 4) is the planned second one.
  */
 var mdbTitle_categoryCache = {},
     mdbTitle_categoryApiUrl = "https://www.mixesdb.com/w/api.php",
@@ -2275,7 +2281,10 @@ function mdbTitle_lookupCategories( names, callback ) {
             format: "json",
             formatversion: 2,
             origin: "*", // MediaWiki's CORS switch for an anonymous cross-origin read
-            names: wanted.join( "|" )
+            names: wanted.join( "|" ),
+            // the recent mix pages of each non-artist match ride along in the same request
+            // (contract caps this at 10) - the hints bar shows them behind the category chips
+            recentlimit: 10
         },
         success: function( data ) {
             var entries = ( data && data.mdbnames ) || [],

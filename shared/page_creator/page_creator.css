@@ -784,10 +784,10 @@
  * is on screen the whole time and holds a line or two.
  *
  * A COLUMN, not a row of hints side by side - more hints are coming (row_enrichment.md), and
- * they are sentences, not chips. INSIDE a hint everything is plain inline flow, spaced by
- * margins rather than by a flex gap: a gap would space the comma and the brackets like words,
- * and those have to sit against what they belong to - "Horst Festival (Search)", never
- * "Horst Festival ( Search )".
+ * they are sentences, not chips. The "Used categories" line inside it IS chips (below), but
+ * inside a chip everything is plain inline flow, spaced by margins rather than by a flex gap:
+ * the loupe and the count have to sit against the name they belong to, not float next to it
+ * like words of their own.
  */
 #mdb-pageCreator-hints {
     grid-column: 1 / -1;
@@ -812,25 +812,40 @@
     color: #8b8b8b;
 }
 
-/*
- * The punctuation between and around the names: the comma separating two of them and the
- * brackets around "Search". Grey and NOT part of the coloured name, so the colour says
- * something about the name alone - a red bracket would read as part of the verdict. No margin
- * of their own: each sits directly against what it belongs to.
- */
-#mdb-pageCreator-hints .mdb-pageCreator-hint-sep {
-    color: #8b8b8b;
+/* The "Used categories" line: the label, then one chip per category, the flex gap the only
+   spacing - no separators in the markup. baseline, not center: an open chip grows a list
+   downward, and the label has to stay on its first line. */
+#mdb-pageCreator-hints #mdb-pageCreator-usedCats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
 }
 
 /*
- * One name. The space in front is the entry's own margin rather than the label's or the comma's,
- * so the first entry (which follows the label) and every later one (which follows a comma) are
- * spaced by the same rule. nowrap keeps a name and its "(Search)" together - a hint wraps
- * between entries, never inside one.
+ * One category as a chip: the reasoning panel's chip look (monospace, hairline border, pill
+ * radius - .mdb-pageCreator-chip above) coloured by the VERDICT, but with no fill: the bar is
+ * on screen the whole time, and a row of filled chips shouted. max-width keeps a chip that
+ * folded its recent mixes out inside the bar.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat {
-    margin-left: 5px;
-    white-space: nowrap;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px 9px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+}
+
+/* the chip border in the verdict's colour - the panel's kept/removed border tints */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-known {
+    border-color: rgba(46, 184, 46, 0.35);
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing {
+    border-color: rgba(217, 83, 83, 0.35);
 }
 
 /*
@@ -841,45 +856,206 @@
  * it out: an unstated visited colour turns the name purple on the second look, and the colour
  * here IS the verdict.
  */
-#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known a,
-#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known a:visited {
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a:visited {
     color: #58c96b;
     font-weight: 600;
     text-decoration: none;
 }
 
-#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known a:hover {
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a:hover {
     color: #58c96b;
     text-decoration: underline;
 }
 
-/* no link: there is no category page to open. cursor: help, because the tooltip is the answer */
-#mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > span:first-child {
+/* a red name IS the search link - there is no category page its colour could promise, so the
+   click answers the question the red poses: really new, or spelled differently on MixesDB? */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a:visited {
     color: #ef6a6a;
     font-weight: 600;
-    cursor: help;
-}
-
-/* the wiki has not been asked (yet) - grey, never red: nobody denied this name */
-#mdb-pageCreator-hints .mdb-pageCreator-usedCat-unknown > span {
-    color: #8b8b8b;
-    cursor: help;
-}
-
-/* "(Search)" behind a red name - the brackets grey, only the word is the link */
-#mdb-pageCreator-hints .mdb-pageCreator-usedCat-search {
-    margin-left: 5px;
-}
-
-#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-search a,
-#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-search a:visited {
-    color: #6cb2f7;
     text-decoration: none;
 }
 
-#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-search a:hover {
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a:hover {
+    color: #ef6a6a;
+    text-decoration: underline;
+}
+
+/* the flat loupe behind the red name, marking it as that search. stroke: currentColor in the
+   markup, so it wears the link's red without a colour of its own here */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-loupe {
+    width: 12px;
+    height: 12px;
+    margin-left: 5px;
+    vertical-align: -1px;
+}
+
+/* the wiki has not been asked (yet) - the panel's candidate grey, never red: nobody denied
+   this name */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-unknown > span {
+    color: #e0e0e0;
+    cursor: help;
+}
+
+/*
+ * The "N mixes" behind a confirmed name - the panel's muted count (.mdb-pageCreator-reasoning-
+ * mixes above). Where it is the recent-mixes toggle it is an <a> without an href; the dotted
+ * underline is what says "this opens something" without promising a page, and the hover
+ * brightens rather than recolours - the count is a side note either way. The toggle is a
+ * direct child of the chip like the green name link, so the known-link rule above hits it
+ * too - the second class here is what outranks that rule's green and bold.
+ */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-usedCat-mixes {
+    margin-left: 7px;
+    color: #8b8b8b;
+    font-size: 11.5px;
+    font-weight: normal;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat a.mdb-pageCreator-usedCat-mixes {
+    cursor: pointer;
+    border-bottom: 1px dotted rgba(139, 139, 139, 0.7);
+}
+
+/* text-decoration restated: the known-link hover rule above underlines every direct-child
+   <a> of a green chip on hover, and the dotted border is this element's only line */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat a.mdb-pageCreator-usedCat-mixes:hover {
+    color: #e0e0e0;
+    text-decoration: none;
+    border-bottom-color: rgba(224, 224, 224, 0.7);
+}
+
+/*
+ * The recent mix pages, folded out INSIDE the chip: the chip trades its pill radius for a
+ * rounder box and the list sits under a hairline in the chip's own green, so chip and list
+ * read as ONE bordered thing - which they are. Hidden by the chip's open class rather than
+ * jQuery's toggle: the bar is rebuilt whole on every render, and the class is what
+ * mdbPageCreator_openUsedCatRecent restores.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open {
+    border-radius: 12px;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent {
+    display: none;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
+    display: block;
+    margin-top: 4px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(46, 184, 46, 0.25);
+}
+
+/* one mix page per line - the ordinary link blue: these are pages, not verdicts */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:visited {
+    display: block;
+    padding: 1px 0;
+    color: #6cb2f7;
+    font-size: 11.5px;
+    font-weight: normal;
+    text-decoration: none;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:hover {
     color: #6cb2f7;
     text-decoration: underline;
+}
+
+/*
+ * The MixesDB modal (mdbPageCreator_modalOpen in page_creator.js): the framed MixesDB page a
+ * plain left click on a "Used categories" link opens on a desktop-wide window. The box takes
+ * the panels' dark frame; the iframe itself stays white, because MixesDB is a light page and
+ * white is what it will paint anyway - a dark hole that flashes bright on load is worse.
+ * z-index at the top of the scale: the sites layer their own overlays generously, and a modal
+ * half under a player bar is unusable.
+ */
+#mdb-pageCreator-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 4vw;
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-box {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: min(1100px, 100%);
+    height: 100%;
+    max-height: 900px;
+    overflow: hidden;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    color: #e0e0e0;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* the page's name, ellipsised - a mix title can be longer than the header */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-title {
+    flex: 1;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* the way out when a quick look turns into real reading - and the fallback if the frame
+   will not load. ID + class outruns the sites' <a> styling, like every link above. */
+#mdb-pageCreator-modal a.mdb-pageCreator-modal-ext,
+#mdb-pageCreator-modal a.mdb-pageCreator-modal-ext:visited {
+    color: #6cb2f7;
+    font-size: 12px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-modal a.mdb-pageCreator-modal-ext:hover {
+    color: #6cb2f7;
+    text-decoration: underline;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-close {
+    padding: 0 4px;
+    color: #8b8b8b;
+    font-size: 22px;
+    line-height: 1;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-close:hover {
+    color: #e0e0e0;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frame {
+    flex: 1;
+    width: 100%;
+    border: 0;
+    background-color: #fff;
 }
 
 /*

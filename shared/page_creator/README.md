@@ -52,16 +52,25 @@ A box under the title field – framed like the reasoning panel, and always ther
 title itself cannot say: things worth checking before clicking **Create**.
 
 **Used categories** lists the artist and the entity category the new page would be filed under,
-and says for each whether MixesDB already has it:
+one chip per name, its colour saying whether MixesDB already has it:
 
-- **green** – the category exists. The name links to it, opening in a new tab so the player page
-  stays where it is. Where the wiki spells the name differently than the title does, the tooltip
-  says so – that is a correction worth making in the field above before creating.
+- **green** – the category exists. The name links to it, and its mix count stands behind it.
+  Where the wiki spells the name differently than the title does, the tooltip says so – that is
+  a correction worth making in the field above before creating. On a podcast, show, venue or
+  event category the count is a toggle: a click folds the category's most recently added mix
+  pages out inside the chip, newest first, each linking to its page – the quickest way to see
+  how pages of this series are named, and whether the mix is already among them.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
-  first page), but it is exactly where a typo or a second spelling hides, so a **Search** link
-  behind the name looks the name up on MixesDB: a hit there means the wiki knows it under
-  another name.
+  first page), but it is exactly where a typo or a second spelling hides – so the name itself,
+  marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
+  knows it under another name.
 - **grey** – MixesDB has not been asked about this name (yet), so there is no answer either way.
+
+On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
+and the recent mix pages – open the page in a modal right here instead of a tab: the look they
+serve is a five-second one. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
+the links directly. On a narrow window the links open as tabs, as before.
 
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
 files it as, since a podcast, a show, a venue and a festival can all stand in that slot. The year
@@ -290,12 +299,14 @@ placeholder only holds the space below it.
    podcast, show, venue, event – case-insensitively and in its own spelling, and the suggested
    title uses that answer (`asa 808` → `ASA 808`, known venues become
    `@ Venue, City`, known podcasts stop getting `(Promo Mix)` wrongly).
-2. **Double-check info in the row** – the first part is live since 2026-08-18: the
-   [Used categories](#hints-under-the-title) line says which of the page's categories MixesDB
-   already has. Still to come: the type and mix count next to each, the category *family* around
-   a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`, `Dekmantel São Paulo Podcast`,
-   …), and the most recent + same-date mix pages of the artist and the show. So "this page may
-   already exist" is visible **before** creating.
+2. **Double-check info in the row** – live since 2026-08-18 as the
+   [Used categories](#hints-under-the-title) chips: which of the page's categories MixesDB
+   already has, the mix count of each, and – behind the count of a podcast, show, venue or
+   event – the category's most recently added mix pages. Still to come: the category *family*
+   around a name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`, `Dekmantel São Paulo
+   Podcast`, …), the artist category's recent pages (the wiki only ships them for non-artist
+   categories) and the pages around the mix date. So "this page may already exist" is visible
+   **before** creating.
 3. **Duplicate protection on Create** – a mix page that carries the track's URL only as a
    commented-out mirror looks like "not on MixesDB yet" today and invites duplicates; a search in
    the page source catches it. Plus a sanity check when **Create** is clicked – exact and fuzzy
