@@ -123,7 +123,7 @@ var mdbPageCreator_title = "",
     mdbPageCreator_reasoningTimer = null,
     // the poll behind the panel's own loading state - see mdbPageCreator_watchReasoningReady()
     mdbPageCreator_reasoningReadyPoll = null,
-    // The trace of the FIRST build - the one that ran before the wiki was asked, section 2a of
+    // The trace of the FIRST build - the one that ran before the wiki was asked, section 2 of
     // the panel. mdbTitle_trace itself always holds the LAST run, which is the lookup-informed
     // one, so without this the panel could only show the cleanup as it looked in hindsight.
     // A reference is enough: the second pass builds a new trace object rather than adding to
@@ -133,7 +133,7 @@ var mdbPageCreator_title = "",
     // What the two passes MADE of the title. The trace alone cannot answer that: the branches
     // the wiki's answers open - the venue reading above all - write no cleanup step, so a run
     // that turns "kernel existence - Ritter Butzke Berlin (Promo Mix)" into
-    // "Kernel Existence @ Ritter Butzke, Berlin" has an empty step diff, and section 2b would
+    // "Kernel Existence @ Ritter Butzke, Berlin" has an empty step diff, and section 4 would
     // report that nothing had happened. These two say what did.
     mdbPageCreator_titlePreLookup = "",
     mdbPageCreator_titlePostLookup = "",
@@ -226,7 +226,7 @@ function mdbPageCreator_add( options ) {
 
         var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );
 
-        // section 2b of the reasoning panel is this difference, so it is kept, not only logged
+        // section 4 of the reasoning panel is this difference, so it is kept, not only logged
         mdbPageCreator_titlePostLookup = second.title;
 
         if( second.title !== first.title ) {
@@ -1117,27 +1117,29 @@ function mdbPageCreator_reportDay( date ) {
  * The reasoning panel
  *
  * Opens with the report box, above it: the sections that say how the suggestion was built, in
- * the order the build really ran - 1 -> 2a -> 3 -> 2b -> 4.
+ * the order the build really ran - 1 -> 2 -> 3 -> 4 -> 5.
  *
- *   (1)  the chunks the player title split into
- *   (2a) what the FIRST parse fixed and removed, before the wiki was asked anything
- *   (3)  the one lookup request - built from the chunks of 1 plus the channel, and NOT from
- *        the cleaned title of 2a, which is why its names are not 2a's chunks
- *   (2b) the SECOND parse: the same cleanup re-run with the answers in hand, listing only
- *        what they changed. This is the run the title on screen comes from
- *   (4)  the categories the created page would be filed under, each annotated with what the
- *        lookup cache says about it - exactly the check a reporter otherwise runs by hand
+ *   (1) the chunks the player title split into - the lookup's raw material
+ *   (2) what the FIRST parse fixed and removed, before the wiki was asked anything, closing
+ *       with the title it built as one grey chip - a candidate until the answers are in
+ *   (3) the one lookup request - built from the chunks of 1 plus the channel, and NOT from
+ *       the cleaned title of 2, which is why its names are not that title's words
+ *   (4) the SECOND parse: the same cleanup re-run with the answers in hand, listing only
+ *       what they changed and closing with the final title as one green chip. This is the
+ *       run the title on screen comes from
+ *   (5) the categories the created page would be filed under, each annotated with what the
+ *       lookup cache says about it - exactly the check a reporter otherwise runs by hand
  *
- * The numbering says 2a/2b rather than 2/4 because the parse is a LOOP, not a line: the same
- * cleanup runs twice, once on either side of the lookup. A straight 1..5 would claim the wiki
- * was asked in the middle of one cleanup instead of between two of them, and a reporter who
- * believes that reports a step that never ran.
+ * 2 and 4 are ONE stage run twice, on either side of the lookup - said by their shared
+ * accent, the copy button's orange, against the grey of the raw-material sections 1/3 and
+ * the green of 5. The chips are coloured the same way, by STATE and not by type: grey while
+ * a name or title is only a candidate, red for what was ignored, green for what ends up used.
  *
  * The sources are title_builder.js's plain-data globals (mdbTitle_trace, mdbTitle_lookupLog,
  * mdbTitle_categoryCache, mdbTitle_candidateSources) plus mdbPageCreator_tracePreLookup - the
  * first pass's trace, which only this file can keep, since the parser cannot tell its own
- * passes apart - plus the title as it stands in the field. Sections 1-2b describe the PLAYER
- * title and only change when the suggestion is rebuilt; section 4 follows every edit of the
+ * passes apart - plus the title as it stands in the field. Sections 1-4 describe the PLAYER
+ * title and only change when the suggestion is rebuilt; section 5 follows every edit of the
  * field - debounced, because a corrected name may need a lookup of its own and firing one per
  * keystroke would spam the wiki.
  *
@@ -1398,7 +1400,7 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
             result.append( mdbPageCreator_reasoningNote( "lookup failed", "bad" ) );
         } else {
             // the normal outcome for most title bits, so muted rather than a warning -
-            // section 4 is where an unknown name matters
+            // section 5 is where an unknown name matters
             result.append( mdbPageCreator_reasoningNote( "no category of this name", "muted" ) );
         }
     }
@@ -1408,7 +1410,7 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
     // title should have used. Muted: the red chip already carries the verdict.
     if( overruledBy ) {
         result.append( mdbPageCreator_reasoningNote(
-            "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2a)", "muted" ) );
+            "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule, section 2)", "muted" ) );
     }
 
     // A third grid item, not a line inside the answers: it spans both tracks (see the CSS), so
@@ -1616,7 +1618,7 @@ function mdbPageCreator_reasoningStepDetail( step ) {
 
 // mdbPageCreator_reasoningStepKey
 // What makes two steps of two different runs the same step. The parse runs TWICE - once
-// before the wiki is asked and once with its answers - and sections 2a/2b are that difference,
+// before the wiki is asked and once with its answers - and sections 2/4 are that difference,
 // so "same step" has to be decided somewhere central. Label plus detail: a step that did the
 // same thing to the same text IS the same step, whichever run wrote it.
 function mdbPageCreator_reasoningStepKey( step ) {
@@ -1625,7 +1627,7 @@ function mdbPageCreator_reasoningStepKey( step ) {
 
 // mdbPageCreator_reasoningSteps
 // The rendered list of cleanup steps, or an empty jQuery set when there are none. Shared by
-// the two cleanup sections (2a before the lookup, 2b what its answers changed), so a step
+// the two cleanup sections (2 before the lookup, 4 what its answers changed), so a step
 // looks the same wherever it ran.
 function mdbPageCreator_reasoningSteps( steps ) {
     if( !steps || !steps.length ) return $();
@@ -1763,7 +1765,7 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
                     note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", "info" ) );
                 }
             } else {
-                note.append( mdbPageCreator_reasoningNote( "no artist category of this name yet - a new name, or misspelled", "warn" ) );
+                note.append( mdbPageCreator_reasoningNote( "no artist category of this name yet - a new name, or misspelled", "muted" ) );
             }
             break;
 
@@ -1777,7 +1779,7 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
                     note.append( mdbPageCreator_reasoningNote( "the wiki spells it \"" + match.title + "\"", "info" ) );
                 }
             } else {
-                note.append( mdbPageCreator_reasoningNote( "no category of this name yet", "warn" ) );
+                note.append( mdbPageCreator_reasoningNote( "no category of this name yet", "muted" ) );
             }
             break;
 
@@ -1907,7 +1909,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.empty();
 
     // 1) the chunks the player title split into
-    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks", "the units of the parse - split at separators, brackets and a series' \"by\". The lookups of 3 are built from these, not from the cleaned title of 2a" );
+    var s1 = mdbPageCreator_reasoningSection( "1", "Title chunks for category lookup", "the units of the parse - split at separators, brackets and a series' \"by\". The lookups of 3 are built from these, not from the cleaned title of 2" );
 
     if( trace ) {
         s1.append(
@@ -1930,31 +1932,36 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s1 );
 
-    // 2a) the cleanup as it ran BEFORE the wiki was asked - the first pass's trace. The panel
+    // 2) the cleanup as it ran BEFORE the wiki was asked - the first pass's trace. The panel
     // used to show the second pass's here, one section above the lookups that fed it, which
     // read as a pipeline that runs in an order it never ran in.
     var preTrace = mdbPageCreator_tracePreLookup || trace,
-        s2a = mdbPageCreator_reasoningSection( "2a", "Fixed and cleaned", "the first parse, before the wiki was asked anything: typos, decoration, credits and the date, taken out of the player title - and the curated channel → show rules when one applied. \"?\" shows the rule list a step worked off" );
+        s2 = mdbPageCreator_reasoningSection( "2", "Title fixed and cleaned", "the first parse, before the wiki was asked anything: typos, decoration, credits and the date, taken out of the player title - and the curated channel → show rules when one applied. \"?\" shows the rule list a step worked off" );
 
     if( preTrace ) {
         var preSteps = mdbPageCreator_reasoningSteps( preTrace.steps );
 
-        if( preSteps.length ) s2a.append( preSteps );
-        else s2a.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "Nothing had to be fixed or removed." ) );
+        if( preSteps.length ) s2.append( preSteps );
+        else s2.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" ).text( "Nothing had to be fixed or removed." ) );
 
-        s2a.append(
-            $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Left for the parser:" ),
-            // green-tinted: these chunks survived the cleanup and are what the parse works on
-            mdbPageCreator_reasoningChips( mdbTitle_traceChunks( preTrace.cleaned ), "mdb-pageCreator-chip-kept" )
-        );
+        // What this pass built, as ONE chip - the whole title, never re-split into chunks
+        // (showing the units is section 1's job, and a second splitter here could disagree
+        // with it). Grey like section 1's chips: chips are coloured by STATE, and before the
+        // wiki has answered this title is only a candidate - it stands green (final) in 4.
+        if( mdbPageCreator_titlePreLookup ) {
+            s2.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Title candidate:" ),
+                mdbPageCreator_reasoningChips( [ mdbPageCreator_titlePreLookup ] )
+            );
+        }
     }
 
-    panel.append( s2a );
+    panel.append( s2 );
 
-    // 3) the MixesDB lookups. The categories of section 4 are computed here already: the
+    // 3) the MixesDB lookups. The categories of section 5 are computed here already: the
     // asked-name chips answer that section by colour - green when the name ended up a
     // category of the new page, red when it did not.
-    var s3 = mdbPageCreator_reasoningSection( "3", "MixesDB lookups", "one request, fired off the CHUNKS of 1 (plus the channel) - not off the cleaned title of 2a. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories in 4, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
+    var s3 = mdbPageCreator_reasoningSection( "3", "Category candidate lookups on MixesDB", "one request, fired off the CHUNKS of 1 (plus the channel) - not off the cleaned title of 2. Sorted by the role the title's shape gives each name BEFORE the wiki answers - who could be the artist, what could be the entity - each with what the wiki's own category names say. Green chips became categories of 5, red ones did not. The % behind an answer is how strongly it backs the name; hover it for what lowered it" ),
         entries = mdbPageCreator_categoryEntries( title ),
         catKeys = {};
 
@@ -1970,7 +1977,7 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         var roles = ( typeof mdbTitle_candidateRoles !== "undefined" && mdbTitle_candidateRoles ) ? mdbTitle_candidateRoles : {},
             // where each name came from (mdbTitle_candidateSources) - the channel stands in no
             // chunk, and a chunk is asked without its episode number, so a chip that quotes
-            // neither section 1 nor section 2a reads as invented without this
+            // neither section 1 nor section 2 reads as invented without this
             sources = ( typeof mdbTitle_candidateSources !== "undefined" && mdbTitle_candidateSources ) ? mdbTitle_candidateSources : {},
             lookups = $("<div>").addClass( "mdb-pageCreator-reasoning-lookups" ),
             artistCol = mdbPageCreator_reasoningLookupColumn( "Artist category candidates" ),
@@ -2039,11 +2046,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     panel.append( s3 );
 
-    // 2b) the SECOND parse - the same cleanup re-run with the answers of 3 in hand. Numbered
-    // 2b and not 4 because it is the same stage as 2a, run again: the parse is a loop
-    // (1 -> 2a -> 3 -> 2b -> 4), and a straight 1..5 would claim the wiki was asked in the
-    // middle of one cleanup instead of between two of them.
-    var s2b = mdbPageCreator_reasoningSection( "2b", "Parsed again, with the answers", "the same cleanup once more, now knowing what MixesDB has - this is the run the title on screen comes from. Only what the answers CHANGED is listed; everything else ran exactly as in 2a" );
+    // 4) the SECOND parse - the same cleanup re-run with the answers of 3 in hand. The same
+    // stage as 2, run again (the parse is a loop, not a line: 1 -> 2 -> 3 -> 4 -> 5 with the
+    // wiki asked between the two builds), which is what the sections' shared accent says.
+    var s4 = mdbPageCreator_reasoningSection( "4", "Title refined after lookup learnings", "the same cleanup once more, now knowing what MixesDB has - this is the run the title on screen comes from. Only what the answers CHANGED is listed; everything else ran exactly as in 2" );
 
     if( trace && mdbPageCreator_tracePreLookup && trace !== mdbPageCreator_tracePreLookup ) {
         var added = mdbPageCreator_reasoningStepsAdded( preTrace.steps, trace.steps ),
@@ -2067,21 +2073,21 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
         var addedRows = mdbPageCreator_reasoningSteps( rows );
 
-        if( addedRows.length ) s2b.append( addedRows );
+        if( addedRows.length ) s4.append( addedRows );
 
         if( titleChanged ) {
-            s2b.append(
+            s4.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
-                    mdbPageCreator_reasoningNote( "why this name and not that one is the \"picked as …\" line of each category in 4", "muted" )
+                    mdbPageCreator_reasoningNote( "why this name and not that one is the \"picked as …\" line of each category in 5", "muted" )
                 )
             );
         }
 
         // a step the answers made STOP happening is the same news the other way round - the
         // venue branch turning a title live is what drops its place-list removal, and a
-        // reader comparing 2a with the title on screen would otherwise miss it
+        // reader comparing 2 with the title on screen would otherwise miss it
         for( i = 0; i < gone.length; i++ ) {
-            s2b.append(
+            s4.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
                     $("<span>").text( "No longer done:" ),
                     $("<span>").addClass( "mdb-pageCreator-reasoning-step-label" ).text( gone[i].label ),
@@ -2093,33 +2099,36 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         // added/gone, not addedRows: the suggestion row above is not a cleanup step, and
         // counting it would swallow the one line that says the cleanup itself ran the same
         if( !added.length && !gone.length ) {
-            s2b.append(
+            s4.append(
                 $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
                     mdbPageCreator_reasoningNote( titleChanged
                         ? "no cleanup step ran differently - the answers changed which name got which slot, not what was taken out of the title"
-                        : "the answers changed nothing - the suggestion is the one 2a built, and what they confirmed is in 4", "muted" )
+                        : "the answers changed nothing - the suggestion is the one 2 built, and what they confirmed is in 5", "muted" )
                 )
             );
         }
 
-        // only when it really differs: the same chips twice read as a step that happened
-        // between them, and usually nothing here moves
-        if( trace.cleaned !== preTrace.cleaned ) {
-            s2b.append(
-                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Left for the parser:" ),
-                mdbPageCreator_reasoningChips( mdbTitle_traceChunks( trace.cleaned ), "mdb-pageCreator-chip-kept" )
+        // The title again, whole and now GREEN: the answers are in, this build is final.
+        // The field above may carry the user's correction - that corrected title IS the
+        // final one, so the chip follows the field, not the frozen suggestion.
+        var finalTitle = title || mdbPageCreator_titlePostLookup;
+
+        if( finalTitle ) {
+            s4.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).text( "Final title:" ),
+                mdbPageCreator_reasoningChips( [ finalTitle ], "mdb-pageCreator-chip-kept" )
             );
         }
     } else {
         // before the answer is in (and after a title edit, which re-renders without rebuilding)
-        s2b.append( mdbPageCreator_reasoningNote( "the second parse has not run yet - the title on screen is the one 2a built", "muted" ) );
+        s4.append( mdbPageCreator_reasoningNote( "the second parse has not run yet - the title on screen is the one 2 built", "muted" ) );
     }
 
-    panel.append( s2b );
+    panel.append( s4 );
 
-    // 4) the categories of the created page - read off the CURRENT title (the same entries
+    // 5) the categories of the created page - read off the CURRENT title (the same entries
     // section 3's chip colours were computed from), like the page text
-    var s4 = mdbPageCreator_reasoningSection( "4", "Categories for the new page", "read off the title above" ),
+    var s5 = mdbPageCreator_reasoningSection( "5", "Categories for the mix page", "read off the title above" ),
         cats = $("<div>").addClass( "mdb-pageCreator-reasoning-cats" );
 
     // typeof-guarded like the rest of the trace: a stale cached title_builder.js without picks
@@ -2130,8 +2139,8 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         cats.append( mdbPageCreator_reasoningCategoryRow( entries[i], cache, picks ) );
     }
 
-    s4.append( cats );
-    panel.append( s4 );
+    s5.append( cats );
+    panel.append( s5 );
 }
 
 
@@ -2644,7 +2653,7 @@ function mdbPageCreator_validateTracklist() {
 // the box still holds unformatted text that the blur or the click owes a formatting pass, and
 // marking it validated would skip exactly that pass.
 //
-// The reasoning panel is re-rendered because its section 4 files that category: the render is
+// The reasoning panel is re-rendered because its section 5 files that category: the render is
 // the whole stateless panel, but with the title untouched sections 1-3 come out unchanged -
 // what the reader sees change is the category row. Deliberately NOT
 // mdbPageCreator_queueReasoningUpdate(), which is the title-edit path and would fire a name

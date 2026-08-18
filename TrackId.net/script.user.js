@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.18.12
+// @version      2026.08.18.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_45
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_46
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_47
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 131,
+var cacheVersion = 132,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1911,6 +1911,21 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.18.13
+ * The reasoning panel's sections are renumbered 1..5 as shown - the 2a/2b pair is gone - and
+ * renamed for what they hold: "Title chunks for category lookup", "Title fixed and cleaned",
+ * "Category candidate lookups on MixesDB", "Title refined after lookup learnings",
+ * "Categories for the mix page" (page_creator.js v_47, page_creator.css). Colours now follow
+ * STATE, not type: grey while something is only a candidate (section 1's chunks and the
+ * channel chip included), red for what was ignored, green only for what ends up used - so
+ * green no longer means one thing in 3 and another under 2. The two build sections close
+ * with the built title as ONE chip instead of re-split chunks: "Title candidate:" in grey
+ * before the lookup, "Final title:" in green after it - which also retires the re-split
+ * that could disagree with section 1 (the glued "Dark Skies, Horst Festival 2026" chip of
+ * the .12 report). The section accents follow the same states - the copy button's orange
+ * for the two title builds, grey for 1/3, green for 5 - and "no category of this name yet"
+ * in 5 drops its unique yellow for the standard grey.
  *
  * 2026.08.18.12
  * A place group an uploader wrote the other way round is now read as two names
