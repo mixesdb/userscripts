@@ -948,5 +948,17 @@ var mdbTitleExamples = [
         date: "2026-08-15",
         expectChunks: [ "Blackmoonchild", "The Lot Radio" ],
         expect: "2026-08-15 - Blackmoonchild @ The Lot Radio"
+    },
+    {
+        // Reported: the title and both categories were right, but the wiki was asked about
+        // "Unedited (Promo Mix)" - the marker WE append rode along into the name read back
+        // out of the finished title. No category is called that, so the answer could only be
+        // empty. The entity read off a title is the bare name (mdbTitle_dropMarkers).
+        url: "https://soundcloud.com/as-you-like-it/djspun-unedited-ayli-1",
+        title: "DJ SPUN | UNEDITED | 07.31.26 | Part 1",
+        channel: "As You Like It",
+        date: "2026-08-18",
+        expectEntity: "Unedited",
+        expect: "2026-07-31 - DJ Spun - Unedited (Promo Mix)"
     }
 ];

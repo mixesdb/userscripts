@@ -289,6 +289,16 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   the character is illegal in a wiki title, so a name carrying one can only answer empty.
   Sits in the one funnel both lookup rounds pass through, so an edited title's names are
   covered too.
+- **Our own markers are never sent** - `mdbTitle_dropMarkers` takes the " (Promo Mix)" and the
+  " (Live PA)" off a name first. We write those into a title to say something about the
+  RECORDING; no category is called that, so `Unedited (Promo Mix)` could only answer empty.
+  Reported on `DJ SPUN | UNEDITED | 07.31.26 | Part 1`, where the title and both categories
+  were right and the wiki was asked about a name that cannot exist: the artists' side had
+  dropped the marker from the start, but the entity read back off a finished title
+  (`mdbTitle_titleCategories`, the source of the panel's re-lookup after an edit) kept it. The
+  strip sits in the same funnel as the "#" rewrite, so no round can ask for one, and in
+  `mdbTitle_titleCategories` on top, so the name whose ROLE and ORIGIN the panel records is the
+  same name that is asked about.
 - **All matches per name are kept**, because one name is legitimately several things:
   `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
   a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never
