@@ -222,29 +222,38 @@
     color: #f0f0f0;
 }
 
-/* the little count bubble in front of each heading - tinted per section below */
+/* The little count bubble in front of each heading - tinted per section below. A pill, not a
+   circle: the two cleanup sections are labelled "2a" and "2b" (the same stage, run on either
+   side of the lookup), and a fixed 20px circle clips the second character. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     align-self: center;
-    width: 20px;
+    box-sizing: border-box;
+    min-width: 20px;
     height: 20px;
-    border-radius: 50%;
+    padding: 0 6px;
+    border-radius: 10px;
     background-color: rgba(255, 255, 255, 0.12);
     font-size: 11px;
     line-height: 1;
 }
 
-/* the four accents: blue, amber, purple, green */
+/* the four accents: blue, amber, purple, green - 2a and 2b share the amber, since they are
+   the same stage of the parse and the reader is meant to compare them */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1 { border-left-color: rgba(77, 159, 236, 0.65); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2 { border-left-color: rgba(232, 147, 12, 0.65); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2a,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2b { border-left-color: rgba(232, 147, 12, 0.65); }
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 { border-left-color: rgba(177, 140, 255, 0.65); }
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 { border-left-color: rgba(46, 184, 46, 0.65); }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1 .mdb-pageCreator-reasoning-no { color: #6cb2f7; background-color: rgba(77, 159, 236, 0.18); }
-#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2 .mdb-pageCreator-reasoning-no { color: #f0a943; background-color: rgba(232, 147, 12, 0.18); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2 .mdb-pageCreator-reasoning-no,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2a .mdb-pageCreator-reasoning-no,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2b .mdb-pageCreator-reasoning-no { color: #f0a943; background-color: rgba(232, 147, 12, 0.18); }
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 .mdb-pageCreator-reasoning-no { color: #b18cff; background-color: rgba(177, 140, 255, 0.18); }
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4 .mdb-pageCreator-reasoning-no { color: #58c96b; background-color: rgba(46, 184, 46, 0.18); }
 
@@ -467,12 +476,35 @@
     color: #9a9a9a;
 }
 
-/* one column's rows: chip left, that role's answers right */
+/* One column's rows: chip left, that role's answers right. minmax(0, 1fr) and not 1fr: the
+   answers may wrap as narrow as their track, so the two columns of section 3 shrink with the
+   panel instead of pushing a horizontal scrollbar onto it. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookupCol-rows {
     display: grid;
-    grid-template-columns: fit-content(45%) 1fr;
+    grid-template-columns: fit-content(45%) minmax(0, 1fr);
     gap: 8px 12px;
     align-items: center;
+}
+
+/* Where an asked name came from - its own line under the row, spanning both tracks. Section 3
+   asks about names BUILT from the chunks (the channel, a chunk without its episode number),
+   and this is the line that says so; inside the answer column it would eat the width the
+   answers need. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-origin {
+    grid-column: 1 / -1;
+    margin-top: -2px;
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
+/* A looked-up name is ONE name: it may wrap between words, never inside one. The shared chip
+   rule breaks anywhere (a chunk chip can hold half a player title), and that makes a name's
+   min-content ONE CHARACTER - which is how wide fit-content() above is then free to squeeze
+   the track: "HouseMusicWithLove" came out as a column of single letters as soon as the
+   answers next to it grew a line. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup > .mdb-pageCreator-chip {
+    word-break: normal;
+    overflow-wrap: break-word;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup {
@@ -494,11 +526,14 @@
     cursor: help;
 }
 
-/* one server match: the wiki's spelling, the type badge, the mix count */
+/* One server match: the wiki's spelling, the type badge, the mix count. Wraps: it is three
+   things next to each other, not one word, and in the narrow track of a candidate column an
+   unwrappable answer used to run off the panel. */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-match {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 4px 6px;
 }
 
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-mixes {

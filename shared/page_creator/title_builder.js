@@ -1766,7 +1766,20 @@ var mdbTitle_categoryCache = {},
     // lookup fires (mdbTitle_categoryCandidates): "artist" | "entity" per normalized name -
     // exactly one, the panel's section 3 files each chip into exactly one candidate column.
     // Reset with the log - the same name can play a different role on the next page.
-    mdbTitle_candidateRoles = {};
+    mdbTitle_candidateRoles = {},
+    // WHERE each candidate came from: normalized name -> { origin, chunk }. origin is
+    // "channel" | "channel name" | "curated show" | "chunk" | "title field", chunk holds the
+    // chunk a name was reduced from when it was one.
+    //
+    // The panel's section 3 prints it, because the names asked are NOT the chunks shown: the
+    // channel is asked though it stands nowhere in the title, and a chunk is asked without its
+    // episode number ("HATE Podcast 496" -> "HATE Podcast"). Without the origin those names
+    // read as invented, which is what the panel is there to disprove. Reset with the log.
+    mdbTitle_candidateSources = {},
+    // The other half of that question: chunks the split produced and the candidates
+    // deliberately did NOT ask about, each { text, why }. Rebuilt by every
+    // mdbTitle_categoryCandidates() run, since it is nothing but that run's decisions.
+    mdbTitle_chunksNotAsked = [];
 
 // mdbTitle_lookupLogEntry
 // The log entry for a name, created on first sight. pending/failed/skipped describe the
@@ -1808,6 +1821,39 @@ function mdbTitle_noteCandidateRole( name, role ) {
     var key = mdbTitle_normalizeCompare( name );
 
     if( key ) mdbTitle_candidateRoles[key] = role;
+}
+
+// mdbTitle_noteChunkNotAsked
+// Records a name the lookup deliberately skipped, for the panel's "Not asked:" line. Never
+// twice: the edit path runs the lookup again without the candidates having been rebuilt, and
+// the same skip listed three times reads as three different chunks.
+function mdbTitle_noteChunkNotAsked( text, why ) {
+    var key = mdbTitle_normalizeCompare( text ),
+        i;
+
+    if( !key ) return;
+
+    for( i = 0; i < mdbTitle_chunksNotAsked.length; i++ ) {
+        if( mdbTitle_normalizeCompare( mdbTitle_chunksNotAsked[i].text ) === key ) return;
+    }
+
+    mdbTitle_chunksNotAsked.push( { text: text, why: why } );
+}
+
+// mdbTitle_noteCandidateSource
+// Records where a candidate came from - see mdbTitle_candidateSources.
+//
+// FIRST write wins, unlike the role's last-write-wins: the panel prints this next to the
+// name as it was FIRST asked (that is the spelling the lookup log kept), so the origin has
+// to be the one that spelling came from. On a channel whose handle matches a chunk of the
+// title the two collide - "thelotradio" and "The Lot Radio" normalize to one key - and the
+// chunk taken later would otherwise explain a chip that shows the channel's handle.
+function mdbTitle_noteCandidateSource( name, origin, chunk ) {
+    var key = mdbTitle_normalizeCompare( name );
+
+    if( !key || Object.prototype.hasOwnProperty.call( mdbTitle_candidateSources, key ) ) return;
+
+    mdbTitle_candidateSources[key] = { origin: origin, chunk: chunk || "" };
 }
 
 // mdbTitle_knownAs
@@ -2001,32 +2047,37 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
         channelReplaced = !!convShow || !!seriesConv,
         i;
 
+    // the panel's "why is this chunk not in section 3?" line - this run's decisions alone
+    mdbTitle_chunksNotAsked = [];
+
     // role is what the name is a candidate FOR - "artist", "entity" or "both" - read off the
     // title's shape before the lookup fires. The panel's section 3 sorts its chips by it.
-    function take( name, role ) {
+    // origin/chunk say where the name comes from, which the panel prints next to it.
+    function take( name, role, origin, chunk ) {
         if( !name ) return;
 
         // the replaced channel name - the one name the maps already answer for
         if( channelReplaced && mdbTitle_normalizeCompare( name ) === mdbTitle_normalizeCompare( spacedUser ) ) return;
 
         mdbTitle_noteCandidateRole( name, role );
+        mdbTitle_noteCandidateSource( name, origin, chunk );
         names.push( name );
     }
 
     // a curated show name can only be the entity
-    if( convShow ) take( convShow, "entity" );
-    if( seriesConv ) take( seriesConv.entity, "entity" );
+    if( convShow ) take( convShow, "entity", "curated show" );
+    if( seriesConv ) take( seriesConv.entity, "entity", "curated show" );
 
     // The channel is asked as the entity: a channel is first read as the series the mixes
     // belong to. The wiki answering "artist" instead still shows under that one chip (the
     // type badge carries it), and the channel-as-artist branches still read the answer -
     // the role is what the parse EXPECTS, not a verdict.
-    take( spacedUser, "entity" );
+    take( spacedUser, "entity", "channel" );
 
     // A channel naming several names is asked about each of them: which one gets used is
     // decided off the title, and the wiki's answer is worth having for whichever it is.
     for( i = 0; channelNames.length > 1 && i < channelNames.length; i++ ) {
-        take( channelNames[i], "entity" );
+        take( channelNames[i], "entity", "channel name" );
     }
 
     for( i = 0; i < bits.length; i++ ) {
@@ -2037,7 +2088,11 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
         // not worth a request: a country is never a category, and the 10-name limit is real.
         // Behind the "@" only - a lone "Georgia" in front of it is an artist as readily as a
         // country, and its lookup is what says which.
-        if( inPlace && bit && mdbTitle_isCountry( bit ) ) continue;
+        if( inPlace && bit && mdbTitle_isCountry( bit ) ) {
+            mdbTitle_noteChunkNotAsked( bits[i],
+                "a country behind the \"@\" - never a category, and the 10-name request limit is real" );
+            continue;
+        }
 
         // behind the "@" everything is a place - an entity candidate, never an artist. In
         // front of it a series-looking bit ("MNMT Recordings", "HATE Podcast") asks as the
@@ -2067,10 +2122,13 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             // number, and a numbered name is a series - which is also what bitRole says,
             // since the digit alone already scores
             if( stripped && stripped !== bit && stripped.length >= 3 ) {
-                take( stripped, bitRole );
+                take( stripped, bitRole, "chunk", bits[i] );
             } else {
-                take( bit, bitRole );
+                take( bit, bitRole, "chunk", bits[i] );
             }
+        } else if( bit ) {
+            mdbTitle_noteChunkNotAsked( bits[i],
+                "longer than 80 characters - a page title that long is not a name" );
         }
     }
 
@@ -2120,6 +2178,11 @@ function mdbTitle_lookupCategories( names, callback ) {
         // title's names are covered too.
         if( mdbTitle_isStaticName( name ) ) {
             logVar( "mdbTitle_lookupCategories: static name, not asked", name );
+            // ... and the panel says so, on the same "Not asked:" line as the candidate-side
+            // skips: every chunk of section 1 is then either a chip in section 3 or a line
+            // saying why it is not, and none disappears without a word. Guarded against
+            // repeats - the edit path asks again without the candidates having run.
+            mdbTitle_noteChunkNotAsked( name, "a counting word - it says which episode this is, and MixesDB files nothing under it" );
             continue;
         }
 

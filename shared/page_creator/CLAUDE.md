@@ -352,12 +352,19 @@ filled in,
 plus the reporter's "Mistake / learning" and "Expected …" lines. That is exactly the input a case
 needs - do not ask back for any of it when the box was used.
 
-Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`): title chunks,
-cleanup steps, the mdbnames lookups with their answers, and the created page's categories
-annotated from the lookup cache. Its sources are plain-data globals in `title_builder.js` -
-`mdbTitle_trace` (filled by every `buildMixesdbTitle()` run) and `mdbTitle_lookupLog` (every
-name `mdbTitle_lookupCategories()` was ever asked on this page; the answers stay in
-`mdbTitle_categoryCache`). Display only, rebuilt whole on every render; a title edit re-renders
+Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`), numbered in the
+order the build RAN - **1 -> 2a -> 3 -> 2b -> 4**: the title chunks, the first parse's cleanup,
+the mdbnames lookups with their answers, the second parse (what those answers changed), and the
+created page's categories annotated from the lookup cache. 2a/2b rather than 2/4 because it is
+one stage run twice, on either side of the lookup - a straight 1..5 claims the wiki was asked in
+the middle of a cleanup, and a reporter who believes that reports a step that never ran. Its
+sources are plain-data globals in `title_builder.js` - `mdbTitle_trace` (filled by every
+`buildMixesdbTitle()` run), `mdbTitle_lookupLog` (every name `mdbTitle_lookupCategories()` was
+ever asked on this page; the answers stay in `mdbTitle_categoryCache`) and
+`mdbTitle_candidateSources`/`mdbTitle_chunksNotAsked` (where each asked name came from, and
+which chunk was deliberately skipped) - plus `mdbPageCreator_tracePreLookup` and
+`mdbPageCreator_titlePreLookup`/`_titlePostLookup`, which live in `page_creator.js` because
+telling the first pass from the second is orchestration knowledge the parser does not have. Display only, rebuilt whole on every render; a title edit re-renders
 debounced and looks the current title's names up first (cache-aware). Hardcoded dark like the
 loading skeleton (both sites are dark-themed). Opened while a lookup is still pending (or the
 page skeleton is up), it renders its own stand-in rows and a safety-net poll re-renders when
@@ -365,6 +372,18 @@ everything settled - the normal path is the refresh after the lookup answer.
 
 Settled about what it shows:
 
+- **Section 3's names are BUILT from section 1's chunks, and say so** - the channel (which
+  need not stand in the title), a curated show name, a chunk without its trailing episode
+  number. That difference is what made the panel read as contradicting itself, so every name
+  that is not simply a chunk carries its origin (`mdbTitle_candidateSources`) on a line of its
+  own under the row - spanning both grid tracks, since inside the answer column it ate the
+  width the answers need. The chunks the candidates deliberately skipped
+  (`mdbTitle_chunksNotAsked`) close the section on a "Not asked:" line, with the reason.
+- **Section 2b reports the SUGGESTION, not only the step diff** - the branches the wiki's
+  answers open write no cleanup step (the venue reading composes "A @ Venue, City" at the
+  single exit), so a run that rewrites the whole title has an empty step diff. Without
+  `mdbPageCreator_titlePreLookup`/`_titlePostLookup` next to it, 2b would report that nothing
+  had happened on exactly the titles where the lookup mattered most.
 - **Section 3 is two candidate columns, filled BEFORE the wiki answers** - "Artist category
   candidates" and "Entity category candidates". The ROLE comes from the title's shape
   (mdbTitle_candidateRoles, recorded by mdbTitle_categoryCandidates): names in front of the
@@ -410,13 +429,13 @@ Settled about what it shows:
   sentence in a variable set where the reading is decided, not one written at the return.
 - **Both chip lists are split by ONE function** - `mdbTitle_traceChunks()`, separator runs, the
   series-"by" and every " @ ". Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
-  calls it; section 2 ("Left for the parser") calls it directly on `trace.cleaned`. A split rule
-  added to only one of the two makes section 2 look like it re-joined a chunk, and a reporter
+  calls it; section 2a ("Left for the parser") calls it directly on `trace.cleaned`. A split rule
+  added to only one of the two makes section 2a look like it re-joined a chunk, and a reporter
   then reports a parse step that never ran. What the two sections may still differ in is
-  CLEANUP, not the split: section 2 quotes the title as it stands after the cleanup, where a
+  CLEANUP, not the split: section 2a quotes the title as it stands after the cleanup, where a
   live title's place groups are already comma-joined ("3000Grad Festival, Utopia"). A cleanup
   step that takes something out of a NAME belongs in both, though - the date used to be gone
-  in section 2 and still sitting in section 1's chip, which reads as the parse having put it
+  in section 2a and still sitting in section 1's chip, which reads as the parse having put it
   back.
 - **No step re-lists what the chunk section shows as removed** - a label credit, a place list.
   Done once, in `mdbTitle_traceStep()`, over every step's detail: a step quotes the title as it
