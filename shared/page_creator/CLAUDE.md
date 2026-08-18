@@ -325,8 +325,12 @@ Rules the implementation follows, settled before it was built - do not re-litiga
 - The module takes **10 names max** per request - the candidate list is priority-ordered
   (channel first) and truncated, not split into a second request.
 - **A non-artist match then reads the last ~8 mix pages in that category and copies their
-  format**, rather than deriving it. `list=categorymembers` with `cmnamespace=0&cmsort=timestamp&
-  cmdir=desc` (or the `recent` field, if the endpoint ships it). This is what settles episode
+  format**, rather than deriving it. `list=categorymembers` with `cmnamespace=0&cmsort=sortkey&
+  cmdir=desc` - a mix page title starts with its date, so the sortkey is the date. NEVER
+  `cmsort=timestamp`, which sorts by when the page was added to the CATEGORY and floats every
+  re-saved old page to the top (that was our own spec's mistake until 2026-08-18, and it is what
+  the `recent` field of `mdbnames` was built to - so `recent` misses the newest pages until the
+  endpoint is changed; `mdbPageCreator_usedCatFetchRecent()` asks correctly). This is what settles episode
   number padding (`Zenaari Mix 025`), separators (`Trommel.234`), formats no rule would invent
   (`RA Podcast (RA.1051)`), whether there is a number at all (`Essential Mix`), and the city of a
   venue or event (`@ Ritter Butzke, Berlin`) - which today is taken from the player title and is

@@ -19,7 +19,7 @@ siblings **with their wikitext**:
 
 ```
 generator=categorymembers & gcmtitle=Category:<entity> & gcmnamespace=0
-  & gcmsort=timestamp & gcmdir=desc & gcmlimit=8
+  & gcmsort=sortkey & gcmdir=desc & gcmlimit=8
   & prop=revisions & rvprop=content & rvslots=main & origin=*
 ```
 

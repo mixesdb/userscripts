@@ -189,7 +189,9 @@ Per field:
   why we need it.
 - **`exactCase`** – `true` when the input matched the canonical title byte-for-byte.
 - **`recent`** – *optional, see section 6.* The titles of the N most recently added mix pages
-  (ns 0) in that category, newest first, for non-artist types only. This is the one field that is
+  (ns 0) in that category, newest first, **for every type including `artist`** (it was asked
+  for non-artist types only until 2026-08-18 - see section 6 for why the artist categories want
+  it just as much). This is the one field that is
   a genuine addition rather than a rearrangement of what `prop=categories` already returns, and
   the one we would understand being dropped – we can fetch it ourselves at one extra call per
   entity.
@@ -241,16 +243,35 @@ doing so.
 
 ## 6. The `recent` field: letting existing pages dictate the format
 
-Once a name resolves to a **non-artist** category, MixesDB already contains the answer to the
-hardest remaining question – *how is a mix page in this series actually named?* We would like to
-read the last few page titles in that category and copy their format instead of guessing it.
+Once a name resolves to a category, MixesDB already contains the answer to the hardest
+remaining question – *how is a mix page in this series actually named?* We would like to read the
+last few page titles in that category and copy their format instead of guessing it.
+
+Originally we asked for this on **non-artist** categories only, reasoning that a format is a
+property of a series. The row we built on it says otherwise: an artist's recent pages answer
+*"is the mix I am about to add already here?"* – the question a contributor asks before clicking
+Create – and they show how that artist's live sets are written (`@ Venue, City`), which is a
+format too. We fetch them ourselves today, at one extra `list=categorymembers` call per artist
+whose pages a contributor opens; carried in `recent` they would cost no request at all.
 
 We can do this today with one extra call per entity:
 
 ```
 list=categorymembers & cmtitle=Category:Trommel & cmnamespace=0
-                     & cmsort=timestamp & cmdir=desc & cmlimit=8
+                     & cmsort=sortkey & cmdir=desc & cmlimit=8
 ```
+
+**`cmsort=sortkey`, not `cmsort=timestamp`** – this line said `timestamp` until 2026-08-18, and
+that was our mistake, not a misreading on your side. `timestamp` sorts by when a page was *added
+to the category*, which any later edit that re-saves the categories bumps: asked that way,
+`Category:Trommel` answers with pages from 2018, 2019 and 2020 and leaves out `Trommel.237`, the
+newest one there is. A MixesDB mix page title starts with its date, so the sortkey IS the date and
+`cmsort=sortkey&cmdir=desc` returns exactly the newest pages, in order (verified against both
+categories on 2026-08-18). It also honours the editors: `Trommel.220` is titled
+`2023-09-18 - Dan Andrei @ Sunwaves 31, Romania (Trommel.220)` and carries the explicit sortkey
+`2025-05-30`, its release date, so sortkey order files it among the 2025 episodes where MixesDB
+means it to be - which a title sort alone would not do. Everything below depends on the titles really being the recent ones –
+a format read off 2018 pages is the format the series has since moved away from.
 
 `cmnamespace=0` is important – without it the response is half `File:` pages. Eight titles cost
 790 bytes. The reason we mention it here at all is that `cmtitle` takes exactly **one** category
