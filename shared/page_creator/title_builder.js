@@ -2168,7 +2168,10 @@ function mdbTitle_lookupCategories( names, callback ) {
         // "#" is illegal in a wiki title, so a name carrying one ("DJ Mix #677") could only
         // ever answer empty - it is asked with the "#" written out. The cache key ignores
         // punctuation anyway, so the answer lands where every reader looks it up.
-        name = String( names[i] || "" ).replace( /#/g, " " ).replace( /\s+/g, " " ).trim();
+        // Our own markers come off in the same breath (mdbTitle_dropMarkers): no category is
+        // called "... (Promo Mix)", so a caller handing one over is asking about a name that
+        // cannot exist. Here rather than in the callers alone, so no round can ask for one.
+        name = mdbTitle_dropMarkers( names[i] ).replace( /#/g, " " ).replace( /\s+/g, " " ).trim();
         key = mdbTitle_normalizeCompare( name );
 
         if( !key ) continue;
@@ -2183,7 +2186,7 @@ function mdbTitle_lookupCategories( names, callback ) {
             // skips: every chunk of section 1 is then either a chip in section 3 or a line
             // saying why it is not, and none disappears without a word. Guarded against
             // repeats - the edit path asks again without the candidates having run.
-            mdbTitle_noteChunkNotAsked( name, "a counting word - it says which episode or which part this is, and MixesDB files nothing under it" );
+            mdbTitle_noteChunkNotAsked( name, "a counting word - it says which episode or which part this is, and MixesDB files nothing under such names" );
             continue;
         }
 
@@ -2405,6 +2408,17 @@ function mdbTitle_joinArtists( artist, extraArtists ) {
     return [ artist ].concat( extraArtists ).join( joiner );
 }
 
+// mdbTitle_dropMarkers
+// Takes OUR OWN markers off a name: the " (Promo Mix)" behind the last group and the
+// " (Live PA)" behind an artist are things WE write into a title to say something about the
+// recording - no MixesDB category carries them, and nobody is called that. Everything that
+// reads a name back out of a finished title runs through here, the wiki lookup included:
+// asking about "Unedited (Promo Mix)" could only answer empty and would burn one of the ten
+// names a request takes, while "Unedited" is the name that can actually be known.
+function mdbTitle_dropMarkers( name ) {
+    return String( name || "" ).replace( /\s*\(\s*(?:Promo Mix|Live\s*P\.?\s*A\.?)\s*\)\s*$/i, "" );
+}
+
 // mdbTitle_splitArtists
 // The mirror of mdbTitle_joinArtists, and the one that has to hold for titles WE did not build:
 // the artist group of a finished title -> the names in it, one per MixesDB artist category.
@@ -2425,7 +2439,7 @@ function mdbTitle_splitArtists( artistField ) {
         // no episode stripping on an artist: "Asa 808" is a name, and the number belongs to it.
         // The "(Promo Mix)" behind the last one and the "(Live PA)" behind a name are markers,
         // not part of the name - the category is the bare name.
-        name = mdbTitle_trimSeparators( String( parts[i] || "" ).replace( /\s*\(\s*(?:Promo Mix|Live\s*P\.?\s*A\.?)\s*\)\s*$/i, "" ) );
+        name = mdbTitle_trimSeparators( mdbTitle_dropMarkers( parts[i] ) );
 
         if( name ) names.push( name );
     }
@@ -2461,10 +2475,14 @@ function mdbTitle_titleCategories( title ) {
         }
     }
 
+    // The marker comes off the entity as well as off the artists: "Unedited (Promo Mix)" is
+    // filed under Promo Mix and the name in the slot is "Unedited". Which reading of the title
+    // it is - the page's categories, the report, the lookup of an edited title - it is the
+    // bare name every time.
     return {
         year: year,
         artists: mdbTitle_splitArtists( artistField ),
-        entity: mdbTitle_trimSeparators( entity )
+        entity: mdbTitle_trimSeparators( mdbTitle_dropMarkers( entity ) )
     };
 }
 
