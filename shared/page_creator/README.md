@@ -74,10 +74,16 @@ one chip per name, its colour saying whether MixesDB already has it:
   than opening a second, empty category beside it. Where the two differ the tooltip says
   so, because the title in the field above is then still worth correcting. The name links to
   the category, and its mix count stands behind it. The count is a toggle: a click
-  folds the category's most recently added mix pages out inside the chip, in the order
-  MixesDB lists them there itself, each linking to its page – the quickest way to see how pages of this series are named, and whether
-  the mix is already among them. The pages come with the category answer itself, for artists
-  as well as for shows, so the list is there the moment the chip is opened.
+  folds the category's most recently added mix pages out inside the chip, each linking to its
+  page – the quickest way to see how pages of this series are named, and whether
+  the mix is already among them. They stand in the order a MixesDB category page lists
+  them, oldest at the top and the newest at the bottom, so a look at the list needs no
+  re-reading against the category page it mirrors. Where the
+  category holds more pages than the ten shown, the top of the list fades out – there is more
+  above it, on the category page itself. The pages usually arrive with the category answer
+  itself, for artists as well as for shows, so the list is there the moment the chip is
+  opened; where they do not, the click fetches them and the chip waits on a spinner until
+  they are in.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki

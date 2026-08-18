@@ -996,6 +996,7 @@
 
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
     display: block;
+    position: relative; /* the "there is more" fade below hangs off it */
     margin-top: 4px;
     padding-top: 5px;
     border-top: 1px solid rgba(46, 184, 46, 0.25);
@@ -1017,6 +1018,59 @@
 #mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:hover {
     color: #6cb2f7;
     text-decoration: underline;
+}
+
+/*
+ * "There is more above": the category holds more pages than the ten the list shows, and the
+ * list reads oldest first (mdbPageCreator_usedCatRecent) - so the missing ones are the ones
+ * above its first line. A fade into the bar's own background over the first line and a half,
+ * rather than a "+N more" line: the oldest entry stays half-readable, which is what says the
+ * list is a window onto something longer instead of all there is.
+ *
+ * The panel's #1d1d1d spelled out rather than inherited - a gradient cannot read the
+ * background it lies on. pointer-events: none, or the fade would eat the clicks on the links
+ * under it.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-more::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 29px; /* ~1.5 lines of the 11.5px/1.5 links plus their padding */
+    pointer-events: none;
+    background: linear-gradient(to bottom, #1d1d1d 0%, rgba(29, 29, 29, 0.92) 22%, rgba(29, 29, 29, 0) 100%);
+}
+
+/*
+ * The list's word while it has no links - the waiter above all: a chip whose pages the lookup
+ * answer did not bring fetches them on its first click (mdbPageCreator_usedCatFetchRecent),
+ * and this is what stands there until they land. The ring is the only spinner in the row; the
+ * skeleton's pulse would read as "this text is a placeholder", and the text here is real.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-note {
+    display: block;
+    padding: 1px 0;
+    color: #8b8b8b;
+    font-size: 11.5px;
+    font-weight: normal;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-waiting::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border: 1.5px solid rgba(139, 139, 139, 0.35);
+    border-top-color: #8b8b8b;
+    border-radius: 50%;
+    animation: mdb-pageCreator-spin .8s linear infinite;
+}
+
+@keyframes mdb-pageCreator-spin {
+    to { transform: rotate(360deg); }
 }
 
 /*
@@ -1236,6 +1290,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-waiting::before,
     #mdb-skeleton .mdb-skeleton-bar,
     #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bubble,
     #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bar {
