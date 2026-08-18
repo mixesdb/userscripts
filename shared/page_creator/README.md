@@ -59,13 +59,17 @@ you type. Editing the title field above refills it, but anything typed into the 
 never overwritten.
 
 Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
-learning" line can name the step that went wrong. Its sections are numbered in the order the
-build really ran – **1 → 2a → 3 → 2b → 4**: the title is parsed once before MixesDB is asked
-anything, and once more with its answers, so the same cleanup appears twice, on either side of
-the lookup. That is also why the names in 3 are not the chunks left over in 2a: the lookup is
-built from the chunks of **1**, never from the cleaned title.
+learning" line can name the step that went wrong. Its five sections are numbered in the order
+the build really ran: the title is parsed once before MixesDB is asked anything, and once more
+with its answers, so the same cleanup appears twice, on either side of the lookup – sections
+**2** and **4** are that one stage run twice, and their shared orange accent (the copy
+button's colour) marks them against the grey of 1/3 and the green of 5. That is also why the
+names in 3 are not read off the title of 2: the lookup is built from the chunks of **1**,
+never from the cleaned title. Chips everywhere are coloured by **state**, not by what they
+name – grey while something is still a candidate, red for what was ignored, green for what
+ends up used.
 
-- **1 Title chunks** – the units the title splits into, plus the channel name. A chunk ends at
+- **1 Title chunks for category lookup** – the units the title splits into, plus the channel name. A chunk ends at
   a separator, at a bracket, at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
   is the chunks `Kernel Existence | 3000Grad Festival | Utopia` – the live marker is no
   chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
@@ -75,22 +79,25 @@ built from the chunks of **1**, never from the cleaned title.
   the artist is from, or a bracketed country behind the artist's name (the `(BE)` of
   `Adjust (BE)`, even in a live title) – with the reason spelled out behind it; those names
   are never sent to the lookup
-- **2a Fixed and cleaned** – the first parse, before the wiki has been asked anything. Every
-  fix and removal by name: typos, decoration, the date that
+- **2 Title fixed and cleaned** – the first parse, before the wiki has been asked anything.
+  Every fix and removal by name: typos, decoration, the date that
   was read out, joiners rewritten, chunks a mix page title does not carry (what the
   `Removed:` line of section 1 already names is not repeated here, in no step) – and the
   curated channel → show rules, whose work is otherwise invisible, drawn as chips with the
-  channel in blue and the show in green: a channel on the known-shows list as
+  show it puts into the title in green: a channel on the known-shows list as
   `Resident Advisor → RA Podcast`, and a curated channel rule under which the title's own
   words name the show as `"DJ MIX" on the channel Dance TV → Dance TV DJ Mix`. Both names are
   hand-written for that channel, so a wrong one is fixed in the script, not in the title.
+  The section closes with `Title candidate:` – the whole title this first parse built, as one
+  chip. It is grey on purpose: MixesDB has not answered yet, so this title can still change;
+  its final version stands in section 4, in green.
 
   A step that worked off one of the script's word lists carries a round **?**: it opens the
   list itself – its name, one sentence on what it is for, and every entry as it is written in
   the script. So "Decoration removed" can be checked against the rule that removed it, and a
   report can say which entry is wrong (or which one is missing) instead of only what came
   out. Open lists stay open while the title above is corrected
-- **3 MixesDB lookups** – the one request, sent for the names built from the chunks of 1 plus
+- **3 Category candidate lookups on MixesDB** – the one request, sent for the names built from the chunks of 1 plus
   the channel. Two candidate columns, **Artist category candidates** and **Entity
   category candidates**, filled from the title's shape BEFORE the wiki answers: names in
   front of the `@` are asked as the artist; series-looking names, everything behind the `@`
@@ -110,11 +117,11 @@ built from the chunks of **1**, never from the cleaned title.
   but a counting word and its number (`Episode 72`, `Part 2`, `Pt.3`), which says which
   episode or which part this is and files nothing on MixesDB, or a chunk too long to be a
   name. Every chunk of section 1 is therefore either a chip here or a line saying why it is
-  not. The chips answer section 4 by colour:
+  not. The chips answer section 5 by colour:
   green when the
   name ended up a category of the new page, red when it did not. A name a curated channel
   mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
-  those words name `Dance TV DJ Mix`. Every name the wiki confirms – here and in section 4 –
+  those words name `Dance TV DJ Mix`. Every name the wiki confirms – here and in section 5 –
   is a link to that category page on MixesDB, opening in a new tab so the player page stays
   where it is
 
@@ -125,8 +132,8 @@ built from the chunks of **1**, never from the cleaned title.
   A spelling the wiki writes differently, a name it knows as several things at once, and a name
   a channel rule overrules all cost as well. How full the category is barely counts: a category
   with 500 mixes can be the wrong reading of the words just as easily as an empty one
-- **2b Parsed again, with the answers** – the same cleanup a second time, now knowing what
-  MixesDB has. This is the run the title on screen comes from, and only what the answers
+- **4 Title refined after lookup learnings** – the same cleanup a second time, now knowing
+  what MixesDB has. This is the run the title on screen comes from, and only what the answers
   CHANGED is listed – on most titles that is nothing, and the section says so. When they do
   change something, the suggestion before and after stands here as one line
   (`kernel existence - Ritter Butzke Berlin (Promo Mix) → Kernel Existence @ Ritter Butzke,
@@ -134,9 +141,11 @@ built from the chunks of **1**, never from the cleaned title.
   played there). A cleanup step that only ran in this pass is listed like any other step, and
   one the answers made stop happening on a `No longer done:` line. Why a particular name
   ended up in a particular slot is not repeated here – that is the `picked as …` line of
-  section 4
+  section 5. The section closes with `Final title:` – the built title as one chip, now green:
+  the answers are in, this is the state the **Create** link uses, and a correction typed into
+  the field above shows here as well
 
-- **4 Categories for the new page** – the `[[Category:…]]` lines the **Create** link writes.
+- **5 Categories for the mix page** – the `[[Category:…]]` lines the **Create** link writes.
   The artist and the entity line each start with **why that name got the slot** – `picked as
   the entity: "S.U.N Festival" carries an event word, so the title reads as a set PLAYED at
   it – it becomes the place behind the " @ ", and the channel is not used as a show on top of
@@ -146,7 +155,7 @@ built from the chunks of **1**, never from the cleaned title.
 
 The panel follows the title field: correct the title above and, after a short pause, the
 categories are re-read from it and any new names are looked up on MixesDB. It follows the
-tracklist box too: leave the box after an edit and the `Tracklist:` line in section 4 answers
+tracklist box too: leave the box after an edit and the `Tracklist:` line in section 5 answers
 the fresh verdict – nothing else in the panel changes, since the tracklist takes no part in the
 title.
 

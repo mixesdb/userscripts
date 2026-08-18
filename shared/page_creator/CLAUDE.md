@@ -250,7 +250,7 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   decoration out first, brackets read as separators (the channel's own bracket excepted), and
   the parser's guarded series-"by" split - `Guestroom 779 by Sascha Sibler` asks about both
   halves, `(Ritter Butzke)` is asked on its own. One function also feeds the report panel's
-  "Title chunks" section, so what is shown, what is asked and what is parsed cannot drift.
+  "Title chunks for category lookup" section, so what is shown, what is asked and what is parsed cannot drift.
   What the parse removes OUTRIGHT is no chunk and no candidate: a label-credit bracket
   (`Tooker (SONARA / Crosstown Rebels)`, rule 1a - needs the description for the
   tracklist-credited labels, so the split takes it as its third parameter) and a place list
@@ -374,11 +374,13 @@ plus the reporter's "Mistake / learning" and "Expected …" lines. That is exact
 needs - do not ask back for any of it when the box was used.
 
 Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`), numbered in the
-order the build RAN - **1 -> 2a -> 3 -> 2b -> 4**: the title chunks, the first parse's cleanup,
-the mdbnames lookups with their answers, the second parse (what those answers changed), and the
-created page's categories annotated from the lookup cache. 2a/2b rather than 2/4 because it is
-one stage run twice, on either side of the lookup - a straight 1..5 claims the wiki was asked in
-the middle of a cleanup, and a reporter who believes that reports a step that never ran. Its
+order the build RAN - **1 -> 2 -> 3 -> 4 -> 5**: the title chunks, the first parse's cleanup
+(closing with the title it built as one grey "Title candidate:" chip), the mdbnames lookups with
+their answers, the second parse (what those answers changed, closing with the green "Final
+title:" chip), and the created page's categories annotated from the lookup cache. 2 and 4 are
+ONE stage run twice, on either side of the lookup - their shared orange accent (the copy
+button's colour, vs the grey of 1/3 and the green of 5) says so. Chips and accents are coloured
+by STATE, never by type: grey candidate, red ignored, green used. Its
 sources are plain-data globals in `title_builder.js` - `mdbTitle_trace` (filled by every
 `buildMixesdbTitle()` run), `mdbTitle_lookupLog` (every name `mdbTitle_lookupCategories()` was
 ever asked on this page; the answers stay in `mdbTitle_categoryCache`) and
@@ -400,10 +402,10 @@ Settled about what it shows:
   own under the row - spanning both grid tracks, since inside the answer column it ate the
   width the answers need. The chunks the candidates deliberately skipped
   (`mdbTitle_chunksNotAsked`) close the section on a "Not asked:" line, with the reason.
-- **Section 2b reports the SUGGESTION, not only the step diff** - the branches the wiki's
+- **Section 4 reports the SUGGESTION, not only the step diff** - the branches the wiki's
   answers open write no cleanup step (the venue reading composes "A @ Venue, City" at the
   single exit), so a run that rewrites the whole title has an empty step diff. Without
-  `mdbPageCreator_titlePreLookup`/`_titlePostLookup` next to it, 2b would report that nothing
+  `mdbPageCreator_titlePreLookup`/`_titlePostLookup` next to it, 4 would report that nothing
   had happened on exactly the titles where the lookup mattered most.
 - **Section 3 is two candidate columns, filled BEFORE the wiki answers** - "Artist category
   candidates" and "Entity category candidates". The ROLE comes from the title's shape
@@ -448,19 +450,19 @@ Settled about what it shows:
   claim MixesDB knows the name (the venue branch is the one that asks). A branch reached
   through several sub-readings (5c's "by", the series score, the plain order) carries the
   sentence in a variable set where the reading is decided, not one written at the return.
-- **Both chip lists are split by ONE function** - `mdbTitle_traceChunks()`, separator runs, the
-  series-"by", every " @ " and the comma standing in FRONT of an event name
-  (`mdbTitle_splitEventComma`: `Dark Skies, Horst Festival` is two chunks, `ANA, Johnny D` and
-  `3000Grad Festival, Utopia` stay one - the comma joins everywhere else, and a place group
-  written the usual way round carries its event in front of the comma). Section 1 gets its chunks through `mdbTitle_titleChunks()`, which
-  calls it; section 2a ("Left for the parser") calls it directly on `trace.cleaned`. A split rule
-  added to only one of the two makes section 2a look like it re-joined a chunk, and a reporter
-  then reports a parse step that never ran. What the two sections may still differ in is
-  CLEANUP, not the split: section 2a quotes the title as it stands after the cleanup, where a
-  live title's place groups are already comma-joined ("3000Grad Festival, Utopia"). A cleanup
-  step that takes something out of a NAME belongs in both, though - the date used to be gone
-  in section 2a and still sitting in section 1's chip, which reads as the parse having put it
-  back.
+- **Only section 1 shows chunks, and one function splits them** - `mdbTitle_traceChunks()`
+  (separator runs, the series-"by", every " @ " and the comma standing in FRONT of an event
+  name - `mdbTitle_splitEventComma`: `Dark Skies, Horst Festival` is two chunks, `ANA,
+  Johnny D` and `3000Grad Festival, Utopia` stay one), reached through `mdbTitle_titleChunks()`.
+  Sections 2 and 4 do NOT re-split the cleaned title: they close with the BUILT title as one
+  chip (grey "Title candidate:" before the lookup, green "Final title:" after). The panel used
+  to re-split `trace.cleaned` there, and every split rule then had to reach both callers in
+  the same state or the sections contradicted each other - the glued
+  "Dark Skies, Horst Festival 2026" chip was exactly that, the event-comma rule testing text
+  whose gig year only the chunk side had taken out. A cleanup step that takes something out
+  of a NAME must still reach the chunks too: the date used to be gone from the title while
+  still sitting in section 1's chip, which read as the parse having put it back
+  (the date mirror in `mdbTitle_titleChunks`).
 - **No step re-lists what the chunk section shows as removed** - a label credit, a place list.
   Done once, in `mdbTitle_traceStep()`, over every step's detail: a step quotes the title as it
   stands at that moment, which is WITH those words (the parse drops them later), and quoted
