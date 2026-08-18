@@ -807,15 +807,33 @@
     border-radius: 8px;
 }
 
-/* the "Used categories:" in front - the panel's muted grey, the same as its own side notes */
+/*
+ * The "Used categories:" in front - the panel's muted grey, the same as its own side notes.
+ *
+ * A fixed width, and it is a COLUMN: every hint of the bar starts with such a label, and the
+ * things they introduce have to line up under one another rather than each starting wherever
+ * its own label happens to end. Wide enough for the labels there are; a longer one wraps
+ * inside its column instead of pushing the chips out of line.
+ */
 #mdb-pageCreator-hints .mdb-pageCreator-hint-label {
+    flex: 0 0 110px;
     color: #8b8b8b;
 }
 
-/* The "Used categories" line: the label, then one chip per category, the flex gap the only
-   spacing - no separators in the markup. baseline, not center: an open chip grows a list
-   downward, and the label has to stay on its first line. */
+/* One hint: the label's column, then everything the hint says. baseline, not center: an open
+   chip grows a list downward, and the label has to stay on its first line. */
 #mdb-pageCreator-hints #mdb-pageCreator-usedCats {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+/* The chips' own column - one chip per category, the flex gap the only spacing, no separators
+   in the markup. min-width: 0 lets it shrink rather than push the bar wide, and being a column
+   of its own is what makes a wrapped row start under the row above it and not under the label. */
+#mdb-pageCreator-hints .mdb-pageCreator-hint-items {
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;

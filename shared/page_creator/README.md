@@ -54,9 +54,12 @@ title itself cannot say: things worth checking before clicking **Create**.
 **Used categories** lists the artist and the entity category the new page would be filed under,
 one chip per name, its colour saying whether MixesDB already has it:
 
-- **green** – the category exists. The name links to it, and its mix count stands behind it.
-  Where the wiki spells the name differently than the title does, the tooltip says so – that is
-  a correction worth making in the field above before creating. The count is a toggle: a click
+- **green** – the category exists. The chip – and the category the page is really filed
+  under – carries **MixesDB's own spelling** of the name, not the title's: a title saying
+  "DJ Maria." files the page under `[[Category:DJ MARIA.]]`, where the wiki's 8 mixes are,
+  rather than opening a second, empty category beside it. Where the two differ the tooltip says
+  so, because the title in the field above is then still worth correcting. The name links to
+  the category, and its mix count stands behind it. The count is a toggle: a click
   folds the category's most recently added mix pages out inside the chip, newest first, each
   linking to its page – the quickest way to see how pages of this series are named, and whether
   the mix is already among them. A show's pages arrive with the category answer itself; an
