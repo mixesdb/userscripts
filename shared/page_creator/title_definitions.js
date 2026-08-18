@@ -1319,28 +1319,33 @@ var mdbTitleCounterWords = [
 
 
 /*
- * mdbTitleStaticNames
+ * mdbTitleStaticNamePatterns
  *
  * Names that are never sent to the category lookup, because they are the same on every mix
- * ever uploaded: a chunk that is nothing but a counting word - "Episode", "Episode 72" -
- * names no artist, no show and no venue. It says WHICH episode this is, and MixesDB files
- * nothing under it, so the wiki can only ever answer empty. The 10-names-per-request limit is
- * real, and the slot such a name takes is one a name that can answer does not get.
+ * ever uploaded: a chunk that is nothing but a counting word - "Episode", "Episode 72",
+ * "Part 2", "Part2", "Pt. 3" - names no artist, no show and no venue. It says WHICH episode
+ * or which part this is, and MixesDB files nothing under it, so the wiki can only ever answer
+ * empty. The 10-names-per-request limit is real, and the slot such a name takes is one a name
+ * that can answer does not get.
  *
- * Matched against the WHOLE name with a trailing number taken off (mdbTitle_isStaticName in
- * title_builder.js), so it can never eat part of a real one: "Episode 72" is on the list,
- * "Truancy Volume 300" and "Radio Episode Berlin" are not. Compared with
- * mdbTitle_normalizeCompare(), so case and punctuation cost nothing.
+ * Patterns rather than words, like mdbTitleDroppedBitPatterns: each entry carries its own
+ * number and its own spellings ("Part 2", "Part2", "Pt.2"), which a word list plus one shared
+ * number rule cannot - "Pt" counts only with the "Part" it is short for, never on its own.
  *
- * Not the same list as mdbTitleCounterWords above, although "Episode" is on both. There the
- * word is taken OFF a name that has more to it ("Slave To The Rhythm Episode 72" -> "Slave To
- * The Rhythm 72"); here the word IS the whole name, and what is left after taking it off is
- * nothing. A word only belongs here when a category of that name would be meaningless -
- * never one a series is named after ("Podcast", "Mix"), which is a real category on MixesDB
- * hundreds of times over.
+ * Matched against the WHOLE name (mdbTitle_isStaticName in title_builder.js), anchored on both
+ * ends, so a pattern can never eat part of a real one: "Part 2" is static, "Truancy Volume
+ * 300", "Radio Episode Berlin" and "Party" are asked about as usual.
+ *
+ * Not the same list as mdbTitleCounterWords above, although the words overlap. There the word
+ * is taken OFF a name that has more to it ("Slave To The Rhythm Episode 72" -> "Slave To The
+ * Rhythm 72"); here the word IS the whole name, and what is left after taking it off is
+ * nothing. A word only belongs here when a category of that name would be meaningless - never
+ * one a series is named after ("Podcast", "Mix"), which is a real category on MixesDB hundreds
+ * of times over.
  */
-var mdbTitleStaticNames = [
-    "Episode"
+var mdbTitleStaticNamePatterns = [
+    /^episode[\s.#:-]*\d*$/i,
+    /^(?:part|pt)[\s.#:-]*\d*$/i
 ];
 
 

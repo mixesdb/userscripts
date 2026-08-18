@@ -2136,18 +2136,19 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
 }
 
 // mdbTitle_isStaticName
-// Whether a name says nothing about THIS mix - a word every episode of every show carries
-// ("Episode", "Episode 72"), listed in mdbTitleStaticNames. Tested with a trailing number
-// taken off, because that is the only thing such a word ever stands next to, and against the
-// WHOLE name, so a real name carrying the word ("Radio Episode Berlin") is untouched.
+// Whether a name says nothing about THIS mix - a counting word and its number and nothing else
+// ("Episode 72", "Part 2"), matched against mdbTitleStaticNamePatterns. The patterns are
+// anchored on both ends, so a real name carrying such a word ("Radio Episode Berlin") is
+// untouched; the name is trimmed first, because a chunk can arrive with its separator's blank
+// still on it.
 function mdbTitle_isStaticName( name ) {
-    var bare = mdbTitle_normalizeCompare( String( name || "" ).replace( /[\s.#-]*\d{1,4}\s*$/, "" ) ),
+    var text = String( name || "" ).trim(),
         i;
 
-    if( !bare ) return false;
+    if( !text ) return false;
 
-    for( i = 0; i < mdbTitleStaticNames.length; i++ ) {
-        if( bare === mdbTitle_normalizeCompare( mdbTitleStaticNames[i] ) ) return true;
+    for( i = 0; i < mdbTitleStaticNamePatterns.length; i++ ) {
+        if( mdbTitleStaticNamePatterns[i].test( text ) ) return true;
     }
 
     return false;
@@ -2173,16 +2174,16 @@ function mdbTitle_lookupCategories( names, callback ) {
         if( !key ) continue;
 
         // A name that is nothing but a counting word can only answer empty, so it is not asked
-        // and gets no chip in the panel - it was never a candidate (mdbTitleStaticNames). In
-        // the funnel both lookup rounds pass through, like the "#" rewrite above: an edited
-        // title's names are covered too.
+        // and gets no chip in the panel - it was never a candidate
+        // (mdbTitleStaticNamePatterns). In the funnel both lookup rounds pass through, like
+        // the "#" rewrite above: an edited title's names are covered too.
         if( mdbTitle_isStaticName( name ) ) {
             logVar( "mdbTitle_lookupCategories: static name, not asked", name );
             // ... and the panel says so, on the same "Not asked:" line as the candidate-side
             // skips: every chunk of section 1 is then either a chip in section 3 or a line
             // saying why it is not, and none disappears without a word. Guarded against
             // repeats - the edit path asks again without the candidates having run.
-            mdbTitle_noteChunkNotAsked( name, "a counting word - it says which episode this is, and MixesDB files nothing under it" );
+            mdbTitle_noteChunkNotAsked( name, "a counting word - it says which episode or which part this is, and MixesDB files nothing under it" );
             continue;
         }
 
