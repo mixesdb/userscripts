@@ -390,6 +390,22 @@ var mdbTitleExamples = [
         expectChunks: [ "Kernel Existence", "3000Grad Festival", "Utopia" ],
         expect: "2021 - Kernel Existence @ 3000Grad Festival, Utopia"
     },
+    {
+        url: "https://soundcloud.com/horstartsandmusicfestival/dave-huismans-at-dark-skies",
+        title: "Dave Huismans at Dark Skies, Horst Festival 2026",
+        channel: "Horst Arts & Music",
+        date: "2026-07-30",
+        // the place group written the other way round - the stage first, the festival behind
+        // the comma. The title itself was already right; what was wrong is what follows from
+        // it. The comma in front of an event name separates, so the wiki is asked about "Dark
+        // Skies" and "Horst Festival" instead of the glued pair, which could only answer
+        // empty - and the page is filed under the festival, not under the stage, although the
+        // stage stands first
+        expectArtists: [ "Dave Huismans" ],
+        expectEntity: "Horst Festival",
+        expectChunks: [ "Dave Huismans", "Dark Skies", "Horst Festival" ],
+        expect: "2026 - Dave Huismans @ Dark Skies, Horst Festival"
+    },
 
     // Reported before the URLs were kept
     {

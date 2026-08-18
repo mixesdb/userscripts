@@ -988,6 +988,13 @@ var mdbTitleLiveAtWords = [
  * Festival"), never the joined list - the venue behind the comma is not what the page is
  * filed under (mdbTitle_titleCategories).
  *
+ * The order is the answer because MixesDB writes the group from the outside in, the bigger
+ * name first. An uploader who turned it around says so with an EVENT WORD, and then that part
+ * is the entity wherever it stands: "Dave Huismans at Dark Skies, Horst Festival" is a stage
+ * and the festival it stands on, and the page belongs under "Horst Festival", not under "Dark
+ * Skies" (mdbTitle_placeGroupEntity). Only an event word overrules the order - a city or a
+ * venue behind the comma says nothing about which of the two is the bigger name.
+ *
  * Enforced TWICE, and the second one is the one that holds: once on the whole title before
  * the venue rules read it (3c2), and once at the single exit (mdbTitle_result) - the event
  * and venue branches compose "<artist bit> @ <place>" after 3c2, and an artist bit that
@@ -1000,6 +1007,13 @@ var mdbTitleLiveAtWords = [
  * the chunks "Kernel Existence | 3000Grad Festival | Utopia" - each asked about on its own,
  * never a glued "3000Grad Festival @ Utopia". (The year is gone from the last one because
  * the date group claimed it - see "The date of a live recording" above.)
+ *
+ * And so does the comma standing in FRONT of an event name: "Dark Skies, Horst Festival" is
+ * two names to the wiki and asks as two chunks (mdbTitle_splitEventComma). The comma joins
+ * everywhere else and has to keep doing so - an artist list ("ANA, Johnny D, DJ Koze") is one
+ * group of names, and a place group written the usual way round carries the event in FRONT of
+ * its comma, so nothing behind it ends in an event word and the group stays one chunk. The
+ * TITLE is untouched by this: the parse keeps writing the place group as the uploader's list.
  */
 
 
