@@ -407,6 +407,37 @@ var mdbTitleExamples = [
         expect: "2026 - Dave Huismans @ Dark Skies, Horst Festival"
     },
 
+    {
+        url: "https://soundcloud.com/ri0d/3026-riod-rummelplatz-neu",
+        title: "RiOD. @ 3000Grad Festival -Rummelplatz 3026-",
+        channel: "RiOD.",
+        date: "2026-08-11",
+        // a part the uploader WRAPPED in dashes is a chunk of its own, exactly like a
+        // bracketed one - without that the whole tail is one name, is looked up as one and is
+        // what the page ends up filed under. What the wrap holds here is the festival's
+        // fairground corner, which a mix page carries as little as it carries a stage, and
+        // "3026" is 3000Grad's own spelling of 2026 (mdbTitleJokeYearEvents): it dates the
+        // recording and leaves the title
+        expectArtists: [ "RiOD." ],
+        expectEntity: "3000Grad Festival",
+        expectChunks: [ "RiOD.", "3000Grad Festival", "Rummelplatz" ],
+        expect: "2026 - RiOD. @ 3000Grad Festival"
+    },
+    {
+        url: "https://soundcloud.com/ri0d/ri0d-3000-grad-festival-3025-rummelplatz",
+        title: "Ri0D. @ 3000Grad Festival 3025  -RUMMELPLATZ-",
+        channel: "RiOD.",
+        date: "2025-08-12",
+        // the same upload a year earlier, with the joke year on the festival instead of
+        // inside the wrap - it has to go from either place, or it rides along in the name the
+        // page is filed under. The artist keeps the title's spelling of the channel name,
+        // zero and all: the two differ, so the channel's own spelling does not stand in
+        expectArtists: [ "Ri0D." ],
+        expectEntity: "3000Grad Festival",
+        expectChunks: [ "Ri0D.", "3000Grad Festival", "RUMMELPLATZ" ],
+        expect: "2025 - Ri0D. @ 3000Grad Festival"
+    },
+
     // Reported before the URLs were kept
     {
         title: "HATE Podcast 496 - Fadi Mohem",

@@ -1547,6 +1547,37 @@ var mdbTitleEventWords = [
 
 
 /*
+ * mdbTitleJokeYearEvents
+ *
+ * Events that write their edition a THOUSAND years ahead. 3000Grad's parties are "3000Grad
+ * Festival 3025" and "3000Grad Festival 3026" - the joke is the channel's name, and the
+ * uploader means 2025 and 2026:
+ *
+ *     "Ri0D. @ 3000Grad Festival 3025  -RUMMELPLATZ-"  (uploaded 2025-08-12)
+ *     WRONG: 2025 - Ri0D. @ 3000Grad Festival 3025, Rummelplatz
+ *     RIGHT: 2025 - Ri0D. @ 3000Grad Festival
+ *
+ * Nothing about the digits themselves says this - "3025" is no year any rule in the parser
+ * recognises, so without the entry below it rides along inside the event's name, is looked up
+ * as part of it and is what the page ends up filed under. Curated per event for exactly that
+ * reason: only the event itself can say that its year is a joke.
+ *
+ * What the parser does with it is what it does with any gig year (mdbTitle_takeJokeYear in
+ * title_builder.js): the digits leave the title and date the recording, since MixesDB writes
+ * the year in FRONT of a title and never twice. Read very early, before the title is split
+ * into chunks, so the number cannot glue the chunk it stands in to its neighbour.
+ *
+ * "ahead" is how far the joke reaches, and the result has to read as a real year - so a
+ * 3000Grad title that names a plain "2025" is left to the ordinary date rules, and the "3000"
+ * of the event's own name is no candidate at all: it is glued to letters, not a number of its
+ * own.
+ */
+var mdbTitleJokeYearEvents = [
+    { name: "3000Grad", ahead: 1000 }
+];
+
+
+/*
  * mdbTitleDroppedBitPatterns
  *
  * Chunks that never make it into a MixesDB title. Matched against a WHOLE chunk, so they
@@ -1561,6 +1592,13 @@ var mdbTitleEventWords = [
  * A camp is a festival's own side programme, named after its sponsor as often as not, so it
  * belongs with the stages rather than with the venue the set was played at.
  *
+ * Most entries are a WORD for an area rather than the name of one, and a name only earns a
+ * place here when the word behind it is generic enough to stand for the area itself. A
+ * "Rummelplatz" is the fairground corner of a festival site - 3000Grad's sets name it the way
+ * others name a stage ("3000Grad Festival -RUMMELPLATZ-"), and a mix page carries as little of
+ * it as it carries a stage. The reported titles put it in a dash wrap, which is a chunk of its
+ * own by the time this runs (mdbTitle_dashWrapsToSeparators), so it is matched like any other.
+ *
  * Never applied to the LAST chunk standing: a title made of nothing but these would come out
  * empty, and something wrong beats nothing.
  */
@@ -1570,7 +1608,8 @@ var mdbTitleDroppedBitPatterns = [
     /^day\s*\d+$/i,
     /\bstage$/i,
     /\bfloor$/i,
-    /\bcamp$/i
+    /\bcamp$/i,
+    /\brummelplatz$/i
 ];
 
 
@@ -1799,6 +1838,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleDroppedBitPatterns: {
         what: "Chunks that name a piece of a recording or a corner of a festival site - a part, a day, a stage, a camp. The mix page covers the whole recording, so these never join the title.",
         data: mdbTitleDroppedBitPatterns
+    },
+    mdbTitleJokeYearEvents: {
+        what: "Events that write their edition a thousand years ahead - 3000Grad's \"Festival 3026\" is the 2026 one. The digits date the recording and leave the title, the way any gig year does.",
+        data: mdbTitleJokeYearEvents
     },
     mdbTitleUsernameConversions: {
         what: "Channel name -> the show MixesDB files that channel's uploads under. Hand-written per channel, and the value is the spelling both the title and the category use.",
