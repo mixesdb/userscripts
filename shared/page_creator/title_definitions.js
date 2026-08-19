@@ -351,7 +351,8 @@ var mdbTitleUsernameConversions = {
  * - several word entries per channel are fine; the first one found in the title wins
  */
 var mdbTitleChannelSeriesConversions = {
-    "Dance TV": { "DJ Mix": "Dance TV DJ Mix" }
+    "Dance TV": { "DJ Mix": "Dance TV DJ Mix" },
+    "Juno Daily" { "In The Mix": "Juno Daily" }
 };
 
 
