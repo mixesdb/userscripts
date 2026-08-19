@@ -145,9 +145,9 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   re-reading against the category page it mirrors. The pages usually arrive with the category answer
   itself, for artists as well as for shows, so the list is there the moment the chip is
   opened; where they do not, the click fetches them and the chip waits on a spinner until
-  they are in. An opened chip takes a line of its own, the full width of the bar, so as many
-  of them may stand open at once as you like – the artist's newest pages right above the
-  show's – without the chips around them ending up stranded beside a list.
+  they are in. One list stands open at a time: opening a chip folds the one before it shut,
+  which keeps the categories on a readable line – two lists open at once left the chips
+  between and behind them hanging in mid-air beside a tall list.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki

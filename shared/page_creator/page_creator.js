@@ -194,10 +194,12 @@ var mdbPageCreator_title = "",
     // because the rebuild is what a title EDIT triggers, and a rule list opened to compare the
     // title against would close on the first keystroke.
     mdbPageCreator_openDefinitions = {},
-    // which category chips' recent-mixes lists are open in the hints bar, keyed by the
+    // which category chip's recent-mixes list is open in the hints bar, keyed by the
     // normalized category name - kept across re-renders for the same reason as the "?" blocks:
     // the bar rebuilds on every keystroke and on every lookup answer, and a list opened to
-    // check for a duplicate must not close under the reader.
+    // check for a duplicate must not close under the reader. At most ONE key is ever true:
+    // the toggle empties this on every click (mdbPageCreator_usedCatMixes). A map all the
+    // same, because the render asks it chip by chip.
     mdbPageCreator_openUsedCatRecent = {},
     // What the recent-pages TITLE analysis did to this page's suggestion - the reasoning
     // panel's "Title analysis of recent mixes" section reads these. Pre/post around the
@@ -1722,7 +1724,8 @@ function mdbPageCreator_usedCatLoupe() {
 // something. (The dead first click REPORTED on 2026-08-19 was a different fault, in the
 // bar's rebuild - see mdbPageCreator_renderHints.)
 // Only a category the wiki counts no mixes in keeps a plain count - there is nothing to fold
-// out. Open ones survive the bar's re-renders - see mdbPageCreator_openUsedCatRecent.
+// out. The open one survives the bar's re-renders - see mdbPageCreator_openUsedCatRecent -
+// and there is only ever one: opening a chip folds the others shut (the click handler below).
 // A bucket category (mdbPageCreator_bucketCategories) gets neither the count nor the toggle:
 // its pages are unrelated mixes, so "recently filed there" answers nothing about this one.
 // The fit badge (mdbPageCreator_categoryFitScore) is handed in rather than appended by the
@@ -1794,7 +1797,24 @@ function mdbPageCreator_usedCatMixes( chip, entry, match, fit ) {
             .on( "click", function() {
                 var nowOpen = !chip.hasClass( "mdb-pageCreator-usedCat-open" );
 
-                mdbPageCreator_openUsedCatRecent[ key ] = nowOpen;
+                // ONE list at a time: opening this chip folds every other one shut. A second
+                // open list broke the line the chips stand in - each list is as wide as its
+                // longest mix title and as tall as ten of them, so the chips that shared a
+                // line with an open one hung beside it in mid-air ("2026" next to one list,
+                // "Tracklist: none" next to the next). Reported 2026-08-19. The state is
+                // emptied rather than the one key flipped, so a later render (a keystroke in
+                // the title field rebuilds the bar) cannot bring a closed one back.
+                mdbPageCreator_openUsedCatRecent = {};
+
+                if( nowOpen ) mdbPageCreator_openUsedCatRecent[ key ] = true;
+
+                // the chips on screen follow that without waiting for a render: closing the
+                // others is what the reader clicked for, and a render is only started below
+                // where the pages still have to be fetched
+                chip.closest( "#mdb-pageCreator-hints" )
+                    .find( ".mdb-pageCreator-usedCat-open" )
+                    .removeClass( "mdb-pageCreator-usedCat-open" );
+
                 chip.toggleClass( "mdb-pageCreator-usedCat-open", nowOpen );
 
                 if( !nowOpen ) return;
