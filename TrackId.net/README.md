@@ -47,7 +47,9 @@ MixesDB page.
 
 The embedded player shows straight away; below it, a grey pulsing placeholder holds the space of
 the toolkit and the page creator row until they have arrived, and they appear in one step – see
-[Page creator](../shared/page_creator/#loading-placeholder).
+[Page creator](../shared/page_creator/#loading-placeholder). A hearthis.at player has to be looked
+up before it can be embedded, so there the placeholder covers the player as well and everything
+appears together.
 
 ### MixesDB page creator
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.8
+// @version      2026.08.19.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -803,62 +803,86 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
     //log("> " + paths);
 
     // prepare embed code
-    // hearthis.at not possible from provided page url
+    // hearthis.at is the odd one out: its iframe needs the numeric track id, which is not in
+    // the page URL we are given - embed_hearthis_fromAnyUrl() looks it up and appends the
+    // player itself when it has it. So that branch has no markup to hand back, only the
+    // promise of one, and everything below has to run for it all the same.
+    var embed = "",
+        embedIsAsync = false;
+
     switch (domain) {
         case "soundcloud.com": // https://soundcloud.com/fingermanedit/fingerman-dj-set-kvs-brussels
-            var embed = '<iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=false&amp;url=' + playerUrl + '&amp;auto_play=false&amp;&amp;maxheight=120&amp;buying=false&amp;show_comments=false&amp;color=ff7700&amp;single_active=true&amp;show_reposts=false"></iframe>';
+            embed = '<iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=false&amp;url=' + playerUrl + '&amp;auto_play=false&amp;&amp;maxheight=120&amp;buying=false&amp;show_comments=false&amp;color=ff7700&amp;single_active=true&amp;show_reposts=false"></iframe>';
             break;
         case "mixcloud.com": // https://www.mixcloud.com/oldschool/sharam-jey-rave-satellite-1995/
-            var feedPath = encodeURIComponent( paths ),
-                embed = '<iframe width="100%" height="120" src="https://www.mixcloud.com/widget/iframe/?hide_cover=1&feed=' + feedPath + '" frameborder="0" ></iframe>';
+            var feedPath = encodeURIComponent( paths );
+            embed = '<iframe width="100%" height="120" src="https://www.mixcloud.com/widget/iframe/?hide_cover=1&feed=' + feedPath + '" frameborder="0" ></iframe>';
             break;
         case "youtube.com": // https://www.youtube.com/watch?v=qUUYWIsfY90, https://youtu.be/qUUYWIsfY90
-            var yt_id = getYoutubeIdFromUrl( playerUrl ),
-                embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + yt_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+            var yt_id = getYoutubeIdFromUrl( playerUrl );
+            embed = '<iframe width="100%" height="315" src="https://www.youtube.com/embed/' + yt_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
             break;
         case "hearthis.at": // https://hearthis.at/toccoscuro/01-manpower-radio1sessentialmix-sat-09-07-2024-talion/
-            var embed = "",
-                wrapper = jNode.closest(".audio-stream-box");
-            embed_hearthis_fromAnyUrl( playerUrl, wrapper, "append" );
+            embedIsAsync = true;
+            break;
     }
     //log( embed );
 
     // embed player
-    // hearthis players arrive async via embed_hearthis_fromAnyUrl() and sit outside the
-    // extras wrapper, so both removes are needed
+    // A hearthis.at lookup that was still in flight when the page was left appends into the
+    // wrapper it was handed, which by then is this detached one - harmless, and the reason
+    // the removal happens before the new wrapper is built.
     $("#mdb-tid-audiostreamExtras").remove();
     $(".mdb-player-audiostream").remove();
-    if( embed != "" ) {
-        // embedded player output
-        // The player URL and the title travel on the element itself, not in a closure, so
-        // that the toolkit handler below can stay a single registration - see the note there.
-        // .attr() rather than a concatenated attribute string: mix titles contain quotes
-        // often enough ("Live at Foo" 2019) and would break the markup.
-        var mdbPlayerAndToolkit = $('<div class="mdb-element mdb-player-audiostream"></div>')
-                                      .attr( "data-tidplayerurl", playerUrl )
-                                      .attr( "data-tidtitle", titleText )
-                                      .append( embed );
-
+    if( embed != "" || embedIsAsync ) {
         // One wrapper around player + toolkit: getToolkit's "after" placement (see the
         // toolkit handler below) lands right behind the player and thus INSIDE this
         // wrapper, so the shared loading skeleton can cover the toolkit's build-up and
         // swap it out in one step. See mdbSkeleton_* in shared/page_creator/.
+        //
+        // The player URL and the title travel on this wrapper, not in a closure, so that the
+        // toolkit handler below can stay a single registration - see the note there. On the
+        // wrapper rather than on the player: the hearthis.at player is built by
+        // embed_hearthis_fromId() in shared/global.js and arrives carrying only its own
+        // attributes, so the player element is not a place both routes can write to.
+        // .attr() rather than a concatenated attribute string: mix titles contain quotes
+        // often enough ("Live at Foo" 2019) and would break the markup.
         var tidExtras = $('<div id="mdb-tid-audiostreamExtras" class="mdb-element"></div>')
-                            .append( mdbPlayerAndToolkit );
-        jNode.closest(".audio-stream-box").append( tidExtras );
-        jNode.hide();
+                            .attr( "data-tidplayerurl", playerUrl )
+                            .attr( "data-tidtitle", titleText );
 
-        // The player itself is NOT covered (keep): its embed is built right here and should
-        // play as early as possible. The skeleton holds the space below it, where page
-        // creator row and toolkit appear together at the reveal - the row is placed "after"
-        // the player wrapper (funcTidPageCreator), so it is a hidden direct child of the
-        // extras wrapper like the toolkit, not a visible part of the kept player.
+        if( embed != "" ) {
+            tidExtras.append( $('<div class="mdb-element mdb-player-audiostream"></div>').append( embed ) );
+        }
+
+        jNode.closest(".audio-stream-box").append( tidExtras );
+
+        // The artwork the player replaces - but only where the player is already there. The
+        // hearthis.at id lookup can come back empty, and an artwork link beats nothing at all.
+        if( embed != "" ) {
+            jNode.hide();
+        }
+
+        // Appended INTO the extras wrapper, not next to it as before: that is what puts the
+        // hearthis.at player where the toolkit handler can find its URL, lets the skeleton
+        // cover it, and gets it removed on the next SPA navigation (the wrapper is an
+        // .mdb-element, the player div from shared/global.js is not).
+        if( embedIsAsync ) {
+            embed_hearthis_fromAnyUrl( playerUrl, tidExtras, "append" );
+        }
+
+        // A player built right here is NOT covered (keep): it should play as early as
+        // possible, and the skeleton only holds the space below it, where page creator row
+        // and toolkit appear together at the reveal - the row is placed "after" the player
+        // wrapper (funcTidPageCreator), so it is a hidden direct child of the extras wrapper
+        // like the toolkit, not a visible part of the kept player. The hearthis.at player has
+        // nothing to keep yet, so it gets a stand-in of its own and arrives with the rest.
         // No height option: the default in page_creator.css is the one source of truth -
         // an inline height here would silently win over any value tuned in the CSS.
         mdbSkeleton_show({
             target: "#mdb-tid-audiostreamExtras",
-            rows:   [ "toolkit" ],
-            keep:   ".mdb-player-audiostream"
+            rows:   embedIsAsync ? [ "player", "toolkit" ] : [ "toolkit" ],
+            keep:   embedIsAsync ? "" : ".mdb-player-audiostream"
         });
     }
 
@@ -975,8 +999,12 @@ function funcTidPageCreator( playerUrl ) {
  * audiostream's closure - and build the toolkit for the wrong mix from the second page on.
  */
 waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", function( jNode ) {
-    var playerUrl = jNode.attr("data-tidplayerurl"),
-        titleText = jNode.attr("data-tidtitle") || "";
+    // Read off the extras wrapper, which funcTidPlayers() built for every route - the
+    // hearthis.at player inside it comes from embed_hearthis_fromId() (shared/global.js) and
+    // knows nothing about TID.
+    var tidExtras = jNode.closest("#mdb-tid-audiostreamExtras"),
+        playerUrl = tidExtras.attr("data-tidplayerurl"),
+        titleText = tidExtras.attr("data-tidtitle") || "";
 
     if( !playerUrl ) return;
 
@@ -1911,6 +1939,20 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.9
+ * The toolkit is back on hearthis.at players. Since the toolkit handler was moved out of
+ * funcTidPlayers() into a single top-level registration (2026.08.11.1), it reads the player
+ * URL off the element instead of a closure - and only the players built on the spot
+ * (SoundCloud, Mixcloud, YouTube) carry it. The hearthis.at player is appended later by
+ * embed_hearthis_fromId() in shared/global.js and arrives with its own attributes only, so
+ * the handler found no URL and quietly returned. The URL and title now travel on the
+ * #mdb-tid-audiostreamExtras wrapper, which every route builds, and the hearthis.at player
+ * is appended INTO that wrapper rather than next to it. That also puts it under the loading
+ * skeleton (it gets a player stand-in of its own, since there is nothing to keep visible
+ * yet) and gets it cleaned up on the next SPA navigation, where it used to stay behind. The
+ * artwork stays visible on this route, unlike the others: the id lookup can come back empty
+ * and an artwork link beats nothing at all.
  *
  * 2026.08.19.8
  * The MixesDB modal opens again (page_creator.css). The blurred backdrop of .7 came with
