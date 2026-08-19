@@ -138,16 +138,15 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   than opening a second, empty category beside it. Where the two differ the tooltip says
   so, because the title in the field above is then still worth correcting. The name links to
   the category, and its mix count stands behind it. The count is a toggle: a click
-  folds the category's most recently added mix pages out inside the chip, each linking to its
-  page – the quickest way to see how pages of this series are named, and whether
-  the mix is already among them. They stand in the order a MixesDB category page lists
+  folds the category's most recently added mix pages out in a box attached under the chip,
+  each linking to its page – the quickest way to see how pages of this series are named, and
+  whether the mix is already among them. The chip itself keeps its exact size, so the row of
+  categories never moves; the box lies over whatever stands below it until it is folded shut. They stand in the order a MixesDB category page lists
   them, oldest at the top and the newest at the bottom, so a look at the list needs no
   re-reading against the category page it mirrors. The pages usually arrive with the category answer
   itself, for artists as well as for shows, so the list is there the moment the chip is
   opened; where they do not, the click fetches them and the chip waits on a spinner until
-  they are in. One list stands open at a time: opening a chip folds the one before it shut,
-  which keeps the categories on a readable line – two lists open at once left the chips
-  between and behind them hanging in mid-air beside a tall list.
+  they are in. One list stands open at a time: opening a chip folds the one before it shut.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
