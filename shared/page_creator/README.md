@@ -138,16 +138,16 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   than opening a second, empty category beside it. Where the two differ the tooltip says
   so, because the title in the field above is then still worth correcting. The name links to
   the category, and its mix count stands behind it. The count is a toggle: a click
-  folds the category's most recently added mix pages out in a row of their own under the
-  chips, each linking to its page – the quickest way to see how pages of this series are
-  named, and whether the mix is already among them. The row takes the whole width of the bar,
-  and the chip it belongs to is tinted green meanwhile, while the chips themselves keep their
-  line. The pages stand in the order a MixesDB category page lists them, oldest at the top and
-  the newest at the bottom, so a look at the list needs no re-reading against the category page
-  it mirrors. They usually arrive with the category answer itself, for artists as well as for
-  shows, so the list is there the moment the chip is opened; where they do not, the click
-  fetches them and the row waits on a spinner until they are in. One list stands open at a
-  time: opening a chip folds the one before it shut.
+  folds the category's most recently added mix pages out inside the chip, each linking to its
+  page – the quickest way to see how pages of this series are named, and whether
+  the mix is already among them. They stand in the order a MixesDB category page lists
+  them, oldest at the top and the newest at the bottom, so a look at the list needs no
+  re-reading against the category page it mirrors. The pages usually arrive with the category answer
+  itself, for artists as well as for shows, so the list is there the moment the chip is
+  opened; where they do not, the click fetches them and the chip waits on a spinner until
+  they are in. One list stands open at a time: opening a chip folds the one before it shut,
+  which keeps the categories on a readable line – two lists open at once left the chips
+  between and behind them hanging in mid-air beside a tall list.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
@@ -166,7 +166,7 @@ The open modal is walked with the **left and right arrow keys**: one key frames 
 the next MixesDB link of the line, so a whole category and every mix page folded out under it
 can be looked through without going back to the row between two pages. It walks exactly what is
 on screen – a chip whose mix pages are not folded out is one step, not eleven – in the order the
-line reads: the categories first, then the mix pages of the row under them. The header counts the steps (`3 / 12`) in
+line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) in
 its middle and carries the same two arrows as buttons. The walk goes **round**: one step past
 the last link is the first one again (`12 / 12` → `1 / 12`), and one step back from the first
 is the last, so a chip at the other end of the line is one key away and not eleven. The arrows
