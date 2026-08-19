@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.1
+// @version      2026.08.20.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 160,
+var cacheVersion = 161,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1966,10 +1966,13 @@ function on_submitrequest() {
 /*
  * Changelog
  *
- * 2026.08.20.1
+ * 2026.08.20.2
  * Via the shared page creator (page_creator.css): the box under an open hints bar chip hangs
- * 5px lower, with the chip's own two side borders carried down across the gap - so the list
- * sits off the name it belongs to while chip and box stay the one shape they were.
+ * 5px lower, and chip and box are one line all the way round - the chip's left border runs
+ * straight down into the box's, and on the right the two are joined by an arc: the chip's
+ * border turns into the box's top border in a quarter circle instead of a square step. The box
+ * is held wide enough for that corner to have somewhere to land, so even the "no mix pages in
+ * this category yet" one keeps the shape.
  *
  * 2026.08.19.49
  * Via the shared page creator (page_creator.css; page_creator.js v_85 only retells it in the

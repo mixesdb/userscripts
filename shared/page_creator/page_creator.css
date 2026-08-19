@@ -1065,12 +1065,13 @@
 
 /*
  * The neck between the two halves. The box hangs 5px lower than the chip (below), which reads
- * as a box of its own the moment nothing bridges that gap - so this does: the chip's own two
- * side borders carried down across it, over a fill in the bar's colour. The fill is 1px taller
- * than the gap and painted OVER the box (z-index inside the chip's own stacking context), so
- * it takes the box's top border out of the segment the chip stands on - the border is left
- * running only where the box reaches past the chip, exactly like the tab it is. Absolute, so
- * the chip's size in the line is untouched by it.
+ * as a box of its own the moment nothing bridges that gap - so this does: a fill in the bar's
+ * colour, 1px taller than the gap and painted OVER the box (z-index inside the chip's own
+ * stacking context), carrying the chip's LEFT border down into the box's left border - one
+ * straight seam, since chip and box share that edge. It also takes the box's top border out of
+ * the whole segment the chip stands on, the 6px past the chip's right edge included: that is
+ * where the arc below turns the one line into the other, and a straight border under it would
+ * cross the curve. Absolute, so the chip's size in the line is untouched by it.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open::after {
     content: "";
@@ -1079,11 +1080,36 @@
     left: -1px;
     z-index: 1;
     box-sizing: border-box;
-    width: calc(100% + 2px);
+    /* the chip's own width (100% is its padding box) + its two borders + the arc's 6px */
+    width: calc(100% + 7px);
     height: 6px;
     background-color: #1d1d1d;
     border-left: 1px solid rgba(46, 184, 46, 0.35);
-    border-right: 1px solid rgba(46, 184, 46, 0.35);
+}
+
+/*
+ * The right side of the neck, which is a CORNER and not a seam: the chip's right border has to
+ * become the box's top border there, and a square junction read as two boxes shoved together.
+ * So the turn is an arc - a 6px square hung exactly into it, its left border continuing the
+ * chip's (both 1px at the same x), its bottom border lying in the box's top border row, and a
+ * bottom-left radius the full 6px, which leaves nothing of the two edges but the quarter
+ * circle between them: it starts where the chip's border ends, tangent vertical, and lands on
+ * the box's border, tangent horizontal. Over the neck's fill (z-index), which is what keeps
+ * the box's own straight border from crossing underneath.
+ * The box is held 8px wider than the chip below, so this always has a border to land on.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 100%;
+    z-index: 2;
+    box-sizing: border-box;
+    width: 6px;
+    height: 6px;
+    border-left: 1px solid rgba(46, 184, 46, 0.35);
+    border-bottom: 1px solid rgba(46, 184, 46, 0.35);
+    border-bottom-left-radius: 6px;
 }
 
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent {
@@ -1095,8 +1121,11 @@
  * room in the bar - it lies OVER whatever follows (the "Hints:" row, the report box, the page)
  * until it is folded shut, which is why it needs the opaque background. Connected to the chip
  * on every edge that meets it: outer left edges aligned (offsets count from the chip's PADDING
- * box, so the -1px and the +2px are its border width, once and twice), the 5px it hangs below
- * the chip bridged by the neck above, the top-left corner square where the chip stands on it.
+ * box, so the -1px is its border width), the 5px it hangs below the chip bridged by the neck
+ * above, the top-left corner square where the chip stands on it. The min-width is the chip's
+ * own width plus its borders, the arc's 6px and room for the top-right corner to round off
+ * clear of it - a box that only holds "no mix pages in this category yet" must not end in the
+ * middle of the arc.
  * Otherwise as wide as its longest mix title asks, up to a cap that keeps a long title
  * wrapping instead of walking off the window. Monospace and colours
  * are inherited: in the markup the list never left the chip.
@@ -1107,7 +1136,7 @@
     top: calc(100% + 5px);
     left: -1px;
     box-sizing: border-box;
-    min-width: calc(100% + 2px);
+    min-width: calc(100% + 24px);
     width: max-content;
     max-width: min(920px, 85vw);
     padding: 4px 9px 6px;
