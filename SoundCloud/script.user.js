@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.13
+// @version      2026.08.19.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_34
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_49
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_60
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
@@ -1836,6 +1836,16 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.14
+ * The "Switch title:" Live PA chip now also fires on the title's own "live" word
+ * (title_builder.js v_50). Reported on "Live@Elsewhere Loft July" and "Dualism Series #031 -
+ * alemiko *live", where the word was consumed on the way to the title - read as the " @ "
+ * joiner, or dropped as a trailing marker with no place to point at - and the signal went
+ * with it. A consumed word saying "live" now offers the "(Live PA)" reading as a chip, on
+ * live and studio titles alike (single artist only); it still never WRITES the marker, since
+ * a DJ set is announced the same way - which is also why "DJ Set"/"DJ Mix" markers from the
+ * same joiner list set nothing.
  *
  * 2026.08.19.13
  * The hints bar offers the readings the build decided against as "Switch title:" chips

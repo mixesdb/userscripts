@@ -462,6 +462,17 @@ renders them. Settled, so it does not get re-litigated:
   numbered-series branches, where writing it would stack a guess on a guess), and a dropped
   "Part N". With several artists the Live PA chip is skipped like the marker itself: only the
   uploader knows whose set it was.
+- **The title's own consumed "live" word opens the Live PA chip too** (2026-08-19, second
+  round - reported on "Live@Elsewhere Loft July" and "Dualism Series #031 - alemiko *live",
+  where no chip fired). `mdbTitle_applyJoiners` consumes the word on both paths - read as the
+  " @ " joiner, or dropped as a trailing marker with no place to point at - and now returns
+  `liveSaid`, which the build keeps as `mdbTitle_liveWordSeen`; only the BUILD's call sets
+  the global, never the chunk split's. The word still never WRITES the marker (a DJ set is
+  announced the same way - which is also why "dj set"/"dj mix", sitting on the same
+  `mdbTitleLiveAtWords` list, must never set the flag: the consumed text has to say "live"),
+  it only makes the reading worth offering - on live and studio titles alike, single artist
+  only. `expectAlternatives` in `title_examples.js` guards it (kinds that must be present;
+  the runner checks presence, not reason wording).
 - **Part chunks only, no stage/camp/day.** MixesDB really files split uploads as "... (Part 2)"
   (checked against the wiki 2026-08-19), so that drop has a second reading worth offering.
   "Day 2" is written INLINE behind the event name there, not as a bracket, and a stage or camp

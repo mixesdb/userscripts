@@ -1075,5 +1075,30 @@ var mdbTitleExamples = [
         expectEntity: "Uncoded Birthday Radioshow",
         expectChunks: [ "Mat.Theo", "UNCODED BIRTHDAY Radioshow" ],
         expect: "2026-06-23 - Mat.Theo - Uncoded Birthday Radioshow"
+    },
+    {
+        // Reported: the Live PA alternative did not fire - the trailing "*live" was dropped
+        // (it says how the set was played, not where) and the signal went with it. A
+        // consumed "live" now offers the "(Live PA)" reading as a "Switch title:" chip; it
+        // still never WRITES the marker, since a DJ set is announced the same way.
+        url: "https://soundcloud.com/dualismberlin/dualism-series-031",
+        title: "Dualism Series #031 - alemiko *live",
+        channel: "Dualism.Berlin",
+        date: "2026-08-12",
+        known: { "alemiko": "artist", "Dualism Series": { type: "podcast", mixes: 31 } },
+        expectAlternatives: [ "livePa" ],
+        expect: "2026-08-12 - alemiko - Dualism Series 031"
+    },
+    {
+        // Reported with the case above: the same signal consumed the other way - the "Live"
+        // of "Live@" was read as the " @ " joiner, so the title became a live recording and
+        // the word disappeared into it. The chip offers "(Live PA)" in front of the "@".
+        url: "https://soundcloud.com/alexanderlouisnyc/live-elsewhere-july",
+        title: "Live@Elsewhere Loft July",
+        channel: "alexander:louis",
+        date: "2026-07-27",
+        known: { "alexander:louis": "artist" },
+        expectAlternatives: [ "livePa" ],
+        expect: "2026-07 - alexander:louis @ Elsewhere Loft"
     }
 ];
