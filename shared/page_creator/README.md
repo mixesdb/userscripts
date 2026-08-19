@@ -23,11 +23,17 @@ MixesDB's own category names sharpen the guess: the names in the title and the c
 looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venue or event is
 read as exactly that – a name it knows as an **event** makes the title a live recording however
 the uploader separated it, so `Kollektiv Ost - 3000Grad Festival` is a set played there and not
-a mix released under that name. A chunk long enough to be a **chain** of names is asked about in
+a mix released under that name, and among the chunks around such a place the one holding a name
+the wiki knows as an **artist** is who played there, so a city standing between the event and
+the line-up does not end up in either name. A chunk long enough to be a **chain** of names is asked about in
 pieces as well as whole – `Timboletti im Chapeau Club` is looked up as itself, as `Timboletti`
-and as `Chapeau Club`, because the wiki can only answer empty about the pair – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
+and as `Chapeau Club`, because the wiki can only answer empty about the pair – and so are the
+artists an `&` joins: `Ri0D. & Jonbot` is looked up as the pair and as each name. Everything
+found is written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
-tamed to "DJ Maria.", because the category holding her mixes is spelled that way).
+tamed to "DJ Maria.", because the category holding her mixes is spelled that way) – which
+follows a spelling-correcting redirect too, so `Ri0D.` is written `RiOD.`, the category that
+really holds the mixes.
 
 An **episode number stays in the chunk it was typed in** – it is what says which of the names
 around it is the series. `LIMB #9 – Yuka` on the channel *LIMB* is episode 9 of LIMB, while
@@ -298,9 +304,11 @@ ends up used.
   the podcast on the entity side and the wiki's `Monument (Jordan Smith)` on the artist
   side. A name that is not simply a chunk of section 1 says underneath where it does come
   from: the channel (asked as the series the mixes belong to, though it need not stand in the
-  title at all), a curated show name, or the chunk it was shortened from – `HMWL Podcast`
+  title at all), a curated show name, the chunk it was shortened from – `HMWL Podcast`
   carries `from the chunk "HMWL Podcast 439"`, since a category name never holds the episode
-  number. A chunk that was deliberately NOT asked about stands at the end of the section on a
+  number – or the artist group it was joined into (`Ri0D.` out of the chunk
+  `Ri0D. & Jonbot`, asked on its own because MixesDB files each artist of a pair
+  separately). A chunk that was deliberately NOT asked about stands at the end of the section on a
   `Not asked:` line with its reason: the place group's own country
   (`… @ S.U.N Festival – Hungary`) – a country is never a category – a chunk that is nothing
   but a counting word and its number (`Episode 72`, `Part 2`, `Pt.3`), which says which

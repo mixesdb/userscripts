@@ -1267,5 +1267,30 @@ var mdbTitleExamples = [
         known: { "3000Grad Festival": { type: "event", mixes: 335 } },
         expectArtists: [ "1/2 Faultierdisko" ],
         expect: "2023 - 1/2 Faultierdisko @ 3000Grad Festival"
+    },
+    {
+        // Reported: came out as "2026-07-25 - Brotfabrik & k²0 Open Air - Leipzig Ri0D. &
+        // Jonbot" - the leftover chunks glued into an entity nobody wrote. Three rules from
+        // the report: the 0 of "k²0" is a spelling, not a number that counts, so the bit may
+        // not fail the event branch's "an event is a place, not a series" guard; the bit the
+        // wiki backs as an ARTIST is who played there, not whatever stands first around the
+        // event ("Leipzig" is a chunk of its own and must never be merged into a name); and
+        // the artists an "&" joins are asked one by one, which is how "Ri0D." gets its answer
+        // at all. That answer is a REDIRECT to "RiOD." - one substituted character, the wiki
+        // correcting a spelling - so the target is what the title and the categories write.
+        // The report expected the bare year "2026"; the title's own event date (25.07.2026)
+        // is kept, as with every date a title states.
+        url: "https://soundcloud.com/brotfabrikleipzig/brotfabrik-x-k-0-open-air-25",
+        title: "Brotfabrik X k²0 Open Air - 25.07.2026 - Leipzig - Ri0D. & Jonbot",
+        channel: "Brotfabrik Leipzig",
+        date: "2026-08-01",
+        known: {
+            "Ri0D.": { matches: [ { title: "RiOD.", type: "artist", mixes: 2, matchedTitle: "Ri0D.", matchType: "redirect", exactCase: true } ] },
+            "Brotfabrik": { type: "venue", mixes: 5 }
+        },
+        expectArtists: [ "RiOD.", "Jonbot" ],
+        expectEntity: "Brotfabrik & k²0 Open Air",
+        expectChunks: [ "Brotfabrik & k²0 Open Air", "Leipzig", "Ri0D. & Jonbot" ],
+        expect: "2026-07-25 - RiOD. & Jonbot @ Brotfabrik & k²0 Open Air"
     }
 ];

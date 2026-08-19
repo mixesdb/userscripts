@@ -1118,10 +1118,16 @@ function mdbTitle_hasSeriesWord( part ) {
 // fail the event branch's "an event is a place, not a series" guard, so the title came out as
 // a Promo Mix on the channel's own name.
 function mdbTitle_seriesScore( part ) {
-    var score = 0;
+    var score = 0,
+        // A digit glued to a superscript is a SPELLING, not a number that counts: "k²0 Open
+        // Air" is how the crew writes its name, and the trailing 0 read as a count made the
+        // event branch refuse the whole title ("an event is a place, not a series"). The run
+        // goes the way the letters of "3000Grad" do - out of the digit test, never out of the
+        // part itself.
+        counted = String( part || "" ).replace( /[0-9]*[²³¹⁰-₉][0-9²³¹⁰-₉]*/g, "" );
 
     if( mdbTitle_hasSeriesWord( part ) ) score += 2;
-    if( /\d(?![0-9A-Za-z])/.test( part ) ) score += 1;
+    if( /\d(?![0-9A-Za-z])/.test( counted ) ) score += 1;
 
     return score;
 }
@@ -2391,6 +2397,25 @@ function mdbTitle_matchConfidence( name, matches, index, overruled ) {
     return { percent: conf.percent(), reasons: conf.reasons };
 }
 
+// mdbTitle_oneCharApart
+// Whether two NORMALIZED names differ in exactly one substituted character - the shape of a
+// stylized spelling standing next to the plain one ("ri0d" vs "riod": the 0 the artist writes,
+// the O the wiki files under). Same length on purpose: adding or dropping characters quickly
+// makes another NAME ("dekmantel" vs "dekmantelfestival"), while swapping one in place is how
+// letters get stylized and typos get made.
+function mdbTitle_oneCharApart( a, b ) {
+    if( !a || !b || a === b || a.length !== b.length ) return false;
+
+    var diff = 0,
+        i;
+
+    for( i = 0; i < a.length; i++ ) {
+        if( a.charAt( i ) !== b.charAt( i ) && ++diff > 1 ) return false;
+    }
+
+    return diff === 1;
+}
+
 // mdbTitle_canonicalName
 // The wiki's own spelling of a name: "trommel" -> "Trommel", "BASSIANI" -> "Bassiani",
 // "Asa 808" -> "ASA 808". Only when the match IS this name (compared normalized) - a fuzzy
@@ -2400,6 +2425,10 @@ function mdbTitle_matchConfidence( name, matches, index, overruled ) {
 // title is "Dekmantel Festival" (a different name - no rewrite), but the REDIRECT the input
 // hit is spelled "Dekmantel", and that casing is the wiki's own for the alias. matchedTitle
 // carries it (mdbnames, both modes).
+// One exception on that path (reported on "Ri0D."): a redirect whose TARGET is the same name
+// up to one substituted character is the wiki correcting a spelling, not naming a different
+// thing - "Ri0D." redirects to "RiOD.", and the target is the category the mixes really sit
+// in, so it wins over the alias's casing. mdbTitle_oneCharApart is the fence.
 // preferTypes ranks same-named matches of different types ("fabric" the venue vs "Fabric"
 // the artist); pass nothing to take the server's best.
 function mdbTitle_canonicalName( known, name, preferTypes ) {
@@ -2416,6 +2445,10 @@ function mdbTitle_canonicalName( known, name, preferTypes ) {
     }
 
     if( match.matchedTitle && mdbTitle_normalizeCompare( match.matchedTitle ) === cmp ) {
+        if( match.title && mdbTitle_oneCharApart( mdbTitle_normalizeCompare( match.title ), cmp ) ) {
+            return match.title;
+        }
+
         return match.matchedTitle;
     }
 
@@ -2500,6 +2533,14 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
 
         mdbTitle_noteCandidateRole( name, role );
         mdbTitle_noteCandidateSource( name, origin, chunk );
+
+        // asked once, whatever asks: a group member can BE another chunk ("A & B - A"), and a
+        // duplicate would burn one of the ten names the request takes. The notes above still
+        // run - the role is the latest reading either way.
+        for( var t = 0; t < names.length; t++ ) {
+            if( mdbTitle_normalizeCompare( names[t] ) === mdbTitle_normalizeCompare( name ) ) return;
+        }
+
         names.push( name );
     }
 
@@ -2618,6 +2659,23 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
 
             for( p = 0; p < pieces.length; p++ ) {
                 take( pieces[p], bitRole, "chunk part", bits[i] );
+            }
+
+            // ... and the artists a joiner strings together, one by one: "Ri0D. & Jonbot" is
+            // no category and never will be, while "Ri0D." is one - and the confirmed name is
+            // what settles which bit names who PLAYED (mdbTitle_takeEventTitle's first tier).
+            // The whole group stays the first question, since a duo can be a category of its
+            // own ("Above & Beyond"). Artist-role bits only: behind the "@" the names are
+            // places, and a series-looking bit strings no line-up.
+            if( bitRole === "artist" ) {
+                var members = mdbTitle_splitArtists( bit ),
+                    mb;
+
+                for( mb = 0; members.length > 1 && mb < members.length; mb++ ) {
+                    if( members[mb].length >= 3 ) {
+                        take( members[mb], "artist", "group member", bits[i] );
+                    }
+                }
             }
         } else if( bit ) {
             mdbTitle_noteChunkNotAsked( bits[i],
@@ -2758,6 +2816,18 @@ function mdbTitle_lookupCategories( names, callback ) {
                             matches.map( function( m ) {
                                 return "\"" + m.title + "\" " + m.type + " (" + m.mixes + ")";
                             } ).join( ", " ) );
+
+                    // A match's canonical title is a name the wiki has answered about too -
+                    // filed under its own key, so the readers of a respelled title ("Ri0D."
+                    // -> "RiOD." via its redirect) find the answer without a second request.
+                    // Never over an answer that key already has.
+                    for( var mt = 0; mt < matches.length; mt++ ) {
+                        var targetKey = matches[mt].title ? mdbTitle_normalizeCompare( matches[mt].title ) : "";
+
+                        if( targetKey && !Object.prototype.hasOwnProperty.call( mdbTitle_categoryCache, targetKey ) ) {
+                            mdbTitle_categoryCache[ targetKey ] = { matches: [ matches[mt] ] };
+                        }
+                    }
                 }
             }
 
@@ -2770,6 +2840,36 @@ function mdbTitle_lookupCategories( names, callback ) {
             callback( mdbTitle_categoryCache );
         }
     });
+}
+
+// mdbTitle_groupHasKnownArtist
+// Whether MixesDB knows the bit - or any name its joiners string together - as an ARTIST.
+// "Ri0D. & Jonbot" is no category and never will be; "Ri0D." is one, and one confirmed name
+// vouches for the whole group standing in the artist slot.
+function mdbTitle_groupHasKnownArtist( known, group ) {
+    if( !known || !group ) return false;
+
+    if( mdbTitle_knownMatch( known, group, [ "artist" ] ) ) return true;
+
+    var names = mdbTitle_splitArtists( group ),
+        i;
+
+    for( i = 0; names.length > 1 && i < names.length; i++ ) {
+        if( mdbTitle_knownMatch( known, names[i], [ "artist" ] ) ) return true;
+    }
+
+    return false;
+}
+
+// mdbTitle_joinedArtistBit
+// Whether a bit WRITES a line-up: two names strung with an artist joiner ("Ri0D. & Jonbot",
+// "A b2b B"). The comma deliberately does not count - "Amsterdam, Netherlands" strings
+// places, not artists - and the joiner needs a name on both sides, the same rule
+// mdbTitle_splitArtists reads it by.
+function mdbTitle_joinedArtistBit( bit ) {
+    var joiners = ( typeof mdbTitleArtistSplitJoiners !== "undefined" && mdbTitleArtistSplitJoiners ) ? mdbTitleArtistSplitJoiners : [ "&" ];
+
+    return new RegExp( "\\S\\s+(?:" + mdbTitle_wordListAlternation( joiners ) + ")\\s+\\S", "i" ).test( String( bit || "" ) );
 }
 
 // mdbTitle_takeVenueTitle
@@ -2819,17 +2919,38 @@ function mdbTitle_takeVenueTitle( text, known ) {
 
     if( venueIndex === -1 ) return null;
 
-    var artist = "";
-    for( i = 0; i < cleaned.length; i++ ) {
-        if( i !== venueIndex && cleaned[i] ) { artist = cleaned[i]; break; }
+    // Who played there: the bit the wiki backs as an artist first - "Ritter Butzke | Berlin |
+    // Tonino & Lanka" has two non-venue bits, and blind position picks the city - then a bit
+    // that writes a line-up, then the first bit that is not the venue.
+    var artist = "",
+        artistIndex = -1,
+        artistKnown = false;
+
+    for( i = 0; !artist && i < cleaned.length; i++ ) {
+        if( i !== venueIndex && cleaned[i] && mdbTitle_groupHasKnownArtist( known, cleaned[i] ) ) {
+            artist = cleaned[i];
+            artistIndex = i;
+            artistKnown = true;
+        }
+    }
+
+    for( i = 0; !artist && i < cleaned.length; i++ ) {
+        if( i !== venueIndex && cleaned[i] && mdbTitle_joinedArtistBit( cleaned[i] ) ) { artist = cleaned[i]; artistIndex = i; }
+    }
+
+    for( i = 0; !artist && i < cleaned.length; i++ ) {
+        if( i !== venueIndex && cleaned[i] ) { artist = cleaned[i]; artistIndex = i; }
     }
 
     if( !artist ) return null;
 
-    var behind = cleaned[ venueIndex + 1 ] || "";
+    // ... and never the bit that already names the artist - "Ritter Butzke | Tonino" must not
+    // glue Tonino behind the venue as its city on top of playing there
+    var behind = ( venueIndex + 1 !== artistIndex && cleaned[ venueIndex + 1 ] ) || "";
 
     return {
         artist: artist,
+        artistKnown: artistKnown,
         // in the wiki's own spelling - it is the wiki that says this is a venue at all
         venue: mdbTitle_canonicalName( known, cleaned[venueIndex], [ isEvent ? "event" : "venue" ] ),
         // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue.
@@ -2918,8 +3039,24 @@ function mdbTitle_takeEventTitle( text, known, username ) {
         event = mdbTitle_trimSeparators( atSplit[2] );
     }
 
-    // otherwise the first bit that is not the event names the artists
-    var artistIndex = -1;
+    // Otherwise the bits around the event, in order of what vouches for them: the bit the
+    // wiki backs as an artist first - "<event> - Leipzig - Ri0D. & Jonbot" has two, and blind
+    // position picks the city - then a bit that writes a line-up ("A & B"), then the first
+    // bit that is not the event.
+    var artistIndex = -1,
+        artistKnown = false;
+
+    for( i = 0; !artist && i < kept.length; i++ ) {
+        if( i !== eventIndex && mdbTitle_groupHasKnownArtist( known, kept[i] ) ) {
+            artist = kept[i];
+            artistIndex = i;
+            artistKnown = true;
+        }
+    }
+
+    for( i = 0; !artist && i < kept.length; i++ ) {
+        if( i !== eventIndex && mdbTitle_joinedArtistBit( kept[i] ) ) { artist = kept[i]; artistIndex = i; }
+    }
 
     for( i = 0; !artist && i < kept.length; i++ ) {
         if( i !== eventIndex ) { artist = kept[i]; artistIndex = i; }
@@ -2959,7 +3096,7 @@ function mdbTitle_takeEventTitle( text, known, username ) {
     // in it, while "Festival Mix 12" has both.
     if( !event || mdbTitle_seriesScore( event ) > 0 ) return null;
 
-    return { artist: artist, event: event, year: year, city: city, chainDropped: chainDropped };
+    return { artist: artist, artistKnown: artistKnown, event: event, year: year, city: city, chainDropped: chainDropped };
 }
 
 // mdbTitle_takeSlotEventTitle
@@ -4498,7 +4635,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             conf.drop( 10, "read as a live recording at an event - the event name was taken as the place it was played at" );
 
             return mdbTitle_result( date, eventGroup, "", null, false, [], conf, {
-                artist: "the name standing in front of the event is who played there",
+                // when the wiki's artist answer picked the bit, say so - with several bits
+                // around the event, position alone is not what decided
+                artist: eventTitle.artistKnown
+                    ? "MixesDB knows a name in that bit as an artist, which is what picked it over the other bits around the event"
+                    : "the name standing in front of the event is who played there",
                 // The wiki is NOT what decides this one - the event word list is (the venue
                 // branch below is the one that asks MixesDB) - so the sentence must not claim
                 // the wiki knows the name. "Why this and not the channel?" is answered by the
@@ -4533,7 +4674,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             }
 
             return mdbTitle_result( date, venueGroup, "", null, false, [], conf, {
-                artist: "the name standing next to the " + venueKind + " is who played there",
+                // when the wiki's artist answer picked the bit, say so - with several bits
+                // around the place, position alone is not what decided
+                artist: venueTitle.artistKnown
+                    ? "MixesDB knows a name in that bit as an artist, which is what picked it over the other bits around the " + venueKind
+                    : "the name standing next to the " + venueKind + " is who played there",
                 // The wiki is what decides this one, so the sentence names it - and it names
                 // the TYPE it answered with: an event answer is what overrules the "-" the
                 // uploader typed, and a reader checking that must not be told "venue".
@@ -5442,11 +5587,21 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
 
     // Last word on spelling: a name the wiki knows is written the way the wiki writes it -
     // "trommel" -> "Trommel", "asa 808" -> "ASA 808" - undoing whatever the re-caser guessed.
-    // After tidy so nothing re-cases it back, and only name-for-name (see mdbTitle_canonicalName);
-    // a composed live group ("A @ Venue, City") was already canonicalized where it was built.
+    // After tidy so nothing re-cases it back, and only name-for-name (see mdbTitle_canonicalName).
+    // In a composed live group ("A @ Venue, City") only the front is respelled here: the NAMES
+    // in front of the "@" are artists like any others (reported on "Ri0D. & Jonbot @ ...",
+    // which kept the stylized spelling), while the place behind it was canonicalized where the
+    // group was built - the venue branch asks the wiki - and its ", City" is no artist list.
     if( mdbTitle_knownNow ) {
-        if( artist.indexOf( "@" ) === -1 ) {
+        var canonAt = artist.indexOf( "@" );
+
+        if( canonAt === -1 ) {
             artist = mdbTitle_canonicalArtists( mdbTitle_knownNow, artist );
+        } else {
+            var canonFront = artist.slice( 0, canonAt ).replace( /\s+$/, "" ),
+                canonTrail = artist.slice( canonFront.length, canonAt );
+
+            artist = mdbTitle_canonicalArtists( mdbTitle_knownNow, canonFront ) + canonTrail + artist.slice( canonAt );
         }
         entity = mdbTitle_canonicalName( mdbTitle_knownNow, entity, mdbTitle_entityTypes );
     }
