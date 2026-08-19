@@ -77,6 +77,13 @@ edition a thousand years ahead is read as the year it means – 3000Grad's `Fest
 that stays is `Live PA`: said by the title – or by the description of a live recording – it is
 written as `(Live PA)` behind the artist's name, while the artist category stays the bare name.
 
+An `@` in front of a **date** joins nothing and reads as a plain `-`: `Ingo Sänger @ August
+2026` is a mix from August 2026, not a set played at a place of that name. A title that then
+names nothing but its month is the monthly mix MixesDB has a name for –
+`2026-08 - Ingo Sänger - August Promo Mix`, the way `2011-08 - Aeroplane - August Promo Mix`
+is written – and the page files under `Category:Promo Mix`. Keeping the stamp as the mix's own
+name (`… - August 2026 (Promo Mix)`) is offered as a **Switch title** chip.
+
 An event whose name says nothing about being one is read from two hints together: a chunk
 ending in a bare year is an edition, and a chunk ending in a slot of the night – `Closing`,
 `Opening`, `Peak Time` – is where inside it the set was played. Neither counts alone, and
@@ -179,6 +186,11 @@ says why the build decided the other way. Offered today:
   how the wiki writes it where the room is worth naming – `2019-05-24 - Robert Hood @ Elsewhere
   Rooftop, NYC`. The page files under the venue either way, so this chip changes the title
   alone, not where the page ends up.
+
+- **The month as the name** – the title dated itself with a month and named nothing else, so
+  it was written the way MixesDB writes a monthly mix (`… - August Promo Mix`). The chip offers
+  the stamp kept as the mix's own name instead (`… - August 2026 (Promo Mix)`) – the wiki has
+  both spellings. The page files under `Category:Promo Mix` either way.
 
 - **The slot of the night** – the title named the closing or the opening set at an event, and
   the group was written slot first, event last (`… @ Obstgarten Closing, Rote Dichte`). The chip
@@ -323,7 +335,11 @@ ends up used.
   are the dur table or a `{{StandardShow…}}` template (the template is only written when this
   file's duration roughly fits its stated length – a 40-minute file on a 2h show is a hint the
   category was misread), and which style categories stand on at least 90% of the pages (they
-  fill the empty style lines – measured, that fires almost only on genre-locked series).
+  fill the empty style lines – measured, that fires almost only on genre-locked series). A
+  category that clears the 90% but is a **name** MixesDB knows – an event, a venue, an artist,
+  a show – is no style and is not written; the line says so and names the type. A venue's
+  recent pages can all be from one festival week, and `Amsterdam Dance Event` on 10 of 10 says
+  what those pages have in common, not what they sound like.
   Whatever clears no bar keeps today's default page text, so nothing here can make the page
   worse than before
 
@@ -352,7 +368,8 @@ Opens the edit form of the new page, prefilled with:
 - the categories the title gives away (year, artists, the entity the page is filed under)
 - the style categories, where the site suggests any (TrackId.net's style suggestions box) –
   otherwise a style at least 90% of the entity's recent pages carry, which almost only
-  genre-locked series have; whatever remains stays empty category rows to fill in
+  genre-locked series have, and only where it is not a name MixesDB knows as an event, a venue,
+  an artist or a show; whatever remains stays empty category rows to fill in
 - the tracklist from the box below, when there is one
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text
@@ -378,6 +395,13 @@ becomes `;Natasha Kitty Katt` – a `Guest Mix` / `Hour 1` / `First Hour` prefix
 `:` are removed, in whatever mixture of blanks, `-` and `:` they were typed. A headline needs no
 blank line under it. When one of the tracklists has no headline of its own, no chapters are
 invented – the longest single tracklist ends up in the box, as before.
+
+Characters that are invisible in a description never reach the box either. A non-breaking space,
+one of Unicode's other blanks, a zero-width joiner, or a line separator an uploader pasted out of
+a word processor all look exactly like an ordinary space – or like nothing at all – where they
+were typed, but they are none, and one sitting between the numbering and the track used to ride
+along into the created page as a stray blank (`#  Artist - Title`). They are read as the space
+they look like, and the zero-width ones are dropped.
 
 Links never end up in the box. Some uploaders put a shop or label link under every single
 track – usually without `http://` – and the tracklist is still found in one piece: the link
@@ -434,7 +458,7 @@ On TrackId.net the description is not searched at all: the **Create** link reads
 from the identified tracks, which is the better tracklist anyway.
 
 A site script may have changed the tracklist before the box ever saw it. When it has, it says so
-in the box: an extra row prints with the Tracklist Editor's own feedback, and the box goes into
+in the box: an extra row prints below the Tracklist Editor's own feedback, and the box goes into
 warning mode for it – the same red the Editor uses for its own warnings, because a change nobody
 asked for is the thing that must not be saved unlooked-at. SoundCloud is the case this exists
 for; it replaces the channel handles uploaders credit remixers by with the names those channels

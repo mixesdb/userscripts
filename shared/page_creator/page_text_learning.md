@@ -37,6 +37,19 @@
 > dated 2023-09-18 in its title and filed at 2025-05-30) - and those pages are exactly the ones
 > the "newest 5 override" leans on.
 
+> **Delta added 2026-08-19: a learned style that is a NAME is not written.** Signal C votes on
+> every category that is not the year, the entity, an artist of that page's title, Promo Mix or
+> a `Tracklist:` filing - and on a VENUE that leaves the festival its pages all belong to.
+> Category:Undercurrent's 10 newest pages are all sets from one ADE week, so
+> `Amsterdam Dance Event` stood on 10 of 10 and filled a style line on an unrelated podcast
+> episode. `mdbnames` tells the two apart outright: it answers empty about `Techno`, `House`
+> and `Deep House`, and with a type about `Amsterdam Dance Event` and `ZeeZout`. So the learned
+> names are asked about in one small request of their own
+> (`mdbPageCreator_recentStyleCheck()`, never through `mdbTitle_lookupCategories()`, whose log
+> IS the panel's section 3) and every positive answer drops its style; a pending or failed
+> request leaves the style standing. What the plan below says about the 90% bar is unchanged -
+> this is a second condition on top of it, not a different threshold.
+
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already
 contains the right shape: the other episodes of the same show sitting in the entity's category.

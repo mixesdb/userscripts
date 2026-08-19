@@ -52,6 +52,14 @@ var mdbTitle_monthNames = {
     dec: 12, december: 12, dez: 12, dezember: 12
 };
 
+// The month names MixesDB itself writes, for the "<Month> Promo Mix" titles a monthly mix
+// gets ("2011-08 - Aeroplane - August Promo Mix"). English and spelled out, whatever the
+// player title used ("Aug", "August", "Aug."), because that is how the wiki writes them.
+var mdbTitle_monthTitleNames = [
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+
 // Characters player titles use to separate the parts of a title, as a regex class body.
 // Doubled runs ("//", "||", "\\") are covered by the "+" quantifiers wherever this is used.
 // The comma is deliberately NOT in here: on MixesDB "," joins artists who played after each
@@ -471,6 +479,59 @@ function mdbTitle_takeRecordingMonth( text ) {
     result.month = month;
 
     return result;
+}
+
+// mdbTitle_isDateOnly
+// Is this bit of a title NOTHING BUT a date? "August 2026" is, "August Sessions" is not.
+// Asked of what stands behind an "@" (mdbTitle_atDateSeparator), so it has to be strict:
+// mdbTitle_findDate has to read it AND has to leave nothing standing.
+// A bare month name is deliberately NOT one - a month on its own is part of a name far more
+// often than it is a date ("Mar Monzon", "May Day", the channel "Juni"), which is the same
+// reason mdbTitle_findDate has no pattern for one; on a live title the trailing month is
+// already read by mdbTitle_takeRecordingMonth.
+function mdbTitle_isDateOnly( text ) {
+    var s = mdbTitle_trimSeparators( String( text || "" ) );
+
+    if( !s ) return false;
+
+    var found = mdbTitle_findDate( s, "" );
+
+    return !!found && !mdbTitle_trimSeparators( mdbTitle_cut( s, found.index, found.length ) );
+}
+
+// mdbTitle_atDateSeparator
+// "Ingo Sanger @ August 2026" -> "Ingo Sanger - August 2026": an "@" whose whole tail is a
+// DATE joins nothing. The joiner says a set was PLAYED SOMEWHERE, and a date is not a
+// somewhere - written in front of one the "@" is the uploader's own flourish, and reading it
+// as the joiner cost the title twice over: the mix became a live recording at a place called
+// "August 2026", and the date group never got the month the title had spelled out.
+//
+// Runs at the top of mdbTitle_applyJoiners, so the parse and the chunk split (which both go
+// through it) see the same title, and so the "at" spelling is covered before the joiner rules
+// read it. The tail is everything up to the next separator or the end - what stands behind an
+// "@" is one group.
+function mdbTitle_atDateSeparator( text ) {
+    var s = String( text || "" ),
+        re = /\s*(?:@|\bat\b)\s*/gi,
+        out = "",
+        last = 0,
+        m;
+
+    while( ( m = re.exec( s ) ) !== null ) {
+        if( !m[0].length ) { re.lastIndex++; continue; } // never loop forever
+
+        var after = s.slice( m.index + m[0].length ),
+            split = mdbTitle_bitSplitRe(),
+            next = split.exec( after ),
+            tail = next ? after.slice( 0, next.index ) : after;
+
+        if( mdbTitle_isDateOnly( tail ) ) {
+            out += s.slice( last, m.index ) + " - ";
+            last = m.index + m[0].length;
+        }
+    }
+
+    return out + s.slice( last );
 }
 
 // mdbTitle_takeTrailingYear
@@ -1285,6 +1346,10 @@ function mdbTitle_reduceRecordingNotes( text ) {
 // the joiner, never off the word), but it is the signal the Live PA alternative hangs on
 // (mdbTitle_liveWordSeen above), so consuming it must not swallow it.
 function mdbTitle_applyJoiners( text ) {
+    // an "@"/"at" in front of a pure date is no joiner at all - before every rule below, so
+    // none of them reads the date as the place it was played at
+    text = mdbTitle_atDateSeparator( text );
+
     var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
         venue = ( typeof mdbTitleVenueConnectors !== "undefined" && mdbTitleVenueConnectors ) ? mdbTitleVenueConnectors : [],
         together = ( typeof mdbTitleTogetherArtistJoiners !== "undefined" && mdbTitleTogetherArtistJoiners ) ? mdbTitleTogetherArtistJoiners : [],
@@ -3215,6 +3280,15 @@ var mdbTitle_placeWordDropped = null;
 // suggestion, in the branch itself.
 var mdbTitle_slotPartRead = null;
 
+// mdbTitle_monthOnlyName
+// The month a title dated itself with and NOTHING else - "August" out of "@ August 2026" -
+// or "" on every other title. What it is for is the name such a mix gets: a self-released mix
+// whose title is only its month is written "<Month> Promo Mix" on MixesDB
+// ("2011-08 - Aeroplane - August Promo Mix", "2010-08 - Arto Mwambe - August Promo Mix" -
+// 149 of them), and without a name of its own the title would come out as bare
+// "2026-08 - Ingo Sanger". Set in the date step, read at the single exit.
+var mdbTitle_monthOnlyName = "";
+
 // mdbTitle_isChannelInitials
 // Whether an all-caps word is the channel abbreviating itself: "IA" on "Illegal Alien Records".
 // A PREFIX of the initials counts, because a label drops its "Records" in its own podcast name
@@ -3901,6 +3975,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_promoDeclined = false;
     mdbTitle_placeWordDropped = null;
     mdbTitle_slotPartRead = null;
+    mdbTitle_monthOnlyName = "";
+    mdbTitle_monthOnlyStamp = "";
 
     try {
         // "_" is a space on MediaWiki and a word character to a regex, so it is written out
@@ -4125,6 +4201,22 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             mdbTitle_traceCleaned( rest );
         }
 
+        // 2b) An "@" whose whole tail is a DATE is no joiner - "Ingo Sanger @ August 2026" is
+        // a mix from August 2026, not a set played at a place of that name. In front of the
+        // date step, because the date patterns that need a group of their own
+        // (monthYearGroup) count separators as the boundary and an "@" is none: left where it
+        // stood, the month never reached the date group and became the entity instead. The
+        // joiner rules further down run it again (mdbTitle_applyJoiners), which is what the
+        // chunk split goes through - saying it twice costs nothing, the rewrite is idempotent.
+        var atDated = mdbTitle_atDateSeparator( rest );
+
+        if( atDated !== rest ) {
+            logVar( "buildMixesdbTitle: \"@\" in front of a date is a separator", rest + " -> " + atDated );
+            mdbTitle_traceStep( "\"@\" in front of a date read as a separator", rest + " -> " + atDated );
+            rest = atDated;
+            mdbTitle_traceCleaned( rest );
+        }
+
         // 3) date. The creation date only DISAMBIGUATES a date written in the title
         // (DDMMYY vs MMDDYY vs YYMMDD) - it is used as the date itself only when the title
         // carries none, since mix dates legitimately differ from the upload date.
@@ -4145,6 +4237,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             mdbTitle_traceStep( "Date read out of the title", dateAsWritten + " -> " + found.out );
             mdbTitle_traceCleaned( rest );
+
+            // a "<Month> <Year>" group and nothing else: remember the month, in case the
+            // title turns out to name nothing but that (see mdbTitle_monthOnlyName)
+            if( found.pattern === "monthYearGroup" ) {
+                mdbTitle_monthOnlyName = mdbTitle_monthTitleNames[ +found.out.slice( 5, 7 ) ] || "";
+                mdbTitle_monthOnlyStamp = dateAsWritten;
+            }
 
             // a rival reading of the same digits lands almost as close to the upload date -
             // e.g. 03/04 could be the 3rd or the 4th, and nothing here can settle it
@@ -5358,6 +5457,39 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         }
     }
 
+    var monthNamed = null;
+
+    // A mix whose title is nothing but its month gets the name MixesDB gives it:
+    // "2011-08 - Aeroplane - August Promo Mix". Without this the entity slot stays empty and
+    // the title comes out as a bare "2026-08 - Ingo Sanger", which says nothing about what
+    // the file is - and the month, the one thing the uploader did name, is lost with it.
+    // A self-released monthly mix is the textbook Promo Mix, so the page files under it; the
+    // name already carries the words, so no " (Promo Mix)" is appended on top.
+    //
+    // Only where the title left NOTHING else: no name of its own, no episode number, and no
+    // place (a live recording carries its group in the artist and is filed under the place).
+    // And never where the name standing as the artist is a SHOW the wiki knows: "Some Podcast
+    // - March 2026" is that podcast's March episode, and calling a known podcast's episode a
+    // self-released mix would be the one thing the Promo Mix filing may never say.
+    if( mdbTitle_monthOnlyName && artist && !entity && !episode && artist.indexOf( "@" ) === -1 &&
+        !mdbTitle_knownEntityType( mdbTitle_knownNow, artist ) ) {
+        entity = mdbTitle_monthOnlyName + " Promo Mix";
+        promoMix = true;
+
+        logVar( "mdbTitle_result: the title is its month, named the way MixesDB names one", entity );
+        mdbTitle_traceStep( "Monthly mix named", "the title dates itself and names nothing else -> " + entity );
+
+        conf.drop( 5, "the title names nothing but its month, so it was read as a self-released monthly mix and named \"" +
+                      entity + "\" - the way MixesDB writes one" );
+
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.entity = "the title dates itself with a month and names nothing else, " +
+                "which MixesDB writes as \"" + entity + "\" and files under Category:Promo Mix";
+        }
+
+        monthNamed = { name: entity, stamp: mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_monthOnlyStamp ) ) };
+    }
+
     // " (Promo Mix)" only where the name does not already say it - the page still goes into
     // the category either way, which is what promoCategory carries out to the UI
     var promoCategory = !!promoMix,
@@ -5475,6 +5607,23 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                         mdbTitle_placeWordDropped.place + "\", which is the category the page files under" +
                         " either way - MixesDB has no \"" + mdbTitle_placeWordDropped.full + "\". Where the room" +
                         " is worth naming, the title does carry it."
+            } );
+        }
+
+        // The stamp the monthly naming above replaced. "August 2026" as the mix's own name is
+        // the other way MixesDB writes such a page ("2016-07-30 - Guy J - Parallel Universe
+        // (August Promo Mix)" shows both spellings side by side), and only the uploader knows
+        // whether the month IS the name. The filing does not move - both readings are a Promo
+        // Mix - so this chip changes the title alone.
+        if( monthNamed && monthNamed.stamp ) {
+            alternatives.push( {
+                kind: "monthName",
+                text: monthNamed.name,
+                stamp: monthNamed.stamp,
+                reason: "The title names nothing but its month, so it was named \"" + monthNamed.name +
+                        "\" - the way MixesDB writes a monthly mix. Where the stamp IS the name the uploader gave it," +
+                        " the title keeps it as \"" + monthNamed.stamp + " (Promo Mix)\". The page files under" +
+                        " Category:Promo Mix either way."
             } );
         }
 

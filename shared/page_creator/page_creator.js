@@ -1855,6 +1855,27 @@ function mdbPageCreator_altToggle( title, fact ) {
         return null;
     }
 
+    // The month stamp the monthly naming replaced ("August Promo Mix" <-> "August 2026 (Promo
+    // Mix)"). Toggled on the entity slot the fact names, at the END of the title, which is
+    // where the entity stands on a title that has one. The filing does not move - both
+    // readings are a Promo Mix, and the bracketed one says so in the title itself.
+    if( fact.kind === "monthName" && fact.text && fact.stamp ) {
+        var stampRe = new RegExp( "\\s*[-\u2013]\\s*" + mdbTitle_escapeRe( fact.stamp ) +
+                                  "\\s*\\(\\s*promo\\s*mix\\s*\\)\\s*$", "i" );
+
+        if( stampRe.test( title ) ) {
+            return { title: title.replace( stampRe, " - " + fact.text ), adding: false };
+        }
+
+        var namedRe = new RegExp( "\\s*[-\u2013]\\s*" + mdbTitle_escapeRe( fact.text ) + "\\s*$", "i" );
+
+        if( namedRe.test( title ) ) {
+            return { title: title.replace( namedRe, " - " + fact.stamp + " (Promo Mix)" ), adding: true };
+        }
+
+        return null;
+    }
+
     // The slot of the night the place group was read with ("@ Obstgarten Closing, Rote
     // Dichte" -> "@ Rote Dichte"). Toggled on the EVENT the fact names, the way the room word
     // is toggled on the venue: the group can carry more behind the event, and the slot belongs
@@ -2167,6 +2188,11 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             entry.pages = got;
             entry.titles = got.map( function( p ) { return p.title; } );
             entry.text = mdbPageCreator_recentPageTextFindings( catTitle, got );
+
+            // ... and what the wiki says about the categories they agreed on: a name the wiki
+            // knows is no style (mdbPageCreator_recentStyleCheck). Fired next to the settle
+            // below rather than waited on - the title refinement must not queue behind it.
+            mdbPageCreator_recentStyleCheck( entry );
 
             logVar( "mdbPageCreator_recentFetch: " + catTitle, entry.titles.length + " pages, newest \"" + ( entry.titles[0] || "-" ) + "\"" );
 
@@ -2512,11 +2538,99 @@ function mdbPageCreator_applyRecentToSuggestion() {
 // mdbPageCreator_recentLearnedStyles
 // The style categories the entity's recent pages settled for one title, or [] - what
 // mdbPageCreator_categoryEntries() fills the style slots with when the site suggested none.
+//
+// A learned category the wiki knows as a NAME is dropped here (mdbPageCreator_isStyleName):
+// the vote only measures what the sibling pages agree on, and a venue's pages agree on far
+// more than the music. Reported on Category:Undercurrent, whose 10 newest pages are all sets
+// from one festival week, so "Amsterdam Dance Event" stood on 10 of 10 and landed in the new
+// page's style lines - an event category on a podcast episode that has nothing to do with it.
 function mdbPageCreator_recentLearnedStyles( title ) {
     var info = mdbPageCreator_recentAnalysisFor( title ),
-        findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null;
+        findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
+        learned = ( findings && findings.styles && findings.styles.learned ) || [],
+        out = [],
+        i;
 
-    return ( findings && findings.styles && findings.styles.learned ) || [];
+    for( i = 0; i < learned.length; i++ ) {
+        if( !mdbPageCreator_isStyleName( learned[i].name ) ) out.push( learned[i] );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_isStyleName
+// Is this learned category a NAME rather than a style? The wiki answers it outright: mdbnames
+// knows "Amsterdam Dance Event" as an event and "ZeeZout" as one too, while it answers empty
+// about "Techno", "House" and "Deep House" - a style is no category the module carries.
+//
+// Only a POSITIVE answer drops a name. An answer that has not arrived yet, or a request that
+// failed, leaves the style standing: losing every style to a dead request would cost more than
+// the rare wrong one, which the panel's section 7 names either way.
+function mdbPageCreator_isStyleName( name ) {
+    return !!mdbTitle_knownAs( mdbPageCreator_lookupCache(), name );
+}
+
+// mdbPageCreator_lookupCache
+// The shared answer cache, or an empty one where title_builder.js is not loaded yet.
+function mdbPageCreator_lookupCache() {
+    return ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {};
+}
+
+// mdbPageCreator_recentStyleCheck
+// Asks mdbnames about the categories a category's recent pages agreed on, so the filter above
+// has an answer to read. Its own small request rather than mdbTitle_lookupCategories(): that
+// one writes every name it is asked into mdbTitle_lookupLog, which IS the reasoning panel's
+// section 3 - and a style vote is no candidate for the title's categories, so a chip for it
+// there would say the parse had considered a name it never saw. The answers land in the shared
+// mdbTitle_categoryCache all the same, where they cost the next round a lookup less.
+function mdbPageCreator_recentStyleCheck( entry ) {
+    var learned = ( entry && entry.text && entry.text.styles && entry.text.styles.learned ) || [],
+        cache = mdbPageCreator_lookupCache(),
+        wanted = [],
+        i, key;
+
+    if( !learned.length ) return;
+
+    for( i = 0; i < learned.length; i++ ) {
+        key = mdbTitle_normalizeCompare( learned[i].name );
+
+        if( key && !( key in cache ) && wanted.indexOf( learned[i].name ) === -1 ) wanted.push( learned[i].name );
+    }
+
+    if( !wanted.length ) return;
+
+    logVar( "mdbPageCreator_recentStyleCheck", wanted.join( " | " ) );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: {
+            action: "mdbnames",
+            format: "json",
+            formatversion: 2,
+            origin: "*",
+            names: wanted.join( "|" ),
+            recentlimit: 0 // a style vote needs the TYPE, never the sibling pages
+        },
+        success: function( data ) {
+            var entries = ( data && data.mdbnames ) || [],
+                j;
+
+            for( j = 0; j < entries.length; j++ ) {
+                if( !entries[j].name ) continue;
+
+                cache[ mdbTitle_normalizeCompare( entries[j].name ) ] =
+                    ( entries[j].matches && entries[j].matches.length ) ? { matches: entries[j].matches } : "";
+            }
+
+            // the style lines and section 7 both read the filter, so the row has to be redrawn
+            mdbPageCreator_recentSettled();
+        },
+        error: function( xhr, status ) {
+            log( "mdbPageCreator_recentStyleCheck FAILED (" + status + ") for " + wanted.join( " | " ) );
+        }
+    });
 }
 
 // mdbPageCreator_recentBodyChoice
@@ -3927,14 +4041,25 @@ function mdbPageCreator_reasoningRecentText( title ) {
         rows.push( { label: "File details", detail: "no 90% agreement - the dur table stays" } );
     }
 
-    // the styles
-    if( f.styles.learned.length ) {
-        for( i = 0; i < f.styles.learned.length; i++ ) {
-            rows.push( { label: "Style",
-                         detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
-                                 " -> fills a style line" } );
-        }
-    } else {
+    // the styles - a learned category the wiki knows as a NAME is none, and says so here
+    // rather than disappearing off the line it stood on (mdbPageCreator_recentLearnedStyles)
+    var usedStyles = mdbPageCreator_recentLearnedStyles( title );
+
+    for( i = 0; i < f.styles.learned.length; i++ ) {
+        var learnedName = f.styles.learned[i].name,
+            isName = mdbPageCreator_isStyleName( learnedName ),
+            known = isName ? mdbTitle_knownMatch( mdbPageCreator_lookupCache(), learnedName, null ) : null;
+
+        rows.push( { label: "Style",
+                     detail: "\"" + learnedName + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
+                             ( isName
+                                ? " -> not written: MixesDB knows it as " +
+                                  ( ( known && known.type ) ? "a" + ( /^[aeiou]/i.test( known.type ) ? "n " : " " ) + known.type : "a name" ) +
+                                  ", so it names something these pages have in common and not what they sound like"
+                                : " -> fills a style line" ) } );
+    }
+
+    if( !usedStyles.length && !f.styles.learned.length ) {
         var tally = "";
 
         for( i = 0; i < f.styles.tally.length && i < 3; i++ ) {
@@ -4527,16 +4652,17 @@ function mdbPageCreator_feedbackWithNotices( feedback ) {
         warnings = ( parseInt( feedback.warnings, 10 ) || 0 ) + mdbPageCreator_tracklistNotices.length;
 
     // The answer is normally the whole <div id="tlEditor-feedback">. If it ever is not, the
-    // notice still has to be seen, so it goes in front of whatever did arrive.
+    // notice still has to be seen, so it goes behind whatever did arrive.
     if( !box.length ) {
-        return $.extend( {}, feedback, { text: list + feedback.text, warnings: warnings } );
+        return $.extend( {}, feedback, { text: feedback.text + list, warnings: warnings } );
     }
 
-    // under the API's opening line and above its per-line list: this is about the tracklist as
-    // a whole, not about any one of its lines
-    var topInfo = box.children( "#tlEditor-feedback-topInfo, #tlEditor-feedback-topInfo-noList" ).first();
-
-    if( topInfo.length ) topInfo.after( list ); else box.prepend( list );
+    // BELOW everything the API said, never above it. The box is read for one answer - is this
+    // tracklist complete, and what is wrong with it - and a notice of ours in front of that
+    // answer pushes it out of the way. Ours is the footnote to it, so it reads like one.
+    // The floated chip row (#tlEditor-feedback-rows) is unaffected either way: it floats out
+    // of the flow wherever in the box it sits.
+    box.append( list );
 
     return $.extend( {}, feedback, { text: holder.html(), warnings: warnings } );
 }
