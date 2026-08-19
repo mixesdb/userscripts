@@ -108,6 +108,11 @@ var mdbPageCreator_title = "",
     mdbPageCreator_playerUrl = "",
     mdbPageCreator_durationMs = 0,
     mdbPageCreator_artworkUrl = "",
+    // The player page's description, kept for the "== Notes ==" section (signal D): where the
+    // series' pages link the episode's own page there, the uploader has usually written that
+    // same link into the description, and mdbPageCreator_recentNotesUrl() goes looking for it
+    // at click time. Not the tracklist's copy - that one has had @handles resolved in it.
+    mdbPageCreator_description = "",
     // What the site handed over, kept as it came in - the "Report" box quotes it back
     // unchanged, since a report is only worth anything if it names the INPUT the suggestion was
     // built from. Nothing else reads these.
@@ -205,13 +210,15 @@ function mdbPageCreator_add( options ) {
         channel = o.channel || "",
         createdAt = o.createdAt || "",
         releaseDate = o.releaseDate || "",
-        // Only the title builder's label test reads this, for the labels the tracklist credits
-        // ("Artist - Title [Label]") - see mdbTitleKnownLabels in title_definitions.js. The
-        // tracklist itself is a second call, mdbPageCreator_addTracklist().
+        // Read by the title builder's label test, for the labels the tracklist credits
+        // ("Artist - Title [Label]") - see mdbTitleKnownLabels in title_definitions.js - and
+        // by the Notes section's link search (mdbPageCreator_recentNotesUrl). The tracklist
+        // itself is a second call, mdbPageCreator_addTracklist().
         description = o.description || "";
 
     mdbPageCreator_playerUrl = o.playerUrl || "";
     mdbPageCreator_artworkUrl = o.artworkUrl || "";
+    mdbPageCreator_description = description;
 
     // for the "Report" box - the release date beats the upload date here for the same reason it
     // does in the title itself
@@ -539,20 +546,31 @@ function mdbPageCreator_artwork() {
 // - the file details body: where the series uses a {{StandardShow*}} template, the table (and
 //   with it this file's duration) must not be written - the template states the show's
 //   standard length instead.
+// - the "== Notes ==" section: where the series' pages carry one, the new page gets it too,
+//   empty, above the tracklist - and with the episode's own page URL already in it where the
+//   description held one on the host those Notes link to (mdbPageCreator_recentNotesUrl).
 function mdbPageCreator_pageText( title ) {
     var info = mdbPageCreator_recentAnalysisFor( title ),
         findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
         lead = "",
+        notes = "",
         body = mdbPageCreator_recentBodyChoice( findings );
 
     if( findings && findings.image && findings.image.value === "same" ) {
         lead = "[[File:" + title + "." + ( findings.imageExt || "jpg" ) + "|right|360px]]\n\n";
     }
 
+    // An empty line where no URL was found: the heading is the point, not the link. A section
+    // that is already there gets filled far more often than one the editor has to type first.
+    if( findings && findings.notes && findings.notes.value === "notes" ) {
+        notes = "== Notes ==\n\n" + mdbPageCreator_recentNotesUrl( findings ) + "\n\n";
+    }
+
     return lead +
            "== File details ==\n\n" +
            ( body ? "{{" + body + "}}" : mdbPageCreator_fileDetails() ) + "\n\n" +
            "{{Player\n |" + mdbPageCreator_playerUrl + "\n}}\n\n" +
+           notes +
            "== Tracklist ==\n\n" +
            mdbPageCreator_tracklistWikitext() + "\n\n" +
            mdbPageCreator_pageCategories( title );
@@ -2125,8 +2143,8 @@ function mdbPageCreator_applyAlternative( fact ) {
  * What it feeds:
  * - the SUGGESTION: mdbPageCreator_applyRecentToSuggestion() rewrites the entity part of the
  *   title to the siblings' format ("Trommel 251" -> "Trommel.251"), reasoning panel section 5
- * - the PAGE TEXT: the artwork line, the file details body and the style categories
- *   (mdbPageCreator_pageText / _categoryEntries), reasoning panel section 7
+ * - the PAGE TEXT: the artwork line, the file details body, the "== Notes ==" section and the
+ *   style categories (mdbPageCreator_pageText / _categoryEntries), reasoning panel section 7
  * - the hints bar: the fetched titles replace a match's server-side "recent" list, which is
  *   timestamp-sorted on the server and misses the newest pages (see CLAUDE.md)
  *
@@ -2837,6 +2855,87 @@ function mdbPageCreator_recentBodyChoice( findings ) {
     return body.value;
 }
 
+// mdbPageCreator_notesBody
+// The text under a page's "== Notes ==" heading, or null where the page has no such section.
+// Read to the next section heading; a "=== Sub ===" under Notes stays part of it, and the
+// category block at the foot of the page ends it where Notes is the last section.
+function mdbPageCreator_notesBody( text ) {
+    var t = String( text || "" ),
+        // \r tolerated: $ under /m sits before the \n, and a page saved with CRLF would keep
+        // the heading from matching at all
+        head = /^[ \t]*==[ \t]*Notes[ \t]*==[ \t\r]*$/im.exec( t );
+
+    if( !head ) return null;
+
+    var rest = t.slice( head.index + head[0].length ),
+        end = /^[ \t]*==[^=]|^\[\[[ \t]*Category[ \t]*:/m.exec( rest );
+
+    return end ? rest.slice( 0, end.index ) : rest;
+}
+
+// mdbPageCreator_urlHost
+// The host of a wikitext URL, as everything here compares hosts: lower case, no scheme and no
+// leading "www." - so a series that writes "https://www.liebrand.nl/…" on one page and
+// "https://liebrand.nl/…" on the next votes for one and the same host.
+function mdbPageCreator_urlHost( url ) {
+    var m = /^https?:\/\/(?:www\.)?([^\/?#\s]+)/i.exec( String( url || "" ) );
+
+    return m ? m[1].toLowerCase() : "";
+}
+
+// mdbPageCreator_notesUrlRe
+// A URL as it stands in a DESCRIPTION, where the wikitext rules do not apply: the scheme and
+// the "www." are optional, because uploaders write "groove.de/2026/08/12/…" as readily as the
+// full thing. Deliberately loose - it can match a "feat.Somebody" too, and that costs nothing:
+// only a match on the host the siblings actually link is ever looked at.
+var mdbPageCreator_notesUrlRe = /(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*(?:\.[-a-z0-9]{2,})+)(\/[^\s<>\]"')]*)?/gi;
+
+// mdbPageCreator_notesUrlMinPath
+// How much has to follow the host before a link in the description counts as THIS mix's page.
+// A bare "groove.de/" is the magazine's front page and stands in half its descriptions, while
+// an episode page is "groove.de/2026/08/12/groove-podcast-513-danny-daze/" - long by
+// construction, since the slug carries the date and the episode's name. Ten characters is the
+// first cut at that line and the number to move when a series is found that writes shorter
+// ones (a "/p/12345" would sit just under it).
+var mdbPageCreator_notesUrlMinPath = 10;
+
+// mdbPageCreator_recentNotesUrl
+// The URL the new page's "== Notes ==" section starts with, or "" for an empty line. The
+// siblings say WHICH host to look for - "the episode's own page on groove.de" is knowledge
+// only their Notes sections carry - and this description is searched for a link on it.
+//
+// Never a guess: a URL is written only when it stands in the description verbatim. Groove
+// Podcast's own descriptions link a bit.ly shortener rather than groove.de, so the section is
+// written empty there and the editor fills it - which is what it is for.
+function mdbPageCreator_recentNotesUrl( findings ) {
+    var host = ( findings && findings.notesHost && findings.notesHost.value ) || "";
+
+    if( !host || host === "none" ) return "";
+
+    var text = String( mdbPageCreator_description || "" ),
+        m;
+
+    // a global regex keeps lastIndex between calls - and this one is called on every render
+    mdbPageCreator_notesUrlRe.lastIndex = 0;
+
+    while( ( m = mdbPageCreator_notesUrlRe.exec( text ) ) ) {
+        if( m[1].toLowerCase() !== host ) continue;
+
+        // running text glues the sentence's own punctuation onto the URL
+        var path = String( m[2] || "" ).replace( /[.,;:!?)\]]+$/, "" );
+
+        if( path.length < mdbPageCreator_notesUrlMinPath ) continue;
+
+        // the host as the description writes it (scheme and "www." included), so only the
+        // scheme is ever added
+        var written = m[0].slice( 0, m[0].length - String( m[2] || "" ).length );
+
+        return ( /^https?:\/\//i.test( written ) ? "" : "https://" ) + written + path;
+    }
+
+    return "";
+}
+
 // mdbPageCreator_titleIsLiveRecording
 // Does this MixesDB page title read as a set recorded somewhere - "... - Artist @ Venue, City
 // (Series 12)"? The "@" in the artist bit is the whole test, the same one
@@ -2920,6 +3019,9 @@ function mdbPageCreator_recentImageVote( reads ) {
 //           recordings among the siblings are left out of it.
 // - body:   {{StandardShow*}} vs the dur/MB/kbps table ("none" can win the vote, but wins
 //           nothing - mdbPageCreator_recentBodyChoice only acts on a template)
+// - notes:  does the page carry a "== Notes ==" section, and which HOST do those sections
+//           link? Two votes: the section is written empty where the first one carries, and
+//           the host is what mdbPageCreator_recentNotesUrl looks for in the description
 // - styles: every category that is not the year, the entity, an artist of that page's title,
 //           Promo Mix or a "Tracklist:" filing - per style a yes/no vote across the pages,
 //           learned at the same 90%, at most two (the shape has two style lines)
@@ -2927,6 +3029,9 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
     var n = pages.length,
         imageReads = [],
         bodyVotes = [],
+        notesVotes = [],
+        notesHostVotes = [],
+        notesUrls = [],
         styleVotes = {},
         styleNames = {},
         styleTally = {},
@@ -2966,6 +3071,17 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         } else {
             bodyVotes.push( "none" );
         }
+
+        // The Notes section, voted on twice: that it EXISTS, and which host it links. The two
+        // are separate questions - Essential Mix pages carry a Notes section holding nothing
+        // but "Episode #1671", so the section is the convention there and no host is.
+        var notesBody = mdbPageCreator_notesBody( text ),
+            notesUrl = notesBody ? /https?:\/\/[^\s\]|<>}]+/i.exec( notesBody ) : null,
+            notesHost = notesUrl ? mdbPageCreator_urlHost( notesUrl[0] ) : "";
+
+        notesVotes.push( notesBody === null ? "none" : "notes" );
+        notesHostVotes.push( notesHost || "none" );
+        notesUrls.push( notesUrl ? notesUrl[0] : "" );
 
         // the page's own title says which categories describe the PAGE rather than the music
         var own = mdbTitle_titleCategories( pages[i].title ),
@@ -3012,9 +3128,32 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
 
     var image = mdbPageCreator_recentImageVote( imageReads ),
         body = mdbPageCreator_recentConsensus( bodyVotes ),
+        notes = mdbPageCreator_recentConsensus( notesVotes ),
+        notesHost = mdbPageCreator_recentConsensus( notesHostVotes ),
+        // One real link off the winning host, for the reasoning panel to show what the
+        // description is searched for. A link long enough to pass mdbPageCreator_notesUrlMinPath
+        // is preferred over the newest one: RA Podcast's newest page links the bare
+        // "https://ra.co/podcast/", and an example of the thing we would NOT accept teaches
+        // the reader the wrong shape. The plain newest stands in where there is no such link.
+        notesSample = "",
         learned = [],
         tally = [],
         key;
+
+    if( notesHost && notesHost.value !== "none" ) {
+        for( i = 0; i < n; i++ ) {
+            if( !notesUrls[i] || mdbPageCreator_urlHost( notesUrls[i] ) !== notesHost.value ) continue;
+
+            var samplePath = notesUrls[i].replace( /^https?:\/\/(?:www\.)?[^\/?#]+/i, "" );
+
+            if( !notesSample ) notesSample = notesUrls[i];
+
+            if( samplePath.length >= mdbPageCreator_notesUrlMinPath ) {
+                notesSample = notesUrls[i];
+                break;
+            }
+        }
+    }
 
     for( key in styleVotes ) {
         if( !Object.prototype.hasOwnProperty.call( styleVotes, key ) ) continue;
@@ -3037,6 +3176,9 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         imageExt: image.ext,
         imageSkipped: image.skipped,
         body: body,
+        notes: notes,
+        notesHost: notesHost,
+        notesSample: notesSample,
         styles: { learned: learned.slice( 0, 2 ), tally: tally }
     };
 }
@@ -4298,6 +4440,30 @@ function mdbPageCreator_reasoningRecentText( title ) {
         rows.push( { label: "File details", detail: "no 90% agreement - the dur table stays" } );
     }
 
+    // The Notes section and, separately, the host its links point at. Only a series that has
+    // both gets a prefilled line, and only when the description really carries such a link -
+    // the second row is where a reader sees which of the two was missing.
+    if( f.notes && f.notes.value === "notes" ) {
+        rows.push( { label: "Notes section",
+                     detail: mdbPageCreator_reasoningRecentCount( f.notes ) + " carry a \"== Notes ==\" section -> written above the tracklist, for the editor to fill" } );
+
+        if( f.notesHost && f.notesHost.value !== "none" ) {
+            var notesUrl = mdbPageCreator_recentNotesUrl( f );
+
+            rows.push( { label: "Notes link",
+                         detail: mdbPageCreator_reasoningRecentCount( f.notesHost ) + " link to " + f.notesHost.value +
+                                 ( f.notesSample ? " (e.g. " + f.notesSample + ")" : "" ) + " - " +
+                                 ( notesUrl
+                                    ? "this description names one, so the section starts with it: " + notesUrl
+                                    : "nothing on that host in this description, so the section stays empty" ) } );
+        } else {
+            rows.push( { label: "Notes link",
+                         detail: "no 90% agreement on a host those sections link - nothing to look for in the description, the section stays empty" } );
+        }
+    } else {
+        rows.push( { label: "Notes section", detail: "no 90% agreement - no Notes section" } );
+    }
+
     // What the pages agree on is REPORTED, never written - the vote answers what these pages
     // have in common, and a venue whose MixesDB pages are all from one festival votes for the
     // festival. The created page keeps its two empty style rows either way
@@ -4792,6 +4958,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_playerUrl = "";
     mdbPageCreator_durationMs = 0;
     mdbPageCreator_artworkUrl = "";
+    mdbPageCreator_description = "";
     mdbPageCreator_sourceTitle = "";
     mdbPageCreator_sourceChannel = "";
     mdbPageCreator_sourceDate = "";

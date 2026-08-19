@@ -498,13 +498,30 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `_categoryEntries()`) -
   `{{StandardShow2h}}` instead of the file details table (only when the player duration roughly
   fits its stated length, ±30%), the leading
-  `[[File:<literal title>.jpg|right|360px]]` in the extension the siblings use. Design and
+  `[[File:<literal title>.jpg|right|360px]]` in the extension the siblings use, and the
+  `== Notes ==` section (signal D, 2026-08-19). Design and
   measurements in
   `page_text_learning.md` - its deltas section says where the built version deviates from the
   plan and why. The 90% style vote is still counted (measured: it fires on 1 category in 9)
   but fills nothing - see the bullet above - and `Tracklist:` is never learned from the
   siblings at all: it describes the page's own tracklist, which is what the section above
   decides. That file says why.
+- **The `== Notes ==` section is written EMPTY, and filled only from the description**
+  (signal D, 2026-08-19). Two votes at the usual 90%: does the series carry a Notes section at
+  all, and which HOST do those sections link (`mdbPageCreator_notesBody()`,
+  `mdbPageCreator_urlHost()`). The first one writes the heading with a blank line under it -
+  a heading that is already there gets filled far more often than one the editor has to type -
+  and the second is only a search key: `mdbPageCreator_recentNotesUrl()` looks through the
+  player page's description (`mdbPageCreator_description`, handed over by
+  `mdbPageCreator_add()`) for a link on that host with at least
+  `mdbPageCreator_notesUrlMinPath` characters of path behind it, and writes it verbatim or
+  nothing. The length bar is what separates the episode's own page from the magazine's front
+  page, which half the descriptions link as well. **No URL is ever constructed** - a slug is
+  not derivable from a title, and a wrong link in Notes is worse than an empty line. Groove
+  Podcast is the case to keep in mind: its Notes sections all link `groove.de`, and its own
+  SoundCloud descriptions link a `bit.ly` shortener instead, so the section is written empty
+  there. The two votes are separate on purpose - Essential Mix pages carry a Notes section
+  holding nothing but `Episode #1671`, so the section is its convention and no host is.
 
 ### Roadmap
 
@@ -519,7 +536,7 @@ mirror of this table - keep the two in step):
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
 | 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. Since 2026-08-19 the line names EVERY category the page text writes, in its order: the year, the styles, "Promo Mix" and the `Tracklist:` filing ride along as plain grey chips without link or count (verdict `plain`, `mdbPageCreator_plainCategoryNote()`) - they are no name the wiki could spell differently, but leaving them out read as if the page did not get them. An artist or an entity is still required for the line to appear at all. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open inside the chip (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
-| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension - the live recordings among the siblings do not vote on it since 2026-08-19, `mdbPageCreator_recentImageVote()`: their artwork is the event's, and 2 of 10 such pages cost Groove Podcast the artwork line all its episodes carry -, `{{StandardShow*}}` when the duration roughly fits - the 90% style vote fills no style line since 2026-08-19, it is a "Hints:" chip instead) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
+| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension - the live recordings among the siblings do not vote on it since 2026-08-19, `mdbPageCreator_recentImageVote()`: their artwork is the event's, and 2 of 10 such pages cost Groove Podcast the artwork line all its episodes carry -, `{{StandardShow*}}` when the duration roughly fits, an empty `== Notes ==` section where the series has one, prefilled from the description where its Notes link a host the description names too - the 90% style vote fills no style line since 2026-08-19, it is a "Hints:" chip instead) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
 
 **Step 5 in full.** Today `window.mdbPageCreator_showForUsedPlayers = true` ships in both site
