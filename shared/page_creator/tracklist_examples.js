@@ -251,6 +251,20 @@ var mdbTracklistExamples = [
             first: "Miret - Sabio Espejo (Original Mix)",
             last:  "Soul of Zoo - Horizon (Original Mix)"
         }
+    },
+    {
+        // A U+2028 LINE SEPARATOR sitting between the "8." and the track, invisible in the
+        // description and in every editor the uploader would have seen it in. Nothing in the
+        // index regex's [ \t] steps over one, so the numbering strip stopped in front of it and
+        // the separator rode into the wiki text as a stray blank ("#  T-Puse - ..."). This is
+        // the case that guards the Unicode-space sweep in mdbTracklist_normalize(), so it names
+        // its whole `text`: the line it is about is in the MIDDLE of the block.
+        url: "https://soundcloud.com/sattlord/12-faultierdisko-3000grad-festival-2023",
+        text: "Dieses Jahr nur die halbe Faultierdisko auf dem @3000-grad Festival!\nBegleitung @ener-music musste sich kurzfristig abmelden, sodass ich Freitagabend alleine gespielt habe. Das ließ sich dann in der Kommunikation jedoch nicht mehr ändern :D Danke Daggi für die Inspiration zum Intro! :*\n\nVielen Dank an alle fleißigen Tänzer:innen an diesem bezaubernd schönen Ort! Tausend Herzen an 3000Grad das ich wieder dabei sein durfte!\n\nEs war mir eine Freude!\n\nEure Locke <3\n\nTracklist:\n1. @sailorandi - Turn Around (Âme Remix)\n2. @Nhiimusic - Branches\n3. @drparnassus - Locomotiva\n4. @guylalibertedj & @soulofzoo - Into Your Tribe (@justemmaoffical Sunset Remix)\n5. Beyoncé - Purehoney (@pullichomba Edit)\n6. One-T - The Magic Key (@seniorcitizen_wav Remix)\n7. Queen - Radio Ga Ga (@djshai-t Revisit Mix)\n8. \u2028@tpusemusic - Syd´s Night (@theoddness Remix)\n9. Britney Spears - Gimme More (@joe-carl Remix)\n10. Blur - Tender (@reyneke Reinterpretation)\n11. Deichkind - Remmidemmi (@air_horse_one Remix)\n12. Missy Elliot - Lose Control (@jan_sml Crunked & Wired Edit)\n13. @matijasound & The Ghost Of Z - Vichy Check\n14. Lana Del Rey - Born to Die (@deepandi Edit)\n15. The Alan Parsons Project - Eye in the Sky (@mauditemachine Remix)\n16. Karat - Der blaue Planet (@dj-jauche Rework)\n17. Kate Bush - Running up that Hill (@notredamemusic Edit)\n18. Friedemann - Das Sammeln von Licht (@harrotriptrap Remix)\n\nDanke für eure Musik <3",
+        expect: {
+            lines: 18,
+            text: "1. @sailorandi - Turn Around (Âme Remix)\n2. @Nhiimusic - Branches\n3. @drparnassus - Locomotiva\n4. @guylalibertedj & @soulofzoo - Into Your Tribe (@justemmaoffical Sunset Remix)\n5. Beyoncé - Purehoney (@pullichomba Edit)\n6. One-T - The Magic Key (@seniorcitizen_wav Remix)\n7. Queen - Radio Ga Ga (@djshai-t Revisit Mix)\n8. @tpusemusic - Syd´s Night (@theoddness Remix)\n9. Britney Spears - Gimme More (@joe-carl Remix)\n10. Blur - Tender (@reyneke Reinterpretation)\n11. Deichkind - Remmidemmi (@air_horse_one Remix)\n12. Missy Elliot - Lose Control (@jan_sml Crunked & Wired Edit)\n13. @matijasound & The Ghost Of Z - Vichy Check\n14. Lana Del Rey - Born to Die (@deepandi Edit)\n15. The Alan Parsons Project - Eye in the Sky (@mauditemachine Remix)\n16. Karat - Der blaue Planet (@dj-jauche Rework)\n17. Kate Bush - Running up that Hill (@notredamemusic Edit)\n18. Friedemann - Das Sammeln von Licht (@harrotriptrap Remix)"
+        }
     }
 ];
 

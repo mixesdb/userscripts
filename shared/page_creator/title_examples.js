@@ -1172,6 +1172,47 @@ var mdbTitleExamples = [
         expect: "2023 - Faultierdisko @ 3000Grad Festival"
     },
     {
+        // Reported: read as a set played at a place called "August 2026", which then became
+        // the entity and, with its number stripped, the category "August". Two rules from the
+        // report: an "@" in front of a pure DATE joins nothing - it is the uploader's own
+        // flourish and reads as a plain separator, which is also what lets the date step see
+        // the month at all; and a month is never a category, so a title that names nothing
+        // but its month is the monthly mix MixesDB writes as "<Month> Promo Mix"
+        // ("2011-08 - Aeroplane - August Promo Mix" and 148 more). The page files under
+        // Category:Promo Mix, which is what promoCategory carries - the entity slot below is
+        // the title's own name, not the category.
+        url: "https://soundcloud.com/ingosaenger/ingo-saenger-august-2026",
+        title: "Ingo Sänger @ August 2026",
+        channel: "Ingo Sänger",
+        date: "2026-08-10",
+        known: { "Ingo Sänger": { type: "artist", mixes: 3 } },
+        expectArtists: [ "Ingo Sänger" ],
+        expectEntity: "August Promo Mix",
+        // ... and the stamp kept as the mix's own name is the other reading the report named
+        expectAlternatives: [ "monthName" ],
+        expect: "2026-08 - Ingo Sänger - August Promo Mix"
+    },
+    {
+        // ... but a name the wiki knows as a SHOW never gets it: "<Podcast> - March 2026" is
+        // that podcast's March episode, not a self-released mix.
+        title: "Some Podcast - March 2026",
+        channel: "Some Podcast",
+        date: "2026-03-20",
+        known: { "Some Podcast": { type: "podcast", mixes: 120 } },
+        expectEntity: "",
+        expect: "2026-03 - Some Podcast"
+    },
+    {
+        // The same "@" in front of a real place is untouched - only a pure date turns it into
+        // a separator, and a month name alone is no date (a name carries one far more often).
+        title: "Ingo Sänger @ Sisyphos",
+        channel: "Ingo Sänger",
+        date: "2026-08-10",
+        known: { "Ingo Sänger": { type: "artist", mixes: 3 }, "Sisyphos": { type: "venue", mixes: 40 } },
+        expectEntity: "Sisyphos",
+        expect: "2026 - Ingo Sänger @ Sisyphos"
+    },
+    {
         // The same title with an act the wiki has never heard of: nothing backs the swap, so
         // what the uploader wrote stands. The fraction still may not split the name.
         title: "1/2 Faultierdisko @ 3000Grad Festival 2023",

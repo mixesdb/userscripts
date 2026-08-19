@@ -309,10 +309,23 @@ function mdbTracklist_stripUrls( line ) {
 // mdbTracklist_normalize
 // One text, one line ending, one kind of space. Non-breaking spaces are what a pasted tracklist
 // is full of, and they would make every " - " test fail for no visible reason.
+//
+// The same goes for the rest of Unicode's spaces and for the two characters that are not
+// spaces at all: U+2028 LINE SEPARATOR and U+2029 PARAGRAPH SEPARATOR. Word processors and
+// phone keyboards put them into descriptions, and they are INVISIBLE there - a line reading
+// "8. <U+2028>@tpusemusic - Syd's Night" looks like every other line of the tracklist. Nothing
+// in [ \t] steps over one, so mdbTracklist_indexRe stopped in front of it, the index strip
+// left it standing, and it rode all the way into the wiki text as a stray blank ("#  Artist").
+//
+// They become a SPACE, not a "\n": in a description they turn up inside a line far more often
+// than as its break, and splitting there would cut the tracklist in two at that very track.
 function mdbTracklist_normalize( text ) {
     return String( text || "" )
         .replace( /\r\n?/g, "\n" )
-        .replace( / /g, " " )
+        .replace( /[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, " " )
+        // zero-width joiners and the BOM have no width to give - they go, rather than becoming
+        // a blank that was never on screen
+        .replace( /[\u200b-\u200d\ufeff]/g, "" )
         .replace( /[ \t]+/g, " " );
 }
 

@@ -433,6 +433,22 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   SUGGESTION is ever rewritten, never an edited title, and a refinement whose entity would file
   under a different category is dropped. Bucket categories (`mdbPageCreator_bucketCategories`,
   "Promo Mix") are skipped everywhere - their pages are no siblings.
+- **A learned style that is a NAME is no style** (2026-08-19, reported on the DEEP & HAZY /
+  Undercurrent mix, where `Amsterdam Dance Event` appeared among the new page's categories).
+  The style vote measures what the sibling pages AGREE on, and a venue's newest pages agree on
+  far more than the music: all 10 of Category:Undercurrent's are sets from one ADE week, so the
+  festival's category stood on 10 of 10 and filled a style line on a podcast episode that has
+  nothing to do with it. `mdbnames` settles it - it answers empty about `Techno`, `House` and
+  `Deep House`, and with a type about `Amsterdam Dance Event` (event, 1745) and `ZeeZout`
+  (event, 9) - so `mdbPageCreator_isStyleName()` drops every learned category the wiki knows as
+  anything at all. Asked by `mdbPageCreator_recentStyleCheck()` in its OWN small request, never
+  through `mdbTitle_lookupCategories()`: that one writes every name into `mdbTitle_lookupLog`,
+  which IS the panel's section 3, and a style vote is no candidate for the title's categories.
+  Only a POSITIVE answer drops a name - pending or failed leaves the style standing, since
+  losing every style to a dead request costs more than the rare wrong one. Section 7 names the
+  dropped category and its type rather than letting it disappear off the line it stood on,
+  which is what the report asked for: it had appeared in section 6 with nothing anywhere saying
+  where it came from.
 - **The same call also brings those pages' wikitext, which shapes the new page's text**
   (`mdbPageCreator_recentPageTextFindings()`, applied in `mdbPageCreator_pageText()` /
   `_categoryEntries()`) -
@@ -522,6 +538,13 @@ renders them. Settled, so it does not get re-litigated:
   way, which is also what keeps an editor who types the room in by hand out of an empty
   category. The toggle works on the PLACE the fact names, never on the end of the title: the
   group can carry a city behind the venue, and the word belongs behind the venue itself.
+- **The month stamp is offered back where the monthly naming replaced it** (2026-08-19,
+  reported on "Ingo Sanger @ August 2026"): a title that dates itself with a month and names
+  nothing else is written `<Month> Promo Mix` (`mdbTitle_monthOnlyName` at the single exit -
+  the wiki has 149 of them), and the stamp kept as the mix's own name is the other spelling the
+  wiki carries (`2016-07-30 - Guy J - Parallel Universe (August Promo Mix)` shows both at
+  once). Both readings file under Promo Mix, so the chip moves the title alone. Kind
+  `monthName`.
 - **The slot of the night is offered back like the room word** (2026-08-19, reported on
   "Bee Lincoln - Rote Dichte 2026 - Obstgarten Closing"): 3g2 reads a chunk ending in one of
   `mdbTitleEventSlotWords` next to a chunk ending in a bare year as a set played at an event,
