@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.23
+// @version      2026.08.19.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_36
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_53
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_67
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_68
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 143,
+var cacheVersion = 144,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1871,6 +1871,17 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.24
+ * Every looked-up chip in the hints bar's "Used categories" now carries a fit score
+ * (page_creator.js v_68, page_creator.css): how sure the row is that this is the right
+ * category for THIS page. Deliberately not the reasoning panel's section 3 percentage, which
+ * asks whether the wiki's answer is about the right NAME - by that measure the Amsterdam venue
+ * "Undercurrent" scores 95% on a mix that has nothing to do with it. The fit score starts there
+ * and takes off the two signals that say otherwise: the title numbering its entity while
+ * MixesDB knows a venue or event of that name, and a category whose newest page is years older
+ * than the mix. The tooltip lists what lowered it and closes with what it cannot see - whether
+ * the title picked the right words.
  *
  * 2026.08.19.23
  * A category's pages are only read where they can say anything about THIS mix

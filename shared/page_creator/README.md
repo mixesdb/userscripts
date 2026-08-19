@@ -164,6 +164,16 @@ the page really is filed under them; the tooltip of each says what decided it.
 The line follows the title field: correct the title and, after a short pause, the categories are
 re-read from it and any new names are looked up.
 
+Behind each looked-up chip stands a **fit score**: how sure the row is that *this* is the right
+category for *this* page. It is not the percentage the reasoning panel shows in section 3 –
+that one weighs whether the wiki's answer is about the right **name**, and by that measure the
+Amsterdam venue `Undercurrent` scores 95% even on a mix that has nothing to do with it. The fit
+score starts there and takes off what argues against the category: the title numbers its entity
+while MixesDB knows a venue or event of that name, or the category's newest page is years older
+than the mix. Hover it for what lowered it. What it cannot tell you – and its tooltip says so –
+is whether the title picked the right **words**: `Leon` is a real artist category with 69 mixes
+and still the wrong reading of *Leon Row x Shimon*.
+
 **Hints** sits under **Used categories** when the entity's recent sibling pages all share a
 category the new page does not get. Each chip says behind it which pages it came off
 (`Amsterdam Dance Event – all 10 of Undercurrent's newest pages carry it`), so the row answers

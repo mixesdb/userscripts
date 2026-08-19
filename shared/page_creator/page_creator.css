@@ -831,6 +831,26 @@
 }
 
 /*
+ * How well one category fits THIS page, behind its chip. The row score's colours, not the
+ * reasoning panel's: the bar sits on the site's own page, which may be light, and the panel's
+ * greens are picked for a box that is always dark.
+ */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit {
+    margin-left: 7px;
+    font-size: 11.5px;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+/* the chip's own colour would otherwise win inside it - same reason the mix count restates
+   its own (the green-chip rule paints everything in a known chip) */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-high { color: #2eb82e; }
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-mid  { color: #e8930c; }
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-low  { color: #ef4444; }
+
+/*
  * The "Hints:" row - the categories the entity's sibling pages share, which the page does NOT
  * get. Laid out exactly like "Used categories:" above it, so the two labels share the column
  * and the chips line up; one chip per line, because each carries a note behind it and a note

@@ -516,6 +516,24 @@ tracklist ends up on the created page and `Tracklist: complete/incomplete/none` 
 Tracklist Editor API's verdict (see "The tracklist" above). An old plan note calling it "much
 later" predates that work.
 
+**The chips' fit score is NOT section 3's score** (`mdbPageCreator_categoryFit`, since
+2026-08-19). Two different questions, so two different numbers, and mixing them was the whole
+reason for building a second one: section 3 asks "is the wiki's answer about this NAME right"
+(`mdbTitle_matchConfidence`), the chip asks "will the page be filed right". On the reported
+DEEP & HAZY mix the first answers 95% about `Undercurrent` - the category really is spelled
+that way and really holds 28 mixes - while the second has to answer badly, because the wiki's
+Undercurrent is an Amsterdam venue and the title numbers its entity. So section 3's verdict is
+the BASE, its reasons are carried over whole, and the fit signals come off it: the
+numbered-entity/place conflict (-45) and a category dormant relative to the mix (-10, plus 3
+per year over `mdbPageCreator_recentMaxAgeYears`, capped at -30) - the same two gates the
+recent-pages analysis refuses on, read off the same `mdbPageCreator_recentAnalysisFor` (which
+starts no fetch, so the render stays free of side effects). Measured: `Undercurrent` 50%,
+a venue whose newest page is 12 years old 65%, `HATE Podcast` and `Leon` 95%.
+**The tooltip closes with what the number does not cover** - whether the parse picked the right
+WORDS - because that is the one thing neither score can see and a bare percentage next to a
+category name implies it. Only the page's own categories get one: the "Hints:" row passes no
+title and a hint is no filing to be confident about.
+
 ## The "Switch title" line (hints bar, since 2026-08-19)
 
 The readings the build DECIDED AGAINST, offered under "Used categories" as one full title per
