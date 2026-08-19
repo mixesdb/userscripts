@@ -1066,19 +1066,25 @@
     align-items: center;
     justify-content: center;
     padding: 4vh 4vw;
-    background-color: rgba(0, 0, 0, 0.65);
 
-    /* Make the background blur. The rgba() tint is optional but strongly
-       recommended: pure blur alone leaves the background too busy
-       and hurts the contrast of the modal text. */
+    /* Make the background blur. The rgba() tint is not optional next to it: pure blur alone
+       leaves the background too busy and hurts the contrast of the modal text. Lighter than
+       the flat 0.65 this had before the blur - the blur does half that work now. */
     backdrop-filter: blur(8px) saturate(120%);
     -webkit-backdrop-filter: blur(8px) saturate(120%);  /* Safari < 18 */
     background-color: rgba(0, 0, 0, .35);
-    /* Fade-in. Animating backdrop-filter directly is expensive,
-       so animate opacity of the whole overlay instead. */
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity .25s ease, visibility 0s linear .25s;
+
+    /* Fade in on INSERTION, not off a class: mdbPageCreator_modalOpen() builds this overlay
+       fresh on every open and mdbPageCreator_modalClose() removes it again, so there is no
+       closed resting state for a transition to run from - "opacity: 0" as the default simply
+       stayed, and the modal opened invisibly (which read as the category links being dead).
+       Animating backdrop-filter itself is expensive, so the whole overlay's opacity moves. */
+    animation: mdb-pageCreator-modal-in .25s ease-out;
+}
+
+@keyframes mdb-pageCreator-modal-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 #mdb-pageCreator-modal .mdb-pageCreator-modal-box {
@@ -1279,6 +1285,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    #mdb-pageCreator-modal,
     #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-waiting::before,
     #mdb-skeleton .mdb-skeleton-bar,
     #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bubble,

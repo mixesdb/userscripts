@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.7
+// @version      2026.08.19.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 138,
+var cacheVersion = 139,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1836,6 +1836,14 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.8
+ * The MixesDB modal opens again (page_creator.css). The blurred backdrop of .7 came with
+ * "opacity: 0; visibility: hidden" and a transition meant to be flipped by a class - but
+ * nothing adds one, and the overlay is built fresh on every open and thrown away on close,
+ * so it has no closed state to transition out of: it opened fully invisible, which looked
+ * like the chips' category links doing nothing. The fade is now an animation that runs on
+ * insertion, which is what an element with no resting state needs. Blur and tint unchanged.
  *
  * 2026.08.19.7
  * The real cause of the dead first click on a chip's "N mixes" after a title edit, which
