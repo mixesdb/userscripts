@@ -1313,8 +1313,11 @@ function mdbPageCreator_usedCategoriesHint( title ) {
     for( i = 0; i < wanted.length; i++ ) {
         var state = mdbPageCreator_usedCategoryState( wanted[i] );
 
-        chips.append( mdbPageCreator_usedCategory( wanted[i], state ) );
-        logged.push( wanted[i].name + " [" + wanted[i].role + ": " + state.verdict + "]" );
+        var fit = mdbPageCreator_categoryFit( wanted[i], state, title );
+
+        chips.append( mdbPageCreator_usedCategory( wanted[i], state, title ) );
+        logged.push( wanted[i].name + " [" + wanted[i].role + ": " + state.verdict +
+                     ( fit ? ", fit " + fit.percent + "%" : "" ) + "]" );
     }
 
     mdbPageCreator_logHints( logged.join( " | " ) );
@@ -1432,6 +1435,85 @@ function mdbPageCreator_plainCategoryNote( entry ) {
     return "This category goes on the page as it stands - nothing to look up on MixesDB.";
 }
 
+// mdbPageCreator_categoryFit
+// How strongly this category is THIS PAGE's - { percent, reasons }, or null where there is
+// nothing to score (no wiki answer at all, or a chip that is no name to look up).
+//
+// A DIFFERENT question from the reasoning panel's section 3, which is why it is a different
+// number. There the question is "is the wiki's answer about this NAME right" - and by that
+// measure "Undercurrent" scores 95%: the category is spelled exactly so and holds 28 mixes.
+// Here the reader is asking "will the page be filed right", and the same answer is worth far
+// less, because the wiki's Undercurrent is an Amsterdam venue while the title numbers its
+// entity. So section 3's score is the BASE and the fit signals come off it.
+//
+// What it still cannot say - and the tooltip says so rather than letting the number imply it -
+// is whether the parse picked the right WORDS. "Leon" is a real artist category with 69 mixes
+// and a wrong reading of "Leon Row x Shimon", and nothing on this side can tell.
+function mdbPageCreator_categoryFit( entry, state, title ) {
+    if( typeof mdbTitle_matchConfidence !== "function" || typeof mdbTitle_confidence !== "function" ) return null;
+    if( !state || state.verdict !== "known" || !state.match ) return null;
+
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        key = mdbTitle_normalizeCompare( entry.name ),
+        cached = Object.prototype.hasOwnProperty.call( cache, key ) ? cache[ key ] : null,
+        list = ( cached && cached.matches && cached.matches.length ) ? cached.matches : [ state.match ],
+        index = list.indexOf( state.match ),
+        base = mdbTitle_matchConfidence( entry.name, list, index === -1 ? 0 : index, false ),
+        conf = mdbTitle_confidence(),
+        type = String( state.match.type || "" ),
+        i;
+
+    // section 3's verdict, carried over whole - its reasons are this score's reasons too
+    conf.score = base.percent;
+
+    for( i = 0; i < base.reasons.length; i++ ) conf.reasons.push( base.reasons[i] );
+
+    // 1) the title's shape and the wiki's type say different things. A series numbers its
+    // editions and a place does not, so this is two things sharing a name - the single
+    // strongest "wrong category" signal there is, and the one the reported mix turned on.
+    if( entry.numbered && /^(venue|event)$/.test( type ) ) {
+        conf.drop( 45, "the title numbers this entity, so it is a series - while MixesDB knows this name as a " +
+                       type + ", which numbers no editions" );
+    }
+
+    // 2) the category stopped being written long before this mix. Read off the same analysis
+    // the recent-pages sections use (mdbPageCreator_recentAnalysisFor - it starts no fetch, so
+    // a render stays free of side effects) and only for the entity, which is the only chip
+    // that HAS sibling pages.
+    if( entry.role === "entity" && title ) {
+        var info = mdbPageCreator_recentAnalysisFor( title );
+
+        if( info.stale && mdbTitle_normalizeCompare( info.catTitle ) === key ) {
+            conf.drop( Math.min( 30, 10 + ( info.stale - mdbPageCreator_recentMaxAgeYears ) * 3 ),
+                "the newest page in this category is " + info.stale + " years older than this mix - it may have" +
+                " stopped being used, or not be this mix's at all" );
+        }
+    }
+
+    return { percent: conf.percent(), reasons: conf.reasons };
+}
+
+// mdbPageCreator_categoryFitScore
+// The fit as a badge behind the chip, coloured by the row score's bands. The tooltip carries
+// the reasons - a bare number next to a category says nothing a reader can check - and closes
+// with what the number does NOT cover, so a high one cannot be read as "this is right".
+function mdbPageCreator_categoryFitScore( entry, state, title ) {
+    var fit = mdbPageCreator_categoryFit( entry, state, title );
+
+    if( !fit ) return null;
+
+    var intro = "Confidence that [[Category:" + entry.name + "]] is the right category for this page.",
+        caveat = "\n\nIt weighs the wiki's answer and how well it fits this page - never whether the title" +
+                 " picked the right words. A category can score high and still be the wrong reading.";
+
+    return $("<span>")
+        .addClass( "mdb-pageCreator-catFit mdb-pageCreator-score-" + mdbPageCreator_confidenceBand( fit.percent ) )
+        .attr( "title", ( fit.reasons.length
+            ? intro + "\n\nWhat lowered it:\n- " + fit.reasons.join( "\n- " )
+            : intro + "\nThe wiki has this exact name, and nothing about this page argues against it." ) + caveat )
+        .text( fit.percent + "%" );
+}
+
 // mdbPageCreator_usedCategory
 // One category name as a chip - the reasoning panel's chip look, coloured by the verdict:
 //
@@ -1448,7 +1530,7 @@ function mdbPageCreator_plainCategoryNote( entry ) {
 // - plain    muted grey, no link, no count - the year, the styles, "Promo Mix", the
 //            "Tracklist:" filing. They are on the page like the others, but there is no wiki
 //            answer behind them, and a link would promise one.
-function mdbPageCreator_usedCategory( entry, state ) {
+function mdbPageCreator_usedCategory( entry, state, title ) {
     var out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
 
     if( state.verdict === "known" ) {
@@ -1487,6 +1569,13 @@ function mdbPageCreator_usedCategory( entry, state ) {
         );
 
         mdbPageCreator_usedCatMixes( out, entry, state.match );
+
+        // how well this answer fits THIS page, behind the count. Only on the page's own
+        // categories: the "Hints:" row passes no title, and a hint is not a filing to be
+        // confident about.
+        var fit = title ? mdbPageCreator_categoryFitScore( entry, state, title ) : null;
+
+        if( fit ) out.append( fit );
 
         return out;
     }
