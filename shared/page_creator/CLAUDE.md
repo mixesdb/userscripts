@@ -206,6 +206,35 @@ Settled, so it does not get re-litigated:
   rule here, unlike the slash: a dash with a space next to it IS the separator on a line that has
   one, which is the very rule the run was detected by. Only the FIRST one moves, and the numbering
   and a leading cue are skipped over first.
+- **A dash written WITHOUT its spaces is a separator too, but only on a second pass.**
+  `Miret-Sabio Espejo (Original Mix)` is a track line to a reader and to nothing in the first
+  pass, which wants a space on at least one side - the rule that keeps `Lo-Fi` and
+  `Jerome Isma-Ae` from splitting into two tracks. Both cannot hold at once, so the whole
+  detection is simply run a SECOND time over a text whose spaceless separators were spaced out
+  (`mdbTracklist_spaceTightDashes()`), and only when the first pass found nothing anywhere - a
+  description that already yielded a tracklist never reaches it, which is what makes the pass
+  free of regressions by construction. Four guards keep it off prose: only a line carrying
+  neither a spaced dash nor a slash is rewritten, the letter behind the dash has to be a CAPITAL
+  (a compound word is lowercase behind its hyphen, a title is not - and a digit is barred, or
+  every `2026-08-19` would pass), at least `mdbTracklist_minTracks` lines have to be written that
+  way before the pass runs at all, and MOST of them have to run on behind the dash - what is left
+  of a compound is one word and the line ends there (`Berlin-Mitte`, `Jean-Luc`), which is what
+  short prose lines carrying a hyphenated place name fail and the only thing that otherwise
+  passes every other guard. Counted over the block rather than demanded per line: a one-word
+  title among the others is a track, and dropping that one line would tear the run in two.
+  Accepted price: a lowercase artist (`stbr-Reservoir`) is not seen - a run cut at the wrong dash
+  is worse than no run.
+- **A line ending in a COMMA that is no track line of its own is the front of the next line**
+  and is glued there before the runs are read (`mdbTracklist_joinContinuations()`), leaving a
+  null behind exactly like a URL line, so every other line keeps the position the chapter lookup
+  reads it by. An uploader whose artist list ran over the row writes it that way
+  (`Oliver Koletzki,` / `Niko Schwind, Sidartha Siliceo-Satinka (Kermesse Remix)`), and left
+  standing it costs far more than its own track: it is no candidate line, so the run ENDS there
+  - two of them in one tracklist made three short runs, of which only the longest would have
+  survived, or three chapters named after the leftovers. A line that already passes as a TRACK is
+  never moved: a title ending in a comma is a row. The numbering does not save it the same way -
+  a wrapped credit may carry it (`02. Oliver Koletzki,`) - but then the line below has to carry
+  none, or the two are two numbered tracks and neither wrapped anywhere.
 - **A cue written BEHIND the track is moved in front of it before the API sees it**, and anything
   trailing that cue becomes a bold note in front of the artist ("Artist - Title 00:56:00- CLASSIC
   OF THE WEEK" -> "[00:56:00] '''CLASSIC OF THE WEEK:''' Artist - Title"). The API reads a leading

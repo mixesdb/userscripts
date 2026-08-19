@@ -237,6 +237,20 @@ var mdbTracklistExamples = [
             first: "Eddie Richards - Someday",
             last:  "NTFO - Synopsis"
         }
+    },
+    {
+        // Artist and title split by a dash with NO spaces around it, and two credits the uploader
+        // wrapped onto a line of their own ("Oliver Koletzki," / "Niko Schwind, ...") sitting in
+        // the middle of the block. Nothing here is a track line to the first pass, and the two
+        // wrapped lines cut what is left into three - which used to come out as no tracklist at
+        // all. Guards the second pass and the comma join together.
+        url: "https://soundcloud.com/ri0d/ri0d-3000-grad-festival-3025-rummelplatz",
+        text: "3025 -samstag nacht auf´m Rummelplatz <3\n\nMiret-Sabio Espejo (Original Mix)\nMiret-Polvo Dorado (Original Mix)\nTakeshi's Cashew, Surv-Akihi (Surv Remix)\nNicola Cruz-Tzantza (Original Mix)\nSlow Nomaden-Boho (Original Mix)\nUmoja-La Piragua (Original Mix)\nOliver Koletzki,\nNiko Schwind, Sidartha Siliceo-Satinka (Kermesse Remix)\nZuma Dionys-Isha (Original Mix)\nZuma Dionys-Suba Nesu (Original Mix)\nDele Sosimi, Lokkhi Terra, \nFrancesco Chiocci-Afro Sambroso (Rampa Version)\nQuim Manuel O Espirito Santo-Eme Lelu (Adam Port Edit)\nMassimo Lippoli-Dougne Te Soye (Original Mix)\nStylo, Space Motion-Madan (Original Mix)\nKino Todo-Yasmin (Original Mix)\nKino Todo-Goa Kids (Original Mix)\nMollono.Bass, The Advocate-Astra (Mollono.Bass Remix)\nRobin Sukroso, Elias Dore-Cloudflare (Original Mix)\nRauschhaus-Patara Soil (Original Mix)\nPablo Fierro-Camaleon (Original Mix)\nSoul of Zoo-Horizon (Original Mix)",
+        expect: {
+            lines: 20,
+            first: "Miret - Sabio Espejo (Original Mix)",
+            last:  "Soul of Zoo - Horizon (Original Mix)"
+        }
     }
 ];
 

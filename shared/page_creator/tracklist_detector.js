@@ -41,6 +41,17 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  *     along because a numbered tracklist keeps numbering the tracks it has no name for
  *     ("06. [018] ID"), and dropping them would tear one tracklist into three.
  *
+ * A line ENDING IN A COMMA that is no track line of its own is not a line at all - it is the
+ * front of the next one, and it is glued there before the runs are read. That is how an uploader
+ * whose artist list ran over the row writes it: "Oliver Koletzki," on one line, "Niko Schwind,
+ * Sidartha Siliceo-Satinka (Kermesse Remix)" on the next. Left standing it costs far more than
+ * the one track it names - it is no candidate line, so the run ENDS there, and a tracklist with
+ * two such wrapped credits in it arrives as three shorter ones, of which only the longest
+ * survives - or as three chapters named after the leftovers. A line that already IS a track line
+ * is never moved: a title that happens to end in a comma is a row of its own. The numbering does
+ * not save it the same way, because a wrapped credit may well carry it ("02. Oliver Koletzki,"),
+ * but then the line below has to carry none - two numbered lines are two tracks.
+ *
  * Blank lines end a run, which is what keeps a heading ("Tracklist:") and the paragraph above it
  * out of the block - UNLESS the numbering steps over them. An uploader who writes every track as
  * its own paragraph (SoundCloud renders those as <p>, and the description then holds a blank line
@@ -64,6 +75,37 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  * On a numbered run the numbers additionally have to ASCEND, and the longest ascending stretch is
  * what survives. This is what throws out a stray "6 Decks - 2 Mixers" that happens to sit right
  * on top of a tracklist starting at "01." - and any other line that only looks numbered.
+ *
+ *
+ *
+ * The separator written without its spaces
+ * ----------------------------------------
+ * "Miret-Sabio Espejo (Original Mix)" is a track line to a reader and nothing at all to the rule
+ * above, which wants a space on at least one side of the dash - the very thing that keeps
+ * "Lo-Fi" and "Jerome Isma-Ae" from splitting into two tracks. Both cannot hold at once, so the
+ * spaceless dash gets a SECOND PASS rather than a place in the first: only when the rules above
+ * found no tracklist anywhere in the description are such lines rewritten to " - " and the whole
+ * detection run again over the result. A description that already yielded a tracklist never
+ * reaches the second pass, which is what leaves every case above exactly as it was.
+ *
+ * Four things keep that pass from making a tracklist out of prose:
+ *
+ *   - only a line carrying NEITHER a spaced dash NOR a slash is rewritten, so "Jerome Isma-Ae -
+ *     Encounter" keeps splitting where its uploader spaced the separator out
+ *   - the letter behind the dash has to be a CAPITAL. A compound word is lowercase behind its
+ *     hyphen ("lo-fi", "dub-hazed", "much-needed", "record-breaking"), a title is not
+ *   - at least mdbTracklist_minTracks lines have to be written that way before the pass runs at
+ *     all. One hyphenated name in a paragraph is not a tracklist, and this is what keeps the
+ *     pass away from the descriptions that simply hold none
+ *   - and most of those lines have to RUN ON behind the dash. What is left of a capitalized
+ *     compound is one word and the line ends there ("Berlin-Mitte", "Jean-Luc", "Isma-Ae"); a
+ *     title carries on. Short prose lines each holding a hyphenated place name are the one
+ *     thing that passes all three guards above, and this is what they fail. Counted over the
+ *     block, not demanded of each line - a one-word title among the others is a track, and
+ *     dropping that ONE line would tear the run in two
+ *
+ * What it cannot see is an artist written lowercase ("stbr-Reservoir"). That tracklist stays
+ * unfound - which is the right way round: a run cut at the wrong dash is worse than no run.
  *
  *
  * Chapters
@@ -224,6 +266,17 @@ var mdbTracklist_artistTitleRe = /(\S)(?:\s[-–—]+\s?|\s?[-–—]+\s)(\S)/;
 // kept so that the same regex can also do the rewriting - see mdbTracklist_dashifyLine().
 var mdbTracklist_slashTitleRe = /(\S)\s[\/\\]{1,2}\s(\S)/;
 
+// The same separator with the spaces left off: "Miret-Sabio Espejo (Original Mix)". Only ever
+// asked on the second pass and only of a line carrying neither of the two above - see "The
+// separator written without its spaces" in the header.
+//
+// The CAPITAL behind the dash is what carries the whole rule. A hyphen without spaces around it
+// is a hyphen inside a word nine times out of ten, and a word is lowercase behind it ("lo-fi",
+// "dub-hazed", "much-needed"); a title is not. A digit is not allowed there either - "2026-08-19"
+// and "24-7" would pass, and a date list is exactly what these descriptions are full of. The two
+// groups are the characters either side, kept so the same regex can do the rewriting.
+var mdbTracklist_tightDashRe = /([\p{L}\p{N}])[-–—](\p{Lu})/u;
+
 // A cue written behind the track instead of in front of it, with whatever the uploader hung off
 // it: "Artist - Title 00:52:09", "Artist - Title 00:56:00- CLASSIC OF THE WEEK".
 // The index in front is kept as it is; only what stands behind the track moves.
@@ -314,6 +367,47 @@ function mdbTracklist_isCandidateLine( line ) {
     if( /https?:\/\//i.test( line ) ) return false;
 
     return mdbTracklist_isTrackLine( line ) || mdbTracklist_indexRe.test( line );
+}
+
+// mdbTracklist_joinContinuations
+// The cleaned lines with every WRAPPED line glued onto the one below it - see the header. The
+// line it came from is left behind as null, the way a URL line is: it joins no run, it ends
+// none, and every other line keeps the position the chapter lookup reads it by.
+//
+// A trailing comma is the whole signal, and it is enough because the line is judged as well: one
+// that already passes as a TRACK is a row of its own, whatever it ends in, and gluing it onto
+// the next one would cost two tracks instead of saving one.
+//
+// The wrapped line may well carry the block's numbering ("02. Oliver Koletzki," and the rest of
+// the credit under it), so a number does not save a line here the way it saves a track line -
+// but then the line below has to carry NONE, or the two are two numbered tracks and neither
+// wrapped anywhere.
+function mdbTracklist_joinContinuations( cleaned ) {
+    var moved = 0,
+        i, line, next;
+
+    for( i = 0; i < cleaned.length - 1; i++ ) {
+        line = cleaned[i];
+        next = cleaned[i + 1];
+
+        // null is a URL line, "" a blank one - a credit does not wrap across either
+        if( !line || !next ) continue;
+        if( !/,$/.test( line ) ) continue;
+        if( line.length > mdbTracklist_maxLineLength ) continue;
+        if( mdbTracklist_isTrackLine( line ) ) continue;
+        if( mdbTracklist_index( line ) > -1 && mdbTracklist_index( next ) > -1 ) continue;
+        if( line.length + 1 + next.length > mdbTracklist_maxLineLength ) continue;
+
+        cleaned[i + 1] = line + " " + next;
+        cleaned[i] = null;
+        moved++;
+    }
+
+    if( moved ) {
+        log( "mdbTracklist_joinContinuations: " + moved + " line(s) end in a comma and carry no track of their own - glued onto the line below." );
+    }
+
+    return cleaned;
 }
 
 // mdbTracklist_numberingContinues
@@ -813,12 +907,98 @@ function mdbTracklist_chapters( accepted, cleaned, min ) {
     };
 }
 
+// mdbTracklist_spaceTightDashes
+// The description with a spaceless "Artist-Title" separator written as the " - " every rule in
+// here reads - see "The separator written without its spaces" in the header. null when fewer
+// than mdbTracklist_minTracks lines are written that way, and that is the guard keeping the
+// second pass away from the descriptions that simply hold no tracklist: one hyphenated name in
+// a paragraph must not start a search for a run.
+//
+// A line carrying a spaced dash or a slash is left alone - its separator is already the one that
+// was counted, and moving an earlier hyphen would split "Jerome Isma-Ae - Encounter" into
+// "Jerome Isma" and "Ae - Encounter". URLs come out of a line BEFORE it is judged, and a line
+// that was nothing but a URL is passed through untouched: "cicutanetlabel.com/release-Nine" is a
+// link, and spacing its hyphen out would hand the detector a track line to believe.
+function mdbTracklist_spaceTightDashes( text ) {
+    var lines = mdbTracklist_normalize( text ).split( "\n" ),
+        out = [],
+        changed = 0,
+        titled = 0,
+        i, bare, at, body, spaced;
+
+    for( i = 0; i < lines.length; i++ ) {
+        bare = mdbTracklist_urlLineRe.test( lines[i].trim() ) ? "" : mdbTracklist_stripUrls( lines[i] );
+
+        if( !bare || mdbTracklist_separator( bare ) !== null ) {
+            out.push( lines[i] );
+            continue;
+        }
+
+        // the numbering and a leading cue are skipped, the same way both rewriters do it - the
+        // dash of a "12 - " numbering is not the separator, and "[00:12]" carries none at all
+        at = mdbTracklist_bodyAt( bare );
+        body = bare.slice( at );
+        spaced = body.replace( mdbTracklist_tightDashRe, "$1 - $2" );
+
+        if( spaced === body ) {
+            out.push( lines[i] );
+            continue;
+        }
+
+        out.push( bare.slice( 0, at ) + spaced );
+        changed++;
+
+        // Does what stands BEHIND the dash run on? A title does ("Sabio Espejo (Original Mix)"),
+        // the second half of a compound name does not ("Berlin-Mitte", "Jean-Luc", "Isma-Ae").
+        if( /\s/.test( spaced.slice( spaced.indexOf( " - " ) + 3 ) ) ) titled++;
+    }
+
+    if( changed < mdbTracklist_minTracks ) return null;
+
+    // A pattern or nothing, the same rule the cues and the slashes are rewritten by: most of
+    // these lines have to read like "Artist - Title Words" before ANY of them is believed. Five
+    // short lines of prose each carrying a hyphenated place name ("Live at Berlin-Mitte",
+    // "Recorded in Baden-Baden" ...) are the one thing that otherwise passes every guard above,
+    // and they all end where the compound ends. Counted rather than demanded per line: a
+    // one-word title among them is a track, and dropping THAT line would tear the run in two -
+    // which is the outcome this file calls worse than finding nothing.
+    if( titled * 2 < changed ) {
+        log( "mdbTracklist_spaceTightDashes: " + changed + " lines carry a dash without spaces, but only " +
+             titled + " of them run on behind it - reads as hyphenated names, not as a tracklist." );
+        return null;
+    }
+
+    log( "mdbTracklist_spaceTightDashes: " + changed + " lines split artist and title with a dash carrying no spaces - written as \" - \" for a second pass." );
+
+    return out.join( "\n" );
+}
+
 // mdbTracklist_detectInText
 // The entry point for a description. Returns the tracklist as it stands in the text - unchanged,
 // numbering and cues included, since the Tracklist Editor API is the one that normalizes it.
 // Several tracklists under headlines come back as one text with a ";Chapter" line above each -
 // see mdbTracklist_chapters().
+//
+// Two passes over the same rules: the text as it was written, and - only when that found nothing
+// - the text with its spaceless separators spaced out. See "The separator written without its
+// spaces" in the header for why the two cannot be one pass.
 function mdbTracklist_detectInText( text, minTracks ) {
+    var min = minTracks || mdbTracklist_minTracks,
+        found = mdbTracklist_detectRuns( text, min );
+
+    if( found ) return found;
+
+    var spaced = mdbTracklist_spaceTightDashes( text );
+
+    if( !spaced ) return null;
+
+    return mdbTracklist_detectRuns( spaced, min );
+}
+
+// mdbTracklist_detectRuns
+// One pass of the detection - see mdbTracklist_detectInText(), which is what everything else
+// calls.
+function mdbTracklist_detectRuns( text, minTracks ) {
     var min = minTracks || mdbTracklist_minTracks,
         lines = mdbTracklist_normalize( text ).split( "\n" ),
         cleaned = [],
@@ -834,6 +1014,10 @@ function mdbTracklist_detectInText( text, minTracks ) {
 
         cleaned.push( raw && !line ? null : line );
     }
+
+    // A wrapped credit is glued onto the track it belongs to before any run is read - a line
+    // that is only the front of the next one must not be allowed to end a run. See the header.
+    mdbTracklist_joinContinuations( cleaned );
 
     var runs = [],
         run = null,
@@ -921,11 +1105,11 @@ function mdbTracklist_detectInText( text, minTracks ) {
     }
 
     if( !best ) {
-        log( "mdbTracklist_detectInText: no tracklist found in " + lines.length + " lines of text." );
+        log( "mdbTracklist_detectRuns: no tracklist found in " + lines.length + " lines of text." );
         return null;
     }
 
-    log( "mdbTracklist_detectInText: found " + best.length + " lines (" + bestScore.tracks +
+    log( "mdbTracklist_detectRuns: found " + best.length + " lines (" + bestScore.tracks +
          " with an \"Artist - Title\", " + bestScore.indexed + " numbered)." );
 
     best = mdbTracklist_tidy( best );

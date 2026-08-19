@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.12
+// @version      2026.08.19.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_46
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
@@ -1965,6 +1965,14 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.13
+ * Via the shared tracklist detector (tracklist_detector.js v_12), from a SoundCloud report:
+ * a description whose tracks are written "Artist-Title" with no spaces around the dash is now
+ * read on a second pass, and a credit the uploader wrapped onto a line of its own ("Oliver
+ * Koletzki," / "Niko Schwind, ...") is glued onto the track it belongs to instead of ending
+ * the run. No effect here - TrackId.net builds its tracklist box from the identified tracks
+ * and never searches a description.
  *
  * 2026.08.19.11
  * hearthis.at players: the grey toolkit placeholder no longer goes up before the player it

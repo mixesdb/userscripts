@@ -308,6 +308,20 @@ same separator, and the box shows ` - ` for all of them – the Tracklist Editor
 such a line as a track with no artist and calls the whole tracklist incomplete. Only the first
 dash of a line is the separator; anything further right belongs to the title and stays.
 
+A tracklist written **without the spaces around that dash** – `Miret-Sabio Espejo (Original Mix)`
+– is read too, and arrives in the box as `Miret - Sabio Espejo (Original Mix)`. It is only looked
+for when the description yielded no tracklist any other way, and only where the letter behind the
+dash is a capital and the title carries on behind it: a hyphen with no space around it is a
+hyphen inside a word far more often than it is a separator, `Jerome Isma-Ae - Encounter` has to
+keep splitting where its uploader put the spaces, and a line that simply ends after the compound
+(`Live at Berlin-Mitte`) is prose.
+
+A **credit the uploader wrapped onto a line of its own** no longer cuts the tracklist in two.
+`Oliver Koletzki,` on one line and `Niko Schwind, Sidartha Siliceo-Satinka (Kermesse Remix)` on
+the next are one track and arrive as one row. A line ending in a comma that carries no track of
+its own is the front of the line below it – a track whose title really ends in a comma keeps its
+own row.
+
 The box is behind a **Tracklist** headline that toggles it, and a bracket behind that headline
 says where the tracklist was read from. What is in the box at the moment **Create** is clicked is
 what goes onto the page, so corrections stick. The box is the shared
@@ -347,6 +361,10 @@ placeholder only holds the space below it.
 - Only tracklists written as a run of neighbouring lines are detected. A tracklist scattered
   through a description is left alone on purpose: a wrong tracklist on a new page is worse than
   none.
+- A tracklist written with no spaces around the dash is missed when the artists are written
+  lowercase (`stbr-Reservoir`): the capital behind the dash is what tells such a separator from
+  a hyphen inside a word, and without it the tracklist would be cut in the wrong place more
+  often than not.
 
 ## Roadmap
 

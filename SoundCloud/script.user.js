@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.9
+// @version      2026.08.19.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_46
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
@@ -1836,6 +1836,28 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.10
+ * A tracklist written "Artist-Title", with no spaces around the dash, is now found
+ * (tracklist_detector.js v_12). From the report on ri0d/ri0d-3000-grad-festival-3025-
+ * rummelplatz, whose 20 tracks read "Miret-Sabio Espejo (Original Mix)": not one of them was
+ * a track line to the detector, which wants a space on at least one side of the dash - the
+ * rule that keeps "Lo-Fi" and "Jerome Isma-Ae" from splitting into two tracks. Both cannot
+ * hold at once, so the spaceless dash gets a SECOND PASS: only when the rules found no
+ * tracklist anywhere are such lines written out to " - " and the whole detection run again,
+ * which leaves every description that already yields one untouched. It stays off prose by
+ * three guards - only a line carrying neither a spaced dash nor a slash is rewritten, the
+ * letter behind the dash has to be a CAPITAL (a compound word is lowercase behind its hyphen,
+ * a date like "2026-08-19" is digits), and four such lines have to exist before the pass runs
+ * at all. A lowercase artist ("stbr-Reservoir") is the accepted price.
+ *
+ * And a credit the uploader WRAPPED onto a line of its own no longer cuts the tracklist up:
+ * the same description has "Oliver Koletzki," on one line and "Niko Schwind, Sidartha
+ * Siliceo-Satinka (Kermesse Remix)" on the next, and twice over. Such a line is no candidate
+ * line, so the run ended at each of them and 20 tracks would have arrived as three short runs
+ * - or as three chapters named after the leftovers. A line ending in a comma that carries no
+ * track of its own is now glued onto the line below before any run is read; a track whose
+ * title really ends in a comma keeps its own row.
  *
  * 2026.08.19.8
  * The MixesDB modal opens again (page_creator.css). The blurred backdrop of .7 came with
