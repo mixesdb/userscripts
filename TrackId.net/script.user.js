@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.9
+// @version      2026.08.19.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -871,18 +871,18 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
             embed_hearthis_fromAnyUrl( playerUrl, tidExtras, "append" );
         }
 
-        // A player built right here is NOT covered (keep): it should play as early as
-        // possible, and the skeleton only holds the space below it, where page creator row
-        // and toolkit appear together at the reveal - the row is placed "after" the player
-        // wrapper (funcTidPageCreator), so it is a hidden direct child of the extras wrapper
-        // like the toolkit, not a visible part of the kept player. The hearthis.at player has
-        // nothing to keep yet, so it gets a stand-in of its own and arrives with the rest.
+        // The player is NOT covered (keep): it should play as early as possible. The skeleton
+        // holds the space below it, where page creator row and toolkit appear together at the
+        // reveal - the row is placed "after" the player wrapper (funcTidPageCreator), so it is
+        // a hidden direct child of the extras wrapper like the toolkit, not a visible part of
+        // the kept player. keep is applied here and once more when the hearthis.at player
+        // lands (see the toolkit handler): this call can only mark what is already there.
         // No height option: the default in page_creator.css is the one source of truth -
         // an inline height here would silently win over any value tuned in the CSS.
         mdbSkeleton_show({
             target: "#mdb-tid-audiostreamExtras",
-            rows:   embedIsAsync ? [ "player", "toolkit" ] : [ "toolkit" ],
-            keep:   embedIsAsync ? "" : ".mdb-player-audiostream"
+            rows:   [ "toolkit" ],
+            keep:   ".mdb-player-audiostream"
         });
     }
 
@@ -1007,6 +1007,11 @@ waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", functi
         titleText = tidExtras.attr("data-tidtitle") || "";
 
     if( !playerUrl ) return;
+
+    // The hearthis.at player is appended after mdbSkeleton_show() has handed out the keep
+    // class, so it would sit hidden behind the skeleton until the reveal - it shows as soon
+    // as it is there, like the players built on the spot. A no-op for those.
+    jNode.addClass("mdb-skeleton-keep");
 
     logVar( "titleText toolkit", titleText );
     getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1, "", "auto" );
@@ -1940,7 +1945,7 @@ function on_submitrequest() {
 /*
  * Changelog
  *
- * 2026.08.19.9
+ * 2026.08.19.10
  * The toolkit is back on hearthis.at players. Since the toolkit handler was moved out of
  * funcTidPlayers() into a single top-level registration (2026.08.11.1), it reads the player
  * URL off the element instead of a closure - and only the players built on the spot
@@ -1948,11 +1953,12 @@ function on_submitrequest() {
  * embed_hearthis_fromId() in shared/global.js and arrives with its own attributes only, so
  * the handler found no URL and quietly returned. The URL and title now travel on the
  * #mdb-tid-audiostreamExtras wrapper, which every route builds, and the hearthis.at player
- * is appended INTO that wrapper rather than next to it. That also puts it under the loading
- * skeleton (it gets a player stand-in of its own, since there is nothing to keep visible
- * yet) and gets it cleaned up on the next SPA navigation, where it used to stay behind. The
- * artwork stays visible on this route, unlike the others: the id lookup can come back empty
- * and an artwork link beats nothing at all.
+ * is appended INTO that wrapper rather than next to it, which also gets it cleaned up on the
+ * next SPA navigation, where it used to stay behind. It is not covered by the loading
+ * skeleton: it shows the moment the lookup comes back, like the players built on the spot -
+ * the skeleton keeps holding the space below it for the toolkit. The artwork stays visible
+ * on this route, unlike the others: the id lookup can come back empty and an artwork link
+ * beats nothing at all.
  *
  * 2026.08.19.8
  * The MixesDB modal opens again (page_creator.css). The blurred backdrop of .7 came with
