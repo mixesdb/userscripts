@@ -352,7 +352,7 @@ var mdbTitleUsernameConversions = {
  */
 var mdbTitleChannelSeriesConversions = {
     "Dance TV": { "DJ Mix": "Dance TV DJ Mix" },
-    "Juno Daily" { "In The Mix": "Juno Daily" }
+    "Juno Daily": { "In The Mix": "Juno Daily" }
 };
 
 
