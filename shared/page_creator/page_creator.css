@@ -1051,6 +1051,59 @@
 }
 
 /*
+ * The "Switch title:" line under the categories (mdbPageCreator_switchTitleHint in
+ * page_creator.js): the readings the build decided against, each as the full title it would
+ * make. The items column is stacked - one reading per line, block chips - on purpose: a click
+ * swaps the chip with the title field and the re-render puts the way back into the SAME slot,
+ * and chips that keep their line cannot re-order under the pointer.
+ */
+#mdb-pageCreator-hints #mdb-pageCreator-switchTitle {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+#mdb-pageCreator-hints #mdb-pageCreator-switchTitle .mdb-pageCreator-hint-items {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+/* one alternative reading: the category chips' size and hairline pill, but neutral - a chip
+   here is a candidate, not a verdict, and candidates stay grey (the panel's chip rule) */
+#mdb-pageCreator-hints .mdb-pageCreator-titleAlt {
+    display: block;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px 9px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+}
+
+/* the whole title is the click - candidate grey, brightening on hover the way the count
+   toggle does, with no underline: a chip this long underlined reads as a link to a page,
+   and there is no page, only the swap */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a:visited {
+    color: #e0e0e0;
+    cursor: pointer;
+    text-decoration: none;
+    overflow-wrap: break-word;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-titleAlt:hover {
+    border-color: rgba(255, 255, 255, 0.40);
+}
+
+/*
  * The MixesDB modal (mdbPageCreator_modalOpen in page_creator.js): the framed MixesDB page a
  * plain left click on a "Used categories" link opens on a desktop-wide window. The box takes
  * the panels' dark frame; the iframe itself stays white, because MixesDB is a light page and

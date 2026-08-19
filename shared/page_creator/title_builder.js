@@ -1741,11 +1741,13 @@ function mdbTitle_dashWrapsToSeparators( text ) {
 
 // mdbTitle_dropBits
 // Takes the chunks out that never make it into a MixesDB title - "Part 2", a stage, a camp
-// (mdbTitleDroppedBitPatterns). Returns { text, dropped }. The separator runs are kept along with
-// the chunks they belong to, so what stays reads exactly as the uploader wrote it.
+// (mdbTitleDroppedBitPatterns). Returns { text, dropped, droppedBits } - the texts next to the
+// count because a dropped "Part 2" is offered back as a switchable alternative title (see
+// mdbTitle_droppedParts). The separator runs are kept along with the chunks they belong to, so
+// what stays reads exactly as the uploader wrote it.
 function mdbTitle_dropBits( text ) {
     var patterns = ( typeof mdbTitleDroppedBitPatterns !== "undefined" && mdbTitleDroppedBitPatterns ) ? mdbTitleDroppedBitPatterns : [],
-        result = { text: String( text || "" ), dropped: 0 };
+        result = { text: String( text || "" ), dropped: 0, droppedBits: [] };
 
     if( !patterns.length ) return result;
 
@@ -1772,13 +1774,14 @@ function mdbTitle_dropBits( text ) {
         // drops that separator with it and never leaves a dangling " | " behind
         if( drop ) {
             result.dropped++;
+            result.droppedBits.push( bit );
         } else {
             kept.push( { sep: i ? parts[i - 1] : "", text: parts[i] } );
         }
     }
 
     // a title made of nothing but dropped chunks stays as it is - something wrong beats nothing
-    if( !kept.length ) return { text: result.text, dropped: 0 };
+    if( !kept.length ) return { text: result.text, dropped: 0, droppedBits: [] };
 
     result.text = "";
     for( i = 0; i < kept.length; i++ ) {
@@ -1786,6 +1789,25 @@ function mdbTitle_dropBits( text ) {
     }
 
     return result;
+}
+
+// mdbTitle_partBits
+// The part markers among the chunks 1c dropped, in MixesDB's own spelling: "part2", "Pt. 2"
+// and "PART 2" all come back as "Part 2", deduped. Only the part patterns - a "Day 2" is
+// written INLINE behind the event name on MixesDB ("@ Dekmantel Festival Day 2"), not as a
+// bracket, so offering it appended would offer a title the wiki never writes; a stage or a
+// camp the wiki does not carry at all.
+function mdbTitle_partBits( bits ) {
+    var out = [],
+        i, m;
+
+    for( i = 0; i < ( bits || [] ).length; i++ ) {
+        m = /^p(?:ar)?t\s*\.?\s*(\d+)$/i.exec( bits[i] );
+
+        if( m && out.indexOf( "Part " + m[1] ) === -1 ) out.push( "Part " + m[1] );
+    }
+
+    return out;
 }
 
 // mdbTitle_isCountry
@@ -2944,6 +2966,20 @@ var mdbTitle_channelInitials = "";
 var mdbTitle_livePaTitle = false;
 var mdbTitle_livePaDescription = false;
 
+// Whether a branch DECIDED AGAINST "(Promo Mix)" on a title that reads as the artist's own
+// mix (the channel known as an artist, a numbered series naming nobody) - the marker was a
+// guess it refused to stack onto another guess. Set once per suggestion in the branch that
+// decided, read in mdbTitle_result: it is what offers the promo reading as a switchable
+// alternative instead of losing the decision silently.
+var mdbTitle_promoDeclined = false;
+
+// The "Part N" chunks step 1c dropped from this title (normalized to MixesDB's "Part N"
+// spelling, deduped). A part marker is the one dropped chunk with a real second reading:
+// where the parts are uploaded as files of their own, MixesDB DOES write "... (Part 2)" -
+// so mdbTitle_result offers the title with it as an alternative. Stage/camp/floor chunks
+// stay out: the wiki never carries those, whatever the upload says.
+var mdbTitle_droppedParts = [];
+
 // mdbTitle_isChannelInitials
 // Whether an all-caps word is the channel abbreviating itself: "IA" on "Illegal Alien Records".
 // A PREFIX of the initials counts, because a label drops its "Records" in its own podcast name
@@ -3626,6 +3662,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_knownNow = known || null;
     mdbTitle_livePaTitle = false;
     mdbTitle_livePaDescription = false;
+    mdbTitle_promoDeclined = false;
+    mdbTitle_droppedParts = [];
 
     try {
         // "_" is a space on MediaWiki and a word character to a regex, so it is written out
@@ -3800,6 +3838,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             mdbTitle_traceStep( "Chunk dropped (a part, a stage or the like)", rest + " -> " + withoutDropped.text,
                 null, [ "mdbTitleDroppedBitPatterns" ] );
             conf.drop( 5, "a part of the title was left out - it named a part, a stage or the like, which a mix page title does not carry" );
+            // a dropped "Part N" has a real second reading (a part uploaded as a file of its
+            // own IS titled "... (Part N)" on MixesDB), so it is kept for the exit, which
+            // offers the title with it as a switchable alternative
+            mdbTitle_droppedParts = mdbTitle_partBits( withoutDropped.droppedBits );
             rest = withoutDropped.text;
         }
 
@@ -4166,6 +4208,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             if( ownEntity ) {
                 logVar( "buildMixesdbTitle: MixesDB knows the channel as an artist", username );
+
+                // "better left off than wrongly put on" (comment above) is still a close
+                // call - the exit offers the promo reading as a switchable alternative
+                mdbTitle_promoDeclined = true;
 
                 return mdbTitle_result( date, username, ownEntity, null, false, extraArtists, conf, {
                     artist: "MixesDB knows the channel \"" + username + "\" as an artist, and the title names nobody else",
@@ -4650,6 +4696,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // the names that already say it.
             var seriesPromo = mdbTitle_saysPromoMix( seriesName );
 
+            // ... and the stacked guess it refused is exactly what the exit offers as a
+            // switchable alternative - the self-released reading was decided against, not
+            // ruled out
+            if( !seriesPromo ) mdbTitle_promoDeclined = true;
+
             logVar( "buildMixesdbTitle: the title is a numbered series, so the channel is the artist", show );
             conf.drop( 5, "the title reads as a " +
                           ( dated.taken ? "dated" : monthly.taken ? "monthly" : "numbered" ) +
@@ -4894,12 +4945,67 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         }
     }
 
+    // The readings the build DECIDED AGAINST - the hints bar offers them as "Switch title:"
+    // chips (mdbPageCreator_switchTitleHint in page_creator.js) instead of losing the call
+    // silently. FACTS about what is switchable, never finished strings: the bar derives the
+    // offered title from the CURRENT field text, so a chip survives an edit and the
+    // recent-pages refinement where a pre-baked string would quietly undo both. Only ever the
+    // close calls - a marker the build guessed about or refused to guess at, never one the
+    // title itself spelled out.
+    var alternatives = [];
+
+    if( title ) {
+        var livePaWritten = /\(\s*live\s*p\.?\s*a\.?\s*\)/i.test( artist );
+
+        if( livePaWritten && !mdbTitle_livePaTitle ) {
+            alternatives.push( {
+                kind: "livePa",
+                reason: "\"(Live PA)\" was read out of the description, not the title - the phrase there may describe another act on the bill."
+            } );
+        } else if( !livePaWritten && mdbTitle_livePaDescription &&
+                   artist.indexOf( "@" ) === -1 && mdbTitle_splitArtists( artist ).length === 1 ) {
+            // the single-name guard mirrors the write above: with several artists only the
+            // uploader knows whose set it was, and a marker behind the wrong name is worse
+            // than the confidence note that already asks for it by hand
+            alternatives.push( {
+                kind: "livePa",
+                reason: "The description says \"Live PA\", but the title was not read as a live recording, so the marker was left off."
+            } );
+        }
+
+        if( promoInTitle ) {
+            // the marker is only ever written as an assumption (a known show, venue or event
+            // never gets it), so the show reading is always worth offering back
+            alternatives.push( {
+                kind: "promoMix",
+                reason: "\"" + entity + "\" is not a known show, venue or event, so \"(Promo Mix)\" was assumed - if it really is a show or podcast, the title goes without the marker and the page files under the name."
+            } );
+        } else if( mdbTitle_promoDeclined && entity && entity.indexOf( "@" ) === -1 &&
+                   !mdbTitle_saysPromoMix( entity ) &&
+                   !mdbTitle_knownEntityType( mdbTitle_knownNow, entity ) ) {
+            alternatives.push( {
+                kind: "promoMix",
+                reason: "\"" + entity + "\" reads as a series of the artist's own, so \"(Promo Mix)\" was not stacked onto that guess - with the marker the page files under Category:Promo Mix instead of under the name."
+            } );
+        }
+
+        for( var altPart = 0; altPart < mdbTitle_droppedParts.length; altPart++ ) {
+            alternatives.push( {
+                kind: "chunk",
+                text: mdbTitle_droppedParts[altPart],
+                reason: "\"" + mdbTitle_droppedParts[altPart] + "\" was left out - it says which part of the recording this is. Where the parts are uploaded as files of their own, MixesDB does write it: \"... (" + mdbTitle_droppedParts[altPart] + ")\"."
+            } );
+        }
+    }
+
     return {
         title: title,
         confidence: conf.percent(),
         reasons: conf.reasons,
         // the page still belongs in Category:Promo Mix even when the title does not say so
-        promoCategory: promoCategory
+        promoCategory: promoCategory,
+        // the switchable readings above; [] on most titles
+        alternatives: alternatives
     };
 }
 

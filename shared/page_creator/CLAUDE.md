@@ -442,6 +442,37 @@ tracklist ends up on the created page and `Tracklist: complete/incomplete/none` 
 Tracklist Editor API's verdict (see "The tracklist" above). An old plan note calling it "much
 later" predates that work.
 
+## The "Switch title" line (hints bar, since 2026-08-19)
+
+The readings the build DECIDED AGAINST, offered under "Used categories" as one full title per
+line; a click swaps the chip with the title field, and the same slot then offers the way back.
+`mdbTitle_result` emits the facts (`suggestion.alternatives`), `mdbPageCreator_switchTitleHint`
+renders them. Settled, so it does not get re-litigated:
+
+- **Facts, never finished strings.** A chip is a TOGGLE (`mdbPageCreator_altToggle`) applied to
+  the CURRENT field text on every render. A pre-baked title would quietly undo the recent-pages
+  refinement and every correction typed after the build - and the toggle is also what makes the
+  swap replace in place: after a click the re-render derives the inverse into the same slot,
+  with no stored swap state anywhere.
+- **Only close calls get a chip** - a marker the build guessed about or refused to guess at,
+  never one the title itself spelled out: a "(Live PA)" read from the DESCRIPTION (either
+  written as a guess, or left off because the title read as a studio mix - the title's own
+  marker is read, not guessed, and gets no chip), a "(Promo Mix)" that was assumed (4b/5c) or
+  deliberately withheld (`mdbTitle_promoDeclined`: the channel-known-as-artist and
+  numbered-series branches, where writing it would stack a guess on a guess), and a dropped
+  "Part N". With several artists the Live PA chip is skipped like the marker itself: only the
+  uploader knows whose set it was.
+- **Part chunks only, no stage/camp/day.** MixesDB really files split uploads as "... (Part 2)"
+  (checked against the wiki 2026-08-19), so that drop has a second reading worth offering.
+  "Day 2" is written INLINE behind the event name there, not as a bracket, and a stage or camp
+  the wiki never carries - a chip would offer a title that cannot be right.
+- **The promo switch moves the filing.** `mdbPageCreator_entityCategoryFor` reads the flag OR
+  the title's marker, so `mdbPageCreator_applyAlternative` sets `mdbPageCreator_promoCategory`
+  to match the toggle - without that, switching to the show reading would still file the page
+  under Promo Mix. `mdbPageCreator_syncPromoNote` reads the FIELD's title for the same reason.
+- **A switch counts as an edit** (`mdb-edited`): the reading was chosen on purpose, and the
+  next refresh or recent-pages refinement must not put the suggestion back over it.
+
 ## Title suggestion reports
 
 Reports come out of the **"Report" box** under the score (`mdbPageCreator_reportText()` in
