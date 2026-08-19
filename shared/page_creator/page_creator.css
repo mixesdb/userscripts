@@ -1176,7 +1176,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4vh 4vw;
+    padding: 4vh 2vw;
 
     /* Make the background blur. The rgba() tint is not optional next to it: pure blur alone
        leaves the background too busy and hurts the contrast of the modal text. Lighter than
@@ -1202,7 +1202,9 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    width: min(1100px, 100%);
+    /* wide: a MixesDB page lays its artwork out next to the text, and the 1100px this had
+       squeezed the images down to thumbnails on a screen that had the room for them */
+    width: min(1600px, 100%);
     /* all the height the overlay's padding leaves (92vh) - a wiki page is read scrolling,
        and a cap that looked fine on a laptop left half of a tall screen unused */
     height: 100%;
@@ -1225,13 +1227,19 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-/* the page's name, ellipsised - a mix title can be longer than the header */
-#mdb-pageCreator-modal .mdb-pageCreator-modal-title {
+/* The two sides of the header, empty on the left and the buttons on the right. Both grow,
+   so they end up the same width and the nav between them sits on the header's real centre -
+   "flex: 1" on the nav alone would only centre it in whatever the buttons leave over. */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-side {
+    display: flex;
     flex: 1;
-    overflow: hidden;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-side-end {
+    justify-content: flex-end;
 }
 
 /* The box takes the focus on every open and every step (mdbPageCreator_modalShow) so the
@@ -1243,22 +1251,23 @@
 
 /*
  * The step arrows and the "3 / 12" between them - the row's links walked one by one
- * (mdbPageCreator_modalStep). Right of the page's name, left of "Open on MixesDB": they are
- * about the modal, not about the page in it. Kept quiet - the framed page is what is being
- * read - and the arrow at either end of the row greys out rather than disappearing, so the
- * counter does not jump sideways on the first and last step.
+ * (mdbPageCreator_modalStep). Centred in the header and the only thing in it that is about
+ * the modal rather than about the page in it, so it is also the only thing the eye has to
+ * find up there: bright enough and big enough to be read at a glance while stepping through
+ * a dozen pages. The arrow at either end of the row greys out rather than disappearing, so
+ * the counter does not jump sideways on the first and last step.
  */
 #mdb-pageCreator-modal .mdb-pageCreator-modal-nav {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
     white-space: nowrap;
 }
 
 #mdb-pageCreator-modal .mdb-pageCreator-modal-step {
-    padding: 0 5px;
-    color: #b0b0b0;
-    font-size: 15px;
+    padding: 0 6px;
+    color: #e0e0e0;
+    font-size: 20px;
     line-height: 1;
     background: none;
     border: 0;
@@ -1271,16 +1280,16 @@
 
 #mdb-pageCreator-modal .mdb-pageCreator-modal-step-off,
 #mdb-pageCreator-modal .mdb-pageCreator-modal-step-off:hover {
-    color: #565656;
+    color: #6a6a6a;
     cursor: default;
 }
 
 /* tabular figures: the counter sits between the two arrows, and "9 / 12" must not shift them
    when it becomes "10 / 12" */
 #mdb-pageCreator-modal .mdb-pageCreator-modal-count {
-    min-width: 42px;
-    color: #8b8b8b;
-    font-size: 11px;
+    min-width: 60px;
+    color: #f0f0f0;
+    font-size: 15px;
     font-variant-numeric: tabular-nums;
     text-align: center;
 }
