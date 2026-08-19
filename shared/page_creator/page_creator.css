@@ -1048,10 +1048,8 @@
  *
  * What changes on the chip is only its shape: the bottom corners square off (12px matches the
  * arc its 999px pill computes to at this height) and the bottom border turns transparent, so
- * it stands on the list box below as a tab - the box's top border shows through in the very
- * row the chip's own border occupied, and that shared line between name and list is the same
- * hairline the list carried when it still sat inside. Transparent rather than none: a removed
- * border would make the chip 1px shorter, and the line must not feel a thing.
+ * chip and box are open towards each other. Transparent rather than none: a removed border
+ * would make the chip 1px shorter, and the line must not feel a thing.
  *
  * Only ONE chip is ever open - mdbPageCreator_usedCatMixes folds the others shut on the
  * click - so only one box ever hangs under the line.
@@ -1065,6 +1063,29 @@
     border-bottom-color: transparent;
 }
 
+/*
+ * The neck between the two halves. The box hangs 5px lower than the chip (below), which reads
+ * as a box of its own the moment nothing bridges that gap - so this does: the chip's own two
+ * side borders carried down across it, over a fill in the bar's colour. The fill is 1px taller
+ * than the gap and painted OVER the box (z-index inside the chip's own stacking context), so
+ * it takes the box's top border out of the segment the chip stands on - the border is left
+ * running only where the box reaches past the chip, exactly like the tab it is. Absolute, so
+ * the chip's size in the line is untouched by it.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: -1px;
+    z-index: 1;
+    box-sizing: border-box;
+    width: calc(100% + 2px);
+    height: 6px;
+    background-color: #1d1d1d;
+    border-left: 1px solid rgba(46, 184, 46, 0.35);
+    border-right: 1px solid rgba(46, 184, 46, 0.35);
+}
+
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent {
     display: none;
 }
@@ -1074,16 +1095,16 @@
  * room in the bar - it lies OVER whatever follows (the "Hints:" row, the report box, the page)
  * until it is folded shut, which is why it needs the opaque background. Connected to the chip
  * on every edge that meets it: outer left edges aligned (offsets count from the chip's PADDING
- * box, so the -1px and the +2px are its border width, once and twice), the top border laid
- * into the chip's transparent bottom-border row, the top-left corner square where the chip
- * stands on it. Otherwise as wide as its longest mix title asks, up to a cap
- * that keeps a long title wrapping instead of walking off the window. Monospace and colours
+ * box, so the -1px and the +2px are its border width, once and twice), the 5px it hangs below
+ * the chip bridged by the neck above, the top-left corner square where the chip stands on it.
+ * Otherwise as wide as its longest mix title asks, up to a cap that keeps a long title
+ * wrapping instead of walking off the window. Monospace and colours
  * are inherited: in the markup the list never left the chip.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
     display: block;
     position: absolute;
-    top: 100%;
+    top: calc(100% + 5px);
     left: -1px;
     box-sizing: border-box;
     min-width: calc(100% + 2px);

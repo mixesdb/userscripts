@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.49
+// @version      2026.08.20.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 159,
+var cacheVersion = 160,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,11 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.1
+ * Via the shared page creator (page_creator.css): the box under an open hints bar chip hangs
+ * 5px lower, with the chip's own two side borders carried down across the gap - so the list
+ * sits off the name it belongs to while chip and box stay the one shape they were.
  *
  * 2026.08.19.49
  * Via the shared page creator (page_creator.css; page_creator.js v_85 only retells it in the
