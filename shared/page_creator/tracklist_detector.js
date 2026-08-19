@@ -41,6 +41,15 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  *     along because a numbered tracklist keeps numbering the tracks it has no name for
  *     ("06. [018] ID"), and dropping them would tear one tracklist into three.
  *
+ * A line ENDING IN A COMMA that is no track line of its own is not a line at all - it is the
+ * front of the next one, and it is glued there before the runs are read. That is how an uploader
+ * whose artist list ran over the row writes it: "Oliver Koletzki," on one line, "Niko Schwind,
+ * Sidartha Siliceo-Satinka (Kermesse Remix)" on the next. Left standing it costs far more than
+ * the one track it names - it is no candidate line, so the run ENDS there, and a tracklist with
+ * two such wrapped credits in it arrives as three shorter ones, of which only the longest
+ * survives - or as three chapters named after the leftovers. A line that already IS a track line
+ * is never moved: a title that happens to end in a comma is a row of its own.
+ *
  * Blank lines end a run, which is what keeps a heading ("Tracklist:") and the paragraph above it
  * out of the block - UNLESS the numbering steps over them. An uploader who writes every track as
  * its own paragraph (SoundCloud renders those as <p>, and the description then holds a blank line
@@ -64,6 +73,31 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  * On a numbered run the numbers additionally have to ASCEND, and the longest ascending stretch is
  * what survives. This is what throws out a stray "6 Decks - 2 Mixers" that happens to sit right
  * on top of a tracklist starting at "01." - and any other line that only looks numbered.
+ *
+ *
+ *
+ * The separator written without its spaces
+ * ----------------------------------------
+ * "Miret-Sabio Espejo (Original Mix)" is a track line to a reader and nothing at all to the rule
+ * above, which wants a space on at least one side of the dash - the very thing that keeps
+ * "Lo-Fi" and "Jerome Isma-Ae" from splitting into two tracks. Both cannot hold at once, so the
+ * spaceless dash gets a SECOND PASS rather than a place in the first: only when the rules above
+ * found no tracklist anywhere in the description are such lines rewritten to " - " and the whole
+ * detection run again over the result. A description that already yielded a tracklist never
+ * reaches the second pass, which is what leaves every case above exactly as it was.
+ *
+ * Three things keep that pass from making a tracklist out of prose:
+ *
+ *   - only a line carrying NEITHER a spaced dash NOR a slash is rewritten, so "Jerome Isma-Ae -
+ *     Encounter" keeps splitting where its uploader spaced the separator out
+ *   - the letter behind the dash has to be a CAPITAL. A compound word is lowercase behind its
+ *     hyphen ("lo-fi", "dub-hazed", "much-needed", "record-breaking"), a title is not
+ *   - at least mdbTracklist_minTracks lines have to be written that way before the pass runs at
+ *     all. One hyphenated name in a paragraph is not a tracklist, and this is what keeps the
+ *     pass away from the descriptions that simply hold none
+ *
+ * What it cannot see is an artist written lowercase ("stbr-Reservoir"). That tracklist stays
+ * unfound - which is the right way round: a run cut at the wrong dash is worse than no run.
  *
  *
  * Chapters
@@ -223,6 +257,17 @@ var mdbTracklist_artistTitleRe = /(\S)(?:\s[-–—]+\s?|\s?[-–—]+\s)(\S)/;
 // description as a track line. The two groups are the characters either side of the separator,
 // kept so that the same regex can also do the rewriting - see mdbTracklist_dashifyLine().
 var mdbTracklist_slashTitleRe = /(\S)\s[\/\\]{1,2}\s(\S)/;
+
+// The same separator with the spaces left off: "Miret-Sabio Espejo (Original Mix)". Only ever
+// asked on the second pass and only of a line carrying neither of the two above - see "The
+// separator written without its spaces" in the header.
+//
+// The CAPITAL behind the dash is what carries the whole rule. A hyphen without spaces around it
+// is a hyphen inside a word nine times out of ten, and a word is lowercase behind it ("lo-fi",
+// "dub-hazed", "much-needed"); a title is not. A digit is not allowed there either - "2026-08-19"
+// and "24-7" would pass, and a date list is exactly what these descriptions are full of. The two
+// groups are the characters either side, kept so the same regex can do the rewriting.
+var mdbTracklist_tightDashRe = /([\p{L}\p{N}])[-–—](\p{Lu})/u;
 
 // A cue written behind the track instead of in front of it, with whatever the uploader hung off
 // it: "Artist - Title 00:52:09", "Artist - Title 00:56:00- CLASSIC OF THE WEEK".
