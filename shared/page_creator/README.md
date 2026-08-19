@@ -154,9 +154,7 @@ asked about, one chip per name, its colour saying whether the wiki already has i
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. Nothing is fetched from MixesDB before a modal is actually opened;
-opening one then warms every page its arrow keys can reach, so the first page takes as long as
-a page takes and every step after it is there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+serve is a five-second one. Nothing is fetched from MixesDB before a modal is actually opened. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 
@@ -165,14 +163,25 @@ the next MixesDB link of the line, so a whole category and every mix page folded
 can be looked through without going back to the row between two pages. It walks exactly what is
 on screen – a chip whose mix pages are not folded out is one step, not eleven – in the order the
 line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) in
-its middle and carries the same two arrows as buttons; at either end of the line the arrow
-greys out, since the walk does not wrap around. The header names nothing else – which page is
+its middle and carries the same two arrows as buttons. The walk goes **round**: one step past
+the last link is the first one again (`12 / 12` → `1 / 12`), and one step back from the first
+is the last, so a chip at the other end of the line is one key away and not eleven. The arrows
+only grey out where the framed page has left the row altogether – a chip folded shut, a title
+edited into other categories – since there is then no position to step from. The header names
+nothing else – which page is
 framed is the framed page's own headline to say. The line is re-read on every step, so a
 category answer that lands while the modal is open is part of the walk from the next key on.
 
 While the modal is up the arrow keys belong to it alone: a track playing under the overlay is
 no longer skipped forward and backward along with the walk, and the page behind does not scroll
 sideways either. Closing the modal hands the keys straight back to the site.
+
+**Every page stays loaded while the modal is open.** The page being read keeps its frame when
+you step off it, and the two pages a key away load into theirs while you are reading, so a
+step is a swap between documents that are already there rather than a new page load – forward
+through the walk and just as much back through it. Up to seven pages are held that way; the
+ones you have walked furthest from are dropped first, and closing the modal drops all of them.
+The first page of a walk is the only one you wait for.
 
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
 files it as, since a podcast, a show, a venue and a festival can all stand in that slot.
