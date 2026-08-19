@@ -1221,6 +1221,11 @@
     gap: 12px;
     padding: 8px 14px;
     color: #e0e0e0;
+    /* the row's own font, like every panel of the page creator. Stated here and not left to
+       inherit: the header would otherwise take whatever the SITE sets on its body - a serif
+       counter on one site, something else on the next - and the modal is our furniture, not
+       the page's. */
+    font-family: Consolas, monospace;
     font-size: 13px;
     line-height: 1.5;
     text-align: left;
@@ -1267,6 +1272,9 @@
 #mdb-pageCreator-modal .mdb-pageCreator-modal-step {
     padding: 0 6px;
     color: #e0e0e0;
+    /* a <button> takes the browser's form-control font unless it is told otherwise - the
+       header's font-family does NOT reach it by inheritance */
+    font-family: inherit;
     font-size: 20px;
     line-height: 1;
     background: none;
@@ -1312,6 +1320,7 @@
 #mdb-pageCreator-modal .mdb-pageCreator-modal-close {
     padding: 0 4px;
     color: #8b8b8b;
+    font-family: inherit;  /* same as the step buttons: <button> does not inherit it */
     font-size: 22px;
     line-height: 1;
     background: none;

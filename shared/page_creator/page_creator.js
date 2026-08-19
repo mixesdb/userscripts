@@ -3687,20 +3687,79 @@ function mdbPageCreator_modalOpen( url ) {
 
     mdbPageCreator_modalShow( url );
     mdbPageCreator_modalPrefetchWalk();
+    mdbPageCreator_modalBindKeys();
+}
 
-    $(document).on( "keydown.mdbPageCreatorModal", function( e ) {
-        if( e.key === "Escape" ) { mdbPageCreator_modalClose(); return; }
+// mdbPageCreator_modalBindKeys / mdbPageCreator_modalUnbindKeys
+// The modal's keys, bound natively on the WINDOW and in the CAPTURE phase - not with jQuery,
+// which can only bind the bubbling phase.
+//
+// Both parts are needed against the site under the overlay. SoundCloud's player listens for
+// the same two arrow keys on the document and seeks the playing track with them, so a track
+// playing under the modal jumped 15 seconds per step. A bubbling handler cannot help there,
+// whatever it calls: by the time the event has travelled down to the target and back up to
+// us, the site's own listener has already run. window + capture puts us at the very first
+// stop of the event's path, ahead of every listener the site can have registered, and
+// stopImmediatePropagation() then keeps the key ours.
+//
+// keyup and keypress are swallowed as well, without doing anything themselves: a site that
+// acts on the release rather than the press would otherwise still get its half of the key.
+function mdbPageCreator_modalBindKeys() {
+    window.addEventListener( "keydown", mdbPageCreator_modalKeys, true );
+    window.addEventListener( "keyup", mdbPageCreator_modalKeys, true );
+    window.addEventListener( "keypress", mdbPageCreator_modalKeys, true );
+}
 
-        // no modifier: cmd/alt + left is the browser's own Back on the page behind us
-        if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ) return;
+function mdbPageCreator_modalUnbindKeys() {
+    window.removeEventListener( "keydown", mdbPageCreator_modalKeys, true );
+    window.removeEventListener( "keyup", mdbPageCreator_modalKeys, true );
+    window.removeEventListener( "keypress", mdbPageCreator_modalKeys, true );
+}
 
-        if( e.key !== "ArrowLeft" && e.key !== "ArrowRight" ) return;
+// mdbPageCreator_modalKeys
+// Escape closes, left/right step, and every one of those keys is taken off the page entirely
+// while the modal is up. A named function rather than a closure, so unbinding can hand the
+// listener back the same reference the binding used.
+function mdbPageCreator_modalKeys( e ) {
+    // The overlay can go without mdbPageCreator_modalClose() ever running: it is class
+    // mdb-element, and the shared navigation cleanup (onUrlChange in global.js) removes those
+    // wholesale on the next track. Unbinding ourselves here is what keeps a listener that
+    // swallows the arrow keys from outliving the modal it was swallowing them for.
+    if( !document.getElementById( "mdb-pageCreator-modal" ) ) {
+        mdbPageCreator_modalUnbindKeys();
+        return;
+    }
 
-        // or the page BEHIND the overlay scrolls sideways while the modal is being read
-        e.preventDefault();
+    if( e.key === "Escape" ) {
+        mdbPageCreator_modalSwallow( e );
 
-        mdbPageCreator_modalStep( e.key === "ArrowRight" ? 1 : -1 );
-    });
+        if( e.type === "keydown" ) mdbPageCreator_modalClose();
+
+        return;
+    }
+
+    if( e.key !== "ArrowLeft" && e.key !== "ArrowRight" ) return;
+
+    // no modifier: cmd/alt + left is the browser's own Back on the page behind us
+    if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ) return;
+
+    mdbPageCreator_modalSwallow( e );
+
+    // the press is the step; the release and the keypress are only kept off the site
+    if( e.type !== "keydown" ) return;
+
+    mdbPageCreator_modalStep( e.key === "ArrowRight" ? 1 : -1 );
+}
+
+// mdbPageCreator_modalSwallow
+// preventDefault() alone only answers the BROWSER - the page behind the overlay scrolling
+// sideways. The site's own listeners are stopped by the two propagation calls, and by both of
+// them: stopPropagation() ends the trip down the tree, stopImmediatePropagation() also skips
+// whatever else is registered on the window next to us.
+function mdbPageCreator_modalSwallow( e ) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
 }
 
 // mdbPageCreator_modalPrefetchWalk
@@ -3848,10 +3907,10 @@ function mdbPageCreator_modalCount() {
 
 // mdbPageCreator_modalClose
 // Removal is the whole close - the modal keeps no state beyond the URL it framed, and that is
-// only ever read while it is up. The namespaced key handler goes with it, so a page with no
-// modal up listens for nothing and the arrow keys are the site's again.
+// only ever read while it is up. The key listeners go with it, so a page with no modal up
+// listens for nothing and the arrow keys are the site's (and its player's) again.
 function mdbPageCreator_modalClose() {
-    $(document).off( "keydown.mdbPageCreatorModal" );
+    mdbPageCreator_modalUnbindKeys();
     $("#mdb-pageCreator-modal").remove();
     mdbPageCreator_modalUrl = null;
 }
