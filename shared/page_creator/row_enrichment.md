@@ -11,10 +11,7 @@ green and linked when the wiki has them (with the mix count behind the name), re
 not - the red name itself searching MixesDB, a loupe icon marking it. It costs no request of its own - it reads the answers the title
 lookup already had. **Also since 2026-08-18: the "most recent" half of addition 2** -
 the title lookup asks `recentlimit=10` and every green chip's mix count toggles the category's
-recent mix pages open, each linked - one chip at a time, in a full-width row under the chips
-(inside the chip until 2026-08-19: a list is as wide as its longest mix title and as tall as ten
-of them, which left the chips beside it hanging in mid-air and pushed the ones behind it under
-the whole box). `recent` covers every type including
+recent mix pages open inside the chip, each linked. `recent` covers every type including
 `artist` and arrives in sortkey order since 2026-08-19 (both asked for after the endpoint's
 first version shipped a non-artist, cl_timestamp-sorted list - `mixesdb_api_request.md` §6);
 the per-artist `list=categorymembers` call the chip made until then is gone with it. On a desktop-wide window all these links open the
