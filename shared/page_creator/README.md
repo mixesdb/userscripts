@@ -38,8 +38,16 @@ show played by Ricky Montana. With a third chunk the two together answer the who
 channel picks itself out, and the chunk left over is who played it, so the channel name (the
 crew putting the series out) does not join the title.
 
-The series' own recent pages then settle the format. Once the entity resolves to a MixesDB
-category, its newest mix pages are read, and where at least 90% of them agree – or all of the
+The series' own recent pages then settle the format – but only where those pages can say
+anything about **this** mix. Two things stop them, and then nothing at all is read: the title
+**numbers** its entity while MixesDB knows that name as a venue or an event (a series numbers
+its editions, a place does not – `Undercurrent 5` and the Amsterdam club `Undercurrent` are two
+things sharing a name), or the category's newest page is more than three years older than the
+mix (a category nobody has written in that long has no convention to copy, and may not be this
+mix's at all). The reasoning panel says which of the two it was.
+
+Otherwise, once the entity resolves to a MixesDB category, its newest mix pages are read, and
+where at least 90% of them agree – or all of the
 5 newest, where older pages disagree because the series renamed itself – the suggestion is
 rewritten to match: the episode number the way the series writes it (`Trommel 251` becomes
 `Trommel.251`, `RA Podcast 971` becomes `RA Podcast (RA.971)`, `Zenaari Mix 26` becomes
@@ -155,6 +163,14 @@ the page really is filed under them; the tooltip of each says what decided it.
 
 The line follows the title field: correct the title and, after a short pause, the categories are
 re-read from it and any new names are looked up.
+
+**Hints** sits under **Used categories** when the entity's recent sibling pages all share a
+category the new page does not get. Each chip says behind it which pages it came off
+(`Amsterdam Dance Event – all 10 of Undercurrent's newest pages carry it`), so the row answers
+"where does this come from?" without a hover. It is deliberately a hint and not a filing: a
+venue whose MixesDB pages happen to be festival sets votes for the festival, and only you can
+tell whether this mix belongs there. The same lines close section 6 of the reasoning panel, as
+plain text.
 
 **Switch title** appears under the categories when the suggestion involved a close call the
 build decided one way but could defensibly have decided the other. Each line is the full title
@@ -334,12 +350,12 @@ ends up used.
   `[[File:…|right|360px]]` line, in the extension the siblings use), whether the file details
   are the dur table or a `{{StandardShow…}}` template (the template is only written when this
   file's duration roughly fits its stated length – a 40-minute file on a 2h show is a hint the
-  category was misread), and which style categories stand on at least 90% of the pages (they
-  fill the empty style lines – measured, that fires almost only on genre-locked series). A
-  category that clears the 90% but is a **name** MixesDB knows – an event, a venue, an artist,
-  a show – is no style and is not written; the line says so and names the type. A venue's
-  recent pages can all be from one festival week, and `Amsterdam Dance Event` on 10 of 10 says
-  what those pages have in common, not what they sound like.
+  category was misread), and which categories at least 90% of the pages share. That last one is
+  **reported, never written**: the vote answers what those pages have in common, which is not
+  the same question as what this mix sounds like. `Category:Undercurrent`'s newest pages carry
+  Techno 5, House 3 and Tech House 2 – no style clears the bar – while `Amsterdam Dance Event`
+  stands on all 10, because the venue's MixesDB pages happen to be festival sets. It shows up
+  as a **Hints** chip and in section 6, and the page's style lines stay empty.
   Whatever clears no bar keeps today's default page text, so nothing here can make the page
   worse than before
 
@@ -367,9 +383,8 @@ Opens the edit form of the new page, prefilled with:
 - the `{{Player}}` with the player URL as MixesDB embeds it
 - the categories the title gives away (year, artists, the entity the page is filed under)
 - the style categories, where the site suggests any (TrackId.net's style suggestions box) –
-  otherwise a style at least 90% of the entity's recent pages carry, which almost only
-  genre-locked series have, and only where it is not a name MixesDB knows as an event, a venue,
-  an artist or a show; whatever remains stays empty category rows to fill in
+  otherwise two empty category rows to fill in. What the entity's recent pages share is offered
+  as a **Hints** chip under the row and never written for you
 - the tracklist from the box below, when there is one
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text
@@ -516,10 +531,11 @@ placeholder only holds the space below it.
    (`Trommel.234` vs `HATE Podcast 498` vs `RA Podcast (RA.1051)`, zero-padding included), the
    name's spelling as the titles write it, the city behind a venue or festival, the leading
    `[[File:…|right|360px]]` artwork line where the series opens with one, `{{StandardShow2h}}`
-   instead of the file details table where that is the house style, and a style category only
-   when at least 90% of the recent episodes carry it (measured: that fires almost only on
-   genre-locked series – HATE Podcast → Techno). Two new reasoning panel sections show what
-   was read and what it changed. `Category:Promo Mix` is exempt – it collects unrelated mixes.
+   instead of the file details table where that is the house style. A category at least 90% of
+   the recent episodes share is shown as a **Hints** chip and never written onto the page –
+   what those pages have in common is not what this mix sounds like. Two new reasoning panel
+   sections show what was read and what it changed. `Category:Promo Mix` is exempt – it
+   collects unrelated mixes.
 
 5. **End of the beta** – the row stops appearing altogether for a mix that already has a page.
    The **Exists** row is a beta device for comparing the suggestion against the title a human

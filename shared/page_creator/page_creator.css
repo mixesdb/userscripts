@@ -130,8 +130,8 @@
  * real link, and the site's link colour is the one that is guaranteed to work on its background.
  *
  * Two IDs for the same reason as "Report" below: it is an <a>, and these sites style their <a>s
- * hard enough to beat a single ID. The gap in front of it comes from the column further down,
- * not from here.
+ * hard enough to beat a single ID. The gap in front of it comes from the row's own spacing rule
+ * further down, not from here.
  */
 #mdb-pageCreator #mdb-pageCreator-create {
     font-weight: bold;
@@ -375,6 +375,19 @@
     color: #ef6a6a;
     background-color: rgba(217, 83, 83, 0.10);
     border-color: rgba(217, 83, 83, 0.35);
+}
+
+/* Section 6's closing block: what the sibling pages share and the page does not get. Set off
+   from the category rows above it, and plain text - the panel is reading, not a place to click
+   a category open. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cathints {
+    grid-column: 1 / -1;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cathint {
+    color: #9a9a9a;
+    font-size: 12px;
+    margin-top: 3px;
 }
 
 /* the "Channel:" / "Title candidate:" / "Final title:" / "Not asked:" side lines */
@@ -771,31 +784,8 @@
 }
 
 #mdb-pageCreator-confidence,
-#mdb-pageCreator-createColumn,
 #mdb-pageCreator-create {
     padding-left: 10px;
-}
-
-/*
- * "Create" with the promo category under it - same column trick as the score with its "BETA",
- * so the note reads as belonging to the link and not as another item in the row.
- */
-#mdb-pageCreator-createColumn {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.15;
-}
-
-#mdb-pageCreator-createColumn > #mdb-pageCreator-create {
-    padding-left: 0;
-}
-
-/* grey and small, the same "this is a side note" as #mdb-pageCreator-beta */
-#mdb-pageCreator-promoCategory {
-    color: var(--mdb-grey-muted);
-    cursor: help;
-    white-space: nowrap;
 }
 
 /*
@@ -838,6 +828,39 @@
     background-color: #1d1d1d;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
+}
+
+/*
+ * The "Hints:" row - the categories the entity's sibling pages share, which the page does NOT
+ * get. Laid out exactly like "Used categories:" above it, so the two labels share the column
+ * and the chips line up; one chip per line, because each carries a note behind it and a note
+ * needs its line.
+ */
+#mdb-pageCreator-hints #mdb-pageCreator-hintCats {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+#mdb-pageCreator-hints #mdb-pageCreator-hintCats .mdb-pageCreator-hint-items {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+/* one hint: the chip and its note on one line, the note allowed to wrap under it */
+#mdb-pageCreator-hints .mdb-pageCreator-hintCat {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    max-width: 100%;
+}
+
+/* where it came from, in the bar's muted grey - the row answers that without a hover */
+#mdb-pageCreator-hints .mdb-pageCreator-hintCat-note {
+    color: #8b8b8b;
+    font-size: 12px;
 }
 
 /*
@@ -1520,7 +1543,7 @@ body.trackid-net {
         font-size: 12px !important;
     }
     
-    & #mdb-pageCreator-createColumn a {
+    & #mdb-pageCreator-create {
         color: var(--main);
         text-decoration: none;
         

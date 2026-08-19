@@ -121,6 +121,8 @@ var mdbPageCreator_title = "",
     // the hints bar's last logged verdicts - see mdbPageCreator_logHints(). Only there to keep
     // the log quiet: the bar re-renders on every keystroke, its content usually unchanged.
     mdbPageCreator_hintsLogged = "",
+    // the same, for the bar's "Hints:" row - see mdbPageCreator_logHintCats()
+    mdbPageCreator_hintCatsLogged = "",
     // The switchable readings the build decided against (suggestion.alternatives, built in
     // mdbTitle_result) - facts like "the (Live PA) marker is a toggle", not finished titles.
     // The bar's "Switch title:" line derives the offered title from the CURRENT field text,
@@ -641,9 +643,19 @@ function mdbPageCreator_categoryEntries( title ) {
 
     if( entityCategory ) {
         // "Promo Mix" is ours, not a name the wiki could spell differently
-        entries.push( entityCategory === "Promo Mix"
-            ? { name: entityCategory, role: "promo" }
-            : mdbPageCreator_categoryEntry( entityCategory, "entity" ) );
+        var entityEntry = entityCategory === "Promo Mix"
+                ? { name: entityCategory, role: "promo" }
+                : mdbPageCreator_categoryEntry( entityCategory, "entity" );
+
+        // whether the TITLE numbers this entity - a series does, a place does not. Carried on
+        // the entry so the chip can say where the wiki's answer and the title disagree
+        // (mdbPageCreator_usedCategory): "Undercurrent 5" filed into the Amsterdam venue's
+        // category is a name collision, and the chip is the only place a reader sees it.
+        if( entityEntry.role === "entity" && mdbPageCreator_entityIsNumbered( read.entity ) ) {
+            entityEntry.numbered = true;
+        }
+
+        entries.push( entityEntry );
     }
 
     var styles = mdbPageCreator_styleCategories();
@@ -655,17 +667,14 @@ function mdbPageCreator_categoryEntries( title ) {
             entries.push( { name: styles[i], role: "style" } );
         }
     } else {
-        // Styles are the editor's call - two empty rows - unless the entity's recent sibling
-        // pages agree on one at 90% (page_text_learning.md, signal C): only a genre-locked
-        // series clears that bar, and its style is the one guess that is not a guess. Never
-        // more than the two lines the shape has anyway; what is not learned stays blank.
-        var learned = mdbPageCreator_recentLearnedStyles( title );
-
-        for( i = 0; i < learned.length && i < 2; i++ ) {
-            entries.push( { name: learned[i].name, role: "style", source: "recent",
-                            count: learned[i].count, n: learned[i].n } );
-        }
-        for( i = learned.length; i < 2; i++ ) {
+        // Styles are the editor's call - two empty rows. What the entity's recent sibling
+        // pages agree on used to fill them (page_text_learning.md, signal C) and no longer
+        // does: the vote answers "what do these pages have in common", which is not "what does
+        // this mix sound like" - a venue whose MixesDB pages are all from one festival votes
+        // for the festival. It is reported instead, as the bar's "Hints:" row and section 7
+        // (mdbPageCreator_recentHintCategories), where the editor can act on it and the
+        // "Create" link files nothing on the strength of it.
+        for( i = 0; i < 2; i++ ) {
             entries.push( { name: "", role: "style" } );
         }
     }
@@ -711,7 +720,8 @@ function mdbPageCreator_categoryEntry( name, role ) {
 // entity slot there is the mix's OWN name, which is no category at all: "1975 - Bob Marley & The
 // Wailers - Secret Santana Tapes (Promo Mix)" is filed under the two artists and Promo Mix, never
 // under "Secret Santana Tapes". The flag covers the titles that leave the suffix off because the
-// name already says it (see mdbPageCreator_syncPromoNote).
+// name already says it ("Summer 2026 Mix") - those file under Promo Mix all the same, and the
+// hints bar's "Used categories" is where the created page says so.
 function mdbPageCreator_entityCategoryFor( title, entity ) {
     if( mdbPageCreator_promoCategory || /\(Promo Mix\)\s*$/.test( title ) ) return "Promo Mix";
 
@@ -900,40 +910,11 @@ function mdbPageCreator_refresh( wrapper ) {
         .attr( "title", mdbPageCreator_confidenceTitle() )
         .text( mdbPageCreator_confidencePercent + "%" );
 
-    mdbPageCreator_syncPromoNote( wrapper );
     mdbPageCreator_renderHints( wrapper );
     mdbPageCreator_fillReport( wrapper );
     // the trace and the lookup log just changed with the refined suggestion - redraw right
     // away, no debounce: nothing here waits on typing
     mdbPageCreator_renderReasoning( wrapper );
-}
-
-// mdbPageCreator_syncPromoNote
-// Help:Add_a_new_mix_page puts a self-released mix into Category:Promo Mix. Where the title
-// itself already says so (" (Promo Mix)") there is nothing to add; where the name carries the
-// word anyway ("Summer 2026 Mix") the suffix is left off, and THEN the category still has to
-// be named somewhere - here, under the "Create" link.
-function mdbPageCreator_syncPromoNote( wrapper ) {
-    // the FIELD's title where there is one: the marker can be switched in and out under the
-    // reader's hands ("Switch title:" chips, or typed), and the note may neither repeat a
-    // marker the title now says nor survive a filing the switch just cleared
-    var note = wrapper.find( "#mdb-pageCreator-promoCategory" ),
-        title = wrapper.find( "#mdb-pageCreator-title" ).val() || mdbPageCreator_title,
-        wanted = mdbPageCreator_promoCategory && title.indexOf( "(Promo Mix)" ) === -1;
-
-    if( !wanted ) {
-        note.remove();
-        return;
-    }
-
-    if( !note.length ) {
-        wrapper.find( "#mdb-pageCreator-createColumn" ).append(
-            $("<span>")
-                .attr( "id", "mdb-pageCreator-promoCategory" )
-                .attr( "title", "A self-released mix - the page belongs in Category:Promo Mix, and the \"Create\" link already writes that category into it.\nThe title itself does not say so because its name already does (\"Mix\", \"Vol.\", ...)." )
-                .text( "Category:Promo Mix" )
-        );
-    }
 }
 
 // mdbPageCreator_render
@@ -1049,9 +1030,6 @@ function mdbPageCreator_render() {
         // names now in the title
         mdbPageCreator_renderHints( wrapper );
         mdbPageCreator_fillReport( wrapper );
-        // the promo note under "Create" reads the field too - a "(Promo Mix)" switched or
-        // typed into the title makes the note redundant, and one switched out revives it
-        mdbPageCreator_syncPromoNote( wrapper );
         // the categories follow the title too - the bar above and the panel's section 6 - but
         // debounced: they are read off the field, and a corrected name may need a lookup the
         // cache has not seen
@@ -1142,10 +1120,7 @@ function mdbPageCreator_render() {
             input.data( "mdb-edited", true );
         });
 
-        // A column, so the promo category note can sit under the link the way "BETA" sits
-        // under the score
-        wrapper.append( $("<span>").attr( "id", "mdb-pageCreator-createColumn" ).append( create ) );
-        mdbPageCreator_syncPromoNote( wrapper );
+        wrapper.append( create );
     }
 
     // Last, so it forms the second line of the row - and before the report box and the
@@ -1192,7 +1167,7 @@ function mdbPageCreator_confidenceTitle() {
  * Always visible, unlike the report box - these are for the editor who is about to click
  * "Create", not for the one reporting a wrong suggestion.
  *
- * Two lines so far. "Used categories" (row_enrichment.md, additions 1 and 2): every category
+ * Three lines so far. "Used categories" (row_enrichment.md, additions 1 and 2): every category
  * the page text writes, in the order it writes them, each as a chip. The artist and entity
  * names are the ones answered by the wiki: green means MixesDB has that category - with its
  * mix count, and the category's recent mix pages behind it where the lookup brought them -
@@ -1203,7 +1178,15 @@ function mdbPageCreator_confidenceTitle() {
  * the "Tracklist:" filing are grey chips without link or count - nothing about them is a
  * spelling anyone could have got wrong, but the page gets them and the line says so.
  *
- * "Switch title" under it: the readings the build decided AGAINST - a guessed "(Live PA)", an
+ * "Hints" under it: what the entity's recent sibling pages have in common and the page does
+ * NOT get. Same chips, and behind each one a note saying which pages it came off
+ * ("Amsterdam Dance Event - all 10 of Undercurrent's newest pages carry it"). Its own row
+ * rather than another chip style on the line above, because "the page gets this" and "these
+ * pages happen to share this" are different claims and only the first is a filing: a venue
+ * whose MixesDB pages are all festival sets votes for the festival, and only the editor can
+ * tell whether this mix belongs there. See mdbPageCreator_recentHintCategories.
+ *
+ * "Switch title" under those: the readings the build decided AGAINST - a guessed "(Live PA)", an
  * assumed "(Promo Mix)", a dropped "Part 2" - each as the full title it would make, one click
  * to swap it with the field (mdbPageCreator_switchTitleHint below).
  *
@@ -1232,6 +1215,9 @@ function mdbPageCreator_renderHints( wrapper ) {
 
     var title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
         usedCats = mdbPageCreator_usedCategoriesHint( title ),
+        // under the categories the page GETS: what the entity's sibling pages have in common
+        // and the page does not get (mdbPageCreator_hintCategoriesHint)
+        hintCats = mdbPageCreator_hintCategoriesHint( title ),
         switchTitle = mdbPageCreator_switchTitleHint( title ),
         // Built into a detached box FIRST and only swapped in where it really differs. The bar
         // re-renders on every keystroke, on every lookup answer and on the title field's own
@@ -1256,6 +1242,7 @@ function mdbPageCreator_renderHints( wrapper ) {
         fresh = $("<div>");
 
     if( usedCats ) fresh.append( usedCats );
+    if( hintCats ) fresh.append( hintCats );
     if( switchTitle ) fresh.append( switchTitle );
 
     // Not .toggle(): the bar is filled while the wrapper is still DETACHED on the first render,
@@ -1335,6 +1322,66 @@ function mdbPageCreator_usedCategoriesHint( title ) {
     return hint;
 }
 
+// mdbPageCreator_hintCategoriesHint
+// "Hints: Amsterdam Dance Event (all 10 of Undercurrent's newest pages carry it)" - the second
+// row of the bar, under "Used categories:".
+//
+// What it is NOT is a category of the created page: everything on the row above goes on the
+// page, everything on this one is something the entity's sibling pages have in common that the
+// page does not get. Two rows rather than one chip style, because that difference is the whole
+// point - a hint the reader may act on, never a filing made for them.
+//
+// The note behind each chip says which pages it was read off, so the row answers "where does
+// this come from?" without a hover: the reported case ("Amsterdam Dance Event" on a podcast
+// episode) was right there in the categories with nothing on screen explaining it.
+function mdbPageCreator_hintCategoriesHint( title ) {
+    var entries = mdbPageCreator_recentHintCategories( title ),
+        i;
+
+    if( !entries.length ) return null;
+
+    var chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
+        hint = $("<span>")
+            .attr( "id", "mdb-pageCreator-hintCats" )
+            .append(
+                $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Hints:" ),
+                chips
+            ),
+        logged = [];
+
+    for( i = 0; i < entries.length; i++ ) {
+        var note = mdbPageCreator_recentHintNote( entries[i] );
+
+        chips.append(
+            $("<span>").addClass( "mdb-pageCreator-hintCat" ).append(
+                // "known" without asking anyone: the category demonstrably exists - the name
+                // was read out of the wikitext of ten pages filed under it - so it is the
+                // wiki's own spelling and it links straight to the category page. No mix
+                // count is passed, because nobody counted: the chip is the link and the note.
+                mdbPageCreator_usedCategory( entries[i], { verdict: "known", match: { title: entries[i].name } } ),
+                $("<span>").addClass( "mdb-pageCreator-hintCat-note" ).text( note )
+            )
+        );
+
+        logged.push( entries[i].name + " (" + note + ")" );
+    }
+
+    mdbPageCreator_logHintCats( logged.join( " | " ) );
+
+    return hint;
+}
+
+// mdbPageCreator_logHintCats
+// Logged the once it changes, like the used categories above - the bar re-renders on every
+// keystroke and the answer is the same one all the way through.
+function mdbPageCreator_logHintCats( summary ) {
+    if( summary === mdbPageCreator_hintCatsLogged ) return;
+
+    mdbPageCreator_hintCatsLogged = summary;
+
+    logVar( "mdbPageCreator hints: shared categories", summary );
+}
+
 // mdbPageCreator_logHints
 // The bar's verdicts, logged the once they change. Straight logging would put a line in the
 // console for every keystroke in the title field, where the answer is the same one all the way
@@ -1378,13 +1425,9 @@ function mdbPageCreator_usedCategoryState( entry ) {
 // chip does not answer to a click.
 function mdbPageCreator_plainCategoryNote( entry ) {
     if( entry.role === "year" ) return "The year of the mix date - every year category exists on MixesDB.";
-    if( entry.role === "promo" ) return "A self-released mix is filed under Promo Mix - our own filing, not a name read off the title.";
+    if( entry.role === "promo" ) return "A self-released mix is filed under Promo Mix - our own filing, not a name read off the title.\nWhere the title above does not carry \"(Promo Mix)\" itself, that is because its name already says it (\"Mix\", \"Vol.\", ...).";
     if( entry.role === "tracklist" ) return "How the tracklist is filed - the Tracklist Editor API's answer about the box, not a name to look up.";
-    if( entry.role === "style" ) {
-        return entry.source === "recent"
-            ? "A style category, learned from the recent mix pages of this series (" + entry.count + " of " + entry.n + ") - the editor's call in the end."
-            : "A style category - the editor's call, not a name read off the title.";
-    }
+    if( entry.role === "style" ) return "A style category - the editor's call, not a name read off the title.";
 
     return "This category goes on the page as it stands - nothing to look up on MixesDB.";
 }
@@ -1419,6 +1462,15 @@ function mdbPageCreator_usedCategory( entry, state ) {
                 : ( spelled !== entry.name
                     ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
                     : "" );
+
+        // The title numbers this entity, so it is a series - and the wiki knows the name as a
+        // place, which numbers no editions. The category exists, which is why the chip is
+        // green, but it is probably not THIS one's: two different things share the name.
+        if( entry.numbered && /^(venue|event)$/.test( String( state.match.type || "" ) ) ) {
+            note += "\n\nThe title numbers this entity, so it is a series - but MixesDB knows \"" + spelled +
+                    "\" as a " + state.match.type + ", which numbers no editions. Check that this is really the" +
+                    " same thing before creating: the page would join that " + state.match.type + "'s category.";
+        }
 
         out.addClass( "mdb-pageCreator-usedCat-known" ).append(
             $("<a>")
@@ -1922,7 +1974,7 @@ function mdbPageCreator_applyAlternative( fact ) {
     // The promo marker IS the filing: mdbPageCreator_entityCategoryFor reads the flag OR the
     // title's own "(Promo Mix)", so switching to the show reading has to clear the flag or
     // the page would file under Promo Mix either way - and switching to the promo reading
-    // sets it, so the categories and the note under "Create" tell the same story.
+    // sets it, so the page text and the hints bar's "Used categories" tell the same story.
     if( fact.kind === "promoMix" ) {
         mdbPageCreator_promoCategory = toggled.adding;
     }
@@ -2062,6 +2114,16 @@ function mdbPageCreator_recentAnalysisFor( title ) {
         return info;
     }
 
+    // A numbered entity is a SERIES, and the wiki knowing that name as a place is then a
+    // collision, not a home. Reported on the DEEP & HAZY mix (2026-08-19): the title reads
+    // "Undercurrent 5" - episode 5 of something - while MixesDB's Undercurrent is an
+    // Amsterdam venue, so the pages read as this mix's siblings were club nights of another
+    // Undercurrent altogether. Nobody numbers the editions of a venue.
+    if( info.isPlace && mdbPageCreator_entityIsNumbered( info.entity ) ) {
+        info.skip = "numbered-place";
+        return info;
+    }
+
     if( mdbPageCreator_isBucketCategory( info.catTitle ) ) {
         info.skip = "bucket";
         return info;
@@ -2074,7 +2136,64 @@ function mdbPageCreator_recentAnalysisFor( title ) {
 
     info.entry = mdbPageCreator_recentAnalysisCache[ mdbTitle_normalizeCompare( info.catTitle ) ] || null;
 
+    // ... and the pages have to be from anywhere near this mix's time. Reported on the
+    // DEEP & HAZY / Undercurrent mix (2026-08-19): its title reads "Undercurrent 5" as a
+    // series, MixesDB has a VENUE of that name, and that category's newest page is from 2015.
+    // Eleven years of nothing say two things at once - the category may not be this mix's at
+    // all, and even if it is, a convention nobody has written since 2015 is no convention for
+    // a 2026 upload. Everything downstream rests on "these are this mix's siblings", so the
+    // gate belongs here, where that claim is made, and not on each of the things learned.
+    info.stale = mdbPageCreator_recentStaleBy( info, read.year );
+
+    if( info.stale ) {
+        // the entry goes with the verdict: every reader of info.entry then finds nothing,
+        // whether or not it thought to ask about skip, and the two sections report the reason
+        // off info.skip, which they check first
+        info.skip = "stale";
+        info.entry = null;
+    }
+
     return info;
+}
+
+// mdbPageCreator_entityIsNumbered
+// Does the title's entity slot carry an EPISODE number - "Undercurrent 5", "Trommel.251",
+// "RA Podcast (RA.1051)"? Only a series numbers its editions. Our own markers are gone by the
+// time this is asked (mdbTitle_dropMarkers in mdbTitle_titleCategories), so a bracket still
+// standing at the end is an episode ID and nothing else.
+function mdbPageCreator_entityIsNumbered( entity ) {
+    var name = String( entity || "" ).trim();
+
+    return !!name && ( /\([^()]*\)$/.test( name ) || /[\s.]\d{1,5}$/.test( name ) );
+}
+
+// mdbPageCreator_recentMaxAgeYears
+// How far the newest page of a category may lag behind the mix before its pages stop being
+// evidence about it. Three years: a series that has not had a page written in three years is
+// dormant, and a dormant category next to a fresh upload is as likely to be a name collision
+// as a home. Only THIS direction is a problem - siblings NEWER than the mix are the normal
+// case for an old recording someone is adding today, and they are the pages worth copying.
+var mdbPageCreator_recentMaxAgeYears = 3;
+
+// mdbPageCreator_recentStaleBy
+// By how many years the category's newest page lags behind the mix, or 0 while it is within
+// mdbPageCreator_recentMaxAgeYears (or while there is nothing to compare yet). The date is
+// read off the newest page's TITLE, which is where a MixesDB mix page carries it, and the
+// pages arrive newest first (mdbPageCreator_recentFetch sorts by sortkey, and a sortkey is
+// that date).
+function mdbPageCreator_recentStaleBy( info, mixYear ) {
+    var entry = info.entry,
+        year = parseInt( mixYear, 10 );
+
+    if( !entry || entry.status !== "done" || !entry.titles.length || !year ) return 0;
+
+    var newest = parseInt( String( entry.titles[0] ).slice( 0, 4 ), 10 );
+
+    if( !newest ) return 0;
+
+    var gap = year - newest;
+
+    return gap > mdbPageCreator_recentMaxAgeYears ? gap : 0;
 }
 
 // mdbPageCreator_recentEnsureFor
@@ -2188,11 +2307,6 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             entry.pages = got;
             entry.titles = got.map( function( p ) { return p.title; } );
             entry.text = mdbPageCreator_recentPageTextFindings( catTitle, got );
-
-            // ... and what the wiki says about the categories they agreed on: a name the wiki
-            // knows is no style (mdbPageCreator_recentStyleCheck). Fired next to the settle
-            // below rather than waited on - the title refinement must not queue behind it.
-            mdbPageCreator_recentStyleCheck( entry );
 
             logVar( "mdbPageCreator_recentFetch: " + catTitle, entry.titles.length + " pages, newest \"" + ( entry.titles[0] || "-" ) + "\"" );
 
@@ -2535,102 +2649,49 @@ function mdbPageCreator_applyRecentToSuggestion() {
     mdbPageCreator_title = refined.title;
 }
 
-// mdbPageCreator_recentLearnedStyles
-// The style categories the entity's recent pages settled for one title, or [] - what
-// mdbPageCreator_categoryEntries() fills the style slots with when the site suggested none.
+// mdbPageCreator_recentHintCategories
+// The categories the entity's recent sibling pages AGREE on, for the hints bar's "Hints:" row
+// and the reasoning panel - never for the page itself.
 //
-// A learned category the wiki knows as a NAME is dropped here (mdbPageCreator_isStyleName):
-// the vote only measures what the sibling pages agree on, and a venue's pages agree on far
-// more than the music. Reported on Category:Undercurrent, whose 10 newest pages are all sets
-// from one festival week, so "Amsterdam Dance Event" stood on 10 of 10 and landed in the new
-// page's style lines - an event category on a podcast episode that has nothing to do with it.
-function mdbPageCreator_recentLearnedStyles( title ) {
+// They used to fill the created page's style lines (page_text_learning.md, signal C). They do
+// not any more: the vote measures what those pages have in COMMON, which is not the same
+// question as what the music is. Category:Undercurrent showed both halves of that at once -
+// its 10 newest pages carry Techno 5, House 3 and Tech House 2, so no style clears the 90%
+// bar, while "Amsterdam Dance Event" stands on all 10 and cleared it. The pages are all sets
+// from an ADE edition; the venue is not a techno venue, its MixesDB pages are just a festival's.
+//
+// So the finding is REPORTED and never written: as a chip with a note saying which pages it
+// came off, which is information an editor can act on, next to a "Create" that files nothing
+// on the strength of it.
+function mdbPageCreator_recentHintCategories( title ) {
     var info = mdbPageCreator_recentAnalysisFor( title ),
-        findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
+        findings = ( !info.skip && info.entry && info.entry.status === "done" ) ? info.entry.text : null,
         learned = ( findings && findings.styles && findings.styles.learned ) || [],
         out = [],
         i;
 
     for( i = 0; i < learned.length; i++ ) {
-        if( !mdbPageCreator_isStyleName( learned[i].name ) ) out.push( learned[i] );
+        out.push( {
+            name: learned[i].name,
+            role: "hint",
+            count: learned[i].count,
+            n: learned[i].n,
+            catTitle: info.catTitle || info.catName || ""
+        } );
     }
 
     return out;
 }
 
-// mdbPageCreator_isStyleName
-// Is this learned category a NAME rather than a style? The wiki answers it outright: mdbnames
-// knows "Amsterdam Dance Event" as an event and "ZeeZout" as one too, while it answers empty
-// about "Techno", "House" and "Deep House" - a style is no category the module carries.
-//
-// Only a POSITIVE answer drops a name. An answer that has not arrived yet, or a request that
-// failed, leaves the style standing: losing every style to a dead request would cost more than
-// the rare wrong one, which the panel's section 7 names either way.
-function mdbPageCreator_isStyleName( name ) {
-    return !!mdbTitle_knownAs( mdbPageCreator_lookupCache(), name );
-}
+// mdbPageCreator_recentHintNote
+// The sentence behind a hint chip: which pages it was read off. Short on purpose - it stands
+// in a row of the bar, not in the panel, and the full vote is section 7's job.
+function mdbPageCreator_recentHintNote( entry ) {
+    var whose = entry.catTitle ? entry.catTitle + "'s" : "the entity's";
 
-// mdbPageCreator_lookupCache
-// The shared answer cache, or an empty one where title_builder.js is not loaded yet.
-function mdbPageCreator_lookupCache() {
-    return ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {};
-}
-
-// mdbPageCreator_recentStyleCheck
-// Asks mdbnames about the categories a category's recent pages agreed on, so the filter above
-// has an answer to read. Its own small request rather than mdbTitle_lookupCategories(): that
-// one writes every name it is asked into mdbTitle_lookupLog, which IS the reasoning panel's
-// section 3 - and a style vote is no candidate for the title's categories, so a chip for it
-// there would say the parse had considered a name it never saw. The answers land in the shared
-// mdbTitle_categoryCache all the same, where they cost the next round a lookup less.
-function mdbPageCreator_recentStyleCheck( entry ) {
-    var learned = ( entry && entry.text && entry.text.styles && entry.text.styles.learned ) || [],
-        cache = mdbPageCreator_lookupCache(),
-        wanted = [],
-        i, key;
-
-    if( !learned.length ) return;
-
-    for( i = 0; i < learned.length; i++ ) {
-        key = mdbTitle_normalizeCompare( learned[i].name );
-
-        if( key && !( key in cache ) && wanted.indexOf( learned[i].name ) === -1 ) wanted.push( learned[i].name );
-    }
-
-    if( !wanted.length ) return;
-
-    logVar( "mdbPageCreator_recentStyleCheck", wanted.join( " | " ) );
-
-    $.ajax({
-        url: mdbTitle_categoryApiUrl,
-        type: "get",
-        dataType: "json",
-        data: {
-            action: "mdbnames",
-            format: "json",
-            formatversion: 2,
-            origin: "*",
-            names: wanted.join( "|" ),
-            recentlimit: 0 // a style vote needs the TYPE, never the sibling pages
-        },
-        success: function( data ) {
-            var entries = ( data && data.mdbnames ) || [],
-                j;
-
-            for( j = 0; j < entries.length; j++ ) {
-                if( !entries[j].name ) continue;
-
-                cache[ mdbTitle_normalizeCompare( entries[j].name ) ] =
-                    ( entries[j].matches && entries[j].matches.length ) ? { matches: entries[j].matches } : "";
-            }
-
-            // the style lines and section 7 both read the filter, so the row has to be redrawn
-            mdbPageCreator_recentSettled();
-        },
-        error: function( xhr, status ) {
-            log( "mdbPageCreator_recentStyleCheck FAILED (" + status + ") for " + wanted.join( " | " ) );
-        }
-    });
+    return entry.count === entry.n
+        ? "all " + entry.n + " of " + whose + " newest pages carry it"
+        : entry.count + " of " + whose + " " + entry.n + " newest pages carry it";
 }
 
 // mdbPageCreator_recentBodyChoice
@@ -3810,18 +3871,12 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
             break;
 
         case "style":
-            if( entry.name && entry.source === "recent" ) {
-                // learned from the entity's recent sibling pages (section 7), not from this mix
-                note.append( mdbPageCreator_reasoningNote(
-                    "style carried by " + entry.count + " of the " + entry.n + " newest pages in the entity's category",
-                    "info"
-                ) );
-            } else {
-                note.append( mdbPageCreator_reasoningNote(
-                    entry.name ? "style suggested by this site" : "style - left empty, that call is the editor's",
-                    "muted"
-                ) );
-            }
+            // never learned from the sibling pages any more - what they share is reported
+            // under the rows instead (mdbPageCreator_recentHintCategories)
+            note.append( mdbPageCreator_reasoningNote(
+                entry.name ? "style suggested by this site" : "style - left empty, that call is the editor's",
+                "muted"
+            ) );
             break;
 
         case "tracklist":
@@ -3852,6 +3907,14 @@ function mdbPageCreator_reasoningRecentState( info ) {
             return "\"" + info.catName + "\" is only known as an artist - an artist's pages are sets of every kind, not a series with one format";
         case "empty":
             return "Category:" + info.catTitle + " holds no mix pages yet";
+        case "numbered-place":
+            return "the title numbers this entity (\"" + info.entity + "\"), so it is a series - while MixesDB knows \"" +
+                   info.catTitle + "\" as a " + String( ( info.match && info.match.type ) || "place" ) +
+                   ", which numbers no editions. Two different things of one name, so its pages say nothing about this mix";
+        case "stale":
+            return "the newest page in Category:" + info.catTitle + " is " + info.stale +
+                   " years older than this mix - nothing there is a convention for it, and a category" +
+                   " nobody has written in that long may not even be this mix's";
     }
 
     if( !info.entry ) return "the category's pages have not been asked for yet";
@@ -4041,34 +4104,26 @@ function mdbPageCreator_reasoningRecentText( title ) {
         rows.push( { label: "File details", detail: "no 90% agreement - the dur table stays" } );
     }
 
-    // the styles - a learned category the wiki knows as a NAME is none, and says so here
-    // rather than disappearing off the line it stood on (mdbPageCreator_recentLearnedStyles)
-    var usedStyles = mdbPageCreator_recentLearnedStyles( title );
-
+    // What the pages agree on is REPORTED, never written - the vote answers what these pages
+    // have in common, and a venue whose MixesDB pages are all from one festival votes for the
+    // festival. The created page keeps its two empty style rows either way
+    // (mdbPageCreator_recentHintCategories).
     for( i = 0; i < f.styles.learned.length; i++ ) {
-        var learnedName = f.styles.learned[i].name,
-            isName = mdbPageCreator_isStyleName( learnedName ),
-            known = isName ? mdbTitle_knownMatch( mdbPageCreator_lookupCache(), learnedName, null ) : null;
-
-        rows.push( { label: "Style",
-                     detail: "\"" + learnedName + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
-                             ( isName
-                                ? " -> not written: MixesDB knows it as " +
-                                  ( ( known && known.type ) ? "a" + ( /^[aeiou]/i.test( known.type ) ? "n " : " " ) + known.type : "a name" ) +
-                                  ", so it names something these pages have in common and not what they sound like"
-                                : " -> fills a style line" ) } );
+        rows.push( { label: "Shared category",
+                     detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
+                             " -> shown as a hint under the row; the page's style lines stay empty for the editor" } );
     }
 
-    if( !usedStyles.length && !f.styles.learned.length ) {
+    if( !f.styles.learned.length ) {
         var tally = "";
 
         for( i = 0; i < f.styles.tally.length && i < 3; i++ ) {
             tally += ( tally ? ", " : "" ) + f.styles.tally[i].name + " " + f.styles.tally[i].count + "/" + f.styles.tally[i].n;
         }
 
-        rows.push( { label: "Styles",
-                     detail: ( tally ? "no style stands on 90% of the pages (" + tally + ")" : "the pages carry no style categories at all" ) +
-                             " - the two style lines stay empty" } );
+        rows.push( { label: "Shared categories",
+                     detail: ( tally ? "nothing stands on 90% of the pages (" + tally + ")" : "the pages share no categories beyond this one" ) +
+                             " - nothing to hint at" } );
     }
 
     s.append( mdbPageCreator_reasoningSteps( rows ) );
@@ -4413,6 +4468,29 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
         cats.append( mdbPageCreator_reasoningCategoryRow( entries[i], cache, picks ) );
     }
 
+    // ... and, under them, what the entity's sibling pages have in common and the page does
+    // NOT get - the same hints the bar's "Hints:" row shows, as plain lines: the panel is
+    // reading, not a place to click a category open. Reported on the DEEP & HAZY mix, where
+    // "Amsterdam Dance Event" stood among the categories with nothing on screen saying where
+    // it came from.
+    var hints = mdbPageCreator_recentHintCategories( title );
+
+    if( hints.length ) {
+        var hintBox = $("<div>").addClass( "mdb-pageCreator-reasoning-cathints" ).append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-aside" )
+                    .text( "Not written, only hinted at - the entity's recent pages share these:" )
+            );
+
+        for( i = 0; i < hints.length; i++ ) {
+            hintBox.append(
+                $("<div>").addClass( "mdb-pageCreator-reasoning-cathint" )
+                    .text( hints[i].name + " - " + mdbPageCreator_recentHintNote( hints[i] ) )
+            );
+        }
+
+        cats.append( hintBox );
+    }
+
     s6.append( cats );
     panel.append( s6 );
 
@@ -4526,6 +4604,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_sourceLabel = "";
     mdbPageCreator_reportOpen = false;
     mdbPageCreator_hintsLogged = "";
+    mdbPageCreator_hintCatsLogged = "";
     mdbPageCreator_alternatives = [];
     mdbPageCreator_altsLogged = "";
     mdbPageCreator_openDefinitions = {};

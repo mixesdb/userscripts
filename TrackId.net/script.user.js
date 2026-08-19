@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.22
+// @version      2026.08.19.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_36
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_53
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_65
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_67
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 147,
+var cacheVersion = 149,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,26 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.24
+ * Via the shared page creator (page_creator.js v_67): a category's pages are only read where
+ * they can say anything about THIS mix - not when the title numbers its entity while MixesDB
+ * knows that name as a venue or an event, and not when the category's newest page is more than
+ * three years older than the mix.
+ *
+ * Via the shared page creator (page_creator.js v_67, page_creator.css): a category the
+ * entity's recent sibling pages share is no longer written onto the created page as a style.
+ * The vote answers what those pages have in COMMON - a venue whose MixesDB pages are all
+ * festival sets votes for the festival - so it is shown as a new "Hints:" row in the bar under
+ * "Used categories" (each chip with a note saying which pages it came off) and at the end of
+ * reasoning section 6, while the page's two style rows stay empty for the editor.
+ *
+ * 2026.08.19.23
+ * Via the shared page creator (page_creator.js v_66, page_creator.css): the grey
+ * "Category:Promo Mix" note under the "Create" link is gone. The hints bar's "Used categories"
+ * already names every category the created page is filed under, "Promo Mix" among them, so the
+ * note repeated it. What only it used to say - that the title leaves "(Promo Mix)" off because
+ * its own name already says it - now sits in the tooltip of the "Promo Mix" chip.
  *
  * 2026.08.19.20
  * Via the shared page creator (title_builder.js v_51, title_definitions.js v_35,
