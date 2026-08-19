@@ -366,7 +366,8 @@ ends up used.
 - **7 Page text analysis of recent mixes** – what the same pages' wikitext settles about the
   page the **Create** link writes, one line per signal with its count: whether the pages open
   with an artwork named after the page itself (then the page text starts with the
-  `[[File:…|right|360px]]` line, in the extension the siblings use), whether the file details
+  `[[File:…|right|360px]]` line, in the extension the siblings use – the live recordings among
+  the siblings are left out of that count, and the line says how many), whether the file details
   are the dur table or a `{{StandardShow…}}` template (the template is only written when this
   file's duration roughly fits its stated length – a 40-minute file on a 2h show is a hint the
   category was misread), and which categories at least 90% of the pages share. That last one is
@@ -395,7 +396,11 @@ Opens the edit form of the new page, prefilled with:
   pages open with an artwork named after the page itself – in the extension those artworks
   use, and following the title field, so a corrected title takes the image name with it. Where
   the siblings name their artwork after something else (venues do) or carry none, no image
-  line is invented
+  line is invented. A **live recording** filed in a series category has no say here: its
+  artwork is the event's flyer, named after the event, so a couple of `… @ Venue (Series 510)`
+  pages can no longer talk a podcast out of the artwork line every one of its episodes carries.
+  In a venue's or an event's own category, where all the pages are such recordings, they are
+  the pages and they do decide
 - the **File details** table (duration and what else the site gave away) – or the series'
   `{{StandardShow…}}` template instead, where that is the house style on the recent pages and
   this file's duration roughly fits it

@@ -1283,6 +1283,13 @@ var mdbTitleGuestMarkers = [
  * Exact case, nothing looser. A title writing "Yoyaku" for the channel "yoyaku" confirms
  * nothing - it is one of the two spellings, not both - and there the ordinary rules decide,
  * which is what keeps "Yoyaku Instore Sessions" out of this.
+ *
+ * And the name has to STAND in the title, not merely be a substring of a longer word
+ * (mdbTitle_standsAlone). The channel "Drumcomplex" is the first eleven characters of
+ * "Drumcomplexed Radio Show", and leaving "Drumcomplex" standing there split the word apart -
+ * the leftover "ed" was then re-cased as a word of its own into "DrumcomplexEd Radio Show", a
+ * name nobody wrote and no category the wiki can answer about (reported 2026-08-19). Two
+ * sources agreeing is the whole point of the rule, and half a word agrees with nothing.
  */
 
 
@@ -1353,6 +1360,12 @@ var mdbTitleShowSuffixWords = [
  * "Truancy Volume 300: Sunju Hargun" keeps its "Volume" and comes out as "Truancy Volume 300",
  * and "Festival Mix 12 - Some DJ" keeps its "Mix". Nothing in a title tells the two apart - it
  * is how the series is written on MixesDB, so this is a curated list and can only be one.
+ *
+ * EVERY rule that cuts an episode number out of a title has to ask this list, not just the one
+ * reading "<show> <word> <number> - <artist>". The rule for a number standing in a different
+ * bit than the channel name cut its whole match away and took the word with it:
+ * "Drumcomplexed Radio Show 311 | Drumcomplex" came out as "Drumcomplexed Radio 311" while
+ * Category:Drumcomplexed Radio Show is the one holding the 311 mixes (reported 2026-08-19).
  */
 var mdbTitleCounterWords = [
     "episode", "ep", "no", "nr", "nos", "part", "pt", "chapter", "folge"

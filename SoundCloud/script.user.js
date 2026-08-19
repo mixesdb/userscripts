@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.33
+// @version      2026.08.19.35
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_58
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_69
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_70
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1871,6 +1871,35 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.35
+ * Two fixes in the row's page creator (page_creator.js v_70). The lead artwork line is back on
+ * a series whose recent pages hold a live recording: reported on "GROOVE Podcast 514 - Black
+ * Rave Culture", where reasoning section 7 said "no 90% agreement - no image line" although
+ * every Groove Podcast episode page opens with its own artwork. Two of that category's 10
+ * newest pages are sets played at an event ("... @ Watergate Open Air, SAGE, Berlin (Groove
+ * Podcast 510, 2026-07-15)"), and such a page opens with the EVENT's flyer, named after the
+ * event - the artwork belongs to whatever the page records, the podcast for an episode and the
+ * event for a set played there. Those pages no longer vote on it: the count now reads 8 of 8,
+ * the page text starts with [[File:<title>.jpg|right|360px]] again, and section 7 says how many
+ * pages were left out. A venue's or an event's own category, where every page is such a
+ * recording, decides as before. The second fix is in the hints bar: a chip's fit score stays
+ * behind its "N mixes" count when the count is toggled open, instead of dropping under the
+ * folded-out mix pages.
+ *
+ * 2026.08.19.34
+ * Two words a suggested title used to lose (title_builder.js v_59). Reported on
+ * "Drumcomplexed Radio Show 311 | Drumcomplex", which came out as
+ * "2026-08-18 - Drumcomplex - DrumcomplexEd Radio 311" - an entity MixesDB does not have,
+ * while Category:Drumcomplexed Radio Show holds 311 mixes. The channel name "Drumcomplex" is
+ * the first eleven characters of "Drumcomplexed", and the Normal Case pass, which leaves the
+ * channel's own spelling standing wherever it turns up in the title, split the word there and
+ * re-cased the leftover "ed" into a word of its own. It now only keeps the name where the name
+ * really STANDS, never inside a longer word. The "Show" was lost on the other side: where the
+ * channel and the episode number stand in different bits of the title, the number is cut out of
+ * the bit carrying it, and the cut took the word in front of the number with it. That word
+ * belongs to the series name unless it only counts ("Slave To The Rhythm Episode 72"), which is
+ * the call the rest of the parser already makes.
  *
  * 2026.08.19.24
  * Every looked-up chip in the hints bar's "Used categories" now carries a fit score

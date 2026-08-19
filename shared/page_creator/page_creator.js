@@ -1578,14 +1578,13 @@ function mdbPageCreator_usedCategory( entry, state, title ) {
                 .text( entry.name )
         );
 
-        mdbPageCreator_usedCatMixes( out, entry, state.match );
-
         // how well this answer fits THIS page, behind the count. Only on the page's own
         // categories: the "Hints:" row passes no title, and a hint is not a filing to be
-        // confident about.
-        var fit = title ? mdbPageCreator_categoryFitScore( entry, state, title ) : null;
-
-        if( fit ) out.append( fit );
+        // confident about. Handed INTO the count's call instead of being appended after it,
+        // so the folded-out mix pages stay the chip's last child - see
+        // mdbPageCreator_usedCatMixes.
+        mdbPageCreator_usedCatMixes( out, entry, state.match,
+            title ? mdbPageCreator_categoryFitScore( entry, state, title ) : null );
 
         return out;
     }
@@ -1672,9 +1671,19 @@ function mdbPageCreator_usedCatLoupe() {
 // out. Open ones survive the bar's re-renders - see mdbPageCreator_openUsedCatRecent.
 // A bucket category (mdbPageCreator_bucketCategories) gets neither the count nor the toggle:
 // its pages are unrelated mixes, so "recently filed there" answers nothing about this one.
-function mdbPageCreator_usedCatMixes( chip, entry, match ) {
-    if( typeof match.mixes !== "number" ) return;
-    if( mdbPageCreator_isBucketCategory( match.title || entry.name ) ) return;
+// The fit badge (mdbPageCreator_categoryFitScore) is handed in rather than appended by the
+// caller once this returns: the folded-out list is a BLOCK, so a badge added after it sat
+// under the last mix page instead of behind the count as soon as a chip was toggled open,
+// and the score is about the category, not about the pages under it (reported 2026-08-19).
+function mdbPageCreator_usedCatMixes( chip, entry, match, fit ) {
+    // every way out of here still owes the chip its badge - a category that offers no count
+    // at all is still a category the fit has an answer about
+    function addFit() {
+        if( fit ) chip.append( fit );
+    }
+
+    if( typeof match.mixes !== "number" ) { addFit(); return; }
+    if( mdbPageCreator_isBucketCategory( match.title || entry.name ) ) { addFit(); return; }
 
     var text = match.mixes + ( match.mixes === 1 ? " mix" : " mixes" ),
         key = mdbTitle_normalizeCompare( match.title || entry.name ),
@@ -1686,6 +1695,7 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
     // before the toggle existed
     if( !match.mixes ) {
         chip.append( $("<span>").addClass( "mdb-pageCreator-usedCat-mixes" ).text( text ) );
+        addFit();
         return;
     }
 
@@ -1746,9 +1756,14 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
 
                 // the pages are already on hand - warm the cache for the ones now on screen
                 mdbPageCreator_prefetchHintLinks( chip );
-            }),
-        list
+            })
     );
+
+    // behind the count and BEFORE the list, in this order: the list is the only block in the
+    // chip, so everything that belongs on the chip's first line has to be in front of it
+    addFit();
+
+    chip.append( list );
 }
 
 // mdbPageCreator_usedCatFetchRecent
@@ -2822,13 +2837,87 @@ function mdbPageCreator_recentBodyChoice( findings ) {
     return body.value;
 }
 
+// mdbPageCreator_titleIsLiveRecording
+// Does this MixesDB page title read as a set recorded somewhere - "... - Artist @ Venue, City
+// (Series 12)"? The "@" in the artist bit is the whole test, the same one
+// mdbTitle_titleCategories makes when it takes the entity from behind the joiner.
+function mdbPageCreator_titleIsLiveRecording( title ) {
+    var bits = String( title || "" ).split( mdbTitle_bitSplitRe() );
+
+    return /\s+@\s+/.test( bits[1] || "" );
+}
+
+// mdbPageCreator_recentImageVote
+// The lead artwork vote over one category's siblings: { vote, ext, skipped }, where vote is
+// mdbPageCreator_recentConsensus' verdict and skipped counts the pages left out of it.
+//
+// A live recording filed in a SERIES category is a page of another kind. The artwork belongs
+// to whatever the page records - the podcast for an episode, the event for a set played there
+// - so such a page opens with the event's flyer, named after the event and shared with every
+// other set of that night. It cannot say what an episode page starts with, and it must not
+// out-vote the pages that can: Groove Podcast's 10 newest pages hold two of them
+// ("2026-05-02 - Chris Liebing @ Watergate Open Air, SAGE, Berlin (Groove Podcast 510,
+// 2026-07-15)"), 8 of 10 is not 90%, and the series lost the artwork line every one of its
+// episodes carries (reported 2026-08-19). page_text_learning.md called these the exception the
+// convention is stated against - this is where they stop voting on it.
+//
+// Where the WHOLE sample is live recordings the category is a venue or an event and those
+// pages ARE its pages, so the vote runs over all of them again: "named after something else"
+// is the answer they legitimately give, and a new page there can predict that name no better.
+function mdbPageCreator_recentImageVote( reads ) {
+    var votes = [],
+        exts = [],
+        skipped = 0,
+        png = 0,
+        i;
+
+    for( i = 0; i < reads.length; i++ ) {
+        if( reads[i].live ) {
+            skipped++;
+            continue;
+        }
+
+        votes.push( reads[i].vote );
+
+        if( reads[i].ext ) exts.push( reads[i].ext );
+    }
+
+    // fewer than three pages decide nothing anyway (mdbPageCreator_recentConsensus), so a
+    // sample that is all live recordings is read whole rather than not at all
+    if( votes.length < 3 && skipped ) {
+        votes = [];
+        exts = [];
+        skipped = 0;
+
+        for( i = 0; i < reads.length; i++ ) {
+            votes.push( reads[i].vote );
+
+            if( reads[i].ext ) exts.push( reads[i].ext );
+        }
+    }
+
+    for( i = 0; i < exts.length; i++ ) {
+        if( exts[i] === "png" ) png++;
+    }
+
+    return {
+        vote: mdbPageCreator_recentConsensus( votes ),
+        // the majority extension among the lead artworks; a tie stays .jpg, the wiki's
+        // uploader rewrites a wrong one anyway (page_text_learning.md)
+        ext: png * 2 > exts.length ? "png" : "jpg",
+        skipped: skipped
+    };
+}
+
 // mdbPageCreator_recentPageTextFindings
 // What the fetched pages' WIKITEXT agrees on - computed once at fetch time, since unlike the
 // title findings nothing here depends on the current title. Three signals, each consensus or
 // abstain (page_text_learning.md says why their thresholds are one and the same 90% now):
 // - image:  does the page open with an artwork named after the page itself? ("same" vs
 //           "other"/"none" - a venue's artwork is named after the venue, which no new page
-//           can predict). imageExt is the extension those artworks actually use.
+//           can predict). imageExt is the extension those artworks actually use, and the
+//           vote itself is mdbPageCreator_recentImageVote, which is where the live
+//           recordings among the siblings are left out of it.
 // - body:   {{StandardShow*}} vs the dur/MB/kbps table ("none" can win the vote, but wins
 //           nothing - mdbPageCreator_recentBodyChoice only acts on a template)
 // - styles: every category that is not the year, the entity, an artist of that page's title,
@@ -2836,8 +2925,7 @@ function mdbPageCreator_recentBodyChoice( findings ) {
 //           learned at the same 90%, at most two (the shape has two style lines)
 function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
     var n = pages.length,
-        imageVotes = [],
-        exts = [],
+        imageReads = [],
         bodyVotes = [],
         styleVotes = {},
         styleNames = {},
@@ -2849,21 +2937,23 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         text = pages[i].text;
 
         // the FIRST image is the lead artwork - the 180px tracklist screenshots further down
-        // are the editor's later additions
+        // are the editor's later additions. Read per page as { vote, ext, live }; what the
+        // sample as a whole makes of it is mdbPageCreator_recentImageVote's job.
         m = /\[\[\s*(?:File|Image)\s*:\s*([^\]|]+?)\s*(?:\|[^\]]*)?\]\]/i.exec( text );
 
+        var live = mdbPageCreator_titleIsLiveRecording( pages[i].title );
+
         if( !m ) {
-            imageVotes.push( "none" );
+            imageReads.push( { vote: "none", ext: "", live: live } );
         } else {
             var fname = m[1].replace( /_/g, " " ).trim(),
                 extMatch = /\.([A-Za-z0-9]+)$/.exec( fname ),
                 stem = extMatch ? fname.slice( 0, fname.length - extMatch[0].length ) : fname;
 
             if( stem.toLowerCase() === pages[i].title.replace( /_/g, " " ).trim().toLowerCase() ) {
-                imageVotes.push( "same" );
-                exts.push( extMatch && extMatch[1].toLowerCase() === "png" ? "png" : "jpg" );
+                imageReads.push( { vote: "same", ext: extMatch && extMatch[1].toLowerCase() === "png" ? "png" : "jpg", live: live } );
             } else {
-                imageVotes.push( "other" );
+                imageReads.push( { vote: "other", ext: "", live: live } );
             }
         }
 
@@ -2920,21 +3010,11 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         }
     }
 
-    var image = mdbPageCreator_recentConsensus( imageVotes ),
+    var image = mdbPageCreator_recentImageVote( imageReads ),
         body = mdbPageCreator_recentConsensus( bodyVotes ),
-        ext = "jpg",
-        png = 0,
         learned = [],
         tally = [],
         key;
-
-    for( i = 0; i < exts.length; i++ ) {
-        if( exts[i] === "png" ) png++;
-    }
-
-    // the majority extension among the lead artworks; a tie stays .jpg, the wiki's uploader
-    // rewrites a wrong one anyway (page_text_learning.md)
-    if( png * 2 > exts.length ) ext = "png";
 
     for( key in styleVotes ) {
         if( !Object.prototype.hasOwnProperty.call( styleVotes, key ) ) continue;
@@ -2953,8 +3033,9 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
 
     return {
         n: n,
-        image: image,
-        imageExt: ext,
+        image: image.vote,
+        imageExt: image.ext,
+        imageSkipped: image.skipped,
         body: body,
         styles: { learned: learned.slice( 0, 2 ), tally: tally }
     };
@@ -4171,19 +4252,29 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
     s.append( mdbPageCreator_reasoningRecentRead( info ) );
 
-    // the lead artwork line
+    // The lead artwork line. Where live recordings were left out of the vote
+    // (mdbPageCreator_recentImageVote) the row says so: without it the count reads like the
+    // whole sample, and "8 of the 8 newest pages" next to a "Read: the 10 newest pages" line
+    // above it looks like a miscount rather than the deliberate omission it is.
+    var skipped = f.imageSkipped || 0,
+        imgAside = skipped
+            ? ( skipped === 1
+                ? " (1 live recording left out - its artwork is the event's flyer, named after the event)"
+                : " (" + skipped + " live recordings left out - their artwork is the event's flyer, named after the event)" )
+            : "";
+
     if( f.image && f.image.value === "same" ) {
         rows.push( { label: "Lead artwork",
                      detail: mdbPageCreator_reasoningRecentCount( f.image ) + " open with an artwork named after the page itself (." + f.imageExt + ") -> " +
-                             "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" } );
+                             "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" + imgAside } );
     } else if( f.image && f.image.value === "none" ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " carry no artwork - no image line" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " carry no artwork - no image line" + imgAside } );
     } else if( f.image ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " name their artwork after something else - nothing a new page could predict, no image line" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " name their artwork after something else - nothing a new page could predict, no image line" + imgAside } );
     } else {
-        rows.push( { label: "Lead artwork", detail: "no 90% agreement - no image line" } );
+        rows.push( { label: "Lead artwork", detail: "no 90% agreement - no image line" + imgAside } );
     }
 
     // the file details body

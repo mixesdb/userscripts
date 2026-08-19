@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.31
+// @version      2026.08.19.33
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,9 +14,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_58
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_69
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_70
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1965,6 +1965,28 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.33
+ * Via the shared page creator (page_creator.js v_70): the lead artwork line is back on a series
+ * whose recent pages hold a live recording. Such a page opens with the EVENT's flyer, named
+ * after the event - the artwork belongs to whatever the page records - so it cannot say what an
+ * episode page starts with, and it no longer votes on it. Reported on SoundCloud's "GROOVE
+ * Podcast 514": two of Category:Groove Podcast's 10 newest pages are sets played at an event,
+ * 8 of 10 is not the 90% the vote wants, and the series lost the artwork line every one of its
+ * episodes carries. A venue's or an event's own category, where every page is such a recording,
+ * decides as before, and reasoning section 7 says how many pages were left out.
+ *
+ * Via the shared page creator (page_creator.js v_70): a hints bar chip's fit score stays behind
+ * its "N mixes" count when the count is toggled open - it used to drop under the folded-out mix
+ * pages.
+ *
+ * 2026.08.19.32
+ * Via the shared title builder (title_builder.js v_59): two words a suggested title used to
+ * lose. A channel name that is the start of a longer word ("Drumcomplex" in "Drumcomplexed")
+ * no longer splits that word apart when the Normal Case pass leaves the channel's own spelling
+ * standing, and the word in front of an episode number ("Drumcomplexed Radio Show 311") stays
+ * in the series name unless it only counts ("Episode 72"). Reported on SoundCloud, where the
+ * title came out as "DrumcomplexEd Radio 311" while the real category holds 311 mixes.
  *
  * 2026.08.19.25
  * Via the shared page creator (page_creator.js v_68, page_creator.css): every looked-up chip in
