@@ -433,22 +433,42 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   SUGGESTION is ever rewritten, never an edited title, and a refinement whose entity would file
   under a different category is dropped. Bucket categories (`mdbPageCreator_bucketCategories`,
   "Promo Mix") are skipped everywhere - their pages are no siblings.
-- **A learned style that is a NAME is no style** (2026-08-19, reported on the DEEP & HAZY /
-  Undercurrent mix, where `Amsterdam Dance Event` appeared among the new page's categories).
-  The style vote measures what the sibling pages AGREE on, and a venue's newest pages agree on
-  far more than the music: all 10 of Category:Undercurrent's are sets from one ADE week, so the
-  festival's category stood on 10 of 10 and filled a style line on a podcast episode that has
-  nothing to do with it. `mdbnames` settles it - it answers empty about `Techno`, `House` and
-  `Deep House`, and with a type about `Amsterdam Dance Event` (event, 1745) and `ZeeZout`
-  (event, 9) - so `mdbPageCreator_isStyleName()` drops every learned category the wiki knows as
-  anything at all. Asked by `mdbPageCreator_recentStyleCheck()` in its OWN small request, never
-  through `mdbTitle_lookupCategories()`: that one writes every name into `mdbTitle_lookupLog`,
-  which IS the panel's section 3, and a style vote is no candidate for the title's categories.
-  Only a POSITIVE answer drops a name - pending or failed leaves the style standing, since
-  losing every style to a dead request costs more than the rare wrong one. Section 7 names the
-  dropped category and its type rather than letting it disappear off the line it stood on,
-  which is what the report asked for: it had appeared in section 6 with nothing anywhere saying
-  where it came from.
+- **Two gates decide whether the recent pages are this mix's siblings AT ALL**, and where one
+  bites nothing is read - not the title format, not the page text, not the shared categories
+  (`mdbPageCreator_recentAnalysisFor`, both reported 2026-08-19 on the DEEP & HAZY /
+  Undercurrent mix, where the analysis had run on a category that is neither):
+  - `numbered-place`: the TITLE numbers the entity ("Undercurrent 5" -
+    `mdbPageCreator_entityIsNumbered`) while the wiki knows the name as a venue or an event.
+    A series numbers its editions and a place does not, so the two are different things
+    sharing a name. Checked before the fetch, since it needs no pages.
+  - `stale`: the category's newest page is more than `mdbPageCreator_recentMaxAgeYears` (3)
+    older than the mix (`mdbPageCreator_recentStaleBy`, off the newest title's date - the
+    pages arrive newest first). Undercurrent's newest page is from 2015 and the mix from
+    2026: eleven years of nothing say the conventions are dead and the category may not be
+    this mix's. Only this direction - siblings NEWER than the mix are the normal case for an
+    old recording added today. Checked after the fetch, so `info.entry` is nulled with the
+    verdict and every reader of it finds nothing whether or not it thought to ask about skip.
+  The entity CHIP says the first one too, in its tooltip: the category exists, so the chip is
+  green, but the page would join that venue's category and only the editor can tell whether
+  that is right.
+- **What the sibling pages SHARE is reported, never written** (2026-08-19, reported on the
+  DEEP & HAZY / Undercurrent mix, where `Amsterdam Dance Event` appeared among the new page's
+  categories with nothing on screen saying where it came from). Signal C used to fill the
+  page's style lines. It no longer fills anything: the vote answers "what do these pages have
+  in COMMON", which is not "what does this mix sound like". Category:Undercurrent shows both
+  halves at once - its 10 newest pages carry Techno 5, House 3, Tech House 2, so no style
+  clears the 90% bar, while `Amsterdam Dance Event` stands on all 10, because the venue's
+  MixesDB pages are sets from four different ADE editions. The finding is now a HINT:
+  `mdbPageCreator_recentHintCategories()` feeds the bar's "Hints:" row (chip + a note saying
+  which pages it came off) and the block closing section 6, where the same lines are plain
+  text - the panel is reading, not a place to click a category open. The created page keeps
+  its two empty style rows, which the editor fills.
+  A rejected first attempt is worth recording, so it is not built again: classifying the
+  learned name with `mdbnames` (it answers empty about `Techno`/`House`/`Deep House` and with
+  a type about `Amsterdam Dance Event`) and writing the ones that came back empty. It worked
+  and it was too clever - a second request, a filter with three states (known/pending/failed)
+  and a page still filed on a guess, where the honest answer is that the script cannot tell a
+  style from a coincidence and should say what it saw instead.
 - **The same call also brings those pages' wikitext, which shapes the new page's text**
   (`mdbPageCreator_recentPageTextFindings()`, applied in `mdbPageCreator_pageText()` /
   `_categoryEntries()`) -
@@ -457,10 +477,10 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `[[File:<literal title>.jpg|right|360px]]` in the extension the siblings use. Design and
   measurements in
   `page_text_learning.md` - its deltas section says where the built version deviates from the
-  plan and why. Styles are only filled when 90% of the siblings agree (measured: that
-  fires on 1 category in 9), and `Tracklist:` is never learned from the siblings at all - it
-  describes the page's own tracklist, which is what the section above decides. That file says
-  why.
+  plan and why. The 90% style vote is still counted (measured: it fires on 1 category in 9)
+  but fills nothing - see the bullet above - and `Tracklist:` is never learned from the
+  siblings at all: it describes the page's own tracklist, which is what the section above
+  decides. That file says why.
 
 ### Roadmap
 
@@ -475,7 +495,7 @@ mirror of this table - keep the two in step):
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
 | 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. Since 2026-08-19 the line names EVERY category the page text writes, in its order: the year, the styles, "Promo Mix" and the `Tracklist:` filing ride along as plain grey chips without link or count (verdict `plain`, `mdbPageCreator_plainCategoryNote()`) - they are no name the wiki could spell differently, but leaving them out read as if the page did not get them. An artist or an entity is still required for the line to appear at all. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open inside the chip (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
-| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension, `{{StandardShow*}}` when the duration roughly fits, styles at 90%) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
+| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension, `{{StandardShow*}}` when the duration roughly fits - the 90% style vote fills no style line since 2026-08-19, it is a "Hints:" chip instead) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
 
 **Step 5 in full.** Today `window.mdbPageCreator_showForUsedPlayers = true` ships in both site
@@ -566,7 +586,10 @@ renders them. Settled, so it does not get re-litigated:
 - **The promo switch moves the filing.** `mdbPageCreator_entityCategoryFor` reads the flag OR
   the title's marker, so `mdbPageCreator_applyAlternative` sets `mdbPageCreator_promoCategory`
   to match the toggle - without that, switching to the show reading would still file the page
-  under Promo Mix. `mdbPageCreator_syncPromoNote` reads the FIELD's title for the same reason.
+  under Promo Mix. The hints bar's "Used categories" reads the FIELD's title for the same reason,
+  and since 2026-08-19 it is the ONLY place the filing is named: the grey "Category:Promo Mix"
+  note that used to hang under the "Create" link said the same thing a second time and is gone
+  (`mdbPageCreator_syncPromoNote`, `#mdb-pageCreator-createColumn`).
 - **A switch counts as an edit** (`mdb-edited`): the reading was chosen on purpose, and the
   next refresh or recent-pages refinement must not put the suggestion back over it.
 

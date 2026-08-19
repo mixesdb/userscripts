@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.21
+// @version      2026.08.19.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_36
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_53
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_65
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_67
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 141,
+var cacheVersion = 143,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1871,6 +1871,31 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.23
+ * A category's pages are only read where they can say anything about THIS mix
+ * (page_creator.js v_67): not when the title numbers its entity while MixesDB knows that name
+ * as a venue or an event ("Undercurrent 5" is a series, the Amsterdam club "Undercurrent" is
+ * not), and not when the category's newest page is more than three years older than the mix.
+ * Reported on a 2026 upload whose page format, page text and shared categories had all been
+ * read off club nights from 2012-2015.
+ *
+ * What the entity's recent sibling pages have in common is no longer written onto the created
+ * page (page_creator.js v_67, page_creator.css). A category at least 90% of them share used to
+ * fill a style line - but that vote answers what those pages have in COMMON, not what this mix
+ * sounds like: Category:Undercurrent's newest pages carry Techno 5, House 3 and Tech House 2,
+ * so no style clears the bar, while "Amsterdam Dance Event" stands on all 10 and did, because
+ * the venue's MixesDB pages happen to be festival sets. It is now a HINT: a new "Hints:" row
+ * in the bar under "Used categories", each chip with a note behind it saying which pages it
+ * came off, and the same lines closing reasoning section 6. The page's two style rows stay
+ * empty for the editor.
+ *
+ * 2026.08.19.22
+ * The grey "Category:Promo Mix" note under the "Create" link is gone (page_creator.js v_66,
+ * page_creator.css). Since the hints bar's "Used categories" names every category the created
+ * page is filed under, "Promo Mix" among them, the note said the same thing a second time.
+ * What only it used to say - that the title leaves "(Promo Mix)" off because its own name
+ * already says it ("Summer 2026 Mix") - is now in the tooltip of the "Promo Mix" chip.
  *
  * 2026.08.19.17
  * A place that names the ROOM of a venue now files the page under the VENUE (title_builder.js

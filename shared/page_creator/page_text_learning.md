@@ -37,18 +37,34 @@
 > dated 2023-09-18 in its title and filed at 2025-05-30) - and those pages are exactly the ones
 > the "newest 5 override" leans on.
 
-> **Delta added 2026-08-19: a learned style that is a NAME is not written.** Signal C votes on
-> every category that is not the year, the entity, an artist of that page's title, Promo Mix or
-> a `Tracklist:` filing - and on a VENUE that leaves the festival its pages all belong to.
-> Category:Undercurrent's 10 newest pages are all sets from one ADE week, so
-> `Amsterdam Dance Event` stood on 10 of 10 and filled a style line on an unrelated podcast
-> episode. `mdbnames` tells the two apart outright: it answers empty about `Techno`, `House`
-> and `Deep House`, and with a type about `Amsterdam Dance Event` and `ZeeZout`. So the learned
-> names are asked about in one small request of their own
-> (`mdbPageCreator_recentStyleCheck()`, never through `mdbTitle_lookupCategories()`, whose log
-> IS the panel's section 3) and every positive answer drops its style; a pending or failed
-> request leaves the style standing. What the plan below says about the 90% bar is unchanged -
-> this is a second condition on top of it, not a different threshold.
+> **Delta added 2026-08-19: two gates in front of everything below.** The whole file rests on
+> "the pages in this category are this mix's siblings", and on the reported DEEP & HAZY mix
+> neither half of that held. `mdbPageCreator_recentAnalysisFor()` now refuses the analysis
+> outright when the TITLE numbers its entity ("Undercurrent 5") while the wiki knows the name
+> as a venue or an event - a series numbers its editions, a place does not, so they are two
+> things of one name - and when the category's newest page is more than three years older than
+> the mix (`mdbPageCreator_recentMaxAgeYears`): Undercurrent's newest page is from 2015 and the
+> mix from 2026. Only that direction; siblings newer than the mix are the normal case for an
+> old recording added today. Sections 5 and 7 name whichever gate bit.
+>
+> **Delta added 2026-08-19: signal C writes nothing. It is a HINT.** The vote below measures
+> what a category's recent pages have in COMMON, and that is not the same question as what a
+> mix sounds like. Category:Undercurrent answers both at once: its 10 newest pages carry
+> Techno 5, House 3 and Tech House 2 - no style reaches 90% - while `Amsterdam Dance Event`
+> stands on all 10, because the venue's MixesDB pages are sets from four ADE editions
+> (2012, 2013, 2015). Written onto an unrelated podcast episode, that is a wrong filing made
+> for the editor.
+>
+> So the 90% vote stays exactly as specified below and its RESULT changed hands: the created
+> page keeps its two empty style rows, and what cleared the bar is shown as a chip in the
+> row's "Hints:" line and at the end of reasoning section 6, each with a note saying which
+> pages it came off (`mdbPageCreator_recentHintCategories()`). The site's own style box
+> (TrackId.net) is untouched - those styles are read off THIS mix and are still written.
+>
+> A first attempt asked `mdbnames` whether the learned name is a name (it answers empty about
+> `Techno`/`House`/`Deep House`, with a type about `Amsterdam Dance Event`) and wrote the rest.
+> Rejected as too clever: it costs a request, needs a three-state filter, and still files a
+> page on a guess. The script cannot tell a style from a coincidence, so it says what it saw.
 
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already
