@@ -1292,5 +1292,31 @@ var mdbTitleExamples = [
         expectEntity: "Brotfabrik & k²0 Open Air",
         expectChunks: [ "Brotfabrik & k²0 Open Air", "Leipzig", "Ri0D. & Jonbot" ],
         expect: "2026-07-25 - RiOD. & Jonbot @ Brotfabrik & k²0 Open Air"
+    },
+    {
+        // Reported: came out as "2026-08-18 - Drumcomplex - DrumcomplexEd Radio 311", an
+        // entity that is no category while Category:Drumcomplexed Radio Show holds 311 mixes.
+        // Two rules, both about a word that was cut where it belonged to the name:
+        // - the channel "Drumcomplex" is the first eleven characters of "Drumcomplexed", and
+        //   the Normal Case pass split the word there to leave the channel spelling standing,
+        //   which re-cased the leftover "ed" into a word of its own (mdbTitle_standsAlone)
+        // - the episode keyword "Show" is part of the series name, not a counting word, so 4c
+        //   may only cut the number out of the numbered bit (mdbTitleCounterWords)
+        // The uploader writes "<title> | <channel>", which is what puts the number and the
+        // channel into different bits and sends the title through 4c rather than through 6b.
+        // The report expected the date 2026-08-17, the Monday this weekly show airs; nothing
+        // in the title says so and the upload date is what we have.
+        url: "https://soundcloud.com/drumcomplex/drumcomplexed-radio-show-311",
+        title: "Drumcomplexed Radio Show 311 | Drumcomplex",
+        channel: "Drumcomplex",
+        date: "2026-08-18",
+        known: {
+            "Drumcomplex": { type: "artist", mixes: 120 },
+            "Drumcomplexed Radio Show": { type: "podcast", mixes: 311 }
+        },
+        expectArtists: [ "Drumcomplex" ],
+        expectEntity: "Drumcomplexed Radio Show 311",
+        expectAsked: [ "Drumcomplexed Radio Show" ],
+        expect: "2026-08-18 - Drumcomplex - Drumcomplexed Radio Show 311"
     }
 ];

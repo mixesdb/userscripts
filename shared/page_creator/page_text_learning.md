@@ -66,6 +66,26 @@
 > Rejected as too clever: it costs a request, needs a three-state filter, and still files a
 > page on a guess. The script cannot tell a style from a coincidence, so it says what it saw.
 
+> **Delta added 2026-08-19: signal B is read off the EPISODE pages only.** The live recordings
+> among a series' recent pages no longer vote on the lead artwork
+> (`mdbPageCreator_recentImageVote()`, `mdbPageCreator_titleIsLiveRecording()`): the artwork
+> belongs to whatever the page records - the podcast for an episode, the event for a set played
+> there - so a `... @ Watergate Open Air, SAGE, Berlin (Groove Podcast 510, 2026-07-15)` page
+> opens with the event's flyer, named after the event and shared with every other set of that
+> night. It cannot say what an episode page starts with. Reported on Groove Podcast 514: two of
+> that category's 10 newest pages are such recordings, 8 of 10 is not 90%, and the series lost
+> the artwork line every one of its episodes carries. With them left out the vote reads 8 of 8.
+> The section below already named them "the exception the convention is stated against" and
+> priced it into the 75% threshold the deltas above replaced with 90% - at 90% the exception
+> has to be taken out of the sample instead. `RA Podcast` (also 2 of 10) fires the same way now;
+> `Essential Mix`, `Trommel` and `HATE Podcast` go from 9/10 to 9/9, and the venue and event
+> categories are untouched (`Ritter Butzke`, `fabric`, `Boiler Room`, `Dekmantel Festival` -
+> measured against the live API on 2026-08-19). Where the WHOLE sample is live recordings the
+> category IS a venue or an event, those pages are its pages, and the vote runs over all of
+> them again - "named after something else" is the answer they legitimately give. Only signal
+> B: a live recording's `{{StandardShow*}}` and its styles say as much about the series as any
+> other page's.
+
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already
 contains the right shape: the other episodes of the same show sitting in the entity's category.

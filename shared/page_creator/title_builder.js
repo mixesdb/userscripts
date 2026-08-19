@@ -3506,26 +3506,89 @@ function mdbTitle_initialsOf( name ) {
     return out;
 }
 
+// mdbTitle_wordChar
+// Whether a character is a letter or a digit, in any alphabet - what a name may not be glued
+// to when it is looked for INSIDE a text. Unicode-aware, so "ØDB" and "Ωmega" count too.
+function mdbTitle_wordChar( c ) {
+    return !!c && /[\p{L}\p{N}]/u.test( c );
+}
+
+// mdbTitle_standsAlone
+// Whether the occurrence of name at index is the name STANDING there, rather than a piece of a
+// longer word. Checked per side, and only on the side the name itself ends in a letter or a
+// digit: a channel written "Trommel." goes on matching "Trommel.251", while "Drumcomplex" no
+// longer matches inside "Drumcomplexed". The string counterpart of the "(^|[^0-9A-Za-z])" /
+// "(?![0-9A-Za-z])" guards the parser's regexes carry.
+function mdbTitle_standsAlone( text, index, name ) {
+    var before = index > 0 ? text.charAt( index - 1 ) : "",
+        after = text.charAt( index + name.length );
+
+    if( mdbTitle_wordChar( name.charAt( 0 ) ) && mdbTitle_wordChar( before ) ) return false;
+    if( mdbTitle_wordChar( name.charAt( name.length - 1 ) ) && mdbTitle_wordChar( after ) ) return false;
+
+    return true;
+}
+
+// mdbTitle_nameStandsIn
+// Whether name stands somewhere in text as a name of its own - mdbTitle_standsAlone for the
+// callers that only ask "is it in there at all", so no place has to spell the scan out again.
+function mdbTitle_nameStandsIn( text, name ) {
+    var at = 0,
+        found;
+
+    text = String( text || "" );
+
+    if( !name ) return false;
+
+    while( ( found = text.indexOf( name, at ) ) !== -1 ) {
+        if( mdbTitle_standsAlone( text, found, name ) ) return true;
+
+        at = found + 1;
+    }
+
+    return false;
+}
+
 // mdbTitle_toNormalCaseKeeping
 // mdbTitle_toNormalCase, with the channel's own spelling left standing wherever it turns up.
 // The bit is split at it, so each piece is judged on its own case - "(selected) podcast 064"
 // re-cases the " podcast 064" and hands back "(selected) Podcast 064".
+// Only where the name really STANDS, never inside a longer word: the channel "Drumcomplex" is
+// the first eleven characters of the series "Drumcomplexed Radio Show", and splitting there
+// left an "ed" to be re-cased as a word of its own - "DrumcomplexEd Radio Show", a name nobody
+// wrote and no category the wiki could answer about (reported 2026-08-19).
 function mdbTitle_toNormalCaseKeeping( s ) {
     var keep = mdbTitle_channelSpelling,
-        parts,
+        pieces = [],
+        from = 0,
+        at = 0,
+        found,
         i;
 
     s = String( s || "" );
 
-    if( !keep || s.indexOf( keep ) === -1 ) return mdbTitle_toNormalCase( s );
+    if( !keep ) return mdbTitle_toNormalCase( s );
 
-    parts = s.split( keep );
-
-    for( i = 0; i < parts.length; i++ ) {
-        parts[i] = mdbTitle_toNormalCase( parts[i] );
+    while( ( found = s.indexOf( keep, at ) ) !== -1 ) {
+        if( mdbTitle_standsAlone( s, found, keep ) ) {
+            pieces.push( s.slice( from, found ) );
+            at = from = found + keep.length;
+        } else {
+            // glued into a longer word - the text stays in the piece being collected and the
+            // search moves on by one character, so an overlapping occurrence is not skipped
+            at = found + 1;
+        }
     }
 
-    return parts.join( keep );
+    if( !pieces.length ) return mdbTitle_toNormalCase( s );
+
+    pieces.push( s.slice( from ) );
+
+    for( i = 0; i < pieces.length; i++ ) {
+        pieces[i] = mdbTitle_toNormalCase( pieces[i] );
+    }
+
+    return pieces.join( keep );
 }
 
 // mdbTitle_byMarkerFlags
@@ -4327,9 +4390,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // The title spelling the channel name exactly the way the channel does is the real
         // spelling, and Normal Case must not touch it. After 1b, so a channel name in brackets
         // is compared in the round-bracket spelling both sides have by then.
+        // The name has to STAND in the title, not merely be a substring of a longer word: the
+        // channel "Drumcomplex" is in "Drumcomplexed Radio Show" the way "art" is in "start".
         var channelSpelling = mdbTitle_wikiSafe( username );
 
-        if( channelSpelling && rest.indexOf( channelSpelling ) !== -1 ) {
+        if( mdbTitle_nameStandsIn( rest, channelSpelling ) ) {
             mdbTitle_channelSpelling = channelSpelling;
             logVar( "buildMixesdbTitle: the title spells the channel name the channel's way", channelSpelling );
         }
@@ -4982,10 +5047,21 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 var numberBit = mdbTitle_bitAt( restWithShow, titleEpisode.index );
 
                 if( numberBit.start !== channelBit.start ) {
-                    // the number goes with the series, so it comes out of the name here and is
-                    // written back behind it by mdbTitle_assemble
-                    var numberedSeries = mdbTitle_cleanArtist(
-                            mdbTitle_cut( numberBit.text, titleEpisode.index - numberBit.start, titleEpisode.length ) ),
+                    // The episode KEYWORD stays in the series name unless it only counts, the
+                    // same call 5b makes with mdbTitleCounterWords: "Drumcomplexed Radio Show
+                    // 311" is episode 311 of "Drumcomplexed Radio Show", while "Slave To The
+                    // Rhythm Episode 72" is episode 72 of "Slave To The Rhythm". The cut ran
+                    // over the whole match, so it took the word with the number and left a
+                    // series nobody ever wrote - reported 2026-08-19 on that Drumcomplex title,
+                    // where "Drumcomplexed Radio" is no category and the real one holds 311 mixes.
+                    var keptWord = ( titleEpisode.word && !mdbTitle_isCounterWord( titleEpisode.word ) )
+                                       ? titleEpisode.word.length : 0,
+                        // the number goes with the series, so it comes out of the name here and
+                        // is written back behind it by mdbTitle_assemble
+                        numberedSeries = mdbTitle_cleanArtist(
+                            mdbTitle_cut( numberBit.text,
+                                          titleEpisode.index - numberBit.start + keptWord,
+                                          titleEpisode.length - keptWord ) ),
                         // with two bits the channel IS the artist, with three it is the bit
                         // that is neither the channel's nor the series'
                         leftoverBit = null,
