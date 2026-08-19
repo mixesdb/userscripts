@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.1
+// @version      2026.08.20.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 157,
+var cacheVersion = 158,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1897,10 +1897,13 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
- * 2026.08.20.1
- * The box under an open hints bar chip hangs 5px lower (page_creator.css), with the chip's own
- * two side borders carried down across the gap - so the list sits off the name it belongs to
- * while chip and box stay the one shape they were.
+ * 2026.08.20.2
+ * The box under an open hints bar chip hangs 5px lower (page_creator.css), and chip and box
+ * are one line all the way round: the chip's left border runs straight down into the box's,
+ * and on the right the two are joined by an arc - the chip's border turns into the box's top
+ * border in a quarter circle instead of a square step. The box is held wide enough for that
+ * corner to have somewhere to land, so even the "no mix pages in this category yet" one keeps
+ * the shape.
  *
  * 2026.08.19.51
  * The mix pages a hints bar chip folds out hang in a box attached UNDER the chip now
