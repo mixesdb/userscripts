@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.10
+// @version      2026.08.19.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -864,30 +864,48 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
         }
 
         // Appended INTO the extras wrapper, not next to it as before: that is what puts the
-        // hearthis.at player where the toolkit handler can find its URL, lets the skeleton
-        // cover it, and gets it removed on the next SPA navigation (the wrapper is an
-        // .mdb-element, the player div from shared/global.js is not).
+        // hearthis.at player where the toolkit handler can find its URL and gets it removed
+        // on the next SPA navigation (the wrapper is an .mdb-element, the player div from
+        // shared/global.js is not).
         if( embedIsAsync ) {
             embed_hearthis_fromAnyUrl( playerUrl, tidExtras, "append" );
         }
 
-        // The player is NOT covered (keep): it should play as early as possible. The skeleton
-        // holds the space below it, where page creator row and toolkit appear together at the
-        // reveal - the row is placed "after" the player wrapper (funcTidPageCreator), so it is
-        // a hidden direct child of the extras wrapper like the toolkit, not a visible part of
-        // the kept player. keep is applied here and once more when the hearthis.at player
-        // lands (see the toolkit handler): this call can only mark what is already there.
-        // No height option: the default in page_creator.css is the one source of truth -
-        // an inline height here would silently win over any value tuned in the CSS.
-        mdbSkeleton_show({
-            target: "#mdb-tid-audiostreamExtras",
-            rows:   [ "toolkit" ],
-            keep:   ".mdb-player-audiostream"
-        });
+        // The skeleton stands in for the toolkit, so it belongs BELOW the player - and on the
+        // hearthis.at route there is no player yet, only a lookup on its way. Put up now, the
+        // grey box would be the first thing in the wrapper and the player would shove it down
+        // when it arrives. The toolkit handler starts it instead, the moment the player is on
+        // the page - which is also the moment the toolkit starts building, so nothing is
+        // uncovered that used to be covered.
+        if( embedIsAsync ) {
+            tidExtras.attr( "data-mdbskeletondeferred", "1" );
+        } else {
+            tidSkeleton_show();
+        }
     }
 
     // MixesDB page creator - only needs the player URL, so it starts alongside the embed
     funcTidPageCreator( playerUrl );
+}
+
+/*
+ * tidSkeleton_show
+ * The one place the audiostream skeleton is configured, because it has two callers:
+ * funcTidPlayers() for the players built on the spot and the toolkit handler for the
+ * hearthis.at one, which only exists once its lookup has answered.
+ * The player is NOT covered (keep): it should play as early as possible. The skeleton holds
+ * the space below it, where page creator row and toolkit appear together at the reveal - the
+ * row is placed "after" the player wrapper (funcTidPageCreator), so it is a hidden direct
+ * child of the extras wrapper like the toolkit, not a visible part of the kept player.
+ * No height option: the default in page_creator.css is the one source of truth - an inline
+ * height here would silently win over any value tuned in the CSS.
+ */
+function tidSkeleton_show() {
+    mdbSkeleton_show({
+        target: "#mdb-tid-audiostreamExtras",
+        rows:   [ "toolkit" ],
+        keep:   ".mdb-player-audiostream"
+    });
 }
 
 /*
@@ -1008,10 +1026,13 @@ waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", functi
 
     if( !playerUrl ) return;
 
-    // The hearthis.at player is appended after mdbSkeleton_show() has handed out the keep
-    // class, so it would sit hidden behind the skeleton until the reveal - it shows as soon
-    // as it is there, like the players built on the spot. A no-op for those.
-    jNode.addClass("mdb-skeleton-keep");
+    // The hearthis.at route left the skeleton to us (see funcTidPlayers): its player is on
+    // the page now, and the toolkit built right below is exactly what the grey box stands in
+    // for. Before getToolkit(), so none of its output is ever painted uncovered.
+    if( tidExtras.attr("data-mdbskeletondeferred") ) {
+        tidExtras.removeAttr("data-mdbskeletondeferred");
+        tidSkeleton_show();
+    }
 
     logVar( "titleText toolkit", titleText );
     getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1, "", "auto" );
@@ -1944,6 +1965,11 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.11
+ * hearthis.at players: the grey toolkit placeholder no longer goes up before the player it
+ * belongs under - it waited for nothing there and was pushed down as soon as the player
+ * arrived. It now appears with the player, in its place below it.
  *
  * 2026.08.19.10
  * The toolkit is back on hearthis.at players. Since the toolkit handler was moved out of
