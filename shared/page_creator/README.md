@@ -50,7 +50,11 @@ round and is filed under the festival. Such a title carries the artist and the p
 else: a stage, a camp, the set's own name, the genre – and the corner of the site named behind an
 `im`/`at`/`bei` in the artist's own chunk (`Timboletti im Chapeau Club @ 3000Grad Festival`
 becomes `Timboletti @ 3000Grad Festival`, once the channel or the wiki backs the name in front of
-the word) – all go. A group whose steps the uploader separated with a bracket,
+the word) – all go. A place that names the **room** of a venue rather than the venue is asked
+about both ways, and where MixesDB has no category under the room's name while the venue around
+it is one, the word comes off: `Live@Elsewhere Loft July` files under `Elsewhere`, the club with
+the mixes, instead of under `Elsewhere Loft`, which is no category at all. The room is offered
+back as a **Switch title** chip, since MixesDB does write it where it is worth naming. A group whose steps the uploader separated with a bracket,
 a `|` or a dash wrap instead of a second `@` is joined the same way
 (`@ Utopia | Ritter Butzke | Berlin` becomes `@ Utopia, Ritter Butzke, Berlin`). Such a title claims only the
 year, and a year the place list itself names wins over the upload year and leaves the list
@@ -76,8 +80,10 @@ does (see the roadmap).
 A box under the title field – framed like the reasoning panel, and always there – for what the
 title itself cannot say: things worth checking before clicking **Create**.
 
-**Used categories** lists the artist and the entity category the new page would be filed under,
-one chip per name, its colour saying whether MixesDB already has it:
+**Used categories** lists every category the new page would be filed under, in the order the
+page text writes them: the year, the artists, the show, venue or event (or **Promo Mix**), the
+styles and the `Tracklist:` filing. The artist and the entity name are the ones MixesDB is
+asked about, one chip per name, its colour saying whether the wiki already has it:
 
 - **green** – the category exists. The chip – and the category the page is really filed
   under – carries **MixesDB's own spelling** of the name. The suggested title writes it that
@@ -108,8 +114,12 @@ header opens the same page as a tab after all, and so does cmd/ctrl- or middle-c
 the links directly. On a narrow window the links open as tabs, as before.
 
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
-files it as, since a podcast, a show, a venue and a festival can all stand in that slot. The year
-and the style categories are not listed – neither is a name anyone could spell wrong.
+files it as, since a podcast, a show, a venue and a festival can all stand in that slot.
+
+The other chips – the year, the styles, **Promo Mix** and the `Tracklist:` filing – stay a
+muted grey and carry neither link nor mix count: none of them is a name anyone could have
+spelled wrong, so there is nothing to look up about them. They are listed all the same, because
+the page really is filed under them; the tooltip of each says what decided it.
 
 The line follows the title field: correct the title and, after a short pause, the categories are
 re-read from it and any new names are looked up.
@@ -138,6 +148,13 @@ says why the build decided the other way. Offered today:
   with it). Switching also switches the page's filing: with the marker the page goes into
   `Category:Promo Mix`, without it under the name itself.
 
+- **The room inside a venue** – the set was played in the loft, the rooftop or the garden of a
+  club, and the title was filed under the club because MixesDB has no category under the room's
+  name. The chip offers the room back (`… @ Elsewhere` becomes `… @ Elsewhere Loft`), which is
+  how the wiki writes it where the room is worth naming – `2019-05-24 - Robert Hood @ Elsewhere
+  Rooftop, NYC`. The page files under the venue either way, so this chip changes the title
+  alone, not where the page ends up.
+
 A chip only ever offers a different **title for this same page** – never one that would create a
 different page. That is why a `Part 2` the title carried is dropped and *not* offered back: the
 parts of one recording belong on one mix page, with every file in the file details, a player
@@ -150,7 +167,9 @@ a duplicate.
 everything a report about a wrong title needs: the player's URL, the title, channel name and date
 the site handed over, the title that came out of them, the score, and the artist and entity
 categories the page would be filed under. Underneath are the empty lines only you can fill in – what went wrong and
-what the title and its categories should have been.
+what the title and its categories should have been. **Alternative title** is the one line that
+may stay empty on purpose: fill it in when a *second* title would also be right – the reading
+the row should have offered as a **Switch title** chip, or the one only you can know.
 
 Copy the box, correct it and post it on Discord. It is always as tall as its text and grows as
 you type. Editing the title field above refills it, but anything typed into the box itself is

@@ -325,6 +325,22 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   episode family behind the reduced name is the row's planned prefix round
   (`row_enrichment.md`), never this exact-match lookup. Accepted price: an artist whose name
   ends in digits ("Asa 808") loses its exact match.
+- **A ROOM inside a venue asks about the venue too** (2026-08-19, reported on
+  "Live@Elsewhere Loft July"): `Elsewhere Loft` is no category and never will be, while
+  `Elsewhere` is the club, so behind the `@` the base name is asked NEXT TO the full one
+  (`mdbTitle_venueSpaceBase` + `mdbTitleVenueSpaceWords` in `title_definitions.js`, origin
+  `place base` in the panel's section 3). This is the one reduction that takes a WORD off, so
+  it is fenced twice: only behind the `@`, where the title itself has said these words are the
+  place, and only off a curated list that names a room, a floor or a piece of outdoor ground -
+  never the house itself (`Club`, `Haus`, `Studio`, `Arena` are deliberately not on it, since a
+  venue is named `... Club` far more often than it has a room called one). Still from the RIGHT
+  and still one word, so the rule above holds. The full name stays the FIRST question: a venue
+  really called `... Garden` answers for itself, and the reduction only fires where the wiki
+  answers empty about the name AND knows the base as a venue or an event
+  (`mdbTitle_reducePlaceGroup`, at the single exit so every branch that composes a place group
+  is covered). The word is not lost - it comes back as a "Switch title" chip, and
+  `mdbPageCreator_entityCategory` reduces the name again off the lookup cache, so the page
+  files under the venue whichever reading the title carries.
 - **Only the REPLACED channel name is no candidate** - a channel name a conversion map
   replaces ("Dance TV", "Resident Advisor") is the one name not worth a request: the map
   overrides whatever the wiki would answer for it. The curated show standing in its place
@@ -419,7 +435,7 @@ mirror of this table - keep the two in step):
 | # | Work | Plan file | State |
 | --- | --- | --- | --- |
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
-| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open inside the chip (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
+| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. Since 2026-08-19 the line names EVERY category the page text writes, in its order: the year, the styles, "Promo Mix" and the `Tracklist:` filing ride along as plain grey chips without link or count (verdict `plain`, `mdbPageCreator_plainCategoryNote()`) - they are no name the wiki could spell differently, but leaving them out read as if the page did not get them. An artist or an entity is still required for the line to appear at all. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open inside the chip (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
 | 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, styles at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension, `{{StandardShow*}}` when the duration roughly fits, styles at 90%) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
@@ -473,6 +489,17 @@ renders them. Settled, so it does not get re-litigated:
   it only makes the reading worth offering - on live and studio titles alike, single artist
   only. `expectAlternatives` in `title_examples.js` guards it (kinds that must be present;
   the runner checks presence, not reason wording).
+- **The room word taken off a venue is offered back** (2026-08-19, reported on
+  "Live@Elsewhere Loft July"): the lookup rule above files the page under `Elsewhere` because
+  `Elsewhere Loft` is no category, and the chip offers the room back into the TITLE. It is a
+  reading, not a mistake - the wiki writes the room where it is worth naming
+  (`2019-05-24 - Robert Hood @ Elsewhere Rooftop, NYC`, filed under Elsewhere all the same) -
+  and only the uploader knows whether this set was one of those. Unlike the promo chip this
+  one does NOT move the filing: `mdbPageCreator_entityCategory` runs the same reduction off
+  the lookup cache (`mdbPageCreator_venueOfRoom`), so the page files under the venue either
+  way, which is also what keeps an editor who types the room in by hand out of an empty
+  category. The toggle works on the PLACE the fact names, never on the end of the title: the
+  group can carry a city behind the venue, and the word belongs behind the venue itself.
 - **A chip may never propose a DIFFERENT PAGE, only a different title for this one.** That is
   the line every candidate reading is measured against, and it is what rules out the dropped
   chunks of 1c - "Part 2" above all (dropped again 2026-08-19, second round: it had been built
@@ -497,7 +524,11 @@ Reports come out of the **"Report" box** under the score (`mdbPageCreator_report
 `page_creator.js`), so they arrive with the page URL, the player title, the channel name **as the
 site's API gives it**, the upload date, the suggested title, the score and the categories already
 filled in,
-plus the reporter's "Mistake / learning" and "Expected …" lines. That is exactly the input a case
+plus the reporter's "Mistake / learning", "Expected …" and "Alternative title" lines.
+"Alternative title" (since 2026-08-19) is a SECOND title that would also be right - the reading
+the row should have offered as a "Switch title" chip, or one only the reporter can know
+("Elsewhere Loft" is that club's rooftop). It is the one line that is empty on purpose most of
+the time, and an empty one says there is a single right answer, so it is no reason to ask back. That is exactly the input a case
 needs - do not ask back for any of it when the box was used.
 
 Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`), numbered in the

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.15
+// @version      2026.08.19.17
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_51
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_61
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_62
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -35,7 +35,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 140,
+var cacheVersion = 141,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1836,6 +1836,31 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.17
+ * A place that names the ROOM of a venue now files the page under the VENUE (title_builder.js
+ * v_51, title_definitions.js v_35, page_creator.js v_62). Reported on "Live@Elsewhere Loft
+ * July", which came out as "... @ Elsewhere Loft" - a category MixesDB does not have and never
+ * will, while the club "Elsewhere" is one with 2 mixes on it. Behind the "@" the base name is
+ * now asked about NEXT TO the full one, and where the wiki answers empty about the name while
+ * knowing the base as a venue or an event, the room word comes off: "2026-07 - alexander:louis
+ * @ Elsewhere". Only behind the "@", where the title itself has said these words are the place,
+ * and only off a curated list of words naming a room, a floor or a piece of outdoor ground -
+ * "Club", "Haus", "Studio" and "Arena" are deliberately not on it, since a venue is named
+ * "... Club" far more often than it has a room called one. The room is offered back as a
+ * "Switch title" chip, because MixesDB does write it where it is worth naming
+ * ("2019-05-24 - Robert Hood @ Elsewhere Rooftop, NYC" is filed under Elsewhere all the same) -
+ * and the page files under the venue whichever of the two readings the title carries.
+ * The "Report" box has a new "Alternative title:" line for exactly that kind of second reading.
+ *
+ * 2026.08.19.16
+ * The hints bar's "Used categories" line now names EVERY category the created page is filed
+ * under (page_creator.js v_62, page_creator.css), in the order the page text writes them: the
+ * year, the artists, the show/venue/event - or "Promo Mix" - the styles and the "Tracklist:"
+ * filing. Only the artist and entity names are asked about on MixesDB and keep their green/red
+ * verdict; the rest are plain grey chips with no link and no mix count, since none of them is
+ * a name anyone could have spelled wrong. Reported after reading the line on a promo mix:
+ * "Promo Mix" goes into the page text, so leaving it out of the list read as if it did not.
  *
  * 2026.08.19.15
  * The "Switch title:" line no longer offers a dropped "Part 2" (page_creator.js v_61,

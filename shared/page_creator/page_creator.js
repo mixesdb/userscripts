@@ -1192,13 +1192,16 @@ function mdbPageCreator_confidenceTitle() {
  * Always visible, unlike the report box - these are for the editor who is about to click
  * "Create", not for the one reporting a wrong suggestion.
  *
- * Two lines so far. "Used categories" (row_enrichment.md, additions 1 and 2): the artist and
- * entity categories the page text writes, each a chip answered by the wiki. Green means
- * MixesDB has that category - with its mix count, and the category's recent mix pages behind
- * it where the lookup brought them - red means it has not: a new name, or the name is spelled
- * differently there, and the red name searches MixesDB (the loupe behind it says so), which
- * is the fastest way to tell those two apart. On a desktop-wide window the chips' MixesDB
- * links open in a modal on the page (mdbPageCreator_modalOpen below) rather than a tab.
+ * Two lines so far. "Used categories" (row_enrichment.md, additions 1 and 2): every category
+ * the page text writes, in the order it writes them, each as a chip. The artist and entity
+ * names are the ones answered by the wiki: green means MixesDB has that category - with its
+ * mix count, and the category's recent mix pages behind it where the lookup brought them -
+ * red means it has not: a new name, or the name is spelled differently there, and the red
+ * name searches MixesDB (the loupe behind it says so), which is the fastest way to tell those
+ * two apart. On a desktop-wide window the chips' MixesDB links open in a modal on the page
+ * (mdbPageCreator_modalOpen below) rather than a tab. The year, the styles, "Promo Mix" and
+ * the "Tracklist:" filing are grey chips without link or count - nothing about them is a
+ * spelling anyone could have got wrong, but the page gets them and the line says so.
  *
  * "Switch title" under it: the readings the build decided AGAINST - a guessed "(Live PA)", an
  * assumed "(Promo Mix)", a dropped "Part 2" - each as the full title it would make, one click
@@ -1268,25 +1271,39 @@ function mdbPageCreator_renderHints( wrapper ) {
 }
 
 // mdbPageCreator_usedCategoriesHint
-// "Used categories: Dave Huismans, Horst Festival (Search)" - the artist and entity categories
-// of the page text, each in the colour of the wiki's answer about it.
+// "Used categories: 2026, Dave Huismans, Horst Festival (Search), House, Tracklist: partly" -
+// EVERY category the page text writes, in the order it writes them
+// (mdbPageCreator_categoryEntries), so the line answers the question its label asks: which
+// categories does the created page end up in?
 //
-// Only those two roles: the year category always exists, the styles are the editor's own call
-// and the "Tracklist:" filing is the API's - none of them is a name anyone could have spelled
-// wrong, which is the whole question this line answers. "Promo Mix" is left out for the same
-// reason, and is already named under the "Create" link (mdbPageCreator_syncPromoNote).
+// Two kinds of chip. The artist and the entity name are the ones the wiki could spell
+// differently, so they carry the verdict colours, the category link and the mix count. The
+// year, the styles, "Promo Mix" and the "Tracklist:" filing are nobody's spelling - the year
+// category always exists, the styles are the editor's own call, the last two are ours - so
+// they are plain grey chips: no link, no count, nothing to look up. They used to be left out
+// entirely, which read as if the page did not get them at all - "Promo Mix" missing from
+// "Used categories" while the page text writes it was the report (2026-08-19).
+//
+// The line still needs an artist or an entity to appear at all: a title that names neither has
+// nothing worth saying here, and a bar holding only the year and "Tracklist: none" would be
+// noise on every row.
 function mdbPageCreator_usedCategoriesHint( title ) {
     var entries = mdbPageCreator_categoryEntries( title ),
         wanted = [],
+        named = false,
         i;
 
     for( i = 0; i < entries.length; i++ ) {
-        if( entries[i].name && ( entries[i].role === "artist" || entries[i].role === "entity" ) ) {
-            wanted.push( entries[i] );
-        }
+        // the empty style slots are shape, not categories - the page text writes them as the
+        // two blank rows an editor fills in, and there is no name to show
+        if( !entries[i].name ) continue;
+
+        wanted.push( entries[i] );
+
+        if( entries[i].role === "artist" || entries[i].role === "entity" ) named = true;
     }
 
-    if( !wanted.length ) {
+    if( !named ) {
         mdbPageCreator_logHints( "(no artist or entity category)" );
         return null;
     }
@@ -1332,22 +1349,44 @@ function mdbPageCreator_logHints( summary ) {
 
 // mdbPageCreator_usedCategoryState
 // What the wiki says about one category name, as data - so the markup below and the log line
-// above can never tell two different stories about the same name. One of three verdicts:
+// above can never tell two different stories about the same name. One of four verdicts:
 //
 // - known    MixesDB has the category; .match carries its own spelling, type and mix count
 // - missing  MixesDB was asked and has no such category
 // - unknown  MixesDB has not been asked (yet) - no answer either way
+// - plain    not a name the wiki is asked about at all - the year, a style, "Promo Mix", the
+//            "Tracklist:" filing. There is no verdict to have about these, only the fact that
+//            the page gets them.
 //
 // Read the same way the reasoning panel's category rows read it, off the same cache, so the
 // two can never contradict each other: an artist has to be known AS an artist, an entity as
 // anything at all ("fabric" is a venue, and that answers the entity slot).
 function mdbPageCreator_usedCategoryState( entry ) {
+    if( entry.role !== "artist" && entry.role !== "entity" ) return { verdict: "plain", match: null };
+
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
         match = mdbTitle_knownMatch( cache, entry.name, entry.role === "artist" ? [ "artist" ] : null );
 
     if( match ) return { verdict: "known", match: match };
 
     return { verdict: mdbPageCreator_categoryUnanswered( entry.name ) ? "unknown" : "missing", match: null };
+}
+
+// mdbPageCreator_plainCategoryNote
+// The tooltip of a plain chip - why this one is grey while the name next to it is a link. Each
+// role says what decided the category, since that is what the reader is really asking when a
+// chip does not answer to a click.
+function mdbPageCreator_plainCategoryNote( entry ) {
+    if( entry.role === "year" ) return "The year of the mix date - every year category exists on MixesDB.";
+    if( entry.role === "promo" ) return "A self-released mix is filed under Promo Mix - our own filing, not a name read off the title.";
+    if( entry.role === "tracklist" ) return "How the tracklist is filed - the Tracklist Editor API's answer about the box, not a name to look up.";
+    if( entry.role === "style" ) {
+        return entry.source === "recent"
+            ? "A style category, learned from the recent mix pages of this series (" + entry.count + " of " + entry.n + ") - the editor's call in the end."
+            : "A style category - the editor's call, not a name read off the title.";
+    }
+
+    return "This category goes on the page as it stands - nothing to look up on MixesDB.";
 }
 
 // mdbPageCreator_usedCategory
@@ -1363,6 +1402,9 @@ function mdbPageCreator_usedCategoryState( entry ) {
 //            new or misspelled, and only a look at what MixesDB does have under that name
 //            tells which.
 // - unknown  grey. Never red: a name nobody asked about is not a name the wiki denied.
+// - plain    muted grey, no link, no count - the year, the styles, "Promo Mix", the
+//            "Tracklist:" filing. They are on the page like the others, but there is no wiki
+//            answer behind them, and a link would promise one.
 function mdbPageCreator_usedCategory( entry, state ) {
     var out = $("<span>").addClass( "mdb-pageCreator-usedCat" );
 
@@ -1395,6 +1437,17 @@ function mdbPageCreator_usedCategory( entry, state ) {
         mdbPageCreator_usedCatMixes( out, entry, state.match );
 
         return out;
+    }
+
+    if( state.verdict === "plain" ) {
+        // no link and no count on purpose: there is no wiki answer behind these names, and a
+        // link would promise one. Grey says exactly that - the page gets the category, and
+        // that is the whole of it.
+        return out.addClass( "mdb-pageCreator-usedCat-plain" ).append(
+            $("<span>")
+                .attr( "title", mdbPageCreator_plainCategoryNote( entry ) )
+                .text( entry.name )
+        );
     }
 
     if( state.verdict === "unknown" ) {

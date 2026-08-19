@@ -900,7 +900,7 @@
 }
 
 /*
- * The three states of a category name. Written with the wrapper's ID in front of the link ones
+ * The states of a category name. Written with the wrapper's ID in front of the link ones
  * for the same reason as "Report", "Create" and the panel's confirmed names above: these are
  * <a>s, and the sites style their <a>s hard enough to beat a single class - SoundCloud paints
  * ours blue and underlines them. :visited is spelled out for the same reason the panel spells
@@ -946,6 +946,21 @@
    this name */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-unknown > span {
     color: #e0e0e0;
+    cursor: help;
+}
+
+/*
+ * A category with no wiki answer behind it - the year, a style, "Promo Mix", the "Tracklist:"
+ * filing. Muted grey and a dimmer border than the rest: they are on the page like the green
+ * and red names next to them, but nothing about them is a question, so they must not draw the
+ * eye away from the two names that are. No link and no count in the markup either.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-plain {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-plain > span {
+    color: #8b8b8b;
     cursor: help;
 }
 
