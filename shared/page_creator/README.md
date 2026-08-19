@@ -370,10 +370,13 @@ ends up used.
   the siblings are left out of that count, and the line says how many), whether the file details
   are the dur table or a `{{StandardShow…}}` template (the template is only written when this
   file's duration roughly fits its stated length – a 40-minute file on a 2h show is a hint the
-  category was misread), whether the pages carry a **Notes** section – and, as a line of its
+  category was misread), whether the pages use a `{{Player|mode=mirrors}}` with a line per
+  platform (with the platform order those pages keep, and which line this player's URL lands
+  on), whether the pages carry a **Notes** section – and, as a line of its
   own, which site those Notes link (`10 of the 10 newest pages link to groove.de (e.g. …)`) and
-  whether this player's description names a page on it, so it is clear whether an empty Notes
-  line means the series links nothing or only that this description did not –
+  where a page on it was found – the description, the **Buy** field, or behind a shortened link
+  that had to be followed – so it is clear whether an empty Notes line means the series links
+  nothing or only that this player named nothing –
   and which categories at least 90% of the pages share. That last one is
   **reported, never written**: the vote answers what those pages have in common, which is not
   the same question as what this mix sounds like. `Category:Undercurrent`'s newest pages carry
@@ -408,15 +411,24 @@ Opens the edit form of the new page, prefilled with:
 - the **File details** table (duration and what else the site gave away) – or the series'
   `{{StandardShow…}}` template instead, where that is the house style on the recent pages and
   this file's duration roughly fits it
-- the `{{Player}}` with the player URL as MixesDB embeds it
+- the `{{Player}}` with the player URL as MixesDB embeds it. Where the entity's recent pages
+  publish every episode on two platforms – `{{Player|mode=mirrors}}` with a line per platform,
+  as Groove Podcast, HATE Podcast, RA Podcast and XLR8R Podcast do – the new page gets that
+  shape, with this player's URL on the line its platform stands on there and **the other line
+  empty** for the mirror. MixesDB shows *"No value for one of the players!"* instead of a
+  player until that line is filled in or deleted, so a page cannot go out with the mirror
+  quietly missing. Series that use the plain one-URL player, and categories whose pages do not
+  agree, keep the plain one
 - an empty **Notes** section above the tracklist, where the entity's recent pages carry one –
   the place the link to the episode's own page goes, kept free so it does not have to be typed
-  first. Where those Notes all link the same site and the description names a page on it, that
-  link is already filled in. On SoundCloud a **shortened link is followed** to get there:
-  Groove Podcast writes "Go to bit.ly/… for track list" instead of the `groove.de` address its
-  pages carry, and that is where the address comes from. Only a link that really leads to the
-  site those Notes use is written – anywhere else and the line stays empty, and a URL is never
-  built out of the title. Series that use no Notes section get none
+  first. Where those Notes all link the same site, that link is filled in – looked for both in
+  the description and in the player's **Buy / Free download** field, which is often where the
+  episode's page is linked on a track whose description says nothing. On SoundCloud a
+  **shortened link is followed** to get there: Groove Podcast writes "Go to bit.ly/… for track
+  list" instead of the `groove.de` address its pages carry, and that is where the address comes
+  from. Only a link that really leads to the site those Notes use is written – anywhere else
+  and the line stays empty, and a URL is never built out of the title. Series that use no Notes
+  section get none
 - the categories the title gives away (year, artists, the entity the page is filed under)
 - the style categories, where the site suggests any (TrackId.net's style suggestions box) –
   otherwise two empty category rows to fill in. What the entity's recent pages share is offered
@@ -542,6 +554,11 @@ placeholder only holds the space below it.
   lowercase (`stbr-Reservoir`): the capital behind the dash is what tells such a separator from
   a hyphen inside a word, and without it the tracklist would be cut in the wrong place more
   often than not.
+- The mirrors `{{Player}}` can only ever be written half-filled: a player page knows its own
+  URL, never the mirror's. And the shape is only copied where at least 90% of the recent pages
+  agree on it – Boiler Room really does publish every set on YouTube and SoundCloud, but two of
+  its ten newest pages carry only one of the two, so a page created there keeps the plain
+  player.
 - Shortened **Notes** links are only followed on SoundCloud, and only for the handful of
   shorteners the script knows (`bit.ly`, `tinyurl.com`, `t.co` and a few more). On TrackId.net
   they are not followed at all – the script would need a permission it deliberately does not
@@ -572,9 +589,11 @@ placeholder only holds the space below it.
    (`Trommel.234` vs `HATE Podcast 498` vs `RA Podcast (RA.1051)`, zero-padding included), the
    name's spelling as the titles write it, the city behind a venue or festival, the leading
    `[[File:…|right|360px]]` artwork line where the series opens with one, `{{StandardShow2h}}`
-   instead of the file details table where that is the house style, and an empty **Notes**
+   instead of the file details table where that is the house style, an empty **Notes**
    section where the series keeps one – with the episode's own page link already in it where
-   the description names it. A category at least 90% of
+   the description names it – and the `{{Player|mode=mirrors}}` of a series that publishes
+   every episode on two platforms, with the line for the second one left empty.
+   A category at least 90% of
    the recent episodes share is shown as a **Hints** chip and never written onto the page –
    what those pages have in common is not what this mix sounds like. Two new reasoning panel
    sections show what was read and what it changed. `Category:Promo Mix` is exempt – it

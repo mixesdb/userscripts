@@ -115,6 +115,24 @@ function fixScRedirectUrl( url ) {
     return url;
 }
 
+// scPurchaseUrl
+// The "Buy" / "Free download" URL as it really points, with the gate.sc wrapper taken off where
+// SoundCloud put one on. Guarded rather than applied blindly: fixScRedirectUrl() ends in
+// decodeURIComponent(), which throws on a stray "%" in a URL that was never wrapped.
+// Two callers want the same string - the button in the track header, and the page creator,
+// which searches this field for the created page's Notes link. The wrapper hides the host from
+// both, and a gate.sc URL carrying a bit.ly cannot be recognised as a shortened link at all.
+//
+// "[/?]" and not "/": SoundCloud writes the wrapper WITHOUT the slash now
+// (https://gate.sc?url=http%3A%2F%2Fbit.ly%2FBRCPod&token=...), and the older form with it is
+// still what fixScRedirectUrl's own example shows. The slash-only test that stood here
+// silently let today's form through unwrapped.
+function scPurchaseUrl( url ) {
+    url = String( url || "" );
+
+    return /^https?:\/\/gate\.sc[\/?]/.test( url ) ? fixScRedirectUrl( url ) : url;
+}
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *

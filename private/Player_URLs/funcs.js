@@ -199,6 +199,12 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
         lines.forEach(function( line ) {
             if( playerUrlValue( line ) ) {
                 urlLines.push( line );
+            } else if( /^\s*\|\s*(?:\d+=)?\s*$/.test( line ) ) {
+                // An empty URL line is the page creator's placeholder for a mirror nobody has
+                // filled in yet (shared/page_creator, signal E) - and the URL being added here
+                // IS that mirror, so the line is dropped rather than carried to the end of the
+                // template. Left standing it would be parameter 1 again once the lines are
+                // numbered, and overwrite the first player.
             } else {
                 footerLines.push( line );
             }
