@@ -919,8 +919,8 @@
 /*
  * One category as a chip: the reasoning panel's chip look (monospace, hairline border, pill
  * radius - .mdb-pageCreator-chip above) coloured by the VERDICT, but with no fill: the bar is
- * on screen the whole time, and a row of filled chips shouted. max-width keeps a chip that
- * folded its recent mixes out inside the bar.
+ * on screen the whole time, and a row of filled chips shouted. max-width keeps an overlong
+ * name inside the bar (the folded-out list no longer grows the chip - see the open rules).
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat {
     max-width: 100%;
@@ -1038,32 +1038,61 @@
 }
 
 /*
- * The recent mix pages, folded out INSIDE the chip: the chip trades its pill radius for a
- * rounder box and the list sits under a hairline in the chip's own green, so chip and list
- * read as ONE bordered thing - which they are. Hidden by the chip's open class rather than
- * jQuery's toggle: the bar is rebuilt whole on every render, and the class is what
- * mdbPageCreator_openUsedCatRecent restores.
+ * The chip whose mix pages are folded out - the TOP half of the toggle. It keeps its pill
+ * width and, to the pixel, its height: the list takes no part in the line any more (next
+ * rule), so opening a chip moves NOTHING - not the chips behind it, not the line, not the
+ * bar. It used to fold the list out inside itself, which made it as wide as the longest mix
+ * title and pushed everything sharing its line around (reported 2026-08-19); a full-width row
+ * under the line kept the chips still but tore chip and list into two unrelated things. This
+ * is the third cut: two connected parts.
  *
- * Only ONE chip is ever open - mdbPageCreator_usedCatMixes folds the others shut on the click,
- * rather than this rule keeping the line straight. Two open boxes at once left the pills that
- * shared a line with them hanging in mid-air beside a tall box ("2026" next to one list,
- * "Tracklist: none" next to the next), and giving an open box a line of its own fixed that but
- * tore the pill line into pieces around it (reported 2026-08-19). One at a time keeps the box
- * where the chip stands, and the line stays a line.
+ * What changes on the chip is only its shape: the bottom corners square off (12px matches the
+ * arc its 999px pill computes to at this height) and the bottom border turns transparent, so
+ * it stands on the list box below as a tab - the box's top border shows through in the very
+ * row the chip's own border occupied, and that shared line between name and list is the same
+ * hairline the list carried when it still sat inside. Transparent rather than none: a removed
+ * border would make the chip 1px shorter, and the line must not feel a thing.
+ *
+ * Only ONE chip is ever open - mdbPageCreator_usedCatMixes folds the others shut on the
+ * click - so only one box ever hangs under the line.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open {
-    border-radius: 12px;
+    /* the box below hangs off the chip; the z-index lifts chip and box (its child) over the
+       bar's other rows and whatever follows the bar - far below the modal's 2147483000 */
+    position: relative;
+    z-index: 100;
+    border-radius: 12px 12px 0 0;
+    border-bottom-color: transparent;
 }
 
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent {
     display: none;
 }
 
+/*
+ * The list as the BOTTOM half: a box of its own hung under the chip, absolute, so it takes no
+ * room in the bar - it lies OVER whatever follows (the "Hints:" row, the report box, the page)
+ * until it is folded shut, which is why it needs the opaque background. Connected to the chip
+ * on every edge that meets it: outer left edges aligned (offsets count from the chip's PADDING
+ * box, so the -1px and the +2px are its border width, once and twice), the top border laid
+ * into the chip's transparent bottom-border row, the top-left corner square where the chip
+ * stands on it. Otherwise as wide as its longest mix title asks, up to a cap
+ * that keeps a long title wrapping instead of walking off the window. Monospace and colours
+ * are inherited: in the markup the list never left the chip.
+ */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
     display: block;
-    margin-top: 4px;
-    padding-top: 5px;
-    border-top: 1px solid rgba(46, 184, 46, 0.25);
+    position: absolute;
+    top: 100%;
+    left: -1px;
+    box-sizing: border-box;
+    min-width: calc(100% + 2px);
+    width: max-content;
+    max-width: min(920px, 85vw);
+    padding: 4px 9px 6px;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(46, 184, 46, 0.35);
+    border-radius: 0 12px 12px 12px;
 }
 
 /* one mix page per line - the ordinary link blue: these are pages, not verdicts */

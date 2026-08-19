@@ -1714,7 +1714,9 @@ function mdbPageCreator_usedCatLoupe() {
 // mdbPageCreator_usedCatMixes
 // The "N mixes" behind a confirmed name - the same count the reasoning panel writes behind
 // its matches, and ALWAYS the toggle for the category's recent mix pages, which fold out
-// under the name, inside the chip: the fastest "does this page already exist?" look there is
+// under the name, in a box attached below the chip - the list stays the chip's CHILD, only
+// page_creator.css hangs it out of the line, so an open chip keeps its exact size and the
+// chips behind it stay put: the fastest "does this page already exist?" look there is
 // (row_enrichment.md §2). The toggle is offered whether or not the pages are on hand yet.
 // The lookup answer usually brings them (mdbnames ships "recent" for every type since
 // 2026-08-19), but a name typed into the title field can be answered before its pages are,
