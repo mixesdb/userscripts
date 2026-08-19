@@ -154,9 +154,9 @@ asked about, one chip per name, its colour saying whether the wiki already has i
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. The pages behind the links on screen are prefetched, and opening
-the modal warms every page its arrow keys can reach, so the first page and every step after it
-are usually there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+serve is a five-second one. Nothing is fetched from MixesDB before a modal is actually opened;
+opening one then warms every page its arrow keys can reach, so the first page takes as long as
+a page takes and every step after it is there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 
@@ -167,8 +167,12 @@ on screen – a chip whose mix pages are not folded out is one step, not eleven 
 line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) in
 its middle and carries the same two arrows as buttons; at either end of the line the arrow
 greys out, since the walk does not wrap around. The header names nothing else – which page is
-framed is the framed page's own headline to say. The line is re-read on every step, so a category answer that
-lands while the modal is open is part of the walk from the next key on.
+framed is the framed page's own headline to say. The line is re-read on every step, so a
+category answer that lands while the modal is open is part of the walk from the next key on.
+
+While the modal is up the arrow keys belong to it alone: a track playing under the overlay is
+no longer skipped forward and backward along with the walk, and the page behind does not scroll
+sideways either. Closing the modal hands the keys straight back to the site.
 
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
 files it as, since a podcast, a show, a venue and a festival can all stand in that slot.
