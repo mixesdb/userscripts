@@ -115,11 +115,47 @@
 > Festival` (1/10); `In The Mix` abstains at 4/10, which is right - four of its pages link
 > `liebrand.nl` and six do not, and the wiki itself is undecided there.
 >
-> Groove Podcast is the case that shows why the empty line is the feature: its Notes all link
-> `groove.de`, and its own SoundCloud descriptions link a `bit.ly` shortener instead
-> ("Go to bit.ly/DazePod for track list and short interview"), so nothing is found and the
-> section is written empty - which is exactly what it is for. Following the shortener is not
-> our business: it is a request per page to a redirector, on a guess about what it points at.
+> Groove Podcast is the case the empty line was written for: its Notes all link `groove.de`,
+> while its own SoundCloud descriptions link a `bit.ly` shortener instead ("Go to bit.ly/DazePod
+> for track list and short interview"), so the direct search finds nothing.
+
+> **Delta added 2026-08-19, same day: the shortener IS followed, on SoundCloud.** The paragraph
+> above used to end "following the shortener is not our business" - and it is, because
+> `bit.ly/BRCPod` is a plain 301 to
+> `https://groove.de/2026/08/19/groove-podcast-514-black-rave-culture/`, which is the exact line
+> that belongs in that page's Notes. Every Groove episode is written this way, so refusing the
+> redirect meant refusing the feature on the one series that motivated it.
+>
+> **It cannot be done with `$.ajax`.** Verified against bit.ly with an `Origin:
+> https://soundcloud.com` header on 2026-08-19: the 301 carries no `Access-Control-Allow-Origin`,
+> so a cors request is blocked before the redirect is followed and a no-cors one comes back
+> opaque with `finalUrl` unreadable. It takes `GM_xmlhttpRequest`, which is a grant of the SITE
+> script - so `page_creator.js` never calls one. The ability is handed in as an option,
+> `mdbPageCreator_add({ followRedirect: fn })`, and a site that passes none simply keeps the
+> empty section. Only SoundCloud passes one (`scFollowRedirect()` in its `script.funcs.js`);
+> TrackId.net deliberately does not, because it ships with no `@grant` line at all and adding
+> one would move it into Tampermonkey's sandbox for this.
+>
+> `method: "HEAD"`, `redirect: "manual"`, `anonymous: true`. Manual because the `Location`
+> header is the whole answer: the target is never fetched, so no page view is counted on
+> groove.de and `@connect` stays a list of shortener hosts - Tampermonkey checks redirect
+> TARGETS against `@connect` too, and the target is by definition not known in advance. A
+> manager that ignores the option follows anyway and answers `finalUrl`, which is read as the
+> fallback. Anonymous because a redirector has no business seeing the reader's cookies.
+>
+> **The answer is a candidate, not a result.** It goes through `mdbPageCreator_notesUrlIn()` -
+> the same host-and-path-length rule the description is searched with - so a shortener pointing
+> anywhere but the host the siblings link writes nothing. That is what makes following a
+> stranger's redirect safe: it is not trusted, it is checked against what the wiki already said.
+>
+> Four gates before a request is made at all (`mdbPageCreator_notesEnsureResolved()`): a
+> resolver was handed over, the series links a host, the description does not already name that
+> host, and it holds a link on a KNOWN shortener (`mdbPageCreator_notesShorteners` - true
+> redirectors only; a `linktr.ee` is a landing page with many links and would answer with
+> itself). On the tracks that pass all four it is one HEAD per player page; on everything else
+> it is nothing. It runs from the settle paths, never from a render - and unlike
+> `mdbPageCreator_recentSettled()` it does carry the page generation, since the answer is
+> per-track state and a late one would land on the next mix.
 
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already

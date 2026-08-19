@@ -684,3 +684,80 @@ function resetAll() {
     attachIO();
     refreshVisible();
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Following a shortened link
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// scFollowRedirect
+// Follows ONE redirect and hands the target to done(), or "" where there is none. Handed to
+// the page creator as its followRedirect option, and asked for exactly one thing: the
+// episode's real page behind the shortened link uploaders write instead of it ("Go to
+// bit.ly/BRCPod for track list and short interview" - a 301 to the groove.de page that belongs
+// in the new page's Notes section).
+//
+// It cannot be done with $.ajax/fetch, and not for want of trying: bit.ly's 301 carries no
+// Access-Control-Allow-Origin, so a cors request is blocked before the redirect is followed
+// and a no-cors one comes back opaque, with finalUrl unreadable. GM_xmlhttpRequest is not
+// subject to CORS, which is why this file is where it lives - only SoundCloud @require's it,
+// and only SoundCloud grants it. TrackId.net stays on its grant-free header.
+//
+// redirect: "manual" on purpose - the Location header is the whole answer, and stopping at it
+// means the target is never actually fetched: no page view counted there, and @connect stays a
+// list of shortener hosts (Tampermonkey checks redirect TARGETS against it too, and the target
+// is by definition not known in advance). Managers that do not know the option follow anyway
+// and answer with finalUrl, which is read as the fallback.
+//
+// anonymous: true - a redirector has no business seeing the reader's cookies.
+//
+// Whatever comes back is only a candidate: the page creator writes it only if it lands on the
+// host the series' own Notes sections link (mdbPageCreator_notesUrlIn).
+function scFollowRedirect( url, done ) {
+    logFunc( "scFollowRedirect" );
+
+    if( typeof GM_xmlhttpRequest !== "function" ) {
+        log( "scFollowRedirect: this userscript manager grants no GM_xmlhttpRequest - not following " + url );
+        done( "" );
+        return;
+    }
+
+    // one answer only: a manager that fires both onload and ontimeout would otherwise re-render
+    // the row twice, the second time with the empty answer
+    var answered = false,
+        answer = function( target ) {
+            if( answered ) return;
+
+            answered = true;
+            done( target || "" );
+        };
+
+    GM_xmlhttpRequest({
+        method: "HEAD",
+        url: url,
+        redirect: "manual",
+        anonymous: true,
+        timeout: 8000,
+        onload: function( res ) {
+            var headers = String( ( res && res.responseHeaders ) || "" ),
+                location = /^[ \t]*location[ \t]*:[ \t]*(\S+)[ \t]*$/im.exec( headers );
+
+            if( location ) {
+                answer( location[1] );
+                return;
+            }
+
+            // the manager followed the redirect itself - then the URL it ended on IS the answer
+            answer( ( res && res.finalUrl && res.finalUrl !== url ) ? res.finalUrl : "" );
+        },
+        onerror: function() {
+            log( "scFollowRedirect: FAILED for " + url );
+            answer( "" );
+        },
+        ontimeout: function() {
+            log( "scFollowRedirect: timed out for " + url );
+            answer( "" );
+        }
+    });
+}

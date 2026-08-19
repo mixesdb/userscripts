@@ -77,6 +77,17 @@ log( "/shared/page_creator/page_creator.js loaded" );
  * which otherwise stay the two empty rows the editor fills by hand. Read at click time too,
  * so corrections typed into the box ride along.
  *
+ * A site whose script may follow a redirect hands that ability over as a function:
+ *
+ *     followRedirect: function( url, done ) { ... done( targetUrl || "" ); }
+ *
+ * Only the "== Notes ==" section asks for it, and only where the series' pages link an
+ * episode page while the description holds a SHORTENED link to it instead ("Go to
+ * bit.ly/BRCPod ..."). It cannot live in here: no fetch() can read such a redirect (a
+ * shortener's 301 sends no Access-Control-Allow-Origin), so it takes GM_xmlhttpRequest, which
+ * is a grant of the site script. A site that passes nothing simply never resolves one, and
+ * the section is written empty - which is what it does today.
+ *
  * target is best given as a SELECTOR STRING: these sites re-render under the script's feet,
  * and a string is looked up again on every render, where a captured jQuery object would be a
  * detached node by then. A jQuery object or a DOM element is accepted too.
@@ -113,6 +124,18 @@ var mdbPageCreator_title = "",
     // same link into the description, and mdbPageCreator_recentNotesUrl() goes looking for it
     // at click time. Not the tracklist's copy - that one has had @handles resolved in it.
     mdbPageCreator_description = "",
+    // The site script's "follow one redirect" helper (the followRedirect option), or null
+    // where the site hands none over. Only the Notes section uses it, and only for a shortened
+    // link - see mdbPageCreator_notesEnsureResolved(). Kept as an option rather than called
+    // directly because following a redirect needs GM_xmlhttpRequest, which is a grant of the
+    // SITE script; nothing in here may depend on one.
+    mdbPageCreator_followRedirect = null,
+    // What that resolve is doing for THIS track: the shortened URL already asked about, the
+    // answer, and whether the answer is in (so the panel can tell "still following" from
+    // "followed, and it leads somewhere else"). Per track, so reset on every navigation.
+    mdbPageCreator_notesAsked = "",
+    mdbPageCreator_notesResolved = "",
+    mdbPageCreator_notesResolveDone = false,
     // What the site handed over, kept as it came in - the "Report" box quotes it back
     // unchanged, since a report is only worth anything if it names the INPUT the suggestion was
     // built from. Nothing else reads these.
@@ -233,6 +256,7 @@ function mdbPageCreator_add( options ) {
     if( o.placement ) mdbPageCreator_placement = o.placement;
     if( o.tracklistBox ) mdbPageCreator_tracklistBoxSite = o.tracklistBox;
     if( o.stylesBox ) mdbPageCreator_stylesBoxSite = o.stylesBox;
+    if( o.followRedirect ) mdbPageCreator_followRedirect = o.followRedirect;
 
     logVar( "mdbPageCreator_add: title", playerTitle );
     logVar( "mdbPageCreator_add: channel", channel );
@@ -2353,6 +2377,13 @@ function mdbPageCreator_recentEnsureFor( title ) {
 
     info.entry = mdbPageCreator_recentAnalysisCache[ key ];
 
+    // The one place a title is known to have settled on a category, which is what the Notes
+    // resolve waits for - the fetch's settle path reaches here through
+    // mdbPageCreator_applyRecentToSuggestion(), the debounced edit path calls this directly,
+    // and a series opened a second time (cache hit, no settle at all) still comes past.
+    // Idempotent: everything is gated and a URL already asked about is not asked twice.
+    mdbPageCreator_notesEnsureResolved();
+
     return info;
 }
 
@@ -2899,26 +2930,30 @@ var mdbPageCreator_notesUrlRe = /(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*(?
 // ones (a "/p/12345" would sit just under it).
 var mdbPageCreator_notesUrlMinPath = 10;
 
-// mdbPageCreator_recentNotesUrl
-// The URL the new page's "== Notes ==" section starts with, or "" for an empty line. The
-// siblings say WHICH host to look for - "the episode's own page on groove.de" is knowledge
-// only their Notes sections carry - and this description is searched for a link on it.
-//
-// Never a guess: a URL is written only when it stands in the description verbatim. Groove
-// Podcast's own descriptions link a bit.ly shortener rather than groove.de, so the section is
-// written empty there and the editor fills it - which is what it is for.
-function mdbPageCreator_recentNotesUrl( findings ) {
-    var host = ( findings && findings.notesHost && findings.notesHost.value ) || "";
+// mdbPageCreator_notesShorteners
+// Link shorteners worth following for the Notes section. Only true redirectors belong here -
+// a linktr.ee or a smarturl.it is a landing page with many links on it, so following one
+// answers with itself and costs a request for nothing. Kept in step with the @connect lines
+// of the site script that hands over followRedirect: a host missing there costs the reader a
+// permission dialog, a host missing here is never followed at all. Meant to grow from reports.
+var mdbPageCreator_notesShorteners = [ "bit.ly", "tinyurl.com", "t.co", "ow.ly", "buff.ly",
+                                       "rb.gy", "is.gd", "cutt.ly", "shorturl.at" ];
 
-    if( !host || host === "none" ) return "";
+// mdbPageCreator_notesUrlIn
+// The first URL in a text that stands on host and carries enough path to be an episode page,
+// or "". The one rule the Notes link is decided by, so it is asked of BOTH texts it can come
+// from: the description, and whatever a shortener resolved to. On the second that makes it the
+// validation - a shortener pointing anywhere but the host the siblings link answers "" here
+// and nothing is written.
+function mdbPageCreator_notesUrlIn( text, host ) {
+    var m;
 
-    var text = String( mdbPageCreator_description || "" ),
-        m;
+    if( !text || !host ) return "";
 
     // a global regex keeps lastIndex between calls - and this one is called on every render
     mdbPageCreator_notesUrlRe.lastIndex = 0;
 
-    while( ( m = mdbPageCreator_notesUrlRe.exec( text ) ) ) {
+    while( ( m = mdbPageCreator_notesUrlRe.exec( String( text ) ) ) ) {
         if( m[1].toLowerCase() !== host ) continue;
 
         // running text glues the sentence's own punctuation onto the URL
@@ -2926,14 +2961,106 @@ function mdbPageCreator_recentNotesUrl( findings ) {
 
         if( path.length < mdbPageCreator_notesUrlMinPath ) continue;
 
-        // the host as the description writes it (scheme and "www." included), so only the
-        // scheme is ever added
+        // the host as the text writes it (scheme and "www." included), so only the scheme is
+        // ever added
         var written = m[0].slice( 0, m[0].length - String( m[2] || "" ).length );
 
         return ( /^https?:\/\//i.test( written ) ? "" : "https://" ) + written + path;
     }
 
     return "";
+}
+
+// mdbPageCreator_notesShortenerUrl
+// The first shortened link in the description, normalized to https, or "". What
+// mdbPageCreator_notesEnsureResolved() offers the site's followRedirect - never written
+// anywhere itself: a bit.ly address on a mix page rots the day the shortener does.
+function mdbPageCreator_notesShortenerUrl() {
+    var m;
+
+    mdbPageCreator_notesUrlRe.lastIndex = 0;
+
+    while( ( m = mdbPageCreator_notesUrlRe.exec( String( mdbPageCreator_description || "" ) ) ) ) {
+        var host = m[1].toLowerCase();
+
+        if( mdbPageCreator_notesShorteners.indexOf( host ) === -1 ) continue;
+
+        var path = String( m[2] || "" ).replace( /[.,;:!?)\]]+$/, "" );
+
+        // "bit.ly/" with nothing behind it is not a link to anywhere
+        if( path.length < 2 ) continue;
+
+        return "https://" + host + path;
+    }
+
+    return "";
+}
+
+// mdbPageCreator_notesEnsureResolved
+// Follows the description's shortened link where that is the only way to the episode's page.
+// Called from mdbPageCreator_recentEnsureFor() and nowhere else - a settle path, never a
+// render, since it starts a request.
+//
+// Four gates before anything is requested, so the usual track costs nothing: the site has to
+// have handed over a resolver, the series has to link a host at all, the description must not
+// already name that host outright, and it has to hold a shortened link. On the tracks that
+// pass, that is one HEAD request per player page.
+function mdbPageCreator_notesEnsureResolved() {
+    if( typeof mdbPageCreator_followRedirect !== "function" ) return;
+
+    var info = mdbPageCreator_recentAnalysisFor( mdbPageCreator_title ),
+        findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
+        host = ( findings && findings.notesHost && findings.notesHost.value ) || "";
+
+    if( !host || host === "none" ) return;
+    if( mdbPageCreator_notesUrlIn( mdbPageCreator_description, host ) ) return;
+
+    var shortUrl = mdbPageCreator_notesShortenerUrl();
+
+    if( !shortUrl || shortUrl === mdbPageCreator_notesAsked ) return;
+
+    // the three move together: an answer still standing while a DIFFERENT link is being
+    // followed would be read as that link's
+    mdbPageCreator_notesAsked = shortUrl;
+    mdbPageCreator_notesResolved = "";
+    mdbPageCreator_notesResolveDone = false;
+
+    logVar( "mdbPageCreator_notesEnsureResolved: following", shortUrl + " (looking for " + host + ")" );
+
+    // Unlike mdbPageCreator_recentSettled this one DOES need the page generation: the answer is
+    // written into per-track state, so one landing after the reader moved on would put the
+    // previous track's link into the next track's Notes.
+    var pageGeneration = mdbPageGeneration;
+
+    mdbPageCreator_followRedirect( shortUrl, function( target ) {
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+        mdbPageCreator_notesResolved = String( target || "" );
+        mdbPageCreator_notesResolveDone = true;
+
+        logVar( "mdbPageCreator_notesEnsureResolved: followed", shortUrl + " -> " + ( mdbPageCreator_notesResolved || "(nothing)" ) );
+
+        mdbPageCreator_render();
+    });
+}
+
+// mdbPageCreator_recentNotesUrl
+// The URL the new page's "== Notes ==" section starts with, or "" for an empty line. The
+// siblings say WHICH host to look for - "the episode's own page on groove.de" is knowledge
+// only their Notes sections carry - and the description is searched for a link on it.
+//
+// Never a guess: a URL is written only where one really leads to that host, either because the
+// description names it or because a shortened link in it resolved there
+// (mdbPageCreator_notesEnsureResolved). Groove Podcast is the case that needs the second half:
+// its descriptions write "Go to bit.ly/BRCPod for track list", and bit.ly/BRCPod is a 301 to
+// the groove.de page that belongs in Notes.
+function mdbPageCreator_recentNotesUrl( findings ) {
+    var host = ( findings && findings.notesHost && findings.notesHost.value ) || "";
+
+    if( !host || host === "none" ) return "";
+
+    return mdbPageCreator_notesUrlIn( mdbPageCreator_description, host ) ||
+           mdbPageCreator_notesUrlIn( mdbPageCreator_notesResolved, host );
 }
 
 // mdbPageCreator_titleIsLiveRecording
@@ -4372,6 +4499,38 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
     return s;
 }
 
+// mdbPageCreator_reasoningNotesLink
+// Section 7's second Notes line: what happened when this description was searched for a link on
+// the host the siblings' Notes use. Five outcomes, and they are worth telling apart - an empty
+// Notes section can mean the description said nothing, that a shortened link leads somewhere
+// else, or only that this userscript manager cannot follow one, and the reader has to know
+// which before deciding whether the line is theirs to fill.
+function mdbPageCreator_reasoningNotesLink( host ) {
+    var direct = mdbPageCreator_notesUrlIn( mdbPageCreator_description, host );
+
+    if( direct ) return "this description names one, so the section starts with it: " + direct;
+
+    var shortUrl = mdbPageCreator_notesShortenerUrl();
+
+    if( !shortUrl ) return "nothing on that host in this description, so the section stays empty";
+
+    var shortName = shortUrl.replace( /^https?:\/\//i, "" );
+
+    if( typeof mdbPageCreator_followRedirect !== "function" ) {
+        return "the description shortens its link (" + shortName + ") and this script cannot follow one, so the section stays empty";
+    }
+
+    if( !mdbPageCreator_notesResolveDone ) return "following the description's " + shortName + " …";
+
+    var resolved = mdbPageCreator_notesUrlIn( mdbPageCreator_notesResolved, host );
+
+    if( resolved ) return shortName + " in the description leads there, so the section starts with it: " + resolved;
+
+    return shortName + " in the description does not lead to " + host +
+           ( mdbPageCreator_notesResolved ? " (" + mdbPageCreator_notesResolved + ")" : " (nothing came back)" ) +
+           ", so the section stays empty";
+}
+
 // mdbPageCreator_reasoningRecentText
 // Section 7, "Page text analysis of recent mixes": what the same pages' WIKITEXT settles about
 // the page the "Create" link writes - the lead artwork line, the file details body, the styles.
@@ -4448,14 +4607,10 @@ function mdbPageCreator_reasoningRecentText( title ) {
                      detail: mdbPageCreator_reasoningRecentCount( f.notes ) + " carry a \"== Notes ==\" section -> written above the tracklist, for the editor to fill" } );
 
         if( f.notesHost && f.notesHost.value !== "none" ) {
-            var notesUrl = mdbPageCreator_recentNotesUrl( f );
-
             rows.push( { label: "Notes link",
                          detail: mdbPageCreator_reasoningRecentCount( f.notesHost ) + " link to " + f.notesHost.value +
                                  ( f.notesSample ? " (e.g. " + f.notesSample + ")" : "" ) + " - " +
-                                 ( notesUrl
-                                    ? "this description names one, so the section starts with it: " + notesUrl
-                                    : "nothing on that host in this description, so the section stays empty" ) } );
+                                 mdbPageCreator_reasoningNotesLink( f.notesHost.value ) } );
         } else {
             rows.push( { label: "Notes link",
                          detail: "no 90% agreement on a host those sections link - nothing to look for in the description, the section stays empty" } );
@@ -4959,6 +5114,11 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_durationMs = 0;
     mdbPageCreator_artworkUrl = "";
     mdbPageCreator_description = "";
+    // the resolve is about THIS track's description - the resolver itself is the site's and
+    // stays (mdbPageCreator_add is not called again on every render)
+    mdbPageCreator_notesAsked = "";
+    mdbPageCreator_notesResolved = "";
+    mdbPageCreator_notesResolveDone = false;
     mdbPageCreator_sourceTitle = "";
     mdbPageCreator_sourceChannel = "";
     mdbPageCreator_sourceDate = "";

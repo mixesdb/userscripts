@@ -411,9 +411,12 @@ Opens the edit form of the new page, prefilled with:
 - the `{{Player}}` with the player URL as MixesDB embeds it
 - an empty **Notes** section above the tracklist, where the entity's recent pages carry one –
   the place the link to the episode's own page goes, kept free so it does not have to be typed
-  first. Where those Notes all link the same site and the player's description names a page on
-  it, that link is already filled in; otherwise the line stays empty and nothing is invented –
-  a URL is never built out of the title. Series that use no Notes section get none
+  first. Where those Notes all link the same site and the description names a page on it, that
+  link is already filled in. On SoundCloud a **shortened link is followed** to get there:
+  Groove Podcast writes "Go to bit.ly/… for track list" instead of the `groove.de` address its
+  pages carry, and that is where the address comes from. Only a link that really leads to the
+  site those Notes use is written – anywhere else and the line stays empty, and a URL is never
+  built out of the title. Series that use no Notes section get none
 - the categories the title gives away (year, artists, the entity the page is filed under)
 - the style categories, where the site suggests any (TrackId.net's style suggestions box) –
   otherwise two empty category rows to fill in. What the entity's recent pages share is offered
@@ -539,10 +542,11 @@ placeholder only holds the space below it.
   lowercase (`stbr-Reservoir`): the capital behind the dash is what tells such a separator from
   a hyphen inside a word, and without it the tracklist would be cut in the wrong place more
   often than not.
-- The **Notes** link is only filled in when the description names the page outright. A
-  shortened link is not followed – Groove Podcast's own descriptions send you to a `bit.ly`
-  address rather than to `groove.de`, and where the URL only exists behind a redirect the
-  section is written empty for you to paste it into.
+- Shortened **Notes** links are only followed on SoundCloud, and only for the handful of
+  shorteners the script knows (`bit.ly`, `tinyurl.com`, `t.co` and a few more). On TrackId.net
+  they are not followed at all – the script would need a permission it deliberately does not
+  ask for – so the same episode opened there gets the empty Notes section. Report a shortener
+  that is missing and it can be added.
 
 ## Roadmap
 
