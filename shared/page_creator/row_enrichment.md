@@ -16,7 +16,9 @@ recent mix pages open inside the chip, each linked. `recent` covers every type i
 first version shipped a non-artist, cl_timestamp-sorted list - `mixesdb_api_request.md` §6);
 the per-artist `list=categorymembers` call the chip made until then is gone with it. On a desktop-wide window all these links open the
 MixesDB page in a modal on the page (`mdbPageCreator_modalOpen()`), prefetched while the bar
-stands. The category FAMILY (`match=prefix`) below is still open, and so are the
+stands, and the left/right arrow keys walk it through every link the bar shows RIGHT NOW
+(`mdbPageCreator_modalStep()`, counted in the modal's header) - a closed chip's mix pages are
+no step, an open one's are. The category FAMILY (`match=prefix`) below is still open, and so are the
 around-the-date window of addition 2 and everything in additions 3-4.
 
 ## The problem: the player URL is the only thing checked

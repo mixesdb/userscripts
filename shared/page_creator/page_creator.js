@@ -3568,12 +3568,20 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
  * would be smaller than a tab. MixesDB sends no X-Frame-Options and neither site's CSP
  * forbids the frame (verified 2026-08-18), and the header's "Open on MixesDB" link is the
  * way out where a quick look turns into real reading.
+ *
+ * Once it is open the arrow keys walk the bar: left/right frames the previous/next MixesDB
+ * link that is on screen right now, so the whole line - every category, every folded-out mix
+ * page - can be looked through without going back to the row for each one. The header counts
+ * the steps ("3 / 12") and carries the same two arrows as buttons.
  */
 var mdbPageCreator_modalMinWidth = 1024,
     // every MixesDB page already prefetched, by URL - the bar rebuilds constantly and the
     // browser must not be told twice. Never reset: the prefetched bytes do not expire with
     // a navigation any more than the category cache does.
-    mdbPageCreator_prefetched = {};
+    mdbPageCreator_prefetched = {},
+    // the URL the modal frames right now - where the arrow keys count from. Not an index:
+    // see mdbPageCreator_modalIndex.
+    mdbPageCreator_modalUrl = null;
 
 // mdbPageCreator_prefetchHintLinks
 // Warms the browser's cache for the MixesDB pages the bar's links can reach RIGHT NOW - the
@@ -3587,12 +3595,22 @@ function mdbPageCreator_prefetchHintLinks( scope ) {
     if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
 
     scope.find( "a[href]" ).each( function() {
-        var inRecent = $(this).closest( ".mdb-pageCreator-usedCat-recent" );
-
-        if( inRecent.length && !inRecent.closest( ".mdb-pageCreator-usedCat" ).hasClass( "mdb-pageCreator-usedCat-open" ) ) return;
+        if( !mdbPageCreator_hintLinkOnScreen( this ) ) return;
 
         mdbPageCreator_prefetch( this.href );
     });
+}
+
+// mdbPageCreator_hintLinkOnScreen
+// Is this bar link one the reader can see? Every link IS in the DOM - a chip's recent mix
+// pages are built with the chip and only folded away by the open class - so the question is
+// answered by STRUCTURE, not by :visible: the bar's first render happens while the row is
+// still detached, where nothing computes as visible at all. Both the prefetch and the arrow
+// keys ask it, and they have to agree: what is warmed is what can be stepped to.
+function mdbPageCreator_hintLinkOnScreen( link ) {
+    var inRecent = $(link).closest( ".mdb-pageCreator-usedCat-recent" );
+
+    return !inRecent.length || inRecent.closest( ".mdb-pageCreator-usedCat" ).hasClass( "mdb-pageCreator-usedCat-open" );
 }
 
 // mdbPageCreator_prefetch
@@ -3621,6 +3639,8 @@ $(document).on( "click", "#mdb-pageCreator-usedCats a[href]", function( e ) {
 // mdbPageCreator_modalOpen
 // One modal at a time - opening replaces whatever is up. The overlay is class mdb-element,
 // so the shared navigation cleanup (onUrlChange in global.js) takes it down with the row.
+// The frame and the header's texts are filled by mdbPageCreator_modalShow, which is also
+// what every arrow key runs afterwards - opening is just the first step of the walk.
 function mdbPageCreator_modalOpen( url, label ) {
     logVar( "mdbPageCreator_modalOpen", url );
 
@@ -3635,12 +3655,14 @@ function mdbPageCreator_modalOpen( url, label ) {
         });
 
     overlay.append(
-        $("<div>").addClass( "mdb-pageCreator-modal-box" ).append(
+        // tabindex so the box itself can hold the focus: the framed page is cross-origin, and
+        // a focused iframe eats the arrow keys before the document ever sees them
+        $("<div>").addClass( "mdb-pageCreator-modal-box" ).attr( "tabindex", "-1" ).append(
             $("<div>").addClass( "mdb-pageCreator-modal-head" ).append(
-                $("<span>").addClass( "mdb-pageCreator-modal-title" ).text( label ),
+                $("<span>").addClass( "mdb-pageCreator-modal-title" ),
+                mdbPageCreator_modalNav(),
                 $("<a>")
                     .addClass( "mdb-pageCreator-modal-ext" )
-                    .attr( "href", url )
                     .attr( "target", "_blank" )
                     .attr( "title", "Open this page as its own tab" )
                     .text( "Open on MixesDB" ),
@@ -3650,24 +3672,158 @@ function mdbPageCreator_modalOpen( url, label ) {
                     .attr( "title", "Close (Esc)" )
                     .text( "×" )
                     .on( "click", mdbPageCreator_modalClose )
-            ),
-            $("<iframe>").addClass( "mdb-pageCreator-modal-frame" ).attr( "src", url )
+            )
         )
     );
 
     $("body").append( overlay );
 
+    mdbPageCreator_modalShow( url, label );
+
     $(document).on( "keydown.mdbPageCreatorModal", function( e ) {
-        if( e.key === "Escape" ) mdbPageCreator_modalClose();
+        if( e.key === "Escape" ) { mdbPageCreator_modalClose(); return; }
+
+        // no modifier: cmd/alt + left is the browser's own Back on the page behind us
+        if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ) return;
+
+        if( e.key !== "ArrowLeft" && e.key !== "ArrowRight" ) return;
+
+        // or the page BEHIND the overlay scrolls sideways while the modal is being read
+        e.preventDefault();
+
+        mdbPageCreator_modalStep( e.key === "ArrowRight" ? 1 : -1 );
+    });
+}
+
+// mdbPageCreator_modalNav
+// The two arrows and the "3 / 12" between them, built once with the header and rewritten by
+// every step (mdbPageCreator_modalCount). They are also what says the keys exist at all - an
+// overlay that answers a key nobody knows about is a feature nobody finds.
+function mdbPageCreator_modalNav() {
+    function step( dir, sign, what ) {
+        return $("<button>")
+            .addClass( "mdb-pageCreator-modal-step" )
+            .attr( "type", "button" )
+            .attr( "data-mdb-dir", String( dir ) )
+            .attr( "title", "The " + what + " MixesDB link in the row (" + sign + ")" )
+            .text( sign )
+            .on( "click", function() {
+                mdbPageCreator_modalStep( dir );
+            });
+    }
+
+    return $("<span>").addClass( "mdb-pageCreator-modal-nav" ).append(
+        step( -1, "←", "previous" ),
+        $("<span>").addClass( "mdb-pageCreator-modal-count" ),
+        step( 1, "→", "next" )
+    );
+}
+
+// mdbPageCreator_modalShow
+// Frames one page in the modal that is already up - the header's name, its "Open on MixesDB"
+// link, the counter and the frame itself.
+//
+// The iframe is REPLACED rather than pointed at the new URL: assigning src to a frame that
+// already loaded something pushes an entry onto the TOP page's session history, so five steps
+// through the row would bury the site's own Back button five clicks deep. A fresh iframe's
+// first load replaces instead of pushing.
+function mdbPageCreator_modalShow( url, label ) {
+    var overlay = $("#mdb-pageCreator-modal"),
+        box = overlay.find( ".mdb-pageCreator-modal-box" );
+
+    if( !overlay.length ) return;
+
+    logVar( "mdbPageCreator_modalShow", url );
+
+    mdbPageCreator_modalUrl = url;
+
+    overlay.find( ".mdb-pageCreator-modal-title" ).text( label );
+    overlay.find( "a.mdb-pageCreator-modal-ext" ).attr( "href", url );
+
+    box.find( ".mdb-pageCreator-modal-frame" ).remove();
+    box.append( $("<iframe>").addClass( "mdb-pageCreator-modal-frame" ).attr( "src", url ) );
+
+    mdbPageCreator_modalCount();
+
+    // back onto the box after every step, and after the click that opened the modal: whatever
+    // had the focus before (the title field, the chip that was clicked) would otherwise keep
+    // answering the arrow keys
+    box.trigger( "focus" );
+}
+
+// mdbPageCreator_modalLinks
+// The links the arrows walk, in the order they are read on screen - DOM order is exactly
+// that: the chips left to right, and inside a chip its own name before the mix pages folded
+// out under it. Read fresh on every step rather than kept from the open: the row rebuilds
+// constantly (a title edit, a lookup answering, a chip toggled), and a stored list would step
+// to links that are no longer on the page.
+function mdbPageCreator_modalLinks() {
+    return $("#mdb-pageCreator-usedCats a[href]").filter( function() {
+        return mdbPageCreator_hintLinkOnScreen( this );
+    }).get();
+}
+
+// mdbPageCreator_modalIndex
+// Where the framed page sits in that list - found by URL, not remembered as an index, for the
+// same reason the list is not kept: a rebuild between two keys, or a chip folded open while
+// the modal is up, moves every link's position. -1 where the framed page is not in the row
+// any more (its chip was closed, the title was edited into other categories); the step then
+// does nothing rather than jumping somewhere the reader never came from.
+function mdbPageCreator_modalIndex( links ) {
+    var i;
+
+    for( i = 0; i < links.length; i++ ) {
+        if( links[i].href === mdbPageCreator_modalUrl ) return i;
+    }
+
+    return -1;
+}
+
+// mdbPageCreator_modalStep
+// One link further. No wrapping: the row is a line with a left and a right end, and landing
+// back on the first category after the last mix page reads as a jump, not as a step. The
+// counter greys the arrow out at either end, so the key that does nothing looks like it.
+function mdbPageCreator_modalStep( dir ) {
+    var links = mdbPageCreator_modalLinks(),
+        at = mdbPageCreator_modalIndex( links ),
+        next = at + dir,
+        link;
+
+    if( at < 0 || next < 0 || next >= links.length ) return;
+
+    link = $(links[ next ]);
+
+    // links[next].href, not the attribute: the URL is what the next step looks the position
+    // up by, so it has to be the same absolute string the DOM reports.
+    mdbPageCreator_modalShow( links[ next ].href,
+        link.attr( "data-mdb-modal-label" ) || $.trim( link.text() ) );
+}
+
+// mdbPageCreator_modalCount
+// "3 / 12" plus the two arrows' disabled look. Empty where the framed page is not in the row
+// any more - a position among links it is not one of would be a lie.
+function mdbPageCreator_modalCount() {
+    var overlay = $("#mdb-pageCreator-modal"),
+        links = mdbPageCreator_modalLinks(),
+        at = mdbPageCreator_modalIndex( links );
+
+    overlay.find( ".mdb-pageCreator-modal-count" ).text( at < 0 ? "" : ( at + 1 ) + " / " + links.length );
+
+    overlay.find( ".mdb-pageCreator-modal-step" ).each( function() {
+        var next = at + Number( $(this).attr( "data-mdb-dir" ) );
+
+        $(this).toggleClass( "mdb-pageCreator-modal-step-off", at < 0 || next < 0 || next >= links.length );
     });
 }
 
 // mdbPageCreator_modalClose
-// Removal is the whole close - the modal keeps no state. The namespaced Esc handler goes
-// with it, so a page with no modal up listens for nothing.
+// Removal is the whole close - the modal keeps no state beyond the URL it framed, and that is
+// only ever read while it is up. The namespaced key handler goes with it, so a page with no
+// modal up listens for nothing and the arrow keys are the site's again.
 function mdbPageCreator_modalClose() {
     $(document).off( "keydown.mdbPageCreatorModal" );
     $("#mdb-pageCreator-modal").remove();
+    mdbPageCreator_modalUrl = null;
 }
 
 

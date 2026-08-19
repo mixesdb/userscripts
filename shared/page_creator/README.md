@@ -159,6 +159,15 @@ is usually there at once. Esc, the × or a click beside the box close it; **Open
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 
+The open modal is walked with the **left and right arrow keys**: one key frames the previous or
+the next MixesDB link of the line, so a whole category and every mix page folded out under it
+can be looked through without going back to the row between two pages. It walks exactly what is
+on screen – a chip whose mix pages are not folded out is one step, not eleven – in the order the
+line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) and
+carries the same two arrows as buttons; at either end of the line the arrow greys out, since
+the walk does not wrap around. The line is re-read on every step, so a category answer that
+lands while the modal is open is part of the walk from the next key on.
+
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
 files it as, since a podcast, a show, a venue and a festival can all stand in that slot.
 
@@ -559,6 +568,10 @@ placeholder only holds the space below it.
   agree on it – Boiler Room really does publish every set on YouTube and SoundCloud, but two of
   its ten newest pages carry only one of the two, so a page created there keeps the plain
   player.
+- The arrow keys in the modal stop working once you have clicked *inside* the framed MixesDB
+  page – from then on the keys belong to that page and scroll it. A click on the modal's header,
+  or one of its two arrow buttons, hands them back. Scrolling the framed page with the mouse or
+  the trackpad needs no click and leaves the keys alone.
 - Shortened **Notes** links are only followed on SoundCloud, and only for the handful of
   shorteners the script knows (`bit.ly`, `tinyurl.com`, `t.co` and a few more). On TrackId.net
   they are not followed at all – the script would need a permission it deliberately does not
