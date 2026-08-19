@@ -382,6 +382,18 @@ var mdbTitleExamples = [
         expect: "2026-08-19 - Space Ghost - Juno Daily"
     },
     {
+        url: "https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-new-digital-fidelity",
+        title: "Juno Daily - In The Mix: New Digital Fidelity",
+        channel: "Juno Daily",
+        date: "2026-08-19",
+        // the SAME show as the case above, written with a hyphen where the key has an en dash -
+        // the uploader uses both in the same month. A key is curated data, not a regex, so the
+        // punctuation between its words is what is loose (mdbTitle_escapeReLooseSeparators)
+        expectArtists: [ "New Digital Fidelity" ],
+        expectEntity: "Juno Daily",
+        expect: "2026-08-19 - New Digital Fidelity - Juno Daily"
+    },
+    {
         url: "https://soundcloud.com/privateplaces/779-sascha-sibler",
         title: "Guestroom 779 by Sascha Sibler",
         channel: "PRIVATEPLACES Mixtapes",
