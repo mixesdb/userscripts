@@ -304,13 +304,14 @@ ends up used.
   `Not asked:` line with its reason: the place group's own country
   (`… @ S.U.N Festival – Hungary`) – a country is never a category – a chunk that is nothing
   but a counting word and its number (`Episode 72`, `Part 2`, `Pt.3`), which says which
-  episode or which part this is and files nothing on MixesDB, or a chunk too long to be a
-  name. Every chunk of section 1 is therefore either a chip here or a line saying why it is
+  episode or which part this is and files nothing on MixesDB, a chunk a curated channel rule
+  has already read as the show (`DJ MIX #679` on the channel *Dance TV*, `In The Mix` on
+  *Juno Daily*) – those words name the show only together with the channel, so on their own
+  they can only answer wrong, and the show they name is asked instead – or a chunk too long
+  to be a name. Every chunk of section 1 is therefore either a chip here or a line saying why it is
   not. The chips answer section 6 by colour:
   green when the
-  name ended up a category of the new page, red when it did not. A name a curated channel
-  mapping overrules says so – `DJ Mix` is a show on the wiki, but on the channel Dance TV
-  those words name `Dance TV DJ Mix`. Every name the wiki confirms – here and in section 6 –
+  name ended up a category of the new page, red when it did not. Every name the wiki confirms – here and in section 6 –
   is a link to that category page on MixesDB, opening in a new tab so the player page stays
   where it is
 
@@ -318,8 +319,8 @@ ends up used.
   asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
   found as `HATE Podcast` is 95%; `Daniel` found as an artist category holding a single mix is
   70% – with 57,000 artist categories on the wiki, a short name almost always finds somebody.
-  A spelling the wiki writes differently, a name it knows as several things at once, and a name
-  a channel rule overrules all cost as well. How full the category is barely counts: a category
+  A spelling the wiki writes differently and a name the wiki knows as several things at once
+  cost as well. How full the category is barely counts: a category
   with 500 mixes can be the wrong reading of the words just as easily as an empty one
 - **4 Title refined after lookup learnings** – the same cleanup a second time, now knowing
   what MixesDB has. Only what the answers

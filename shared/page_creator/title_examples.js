@@ -365,6 +365,10 @@ var mdbTitleExamples = [
         // no chunk either - it never joins the title, so it is never looked up
         expectArtists: [ "Miss Luna" ],
         expectChunks: [ "DJ MIX #679", "Miss Luna" ],
+        // the chunk stays a chunk - it is what the title says - but the lookup asks about the
+        // curated show instead of the bare "DJ Mix" the strip would leave of it
+        expectAsked: [ "Dance TV DJ Mix", "Miss Luna" ],
+        expectNotAsked: [ "DJ Mix" ],
         expect: "2026-08-04 - Miss Luna - Dance TV DJ Mix 679"
     },
     {
@@ -392,6 +396,22 @@ var mdbTitleExamples = [
         expectArtists: [ "New Digital Fidelity" ],
         expectEntity: "Juno Daily",
         expect: "2026-08-19 - New Digital Fidelity - Juno Daily"
+    },
+    {
+        url: "https://soundcloud.com/junodailyonline/in-the-mix-ben-diggins",
+        title: "In The Mix: Ben Diggins",
+        channel: "Juno Daily",
+        date: "2026-03-20",
+        // the same show HALVED - the channel writes it both ways, so it takes a second entry
+        // ("In The Mix": "Juno Daily") next to the full one. Without it "In The Mix" reads as
+        // the show itself and the page is filed under it instead of under the channel's show
+        expectArtists: [ "Ben Diggins" ],
+        expectEntity: "Juno Daily",
+        // and the curated show is what the wiki is asked about - "In The Mix" on its own is
+        // either no category at all or somebody else's show
+        expectAsked: [ "Juno Daily", "Ben Diggins" ],
+        expectNotAsked: [ "In The Mix" ],
+        expect: "2026-03-20 - Ben Diggins - Juno Daily"
     },
     {
         url: "https://soundcloud.com/privateplaces/779-sascha-sibler",
