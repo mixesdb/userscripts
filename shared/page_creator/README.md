@@ -154,9 +154,9 @@ asked about, one chip per name, its colour saying whether the wiki already has i
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. The pages behind the links on screen are prefetched, and opening
-the modal warms every page its arrow keys can reach, so the first page and every step after it
-are usually there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+serve is a five-second one. Nothing is fetched from MixesDB before a modal is actually opened;
+opening one then warms every page its arrow keys can reach, so the first page takes as long as
+a page takes and every step after it is there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 

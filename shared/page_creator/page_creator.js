@@ -1321,8 +1321,6 @@ function mdbPageCreator_renderHints( wrapper ) {
     bar.css( "display", fresh.children().length ? "" : "none" );
 
     if( bar.html() !== fresh.html() ) bar.empty().append( fresh.children() );
-
-    mdbPageCreator_prefetchHintLinks( bar );
 }
 
 // mdbPageCreator_usedCategoriesHint
@@ -1807,11 +1805,7 @@ function mdbPageCreator_usedCatMixes( chip, entry, match, fit ) {
                 if( !recent.length && !match.recentPending && !match.recentFailed && !match.recentFetched ) {
                     mdbPageCreator_usedCatFetchRecent( match, entry.name );
                     mdbPageCreator_renderHints( $("#mdb-pageCreator") );
-                    return;
                 }
-
-                // the pages are already on hand - warm the cache for the ones now on screen
-                mdbPageCreator_prefetchHintLinks( chip );
             })
     );
 
@@ -3570,43 +3564,27 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
  * Once it is open the arrow keys walk the bar: left/right frames the previous/next MixesDB
  * link that is on screen right now, so the whole line - every category, every folded-out mix
  * page - can be looked through without going back to the row for each one. The header counts
- * the steps ("3 / 12") and carries the same two arrows as buttons. Opening the modal warms
- * every page of that walk at once (mdbPageCreator_modalPrefetchWalk), on top of what the
- * bar's own render already prefetched, so a step is as immediate as the first click was.
+ * the steps ("3 / 12") and carries the same two arrows as buttons. Opening the modal is also
+ * the one moment anything is prefetched (mdbPageCreator_modalPrefetchWalk): the whole walk at
+ * once, so every step after the first click is immediate.
  */
 var mdbPageCreator_modalMinWidth = 1024,
-    // every MixesDB page already prefetched, by URL - the bar rebuilds constantly and the
-    // browser must not be told twice. Never reset: the prefetched bytes do not expire with
-    // a navigation any more than the category cache does.
+    // every MixesDB page already prefetched, by URL - the modal is opened again and again on
+    // the same row, and the second open must not ask MixesDB for the same twelve pages. Never
+    // reset: the prefetched bytes do not expire with a navigation any more than the category
+    // cache does.
     mdbPageCreator_prefetched = {},
     // the URL the modal frames right now - where the arrow keys count from. Not an index:
     // see mdbPageCreator_modalIndex.
     mdbPageCreator_modalUrl = null;
 
-// mdbPageCreator_prefetchHintLinks
-// Warms the browser's cache for the MixesDB pages the bar's links can reach RIGHT NOW - the
-// category pages, a red name's search, an open chip's recent mix pages - so the modal paints
-// at once instead of loading on the click. Only on a modal-wide window, and not as stinginess:
-// the prefetch cache is partitioned by the top-level site, so what these warm is OUR iframe -
-// a tab opened on a narrow window would not touch it. A closed chip's list is skipped by
-// STRUCTURE, not :visible - the first render fills the bar while the row is still detached,
-// where nothing computes as visible - and prefetched later, by the toggle that opens it.
-function mdbPageCreator_prefetchHintLinks( scope ) {
-    if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
-
-    scope.find( "a[href]" ).each( function() {
-        if( !mdbPageCreator_hintLinkOnScreen( this ) ) return;
-
-        mdbPageCreator_prefetch( this.href );
-    });
-}
-
 // mdbPageCreator_hintLinkOnScreen
 // Is this bar link one the reader can see? Every link IS in the DOM - a chip's recent mix
 // pages are built with the chip and only folded away by the open class - so the question is
 // answered by STRUCTURE, not by :visible: the bar's first render happens while the row is
-// still detached, where nothing computes as visible at all. Both the prefetch and the arrow
-// keys ask it, and they have to agree: what is warmed is what can be stepped to.
+// still detached, where nothing computes as visible at all. The arrow keys and the modal's
+// prefetch both come through mdbPageCreator_modalLinks(), so what is warmed is exactly what
+// can be stepped to.
 function mdbPageCreator_hintLinkOnScreen( link ) {
     var inRecent = $(link).closest( ".mdb-pageCreator-usedCat-recent" );
 
@@ -3763,16 +3741,17 @@ function mdbPageCreator_modalSwallow( e ) {
 }
 
 // mdbPageCreator_modalPrefetchWalk
-// Every page the arrow keys can reach from here, warmed the moment the modal is up. The walk
-// is what the modal is FOR - a reader steps through a dozen pages in the time one of them
-// would take to open in a tab - so the whole line is fetched at once rather than one page per
-// key. Cheap even where it is redundant: mdbPageCreator_prefetch remembers every URL it has
-// been given, so the links the bar's own render already warmed cost nothing a second time.
+// Every page the arrow keys can reach from here, warmed the moment the modal is up - and the
+// ONLY prefetching the row does. The walk is what the modal is FOR: a reader steps through a
+// dozen pages in the time one of them would take to open in a tab, so the whole line is
+// fetched at once rather than one page per key.
 //
-// And it is not always redundant. The render's prefetch is gated on a desktop-wide window
-// (mdbPageCreator_prefetchHintLinks), and a window WIDENED after the bar was built re-renders
-// nothing - the modal opening is then the first moment anything knows those links are
-// reachable at all.
+// The bar used to warm its links as it rendered, which meant MixesDB served every category
+// page, every search and every folded-out mix page of every title judged - almost all of it
+// for a reader who never opened a modal at all. Opening one is the first moment that load is
+// worth asking for, and it is the reader's own click that asks. It costs the FIRST page the
+// head start it had (the iframe loads it like any page), and nothing after that: the rest of
+// the walk is on its way before the first one has painted.
 //
 // The framed page itself is skipped: the iframe is fetching it while this runs, and a
 // prefetch of the same URL is a second request for bytes already on the way.
