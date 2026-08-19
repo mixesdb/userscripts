@@ -114,6 +114,27 @@ and the style categories are not listed – neither is a name anyone could spell
 The line follows the title field: correct the title and, after a short pause, the categories are
 re-read from it and any new names are looked up.
 
+**Switch title** appears under the categories when the suggestion involved a close call the
+build decided one way but could defensibly have decided the other. Each line is the full title
+the *other* reading would make, as a clickable chip – click it and it swaps with the title
+above: the field takes the chip's title, everything below (categories, report, page text)
+follows as if it had been typed, and the same chip slot then offers the previous title back, so
+nothing is lost and a second click undoes the switch. The chips follow the field – correct a
+name in the title and the offered alternatives carry the correction. The tooltip of each chip
+says why the build decided the other way. Offered today:
+
+- **(Live PA)** – the description says "Live PA" but the phrase was only a guess: either it was
+  written into the title (the phrase may describe another act on the bill), or it was left off
+  because the title does not read as a live recording. The chip offers the opposite reading.
+- **(Promo Mix)** – the marker was assumed because the name is no known show, venue or event
+  (the chip offers the show/podcast reading without it), or the title reads as the artist's own
+  series and the marker was deliberately left off (the chip offers the self-released reading
+  with it). Switching also switches the page's filing: with the marker the page goes into
+  `Category:Promo Mix`, without it under the name itself.
+- **(Part 2)** – a "Part N" the title carried was dropped, as usual for a mix page title; where
+  the parts are uploaded as files of their own, MixesDB does write `… (Part 2)`, and the chip
+  offers the title with it.
+
 ### "Report" box
 
 **Report** under the confidence score opens a text box under the row, already filled with

@@ -121,6 +121,14 @@ var mdbPageCreator_title = "",
     // the hints bar's last logged verdicts - see mdbPageCreator_logHints(). Only there to keep
     // the log quiet: the bar re-renders on every keystroke, its content usually unchanged.
     mdbPageCreator_hintsLogged = "",
+    // The switchable readings the build decided against (suggestion.alternatives, built in
+    // mdbTitle_result) - facts like "the (Live PA) marker is a toggle", not finished titles.
+    // The bar's "Switch title:" line derives the offered title from the CURRENT field text,
+    // so the chips survive edits and the recent-pages refinement. Empty on most titles, and
+    // always empty under a stale cached title_builder.js, which sends no alternatives field.
+    mdbPageCreator_alternatives = [],
+    // ... and the last logged set of offered titles, quieted like mdbPageCreator_hintsLogged
+    mdbPageCreator_altsLogged = "",
     // the debounce behind the title-edit category refresh - the hints bar's "Used categories"
     // line and the reasoning panel's section 6. See mdbPageCreator_queueCategoryUpdate()
     mdbPageCreator_categoryTimer = null,
@@ -772,6 +780,7 @@ function mdbPageCreator_setTitle( suggestion, durationMs ) {
     mdbPageCreator_confidencePercent = ( suggestion && suggestion.confidence ) || 0;
     mdbPageCreator_confidenceReasons = ( suggestion && suggestion.reasons ) || [];
     mdbPageCreator_promoCategory = !!( suggestion && suggestion.promoCategory );
+    mdbPageCreator_alternatives = ( suggestion && suggestion.alternatives ) || [];
     mdbPageCreator_render();
 }
 
@@ -881,8 +890,12 @@ function mdbPageCreator_refresh( wrapper ) {
 // word anyway ("Summer 2026 Mix") the suffix is left off, and THEN the category still has to
 // be named somewhere - here, under the "Create" link.
 function mdbPageCreator_syncPromoNote( wrapper ) {
+    // the FIELD's title where there is one: the marker can be switched in and out under the
+    // reader's hands ("Switch title:" chips, or typed), and the note may neither repeat a
+    // marker the title now says nor survive a filing the switch just cleared
     var note = wrapper.find( "#mdb-pageCreator-promoCategory" ),
-        wanted = mdbPageCreator_promoCategory && mdbPageCreator_title.indexOf( "(Promo Mix)" ) === -1;
+        title = wrapper.find( "#mdb-pageCreator-title" ).val() || mdbPageCreator_title,
+        wanted = mdbPageCreator_promoCategory && title.indexOf( "(Promo Mix)" ) === -1;
 
     if( !wanted ) {
         note.remove();
@@ -1012,6 +1025,9 @@ function mdbPageCreator_render() {
         // names now in the title
         mdbPageCreator_renderHints( wrapper );
         mdbPageCreator_fillReport( wrapper );
+        // the promo note under "Create" reads the field too - a "(Promo Mix)" switched or
+        // typed into the title makes the note redundant, and one switched out revives it
+        mdbPageCreator_syncPromoNote( wrapper );
         // the categories follow the title too - the bar above and the panel's section 6 - but
         // debounced: they are read off the field, and a corrected name may need a lookup the
         // cache has not seen
@@ -1152,13 +1168,17 @@ function mdbPageCreator_confidenceTitle() {
  * Always visible, unlike the report box - these are for the editor who is about to click
  * "Create", not for the one reporting a wrong suggestion.
  *
- * One item so far, "Used categories" (row_enrichment.md, additions 1 and 2): the artist and
+ * Two lines so far. "Used categories" (row_enrichment.md, additions 1 and 2): the artist and
  * entity categories the page text writes, each a chip answered by the wiki. Green means
  * MixesDB has that category - with its mix count, and the category's recent mix pages behind
  * it where the lookup brought them - red means it has not: a new name, or the name is spelled
  * differently there, and the red name searches MixesDB (the loupe behind it says so), which
  * is the fastest way to tell those two apart. On a desktop-wide window the chips' MixesDB
  * links open in a modal on the page (mdbPageCreator_modalOpen below) rather than a tab.
+ *
+ * "Switch title" under it: the readings the build decided AGAINST - a guessed "(Live PA)", an
+ * assumed "(Promo Mix)", a dropped "Part 2" - each as the full title it would make, one click
+ * to swap it with the field (mdbPageCreator_switchTitleHint below).
  *
  * Everything here is rebuilt whole on every render and reads the title out of the FIELD, the
  * same way the page text does: a corrected title has to take its categories with it.
@@ -1185,6 +1205,7 @@ function mdbPageCreator_renderHints( wrapper ) {
 
     var title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
         usedCats = mdbPageCreator_usedCategoriesHint( title ),
+        switchTitle = mdbPageCreator_switchTitleHint( title ),
         // Built into a detached box FIRST and only swapped in where it really differs. The bar
         // re-renders on every keystroke, on every lookup answer and on the title field's own
         // "change" - and on nearly all of those the content is the same one it already shows.
@@ -1198,11 +1219,17 @@ function mdbPageCreator_renderHints( wrapper ) {
         // fire, worked. Measured on SoundCloud 2026-08-19: the node was gone 120ms after the
         // mousedown.
         //
+        // (The "Switch title:" chips lean on the same guard from the other side: they DERIVE
+        // from the field text, so the blur-fired "change" right under a click re-renders them
+        // with the value the last keystroke already rendered - identical markup, nodes kept,
+        // click alive.)
+        //
         // Comparing the MARKUP rather than a hand-kept signature of what went into it: the two
         // cannot drift apart, and anything a future hint adds to the bar is covered by it.
         fresh = $("<div>");
 
     if( usedCats ) fresh.append( usedCats );
+    if( switchTitle ) fresh.append( switchTitle );
 
     // Not .toggle(): the bar is filled while the wrapper is still DETACHED on the first render,
     // where jQuery has no computed display to restore and guesses one. Clearing the inline
@@ -1617,6 +1644,158 @@ function mdbPageCreator_categoryUnanswered( name ) {
 // IS the term. A category name needs nothing done to it.
 function mdbPageCreator_searchUrl( name ) {
     return mdbPageCreator_editUrl + "?title=&search=" + encodeURIComponent( name );
+}
+
+// mdbPageCreator_switchTitleHint
+// "Switch title: <alternative>" - the readings the build decided AGAINST
+// (mdbPageCreator_alternatives, built in mdbTitle_result), each as the full title it would
+// make, one per line under the categories. Clicking one swaps it with the title above, and
+// because every chip is a TOGGLE derived from the current field text, the same slot then
+// offers the way back - replaced in place, nothing re-orders under the click.
+function mdbPageCreator_switchTitleHint( title ) {
+    if( !title || !mdbPageCreator_alternatives.length ) return null;
+
+    var chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
+        hint = $("<span>")
+            .attr( "id", "mdb-pageCreator-switchTitle" )
+            .append(
+                $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Switch title:" ),
+                chips
+            ),
+        offered = [],
+        i;
+
+    for( i = 0; i < mdbPageCreator_alternatives.length; i++ ) {
+        var fact = mdbPageCreator_alternatives[i],
+            toggled = mdbPageCreator_altToggle( title, fact );
+
+        // a toggle that changes nothing (or has nothing to work on) offers no reading -
+        // e.g. the reader edited the very marker out of recognition
+        if( !toggled || !toggled.title || toggled.title === title ) continue;
+
+        chips.append( mdbPageCreator_titleAltChip( fact, toggled ) );
+        offered.push( toggled.title );
+    }
+
+    if( !offered.length ) return null;
+
+    // logged the once they change, like the category verdicts - the bar re-renders on every
+    // keystroke, and these DERIVE from the keystrokes
+    if( offered.join( " | " ) !== mdbPageCreator_altsLogged ) {
+        mdbPageCreator_altsLogged = offered.join( " | " );
+        logVar( "mdbPageCreator hints: switch title", mdbPageCreator_altsLogged );
+    }
+
+    return hint;
+}
+
+// mdbPageCreator_titleAltChip
+// One alternative reading as a chip: the full title it would switch to, grey on purpose - a
+// chip here is a candidate, not a verdict, and the panel's chip rule (state, never type)
+// holds in the bar too. The tooltip carries WHY the build decided the other way, which is the
+// half the title alone cannot say.
+function mdbPageCreator_titleAltChip( fact, toggled ) {
+    return $("<span>").addClass( "mdb-pageCreator-titleAlt" ).append(
+        // an <a> without href like the "N mixes" toggle: it navigates nowhere, and the
+        // modal's delegated handler only watches links with one
+        $("<a>")
+            .attr( "title", fact.reason + "\n\nClick to switch the title above to this one" +
+                   " - the slot then offers the current title back, so nothing is lost." )
+            .text( toggled.title )
+            .on( "click", function() {
+                mdbPageCreator_applyAlternative( fact );
+            })
+    );
+}
+
+// mdbPageCreator_altToggle
+// One alternative FACT applied to a title: { title, adding } - the toggled text, and whether
+// the toggle ADDED its marker or took it out. A toggle over the CURRENT text on purpose,
+// never a stored string: the field is edited and refined under the bar's feet, and a chip
+// showing yesterday's spelling would quietly undo those corrections on the click.
+function mdbPageCreator_altToggle( title, fact ) {
+    title = String( title || "" );
+
+    if( !title || !fact ) return null;
+
+    var re, at, groups;
+
+    if( fact.kind === "livePa" ) {
+        re = /\s*\(\s*live\s*p\.?\s*a\.?\s*\)/i;
+
+        if( re.test( title ) ) {
+            return { title: title.replace( re, "" ).replace( /\s+/g, " " ).trim(), adding: false };
+        }
+
+        // behind the artist's name, the way mdbTitle_result writes it: in front of a live
+        // title's " @ ", else at the end of the artist group, else - nothing to read groups
+        // off - at the end
+        at = title.indexOf( " @ " );
+
+        if( at !== -1 ) {
+            return { title: title.slice( 0, at ) + " (Live PA)" + title.slice( at ), adding: true };
+        }
+
+        groups = title.split( " - " );
+
+        if( groups.length >= 2 ) {
+            groups[1] += " (Live PA)";
+            return { title: groups.join( " - " ), adding: true };
+        }
+
+        return { title: title + " (Live PA)", adding: true };
+    }
+
+    if( fact.kind === "promoMix" ) {
+        re = /\s*\(\s*promo\s*mix\s*\)/i;
+
+        if( re.test( title ) ) {
+            return { title: title.replace( re, "" ).replace( /\s+/g, " " ).trim(), adding: false };
+        }
+
+        return { title: title + " (Promo Mix)", adding: true };
+    }
+
+    if( fact.kind === "chunk" && fact.text ) {
+        re = new RegExp( "\\s*\\(\\s*" + mdbTitle_escapeRe( fact.text ) + "\\s*\\)", "i" );
+
+        if( re.test( title ) ) {
+            return { title: title.replace( re, "" ).replace( /\s+/g, " " ).trim(), adding: false };
+        }
+
+        return { title: title + " (" + fact.text + ")", adding: true };
+    }
+
+    return null;
+}
+
+// mdbPageCreator_applyAlternative
+// The chip's click: the field takes the toggled title and everything reading the field
+// follows, exactly as if it had been typed - which is also what the swap counts as. Marking
+// it edited is what keeps the next refresh and the recent-pages refinement from putting the
+// suggestion back over a reading the editor chose on purpose.
+function mdbPageCreator_applyAlternative( fact ) {
+    var input = $("#mdb-pageCreator-title"),
+        current = $.trim( input.val() ),
+        toggled = mdbPageCreator_altToggle( current, fact );
+
+    if( !input.length || !toggled || !toggled.title || toggled.title === current ) return;
+
+    logVar( "mdbPageCreator_applyAlternative", current + "  ->  " + toggled.title );
+
+    // The promo marker IS the filing: mdbPageCreator_entityCategoryFor reads the flag OR the
+    // title's own "(Promo Mix)", so switching to the show reading has to clear the flag or
+    // the page would file under Promo Mix either way - and switching to the promo reading
+    // sets it, so the categories and the note under "Create" tell the same story.
+    if( fact.kind === "promoMix" ) {
+        mdbPageCreator_promoCategory = toggled.adding;
+    }
+
+    input.data( "mdb-edited", true );
+    // the input's own "change" handler resizes the field, re-renders the bar (where this
+    // chip's slot now offers the way back), refills the report and queues the category
+    // lookup - the same path a typed correction takes
+    input.val( toggled.title ).trigger( "change" );
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -4087,6 +4266,8 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_sourceLabel = "";
     mdbPageCreator_reportOpen = false;
     mdbPageCreator_hintsLogged = "";
+    mdbPageCreator_alternatives = [];
+    mdbPageCreator_altsLogged = "";
     mdbPageCreator_openDefinitions = {};
     mdbPageCreator_openUsedCatRecent = {};
 
