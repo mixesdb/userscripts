@@ -86,6 +86,41 @@
 > B: a live recording's `{{StandardShow*}}` and its styles say as much about the series as any
 > other page's.
 
+> **Signal D added 2026-08-19: the `== Notes ==` section.** Not in the plan below, and the one
+> signal whose value is the EMPTY line it writes. A series that documents each episode on its
+> own site puts that link in a Notes section above the tracklist - `Groove Podcast` 10 of 10
+> (`https://groove.de/2026/08/12/groove-podcast-513-danny-daze/`), `RA Podcast` 10 of 10
+> (`https://ra.co/podcast/1071`) - and a created page without the heading is a page where that
+> link is quietly never added. So the heading is written with a blank line under it wherever
+> 90% of the siblings carry one, and the editor fills it: `mdbPageCreator_notesBody()` reads
+> the section per page, `mdbPageCreator_recentPageTextFindings()` votes on it like every other
+> signal, and `mdbPageCreator_pageText()` puts it between the `{{Player}}` and `== Tracklist ==`,
+> where the siblings have it.
+>
+> **A second, separate vote on the HOST those sections link**, and it is only a search key.
+> `mdbPageCreator_recentNotesUrl()` looks through the player page's description for a link on
+> that host and writes it verbatim; nothing is ever constructed from the title, because a slug
+> is not derivable and a wrong link in Notes is worse than the empty line. It has to clear
+> `mdbPageCreator_notesUrlMinPath` (10) characters of path: `groove.de/` alone is the
+> magazine's front page and stands in half the descriptions, while an episode page carries the
+> date and the name in its slug. Scheme and `www.` are optional on the description side -
+> uploaders write `groove.de/2026/...` as readily as the full URL - and both sides compare
+> www-less and lower case.
+>
+> The two votes are separate because the wiki answers them separately: `Essential Mix` pages
+> carry a Notes section holding nothing but `Episode #1671`, so the section is its convention
+> and no host is - it gets the empty heading and no search. Measured against the live API on
+> 2026-08-19: section YES on `Groove Podcast` 10/10, `RA Podcast` 10/10, `Essential Mix` 10/10;
+> NO on `HATE Podcast`, `Trommel`, `Ritter Butzke`, `Boiler Room` (0/10) and `Dekmantel
+> Festival` (1/10); `In The Mix` abstains at 4/10, which is right - four of its pages link
+> `liebrand.nl` and six do not, and the wiki itself is undecided there.
+>
+> Groove Podcast is the case that shows why the empty line is the feature: its Notes all link
+> `groove.de`, and its own SoundCloud descriptions link a `bit.ly` shortener instead
+> ("Go to bit.ly/DazePod for track list and short interview"), so nothing is found and the
+> section is written empty - which is exactly what it is for. Following the shortener is not
+> our business: it is a request per page to a redirector, on a guess about what it points at.
+
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already
 contains the right shape: the other episodes of the same show sitting in the entity's category.
