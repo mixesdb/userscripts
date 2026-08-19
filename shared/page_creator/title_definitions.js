@@ -346,13 +346,15 @@ var mdbTitleUsernameConversions = {
  * - the channel lookup is case-insensitive, so a casing slip in a key still works
  * - the words are matched in any case and with their inner spaces optional ("DJ MIX",
  *   "DJMix"), always as whole words - the same looseness a mapped channel name gets
- * - a title already carrying the FULL curated name is recognised before the bare words, so
- *   "Dance TV DJ Mix #680" does not grow a second "Dance TV" in front of itself
+ * - of the two names the longer one is looked for first, so whichever of them contains the
+ *   other, the more specific match wins: "Dance TV DJ Mix #680" does not grow a second
+ *   "Dance TV" in front of itself, and "Juno Daily - In The Mix: Space Ghost" loses the
+ *   whole show name rather than just the "Juno Daily" at its front
  * - several word entries per channel are fine; the first one found in the title wins
  */
 var mdbTitleChannelSeriesConversions = {
     "Dance TV": { "DJ Mix": "Dance TV DJ Mix" },
-    "Juno Daily": { "In The Mix": "Juno Daily" }
+    "Juno Daily": { "Juno Daily – In The Mix": "Juno Daily" }
 };
 
 

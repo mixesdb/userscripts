@@ -368,6 +368,20 @@ var mdbTitleExamples = [
         expect: "2026-08-04 - Miss Luna - Dance TV DJ Mix 679"
     },
     {
+        url: "https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-space",
+        title: "Juno Daily – In The Mix: Space Ghost",
+        channel: "Juno Daily",
+        date: "2026-08-19",
+        // the same map the other way round: here the WORDS in the title
+        // ("Juno Daily – In The Mix") contain the show they map to ("Juno Daily"), where
+        // Dance TV's show contains its words. The longer name has to be looked for first or
+        // the "Juno Daily" at the front matches itself, and the "– In The Mix" left over
+        // reads as part of the artist
+        expectArtists: [ "Space Ghost" ],
+        expectEntity: "Juno Daily",
+        expect: "2026-08-19 - Space Ghost - Juno Daily"
+    },
+    {
         url: "https://soundcloud.com/privateplaces/779-sascha-sibler",
         title: "Guestroom 779 by Sascha Sibler",
         channel: "PRIVATEPLACES Mixtapes",
