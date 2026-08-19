@@ -698,15 +698,25 @@ function mdbPageCreator_categoryEntries( title ) {
 // Only a RESPELLING is taken - same name, different case or punctuation. A match whose name
 // really differs ("Truancy Volume" -> "Truancy Volumes") is knowledge, not a spelling, and the
 // rule that keeps it out of the title (title_builder.js, the single exit) holds here too: the
-// chip's tooltip names it and the editor decides.
+// chip's tooltip names it and the editor decides. One exception, the same one the title's
+// canonicalization makes: a redirect the name itself hit, whose target is the same name up to
+// one substituted character ("Ri0D." -> "RiOD."), is the wiki correcting a spelling - and the
+// target is the category that really holds the mixes (mdbTitle_oneCharApart).
 function mdbPageCreator_categoryEntry( name, role ) {
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
         match = mdbTitle_knownMatch( cache, name, role === "artist" ? [ "artist" ] : null );
 
     if( !match || !match.title || match.title === name ) return { name: name, role: role };
 
-    if( mdbTitle_normalizeCompare( match.title ) !== mdbTitle_normalizeCompare( name ) ) {
-        return { name: name, role: role };
+    var nameKey = mdbTitle_normalizeCompare( name ),
+        titleKey = mdbTitle_normalizeCompare( match.title );
+
+    if( titleKey !== nameKey ) {
+        var viaRedirect = match.matchedTitle && mdbTitle_normalizeCompare( match.matchedTitle ) === nameKey;
+
+        if( !viaRedirect || !mdbTitle_oneCharApart( titleKey, nameKey ) ) {
+            return { name: name, role: role };
+        }
     }
 
     return { name: match.title, titleName: name, role: role };
@@ -3638,6 +3648,10 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
         case "chunk part":
             text = "one of the names the chunk \"" + source.chunk + "\" strings together - the chunk is asked " +
                    "about as a whole too, but a chain of names can only answer empty";
+            break;
+        case "group member":
+            text = "one of the artists the chunk \"" + source.chunk + "\" joins - the group is asked about " +
+                   "as a whole too, but MixesDB files each artist on their own";
             break;
     }
 

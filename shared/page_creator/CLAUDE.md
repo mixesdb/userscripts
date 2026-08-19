@@ -283,7 +283,14 @@ Rules the implementation follows, settled before it was built - do not re-litiga
 - **A resolved name is written in the wiki's spelling**, not the source's: `trommel` ->
   `Trommel.251`, `asa 808` -> `ASA 808`. Done at the single exit (`mdbTitle_result`), but ONLY
   name-for-name: a server match whose normalized name differs (`Truancy Volume` ->
-  `Truancy Volumes`) is knowledge, not a spelling, and never rewrites the title.
+  `Truancy Volumes`) is knowledge, not a spelling, and never rewrites the title. One exception
+  since 2026-08-19 (reported on `Ri0D.`): a REDIRECT whose target is the same name up to one
+  substituted character (`Ri0D.` -> `RiOD.`, the stylized 0 vs the O) is the wiki correcting a
+  spelling, and the target - the category that really holds the mixes - wins
+  (`mdbTitle_oneCharApart`; `Dekmantel` -> `Dekmantel Festival` stays knowledge). The exit also
+  respells the names in FRONT of a composed live group's `@` since the same day - only the
+  place behind it was ever canonicalized where the group was built, so `Ri0D. & Jonbot @ ...`
+  kept the stylized spelling even with the wiki's answer in hand.
 - **The first pass's own names are candidates too** (`mdbPageCreator_addParsedNames()` in
   `page_creator.js`, since 2026-08-19): the artists and the entity category of the title the
   first parse built, appended LAST (an over-full list drops them first) and deduped against
@@ -302,9 +309,12 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   next to the one holding the 8 mixes, which is the one thing a category line may never be.
   Done again there rather than left to the title's canonicalization because the two are not
   the same question: a title keeps what its own rules made of a name, a category has to be the
-  page that really exists. Same guard as above - a respelling only (normalized names equal),
-  asked by ROLE (an artist has to be known AS an artist) - and the name the title spells is
-  kept as `titleName`, which is what the chip's tooltip says is worth correcting.
+  page that really exists. Same guard as above - a respelling only (normalized names equal, or
+  the one-char redirect exception, which is exactly the case where writing the alias would file
+  the page into the redirect category) - asked by ROLE (an artist has to be known AS an
+  artist), and the name the title spells is kept as `titleName`, which is what the chip's
+  tooltip says is worth correcting. The chip's link already carried the wiki's spelling; the
+  chip's TEXT is this entry, which is why the Ri0D. report saw the two disagree.
 - **Candidates come from THE shared chunk split** (`mdbTitle_titleChunks`): typos and
   decoration out first, brackets read as separators (the channel's own bracket excepted), and
   the parser's guarded series-"by" split - `Guestroom 779 by Sascha Sibler` asks about both
@@ -324,6 +334,20 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   trailing-number reduction below only ever takes ONE number off, so a date left in its chunk
   becomes a name that cannot exist: `The Lot Radio 08-15-2026` was asked about as
   `The Lot Radio 08-15` while the venue itself was never asked.
+- **The artists a joiner strings together are candidates too** (2026-08-19, reported on
+  "Brotfabrik X k²0 Open Air - 25.07.2026 - Leipzig - Ri0D. & Jonbot"): `Ri0D. & Jonbot` is no
+  category and never will be, so each name of an artist-role chunk's group is asked next to
+  the whole (origin `group member` in the panel's section 3; the whole stays first - a duo can
+  be a category of its own). The confirmed name is what settles which bit of an event/venue
+  title names who PLAYED: `mdbTitle_takeEventTitle`/`_takeVenueTitle` pick the bit the wiki
+  backs as an artist first (`mdbTitle_groupHasKnownArtist`), then a bit that writes a line-up
+  (`mdbTitle_joinedArtistBit` - the comma deliberately not counting, it strings places), and
+  only then the first bit around the place - blind position had made `Leipzig`, a chunk of its
+  own, the artist, and the glue-the-rest fallback an entity `Leipzig Ri0D. & Jonbot` that
+  nobody wrote. The candidate list dedupes normalized (a member can BE another chunk), and the
+  same report is why a digit glued to a superscript (`k²0`) counts as a spelling in
+  `mdbTitle_seriesScore`, not as a number - read as a count it failed the event branch's
+  "an event is a place, not a series" guard.
 - **Candidates are only ever reduced from the RIGHT** (trailing episode number, `#n`, `.n`,
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
