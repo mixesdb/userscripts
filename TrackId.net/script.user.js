@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.43
+// @version      2026.08.19.45
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_80
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_81
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 154,
+var cacheVersion = 155,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.44
+ * Via the shared page creator (page_creator.css): a chip in the hints bar whose mix pages are
+ * folded open now takes a line of its own, the full width of the bar. With two of them open
+ * the line went ragged - the grey chips that happened to share a line with a folded-out list
+ * hung next to it in mid-air ("2026" beside one, "Tracklist: none" beside the next), and each
+ * list started wherever the chip in front of it ended. Several chips may still stand open at
+ * once - the artist's newest pages right above the show's is what answers "is this mix already
+ * here?" - and the closed chips keep their place around them.
  *
  * 2026.08.19.36
  * Via the shared page creator (page_creator.js v_73): the {{Player}} of the created page takes

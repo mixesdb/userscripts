@@ -145,7 +145,9 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   re-reading against the category page it mirrors. The pages usually arrive with the category answer
   itself, for artists as well as for shows, so the list is there the moment the chip is
   opened; where they do not, the click fetches them and the chip waits on a spinner until
-  they are in.
+  they are in. An opened chip takes a line of its own, the full width of the bar, so as many
+  of them may stand open at once as you like – the artist's newest pages right above the
+  show's – without the chips around them ending up stranded beside a list.
 - **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
   first page), but it is exactly where a typo or a second spelling hides – so the name itself,
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
@@ -154,7 +156,9 @@ asked about, one chip per name, its colour saying whether the wiki already has i
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. Nothing is fetched from MixesDB before a modal is actually opened. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+serve is a five-second one. The page behind it goes dark and blurred, the whole window and the
+site's own menu bar included, so nothing beside the box competes for the eye.
+Nothing is fetched from MixesDB before a modal is actually opened. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 
