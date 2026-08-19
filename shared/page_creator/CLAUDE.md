@@ -459,9 +459,9 @@ renders them. Settled, so it does not get re-litigated:
   written as a guess, or left off because the title read as a studio mix - the title's own
   marker is read, not guessed, and gets no chip), a "(Promo Mix)" that was assumed (4b/5c) or
   deliberately withheld (`mdbTitle_promoDeclined`: the channel-known-as-artist and
-  numbered-series branches, where writing it would stack a guess on a guess), and a dropped
-  "Part N". With several artists the Live PA chip is skipped like the marker itself: only the
-  uploader knows whose set it was.
+  numbered-series branches, where writing it would stack a guess on a guess). With several
+  artists the Live PA chip is skipped like the marker itself: only the uploader knows whose
+  set it was.
 - **The title's own consumed "live" word opens the Live PA chip too** (2026-08-19, second
   round - reported on "Live@Elsewhere Loft July" and "Dualism Series #031 - alemiko *live",
   where no chip fired). `mdbTitle_applyJoiners` consumes the word on both paths - read as the
@@ -473,10 +473,17 @@ renders them. Settled, so it does not get re-litigated:
   it only makes the reading worth offering - on live and studio titles alike, single artist
   only. `expectAlternatives` in `title_examples.js` guards it (kinds that must be present;
   the runner checks presence, not reason wording).
-- **Part chunks only, no stage/camp/day.** MixesDB really files split uploads as "... (Part 2)"
-  (checked against the wiki 2026-08-19), so that drop has a second reading worth offering.
-  "Day 2" is written INLINE behind the event name there, not as a bracket, and a stage or camp
-  the wiki never carries - a chip would offer a title that cannot be right.
+- **A chip may never propose a DIFFERENT PAGE, only a different title for this one.** That is
+  the line every candidate reading is measured against, and it is what rules out the dropped
+  chunks of 1c - "Part 2" above all (dropped again 2026-08-19, second round: it had been built
+  and was wrong). The parts of one recording share ONE mix page, with the files, the players
+  and the tracklist's part chapters inside it, so a title carrying the marker is the start of a
+  duplicate, not a second reading - the chip would use the switch to undo the drop. Held
+  against the offered readings: "(Live PA)" and the venue-room word describe the same
+  recording, and "(Promo Mix)" moves the filing of the same page. The wiki DOES carry a few
+  "... (Part 2)" titles; those are separate releases, and no reason to offer the marker on a
+  split upload. The rule and the reasoning live in `mdbTitleDroppedBitPatterns`
+  ("Never offered back").
 - **The promo switch moves the filing.** `mdbPageCreator_entityCategoryFor` reads the flag OR
   the title's marker, so `mdbPageCreator_applyAlternative` sets `mdbPageCreator_promoCategory`
   to match the toggle - without that, switching to the show reading would still file the page

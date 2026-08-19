@@ -78,10 +78,15 @@ for( const example of mdbTitleExamples ) {
 
     // A case may state the switchable readings the build has to OFFER - the hints bar's
     // "Switch title:" chips - as the fact kinds that must be present ("livePa", "promoMix",
-    // "chunk"). Presence only: the reason texts are wording, not behaviour.
+    // "placeWord"), and expectNoAlternatives as the kinds it may never offer. Presence and
+    // absence rather than the exact list, because a title can legitimately gain a chip a case
+    // was not written about; what a case guards is its own reading. The reason texts are
+    // wording, not behaviour, and are not compared.
     const altKinds = ( got.alternatives || [] ).map( a => a.kind ),
-          altsOk = !example.expectAlternatives ||
-                   example.expectAlternatives.every( kind => altKinds.indexOf( kind ) !== -1 );
+          altsOk = ( !example.expectAlternatives ||
+                     example.expectAlternatives.every( kind => altKinds.indexOf( kind ) !== -1 ) ) &&
+                   ( !example.expectNoAlternatives ||
+                     example.expectNoAlternatives.every( kind => altKinds.indexOf( kind ) === -1 ) );
 
     if( !titleOk || !artistsOk || !entityOk || !chunksOk || !altsOk ) failed++;
 
@@ -103,9 +108,10 @@ for( const example of mdbTitleExamples ) {
             ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +
               ( chunksOk ? "" : "\n              expected   chunks " + JSON.stringify( example.expectChunks ) )
             : "" ) +
-        ( example.expectAlternatives
+        ( example.expectAlternatives || example.expectNoAlternatives
             ? "\n              " + ( altsOk ? "" : "got      " ) + "alternatives " + JSON.stringify( altKinds ) +
-              ( altsOk ? "" : "\n              expected   alternatives " + JSON.stringify( example.expectAlternatives ) )
+              ( altsOk ? "" : "\n              expected   alternatives " + JSON.stringify( example.expectAlternatives || [] ) +
+                              ( example.expectNoAlternatives ? ", never " + JSON.stringify( example.expectNoAlternatives ) : "" ) )
             : "" )
     );
 }

@@ -1520,6 +1520,36 @@ function mdbTitle_endsWithEventWord( text ) {
         .test( String( text || "" ).trim() );
 }
 
+// mdbTitle_venueSpaceBase
+// The VENUE inside a place name that names one of its rooms: "Elsewhere Loft" -> "Elsewhere",
+// with the word that was taken off. null when the name ends in no such word
+// (mdbTitleVenueSpaceWords in title_definitions.js) or when nothing usable is left in front of
+// it - "The Loft" names no venue without its word.
+// The word is returned as the TITLE spells it, since that is what the "Switch title" chip
+// offers back. A leading "the" of the room goes with it ("Elsewhere The Loft"): the article
+// belongs to the room, not to the venue in front of it.
+// Reading only - whether the base may replace the name is the caller's question, and both
+// callers ask the wiki before they act on it.
+function mdbTitle_venueSpaceBase( name ) {
+    var words = ( typeof mdbTitleVenueSpaceWords !== "undefined" && mdbTitleVenueSpaceWords ) ? mdbTitleVenueSpaceWords : [],
+        text = mdbTitle_trimSeparators( String( name || "" ) ),
+        m, base;
+
+    if( !words.length || !text ) return null;
+
+    m = new RegExp( "\\s+(?:the\\s+)?(" + mdbTitle_wordListAlternation( words ) + ")\\.?$", "i" ).exec( text );
+
+    if( !m ) return null;
+
+    base = mdbTitle_trimSeparators( text.slice( 0, m.index ) );
+
+    // two letters are an abbreviation as readily as a name, and the lookup that follows would
+    // match half the wiki
+    if( base.length < 3 ) return null;
+
+    return { base: base, word: m[1] };
+}
+
 // mdbTitle_bracketPairRe
 // One innermost bracket pair of any kind, with its content. Innermost, so a bracket inside a
 // bracket cannot pair up with the wrong one.
@@ -1755,13 +1785,13 @@ function mdbTitle_dashWrapsToSeparators( text ) {
 
 // mdbTitle_dropBits
 // Takes the chunks out that never make it into a MixesDB title - "Part 2", a stage, a camp
-// (mdbTitleDroppedBitPatterns). Returns { text, dropped, droppedBits } - the texts next to the
-// count because a dropped "Part 2" is offered back as a switchable alternative title (see
-// mdbTitle_droppedParts). The separator runs are kept along with the chunks they belong to, so
-// what stays reads exactly as the uploader wrote it.
+// (mdbTitleDroppedBitPatterns). Returns { text, dropped }. The separator runs are kept along with
+// the chunks they belong to, so what stays reads exactly as the uploader wrote it.
+// Nothing here is ever offered back as an alternative title - see "Never offered back" in
+// mdbTitleDroppedBitPatterns (title_definitions.js).
 function mdbTitle_dropBits( text ) {
     var patterns = ( typeof mdbTitleDroppedBitPatterns !== "undefined" && mdbTitleDroppedBitPatterns ) ? mdbTitleDroppedBitPatterns : [],
-        result = { text: String( text || "" ), dropped: 0, droppedBits: [] };
+        result = { text: String( text || "" ), dropped: 0 };
 
     if( !patterns.length ) return result;
 
@@ -1788,14 +1818,13 @@ function mdbTitle_dropBits( text ) {
         // drops that separator with it and never leaves a dangling " | " behind
         if( drop ) {
             result.dropped++;
-            result.droppedBits.push( bit );
         } else {
             kept.push( { sep: i ? parts[i - 1] : "", text: parts[i] } );
         }
     }
 
     // a title made of nothing but dropped chunks stays as it is - something wrong beats nothing
-    if( !kept.length ) return { text: result.text, dropped: 0, droppedBits: [] };
+    if( !kept.length ) return { text: result.text, dropped: 0 };
 
     result.text = "";
     for( i = 0; i < kept.length; i++ ) {
@@ -1803,25 +1832,6 @@ function mdbTitle_dropBits( text ) {
     }
 
     return result;
-}
-
-// mdbTitle_partBits
-// The part markers among the chunks 1c dropped, in MixesDB's own spelling: "part2", "Pt. 2"
-// and "PART 2" all come back as "Part 2", deduped. Only the part patterns - a "Day 2" is
-// written INLINE behind the event name on MixesDB ("@ Dekmantel Festival Day 2"), not as a
-// bracket, so offering it appended would offer a title the wiki never writes; a stage or a
-// camp the wiki does not carry at all.
-function mdbTitle_partBits( bits ) {
-    var out = [],
-        i, m;
-
-    for( i = 0; i < ( bits || [] ).length; i++ ) {
-        m = /^p(?:ar)?t\s*\.?\s*(\d+)$/i.exec( bits[i] );
-
-        if( m && out.indexOf( "Part " + m[1] ) === -1 ) out.push( "Part " + m[1] );
-    }
-
-    return out;
 }
 
 // mdbTitle_isCountry
@@ -2356,6 +2366,20 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
                 take( stripped, bitRole, "chunk", bits[i] );
             } else {
                 take( bit, bitRole, "chunk", bits[i] );
+            }
+
+            // ... and the VENUE inside a place that names one of its rooms: "Elsewhere Loft"
+            // is no category while "Elsewhere" is, so the base is asked next to the full name
+            // - which stays the first question, since a venue really called "... Garden"
+            // answers for itself. Behind the "@" only, where the title itself has said these
+            // words are the place; in front of it the same words sit inside artist names.
+            // See "A room inside a venue is not the venue" in title_definitions.js.
+            var space = inPlace
+                ? mdbTitle_venueSpaceBase( ( stripped && stripped !== bit && stripped.length >= 3 ) ? stripped : bit )
+                : null;
+
+            if( space ) {
+                take( space.base, "entity", "place base", bits[i] );
             }
 
             // ... and the names the chunk strings together, when it is long enough to be a
@@ -2996,12 +3020,12 @@ var mdbTitle_liveWordSeen = false;
 // alternative instead of losing the decision silently.
 var mdbTitle_promoDeclined = false;
 
-// The "Part N" chunks step 1c dropped from this title (normalized to MixesDB's "Part N"
-// spelling, deduped). A part marker is the one dropped chunk with a real second reading:
-// where the parts are uploaded as files of their own, MixesDB DOES write "... (Part 2)" -
-// so mdbTitle_result offers the title with it as an alternative. Stage/camp/floor chunks
-// stay out: the wiki never carries those, whatever the upload says.
-var mdbTitle_droppedParts = [];
+// The room word mdbTitle_result took off the place group - { word, place, full }, null on
+// every other title. "Elsewhere Loft" is no category, "Elsewhere" is the venue, so the word
+// went; the reading is still worth OFFERING, and this is what mdbTitle_result's alternatives
+// hand to the hints bar's "Switch title" chip. Set once per suggestion, in the reduction
+// itself, and only there - the first pass runs without the wiki's answers and never reduces.
+var mdbTitle_placeWordDropped = null;
 
 // mdbTitle_isChannelInitials
 // Whether an all-caps word is the channel abbreviating itself: "IA" on "Illegal Alien Records".
@@ -3687,7 +3711,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_livePaDescription = false;
     mdbTitle_liveWordSeen = false;
     mdbTitle_promoDeclined = false;
-    mdbTitle_droppedParts = [];
+    mdbTitle_placeWordDropped = null;
 
     try {
         // "_" is a space on MediaWiki and a word character to a regex, so it is written out
@@ -3862,10 +3886,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             mdbTitle_traceStep( "Chunk dropped (a part, a stage or the like)", rest + " -> " + withoutDropped.text,
                 null, [ "mdbTitleDroppedBitPatterns" ] );
             conf.drop( 5, "a part of the title was left out - it named a part, a stage or the like, which a mix page title does not carry" );
-            // a dropped "Part N" has a real second reading (a part uploaded as a file of its
-            // own IS titled "... (Part N)" on MixesDB), so it is kept for the exit, which
-            // offers the title with it as a switchable alternative
-            mdbTitle_droppedParts = mdbTitle_partBits( withoutDropped.droppedBits );
+            // Nothing dropped here is ever offered back as a "Switch title" alternative -
+            // "Part 2" least of all: the parts of one recording share ONE mix page (see
+            // "Never offered back" in mdbTitleDroppedBitPatterns), so a chip appending it
+            // would invite exactly the split page the drop exists to prevent.
             rest = withoutDropped.text;
         }
 
@@ -4866,6 +4890,54 @@ function mdbTitle_assemble( date, artist, show, episode, promoMix ) {
     return out;
 }
 
+// mdbTitle_reducePlaceGroup
+// "A @ Elsewhere Loft" -> "A @ Elsewhere": the room a set was played in, taken off the place
+// group so the title names the venue MixesDB files it under. Returns the group unchanged
+// whenever the wiki does not back the swap, which is most titles.
+//
+// Both halves of the condition have to hold, and the wiki answers both: the name the title
+// carries is no category at ALL (a venue really called "... Garden" answers for itself and
+// keeps its word), and the base IS one - as a venue or an event, never as an artist, since
+// what stands behind the "@" is the place. Without the second half this would shorten a name
+// nobody knows into another name nobody knows.
+//
+// The FIRST part of the group only, the one the page is filed under (mdbTitle_placeGroupEntity):
+// "@ Venue, City" keeps its city, and the venue behind a festival is not what decides the
+// filing either. Sits at the single exit rather than in the branches, so every reading that
+// composes a place group - the "Live at" joiner, the venue branch, the event branch - is
+// covered by the one rule.
+function mdbTitle_reducePlaceGroup( group ) {
+    var known = mdbTitle_knownNow,
+        text = String( group || "" ),
+        at = text.indexOf( " @ " );
+
+    if( !known || at === -1 ) return text;
+
+    var place = text.slice( at + 3 ),
+        comma = place.indexOf( "," ),
+        first = mdbTitle_trimSeparators( comma === -1 ? place : place.slice( 0, comma ) ),
+        rest = comma === -1 ? "" : place.slice( comma );
+
+    // the wiki knowing the place under any type at all settles it - the name is a category,
+    // and a category is never shortened
+    if( !first || mdbTitle_knownAs( known, first ) ) return text;
+
+    var space = mdbTitle_venueSpaceBase( first );
+
+    if( !space ) return text;
+
+    var match = mdbTitle_knownMatch( known, space.base, [ "venue", "event" ] );
+
+    if( !match ) return text;
+
+    // in the wiki's own spelling, like every name an answer backs
+    var venue = mdbTitle_canonicalName( known, space.base, [ "venue", "event" ] );
+
+    mdbTitle_placeWordDropped = { word: space.word, place: venue, full: first };
+
+    return text.slice( 0, at + 3 ) + venue + rest;
+}
+
 // mdbTitle_result
 // The single exit of buildMixesdbTitle: appends the extra artists, assembles, and enforces
 // the three-group rule "Date - Artist - Entity" (see title_definitions.js). A 4th group is
@@ -4905,6 +4977,27 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
     if( oneAtGroup !== artist ) {
         logVar( "mdbTitle_result: further \"@\" joined into the place group", artist + " -> " + oneAtGroup );
         artist = oneAtGroup;
+    }
+
+    // A room inside a venue is not the venue: where the place the title names is no category
+    // and the venue around it is one, the word comes off - "@ Elsewhere Loft" -> "@ Elsewhere".
+    // After the group is whole (the "@" fold above), so the part being read is the one the
+    // page files under. The dropped word is offered back as a "Switch title" chip below.
+    var placeShort = mdbTitle_reducePlaceGroup( artist );
+
+    if( placeShort !== artist ) {
+        logVar( "mdbTitle_result: room inside the venue dropped", artist + " -> " + placeShort );
+        mdbTitle_traceStep( "Room inside the venue dropped",
+                            artist + " -> " + placeShort, null, [ "mdbTitleVenueSpaceWords" ] );
+
+        // the deciding branch writes the sentence - this one asked the wiki, so it may say so
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.entity = "MixesDB has no category \"" + mdbTitle_placeWordDropped.full +
+                "\", while \"" + mdbTitle_placeWordDropped.place + "\" is a venue it knows - \"" +
+                mdbTitle_placeWordDropped.word + "\" names a room inside it, and the page files under the venue";
+        }
+
+        artist = placeShort;
     }
 
     // "Live PA" said by the title or the description is written behind the artist's NAME, the
@@ -5036,13 +5129,29 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
             } );
         }
 
-        for( var altPart = 0; altPart < mdbTitle_droppedParts.length; altPart++ ) {
+        // The room the reduction above took off the place group. MixesDB does write it where
+        // it is worth naming - "2019-05-24 - Robert Hood @ Elsewhere Rooftop, NYC" is filed
+        // under Elsewhere all the same - so this is a reading, not a mistake, and only the
+        // uploader knows whether this set was one of those. The filing does not move with the
+        // chip: mdbPageCreator_entityCategory reduces the name again off the lookup cache, so
+        // both readings put the page under the venue.
+        if( mdbTitle_placeWordDropped ) {
             alternatives.push( {
-                kind: "chunk",
-                text: mdbTitle_droppedParts[altPart],
-                reason: "\"" + mdbTitle_droppedParts[altPart] + "\" was left out - it says which part of the recording this is. Where the parts are uploaded as files of their own, MixesDB does write it: \"... (" + mdbTitle_droppedParts[altPart] + ")\"."
+                kind: "placeWord",
+                text: mdbTitle_placeWordDropped.word,
+                place: mdbTitle_placeWordDropped.place,
+                reason: "\"" + mdbTitle_placeWordDropped.word + "\" names a room inside \"" +
+                        mdbTitle_placeWordDropped.place + "\", which is the category the page files under" +
+                        " either way - MixesDB has no \"" + mdbTitle_placeWordDropped.full + "\". Where the room" +
+                        " is worth naming, the title does carry it."
             } );
         }
+
+        // A chunk 1c dropped is never offered back - a "Part 2" above all. The parts of one
+        // recording are ONE mix page (file details listing every file, a player each, the
+        // tracklist split into part chapters), so a title carrying the marker is not a second
+        // reading of this mix, it is the beginning of a duplicate page. See "Never offered
+        // back" in mdbTitleDroppedBitPatterns.
     }
 
     return {

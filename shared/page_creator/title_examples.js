@@ -282,10 +282,13 @@ var mdbTitleExamples = [
         title: "Live@Elsewhere Loft July",
         channel: "alexander:louis",
         date: "2026-07-27",
-        // what the wiki answered: the channel is an Artist, "Elsewhere Loft" is no category at
-        // all (its club "Elsewhere" is one, but that is not the name in the title)
-        known: { "alexander:louis": "artist" },
-        expect: "2026-07 - alexander:louis @ Elsewhere Loft"
+        // What the wiki answered: the channel is an Artist, "Elsewhere Loft" is no category
+        // at all - while the club "Elsewhere" is one, with 2 mixes. "Loft" names a room
+        // inside it, so the word comes off and the page files under the venue. Reported
+        // 2026-08-19 as the entity category being a name MixesDB does not have.
+        known: { "alexander:louis": "artist", "Elsewhere": { type: "venue", mixes: 2 } },
+        expectEntity: "Elsewhere",
+        expect: "2026-07 - alexander:louis @ Elsewhere"
     },
     {
         url: "https://soundcloud.com/whose-these-records/whose-these-cast-02-by-mar-1",
@@ -878,9 +881,14 @@ var mdbTitleExamples = [
         expect: "2016 - Anja Schneider @ Docklands"
     },
     {
+        // The "Part 2" is dropped and never offered back as a "Switch title" chip: the parts
+        // of one recording share ONE mix page, so a title carrying the marker would start a
+        // duplicate rather than read the same mix differently. See "Never offered back" in
+        // mdbTitleDroppedBitPatterns.
         title: "Some DJ - Live at Berghain (Part 2)",
         channel: "Some Label",
         date: "2026-08-07",
+        expectNoAlternatives: [ "chunk" ],
         expect: "2026 - Some DJ @ Berghain"
     },
     {
@@ -1097,8 +1105,11 @@ var mdbTitleExamples = [
         title: "Live@Elsewhere Loft July",
         channel: "alexander:louis",
         date: "2026-07-27",
-        known: { "alexander:louis": "artist" },
-        expectAlternatives: [ "livePa" ],
-        expect: "2026-07 - alexander:louis @ Elsewhere Loft"
+        // ... and the room word the second round took off the venue is offered back the same
+        // way: MixesDB does write the room where it is worth naming ("@ Elsewhere Rooftop,
+        // NYC" is filed under Elsewhere), so it is a reading, not a mistake.
+        known: { "alexander:louis": "artist", "Elsewhere": { type: "venue", mixes: 2 } },
+        expectAlternatives: [ "livePa", "placeWord" ],
+        expect: "2026-07 - alexander:louis @ Elsewhere"
     }
 ];
