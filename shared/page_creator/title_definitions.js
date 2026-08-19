@@ -1547,6 +1547,54 @@ var mdbTitleEventWords = [
 
 
 /*
+ * A room inside a venue is not the venue
+ *
+ * Uploaders name the very corner of the club they played in - the loft, the rooftop, the
+ * garden - and MixesDB files the page under the CLUB:
+ *
+ *     "Live@Elsewhere Loft July"  (channel "alexander:louis", uploaded 2026-07-27)
+ *     WRONG: 2026-07 - alexander:louis @ Elsewhere Loft
+ *     RIGHT: 2026-07 - alexander:louis @ Elsewhere
+ *
+ * "Elsewhere Loft" is no category and never will be, while "Elsewhere" is the venue the wiki
+ * has filed sets under for years. Without the words below the whole name was the only thing
+ * ever asked about, so the one lookup that could have answered was never made and the page
+ * went under a category that does not exist.
+ *
+ * They do exactly two things, both behind the "@", where the title has already said that
+ * these words are the PLACE:
+ *
+ *   - the base name is asked about NEXT TO the full one (mdbTitle_categoryCandidates) - the
+ *     full name stays the first question, the base is the fallback
+ *   - and where the wiki knows the base as a venue or an event WHILE the full name answers
+ *     empty, the word comes off the title (mdbTitle_result)
+ *
+ * Both halves of that condition carry: a venue really called "... Garden" answers for itself
+ * and is left alone, and a base nobody knows is no better than the name the uploader wrote.
+ * From the RIGHT and one word only, like every other reduction the candidates do - shortening
+ * a name from the left invents matches.
+ *
+ * The reading is not lost, it is OFFERED: mdbTitle_result hands the dropped word to the hints
+ * bar as a "Switch title" chip, because MixesDB does write the room where it is worth naming
+ * ("2019-05-24 - Robert Hood @ Elsewhere Rooftop, NYC" - filed under Elsewhere all the same),
+ * and only the uploader knows whether this set was one of those. Both readings file the page
+ * under the venue either way (mdbPageCreator_entityCategory).
+ *
+ * "Club" is deliberately NOT on the list: a venue is named "... Club" far more often than it
+ * has a room called one ("Chapeau Club", "Wire Club"), and the same goes for "Haus", "Studio"
+ * and "Arena". What is here names a room, a floor or a piece of outdoor ground - never the
+ * house itself. "stage" is the festival reading of the same thing, and the one that also
+ * turns up as a chunk of its own, where mdbTitleDroppedBitPatterns drops it.
+ */
+var mdbTitleVenueSpaceWords = [
+    "loft", "rooftop", "roof", "terrace", "terrasse", "garden", "garten", "courtyard",
+    "backyard", "yard", "basement", "cellar", "keller", "hall", "halle", "saal", "room",
+    "floor", "stage", "tent", "lounge", "bar", "patio"
+];
+
+
+
+/*
  * A chain of names is not a name
  *
  * A chunk built out of several names strung together with little words answers empty on every
@@ -1641,6 +1689,29 @@ var mdbTitleJokeYearEvents = [
  *
  * Never applied to the LAST chunk standing: a title made of nothing but these would come out
  * empty, and something wrong beats nothing.
+ *
+ * NEVER OFFERED BACK. Nothing dropped here may return as a "Switch title" alternative, and
+ * "Part 2" is the one that has to be said out loud, because it looks like the obvious
+ * candidate for one:
+ *
+ *     "Some DJ - Live at Berghain (Part 2)"
+ *     ->  2026 - Some DJ @ Berghain,  and NO "(Part 2)" chip beside it
+ *
+ * The parts of one recording are ONE mix page on MixesDB. The page is created under the
+ * plain title and the parts are handled INSIDE it - the file details list every file, each
+ * gets its own player, and the tracklist carries them as part chapters. So a title with the
+ * marker is not a second reading of this mix; it is the first half of a duplicate, and a
+ * page created that way has to be merged by hand afterwards. Offering it would use the
+ * switch to undo the very rule this list is.
+ *
+ * (Titles like "1996 - Frankie Knuckles - Promo Mix (RA Podcast, RA.1000, Part 2)" do exist
+ * on the wiki. They are pages where the SOURCE is genuinely a separate release, not our case
+ * here, and they are no reason to offer the marker on an ordinary split upload.)
+ *
+ * The same holds for a stage, a floor and a camp, which the wiki does not carry at all - the
+ * part marker is only the one worth a paragraph. What IS offered back is a reading that
+ * leaves the page identical: a room inside a venue (mdbTitleVenueSpaceWords), where both
+ * spellings file under the same category.
  */
 var mdbTitleDroppedBitPatterns = [
     /^part\s*\.?\s*\d+$/i,
@@ -1914,6 +1985,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleGuestMarkers: {
         what: "Phrases marking a guest mix. The name in front of one is the artist, and the phrase itself is no part of the title.",
         data: mdbTitleGuestMarkers
+    },
+    mdbTitleVenueSpaceWords: {
+        what: "Words naming a room, a floor or a piece of ground INSIDE a venue - the loft, the rooftop, the garden. Behind the \"@\" the base name is asked about next to the full one, and where the wiki knows the base as a venue or an event while the full name answers empty, the word comes off the title. The reading is offered back as a \"Switch title\" chip, and the page files under the venue either way.",
+        data: mdbTitleVenueSpaceWords
     },
     mdbTitleCountries: {
         what: "Country names and codes, for spotting what only says where an artist is from - which a mix page title never carries. A bracket behind a name goes even when it holds a lone code (\"Adjust (BE)\") and even on a live title, as long as it stands in front of the \"@\"; an unbracketed chunk only goes as a place LIST ending in a country (\"Ibiza/ Dusseldorf, Germany\"), and only on a non-live title, where the same words are not the venue's city and country.",

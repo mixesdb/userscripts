@@ -724,10 +724,34 @@ function mdbPageCreator_entityCategoryFor( title, entity ) {
 // its name without the edition ("Sunwaves 31" -> Sunwaves). The bracketed tail a title can
 // carry - "(RA.971)", "(Promo Mix)" - is never part of a category name either.
 function mdbPageCreator_entityCategory( entity ) {
-    return String( entity || "" )
+    var name = String( entity || "" )
         .replace( /\s*\([^()]*\)\s*$/, "" )
         .replace( /[\s.]+\d+$/, "" )
         .trim();
+
+    return mdbPageCreator_venueOfRoom( name );
+}
+
+// mdbPageCreator_venueOfRoom
+// "Elsewhere Loft" -> "Elsewhere": a room inside a venue is filed under the venue. The title
+// builder already writes the suggestion that way (mdbTitle_reducePlaceGroup), so this is for
+// the title that carries the room ANYWAY - the "Switch title" chip clicked back, or an editor
+// who typed the room in on purpose because MixesDB does write it ("@ Elsewhere Rooftop, NYC").
+// The page belongs in Category:Elsewhere either way, and a category spelled after the room is
+// the empty category next to the real one that a category line must never be.
+//
+// Same two conditions the builder's reduction has, asked of the same lookup cache: the name
+// itself is no category at all, and the base IS one, as a venue or an event. Without an answer
+// for either - the lookup has not run, or failed - nothing is reduced and the name stands.
+function mdbPageCreator_venueOfRoom( name ) {
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        room = name ? mdbTitle_venueSpaceBase( name ) : null;
+
+    if( !room || mdbTitle_knownAs( cache, name ) ) return name;
+
+    var venue = mdbTitle_knownMatch( cache, room.base, [ "venue", "event" ] );
+
+    return ( venue && venue.title ) ? venue.title : name;
 }
 
 // mdbPageCreator_bucketCategories
@@ -1756,16 +1780,32 @@ function mdbPageCreator_altToggle( title, fact ) {
         return { title: title + " (Promo Mix)", adding: true };
     }
 
-    if( fact.kind === "chunk" && fact.text ) {
-        re = new RegExp( "\\s*\\(\\s*" + mdbTitle_escapeRe( fact.text ) + "\\s*\\)", "i" );
+    // The room inside the venue the build took off the place group ("@ Elsewhere Loft" ->
+    // "@ Elsewhere"). Toggled on the PLACE the fact names, not on the end of the title: the
+    // group can carry a city behind the venue, and the word belongs behind the venue itself.
+    // The filing does not move with it - mdbPageCreator_entityCategory reduces the name again
+    // off the lookup cache, so both readings file the page under the venue.
+    if( fact.kind === "placeWord" && fact.text && fact.place ) {
+        var placeRe = new RegExp( "(@\\s*" + mdbTitle_escapeRe( fact.place ) + ")(\\s+" +
+                                  mdbTitle_escapeRe( fact.text ) + ")\\b", "i" );
 
-        if( re.test( title ) ) {
-            return { title: title.replace( re, "" ).replace( /\s+/g, " " ).trim(), adding: false };
+        if( placeRe.test( title ) ) {
+            return { title: title.replace( placeRe, "$1" ), adding: false };
         }
 
-        return { title: title + " (" + fact.text + ")", adding: true };
+        placeRe = new RegExp( "(@\\s*" + mdbTitle_escapeRe( fact.place ) + ")(?![\\w])", "i" );
+
+        if( placeRe.test( title ) ) {
+            return { title: title.replace( placeRe, "$1 " + fact.text ), adding: true };
+        }
+
+        return null;
     }
 
+    // No "Part N" toggle, and none for anything else step 1c dropped: the parts of one
+    // recording share ONE mix page, so appending the marker would start a duplicate rather
+    // than offer a reading. The builder emits no such fact - see "Never offered back" in
+    // mdbTitleDroppedBitPatterns (title_definitions.js).
     return null;
 }
 
@@ -2825,6 +2865,12 @@ function mdbPageCreator_reportText( title ) {
     lines.push( "–> Entity category: " + mdbPageCreator_entityCategoryFor( title, read.entity ) );
     lines.push( "-> Mistake / learning: " );
     lines.push( "-> Expected title: " );
+    // A SECOND title that would also be right - the reading the suggestion should have offered
+    // as a "Switch title" chip, or the one only the reporter can know ("Elsewhere Loft" is the
+    // rooftop of that club). Empty on most reports, and empty is fine: it says there is one
+    // right answer. Kept next to "Expected title" because the two are read together - the
+    // expected one is what the build has to produce, this one is what it may also offer.
+    lines.push( "-> Alternative title: " );
     lines.push( "–> Expected artist category: " );
     lines.push( "–> Expected entity category: " );
 
@@ -3212,7 +3258,8 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
 // nowhere in the title), a channel that names several, a curated show name, a chunk the
 // candidate reduced (the trailing episode number comes off, since a category name never
 // carries one), one of the names a long chunk strings together with a little word
-// ("Timboletti im Chapeau Club"), and a name the first parse read out of its chunk (the chunk
+// ("Timboletti im Chapeau Club"), a place behind the "@" without the word naming a room inside
+// it ("Elsewhere Loft" -> "Elsewhere"), and a name the first parse read out of its chunk (the chunk
 // itself carries more than the name, so the chunk side could never ask it). A name typed into
 // the title field afterwards says so too, so it is not read as something the player title
 // contained.
@@ -3244,6 +3291,10 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
             if( source.chunk && mdbTitle_normalizeCompare( source.chunk ) !== mdbTitle_normalizeCompare( name ) ) {
                 text = "from the chunk \"" + source.chunk + "\" - a category name carries no episode number";
             }
+            break;
+        case "place base":
+            text = "the place \"" + source.chunk + "\" without the word naming a room inside it - " +
+                   "MixesDB files a set played in the loft of a club under the club";
             break;
         case "chunk part":
             text = "one of the names the chunk \"" + source.chunk + "\" strings together - the chunk is asked " +

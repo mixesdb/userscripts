@@ -137,9 +137,12 @@ says why the build decided the other way. Offered today:
   series and the marker was deliberately left off (the chip offers the self-released reading
   with it). Switching also switches the page's filing: with the marker the page goes into
   `Category:Promo Mix`, without it under the name itself.
-- **(Part 2)** – a "Part N" the title carried was dropped, as usual for a mix page title; where
-  the parts are uploaded as files of their own, MixesDB does write `… (Part 2)`, and the chip
-  offers the title with it.
+
+A chip only ever offers a different **title for this same page** – never one that would create a
+different page. That is why a `Part 2` the title carried is dropped and *not* offered back: the
+parts of one recording belong on one mix page, with every file in the file details, a player
+each and the tracklist split into part chapters, so a title carrying the marker would only start
+a duplicate.
 
 ### "Report" box
 
