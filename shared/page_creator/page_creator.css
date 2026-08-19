@@ -1044,20 +1044,14 @@
  * jQuery's toggle: the bar is rebuilt whole on every render, and the class is what
  * mdbPageCreator_openUsedCatRecent restores.
  *
- * An open chip takes a ROW OF ITS OWN, the full width of the chip column: flex-basis 100%
- * fills the line, so nothing wraps in beside it and it wraps onto a fresh line itself. Without
- * that, an open chip stayed an item among the pills, and a SECOND one open turned the line
- * ragged - the pills that happened to share a line with a tall box hung next to it in mid-air
- * ("2026" beside one list, "Tracklist: none" beside the next), each box starting wherever the
- * pill in front of it ended and no two of them the same width. Reported 2026-08-19 with two
- * chips open. Full width also gives the mix titles the room they need - they are the longest
- * text the bar holds - and it keeps the chips' left edge, so the boxes and the pills still
- * read as one column. The pills keep their order around the box; several chips may stand
- * open at once, which is the point of the toggle: an artist's pages and the show's pages
- * under one another is what answers "is this mix already here?".
+ * Only ONE chip is ever open - mdbPageCreator_usedCatMixes folds the others shut on the click,
+ * rather than this rule keeping the line straight. Two open boxes at once left the pills that
+ * shared a line with them hanging in mid-air beside a tall box ("2026" next to one list,
+ * "Tracklist: none" next to the next), and giving an open box a line of its own fixed that but
+ * tore the pill line into pieces around it (reported 2026-08-19). One at a time keeps the box
+ * where the chip stands, and the line stays a line.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open {
-    flex: 0 0 100%;
     border-radius: 12px;
 }
 
