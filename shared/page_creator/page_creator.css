@@ -849,7 +849,7 @@
  * inside its column instead of pushing the chips out of line.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-hint-label {
-    flex: 0 0 110px;
+    flex: 0 0 100px;
     color: #8b8b8b;
 }
 
