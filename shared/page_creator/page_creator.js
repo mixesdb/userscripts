@@ -1388,6 +1388,19 @@ function mdbPageCreator_usedCategoriesHint( title ) {
                      ( fit ? ", fit " + fit.percent + "%" : "" ) + "]" );
     }
 
+    // The open chip's mix pages stand in a ROW OF THEIR OWN at the end of the line, moved out
+    // of the chip they were built in. As a row they get the whole width of the chips' column -
+    // the space to the LEFT of the chip above all, which is empty as soon as the chip is not
+    // the first one - and the chips behind it keep their place on the chips' line instead of
+    // being pushed under a box ten mix titles tall (reported 2026-08-19). Only one chip is
+    // ever open (mdbPageCreator_usedCatMixes), so there is only ever one such row. The lists
+    // are still BUILT inside their chips: that is where the toggle that owns them sits, and a
+    // closed one has to stay with its chip so the next render finds it there.
+    chips.children( ".mdb-pageCreator-usedCat-open" )
+         .children( ".mdb-pageCreator-usedCat-recent" )
+         .addClass( "mdb-pageCreator-usedCat-recent-row" )
+         .appendTo( chips );
+
     mdbPageCreator_logHints( logged.join( " | " ) );
 
     return hint;
@@ -1713,9 +1726,12 @@ function mdbPageCreator_usedCatLoupe() {
 
 // mdbPageCreator_usedCatMixes
 // The "N mixes" behind a confirmed name - the same count the reasoning panel writes behind
-// its matches, and ALWAYS the toggle for the category's recent mix pages, which fold out
-// under the name, inside the chip: the fastest "does this page already exist?" look there is
-// (row_enrichment.md §2). The toggle is offered whether or not the pages are on hand yet.
+// its matches, and ALWAYS the toggle for the category's recent mix pages, which fold out under
+// the chips' line, in a row of their own: the fastest "does this page already exist?" look
+// there is (row_enrichment.md §2). The list is BUILT into the chip here and moved into that
+// row by mdbPageCreator_usedCategoriesHint - the toggle that owns it sits in the chip, and a
+// closed list has to stay with its chip so the next build finds it there.
+// The toggle is offered whether or not the pages are on hand yet.
 // The lookup answer usually brings them (mdbnames ships "recent" for every type since
 // 2026-08-19), but a name typed into the title field can be answered before its pages are,
 // and a count that reacts to nothing until they land is a count the reader clicks at twice.
@@ -1732,6 +1748,9 @@ function mdbPageCreator_usedCatLoupe() {
 // caller once this returns: the folded-out list is a BLOCK, so a badge added after it sat
 // under the last mix page instead of behind the count as soon as a chip was toggled open,
 // and the score is about the category, not about the pages under it (reported 2026-08-19).
+// The list has left the chip since that same day's second fix, so the order inside the chip
+// no longer decides this - the badge is still handed in here, because the chip is built with
+// its list inside it and only loses it afterwards.
 function mdbPageCreator_usedCatMixes( chip, entry, match, fit ) {
     // every way out of here still owes the chip its badge - a category that offers no count
     // at all is still a category the fit has an answer about
@@ -1808,24 +1827,21 @@ function mdbPageCreator_usedCatMixes( chip, entry, match, fit ) {
 
                 if( nowOpen ) mdbPageCreator_openUsedCatRecent[ key ] = true;
 
-                // the chips on screen follow that without waiting for a render: closing the
-                // others is what the reader clicked for, and a render is only started below
-                // where the pages still have to be fetched
-                chip.closest( "#mdb-pageCreator-hints" )
-                    .find( ".mdb-pageCreator-usedCat-open" )
-                    .removeClass( "mdb-pageCreator-usedCat-open" );
-
-                chip.toggleClass( "mdb-pageCreator-usedCat-open", nowOpen );
-
-                if( !nowOpen ) return;
-
                 // No pages yet: THIS click is what asks for them, and the chip stands open on
-                // its waiter meanwhile. Re-rendered right away so the waiter is on screen
-                // before the answer is, and again by the fetch when the links arrive.
-                if( !recent.length && !match.recentPending && !match.recentFailed && !match.recentFetched ) {
+                // its waiter meanwhile - the render below puts the waiter on screen before the
+                // answer is in, and the fetch renders again when the links arrive.
+                if( nowOpen && !recent.length && !match.recentPending &&
+                    !match.recentFailed && !match.recentFetched ) {
                     mdbPageCreator_usedCatFetchRecent( match, entry.name );
-                    mdbPageCreator_renderHints( $("#mdb-pageCreator") );
                 }
+
+                // The bar is REBUILT rather than a class flipped here: which chip is open
+                // decides where the list hangs in the markup - the open one's is moved out
+                // into a row of its own (mdbPageCreator_usedCategoriesHint) - and that is the
+                // build's answer, not a class the click could toggle. Safe from the blur race
+                // the render guard describes (mdbPageCreator_renderHints): this runs on the
+                // click, not between its mousedown and mouseup.
+                mdbPageCreator_renderHints( $("#mdb-pageCreator") );
             })
     );
 
@@ -3627,15 +3643,17 @@ var mdbPageCreator_modalMinWidth = 1024,
 
 // mdbPageCreator_hintLinkOnScreen
 // Is this bar link one the reader can see? Every link IS in the DOM - a chip's recent mix
-// pages are built with the chip and only folded away by the open class - so the question is
+// pages are built with the chip whether they are folded out or not - so the question is
 // answered by STRUCTURE, not by :visible: the bar's first render happens while the row is
-// still detached, where nothing computes as visible at all. Everything the modal does - the
-// walk, the counter, the neighbours it loads ahead - comes through mdbPageCreator_modalLinks(),
-// so all of it agrees on the same set.
+// still detached, where nothing computes as visible at all. The open list is the one the build
+// moved out of its chip into a row of its own (mdbPageCreator_usedCategoriesHint); a list still
+// sitting inside a chip belongs to a folded-shut one. Everything the modal does - the walk, the
+// counter, the neighbours it loads ahead - comes through mdbPageCreator_modalLinks(), so all of
+// it agrees on the same set.
 function mdbPageCreator_hintLinkOnScreen( link ) {
     var inRecent = $(link).closest( ".mdb-pageCreator-usedCat-recent" );
 
-    return !inRecent.length || inRecent.closest( ".mdb-pageCreator-usedCat" ).hasClass( "mdb-pageCreator-usedCat-open" );
+    return !inRecent.length || inRecent.hasClass( "mdb-pageCreator-usedCat-recent-row" );
 }
 
 // Bound once, on the document, so it survives every rebuild of the bar; the width is tested

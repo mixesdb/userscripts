@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.46
+// @version      2026.08.19.47
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_82
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_83
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 156,
+var cacheVersion = 157,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.47
+ * Via the shared page creator (page_creator.js v_83, page_creator.css): the mix pages a hints
+ * bar chip folds out now stand in a row of their own under the chips, across the whole width
+ * of the bar. They used to fold out inside the chip, which made that chip as wide as its
+ * longest mix title and as tall as ten of them: the width to the left of it stood empty, and
+ * every chip behind it - the grey "Tracklist: none" above all - was pushed under the whole
+ * box. The chips now stay on their line, and the chip whose pages are open is tinted green so
+ * it is plain which category the row belongs to.
  *
  * 2026.08.19.46
  * Via the shared page creator (page_creator.js v_82): the hints bar folds ONE chip's mix pages

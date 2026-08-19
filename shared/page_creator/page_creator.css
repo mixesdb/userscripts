@@ -1038,32 +1038,53 @@
 }
 
 /*
- * The recent mix pages, folded out INSIDE the chip: the chip trades its pill radius for a
- * rounder box and the list sits under a hairline in the chip's own green, so chip and list
- * read as ONE bordered thing - which they are. Hidden by the chip's open class rather than
- * jQuery's toggle: the bar is rebuilt whole on every render, and the class is what
- * mdbPageCreator_openUsedCatRecent restores.
+ * The chip whose mix pages are folded out. It stays the PILL it was - only tinted in its own
+ * green, so the line still reads as a line of chips and it is plain which one the list below
+ * belongs to. The list itself is no longer inside it (below).
  *
- * Only ONE chip is ever open - mdbPageCreator_usedCatMixes folds the others shut on the click,
- * rather than this rule keeping the line straight. Two open boxes at once left the pills that
- * shared a line with them hanging in mid-air beside a tall box ("2026" next to one list,
- * "Tracklist: none" next to the next), and giving an open box a line of its own fixed that but
- * tore the pill line into pieces around it (reported 2026-08-19). One at a time keeps the box
- * where the chip stands, and the line stays a line.
+ * It used to fold out inside the chip, which made the chip as wide as its longest mix title
+ * and as tall as ten of them: everything that shared its line hung beside a tall box in
+ * mid-air ("2026" next to the list, "Tracklist: none" pushed under the whole thing), and
+ * giving the open chip a line of its own only tore the chip line into pieces around it. Both
+ * reported 2026-08-19. Only ONE chip is open at a time (mdbPageCreator_usedCatMixes) - that
+ * is what makes the single row below unambiguous.
  */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open {
-    border-radius: 12px;
+    background-color: rgba(46, 184, 46, 0.12);
+    border-color: rgba(46, 184, 46, 0.55);
 }
 
+/*
+ * The recent mix pages. Built inside their chip and hidden there - the closed ones never leave
+ * it - while the open one is moved out to the end of the chips' column
+ * (mdbPageCreator_usedCategoriesHint) and shown as the row below.
+ */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent {
     display: none;
 }
 
-#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
+/*
+ * The open list as a ROW of the chips' column: flex-basis 100% takes the whole width, so it
+ * uses the space to the LEFT of its chip too - empty as soon as the chip is not the first one -
+ * and the mix titles, the longest text the bar holds, get the room they need. Last in the
+ * column and never between the chips: a full-width item in the middle would push every chip
+ * behind it under the list, which is exactly what this fixes.
+ *
+ * Bordered in the chip's green rather than fenced off by a hairline the way it was inside the
+ * chip: it is its own box down here, and the green is what ties it to the tinted chip above.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-hint-items > .mdb-pageCreator-usedCat-recent-row {
     display: block;
-    margin-top: 4px;
-    padding-top: 5px;
-    border-top: 1px solid rgba(46, 184, 46, 0.25);
+    flex: 0 0 100%;
+    box-sizing: border-box;
+    padding: 4px 10px 5px;
+    /* the chip's type, which the list used to inherit from the chip it sat in - the mix titles
+       are read against the title field above, and that one is monospace too */
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid rgba(46, 184, 46, 0.25);
+    border-radius: 12px;
 }
 
 /* one mix page per line - the ordinary link blue: these are pages, not verdicts */
