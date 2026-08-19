@@ -35,6 +35,15 @@ SoundCloud-only bits that must stay on this side, not move into the page creator
   page creator decides WHETHER the comments are worth fetching (only when the description held
   no tracklist) and calls this through the `loadComments` callback of
   `mdbPageCreator_addTracklist()`; it never learns where they came from.
+- `scFollowRedirect()` in **`script.funcs.js`** - the one thing here that is not
+  SoundCloud-specific but SCRIPT-specific: it needs `GM_xmlhttpRequest`, which only this script
+  grants. It goes to the page creator as the `followRedirect` option of `mdbPageCreator_add()`
+  and is asked for exactly one thing - the episode page behind the shortened link a description
+  writes instead of it ("Go to bit.ly/BRCPod ..."), for the created page's `== Notes ==`
+  section. It must NOT move to `api_funcs.js`: TrackId.net `@require`s that file and ships with
+  no `@grant` line at all, and it is meant to stay that way. The `@connect` list in the header
+  has to name every host `mdbPageCreator_notesShorteners` does, or the reader gets a permission
+  dialog. `redirect: "manual"` is deliberate - see the function's comment.
 
 The tracklist box goes after `#mdb-toolkit` - below the toolkit, above SoundCloud's own
 description - which works in **both** layouts: in the new one the toolkit is the last thing in

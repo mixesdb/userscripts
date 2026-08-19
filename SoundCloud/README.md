@@ -21,6 +21,14 @@ The suggested page title and the **Create** link – see [Page creator](../share
 SoundCloud is its reference implementation: title, uploader, dates, duration, player URL,
 artwork URL and description all come off the SoundCloud API.
 
+One thing happens only here: where the created page gets a **Notes** section and the description
+shortens the link to the episode's own page – Groove Podcast writes "Go to bit.ly/… for track
+list" rather than the `groove.de` address – the shortened link is followed so the real address
+can go on the page. That is what the userscript manager asks permission for on install, and it
+is the only thing this script uses that permission for: one request, only to a known shortener,
+only when the series' MixesDB pages link such a page at all, and only ever to read where it
+points. Where the answer does not lead to that site, nothing is written.
+
 ### Tracklist from the description
 
 The tracklist an uploader wrote into the description lands in an editable box below the toolkit,

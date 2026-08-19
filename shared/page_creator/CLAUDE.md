@@ -517,11 +517,26 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `mdbPageCreator_notesUrlMinPath` characters of path behind it, and writes it verbatim or
   nothing. The length bar is what separates the episode's own page from the magazine's front
   page, which half the descriptions link as well. **No URL is ever constructed** - a slug is
-  not derivable from a title, and a wrong link in Notes is worse than an empty line. Groove
-  Podcast is the case to keep in mind: its Notes sections all link `groove.de`, and its own
-  SoundCloud descriptions link a `bit.ly` shortener instead, so the section is written empty
-  there. The two votes are separate on purpose - Essential Mix pages carry a Notes section
-  holding nothing but `Episode #1671`, so the section is its convention and no host is.
+  not derivable from a title, and a wrong link in Notes is worse than an empty line. The two
+  votes are separate on purpose - Essential Mix pages carry a Notes section holding nothing but
+  `Episode #1671`, so the section is its convention and no host is.
+- **A SHORTENED link in the description is followed, and only on SoundCloud** (2026-08-19).
+  Groove Podcast writes "Go to bit.ly/BRCPod for track list" rather than the `groove.de` URL its
+  own Notes sections carry, and that bit.ly is a plain 301 to exactly the page that belongs in
+  Notes - so the direct search alone would have missed the series the signal was built for. No
+  `$.ajax` can read it (a shortener's 301 sends no `Access-Control-Allow-Origin`: cors is
+  blocked before the redirect, no-cors comes back opaque), so it takes `GM_xmlhttpRequest` -
+  **a grant of the SITE script, which is why nothing in `/shared/` may call one**. It arrives
+  as the `followRedirect` option of `mdbPageCreator_add()`; a site that passes none keeps the
+  empty section, which is what TrackId.net does on purpose (it ships with no `@grant` line at
+  all, and adding one would move it into Tampermonkey's sandbox). SoundCloud's implementation
+  is `scFollowRedirect()` in its `script.funcs.js` - **not** `api_funcs.js`, which TrackId.net
+  `@require`s. `mdbPageCreator_notesShorteners` and SoundCloud's `@connect` list have to name
+  the same hosts: missing there costs the reader a permission dialog, missing here means the
+  link is never followed. Whatever comes back is a CANDIDATE - it goes through the same
+  `mdbPageCreator_notesUrlIn()` rule as the description, so a redirect leading anywhere but the
+  host the siblings link writes nothing. Design and the four gates in front of the request in
+  `page_text_learning.md`.
 
 ### Roadmap
 

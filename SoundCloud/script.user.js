@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.36
+// @version      2026.08.19.37
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,12 +15,22 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_71
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_72
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_55
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @grant        unsafeWindow
+// @grant        GM_xmlhttpRequest
+// @connect      bit.ly
+// @connect      tinyurl.com
+// @connect      t.co
+// @connect      ow.ly
+// @connect      buff.ly
+// @connect      rb.gy
+// @connect      is.gd
+// @connect      cutt.ly
+// @connect      shorturl.at
 // @run-at       document-end
 // ==/UserScript==
 
@@ -1281,6 +1291,15 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         // ("Artist - Title [Label]") out of it, so it can tell a
                                         // label in brackets behind an artist from a second artist.
                                         description: t.description,
+                                        // Lets the created page's "== Notes ==" section reach
+                                        // the episode's real page where the description only
+                                        // shortens the link to it ("Go to bit.ly/BRCPod ...").
+                                        // Handed over rather than called over there because it
+                                        // needs GM_xmlhttpRequest, which is this script's grant
+                                        // - see scFollowRedirect() in script.funcs.js and the
+                                        // @connect list in the header, which has to name every
+                                        // shortener mdbPageCreator_notesShorteners does.
+                                        followRedirect: scFollowRedirect,
                                         // what the "Report" box calls this site ("SC title:",
                                         // "SC date:") - the short name a reported title is written
                                         // with, not the script name
