@@ -1547,6 +1547,46 @@ var mdbTitleEventWords = [
 
 
 /*
+ * A chain of names is not a name
+ *
+ * A chunk built out of several names strung together with little words answers empty on every
+ * lookup, however well MixesDB knows the names inside it:
+ *
+ *     "Timboletti im Chapeau Club - 3000Grad Festival 3025 - Rosmarin und Lavendel - Undercover-Ambient"
+ *     WRONG: 2025 - Timboletti - im Chapeau Club 3000Grad Festival Rosmarin und Lavendel Undercover-Ambient (Promo Mix)
+ *     RIGHT: 2025 - Timboletti @ 3000Grad Festival
+ *
+ * "Timboletti im Chapeau Club" is a person and the club they played in, and asking the wiki
+ * about the pair can only answer empty - while "Timboletti", which it does know, was never
+ * asked. So a chunk long enough to be a chain is ALSO asked in pieces, split at the connectors
+ * below (mdbTitle_splitNameChain in title_builder.js). The whole chunk is still asked first:
+ * plenty of real category names carry one of these words, and the pieces are the fallback, not
+ * the replacement.
+ *
+ * mdbTitleNamePlaceConnectors is the subset that says the next name is a PLACE - "im", "bei",
+ * "at". Only those may shorten the name the title ends up carrying, and only inside a title
+ * already read as a set played at an event, where the place is settled by the event and what
+ * follows the connector is a corner of the same site - which such a title drops from every
+ * other chunk too. Everywhere else the split only ever adds lookups: "und" and "and" join two
+ * names as readily as they sit inside one ("Rosmarin und Lavendel"), so nothing may be cut off
+ * at them.
+ *
+ * mdbTitleNameChainConnectors is BUILT from the place list rather than repeating it - a word
+ * that names a place is a chain connector wherever it stands, and a private copy of the list
+ * drifts. Words that already end a chunk on their own are not in here: "w/" and "with"
+ * (mdbTitleExtraArtistConnectors), "x" (mdbTitleTogetherArtistJoiners) and the "&" are read
+ * long before the candidates are built.
+ */
+var mdbTitleNamePlaceConnectors = [
+    "im", "in", "am", "at", "auf", "bei", "on"
+];
+
+var mdbTitleNameChainConnectors = mdbTitleNamePlaceConnectors.concat( [
+    "und", "and", "by"
+] );
+
+
+/*
  * mdbTitleJokeYearEvents
  *
  * Events that write their edition a THOUSAND years ahead. 3000Grad's parties are "3000Grad
@@ -1838,6 +1878,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleDroppedBitPatterns: {
         what: "Chunks that name a piece of a recording or a corner of a festival site - a part, a day, a stage, a camp. The mix page covers the whole recording, so these never join the title.",
         data: mdbTitleDroppedBitPatterns
+    },
+    mdbTitleNameChainConnectors: {
+        what: "Little words that string several names into one chunk. A chunk long enough to be such a chain is asked about in pieces as well as whole, since the wiki can only answer empty about the pair. The place words among them (\"im\", \"bei\", \"at\") are the only ones that may also shorten the name, and only inside a set played at an event.",
+        data: mdbTitleNameChainConnectors
     },
     mdbTitleJokeYearEvents: {
         what: "Events that write their edition a thousand years ahead - 3000Grad's \"Festival 3026\" is the 2026 one. The digits date the recording and leave the title, the way any gig year does.",

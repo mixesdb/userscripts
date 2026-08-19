@@ -975,13 +975,55 @@ function mdbTitle_hasSeriesWord( part ) {
 // list of its own, which drifted - it had "sessions" but not "session", so
 // "Yoyaku Instore Sessions with ..." was read as a series and "Yoyaku Instore Session with ..."
 // was not. One list cannot drift from itself.
+//
+// The NUMBER has to COUNT something, and a number that counts is never read INTO a word: it
+// ends where the digits end ("Trommel.251", "Festival Mix 12", "XLR8R700", the "s15e06" of
+// "IT.podcast.s15e06"). Digits running on into letters are a spelling instead - "3000Grad" is
+// how the label writes its name, and scoring it made "Kollektiv Ost - 3000Grad Festival 3023"
+// fail the event branch's "an event is a place, not a series" guard, so the title came out as
+// a Promo Mix on the channel's own name.
 function mdbTitle_seriesScore( part ) {
     var score = 0;
 
     if( mdbTitle_hasSeriesWord( part ) ) score += 2;
-    if( /\d/.test( part ) ) score += 1;
+    if( /\d(?![0-9A-Za-z])/.test( part ) ) score += 1;
 
     return score;
+}
+
+// mdbTitle_splitNameChain
+// The names a chunk strings together with a little word - "Timboletti im Chapeau Club" ->
+// [ "Timboletti", "Chapeau Club" ], "Rosmarin und Lavendel" -> [ "Rosmarin", "Lavendel" ].
+// Empty when the chunk is no chain. See "A chain of names is not a name" in
+// title_definitions.js; placeOnly asks for the connectors that name a PLACE, which is the
+// only subset allowed to shorten a name rather than merely add a lookup.
+//
+// Only a chunk long enough to be a chain is split - three words and more than 15 characters.
+// A short one is far more likely to BE a name carrying the word ("Rock and Roll", "Fear of
+// Men") than to be two, and every piece costs one of the ten names a lookup may ask about.
+function mdbTitle_splitNameChain( name, placeOnly ) {
+    var list = placeOnly
+            ? ( ( typeof mdbTitleNamePlaceConnectors !== "undefined" && mdbTitleNamePlaceConnectors ) ? mdbTitleNamePlaceConnectors : [] )
+            : ( ( typeof mdbTitleNameChainConnectors !== "undefined" && mdbTitleNameChainConnectors ) ? mdbTitleNameChainConnectors : [] ),
+        text = mdbTitle_trimSeparators( String( name || "" ) );
+
+    if( !list.length || text.length <= 15 || text.split( /\s+/ ).length < 3 ) return [];
+
+    var parts = text.split( new RegExp( "\\s+(?:" + mdbTitle_wordListAlternation( list ) + ")\\s+", "i" ) ),
+        out = [],
+        piece,
+        i;
+
+    if( parts.length < 2 ) return [];
+
+    for( i = 0; i < parts.length; i++ ) {
+        piece = mdbTitle_trimSeparators( parts[i] );
+
+        // a piece that is nothing but a connector-length scrap is no name to ask about
+        if( piece && piece.length >= 3 ) out.push( piece );
+    }
+
+    return out.length > 1 ? out : [];
 }
 
 // mdbTitle_isCounterWord
@@ -2279,6 +2321,18 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             } else {
                 take( bit, bitRole, "chunk", bits[i] );
             }
+
+            // ... and the names the chunk strings together, when it is long enough to be a
+            // chain rather than one name ("Timboletti im Chapeau Club"). AFTER the whole,
+            // which keeps the priority order the 10-name cap cuts at: the chunk itself is
+            // still the likelier category, the pieces are what saves the lookup when it is
+            // not. See "A chain of names is not a name" in title_definitions.js.
+            var pieces = mdbTitle_splitNameChain( bit ),
+                p;
+
+            for( p = 0; p < pieces.length; p++ ) {
+                take( pieces[p], bitRole, "chunk part", bits[i] );
+            }
         } else if( bit ) {
             mdbTitle_noteChunkNotAsked( bits[i],
                 "longer than 80 characters - a page title that long is not a name" );
@@ -2434,11 +2488,25 @@ function mdbTitle_lookupCategories( names, callback ) {
 
 // mdbTitle_takeVenueTitle
 // A bit of the title is a place MixesDB knows: then this is a live recording, the place is an
-// "@", and the bit behind it is the city. Returns { artist, venue, city } or null.
+// "@", and the bit behind it is the city. Returns { artist, venue, city, isEvent } or null.
+//
+// An EVENT counts as such a place, and the wiki saying so outweighs the separator the uploader
+// typed: "Kollektiv Ost - 3000Grad Festival 3023" is a festival set written with a "-", and
+// read off the separator alone it came out as the channel's own Promo Mix. A "-" says almost
+// nothing - it separates an artist from a show, a show from an artist and an artist from a
+// place alike - while a name MixesDB files as an event says outright that sets are PLAYED
+// there. 3f gets there first whenever the name carries an event word; this is the door for
+// the events whose name does not say what they are ("Fusion", "Melt").
+//
+// The bit behind an EVENT is not the city, though: "@ Event, Venue" holds the venue, and a
+// name this rule cannot vouch for is better dropped than glued to the place - the same call
+// mdbTitle_takeEventTitle makes, which keeps a country and nothing else. isEvent carries that
+// difference to the caller.
 function mdbTitle_takeVenueTitle( text, known ) {
     var bits = text.split( mdbTitle_bitSplitRe() ),
         cleaned = [],
         venueIndex = -1,
+        isEvent = false,
         i;
 
     if( bits.length < 2 ) return null;
@@ -2453,6 +2521,16 @@ function mdbTitle_takeVenueTitle( text, known ) {
         if( cleaned[i] && mdbTitle_knownMatch( known, cleaned[i], [ "venue" ] ) ) { venueIndex = i; break; }
     }
 
+    // the event round is its own pass, so a venue anywhere in the title still wins over an
+    // event standing further left - a venue is where the "@" points either way, and the venue
+    // reading is the older and the narrower of the two
+    for( i = 0; venueIndex === -1 && i < cleaned.length; i++ ) {
+        if( cleaned[i] && mdbTitle_knownMatch( known, cleaned[i], [ "event" ] ) ) {
+            venueIndex = i;
+            isEvent = true;
+        }
+    }
+
     if( venueIndex === -1 ) return null;
 
     var artist = "";
@@ -2462,23 +2540,59 @@ function mdbTitle_takeVenueTitle( text, known ) {
 
     if( !artist ) return null;
 
+    var behind = cleaned[ venueIndex + 1 ] || "";
+
     return {
         artist: artist,
         // in the wiki's own spelling - it is the wiki that says this is a venue at all
-        venue: mdbTitle_canonicalName( known, cleaned[venueIndex], [ "venue" ] ),
-        // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue
-        city: cleaned[ venueIndex + 1 ] || ""
+        venue: mdbTitle_canonicalName( known, cleaned[venueIndex], [ isEvent ? "event" : "venue" ] ),
+        // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue.
+        // Behind an EVENT only a country is kept, see above
+        city: ( isEvent && !mdbTitle_isCountry( behind ) ) ? "" : behind,
+        isEvent: isEvent
     };
+}
+
+// mdbTitle_nameOutOfChain
+// The NAME inside a chunk that strings one together with a place word - "Timboletti im Chapeau
+// Club" -> "Timboletti". "" when the chunk is no such chain, or when nothing backs the front
+// piece as the name.
+//
+// Backed means: the piece is the channel this was uploaded on, or MixesDB knows it as an
+// artist. Without one of the two this would be guessing which half of a chunk nobody
+// understood is the name - and guessing wrong loses a name the title really carried, which is
+// worse than carrying two. The channel counts on its own because the first pass has no wiki
+// answers yet and would otherwise show a different name than the second.
+//
+// The FRONT piece only: a place word says what follows it is the place, so the name is what
+// stands in front of it.
+function mdbTitle_nameOutOfChain( name, known, username ) {
+    var pieces = mdbTitle_splitNameChain( name, true );
+
+    if( pieces.length < 2 ) return "";
+
+    var front = pieces[0],
+        cmp = mdbTitle_normalizeCompare( front );
+
+    if( username && cmp === mdbTitle_normalizeCompare( mdbTitle_spaced( username ) ) ) return front;
+    if( mdbTitle_knownMatch( known, front, [ "artist" ] ) ) return front;
+
+    return "";
 }
 
 // mdbTitle_takeEventTitle
 // A live recording at an event: "<artists> | <event> <year>" - or "<artists> @ <event>"
 // standing glued in one bit, where the "@" itself names the artist.
-// Returns { artist, event, year, city } or null when the title is not one; city is the
-// country standing right behind the event, kept as the place group's second part.
+// Returns { artist, event, year, city, chainDropped } or null when the title is not one; city
+// is the country standing right behind the event, kept as the place group's second part.
 // The "Part 2"/stage chunks such a title carries are already gone - mdbTitle_dropBits takes
 // them out of every title, not just out of this one.
-function mdbTitle_takeEventTitle( text ) {
+//
+// known and username are only read for the artist bit: where that bit is a name and the place
+// inside the event it was played at ("Timboletti im Chapeau Club"), the place goes the way
+// every other non-event bit of such a title goes - the event is where the set was played, and
+// MixesDB carries no corner of its site. chainDropped is what was cut off, for the trace.
+function mdbTitle_takeEventTitle( text, known, username ) {
     var eventWords = ( typeof mdbTitleEventWords !== "undefined" && mdbTitleEventWords ) ? mdbTitleEventWords : [],
         bits = text.split( mdbTitle_bitSplitRe() ),
         kept = [],
@@ -2527,6 +2641,15 @@ function mdbTitle_takeEventTitle( text ) {
 
     if( !artist ) return null;
 
+    // "Timboletti im Chapeau Club" is the artist and a corner of the festival site
+    var chainDropped = "",
+        nameOnly = mdbTitle_nameOutOfChain( artist, known, username );
+
+    if( nameOnly && nameOnly !== artist ) {
+        chainDropped = artist;
+        artist = nameOnly;
+    }
+
     // The bit right BEHIND the event says where it is: MixesDB writes the place group as
     // "@ Event, Country" the same way it writes "@ Venue, City", so the country stays in the
     // title ("... @ S.U.N Festival, Hungary"). Countries only - a name this rule cannot
@@ -2550,7 +2673,7 @@ function mdbTitle_takeEventTitle( text ) {
     // in it, while "Festival Mix 12" has both.
     if( !event || mdbTitle_seriesScore( event ) > 0 ) return null;
 
-    return { artist: artist, event: event, year: year, city: city };
+    return { artist: artist, event: event, year: year, city: city, chainDropped: chainDropped };
 }
 
 // mdbTitle_joinArtists
@@ -3883,10 +4006,18 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // next to it, and "Part 2"/stage names are none of a mix page title's business.
         // Runs before the channel is touched at all - "Leon Row & Shimon" must keep the
         // "Shimon" that the channel of the same name would otherwise cut out of it.
-        var eventTitle = mdbTitle_takeEventTitle( rest );
+        var eventTitle = mdbTitle_takeEventTitle( rest, known, username );
 
         if( eventTitle ) {
             logVar( "buildMixesdbTitle: event title", eventTitle.artist + " @ " + eventTitle.event + " (" + eventTitle.year + ")" );
+
+            if( eventTitle.chainDropped ) {
+                logVar( "buildMixesdbTitle: the artist bit named the place inside the event",
+                    eventTitle.chainDropped + " -> " + eventTitle.artist );
+                mdbTitle_traceStep( "Place inside the event dropped from the artist",
+                    eventTitle.chainDropped + " -> " + eventTitle.artist, null,
+                    [ "mdbTitleNameChainConnectors" ] );
+            }
 
             var eventGroup = eventTitle.artist + " @ " + eventTitle.event +
                              ( eventTitle.city ? ", " + eventTitle.city : "" );
@@ -3924,7 +4055,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         var venueTitle = mdbTitle_takeVenueTitle( rest, known );
 
         if( venueTitle ) {
-            logVar( "buildMixesdbTitle: venue known to MixesDB", venueTitle.venue );
+            var venueKind = venueTitle.isEvent ? "event" : "venue";
+
+            logVar( "buildMixesdbTitle: " + venueKind + " known to MixesDB", venueTitle.venue );
 
             var venueGroup = venueTitle.artist + " @ " + venueTitle.venue +
                              ( venueTitle.city ? ", " + venueTitle.city : "" );
@@ -3938,8 +4071,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             }
 
             return mdbTitle_result( date, venueGroup, "", null, false, [], conf, {
-                artist: "the name standing next to the venue is who played there",
-                entity: "MixesDB knows \"" + venueTitle.venue + "\" as a venue, so the title reads as a set PLAYED there - " +
+                artist: "the name standing next to the " + venueKind + " is who played there",
+                // The wiki is what decides this one, so the sentence names it - and it names
+                // the TYPE it answered with: an event answer is what overrules the "-" the
+                // uploader typed, and a reader checking that must not be told "venue".
+                entity: "MixesDB knows \"" + venueTitle.venue + "\" as " + ( venueTitle.isEvent ? "an event" : "a venue" ) +
+                        ", so the title reads as a set PLAYED there - " +
                         "it becomes the place behind the \" @ \", and the channel is not used as a show on top of that"
             } );
         }
