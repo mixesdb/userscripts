@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.17
+// @version      2026.08.19.19
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,12 +12,12 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_35
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_51
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_36
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_52
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_62
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_64
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @grant        unsafeWindow
@@ -1315,16 +1315,51 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // above: its box waits for a toolkit verdict, and the duration
                                 // gate dropped that toolkit.
                                 if( !tooShortForMixesdb ) {
-                                    mdbPageCreator_addTracklist({
-                                        description:  t.description,
-                                        loadComments: function( done ) {
-                                            // id, not a track ID read off the page: it comes out of
-                                            // the very response being handled, so it cannot name
-                                            // another track than the one this row is for.
-                                            getScTrackComments( id, scAccessToken, done );
-                                        },
-                                        target:       "#mdb-toolkit",
-                                        placement:    "after"
+                                    // Channel handles before the creator ever sees the text:
+                                    // uploaders credit remixers by @handle ("Blur - Tender
+                                    // (@reyneke Reinterpretation)"), and a handle is not an
+                                    // artist name. See scResolveHandles() in api_funcs.js.
+                                    //
+                                    // The detector runs HERE first, and only its own text is
+                                    // scanned for handles - that is the gate that keeps a
+                                    // description without a tracklist (most of them) from
+                                    // costing a single lookup. The creator detects again on
+                                    // the text handed over, which is what it has always done.
+                                    var descFound = mdbTracklist_detectInText( t.description );
+
+                                    scResolveHandles( descFound ? descFound.text : "", [ t.description ], function( descTexts, descReplaced ) {
+                                        // the lookups are a round trip of their own - the
+                                        // reader may have clicked on to the next track since
+                                        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+                                        // no-op when nothing was resolved: the box only warns
+                                        // about names we actually put there
+                                        mdbPageCreator_addTracklistNotice( scHandleNoticeHtml( descReplaced ) );
+
+                                        mdbPageCreator_addTracklist({
+                                            description:  descTexts[0],
+                                            loadComments: function( done ) {
+                                                // id, not a track ID read off the page: it comes out of
+                                                // the very response being handled, so it cannot name
+                                                // another track than the one this row is for.
+                                                getScTrackComments( id, scAccessToken, function( bodies ) {
+                                                    var found = mdbTracklist_detectInComments( bodies );
+
+                                                    // Same gate as above. The swap is made in ALL
+                                                    // bodies, not just the one the detector picked:
+                                                    // the creator re-reads the array itself, so a
+                                                    // replacement in a single body would be lost.
+                                                    scResolveHandles( found ? found.text : "", bodies, function( swapped, swappedReplaced ) {
+                                                        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+                                                        mdbPageCreator_addTracklistNotice( scHandleNoticeHtml( swappedReplaced ) );
+                                                        done( swapped );
+                                                    });
+                                                });
+                                            },
+                                            target:       "#mdb-toolkit",
+                                            placement:    "after"
+                                        });
                                     });
                                 }
 

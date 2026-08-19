@@ -1547,6 +1547,48 @@ var mdbTitleEventWords = [
 
 
 /*
+ * mdbTitleEventSlotWords
+ *
+ * An event whose name says nothing about being one
+ *
+ * mdbTitleEventWords reads the word IN the name. Plenty of events carry none - a party series
+ * is called "Rote Dichte", not "Rote Dichte Festival" - and the title then has to say it some
+ * other way:
+ *
+ *     "Bee Lincoln - Rote Dichte 2026 - Obstgarten Closing"  (channel "Bee Lincoln")
+ *     WRONG: 2026-08-18 - Bee Lincoln - Rote Dichte 2026 Obstgarten Closing (Promo Mix)
+ *     RIGHT: 2026 - Bee Lincoln @ Obstgarten Closing, Rote Dichte
+ *
+ * Two hints do it, and only TOGETHER:
+ *
+ * - a bit ending in a bare YEAR is an edition of something that runs once a year, so the
+ *   name in front of the year is that thing
+ * - a bit ending in one of the words below is a SLOT of a party night - the closing set, the
+ *   opening, the peak time. Nobody names a podcast episode after a slot, and a slot only
+ *   exists where something was played
+ *
+ * Alone, neither is enough to turn a title into a live recording. "Summer 2026" is a mix name
+ * as readily as an edition, and a "Closing" can sit inside one ("Summer Closing Mix" - which
+ * is also why the word has to END the bit). Standing next to each other in one title they say
+ * the same thing twice, from two directions, and that is what this reads.
+ *
+ * The place group is written slot first, event last - "@ Obstgarten Closing, Rote Dichte" -
+ * the way MixesDB writes a stage and the festival it stands on ("Dave Huismans at Dark
+ * Skies, Horst Festival"). The page is filed under the EVENT wherever it stands in the group:
+ * a slot word says "this part is not the name", the same way an event word says "this part
+ * is" (mdbTitle_placeGroupEntity).
+ *
+ * Words only, no phrases with a number in them: "Peak Time" is a slot, "Peak Time Techno" is
+ * a genre and keeps the bit as it is, because the word has to be the LAST one.
+ */
+var mdbTitleEventSlotWords = [
+    "closing set", "opening set", "warmup set", "after party", "afterparty",
+    "after hour", "afterhours", "afterhour", "peak time", "peaktime", "warm up", "warmup",
+    "closing", "opening"
+];
+
+
+/*
  * A room inside a venue is not the venue
  *
  * Uploaders name the very corner of the club they played in - the loft, the rooftop, the
@@ -1985,6 +2027,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleGuestMarkers: {
         what: "Phrases marking a guest mix. The name in front of one is the artist, and the phrase itself is no part of the title.",
         data: mdbTitleGuestMarkers
+    },
+    mdbTitleEventSlotWords: {
+        what: "Slots of a party night. A bit ending in one of these names WHEN a set was played, not what a mix is called - and next to a bit ending in a bare year it turns the title into a live recording at that event.",
+        data: mdbTitleEventSlotWords
     },
     mdbTitleVenueSpaceWords: {
         what: "Words naming a room, a floor or a piece of ground INSIDE a venue - the loft, the rooftop, the garden. Behind the \"@\" the base name is asked about next to the full one, and where the wiki knows the base as a venue or an event while the full name answers empty, the word comes off the title. The reading is offered back as a \"Switch title\" chip, and the page files under the venue either way.",
