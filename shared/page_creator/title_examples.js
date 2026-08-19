@@ -1111,5 +1111,74 @@ var mdbTitleExamples = [
         known: { "alexander:louis": "artist", "Elsewhere": { type: "venue", mixes: 2 } },
         expectAlternatives: [ "livePa", "placeWord" ],
         expect: "2026-07 - alexander:louis @ Elsewhere"
+    },
+    {
+        // Reported: the wiki knows "Undercurrent" as a venue with 28 mixes, and that answer
+        // pulled the title apart - the episode number left its own chunk, hung itself on the
+        // channel ("DEEP & HAZY 5") and what was left of the other two chunks glued into one
+        // artist ("Undercurrent ALEXANDER BOGDANOV"). A venue has no episode numbers: the
+        // "#5" says the chunk it stands in is a numbered series, whatever else that name is
+        // elsewhere, and the number never moves to another chunk.
+        url: "https://soundcloud.com/deepandhazy/undercurrent-6-alexander",
+        title: "DEEP & HAZY - Undercurrent #5 - ALEXANDER BOGDANOV",
+        channel: "DEEP & HAZY",
+        date: "2026-07-02",
+        known: { "Undercurrent": { type: "venue", mixes: 28 } },
+        expectArtists: [ "Alexander Bogdanov" ],
+        // the entity SLOT as the title writes it - the episode number comes off where the
+        // category is built (mdbPageCreator_entityCategory), so the page files under
+        // Category:Undercurrent, which is what the report asked for
+        expectEntity: "Undercurrent 5",
+        expect: "2026-07-02 - Alexander Bogdanov - Undercurrent 5"
+    },
+    {
+        // Reported: read as a promo mix, with the event as the artist's second name. Two
+        // hints say this was played somewhere: a name ending in a bare YEAR is an event
+        // edition ("Rote Dichte 2026"), and a chunk ending in a party-slot word ("Obstgarten
+        // Closing") is the slot it was played in. The event is the entity wherever it stands
+        // in the group, exactly as with an event word.
+        url: "https://soundcloud.com/beelincoln/bee-lincoln-rote-dichte-2026",
+        title: "Bee Lincoln - Rote Dichte 2026 - Obstgarten Closing",
+        channel: "Bee Lincoln",
+        date: "2026-08-18",
+        known: { "Bee Lincoln": { type: "artist", mixes: 1 } },
+        expectArtists: [ "Bee Lincoln" ],
+        expectEntity: "Rote Dichte",
+        // ... and the group without the slot is the other reading the report named, offered
+        // as a chip - the page files under Rote Dichte either way
+        expectAlternatives: [ "slotPart" ],
+        expect: "2026 - Bee Lincoln @ Obstgarten Closing, Rote Dichte"
+    },
+    {
+        // Reported three times over. "1/2" is a fraction, not a separator, so the leading
+        // number is no episode and the artist is not the "2 Faultierdisko" a split at the
+        // slash left. The year trailing an EVENT is that edition's year, so it dates the
+        // recording and leaves the name - which the one-place rule ("... Label Night 2026"
+        // keeps its year) only ever did behind the comma of a place list until now. And the
+        // fraction says how much of the act was on stage, so the ACT is asked about next to
+        // the written name: the wiki knows "Faultierdisko" (4 mixes) and will never know
+        // "1/2 Faultierdisko", and the page belongs under the act.
+        url: "https://soundcloud.com/sattlord/12-faultierdisko-3000grad-festival-2023",
+        title: "1/2 Faultierdisko @ 3000Grad Festival 2023",
+        channel: "lockige Ostsee",
+        date: "2023-08-14",
+        known: {
+            "3000Grad Festival": { type: "event", mixes: 335 },
+            "Faultierdisko": { type: "artist", mixes: 4 }
+        },
+        expectArtists: [ "Faultierdisko" ],
+        expectEntity: "3000Grad Festival",
+        expectChunks: [ "1/2 Faultierdisko", "3000Grad Festival" ],
+        expect: "2023 - Faultierdisko @ 3000Grad Festival"
+    },
+    {
+        // The same title with an act the wiki has never heard of: nothing backs the swap, so
+        // what the uploader wrote stands. The fraction still may not split the name.
+        title: "1/2 Faultierdisko @ 3000Grad Festival 2023",
+        channel: "lockige Ostsee",
+        date: "2023-08-14",
+        known: { "3000Grad Festival": { type: "event", mixes: 335 } },
+        expectArtists: [ "1/2 Faultierdisko" ],
+        expect: "2023 - 1/2 Faultierdisko @ 3000Grad Festival"
     }
 ];

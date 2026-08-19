@@ -1855,6 +1855,28 @@ function mdbPageCreator_altToggle( title, fact ) {
         return null;
     }
 
+    // The slot of the night the place group was read with ("@ Obstgarten Closing, Rote
+    // Dichte" -> "@ Rote Dichte"). Toggled on the EVENT the fact names, the way the room word
+    // is toggled on the venue: the group can carry more behind the event, and the slot belongs
+    // in front of it. The filing does not move with it - mdbTitle_placeGroupEntity steps over
+    // a slot part, so both readings file the page under the event.
+    if( fact.kind === "slotPart" && fact.text && fact.place ) {
+        var slotRe = new RegExp( "(@\\s*)" + mdbTitle_escapeRe( fact.text ) + "\\s*,\\s*(" +
+                                 mdbTitle_escapeRe( fact.place ) + ")", "i" );
+
+        if( slotRe.test( title ) ) {
+            return { title: title.replace( slotRe, "$1$2" ), adding: false };
+        }
+
+        slotRe = new RegExp( "(@\\s*)(" + mdbTitle_escapeRe( fact.place ) + ")(?![\\w])", "i" );
+
+        if( slotRe.test( title ) ) {
+            return { title: title.replace( slotRe, "$1" + fact.text + ", $2" ), adding: true };
+        }
+
+        return null;
+    }
+
     // No "Part N" toggle, and none for anything else step 1c dropped: the parts of one
     // recording share ONE mix page, so appending the marker would start a duplicate rather
     // than offer a reading. The builder emits no such fact - see "Never offered back" in
@@ -4342,7 +4364,16 @@ var mdbPageCreator_tracklistBoxSelector = "#mdb-pageCreator-tracklist #mixesdb-T
     // whether that decision has been made. Once it has, a re-render must not remake it: the
     // toolkit verdict is reset to null on every rebuild, and the editor may have closed a box we
     // would otherwise force back open (and would have to wait for a verdict to do it).
-    mdbPageCreator_tracklistDecided = false;
+    mdbPageCreator_tracklistDecided = false,
+    // Warnings a SITE script has about the tracklist it handed over - things the Tracklist
+    // Editor API cannot know, because they happened to the text BEFORE it ever saw it.
+    // SoundCloud's resolved channel handles are the case this was built for: the box shows
+    // artist names the uploader never typed, so it has to say so rather than let them pass
+    // for the uploader's own spelling. Each entry is a ready HTML string.
+    mdbPageCreator_tracklistNotices = [],
+    // the API's answer as it arrived, before mdbPageCreator_feedbackWithNotices() folded the
+    // notices in - see mdbPageCreator_setTracklistFeedback()
+    mdbPageCreator_tracklistFeedbackRaw = null;
 
 /*
  * mdbPageCreator_resetForNewPage
@@ -4416,11 +4447,98 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_tracklistStatus = "";
     mdbPageCreator_tracklistValidated = null;
     mdbPageCreator_tracklistChecked = false;
+    mdbPageCreator_tracklistNotices = [];
+    mdbPageCreator_tracklistFeedbackRaw = null;
 
     // Kept on purpose: mdbPageCreator_target / _tracklistTarget / _tracklistBoxSite /
     // _stylesBoxSite are selector strings naming where on THIS SITE the row and the boxes
     // live, which does not change from one mix to the next, and the site script's next
     // mdbPageCreator_add() may well omit them.
+}
+
+// mdbPageCreator_addTracklistNotice
+// A site script's own warning about the tracklist it is about to hand over (or just handed
+// over): SoundCloud calls this when it replaced @channel-handles in the text with the names
+// those channels carry. The box prints it alongside the Tracklist Editor API's own feedback
+// and goes into warning mode for it - see mdbPageCreator_feedbackWithNotices().
+//
+// Callable before OR after the box exists. Before is the normal case (the site resolves, then
+// hands the text over), but the comments path resolves inside loadComments(), so a notice
+// landing on an already built box must still show - which is what the re-render below is for.
+function mdbPageCreator_addTracklistNotice( html ) {
+    if( !html ) return;
+    if( mdbPageCreator_tracklistNotices.indexOf( html ) > -1 ) return; // a re-render, not a second notice
+
+    logFunc( "mdbPageCreator_addTracklistNotice" );
+
+    mdbPageCreator_tracklistNotices.push( html );
+
+    if( !mdbPageCreator_tracklistFeedbackRaw ) return; // nothing formatted yet - it gets folded in then
+
+    // the API is NOT asked again: its answer has not changed, only what we print alongside it
+    mdbPageCreator_setTracklistFeedback( mdbPageCreator_tracklistFeedbackRaw );
+
+    var box = $( mdbPageCreator_tracklistBoxSite || mdbPageCreator_tracklistBoxSelector ).first();
+
+    // typeof-guarded like every stale-cache seam: a page_creator.js ahead of its cached
+    // tracklist_editor/funcs.js must not break the box over a notice it cannot print
+    if( box.length && typeof tlBoxRenderFeedback === "function" ) {
+        tlBoxRenderFeedback( box, mdbPageCreator_tracklistFeedback );
+    }
+}
+
+// mdbPageCreator_setTracklistFeedback
+// Every place that takes a feedback object from the API goes through here, so the notices are
+// folded in exactly once and the RAW answer is kept for the next fold - decorating an already
+// decorated answer would print the notice twice.
+//
+// The status is taken from the RAW answer on purpose. A notice says where the text came from,
+// not whether it is complete, and mdbPageCreator_tracklistFiling() reads the status: a
+// resolved handle must not change which "Tracklist:" category the created page gets.
+function mdbPageCreator_setTracklistFeedback( feedback ) {
+    mdbPageCreator_tracklistFeedbackRaw = feedback || null;
+    mdbPageCreator_tracklistFeedback = mdbPageCreator_feedbackWithNotices( feedback );
+    mdbPageCreator_tracklistStatus = ( feedback && feedback.status ) || "";
+}
+
+// mdbPageCreator_feedbackWithNotices
+// The API's feedback with our own rows in it. A copy - the answer object itself is left alone,
+// so the next fold starts where the first one did.
+//
+// The rows are counted as WARNINGS, which is what tlEditorFeedbackClass() colours the box by:
+// an artist name the uploader never typed is exactly the thing that must not be saved
+// unlooked-at, so it carries the weight of an API warning rather than that of a quiet hint.
+function mdbPageCreator_feedbackWithNotices( feedback ) {
+    if( !mdbPageCreator_tracklistNotices.length ) return feedback;
+    if( !feedback || !feedback.text ) return feedback;
+
+    var rows = "";
+
+    $.each( mdbPageCreator_tracklistNotices, function( i, html ) {
+        rows += "<li>" + html + "</li>";
+    });
+
+    // No styling of its own: "#tlEditor-feedback ul" in tracklistEditor_copy.css already
+    // styles the API's own lists, and a notice that looks like one of them is the point - it
+    // is feedback about the same tracklist, from a step the API was not part of.
+    var list = '<ul class="mdb-tlEditor-notices">' + rows + "</ul>",
+        holder = $( "<div>" ).append( feedback.text ),
+        box = holder.children( "#tlEditor-feedback" ).first(),
+        warnings = ( parseInt( feedback.warnings, 10 ) || 0 ) + mdbPageCreator_tracklistNotices.length;
+
+    // The answer is normally the whole <div id="tlEditor-feedback">. If it ever is not, the
+    // notice still has to be seen, so it goes in front of whatever did arrive.
+    if( !box.length ) {
+        return $.extend( {}, feedback, { text: list + feedback.text, warnings: warnings } );
+    }
+
+    // under the API's opening line and above its per-line list: this is about the tracklist as
+    // a whole, not about any one of its lines
+    var topInfo = box.children( "#tlEditor-feedback-topInfo, #tlEditor-feedback-topInfo-noList" ).first();
+
+    if( topInfo.length ) topInfo.after( list ); else box.prepend( list );
+
+    return $.extend( {}, feedback, { text: holder.html(), warnings: warnings } );
 }
 
 // mdbPageCreator_addTracklist
@@ -4520,8 +4638,7 @@ function mdbPageCreator_formatTracklist() {
     mdbPageCreator_tracklistFormatted = res.text;
     mdbPageCreator_tracklistLive = res.text;
     mdbPageCreator_tracklistValidated = res.text;
-    mdbPageCreator_tracklistFeedback = res.feedback || null;
-    mdbPageCreator_tracklistStatus = ( res.feedback && res.feedback.status ) || "";
+    mdbPageCreator_setTracklistFeedback( res.feedback || null );
 
     logVar( "mdbPageCreator_formatTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
 
@@ -4768,8 +4885,7 @@ function mdbPageCreator_validateTracklist() {
     // No box on the page (a re-render just took it), or no usable text in the answer: keep
     // the text as it stands, take the feedback - the click still files the right category.
     mdbPageCreator_tracklistValidated = tl;
-    mdbPageCreator_tracklistFeedback = res.feedback;
-    mdbPageCreator_tracklistStatus = res.feedback.status || "";
+    mdbPageCreator_setTracklistFeedback( res.feedback );
 
     logVar( "mdbPageCreator_validateTracklist: status", mdbPageCreator_tracklistStatus || "(neither)" );
 
@@ -4814,8 +4930,7 @@ function mdbPageCreator_tracklistBoxUpdated( box, res, applied ) {
         // only the text the API actually rewrote counts as validated - see above
         if( applied !== false ) mdbPageCreator_tracklistValidated = $.trim( box.val() || "" );
 
-        mdbPageCreator_tracklistFeedback = res.feedback;
-        mdbPageCreator_tracklistStatus = res.feedback.status || "";
+        mdbPageCreator_setTracklistFeedback( res.feedback );
 
         logVar( "mdbPageCreator_tracklistBoxUpdated: status", mdbPageCreator_tracklistStatus || "(neither)" );
     }

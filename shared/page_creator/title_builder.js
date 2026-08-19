@@ -115,6 +115,12 @@ function mdbTitle_escapeReLooseSpaces( name ) {
     return mdbTitle_escapeRe( String( name || "" ) ).split( /\s+/ ).join( "\\s*" );
 }
 
+// mdbTitle_fractionLeadRe
+// A text OPENING on a fraction - "1/2 Faultierdisko", "3/4 Peace". Digits on both sides of a
+// slash with no blank near it is how a name writes a fraction, and the slash is then no
+// separator, however much mdbTitle_sepInner says it is one.
+var mdbTitle_fractionLeadRe = /^\s*\d{1,5}[\/\\]\d/;
+
 // mdbTitle_normalizeCompare
 // Strips everything but letters/digits, so "DJ MARIA." and "dj maria" compare equal
 function mdbTitle_normalizeCompare( s ) {
@@ -490,18 +496,38 @@ function mdbTitle_takeTrailingYear( text ) {
 // called: "@ 3000Grad Festival, Utopia 2021" was played at Utopia, in 2021. Returns
 // { text, year }, year "" when the title does not date itself that way.
 //
-// Only behind the "," of a place group ("@ Event, Venue" / "@ Venue, City") - a venue or a
-// city is not named after a year, so a year trailing the LIST dates the recording. A year
-// glued to the ONE place name a title carries may be the edition's own name and stays where
-// it stands: "DJ Set @ What Happens Label Night 2026" keeps its 2026. See "The date of a
-// live recording" in title_definitions.js.
-function mdbTitle_takeRecordingYear( group ) {
+// Two shapes say it. Behind the "," of a place group ("@ Event, Venue" / "@ Venue, City") -
+// a venue or a city is not named after a year, so a year trailing the LIST dates the
+// recording. And behind an EVENT, comma or not: an event runs once a year and the number is
+// which edition this was, so "@ 3000Grad Festival 2023" is the 2023 one and MixesDB writes
+// that year in the date group, never twice. isEvent is what the wiki answered about the place
+// (the venue branch asks); an event WORD in the place says the same thing without a lookup,
+// which is what the chunk mirror in mdbTitle_titleChunks runs on.
+//
+// A year glued to the ONE place name a title carries that is NEITHER may be the edition's own
+// name and stays where it stands: "DJ Set @ What Happens Label Night 2026" keeps its 2026.
+// See "The date of a live recording" in title_definitions.js.
+function mdbTitle_takeRecordingYear( group, isEvent ) {
     var text = String( group || "" ),
         at = text.lastIndexOf( "@" );
 
-    if( at === -1 || text.indexOf( ",", at ) === -1 ) return { text: text, year: "" };
+    if( at === -1 ) return { text: text, year: "" };
+
+    if( text.indexOf( ",", at ) === -1 && !isEvent && !mdbTitle_placeNamesEvent( text.slice( at + 1 ) ) ) {
+        return { text: text, year: "" };
+    }
 
     return mdbTitle_takeTrailingYear( text );
+}
+
+// mdbTitle_placeNamesEvent
+// Does this place carry one of mdbTitleEventWords ("3000Grad Festival", "Dekmantel Open
+// Air")? The word list alone, no lookup - the callers that HAVE an answer from the wiki pass
+// it in themselves.
+function mdbTitle_placeNamesEvent( place ) {
+    var re = mdbTitle_eventWordRe();
+
+    return !!( re && re.test( String( place || "" ) ) );
 }
 
 // mdbTitle_liveDate
@@ -511,9 +537,9 @@ function mdbTitle_takeRecordingYear( group ) {
 // the place list names wins over the upload year - the title is the only source that dates
 // the gig - and a month the place names refines the year; both leave the place name as they go.
 // See "The date of a live recording" in title_definitions.js.
-function mdbTitle_liveDate( date, group ) {
+function mdbTitle_liveDate( date, group, isEvent ) {
     var result = { date: date, group: group, month: 0 },
-        withoutYear = mdbTitle_takeRecordingYear( group ),
+        withoutYear = mdbTitle_takeRecordingYear( group, isEvent ),
         year = withoutYear.year || mdbTitle_yearOf( date );
 
     if( !year ) return result;
@@ -682,7 +708,15 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     // A number left over once the show name was cut out of the title, e.g.
     // "Sweet Space Podcast 176 // Yazan Sarayrah" -> " 176 // Yazan Sarayrah".
     // The whole separator run is consumed, doubled ones ("//", "||") included.
-    m = new RegExp( "^[\\s" + mdbTitle_sepInner + "]*(\\d{1,5})(?!\\d)\\s*[" + mdbTitle_sepInner + "]+\\s*" ).exec( text );
+    //
+    // Unless the text opens on a FRACTION: "1/2 Faultierdisko" is half a duo's name, and the
+    // slash inside it separates nothing. Read as one, the "1" became an episode number
+    // nobody wrote and the artist a "2 Faultierdisko" that does not exist. Digits on both
+    // sides and no blank anywhere near the slash - that spelling is a fraction and nothing
+    // else, so nothing looser is needed to tell it from a real separator.
+    m = mdbTitle_fractionLeadRe.test( text )
+            ? null
+            : new RegExp( "^[\\s" + mdbTitle_sepInner + "]*(\\d{1,5})(?!\\d)\\s*[" + mdbTitle_sepInner + "]+\\s*" ).exec( text );
     if( m ) {
         return {
             text: m[1],
@@ -876,6 +910,30 @@ function mdbTitle_bitAt( text, offset ) {
     }
 
     return { text: text.slice( start, end ), start: start };
+}
+
+// mdbTitle_bits
+// Every bit of a title, each with the offset it starts at - the units mdbTitle_bitAt answers
+// about, listed instead of looked up. What it is for is the bit of a three-bit title that is
+// neither the channel's nor the numbered series' (4c): that one is the artist.
+function mdbTitle_bits( text ) {
+    var re = mdbTitle_bitSplitRe(),
+        out = [],
+        start = 0,
+        m;
+
+    re.lastIndex = 0;
+
+    while( ( m = re.exec( text ) ) !== null ) {
+        if( m[0].length === 0 ) { re.lastIndex++; continue; } // never loop forever
+
+        out.push( { text: text.slice( start, m.index ), start: start } );
+        start = m.index + m[0].length;
+    }
+
+    out.push( { text: text.slice( start ), start: start } );
+
+    return out;
 }
 
 // mdbTitle_takeExtraArtists
@@ -1520,6 +1578,22 @@ function mdbTitle_endsWithEventWord( text ) {
         .test( String( text || "" ).trim() );
 }
 
+// mdbTitle_endsWithSlotWord
+// Whether a name ENDS in one of mdbTitleEventSlotWords - "Obstgarten Closing" does, "Summer
+// Closing Mix" does not. The end is what says the bit IS the slot rather than merely carrying
+// the word, exactly as with an event word above. Something has to stand in FRONT of it: a bare
+// "Closing" names no place.
+function mdbTitle_endsWithSlotWord( text ) {
+    var words = ( typeof mdbTitleEventSlotWords !== "undefined" && mdbTitleEventSlotWords ) ? mdbTitleEventSlotWords : [],
+        name = String( text || "" ).trim();
+
+    if( !words.length || !name ) return false;
+
+    var re = new RegExp( "(\\S)\\s+(?:" + mdbTitle_wordListAlternation( words ).replace( /\s+/g, "\\s+" ) + ")\\.?$", "i" );
+
+    return re.test( name );
+}
+
 // mdbTitle_venueSpaceBase
 // The VENUE inside a place name that names one of its rooms: "Elsewhere Loft" -> "Elsewhere",
 // with the word that was taken off. null when the name ends in no such word
@@ -1548,6 +1622,32 @@ function mdbTitle_venueSpaceBase( name ) {
     if( base.length < 3 ) return null;
 
     return { base: base, word: m[1] };
+}
+
+// mdbTitle_lineupFractionBase
+// The ARTIST inside a name that opens on a fraction: "1/2 Faultierdisko" -> "Faultierdisko",
+// with the fraction that stands in front of it. null when the name opens on none.
+//
+// The fraction is a note about the LINE-UP - one half of the duo played this set - and MixesDB
+// files the page under the act, which is the name behind it. "1/2 Faultierdisko" will never be
+// a category; "Faultierdisko" is one, with 4 mixes.
+//
+// Reading only, and the one reduction that takes something off the LEFT of a name - so it is
+// fenced by the shape rather than by a word list: digits, a slash, digits, a blank. Nothing
+// else in a title is written that way, and the callers ask the wiki before they act on it.
+function mdbTitle_lineupFractionBase( name ) {
+    var text = mdbTitle_trimSeparators( String( name || "" ) ),
+        m = /^(\d{1,3}[\/\\]\d{1,3})\s+(\S.*)$/.exec( text );
+
+    if( !m ) return null;
+
+    var base = mdbTitle_trimSeparators( m[2] );
+
+    // two letters are an abbreviation as readily as a name, and the lookup that follows would
+    // match half the wiki - the same floor mdbTitle_venueSpaceBase has
+    if( base.length < 3 ) return null;
+
+    return { base: base, fraction: m[1] };
 }
 
 // mdbTitle_bracketPairRe
@@ -2382,6 +2482,16 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
                 take( space.base, "entity", "place base", bits[i] );
             }
 
+            // ... and the ACT behind a fraction, the same way round: "1/2 Faultierdisko" is
+            // no category while "Faultierdisko" is, and the fraction only says how much of
+            // the act was on stage. In FRONT of the "@" only, where a name is a name - and
+            // the full form stays the first question, since the wiki could know it.
+            var lineup = inPlace ? null : mdbTitle_lineupFractionBase( bit );
+
+            if( lineup ) {
+                take( lineup.base, "artist", "line-up base", bits[i] );
+            }
+
             // ... and the names the chunk strings together, when it is long enough to be a
             // chain rather than one name ("Timboletti im Chapeau Club"). AFTER the whole,
             // which keeps the priority order the 10-name cap cuts at: the chunk itself is
@@ -2736,6 +2846,65 @@ function mdbTitle_takeEventTitle( text, known, username ) {
     return { artist: artist, event: event, year: year, city: city, chainDropped: chainDropped };
 }
 
+// mdbTitle_takeSlotEventTitle
+// A live recording at an event whose NAME says nothing about being one - the two hints of
+// mdbTitleEventSlotWords, which only count together:
+//
+//     "Bee Lincoln - Rote Dichte 2026 - Obstgarten Closing"
+//     ->  { artist: "Bee Lincoln", slot: "Obstgarten Closing", event: "Rote Dichte", year: "2026" }
+//
+// Returns null when the title is not one. Exactly three bits: the artist, the slot and the
+// event. With a fourth there is more than one way to pair them up, and the whole reading rests
+// on two hints that each mean little on their own - so a guess on top of them is one too many.
+//
+// The year is taken OFF the event name, like every other gig year: MixesDB writes it in front
+// of the title and never twice.
+function mdbTitle_takeSlotEventTitle( text ) {
+    var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
+        kept = [],
+        i;
+
+    for( i = 0; i < bits.length; i++ ) {
+        var bit = mdbTitle_cleanArtist( bits[i] );
+
+        if( bit ) kept.push( bit );
+    }
+
+    if( kept.length !== 3 ) return null;
+
+    var slotIndex = -1,
+        eventIndex = -1,
+        dated = [];
+
+    for( i = 0; i < kept.length; i++ ) {
+        dated[i] = mdbTitle_takeTrailingYear( kept[i] );
+
+        if( slotIndex === -1 && mdbTitle_endsWithSlotWord( kept[i] ) ) slotIndex = i;
+    }
+
+    if( slotIndex === -1 ) return null;
+
+    for( i = 0; i < kept.length; i++ ) {
+        if( i !== slotIndex && dated[i].year ) { eventIndex = i; break; }
+    }
+
+    if( eventIndex === -1 ) return null;
+
+    var event = mdbTitle_trimSeparators( dated[eventIndex].text ),
+        artist = "";
+
+    for( i = 0; !artist && i < kept.length; i++ ) {
+        if( i !== slotIndex && i !== eventIndex ) artist = kept[i];
+    }
+
+    // An event is a PLACE, not a series - the same guard mdbTitle_takeEventTitle has. Once the
+    // year is off, an event name carries neither a series word nor a number, while a
+    // "Podcast 12" carries both, and a title naming a podcast is no live recording.
+    if( !artist || !event || mdbTitle_seriesScore( event ) > 0 ) return null;
+
+    return { artist: artist, slot: kept[slotIndex], event: event, year: dated[eventIndex].year };
+}
+
 // mdbTitle_joinArtists
 // First artist + the ones found behind "w/", with the joiner from title_definitions.js.
 function mdbTitle_joinArtists( artist, extraArtists ) {
@@ -2832,6 +3001,11 @@ function mdbTitle_titleCategories( title ) {
 // written the other way round, the stage first, and the festival is the name the page belongs
 // under either way. Only an event word overrules the order - a city or a venue behind the comma
 // says nothing about which of the two is the bigger name, so there the order stays the answer.
+//
+// A SLOT word says the same thing from the other end: "@ Obstgarten Closing, Rote Dichte" is
+// the closing set of an event, and a slot is no name to file a page under, so the first part
+// steps aside and the next one answers. Never the last word - a group whose parts are all
+// slots has nothing better to offer than its first.
 function mdbTitle_placeGroupEntity( group ) {
     var parts = String( group || "" ).split( "," ),
         eventRe = mdbTitle_eventWordRe(),
@@ -2841,6 +3015,12 @@ function mdbTitle_placeGroupEntity( group ) {
         part = mdbTitle_trimSeparators( parts[i] );
 
         if( part && eventRe.test( part ) ) return part;
+    }
+
+    for( i = 0; i < parts.length; i++ ) {
+        part = mdbTitle_trimSeparators( parts[i] );
+
+        if( part && !mdbTitle_endsWithSlotWord( part ) ) return part;
     }
 
     return parts[0];
@@ -3026,6 +3206,14 @@ var mdbTitle_promoDeclined = false;
 // hand to the hints bar's "Switch title" chip. Set once per suggestion, in the reduction
 // itself, and only there - the first pass runs without the wiki's answers and never reduces.
 var mdbTitle_placeWordDropped = null;
+
+// mdbTitle_slotPartRead
+// The slot the 3g2 branch read into a place group: { slot, event }, null on every other title.
+// "Obstgarten Closing" is where inside the night the set was played, and the page files under
+// the event either way - so the group without it ("@ Rote Dichte") is a reading worth OFFERING,
+// which is what mdbTitle_result hands to the hints bar's "Switch title" chip. Set once per
+// suggestion, in the branch itself.
+var mdbTitle_slotPartRead = null;
 
 // mdbTitle_isChannelInitials
 // Whether an all-caps word is the channel abbreviating itself: "IA" on "Illegal Alien Records".
@@ -3712,6 +3900,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_liveWordSeen = false;
     mdbTitle_promoDeclined = false;
     mdbTitle_placeWordDropped = null;
+    mdbTitle_slotPartRead = null;
 
     try {
         // "_" is a space on MediaWiki and a word character to a regex, so it is written out
@@ -4162,7 +4351,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                              ( venueTitle.city ? ", " + venueTitle.city : "" );
 
             if( dateFromUpload ) {
-                var venueLive = mdbTitle_liveDate( date, venueGroup );
+                // the wiki's own answer about the place: an event's trailing year is the
+                // edition's and dates the recording, whether or not the name carries an
+                // event word ("Fusion 2024" is an event to the wiki and to nobody else)
+                var venueLive = mdbTitle_liveDate( date, venueGroup, venueTitle.isEvent );
 
                 date = venueLive.date;
                 venueGroup = venueLive.group;
@@ -4177,6 +4369,56 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 entity: "MixesDB knows \"" + venueTitle.venue + "\" as " + ( venueTitle.isEvent ? "an event" : "a venue" ) +
                         ", so the title reads as a set PLAYED there - " +
                         "it becomes the place behind the \" @ \", and the channel is not used as a show on top of that"
+            } );
+        }
+
+        // 3g2) The same, for an event whose name carries no event word: a bit ending in a bare
+        // YEAR and a bit ending in a SLOT word ("Obstgarten Closing") say together that this
+        // was played at a party, and neither of them says it alone. AFTER the wiki's own
+        // answer above: a name MixesDB knows is stronger evidence than two word shapes, so a
+        // title carrying a known venue is read by that branch and never reaches this one. The slot goes in front of
+        // the event in the group, the way MixesDB writes a stage and the festival it stands
+        // on, and the page is filed under the event (mdbTitle_placeGroupEntity).
+        var slotEvent = mdbTitle_takeSlotEventTitle( rest );
+
+        if( slotEvent ) {
+            logVar( "buildMixesdbTitle: slot + dated event",
+                slotEvent.artist + " @ " + slotEvent.slot + ", " + slotEvent.event + " (" + slotEvent.year + ")" );
+
+            mdbTitle_traceStep( "Read as a set played at an event",
+                slotEvent.slot + " names a slot and " + slotEvent.event + " " + slotEvent.year + " an edition",
+                null, [ "mdbTitleEventSlotWords" ] );
+
+            var slotGroup = slotEvent.artist + " @ " + slotEvent.slot + ", " + slotEvent.event;
+
+            // the group without the slot is the other reading of the same night, and only the
+            // uploader knows whether the slot is worth naming
+            mdbTitle_slotPartRead = { slot: slotEvent.slot, event: slotEvent.event };
+
+            if( dateFromUpload ) {
+                // played on the event's own date, uploaded whenever the recording was ready -
+                // so only the year is claimed, and the event's own year is the one it states
+                var slotLive = mdbTitle_liveDate( slotEvent.year || date, slotGroup, true );
+
+                date = slotLive.date;
+                slotGroup = slotLive.group;
+                conf.drop( 10, mdbTitle_liveDateReason( slotLive.month ) );
+
+            } else if( slotEvent.year && date.slice( 0, 4 ) !== slotEvent.year ) {
+                conf.drop( 15, "the date in the title and the year of the event (" + slotEvent.year + ") do not match - one of them is misread" );
+            }
+
+            conf.drop( 15, "read as a live recording at an event - the title names a slot (\"" + slotEvent.slot +
+                           "\") next to a year, which is what a party night looks like, but neither word list nor MixesDB knows \"" +
+                           slotEvent.event + "\" as an event" );
+
+            return mdbTitle_result( date, slotGroup, "", null, false, [], conf, {
+                artist: "the bit that names neither the slot nor the dated event is who played there",
+                // Two word shapes decide this, not the wiki and not an event word - the
+                // sentence has to say which, or a reporter cannot check it.
+                entity: "\"" + slotEvent.slot + "\" ends in a slot word and \"" + slotEvent.event +
+                        "\" carries the year of an edition, so the title reads as a set PLAYED at it - " +
+                        "the event is the place behind the \" @ \" and what the page is filed under"
             } );
         }
 
@@ -4400,11 +4642,22 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // why 4b steps aside as soon as a number turns up anywhere: which of the two the
         // channel is cannot be read off the shape of the title, but WHERE the number sits says
         // it outright.
-        // Exactly two bits, as narrow as 5b and 5c: with a third one there is more than one
-        // way to pair them up and it is a guess again. A number written ONTO the channel name
-        // ("Trommel.251") never gets here - it left the title together with the name.
+        // Two bits, or THREE where one of them is the channel's: the number picks the series
+        // out and the channel picks itself out, so with three bits exactly one is left over
+        // and that one is the artist:
+        //   "DEEP & HAZY - Undercurrent #5 - ALEXANDER BOGDANOV"  on the channel "DEEP & HAZY"
+        //   -> 2026-07-02 - Alexander Bogdanov - Undercurrent 5
+        // The channel then names neither the artist nor the series and is dropped - it is the
+        // crew or label the series is put out by, which a mix page title does not carry.
+        // Reported on exactly that title, where the number left its own bit to hang itself on
+        // the channel ("DEEP & HAZY 5") while the two remaining bits glued into one artist.
+        // Four bits are a guess again: there is then more than one leftover and nothing says
+        // which of them is the name. A number written ONTO the channel name ("Trommel.251")
+        // never gets here - it left the title together with the name.
+        var groupCount = mdbTitle_countGroups( restWithShow );
+
         if( taken.taken && !taken.episode && !isMappedChannel && !guestArtist &&
-            restWithShow.indexOf( "@" ) === -1 && mdbTitle_countGroups( restWithShow ) === 2 ) {
+            restWithShow.indexOf( "@" ) === -1 && ( groupCount === 2 || groupCount === 3 ) ) {
 
             var titleEpisode = mdbTitle_findEpisode( restWithShow, true ),
                 channelBit = mdbTitle_bitAt( restWithShow, taken.index );
@@ -4416,16 +4669,35 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                     // the number goes with the series, so it comes out of the name here and is
                     // written back behind it by mdbTitle_assemble
                     var numberedSeries = mdbTitle_cleanArtist(
-                            mdbTitle_cut( numberBit.text, titleEpisode.index - numberBit.start, titleEpisode.length ) );
+                            mdbTitle_cut( numberBit.text, titleEpisode.index - numberBit.start, titleEpisode.length ) ),
+                        // with two bits the channel IS the artist, with three it is the bit
+                        // that is neither the channel's nor the series'
+                        leftoverBit = null,
+                        allBits = mdbTitle_bits( restWithShow ),
+                        b;
 
-                    if( numberedSeries ) {
-                        logVar( "buildMixesdbTitle: the number is in the other bit, so the channel is the artist",
-                                taken.show + " | " + numberedSeries + " " + titleEpisode.text );
+                    for( b = 0; groupCount === 3 && b < allBits.length; b++ ) {
+                        if( allBits[b].start !== channelBit.start && allBits[b].start !== numberBit.start ) {
+                            leftoverBit = mdbTitle_cleanArtist( allBits[b].text );
+                        }
+                    }
 
-                        return mdbTitle_result( date, taken.show, numberedSeries,
+                    var pairArtist = groupCount === 3 ? leftoverBit : taken.show;
+
+                    if( numberedSeries && pairArtist ) {
+                        logVar( "buildMixesdbTitle: the number is in the other bit, so the channel is not the series",
+                                pairArtist + " | " + numberedSeries + " " + titleEpisode.text );
+
+                        if( groupCount === 3 ) {
+                            conf.drop( 5, "the channel name was dropped - it stands in a bit of its own next to a numbered series and a name, so it is neither of the two" );
+                        }
+
+                        return mdbTitle_result( date, pairArtist, numberedSeries,
                                                 { text: titleEpisode.text, kind: titleEpisode.kind },
                                                 false, extraArtists, conf, {
-                            artist: "the channel's own name stands in the title, and the episode number belongs to the other bit",
+                            artist: groupCount === 3
+                                    ? "the channel and the numbered series each stand in a bit of their own, so the bit left over is who played it"
+                                    : "the channel's own name stands in the title, and the episode number belongs to the other bit",
                             entity: "the bit carrying the episode number (" + titleEpisode.text + ") is the series"
                         } );
                     }
@@ -4938,6 +5210,47 @@ function mdbTitle_reducePlaceGroup( group ) {
     return text.slice( 0, at + 3 ) + venue + rest;
 }
 
+// mdbTitle_reduceLineupFraction
+// "1/2 Faultierdisko @ 3000Grad Festival" -> "Faultierdisko @ 3000Grad Festival": the act
+// behind a line-up fraction, so the title names what MixesDB files the page under. Returns the
+// group unchanged whenever the wiki does not back the swap, which is every other title.
+//
+// Same two halves as the room reduction above, asked of the same cache: the name the title
+// carries is no category at ALL, and the base IS one - as an ARTIST, since what stands here is
+// who played. Without the second half this would shorten a name nobody knows into another name
+// nobody knows.
+//
+// Only where the artist group is ONE name. A fraction in front of a list ("1/2 A & B") says
+// nothing about which of the names it belongs to, and guessing that is worse than leaving the
+// title as the uploader wrote it.
+//
+// No "Switch title" chip comes back from this, unlike the room word: MixesDB writes a room
+// where it is worth naming, but it writes no line-up fraction anywhere - once the wiki has
+// named the act, the fraction is a note about this recording and not a second reading of the
+// title.
+function mdbTitle_reduceLineupFraction( group ) {
+    var known = mdbTitle_knownNow,
+        text = String( group || "" ),
+        at = text.indexOf( " @ " );
+
+    if( !known ) return text;
+
+    var name = mdbTitle_trimSeparators( at === -1 ? text : text.slice( 0, at ) ),
+        rest = at === -1 ? "" : text.slice( at );
+
+    if( !name || mdbTitle_splitArtists( name ).length !== 1 ) return text;
+
+    // the wiki knowing the written name under any type at all settles it - the name is a
+    // category, and a category is never shortened
+    if( mdbTitle_knownAs( known, name ) ) return text;
+
+    var lineup = mdbTitle_lineupFractionBase( name );
+
+    if( !lineup || !mdbTitle_knownMatch( known, lineup.base, [ "artist" ] ) ) return text;
+
+    return mdbTitle_canonicalName( known, lineup.base, [ "artist" ] ) + rest;
+}
+
 // mdbTitle_result
 // The single exit of buildMixesdbTitle: appends the extra artists, assembles, and enforces
 // the three-group rule "Date - Artist - Entity" (see title_definitions.js). A 4th group is
@@ -4998,6 +5311,24 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         }
 
         artist = placeShort;
+    }
+
+    // A line-up fraction is not part of the act's name: where the wiki knows the act and not
+    // the fraction, the fraction comes off - "1/2 Faultierdisko" -> "Faultierdisko". Next to
+    // the room rule and for the same reason, on the other side of the "@".
+    var lineupShort = mdbTitle_reduceLineupFraction( artist );
+
+    if( lineupShort !== artist ) {
+        logVar( "mdbTitle_result: line-up fraction dropped", artist + " -> " + lineupShort );
+        mdbTitle_traceStep( "Line-up fraction dropped", artist + " -> " + lineupShort );
+
+        // the deciding branch writes the sentence - this one asked the wiki, so it may say so
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.artist = "MixesDB knows the act without the fraction the title writes in front of it, " +
+                "so the page is filed under the act - the fraction only says how much of it was on stage";
+        }
+
+        artist = lineupShort;
     }
 
     // "Live PA" said by the title or the description is written behind the artist's NAME, the
@@ -5144,6 +5475,21 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                         mdbTitle_placeWordDropped.place + "\", which is the category the page files under" +
                         " either way - MixesDB has no \"" + mdbTitle_placeWordDropped.full + "\". Where the room" +
                         " is worth naming, the title does carry it."
+            } );
+        }
+
+        // The slot 3g2 read into the place group. MixesDB writes the slot where it is worth
+        // naming and the bare event where it is not, and the page files under the event
+        // either way (mdbTitle_placeGroupEntity skips a slot part), so this moves nothing but
+        // the title - the same deal the room word gets.
+        if( mdbTitle_slotPartRead ) {
+            alternatives.push( {
+                kind: "slotPart",
+                text: mdbTitle_slotPartRead.slot,
+                place: mdbTitle_slotPartRead.event,
+                reason: "\"" + mdbTitle_slotPartRead.slot + "\" names the slot of the night rather than the event," +
+                        " and the page files under \"" + mdbTitle_slotPartRead.event + "\" either way." +
+                        " Where the slot is not worth naming, the title carries the event alone."
             } );
         }
 

@@ -29,6 +29,15 @@ and as `Chapeau Club`, because the wiki can only answer empty about the pair –
 `asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
 tamed to "DJ Maria.", because the category holding her mixes is spelled that way).
 
+An **episode number stays in the chunk it was typed in** – it is what says which of the names
+around it is the series. `LIMB #9 – Yuka` on the channel *LIMB* is episode 9 of LIMB, while
+`The Sound of Rome #147 - Ricky Montana` on the channel *Ricky Montana* is episode 147 of that
+show played by Ricky Montana. With a third chunk the two together answer the whole title:
+`DEEP & HAZY - Undercurrent #5 - ALEXANDER BOGDANOV` on the channel *DEEP & HAZY* becomes
+`2026-07-02 - Alexander Bogdanov - Undercurrent 5` – the numbered chunk is the series, the
+channel picks itself out, and the chunk left over is who played it, so the channel name (the
+crew putting the series out) does not join the title.
+
 The series' own recent pages then settle the format. Once the entity resolves to a MixesDB
 category, its newest mix pages are read, and where at least 90% of them agree – or all of the
 5 newest, where older pages disagree because the series renamed itself – the suggestion is
@@ -58,11 +67,27 @@ back as a **Switch title** chip, since MixesDB does write it where it is worth n
 a `|` or a dash wrap instead of a second `@` is joined the same way
 (`@ Utopia | Ritter Butzke | Berlin` becomes `@ Utopia, Ritter Butzke, Berlin`). Such a title claims only the
 year, and a year the place list itself names wins over the upload year and leaves the list
-(`… @Utopia 2021` becomes a `2021 - …` title ending in `, Utopia`). An event that writes its
+(`… @Utopia 2021` becomes a `2021 - …` title ending in `, Utopia`). A year behind an **event**
+does the same even where the title names one place only, since that number is which edition
+was played (`@ 3000Grad Festival 2023` becomes a `2023 - …` title ending in
+`@ 3000Grad Festival`); behind a place that is neither an event nor part of a list the year may
+belong to the name and stays (`@ What Happens Label Night 2026`). An event that writes its
 edition a thousand years ahead is read as the year it means – 3000Grad's `Festival 3026` is the
 2026 one, and those digits date the recording instead of staying in the festival's name. The one played-how marker
 that stays is `Live PA`: said by the title – or by the description of a live recording – it is
 written as `(Live PA)` behind the artist's name, while the artist category stays the bare name.
+
+An event whose name says nothing about being one is read from two hints together: a chunk
+ending in a bare year is an edition, and a chunk ending in a slot of the night – `Closing`,
+`Opening`, `Peak Time` – is where inside it the set was played. Neither counts alone, and
+together they turn `Bee Lincoln - Rote Dichte 2026 - Obstgarten Closing` into
+`2026 - Bee Lincoln @ Obstgarten Closing, Rote Dichte`, filed under the event. The slot is
+offered back as a **Switch title** chip, since the title reads just as well without it.
+
+A **line-up fraction** in front of an act – `1/2 Faultierdisko`, one half of the duo playing
+this set – never splits the name apart, and the act behind it is looked up next to the name as
+written: where MixesDB knows the act and has no category under the fraction, the act is what
+the title carries and what the page is filed under.
 
 The row is meant for mixes that are **not on MixesDB yet**, and only for recordings of at
 least 20 minutes, which is MixesDB's lower limit. Whether a player is already used is the
@@ -154,6 +179,12 @@ says why the build decided the other way. Offered today:
   how the wiki writes it where the room is worth naming – `2019-05-24 - Robert Hood @ Elsewhere
   Rooftop, NYC`. The page files under the venue either way, so this chip changes the title
   alone, not where the page ends up.
+
+- **The slot of the night** – the title named the closing or the opening set at an event, and
+  the group was written slot first, event last (`… @ Obstgarten Closing, Rote Dichte`). The chip
+  offers the event alone (`… @ Rote Dichte`), which is how MixesDB writes it where the slot is
+  not worth naming. The page files under the event either way, so this chip changes the title
+  alone.
 
 A chip only ever offers a different **title for this same page** – never one that would create a
 different page. That is why a `Part 2` the title carried is dropped and *not* offered back: the
@@ -401,6 +432,15 @@ click, not before, so no request is wasted.
 On TrackId.net the description is not searched at all: the **Create** link reads the
 [tracklist box](../../TrackId.net/#tracklist-in-wiki-syntax) the TrackId.net script itself builds
 from the identified tracks, which is the better tracklist anyway.
+
+A site script may have changed the tracklist before the box ever saw it. When it has, it says so
+in the box: an extra row prints with the Tracklist Editor's own feedback, and the box goes into
+warning mode for it – the same red the Editor uses for its own warnings, because a change nobody
+asked for is the thing that must not be saved unlooked-at. SoundCloud is the case this exists
+for; it replaces the channel handles uploaders credit remixers by with the names those channels
+carry, and the row lists every one of them. The warning does not change which
+`[[Category:Tracklist: …]]` the page is filed under – that stays whatever the Tracklist Editor
+says about the text.
 
 ### Loading placeholder
 

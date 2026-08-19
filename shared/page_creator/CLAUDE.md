@@ -14,7 +14,7 @@ reads the values off its own page/API and hands them over.
 
 | File | What it is |
 | --- | --- |
-| `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options. Also the loading skeleton (`mdbSkeleton_*`, entry point `mdbSkeleton_show(options)`) - see its section comment |
+| `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)`, `mdbPageCreator_addTracklistNotice(html)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options. Also the loading skeleton (`mdbSkeleton_*`, entry point `mdbSkeleton_show(options)`) - see its section comment |
 | `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup. Also `mdbTitle_titleCategories()`, the way back: a finished title -> the year, the artists and the entity the page is filed under |
 | `title_definitions.js` | The word lists and channel->show mappings the parser uses. Plain data, meant to be extended by hand - this is where the learning from each report goes |
 | `tracklist_detector.js` | `mdbTracklist_detectInText()` / `mdbTracklist_detectInComments()`: which lines of a description are the tracklist. No DOM, no network - see below |
@@ -52,6 +52,15 @@ player pages carry a description adds `mdbPageCreator_addTracklist({ description
 target, placement })` - see the next section - and hands the same `description` to
 `mdbPageCreator_add()`, where the TITLE builder reads the labels its tracklist credits.
 SoundCloud is the reference implementation.
+
+A site that CHANGED the tracklist before handing it over says so with
+`mdbPageCreator_addTracklistNotice(html)`. The string is printed as its own row with the
+Tracklist Editor API's feedback and counts as a warning, so the box goes into warning mode for
+it - `mdbPageCreator_feedbackWithNotices()` folds the notices into every answer the API gives
+about that box, and the raw answer is kept so a re-fold cannot print a notice twice. The
+`status` is always the API's own: a notice is about provenance, not completeness, and must not
+move the `Tracklist:` category. Callable before or after the box exists; SoundCloud's comments
+path needs the latter. SoundCloud's resolved channel handles are the only caller so far.
 
 A site that builds a tracklist box of its OWN (TrackId.net renders the identified tracks into
 one) skips `mdbPageCreator_addTracklist()` entirely and names that box in the `tracklistBox`
@@ -341,6 +350,19 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   is covered). The word is not lost - it comes back as a "Switch title" chip, and
   `mdbPageCreator_entityCategory` reduces the name again off the lookup cache, so the page
   files under the venue whichever reading the title carries.
+- **A LINE-UP FRACTION is the second reduction that is not from the right** (2026-08-19,
+  reported on "1/2 Faultierdisko @ 3000Grad Festival 2023"): "1/2 Faultierdisko" says one half
+  of the duo played, and it is no category and never will be while `Faultierdisko` is one with
+  4 mixes, so the act behind the fraction is asked NEXT TO the written name
+  (`mdbTitle_lineupFractionBase`, origin `line-up base` in the panel's section 3). Fenced by
+  the SHAPE rather than by a list - digits, a slash, digits, a blank - because nothing else in
+  a title is written that way, and in FRONT of the "@" only, where a name is a name. Same two
+  conditions as the room rule, so the same guard: the written name is no category at all AND
+  the base is one, as an ARTIST. `mdbTitle_reduceLineupFraction` at the single exit then puts
+  the act into the title, and unlike the room word it is NOT offered back as a chip - MixesDB
+  writes a room where it is worth naming, but it writes no line-up fraction anywhere. The slash
+  is no separator either: `mdbTitle_fractionLeadRe` keeps `mdbTitle_findEpisode` off it, which
+  had read the "1" as a leading episode number and left the artist as "2 Faultierdisko".
 - **Only the REPLACED channel name is no candidate** - a channel name a conversion map
   replaces ("Dance TV", "Resident Advisor") is the one name not worth a request: the map
   overrides whatever the wiki would answer for it. The curated show standing in its place
@@ -500,6 +522,13 @@ renders them. Settled, so it does not get re-litigated:
   way, which is also what keeps an editor who types the room in by hand out of an empty
   category. The toggle works on the PLACE the fact names, never on the end of the title: the
   group can carry a city behind the venue, and the word belongs behind the venue itself.
+- **The slot of the night is offered back like the room word** (2026-08-19, reported on
+  "Bee Lincoln - Rote Dichte 2026 - Obstgarten Closing"): 3g2 reads a chunk ending in one of
+  `mdbTitleEventSlotWords` next to a chunk ending in a bare year as a set played at an event,
+  and writes the group slot first, event last. The title reads just as well without the slot,
+  and `mdbTitle_placeGroupEntity` steps over a slot part either way, so the chip moves the
+  title and not the filing - the same deal the room word gets, toggled on the EVENT the fact
+  names rather than on the end of the title. Kind `slotPart`.
 - **A chip may never propose a DIFFERENT PAGE, only a different title for this one.** That is
   the line every candidate reading is measured against, and it is what rules out the dropped
   chunks of 1c - "Part 2" above all (dropped again 2026-08-19, second round: it had been built

@@ -27,6 +27,15 @@ The tracklist an uploader wrote into the description lands in an editable box be
 formatted in wiki syntax. When the description holds none, the track's comments are asked once
 for a complete numbered tracklist. Details in [Page creator](../shared/page_creator/).
 
+Uploaders often credit remixers by their SoundCloud channel handle rather than by name –
+`Blur - Tender (@reyneke Reinterpretation)`, `@drparnassus - Locomotiva`. Every `@handle` in a
+detected tracklist is looked up and replaced by the name that channel carries, so the box shows
+`Blur - Tender (REYNEKE Reinterpretation)` instead. The box then warns that it did so and lists
+every handle with the name it was given: these are names the uploader never wrote, they are not
+necessarily how the artist is credited on MixesDB, and a channel that has been renamed or turned
+into a forwarding note gives a name that is plainly wrong. Check the list before saving. A handle
+that cannot be looked up stays in the tracklist as it was.
+
 ### Toolkit
 
 Is this track already on MixesDB – see [Toolkit](../shared/toolkit/). It carries the
@@ -105,3 +114,5 @@ A submit link above a set's track list, handing the whole set over to TrackId.ne
   back to whatever works without it (e.g. the description is not auto-expanded).
 - The favorites filter resolves entries one at a time and pauses under load, so a long list fills
   in gradually.
+- Channel handles are looked up for at most 50 different handles per tracklist. Beyond that the
+  remaining handles stay in the text as they are.

@@ -22,6 +22,15 @@ SoundCloud-only bits that must stay on this side, not move into the page creator
 - `getScPlayerUrl()` - the URL MixesDB embeds is not `location.href` here
 - the `target` selector, and the fact that it must be a **string**: SoundCloud re-renders the
   track header repeatedly, and a captured node would be detached by the next render
+- `scResolveHandles()` / `scHandleNoticeHtml()` in `api_funcs.js` - uploaders credit remixers
+  by SoundCloud `@handle`, which only means something on this site. The lookup is
+  `soundcloud.com/oembed`: no token and no `client_id`, and SAME ORIGIN here, so there is
+  nothing to keep in sync when SoundCloud rotates its keys. Names are cached in
+  `localStorage` under `mdb_sc_handle_names_v1`. It is called only after
+  `mdbTracklist_detectInText()` / `...InComments()` found a tracklist AT ALL - that gate is
+  what keeps the majority of tracks, which have no tracklist, from costing a request. The
+  page creator is told about the swap through `mdbPageCreator_addTracklistNotice()` and never
+  learns that handles were involved.
 - `getScTrackComments()` in `api_funcs.js` - the endpoint and the OAuth token are ours. The
   page creator decides WHETHER the comments are worth fetching (only when the description held
   no tracklist) and calls this through the `loadComments` callback of
