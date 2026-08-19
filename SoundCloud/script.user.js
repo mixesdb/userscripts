@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.10
+// @version      2026.08.19.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,8 +12,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_46
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_33
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_47
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
@@ -1836,6 +1836,21 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.11
+ * A part an uploader wrapped in dashes is now a chunk of its own, and 3000Grad's joke year is
+ * read as the year it means (title_builder.js v_47, title_definitions.js v_33). From two
+ * reports on the ri0d channel, "RiOD. @ 3000Grad Festival -Rummelplatz 3026-" and
+ * "Ri0D. @ 3000Grad Festival 3025  -RUMMELPLATZ-": the whole tail behind the festival rode
+ * along as ONE name, so MixesDB was asked about "3000Grad Festival -Rummelplatz 3026" - which
+ * can only answer empty - and the page came out filed under that instead of under the
+ * festival. "-Words-" now separates the way a bracket does; the wrap here holds the festival's
+ * fairground corner, which is dropped like a stage. 3000Grad writes its editions a thousand
+ * years ahead ("3025" is 2025), so those digits now date the recording and leave the title
+ * wherever they stand. Both come out as "2026 - RiOD. @ 3000Grad Festival" and
+ * "2025 - Ri0D. @ 3000Grad Festival". A place group whose steps the uploader separated with a
+ * bracket or a "|" instead of a second "@" is joined with the "," MixesDB writes, rather than
+ * being flattened into one glued name ("@ Utopia Ritter Butzke Berlin").
  *
  * 2026.08.19.10
  * A tracklist written "Artist-Title", with no spaces around the dash, is now found

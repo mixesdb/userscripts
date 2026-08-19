@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.13
+// @version      2026.08.19.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_46
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_33
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_47
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -1965,6 +1965,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.14
+ * Via the shared title builder (title_builder.js v_47, title_definitions.js v_33), from two
+ * SoundCloud reports: a part an uploader wrapped in dashes ("-Rummelplatz 3026-") is now a
+ * chunk of its own instead of riding along inside the name in front of it, an event that
+ * writes its edition a thousand years ahead (3000Grad's "Festival 3025") has those digits read
+ * as the gig year, and a place group whose steps are separated by a bracket or a "|" rather
+ * than a second "@" is joined with the "," MixesDB writes instead of being flattened into one
+ * glued name.
  *
  * 2026.08.19.13
  * Via the shared tracklist detector (tracklist_detector.js v_12), from a SoundCloud report:

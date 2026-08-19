@@ -383,6 +383,58 @@ function mdbTitle_findDate( text, refIso ) {
     return null;
 }
 
+// mdbTitle_takeJokeYear
+// The gig year of an event that writes its edition a thousand years ahead - "3000Grad Festival
+// 3025" is the 2025 one. Returns { text, year }, year "" when the title names no such event or
+// carries no such number. See mdbTitleJokeYearEvents in title_definitions.js for why this can
+// only be curated per event.
+//
+// Taken OUT of the title, like every other gig year: MixesDB writes the year in front of a
+// title and never twice. Read once the chunk rewrites have run and before the chunks a mix
+// page title does not carry are dropped (1b3 in buildMixesdbTitle) - "Rummelplatz 3026" is no
+// stage to that drop, "Rummelplatz" is.
+//
+// The number has to be a token of its own - not glued to letters - which is what keeps the
+// "3000" of the event's own name out of it, and what comes out has to read as a real year, so
+// a plain "2025" in the same title is left to the ordinary date rules.
+function mdbTitle_takeJokeYear( text ) {
+    var events = ( typeof mdbTitleJokeYearEvents !== "undefined" && mdbTitleJokeYearEvents ) ? mdbTitleJokeYearEvents : [],
+        result = { text: String( text || "" ), year: "" },
+        i;
+
+    for( i = 0; i < events.length; i++ ) {
+        if( !events[i].name ) continue;
+        if( result.text.toLowerCase().indexOf( String( events[i].name ).toLowerCase() ) === -1 ) continue;
+
+        var ahead = events[i].ahead || 0,
+            // A number of its OWN: no letter and no digit on either side. Not whitespace -
+            // the reported title glues it to the closing dash of a wrap ("-Rummelplatz 3026-")
+            // and a bracket would do the same. The letter test is what keeps the "3000" of
+            // the event's own name out of it.
+            re = /(^|[^0-9A-Za-z])(\d{4})(?![0-9A-Za-z])/g,
+            m;
+
+        while( ( m = re.exec( result.text ) ) !== null ) {
+            var real = String( Number( m[2] ) - ahead );
+
+            if( !/^(?:19|20)\d{2}$/.test( real ) ) continue;
+
+            // something has to be left standing - a title that is nothing but the number is
+            // not dated by it, the same guard mdbTitle_takeTrailingYear keeps
+            var without = mdbTitle_cut( result.text, m.index + m[1].length, m[2].length );
+
+            if( !mdbTitle_trimSeparators( without ) ) continue;
+
+            result.text = without;
+            result.year = real;
+
+            return result;
+        }
+    }
+
+    return result;
+}
+
 // mdbTitle_yearOf
 // The year of a date, or "" - the only part of an upload date a live recording may claim.
 // Takes a bare "2026" as readily as a full ISO date, so an event's own year passes through it.
@@ -1275,6 +1327,15 @@ function mdbTitle_applyJoiners( text ) {
 // place in two steps - the festival and where it was held - so every "@" after the first
 // becomes the "," of that group:
 //     "Kernel Existence @ 3000Grad Festival @ Utopia" -> "... @ 3000Grad Festival, Utopia"
+// A CHUNK behind the joiner is that same second step written with the uploader's other
+// separator - a bracket, a "|", a dash wrap - and becomes the same ",":
+//     "Kernel Existence @ Utopia | Ritter Butzke | Berlin" -> "... @ Utopia, Ritter Butzke, Berlin"
+// Nothing else can become of it. Everything behind the "@" is the place, so a chunk there is
+// never a show and never an artist, and without this the separator was merely flattened away
+// and the places came out as one glued name ("@ Utopia Ritter Butzke Berlin"). The chunks a
+// title carries that are NOT part of the place - a stage, a camp, a part number - are gone by
+// the time this runs (1c), which is why this may take the rest at its word.
+//
 // Runs after mdbTitle_applyJoiners, which wrote every "@" as " @ " - so a plain replace is
 // enough. A spelling rule, not a guess: both "@" were the uploader's own, only the second is
 // written the way MixesDB writes it. See "Only one \" @ \" per title" in title_definitions.js.
@@ -1285,7 +1346,12 @@ function mdbTitle_joinPlaceGroups( text ) {
 
     if( first === -1 ) return text;
 
-    return text.slice( 0, first + 1 ) + text.slice( first + 1 ).replace( /\s*@\s*/g, ", " );
+    // whitespace on BOTH sides, the same boundary mdbTitle_bitSplitRe uses: a "-" sits inside
+    // venue names ("Ritter-Butzke") and inside addresses all the time
+    var sep = new RegExp( "\\s+[" + mdbTitle_sepInner + "]+\\s+", "g" );
+
+    return text.slice( 0, first + 1 ) +
+           text.slice( first + 1 ).replace( /\s*@\s*/g, ", " ).replace( sep, ", " );
 }
 
 // mdbTitle_takeLivePa
@@ -1574,16 +1640,61 @@ function mdbTitle_bracketsToSeparators( text, username ) {
 
     if( out === text ) return text;
 
-    // The "|" goes in blind, so a bracket at either end of the title, or one standing next to
-    // another separator, leaves an empty chunk behind. Two separator runs with nothing between
-    // them are one separator, and one at either end is none.
-    var sep = "[" + mdbTitle_sepInner + "]";
+    return mdbTitle_tidySeparators( out );
+}
+
+// mdbTitle_tidySeparators
+// The cleanup every rule needs that writes a "|" into a title blind - the bracket rewrite and
+// the dash-wrap rewrite below. A chunk at either end of the title, or one standing next to a
+// separator the uploader already typed, leaves an empty chunk behind: two separator runs with
+// nothing between them are ONE separator, and one at either end is none.
+function mdbTitle_tidySeparators( text ) {
+    var sep = "[" + mdbTitle_sepInner + "]",
+        out = String( text || "" );
 
     out = out.replace( new RegExp( "\\s*" + sep + "+\\s*(?:" + sep + "+\\s*)+", "g" ), " | " )
              .replace( new RegExp( "^\\s*" + sep + "+\\s*" ), "" )
              .replace( new RegExp( "\\s*" + sep + "+\\s*$" ), "" );
 
     return out.replace( /\s+/g, " " ).trim();
+}
+
+// mdbTitle_dashWrapsToSeparators
+// "3000Grad Festival -Rummelplatz-" -> "3000Grad Festival | Rummelplatz": a part the uploader
+// WRAPPED in dashes is a chunk of its own, which is the same thing a bracket says - festivals
+// and labels write the stage, the edition or the remix that way at least as often as they
+// bracket it. Without this the wrap is no boundary at all: the whole tail rides along as one
+// name, is looked up as one and is filed as one ("@ 3000Grad Festival -Rummelplatz"), so
+// neither the festival nor what stands in the wrap is ever asked about.
+//
+// Next to mdbTitle_bracketsToSeparators (1b) and for its reason: what comes out is an ordinary
+// chunk, so 1c gets to drop it when it names a stage and every rule below splits the title
+// without knowing that dashes can wrap.
+//
+// What counts as a wrap is narrow on purpose, because "-" is also the everyday separator: the
+// opening dash needs whitespace in front and a NON-space behind it, the closing one a non-space
+// in front and whitespace (or the end) behind. That is what keeps the "-" of "Artist - Title"
+// out, and a title merely ENDING in a dash. Something has to stand in FRONT of the wrap as well:
+// a title opening with one has nothing to add to, and there the dashes are how the name itself
+// is written ("-Ms- @ Club") - the same reason mdbTitle_dropLabelBrackets leaves a bracket at
+// the head of a title alone.
+function mdbTitle_dashWrapsToSeparators( text ) {
+    text = String( text || "" );
+
+    if( !/[-\u2013\u2014]/.test( text ) ) return text;
+
+    var out = text.replace( /(^|\s)[-\u2013\u2014](\S(?:[\s\S]*?\S)?)[-\u2013\u2014](?=\s|$)/g,
+        function( all, before, inside, offset ) {
+            // offset is into the ORIGINAL text, which is what the test needs: whether anything
+            // stood in front of the wrap cannot depend on a wrap rewritten before it
+            if( !mdbTitle_trimSeparators( text.slice( 0, offset ) ) ) return all;
+
+            return " | " + mdbTitle_trimSeparators( inside ) + " | ";
+        } );
+
+    if( out === text ) return text;
+
+    return mdbTitle_tidySeparators( out );
 }
 
 // mdbTitle_dropBits
@@ -3287,7 +3398,12 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
 
     text = locationBrackets.text;
 
-    var unbracketed = mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ),
+    // the same two chunk rewrites the parse runs (1b and 1b2): a bracket and a dash wrap are
+    // each a chunk of their own. The joke-year mirror (1b3) goes with them: the digits of
+    // "3000Grad Festival 3026" leave the title, so they belong to no chunk and to no lookup
+    // candidate - the same reason the date is mirrored further down.
+    var unbracketed = mdbTitle_takeJokeYear( mdbTitle_dashWrapsToSeparators(
+            mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ) ) ).text,
         // The units are the units the PARSE works with, so the joiners run first: a live
         // marker is gone ("live@3000Grad Festival" holds no chunk "live"), an "at" in front
         // of a place is the " @ " it will be read as. Also what the parse's 3h guard needs:
@@ -3499,6 +3615,17 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             rest = unbracketed;
         }
 
+        // 1b2) ... and so is a part the uploader WRAPPED in dashes: "3000Grad Festival
+        // -Rummelplatz-". Here rather than further down so that 1c gets to drop it when it
+        // names a stage, exactly as it drops a bracketed one.
+        var unwrapped = mdbTitle_dashWrapsToSeparators( rest );
+
+        if( unwrapped !== rest ) {
+            logVar( "buildMixesdbTitle: dash-wrapped part read as its own chunk", rest + " -> " + unwrapped );
+            mdbTitle_traceStep( "Dash-wrapped part read as its own chunk", rest + " -> " + unwrapped );
+            rest = unwrapped;
+        }
+
         // The channel may name SEVERAL names - the artist and the person behind the account
         // ("Lone Saxon / Nick J. Smith"). Only one of them can be used, and the title says
         // which; the rest of the parser then works with one name like everywhere else. A
@@ -3522,6 +3649,22 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( channelSpelling && rest.indexOf( channelSpelling ) !== -1 ) {
             mdbTitle_channelSpelling = channelSpelling;
             logVar( "buildMixesdbTitle: the title spells the channel name the channel's way", channelSpelling );
+        }
+
+        // 1b3) the gig year of an event that writes its edition a thousand years ahead
+        // ("3000Grad Festival 3026"). Between the chunk rewrites and 1c, and that is the only
+        // place it works: the number has to be gone before 1c compares a WHOLE chunk against
+        // its patterns ("Rummelplatz 3026" is no stage, "Rummelplatz" is), and the chunks have
+        // to exist before that, or the digits would be taken out of a name they never left.
+        // Also long before 3 reads a date - no date pattern sees a year like this one.
+        var jokeYearTaken = mdbTitle_takeJokeYear( rest ),
+            jokeYear = jokeYearTaken.year;
+
+        if( jokeYear ) {
+            logVar( "buildMixesdbTitle: the event writes its year a thousand years ahead", rest + " -> " + jokeYearTaken.text );
+            mdbTitle_traceStep( "Joke year read as the gig year", rest + " -> " + jokeYearTaken.text + " (" + jokeYear + ")",
+                null, [ "mdbTitleJokeYearEvents" ] );
+            rest = jokeYearTaken.text;
         }
 
         // 1c) chunks a mix page title does not carry - "Part 2", a stage, a camp. Done on the
@@ -3619,6 +3762,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 ( found.readings > 1 || !/^\d{4}-\d{2}-\d{2}$/.test( found.out ) ) ) {
                 conf.drop( 3, "the date in the title is far from the upload date" );
             }
+        } else if( jokeYear ) {
+            // The title DID date itself, only in the event's own joke spelling - and a year
+            // the title names beats the upload date, which is not the gig date for a festival
+            // set (the same rule mdbTitle_liveDate keeps for a year behind the place list).
+            date = jokeYear;
+            logVar( "buildMixesdbTitle: no ordinary date in the title, using the joke year", date );
+            mdbTitle_traceStep( "No ordinary date in the title", "the event's own year stands in: " + date );
         } else {
             // same preference the header's highlighted date uses: release date wins
             date = releaseDate || createdAt || "";

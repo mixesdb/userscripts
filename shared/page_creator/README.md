@@ -42,9 +42,13 @@ one place group behind it. `Live at`, `live@` and a typed `@` all read the same,
 `@` folds into the place group – `live@3000Grad Festival @Utopia` becomes
 `@ 3000Grad Festival, Utopia`, filed under the first place alone – unless a place further back
 names the event (`… @ Dark Skies, Horst Festival`), which is the same group written the other way
-round and is filed under the festival. Such a title claims only the
+round and is filed under the festival. A group whose steps the uploader separated with a bracket,
+a `|` or a dash wrap instead of a second `@` is joined the same way
+(`@ Utopia | Ritter Butzke | Berlin` becomes `@ Utopia, Ritter Butzke, Berlin`). Such a title claims only the
 year, and a year the place list itself names wins over the upload year and leaves the list
-(`… @Utopia 2021` becomes a `2021 - …` title ending in `, Utopia`). The one played-how marker
+(`… @Utopia 2021` becomes a `2021 - …` title ending in `, Utopia`). An event that writes its
+edition a thousand years ahead is read as the year it means – 3000Grad's `Festival 3026` is the
+2026 one, and those digits date the recording instead of staying in the festival's name. The one played-how marker
 that stays is `Live PA`: said by the title – or by the description of a live recording – it is
 written as `(Live PA)` behind the artist's name, while the artist category stays the bare name.
 
@@ -128,7 +132,8 @@ name – grey while something is still a candidate, red for what was ignored, gr
 ends up used.
 
 - **1 Title chunks for category lookup** – the units the title splits into, plus the channel name. A chunk ends at
-  a separator, at a bracket, at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
+  a separator, at a bracket, at a part the uploader wrapped in dashes
+  (`3000Grad Festival -Rummelplatz-` is two chunks), at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
   is the chunks `Kernel Existence | 3000Grad Festival | Utopia` – the live marker is no
   chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
   two chunks) – the units section 3's lookups are built from. What the parse
