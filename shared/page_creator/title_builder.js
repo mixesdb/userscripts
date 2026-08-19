@@ -3579,7 +3579,15 @@ function mdbTitle_channelSeriesConversion( text, username ) {
         entity = entries[words];
         if( !entity ) continue;
 
-        candidates = [ entity, words ];
+        // Longest first, never "entity, then words": which of the two CONTAINS the other
+        // differs per entry, and the shorter one always matches inside the longer one.
+        // "Dance TV DJ Mix" (entity) contains "DJ Mix" (words), so the entity has to be
+        // tried first there or a title already carrying it grows a second "Dance TV".
+        // "Juno Daily – In The Mix" (words) contains "Juno Daily" (entity), so the entity
+        // tried first matches its own first two words, replaces them with themselves and
+        // leaves the rest of the show name standing in the title as if it were an artist.
+        // Longest-first is right in both directions - it is always the more specific match.
+        candidates = [ entity, words ].sort( function( a, b ) { return b.length - a.length; } );
 
         for( c = 0; c < candidates.length; c++ ) {
             // the same looseness a mapped channel name gets: any case, inner spaces optional,
