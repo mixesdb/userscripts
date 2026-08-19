@@ -77,7 +77,7 @@
  */
 #mdb-pageCreator .mdb-copy-text-control {
     margin-left: 0; /* global.css sets 12px - the spacing here comes from padding-left */
-    padding-left: 10px;
+    padding-left: 7px;
 }
 
 #mdb-pageCreator .mdb-copy-text-button {
@@ -996,7 +996,6 @@
 
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
     display: block;
-    position: relative; /* the "there is more" fade below hangs off it */
     margin-top: 4px;
     padding-top: 5px;
     border-top: 1px solid rgba(46, 184, 46, 0.25);
@@ -1018,28 +1017,6 @@
 #mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:hover {
     color: #6cb2f7;
     text-decoration: underline;
-}
-
-/*
- * "There is more above": the category holds more pages than the ten the list shows, and the
- * list reads oldest first (mdbPageCreator_usedCatRecent) - so the missing ones are the ones
- * above its first line. A fade into the bar's own background over the first line and a half,
- * rather than a "+N more" line: the oldest entry stays half-readable, which is what says the
- * list is a window onto something longer instead of all there is.
- *
- * The panel's #1d1d1d spelled out rather than inherited - a gradient cannot read the
- * background it lies on. pointer-events: none, or the fade would eat the clicks on the links
- * under it.
- */
-#mdb-pageCreator-hints .mdb-pageCreator-usedCat-more::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 29px; /* ~1.5 lines of the 11.5px/1.5 links plus their padding */
-    pointer-events: none;
-    background: linear-gradient(to bottom, #1d1d1d 0%, rgba(29, 29, 29, 0.92) 22%, rgba(29, 29, 29, 0) 100%);
 }
 
 /*
@@ -1090,6 +1067,18 @@
     justify-content: center;
     padding: 4vh 4vw;
     background-color: rgba(0, 0, 0, 0.65);
+
+    /* Make the background blur. The rgba() tint is optional but strongly
+       recommended: pure blur alone leaves the background too busy
+       and hurts the contrast of the modal text. */
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);  /* Safari < 18 */
+    background-color: rgba(0, 0, 0, .35);
+    /* Fade-in. Animating backdrop-filter directly is expensive,
+       so animate opacity of the whole overlay instead. */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility 0s linear .25s;
 }
 
 #mdb-pageCreator-modal .mdb-pageCreator-modal-box {

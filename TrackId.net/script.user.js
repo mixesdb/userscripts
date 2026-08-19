@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.6
+// @version      2026.08.19.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_32
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_11
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_57
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 143,
+var cacheVersion = 144,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1912,10 +1912,25 @@ function on_submitrequest() {
 /*
  * Changelog
  *
+ * 2026.08.19.7
+ * The real cause of the dead first click on a chip's "N mixes" after a title edit, which
+ * .6 only guessed at (page_creator.js v_58): the mousedown takes the focus out of the
+ * title field, the field fires "change" because it was typed in, the hints bar re-renders
+ * on that and throws away the very element the mouse went down on - so the browser
+ * dispatched no click event at all. That is the blink, and it is why only a second click
+ * (field already blurred, no "change" left to fire) opened the list. The bar now builds
+ * its content detached and swaps it in only where the markup really differs; measured on
+ * SoundCloud, the "change" after a title edit produces byte-identical markup, so the nodes
+ * - and any click in progress on one of them - are left alone.
+ *
+ * The "there is more above" fade over the top of an open list is gone again
+ * (page_creator.css).
+ *
  * 2026.08.19.6
  * The hints bar's "N mixes" toggle got three fixes (page_creator.js v_57,
  * page_creator.css). The recent mix pages now stand the way a MixesDB category page lists
- * them, oldest at the top and the newest at the bottom, instead of upside down. Where the category holds more pages than the ten shown, the top of the list fades
+ * them, oldest at the top and the newest at the bottom, instead of upside down. Where the
+ * category holds more pages than the ten shown, the top of the list fades
  * into the panel's background - the ones it does not show are the older ones, so "there
  * is more" belongs above its first line. And the count is a toggle from the moment it
  * appears: a name edited into the title field is answered a moment before its pages are,

@@ -1183,17 +1183,35 @@ function mdbPageCreator_renderHints( wrapper ) {
         wrapper.append( bar );
     }
 
-    bar.empty();
-
     var title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
-        usedCats = mdbPageCreator_usedCategoriesHint( title );
+        usedCats = mdbPageCreator_usedCategoriesHint( title ),
+        // Built into a detached box FIRST and only swapped in where it really differs. The bar
+        // re-renders on every keystroke, on every lookup answer and on the title field's own
+        // "change" - and on nearly all of those the content is the same one it already shows.
+        //
+        // Replacing it anyway broke the first click on a chip's "N mixes" after a title edit,
+        // which is the click the toggle exists for: the mousedown takes the focus OUT of the
+        // title field, the field fires "change" because it was typed in, that lands here, and
+        // by the time the mouse comes up the element it went down on has been thrown away - so
+        // the browser dispatches no click at all. The reader saw the bar blink and nothing
+        // open; only a second click, with the field already blurred and no "change" left to
+        // fire, worked. Measured on SoundCloud 2026-08-19: the node was gone 120ms after the
+        // mousedown.
+        //
+        // Comparing the MARKUP rather than a hand-kept signature of what went into it: the two
+        // cannot drift apart, and anything a future hint adds to the bar is covered by it.
+        fresh = $("<div>");
 
-    if( usedCats ) bar.append( usedCats );
+    if( usedCats ) fresh.append( usedCats );
 
     // Not .toggle(): the bar is filled while the wrapper is still DETACHED on the first render,
     // where jQuery has no computed display to restore and guesses one. Clearing the inline
     // property lets the stylesheet's "display: flex" stand, whatever the wrapper's state.
-    bar.css( "display", bar.children().length ? "" : "none" );
+    // Read off the FRESH content and set on every pass, so the bar an unchanged render leaves
+    // untouched is still hidden when it has nothing to say.
+    bar.css( "display", fresh.children().length ? "" : "none" );
+
+    if( bar.html() !== fresh.html() ) bar.empty().append( fresh.children() );
 
     mdbPageCreator_prefetchHintLinks( bar );
 }
@@ -1389,11 +1407,12 @@ function mdbPageCreator_usedCatLoupe() {
 // under the name, inside the chip: the fastest "does this page already exist?" look there is
 // (row_enrichment.md §2). The toggle is offered whether or not the pages are on hand yet.
 // The lookup answer usually brings them (mdbnames ships "recent" for every type since
-// 2026-08-19), but a name typed into the title field is answered a moment before its pages
-// are, and a count that only starts reacting once they land is a count the reader clicks at
-// twice - which is exactly what was reported. Where they are missing the click opens the chip
-// on a waiter and starts the one request that fetches them
-// (mdbPageCreator_usedCatFetchRecent), so the first click always does something.
+// 2026-08-19), but a name typed into the title field can be answered before its pages are,
+// and a count that reacts to nothing until they land is a count the reader clicks at twice.
+// Where they are missing the click opens the chip on a waiter and starts the one request
+// that fetches them (mdbPageCreator_usedCatFetchRecent), so the first click always does
+// something. (The dead first click REPORTED on 2026-08-19 was a different fault, in the
+// bar's rebuild - see mdbPageCreator_renderHints.)
 // Only a category the wiki counts no mixes in keeps a plain count - there is nothing to fold
 // out. Open ones survive the bar's re-renders - see mdbPageCreator_openUsedCatRecent.
 // A bucket category (mdbPageCreator_bucketCategories) gets neither the count nor the toggle:
@@ -1427,17 +1446,10 @@ function mdbPageCreator_usedCatMixes( chip, entry, match ) {
         );
     }
 
-    if( recent.length ) {
-        // The category holds more than the ten pages the list shows - and since the list reads
-        // oldest first (mdbPageCreator_usedCatRecent), the ones it does NOT show are the ones
-        // above its first line. So the "there is more" marker belongs at the top: the fade of
-        // .mdb-pageCreator-usedCat-more (page_creator.css), which runs the first line and a
-        // half into the panel's background rather than cutting them off.
-        if( match.mixes > recent.length ) list.addClass( "mdb-pageCreator-usedCat-more" );
-    } else {
-        // The list's word while it has no links: being fetched, failed, or genuinely empty.
-        // The waiter is the usual one - the click below starts the fetch and re-renders, and
-        // the render lands here with recentPending set.
+    // the list's word while it has no links: being fetched, failed, or genuinely empty. The
+    // waiter is the usual one - the click below starts the fetch and re-renders, and the
+    // render lands here with recentPending set.
+    if( !recent.length ) {
         var note = $("<span>").addClass( "mdb-pageCreator-usedCat-recent-note" );
 
         if( match.recentFailed ) {
