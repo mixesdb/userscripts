@@ -1209,7 +1209,7 @@ function mdbTitle_reduceRecordingNotes( text ) {
 // Done on the whole title before anything is split up, so the "@" is already in place when
 // the venue rules further down look for it.
 //
-// Returns { text, read, dropped }.
+// Returns { text, read, dropped, liveSaid }.
 //
 // "read" holds the joiners it READ INTO the title, each named by the words it actually found
 // ( "\"at\" as \"@\"" ). Only those are a guess about the recording and only those are worth a
@@ -1220,12 +1220,19 @@ function mdbTitle_reduceRecordingNotes( text ) {
 //
 // "dropped" is a live marker that had no place to point at and was taken out of the title, see
 // the block that sets it. That one loses something the title said, so the caller flags it.
+//
+// "liveSaid" is whether a marker this function consumed actually SAID "live" - "Live at",
+// "Live@", a trailing "(Live)" or "*live" - as opposed to "dj set"/"dj mix", which sit on the
+// same list and say the opposite. The word decides nothing here (a live recording is read off
+// the joiner, never off the word), but it is the signal the Live PA alternative hangs on
+// (mdbTitle_liveWordSeen above), so consuming it must not swallow it.
 function mdbTitle_applyJoiners( text ) {
     var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
         venue = ( typeof mdbTitleVenueConnectors !== "undefined" && mdbTitleVenueConnectors ) ? mdbTitleVenueConnectors : [],
         together = ( typeof mdbTitleTogetherArtistJoiners !== "undefined" && mdbTitleTogetherArtistJoiners ) ? mdbTitleTogetherArtistJoiners : [],
         read = [],
-        dropped = "";
+        dropped = "",
+        liveSaid = false;
 
     // What a rule replaced, in the words the title actually used, e.g. "Live at" -> "@".
     // The separator a rule swallows along with the phrase is not part of what was read, so it
@@ -1288,6 +1295,10 @@ function mdbTitle_applyJoiners( text ) {
             // only the marker in front of it went - nothing was read into the title
             if( all.indexOf( "@" ) === -1 ) readAs( all.slice( before.length ), "@" );
 
+            // whichever way, a marker was consumed - and one saying "live" is the Live PA
+            // alternative's signal ("dj set" on the same list is not)
+            if( /live/i.test( all.slice( before.length ) ) ) liveSaid = true;
+
             return before ? before + " @ " : "@ ";
         } );
     }
@@ -1338,6 +1349,9 @@ function mdbTitle_applyJoiners( text ) {
         if( trailing && ( placed ? /@\s*\S/ : /\S/ ).test( withoutMarker ) ) {
             if( !placed ) dropped = mdbTitle_trimSeparators( trailing[0] );
 
+            // same signal as above: a removed "(Live)"/"*live" said "live", a "DJ Set" did not
+            if( /live/i.test( trailing[0] ) ) liveSaid = true;
+
             text = withoutMarker;
         }
     }
@@ -1360,7 +1374,7 @@ function mdbTitle_applyJoiners( text ) {
         }
     }
 
-    return { text: text, read: read, dropped: dropped };
+    return { text: text, read: read, dropped: dropped, liveSaid: liveSaid };
 }
 
 // mdbTitle_joinPlaceGroups
@@ -2966,6 +2980,15 @@ var mdbTitle_channelInitials = "";
 var mdbTitle_livePaTitle = false;
 var mdbTitle_livePaDescription = false;
 
+// Whether the TITLE said "live" somewhere the parse consumed it - a "Live at"/"Live@" read
+// as the " @ " joiner, a trailing "(Live)"/"*live" dropped as decoration. The word alone
+// does not settle HOW the set was played (a DJ set is announced the same way), so it never
+// writes the "(Live PA)" marker - but it is exactly the signal that makes the Live PA
+// reading worth OFFERING, which is what mdbTitle_result's alternatives do with it. Only the
+// words actually saying "live" set it: "dj set"/"dj mix" sit on the same joiner list and
+// say the opposite. Set once per suggestion off mdbTitle_applyJoiners' liveSaid return.
+var mdbTitle_liveWordSeen = false;
+
 // Whether a branch DECIDED AGAINST "(Promo Mix)" on a title that reads as the artist's own
 // mix (the channel known as an artist, a numbered series naming nobody) - the marker was a
 // guess it refused to stack onto another guess. Set once per suggestion in the branch that
@@ -3662,6 +3685,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_knownNow = known || null;
     mdbTitle_livePaTitle = false;
     mdbTitle_livePaDescription = false;
+    mdbTitle_liveWordSeen = false;
     mdbTitle_promoDeclined = false;
     mdbTitle_droppedParts = [];
 
@@ -3965,6 +3989,15 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // 3c) MixesDB joiners: "x" between artists becomes "&", "at" in front of a place
         // becomes "@". Both change what the rest of the parser sees, so they run early.
         var joined = mdbTitle_applyJoiners( rest );
+
+        // the consumed marker's "live" survives as a signal: it is what offers the Live PA
+        // reading as a switchable alternative at the exit. Only this call sets it - the
+        // chunk split runs applyJoiners too, but a signal about the SUGGESTION belongs to
+        // the build alone.
+        if( joined.liveSaid ) {
+            logVar( "buildMixesdbTitle: the title says \"live\"", "kept as the Live PA alternative's signal" );
+            mdbTitle_liveWordSeen = true;
+        }
 
         if( joined.text !== rest ) {
             logVar( "buildMixesdbTitle: joiners applied", rest + " -> " + joined.text );
@@ -4962,15 +4995,29 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                 kind: "livePa",
                 reason: "\"(Live PA)\" was read out of the description, not the title - the phrase there may describe another act on the bill."
             } );
-        } else if( !livePaWritten && mdbTitle_livePaDescription &&
-                   artist.indexOf( "@" ) === -1 && mdbTitle_splitArtists( artist ).length === 1 ) {
-            // the single-name guard mirrors the write above: with several artists only the
+        } else if( !livePaWritten &&
+                   ( ( mdbTitle_livePaDescription && artist.indexOf( "@" ) === -1 ) ||
+                     mdbTitle_liveWordSeen ) ) {
+            // Two signals open this: the description's "Live PA" on a title that was not
+            // read as a live recording (on one that was, the marker is written above), and
+            // the title's own consumed "live" word - "Live@Elsewhere Loft",
+            // "alemiko *live" - which never writes the marker (a DJ set is announced the
+            // same way) but is exactly what makes the reading worth offering.
+            // The single-name guard mirrors the write above: with several artists only the
             // uploader knows whose set it was, and a marker behind the wrong name is worse
-            // than the confidence note that already asks for it by hand
-            alternatives.push( {
-                kind: "livePa",
-                reason: "The description says \"Live PA\", but the title was not read as a live recording, so the marker was left off."
-            } );
+            // than the confidence note that already asks for it by hand. On a live title
+            // only the names in front of the "@" count, like at the write.
+            var altPaAt = artist.indexOf( "@" ),
+                altPaName = ( altPaAt === -1 ? artist : artist.slice( 0, altPaAt ) ).replace( /\s+$/, "" );
+
+            if( altPaName && mdbTitle_splitArtists( altPaName ).length === 1 ) {
+                alternatives.push( {
+                    kind: "livePa",
+                    reason: mdbTitle_livePaDescription
+                        ? "The description says \"Live PA\", but the title was not read as a live recording, so the marker was left off."
+                        : "The title says \"live\", which does not say HOW the set was played - a DJ set is announced the same way. If the act performed its own tracks, MixesDB writes \"(Live PA)\" behind the name."
+                } );
+            }
         }
 
         if( promoInTitle ) {

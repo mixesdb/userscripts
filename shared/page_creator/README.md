@@ -123,9 +123,15 @@ nothing is lost and a second click undoes the switch. The chips follow the field
 name in the title and the offered alternatives carry the correction. The tooltip of each chip
 says why the build decided the other way. Offered today:
 
-- **(Live PA)** – the description says "Live PA" but the phrase was only a guess: either it was
-  written into the title (the phrase may describe another act on the bill), or it was left off
-  because the title does not read as a live recording. The chip offers the opposite reading.
+- **(Live PA)** – offered on two signals. The description says "Live PA" but the phrase was
+  only a guess: either it was written into the title (the phrase may describe another act on
+  the bill), or it was left off because the title does not read as a live recording – the chip
+  offers the opposite reading. Or the title itself says *live* – `Live@Elsewhere Loft`,
+  `alemiko *live` – and the word was consumed on the way to the title (read as the `@` joiner,
+  or dropped because it says how the set was played, not where): the word alone never writes
+  the marker, since a DJ set is announced the same way, but the chip offers the Live PA
+  reading in case the act performed its own tracks. Only with a single artist in the title –
+  with several, only the uploader knows whose set it was.
 - **(Promo Mix)** – the marker was assumed because the name is no known show, venue or event
   (the chip offers the show/podcast reading without it), or the title reads as the artist's own
   series and the marker was deliberately left off (the chip offers the self-released reading

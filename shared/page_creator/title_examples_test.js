@@ -76,10 +76,17 @@ for( const example of mdbTitleExamples ) {
           chunksOk = !example.expectChunks ||
                      chunks.join( " | " ) === example.expectChunks.join( " | " );
 
-    if( !titleOk || !artistsOk || !entityOk || !chunksOk ) failed++;
+    // A case may state the switchable readings the build has to OFFER - the hints bar's
+    // "Switch title:" chips - as the fact kinds that must be present ("livePa", "promoMix",
+    // "chunk"). Presence only: the reason texts are wording, not behaviour.
+    const altKinds = ( got.alternatives || [] ).map( a => a.kind ),
+          altsOk = !example.expectAlternatives ||
+                   example.expectAlternatives.every( kind => altKinds.indexOf( kind ) !== -1 );
+
+    if( !titleOk || !artistsOk || !entityOk || !chunksOk || !altsOk ) failed++;
 
     console.log(
-        ( titleOk && artistsOk && entityOk && chunksOk ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk && entityOk && chunksOk && altsOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
         "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
@@ -95,6 +102,10 @@ for( const example of mdbTitleExamples ) {
         ( example.expectChunks
             ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +
               ( chunksOk ? "" : "\n              expected   chunks " + JSON.stringify( example.expectChunks ) )
+            : "" ) +
+        ( example.expectAlternatives
+            ? "\n              " + ( altsOk ? "" : "got      " ) + "alternatives " + JSON.stringify( altKinds ) +
+              ( altsOk ? "" : "\n              expected   alternatives " + JSON.stringify( example.expectAlternatives ) )
             : "" )
     );
 }
