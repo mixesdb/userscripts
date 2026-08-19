@@ -30,6 +30,7 @@ log( "/shared/page_creator/page_creator.js loaded" );
  *         playerUrl:   "https://...",                // optional, goes into {{Player}}
  *         artworkUrl:  "https://...",                // optional, for MixesDB's upload form
  *         description: "01. Artist - Title [Label]", // optional, see below
+ *         purchaseUrl: "https://...",                // optional, the "Buy" / download link
  *         sourceLabel: "SC",                         // optional, names the site in the report
  *         target:      "#mdb-trackHeader-headline",  // where the row goes
  *         placement:   "after"                       // after|before|append|prepend
@@ -44,6 +45,12 @@ log( "/shared/page_creator/page_creator.js loaded" );
  * different reason: the TITLE builder reads the labels the tracklist credits ("Artist - Title
  * [Label]"), so it can tell a label in brackets behind an artist from a second artist. See
  * mdbTitleKnownLabels in title_definitions.js.
+ *
+ * description and purchaseUrl are also the two texts the "== Notes ==" section's link is
+ * looked for in - see mdbPageCreator_notesSources(). purchaseUrl is whatever the site calls
+ * its "Buy" / "Free download" field (SoundCloud's purchase_url); it is never written to the
+ * page as itself, it is only searched, because on a podcast that field is where the episode's
+ * own page is linked.
  *
  *     mdbPageCreator_watchToolkit();  // whenever the toolkit is (re)built
  *
@@ -119,11 +126,14 @@ var mdbPageCreator_title = "",
     mdbPageCreator_playerUrl = "",
     mdbPageCreator_durationMs = 0,
     mdbPageCreator_artworkUrl = "",
-    // The player page's description, kept for the "== Notes ==" section (signal D): where the
-    // series' pages link the episode's own page there, the uploader has usually written that
-    // same link into the description, and mdbPageCreator_recentNotesUrl() goes looking for it
-    // at click time. Not the tracklist's copy - that one has had @handles resolved in it.
+    // The two places the "== Notes ==" section's link is looked for (signal D). The
+    // description is where the series' link usually stands in prose; purchaseUrl is
+    // SoundCloud's "Buy/Free download" field, which is ONE url an uploader set on purpose and
+    // is therefore filled on tracks whose description says nothing at all. Groove Podcast puts
+    // the same bit.ly in both. See mdbPageCreator_notesSources().
+    // Not the tracklist's copy of the description - that one has had @handles resolved in it.
     mdbPageCreator_description = "",
+    mdbPageCreator_purchaseUrl = "",
     // The site script's "follow one redirect" helper (the followRedirect option), or null
     // where the site hands none over. Only the Notes section uses it, and only for a shortened
     // link - see mdbPageCreator_notesEnsureResolved(). Kept as an option rather than called
@@ -134,6 +144,7 @@ var mdbPageCreator_title = "",
     // answer, and whether the answer is in (so the panel can tell "still following" from
     // "followed, and it leads somewhere else"). Per track, so reset on every navigation.
     mdbPageCreator_notesAsked = "",
+    mdbPageCreator_notesAskedFrom = "",
     mdbPageCreator_notesResolved = "",
     mdbPageCreator_notesResolveDone = false,
     // What the site handed over, kept as it came in - the "Report" box quotes it back
@@ -242,6 +253,7 @@ function mdbPageCreator_add( options ) {
     mdbPageCreator_playerUrl = o.playerUrl || "";
     mdbPageCreator_artworkUrl = o.artworkUrl || "";
     mdbPageCreator_description = description;
+    mdbPageCreator_purchaseUrl = o.purchaseUrl || "";
 
     // for the "Report" box - the release date beats the upload date here for the same reason it
     // does in the title itself
@@ -573,6 +585,10 @@ function mdbPageCreator_artwork() {
 // - the "== Notes ==" section: where the series' pages carry one, the new page gets it too,
 //   empty, above the tracklist - and with the episode's own page URL already in it where the
 //   description held one on the host those Notes link to (mdbPageCreator_recentNotesUrl).
+// - the {{Player}} itself: where the series publishes every episode on two platforms, its
+//   pages write {{Player|mode=mirrors}} with a line per platform, and the new page gets that
+//   shape with this player's URL on the line its host stands on and the other one empty
+//   (mdbPageCreator_playerWikitext).
 function mdbPageCreator_pageText( title ) {
     var info = mdbPageCreator_recentAnalysisFor( title ),
         findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
@@ -593,7 +609,7 @@ function mdbPageCreator_pageText( title ) {
     return lead +
            "== File details ==\n\n" +
            ( body ? "{{" + body + "}}" : mdbPageCreator_fileDetails() ) + "\n\n" +
-           "{{Player\n |" + mdbPageCreator_playerUrl + "\n}}\n\n" +
+           mdbPageCreator_playerWikitext( findings ) + "\n\n" +
            notes +
            "== Tracklist ==\n\n" +
            mdbPageCreator_tracklistWikitext() + "\n\n" +
@@ -2886,6 +2902,80 @@ function mdbPageCreator_recentBodyChoice( findings ) {
     return body.value;
 }
 
+// mdbPageCreator_playerWikitext
+// The {{Player}} the new page carries. A player page can only ever hand over the ONE URL it
+// is, so what the siblings decide here is the SHAPE (page_text_learning.md, signal E): a
+// series that publishes every episode on two platforms writes {{Player|mode=mirrors}} with a
+// line per platform, and the created page gets that shape with the mirror line EMPTY, for the
+// editor to paste the second URL into.
+//
+// MixesDB answers an empty mirror line with "No value for one of the players!" instead of a
+// player, so the page cannot be saved unnoticed with a slot still open - the loud version of
+// the blank style rows, and on a series whose every page carries the mirror that is the right
+// kind of loud. Where the siblings use the plain one-URL form, or agree on nothing, the shape
+// is the one every created page had before.
+function mdbPageCreator_playerWikitext( findings ) {
+    var mirrors = findings && findings.player && findings.player.value === "mirrors",
+        slots = [ mdbPageCreator_playerUrl ],
+        i;
+
+    if( mirrors ) {
+        slots = [];
+
+        for( i = 0; i < ( findings.playerSlots || 2 ); i++ ) slots.push( "" );
+
+        slots[ mdbPageCreator_playerSlot( findings ) ] = mdbPageCreator_playerUrl;
+    }
+
+    return mdbPageCreator_playerTemplate( mirrors ? "|mode=mirrors" : "", slots );
+}
+
+// mdbPageCreator_playerSlot
+// WHICH line this player's URL goes on, as an index into the mirror slots. The platforms sit
+// in a fixed order on a series' pages - Category:RA Podcast opens with the Apple Podcasts link
+// and has SoundCloud second on all 10 of its newest pages - so a SoundCloud URL written into
+// line 1 there would leave one page of the series out of order. Only a slot that EVERY mirror
+// page fills with this host counts: below that the URL stays on line 1, which is where it
+// stood before any of this.
+function mdbPageCreator_playerSlot( findings ) {
+    var hosts = ( findings && findings.playerHosts ) || [],
+        host = mdbPageCreator_urlHost( mdbPageCreator_playerUrl ),
+        i;
+
+    if( !host ) return 0;
+
+    for( i = 0; i < hosts.length; i++ ) {
+        if( hosts[i] && hosts[i] === host ) return i;
+    }
+
+    return 0;
+}
+
+// mdbPageCreator_playerTemplate
+// The template as MixesDB writes it: the head, then one " |URL" line per slot.
+//
+// A URL holding a "=" has to be written as "|1=URL". MediaWiki reads everything in front of
+// the "=" as a parameter NAME otherwise, and the page ends up with a player whose URL is the
+// literal "{{{1}}}" (verified against the live parser on 2026-08-19; Category:RA Podcast
+// writes all of its Apple Podcasts links numbered for exactly this reason). Numbering is
+// all-or-nothing: an unnumbered line following a numbered one is parameter 1 again and
+// overwrites it, which the same test showed as the "No value for one of the players!" box.
+function mdbPageCreator_playerTemplate( head, slots ) {
+    var numbered = false,
+        out = "{{Player" + head + "\n",
+        i;
+
+    for( i = 0; i < slots.length; i++ ) {
+        if( String( slots[i] ).indexOf( "=" ) > -1 ) numbered = true;
+    }
+
+    for( i = 0; i < slots.length; i++ ) {
+        out += " |" + ( numbered ? ( i + 1 ) + "=" : "" ) + slots[i] + "\n";
+    }
+
+    return out + "}}";
+}
+
 // mdbPageCreator_notesBody
 // The text under a page's "== Notes ==" heading, or null where the page has no such section.
 // Read to the next section heading; a "=== Sub ===" under Notes stays part of it, and the
@@ -2971,39 +3061,74 @@ function mdbPageCreator_notesUrlIn( text, host ) {
     return "";
 }
 
-// mdbPageCreator_notesShortenerUrl
-// The first shortened link in the description, normalized to https, or "". What
-// mdbPageCreator_notesEnsureResolved() offers the site's followRedirect - never written
-// anywhere itself: a bit.ly address on a mix page rots the day the shortener does.
-function mdbPageCreator_notesShortenerUrl() {
-    var m;
+// mdbPageCreator_notesSources
+// The texts the Notes link is looked for in, in search order, each with the name the reasoning
+// panel calls it by. The description is the prose one; the "Buy" / "Free download" field is one
+// URL the uploader set deliberately, so it is filled on plenty of tracks whose description
+// names nothing - on SoundCloud it is purchase_url, and every Groove Podcast episode has its
+// bit.ly in it. Both are searched by the same rule and both can hold a shortened link.
+function mdbPageCreator_notesSources() {
+    return [
+        { from: "the description", text: mdbPageCreator_description },
+        { from: "the player's buy/download link", text: mdbPageCreator_purchaseUrl }
+    ];
+}
 
-    mdbPageCreator_notesUrlRe.lastIndex = 0;
+// mdbPageCreator_notesFind
+// The first source naming a page on host, as { url, from }, or null. What the panel needs on
+// top of the URL is WHICH source it came out of - "the description says nothing but the buy
+// link does" is the kind of thing a reader has to be able to see.
+function mdbPageCreator_notesFind( host ) {
+    var sources = mdbPageCreator_notesSources(),
+        i, url;
 
-    while( ( m = mdbPageCreator_notesUrlRe.exec( String( mdbPageCreator_description || "" ) ) ) ) {
-        var host = m[1].toLowerCase();
+    for( i = 0; i < sources.length; i++ ) {
+        url = mdbPageCreator_notesUrlIn( sources[i].text, host );
 
-        if( mdbPageCreator_notesShorteners.indexOf( host ) === -1 ) continue;
-
-        var path = String( m[2] || "" ).replace( /[.,;:!?)\]]+$/, "" );
-
-        // "bit.ly/" with nothing behind it is not a link to anywhere
-        if( path.length < 2 ) continue;
-
-        return "https://" + host + path;
+        if( url ) return { url: url, from: sources[i].from };
     }
 
-    return "";
+    return null;
+}
+
+// mdbPageCreator_notesShortenerFind
+// The first shortened link in any source, normalized to https, as { url, from } or null. What
+// mdbPageCreator_notesEnsureResolved() offers the site's followRedirect - never written
+// anywhere itself: a bit.ly address on a mix page rots the day the shortener does.
+function mdbPageCreator_notesShortenerFind() {
+    var sources = mdbPageCreator_notesSources(),
+        i, m;
+
+    for( i = 0; i < sources.length; i++ ) {
+        mdbPageCreator_notesUrlRe.lastIndex = 0;
+
+        while( ( m = mdbPageCreator_notesUrlRe.exec( String( sources[i].text || "" ) ) ) ) {
+            var host = m[1].toLowerCase();
+
+            if( mdbPageCreator_notesShorteners.indexOf( host ) === -1 ) continue;
+
+            var path = String( m[2] || "" ).replace( /[.,;:!?)\]]+$/, "" );
+
+            // "bit.ly/" with nothing behind it is not a link to anywhere
+            if( path.length < 2 ) continue;
+
+            // https regardless of how it was written - SoundCloud's purchase_url field holds
+            // these as plain http, and the shorteners all answer on https
+            return { url: "https://" + host + path, from: sources[i].from };
+        }
+    }
+
+    return null;
 }
 
 // mdbPageCreator_notesEnsureResolved
-// Follows the description's shortened link where that is the only way to the episode's page.
-// Called from mdbPageCreator_recentEnsureFor() and nowhere else - a settle path, never a
-// render, since it starts a request.
+// Follows a shortened link where that is the only way to the episode's page. Called from
+// mdbPageCreator_recentEnsureFor() and nowhere else - a settle path, never a render, since it
+// starts a request.
 //
 // Four gates before anything is requested, so the usual track costs nothing: the site has to
-// have handed over a resolver, the series has to link a host at all, the description must not
-// already name that host outright, and it has to hold a shortened link. On the tracks that
+// have handed over a resolver, the series has to link a host at all, no source may already
+// name that host outright, and one of them has to hold a shortened link. On the tracks that
 // pass, that is one HEAD request per player page.
 function mdbPageCreator_notesEnsureResolved() {
     if( typeof mdbPageCreator_followRedirect !== "function" ) return;
@@ -3013,32 +3138,33 @@ function mdbPageCreator_notesEnsureResolved() {
         host = ( findings && findings.notesHost && findings.notesHost.value ) || "";
 
     if( !host || host === "none" ) return;
-    if( mdbPageCreator_notesUrlIn( mdbPageCreator_description, host ) ) return;
+    if( mdbPageCreator_notesFind( host ) ) return;
 
-    var shortUrl = mdbPageCreator_notesShortenerUrl();
+    var short = mdbPageCreator_notesShortenerFind();
 
-    if( !shortUrl || shortUrl === mdbPageCreator_notesAsked ) return;
+    if( !short || short.url === mdbPageCreator_notesAsked ) return;
 
-    // the three move together: an answer still standing while a DIFFERENT link is being
+    // the four move together: an answer still standing while a DIFFERENT link is being
     // followed would be read as that link's
-    mdbPageCreator_notesAsked = shortUrl;
+    mdbPageCreator_notesAsked = short.url;
+    mdbPageCreator_notesAskedFrom = short.from;
     mdbPageCreator_notesResolved = "";
     mdbPageCreator_notesResolveDone = false;
 
-    logVar( "mdbPageCreator_notesEnsureResolved: following", shortUrl + " (looking for " + host + ")" );
+    logVar( "mdbPageCreator_notesEnsureResolved: following", short.url + " from " + short.from + " (looking for " + host + ")" );
 
     // Unlike mdbPageCreator_recentSettled this one DOES need the page generation: the answer is
     // written into per-track state, so one landing after the reader moved on would put the
     // previous track's link into the next track's Notes.
     var pageGeneration = mdbPageGeneration;
 
-    mdbPageCreator_followRedirect( shortUrl, function( target ) {
+    mdbPageCreator_followRedirect( short.url, function( target ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         mdbPageCreator_notesResolved = String( target || "" );
         mdbPageCreator_notesResolveDone = true;
 
-        logVar( "mdbPageCreator_notesEnsureResolved: followed", shortUrl + " -> " + ( mdbPageCreator_notesResolved || "(nothing)" ) );
+        logVar( "mdbPageCreator_notesEnsureResolved: followed", short.url + " -> " + ( mdbPageCreator_notesResolved || "(nothing)" ) );
 
         mdbPageCreator_render();
     });
@@ -3047,20 +3173,21 @@ function mdbPageCreator_notesEnsureResolved() {
 // mdbPageCreator_recentNotesUrl
 // The URL the new page's "== Notes ==" section starts with, or "" for an empty line. The
 // siblings say WHICH host to look for - "the episode's own page on groove.de" is knowledge
-// only their Notes sections carry - and the description is searched for a link on it.
+// only their Notes sections carry - and the sources are searched for a link on it.
 //
-// Never a guess: a URL is written only where one really leads to that host, either because the
-// description names it or because a shortened link in it resolved there
+// Never a guess: a URL is written only where one really leads to that host, either because a
+// source names it or because a shortened link in one resolved there
 // (mdbPageCreator_notesEnsureResolved). Groove Podcast is the case that needs the second half:
-// its descriptions write "Go to bit.ly/BRCPod for track list", and bit.ly/BRCPod is a 301 to
-// the groove.de page that belongs in Notes.
+// its descriptions write "Go to bit.ly/BRCPod for track list" and its purchase_url field holds
+// that same bit.ly, which is a 301 to the groove.de page that belongs in Notes.
 function mdbPageCreator_recentNotesUrl( findings ) {
     var host = ( findings && findings.notesHost && findings.notesHost.value ) || "";
 
     if( !host || host === "none" ) return "";
 
-    return mdbPageCreator_notesUrlIn( mdbPageCreator_description, host ) ||
-           mdbPageCreator_notesUrlIn( mdbPageCreator_notesResolved, host );
+    var found = mdbPageCreator_notesFind( host );
+
+    return found ? found.url : mdbPageCreator_notesUrlIn( mdbPageCreator_notesResolved, host );
 }
 
 // mdbPageCreator_titleIsLiveRecording
@@ -3135,10 +3262,109 @@ function mdbPageCreator_recentImageVote( reads ) {
     };
 }
 
+// mdbPageCreator_playerRead
+// The FIRST {{Player}} of a page's wikitext, as { vote, hosts }:
+// - "mirrors" - the two-platform shape, the only one a new page can be given
+// - "plain"   - one URL, no mode: what every created page writes today
+// - "other"   - a mode we do not copy. mode=multi is the parts-of-one-show player
+//               (Category:Beats In Space), whose lines need a t1=/t2= title each - nothing a
+//               page with one URL can be started as
+// - "none"    - no player on the page at all
+// hosts is the host per URL line, in the order the template lists them.
+//
+// Numbered parameters ("|2=https://...") land in their own slot: RA Podcast writes every one
+// of its links that way. Named parameters that are not a slot are skipped - video=audio, t1=,
+// h= say how the players are SHOWN, not which ones they are. Unnumbered lines are counted the
+// way MediaWiki counts them, later definitions overwriting earlier ones of the same number.
+function mdbPageCreator_playerRead( text ) {
+    var m = /\{\{\s*Player\b([^{}]*)\}\}/i.exec( String( text || "" ) ),
+        slots = {},
+        hosts = [],
+        mode = "",
+        pos = 0,
+        parts, chunk, named, keys, i;
+
+    if( !m ) return { vote: "none", hosts: [] };
+
+    parts = m[1].split( "|" );
+
+    // parts[0] is whatever stands between "Player" and the first "|" - never a parameter
+    for( i = 1; i < parts.length; i++ ) {
+        chunk = $.trim( parts[i] );
+        named = /^([A-Za-z0-9_]+)\s*=\s*([\s\S]*)$/.exec( chunk );
+
+        if( named && /^\d+$/.test( named[1] ) ) {
+            slots[ named[1] ] = $.trim( named[2] );
+        } else if( named ) {
+            if( named[1].toLowerCase() === "mode" ) mode = named[2].toLowerCase();
+        } else if( chunk ) {
+            pos++;
+            slots[ pos ] = chunk;
+        }
+    }
+
+    keys = [];
+
+    for( i in slots ) {
+        if( Object.prototype.hasOwnProperty.call( slots, i ) && /^https?:\/\//i.test( slots[i] ) ) keys.push( parseInt( i, 10 ) );
+    }
+
+    keys.sort( function( a, b ) { return a - b; } );
+
+    for( i = 0; i < keys.length; i++ ) hosts.push( mdbPageCreator_urlHost( slots[ keys[i] ] ) );
+
+    return {
+        vote: mode === "mirrors" ? "mirrors" : ( mode ? "other" : ( hosts.length ? "plain" : "none" ) ),
+        hosts: hosts
+    };
+}
+
+// mdbPageCreator_recentPlayerSlots
+// The shape of this series' mirrors player: { count, hosts }, read off the mirror pages alone.
+// The 90% vote has already decided that this IS a mirrors series - what is left is how many
+// lines such a player has (the majority, and never fewer than two: a mirrors player with one
+// URL is the broken state, not a shape) and which platform stands on each of them.
+//
+// A host is carried only where EVERY page of that shape has it in that slot. It is the one
+// finding here that MOVES this player's URL off line 1 (mdbPageCreator_playerSlot), so a
+// series that is not of one mind about its order leaves the URL where it always went.
+function mdbPageCreator_recentPlayerSlots( reads ) {
+    var counts = {},
+        best = 0,
+        hosts = [],
+        host, i, j, n;
+
+    for( i = 0; i < reads.length; i++ ) {
+        n = reads[i].hosts.length;
+        counts[n] = ( counts[n] || 0 ) + 1;
+
+        if( !best || counts[n] > counts[best] ) best = n;
+    }
+
+    if( best < 2 ) best = 2;
+
+    for( j = 0; j < best; j++ ) {
+        host = null;
+
+        for( i = 0; i < reads.length; i++ ) {
+            // a page with a different number of lines says nothing about THIS slot
+            if( reads[i].hosts.length !== best ) continue;
+
+            if( host === null ) host = reads[i].hosts[j];
+            else if( host !== reads[i].hosts[j] ) host = "";
+        }
+
+        hosts.push( host || "" );
+    }
+
+    return { count: best, hosts: hosts };
+}
+
 // mdbPageCreator_recentPageTextFindings
 // What the fetched pages' WIKITEXT agrees on - computed once at fetch time, since unlike the
-// title findings nothing here depends on the current title. Three signals, each consensus or
-// abstain (page_text_learning.md says why their thresholds are one and the same 90% now):
+// title findings nothing here depends on the current title. One signal per bullet below, each
+// a consensus or an abstain (page_text_learning.md says why their thresholds are one and the
+// same 90% now):
 // - image:  does the page open with an artwork named after the page itself? ("same" vs
 //           "other"/"none" - a venue's artwork is named after the venue, which no new page
 //           can predict). imageExt is the extension those artworks actually use, and the
@@ -3148,7 +3374,11 @@ function mdbPageCreator_recentImageVote( reads ) {
 //           nothing - mdbPageCreator_recentBodyChoice only acts on a template)
 // - notes:  does the page carry a "== Notes ==" section, and which HOST do those sections
 //           link? Two votes: the section is written empty where the first one carries, and
-//           the host is what mdbPageCreator_recentNotesUrl looks for in the description
+//           the host is what mdbPageCreator_recentNotesUrl looks for in the player's own
+//           texts (mdbPageCreator_notesSources)
+// - player: {{Player|mode=mirrors}} vs the plain one-URL player (mdbPageCreator_playerRead).
+//           Only "mirrors" writes anything; how many lines such a player has and which
+//           platform stands on each is mdbPageCreator_recentPlayerSlots, off the mirror pages
 // - styles: every category that is not the year, the entity, an artist of that page's title,
 //           Promo Mix or a "Tracklist:" filing - per style a yes/no vote across the pages,
 //           learned at the same 90%, at most two (the shape has two style lines)
@@ -3159,6 +3389,8 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         notesVotes = [],
         notesHostVotes = [],
         notesUrls = [],
+        playerVotes = [],
+        playerMirrorReads = [],
         styleVotes = {},
         styleNames = {},
         styleTally = {},
@@ -3210,6 +3442,16 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         notesHostVotes.push( notesHost || "none" );
         notesUrls.push( notesUrl ? notesUrl[0] : "" );
 
+        // the player's shape. Live recordings vote here like every other page: a set the
+        // series broadcast is published on the same platforms as its episodes (Groove
+        // Podcast's two @-titled pages carry the same SoundCloud + Mixcloud pair as the other
+        // eight), so unlike the artwork this is not a question they answer differently.
+        var player = mdbPageCreator_playerRead( text );
+
+        playerVotes.push( player.vote );
+
+        if( player.vote === "mirrors" ) playerMirrorReads.push( player );
+
         // the page's own title says which categories describe the PAGE rather than the music
         var own = mdbTitle_titleCategories( pages[i].title ),
             skip = {},
@@ -3255,6 +3497,8 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
 
     var image = mdbPageCreator_recentImageVote( imageReads ),
         body = mdbPageCreator_recentConsensus( bodyVotes ),
+        player = mdbPageCreator_recentConsensus( playerVotes ),
+        playerShape = mdbPageCreator_recentPlayerSlots( playerMirrorReads ),
         notes = mdbPageCreator_recentConsensus( notesVotes ),
         notesHost = mdbPageCreator_recentConsensus( notesHostVotes ),
         // One real link off the winning host, for the reasoning panel to show what the
@@ -3306,6 +3550,9 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         notes: notes,
         notesHost: notesHost,
         notesSample: notesSample,
+        player: player,
+        playerSlots: playerShape.count,
+        playerHosts: playerShape.hosts,
         styles: { learned: learned.slice( 0, 2 ), tally: tally }
     };
 }
@@ -4506,34 +4753,35 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
 // else, or only that this userscript manager cannot follow one, and the reader has to know
 // which before deciding whether the line is theirs to fill.
 function mdbPageCreator_reasoningNotesLink( host ) {
-    var direct = mdbPageCreator_notesUrlIn( mdbPageCreator_description, host );
+    var found = mdbPageCreator_notesFind( host );
 
-    if( direct ) return "this description names one, so the section starts with it: " + direct;
+    if( found ) return found.from + " names one, so the section starts with it: " + found.url;
 
-    var shortUrl = mdbPageCreator_notesShortenerUrl();
+    var short = mdbPageCreator_notesShortenerFind();
 
-    if( !shortUrl ) return "nothing on that host in this description, so the section stays empty";
+    if( !short ) return "neither the description nor the buy/download link names that host, so the section stays empty";
 
-    var shortName = shortUrl.replace( /^https?:\/\//i, "" );
+    var shortName = short.from + "'s " + short.url.replace( /^https?:\/\//i, "" );
 
     if( typeof mdbPageCreator_followRedirect !== "function" ) {
-        return "the description shortens its link (" + shortName + ") and this script cannot follow one, so the section stays empty";
+        return shortName + " is a shortened link and this script cannot follow one, so the section stays empty";
     }
 
-    if( !mdbPageCreator_notesResolveDone ) return "following the description's " + shortName + " …";
+    if( !mdbPageCreator_notesResolveDone ) return "following " + shortName + " …";
 
     var resolved = mdbPageCreator_notesUrlIn( mdbPageCreator_notesResolved, host );
 
-    if( resolved ) return shortName + " in the description leads there, so the section starts with it: " + resolved;
+    if( resolved ) return shortName + " leads there, so the section starts with it: " + resolved;
 
-    return shortName + " in the description does not lead to " + host +
+    return shortName + " does not lead to " + host +
            ( mdbPageCreator_notesResolved ? " (" + mdbPageCreator_notesResolved + ")" : " (nothing came back)" ) +
            ", so the section stays empty";
 }
 
 // mdbPageCreator_reasoningRecentText
 // Section 7, "Page text analysis of recent mixes": what the same pages' WIKITEXT settles about
-// the page the "Create" link writes - the lead artwork line, the file details body, the styles.
+// the page the "Create" link writes - the lead artwork line, the file details body, the shape
+// of the {{Player}}, the Notes section, the styles.
 // Rendered from the stored per-category findings (mdbPageCreator_recentPageTextFindings); the
 // duration cross-check runs here too, so the section says the same thing the page text does.
 function mdbPageCreator_reasoningRecentText( title ) {
@@ -4597,6 +4845,33 @@ function mdbPageCreator_reasoningRecentText( title ) {
                      detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use the dur/MB/kbps table - kept" } );
     } else {
         rows.push( { label: "File details", detail: "no 90% agreement - the dur table stays" } );
+    }
+
+    // The {{Player}}. Only the mirrors shape is ever copied, and the line for the second
+    // platform is written empty - the row says so, because a reader who does not expect that
+    // line would read MixesDB's "No value for one of the players!" as a bug of ours.
+    if( f.player && f.player.value === "mirrors" ) {
+        var slotNo = mdbPageCreator_playerSlot( f ) + 1,
+            order = [],
+            h;
+
+        for( h = 0; h < ( f.playerHosts || [] ).length; h++ ) order.push( f.playerHosts[h] || "?" );
+
+        rows.push( { label: "Player",
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use {{Player|mode=mirrors}} with " + ( f.playerSlots || 2 ) + " URLs" +
+                             ( order.length ? " (" + order.join( " > " ) + ")" : "" ) + " -> written that way, this URL on line " + slotNo +
+                             " and the other line empty for the mirror. MixesDB shows \"No value for one of the players!\" until it is filled in or removed" } );
+    } else if( f.player && f.player.value === "plain" ) {
+        rows.push( { label: "Player",
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a plain {{Player}} with one URL - kept" } );
+    } else if( f.player && f.player.value === "none" ) {
+        rows.push( { label: "Player",
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " carry no player at all - the plain {{Player}} stays" } );
+    } else if( f.player ) {
+        rows.push( { label: "Player",
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a {{Player}} mode that needs a title per line (mode=multi) - nothing a page with one URL can be started as, the plain {{Player}} stays" } );
+    } else {
+        rows.push( { label: "Player", detail: "no 90% agreement - the plain {{Player}} stays" } );
     }
 
     // The Notes section and, separately, the host its links point at. Only a series that has
@@ -5114,9 +5389,11 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_durationMs = 0;
     mdbPageCreator_artworkUrl = "";
     mdbPageCreator_description = "";
-    // the resolve is about THIS track's description - the resolver itself is the site's and
-    // stays (mdbPageCreator_add is not called again on every render)
+    mdbPageCreator_purchaseUrl = "";
+    // the resolve is about THIS track's sources - the resolver itself is the site's and stays
+    // (mdbPageCreator_add is not called again on every render)
     mdbPageCreator_notesAsked = "";
+    mdbPageCreator_notesAskedFrom = "";
     mdbPageCreator_notesResolved = "";
     mdbPageCreator_notesResolveDone = false;
     mdbPageCreator_sourceTitle = "";

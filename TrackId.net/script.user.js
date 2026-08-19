@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.35
+// @version      2026.08.19.37
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_72
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_74
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1965,6 +1965,19 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.19.36
+ * Via the shared page creator (page_creator.js v_73): the {{Player}} of the created page takes
+ * the shape the series uses. Where at least 90% of the entity's recent pages publish every
+ * episode on two platforms - {{Player|mode=mirrors}} with a line per platform, as Groove
+ * Podcast, HATE Podcast, RA Podcast and XLR8R Podcast do - the new page is written that way,
+ * with this player's URL on the line its platform stands on there (RA Podcast keeps Apple
+ * Podcasts first, so a SoundCloud URL goes on the second one) and the other line empty for the
+ * mirror. MixesDB answers an open slot with "No value for one of the players!" instead of a
+ * player, so a page cannot go out with the mirror quietly missing - reasoning section 7 says
+ * that too. Every other category keeps the plain one-URL player. A URL holding a "=" is now
+ * written as "|1=URL": unnumbered, MediaWiki reads the part in front of the "=" as a parameter
+ * name and the player renders "{{{1}}}".
  *
  * 2026.08.19.33
  * Via the shared page creator (page_creator.js v_70): the lead artwork line is back on a series

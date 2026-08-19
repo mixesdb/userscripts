@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.37
+// @version      2026.08.19.39
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,8 +15,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_72
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_55
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_74
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -998,13 +998,12 @@ waitForKeyElements(".soundActions", function( jNode ) {
 
     var buyLink = $(".soundActions__purchaseLink", jNode);
     if( buyLink.length !== 0 ) {
-        var buyLink_href = fixScRedirectUrl( buyLink.attr("href") ),
-            buyLink_text = buyLink.text();
+        var buyLink_href = fixScRedirectUrl( buyLink.attr("href") );
 
         buyLink.remove();
         // an <a> carrying the button classes, not an <a> inside a <button> - see the new
         // layout's #mdb-purchaseLink for why a nested anchor cannot be clicked
-        jNode.append( '<a class="'+soundActionFakeButtonClass+'" href="'+buyLink_href+'" target="_blank">Link: '+buyLink_text+'</a>' );
+        jNode.append( '<a class="'+soundActionFakeButtonClass+'" href="'+buyLink_href+'" target="_blank">Link</a>' );
     }
 });
 
@@ -1291,6 +1290,13 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         // ("Artist - Title [Label]") out of it, so it can tell a
                                         // label in brackets behind an artist from a second artist.
                                         description: t.description,
+                                        // The "Buy" / "Free download" field. Searched for the
+                                        // Notes link next to the description and never written
+                                        // to the page as itself: on a podcast it is where the
+                                        // episode's own page is linked, and it is filled on
+                                        // plenty of tracks whose description names nothing.
+                                        // Every Groove Podcast episode carries its bit.ly here.
+                                        purchaseUrl: scPurchaseUrl( t.purchase_url ),
                                         // Lets the created page's "== Notes ==" section reach
                                         // the episode's real page where the description only
                                         // shortens the link to it ("Go to bit.ly/BRCPod ...").
@@ -1418,7 +1424,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // carrying the button classes is what SoundCloud does itself and what we
                                 // already do for a.mdb-tidSubmit.sc_button-mdb.
                                 if( isNewSoundCloudLayout && purchase_url && $("#mdb-purchaseLink").length === 0 ) {
-                                    var purchase_href = /^https?:\/\/gate\.sc\//.test( purchase_url ) ? fixScRedirectUrl( purchase_url ) : purchase_url,
+                                    var purchase_href = scPurchaseUrl( purchase_url ),
                                         purchase_text = purchase_title ? purchase_title : "Buy";
 
                                     buttonTarget.append( '<a id="mdb-purchaseLink" class="'+soundActionFakeButtonClass+'" href="'+purchase_href+'" target="_blank">Link: '+purchase_text+'</a>' );
@@ -1890,6 +1896,19 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.38
+ * Via the shared page creator (page_creator.js v_73): the {{Player}} of the created page takes
+ * the shape the series uses. Where at least 90% of the entity's recent pages publish every
+ * episode on two platforms - {{Player|mode=mirrors}} with a line per platform, as Groove
+ * Podcast, HATE Podcast, RA Podcast and XLR8R Podcast do - the new page is written that way,
+ * with this player's URL on the line its platform stands on there (RA Podcast keeps Apple
+ * Podcasts first, so a SoundCloud URL goes on the second one) and the other line empty for the
+ * mirror. MixesDB answers an open slot with "No value for one of the players!" instead of a
+ * player, so a page cannot go out with the mirror quietly missing - reasoning section 7 says
+ * that too. Every other category keeps the plain one-URL player. A URL holding a "=" is now
+ * written as "|1=URL": unnumbered, MediaWiki reads the part in front of the "=" as a parameter
+ * name and the player renders "{{{1}}}".
  *
  * 2026.08.19.35
  * Two fixes in the row's page creator (page_creator.js v_70). The lead artwork line is back on

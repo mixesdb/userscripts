@@ -149,13 +149,108 @@
 > stranger's redirect safe: it is not trusted, it is checked against what the wiki already said.
 >
 > Four gates before a request is made at all (`mdbPageCreator_notesEnsureResolved()`): a
-> resolver was handed over, the series links a host, the description does not already name that
-> host, and it holds a link on a KNOWN shortener (`mdbPageCreator_notesShorteners` - true
-> redirectors only; a `linktr.ee` is a landing page with many links and would answer with
-> itself). On the tracks that pass all four it is one HEAD per player page; on everything else
-> it is nothing. It runs from the settle paths, never from a render - and unlike
-> `mdbPageCreator_recentSettled()` it does carry the page generation, since the answer is
-> per-track state and a late one would land on the next mix.
+> resolver was handed over, the series links a host, no source already names that host, and one
+> of them holds a link on a KNOWN shortener (`mdbPageCreator_notesShorteners` - true redirectors
+> only; a `linktr.ee` is a landing page with many links and would answer with itself). On the
+> tracks that pass all four it is one HEAD per player page; on everything else it is nothing. It
+> runs from the settle paths, never from a render - and unlike `mdbPageCreator_recentSettled()`
+> it does carry the page generation, since the answer is per-track state and a late one would
+> land on the next mix.
+
+> **Delta added 2026-08-19, same day: the "Buy" field is searched too.** The description is not
+> the only place an uploader puts the episode's link, and on a podcast it is often the worse
+> one. SoundCloud's `purchase_url` - the "Buy" / "Free download" button - is ONE URL set on
+> purpose, so it is filled on plenty of tracks whose description names nothing at all. Measured
+> on Groove Podcast: every episode carries its `bit.ly` in that field as well as in the prose
+> (514 `http://bit.ly/BRCPod`, 513 `http://bit.ly/DazePod`, 509, 504 - all of them).
+>
+> So the search runs over a LIST now, `mdbPageCreator_notesSources()`: description first, buy
+> link second, each carrying the name the reasoning panel calls it by, so the panel can say
+> "the player's buy/download link names one" rather than leaving the reader wondering where a
+> URL that is nowhere in the description came from. Both are searched by the same
+> `mdbPageCreator_notesUrlIn()` rule and both can hold a shortened link
+> (`mdbPageCreator_notesShortenerFind()` walks the same list).
+>
+> **`purchase_url` has to be unwrapped first.** SoundCloud hands it out behind its own
+> redirector - `https://gate.sc?url=http%3A%2F%2Fbit.ly%2FBRCPod&token=...` - and a `gate.sc`
+> URL carrying a bit.ly is not recognisable as a shortened link, nor as a link to anything else.
+> `scPurchaseUrl()` in SoundCloud's `script.funcs.js` takes the wrapper off before the value is
+> handed over. Writing it turned up a live bug in the existing Buy BUTTON: the guard there was
+> `/^https?:\/\/gate\.sc\//`, and SoundCloud writes the wrapper WITHOUT the slash now, so that
+> button had been linking the raw `gate.sc?url=...` string. Both forms are accepted now
+> (`[\/?]`), and the button and the page creator share the one helper.
+
+> **Signal E added 2026-08-19: the `{{Player}}` itself.** Not in the plan below either, and
+> the second signal (after D) whose value is partly the EMPTY line it writes. A series that
+> publishes every episode on two platforms says so in the template: `{{Player|mode=mirrors}}`
+> with one ` |URL` line per platform. The page creator only ever has the ONE URL of the player
+> page it sits on, so what the siblings decide is the SHAPE - the mirrors head and the second
+> line, left empty for the editor to paste the other address into.
+>
+> Read per page as `mdbPageCreator_playerRead()` (the FIRST `{{Player}}`, like the lead
+> artwork): `mirrors`, `plain` (one URL, no mode), `other` (a mode we do not copy) or `none`
+> (no player). Voted at the usual 90% with the newest-5 override, and only `mirrors` writes
+> anything - everything else keeps the plain one-URL template every created page had before.
+> Measured against the live API on 2026-08-19, 10 newest pages per category:
+>
+> | Category | Votes | Verdict |
+> | --- | --- | --- |
+> | `Groove Podcast`, `HATE Podcast`, `RA Podcast` | mirrors 10/10 | **mirrors** |
+> | `XLR8R Podcast` | mirrors 9/10 | **mirrors** |
+> | `Techno Germany Podcast`, `Zenaari Mix`, `fabric`, `Awakenings`, `Berghain` | plain 10/10 | plain |
+> | `Cercle`, `Dekmantel Festival`, `Ritter Butzke`, `Sunwaves`, `Tresor` | plain 9/10 | plain |
+> | `Mixmag`, `Deep Space Series`, `Slave To The Rhythm` | plain, newest 5 unanimous | plain |
+> | `In The Mix` | none 10/10 | plain (no player to learn from) |
+> | `Boiler Room` | mirrors 8/10 | abstain |
+> | `Essential Mix` | mirrors 5 / plain 5 | abstain |
+> | `Trommel`, `Time Warp`, `HÖR`, `Watergate`, `DJ Mag`, `Dommune`, `Rinse FM`, `Beats In Space` | split | abstain |
+>
+> So it fires on the four series that really do publish every episode twice, and `Boiler Room`
+> - which does too, but has two pages in ten that only carry the YouTube link - abstains at
+> 80%. That is the 90% doctrine doing its job rather than a miss: abstaining costs nothing,
+> it writes the page every created page got before.
+>
+> **Live recordings vote here**, unlike on the artwork (signal B). A set the series broadcast
+> is published on the same platforms as its episodes - Groove Podcast's two `@`-titled pages
+> carry the same SoundCloud + Mixcloud pair as the other eight - so they are not the exception
+> here that they are for an artwork named after the event.
+>
+> **The empty line is not free, and that is deliberate.** MixesDB answers a mirrors player with
+> an open slot with `No value for one of the players!` and NO player, verified against the live
+> parser on 2026-08-19 - for an empty line, an empty `2=`, and a mirrors head with only one URL
+> alike. So the created page shows that box until the editor fills the line in or deletes it.
+> On a series where all 10 of the newest pages carry the mirror, that is the loud version of
+> the blank style rows: the second address exists, and a page saved without it is the thing
+> being flagged. It is also why the reasoning panel's Player row names the box - a reader who
+> does not expect the empty line would read it as a bug of ours.
+>
+> **Which line the known URL goes on is read off the siblings too**
+> (`mdbPageCreator_recentPlayerSlots()`, `mdbPageCreator_playerSlot()`). The platforms sit in a
+> fixed order per series, and it is not always ours first: `RA Podcast` opens with the Apple
+> Podcasts link and has SoundCloud second on all 10 of its newest pages, so a page created
+> from SoundCloud there gets an empty first line and the SoundCloud URL on the second. Only a
+> slot that EVERY mirror page of the series fills with that host counts - anything less and the
+> URL stays on line 1, where it always went. The same order the private `Player_URLs` scripts
+> sort by (`preferredPlayerSiteOrder`: Apple Podcasts > SoundCloud > hearthis.at > YouTube >
+> Mixcloud) comes back out of the four firing categories, which is the check that this is a
+> convention and not ten coincidences.
+>
+> **A URL holding a `=` is written numbered** (`|1=URL`), and then every line of that template
+> is - `mdbPageCreator_playerTemplate()`. MediaWiki reads everything in front of the `=` as a
+> parameter NAME otherwise and the page ends up with a player whose URL is the literal
+> `{{{1}}}`; an unnumbered line following a numbered one is parameter 1 again and overwrites
+> it. Both verified against the live parser on 2026-08-19, and both are why `RA Podcast` writes
+> all of its Apple Podcasts links numbered. No site script hands over such a URL today (the
+> SoundCloud address the row is built on carries no query), so this is the rule being in place
+> before the first one does, and it is the same rule `playerUrlLine()` in
+> `private/Player_URLs/funcs.js` already follows.
+>
+> **What is NOT learned:** `video=audio` (10/10 on `HATE Podcast`, 6/10 on `Essential Mix`) is
+> about the mirror that is not written yet - it tells the player to show a YouTube link as
+> audio, and a page whose only URL is a SoundCloud one has nothing to say it about. And
+> `mode=multi` (`Beats In Space`) is the parts-of-one-show player, whose lines each need a
+> `t1=`/`t2=` title: nothing a page with one URL can be started as. It votes as `other`, which
+> can win the vote and still writes nothing.
 
 The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already

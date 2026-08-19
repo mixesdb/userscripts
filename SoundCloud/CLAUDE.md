@@ -35,6 +35,12 @@ SoundCloud-only bits that must stay on this side, not move into the page creator
   page creator decides WHETHER the comments are worth fetching (only when the description held
   no tracklist) and calls this through the `loadComments` callback of
   `mdbPageCreator_addTracklist()`; it never learns where they came from.
+- `scPurchaseUrl()` in `script.funcs.js` - the "Buy"/"Free download" URL with SoundCloud's
+  `gate.sc` wrapper taken off. Two callers: the button in the track header, and the page
+  creator, which searches this field for the created page's Notes link (`purchaseUrl` option).
+  Note the guard is `/^https?:\/\/gate\.sc[\/?]/` - SoundCloud writes the wrapper without the
+  slash today (`https://gate.sc?url=...`), and the slash-only test that stood in the button
+  code let those through unwrapped. Do not "simplify" it back.
 - `scFollowRedirect()` in **`script.funcs.js`** - the one thing here that is not
   SoundCloud-specific but SCRIPT-specific: it needs `GM_xmlhttpRequest`, which only this script
   grants. It goes to the page creator as the `followRedirect` option of `mdbPageCreator_add()`
