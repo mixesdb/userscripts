@@ -250,6 +250,12 @@ function tlBoxSetFeedbackHtml( tl, html ) {
 
     current.html( parsed.length ? parsed.html() : clean ).data( "mdbFeedbackHtml", key );
 
+    // Our chips are children of this box, so the swap above just took them off the page.
+    // Put back here rather than by the caller: the switch re-renders the answer on a click
+    // without going through tlBoxFeedback(), and that click used to end with the counter and
+    // the switch itself gone from the box until the next API answer rebuilt them.
+    tlBoxShowApiCount();
+
     tlBoxSettleFeedbackHeight( current, from );
 }
 
