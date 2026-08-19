@@ -78,9 +78,7 @@ one chip per name, its colour saying whether MixesDB already has it:
   page – the quickest way to see how pages of this series are named, and whether
   the mix is already among them. They stand in the order a MixesDB category page lists
   them, oldest at the top and the newest at the bottom, so a look at the list needs no
-  re-reading against the category page it mirrors. Where the
-  category holds more pages than the ten shown, the top of the list fades out – there is more
-  above it, on the category page itself. The pages usually arrive with the category answer
+  re-reading against the category page it mirrors. The pages usually arrive with the category answer
   itself, for artists as well as for shows, so the list is there the moment the chip is
   opened; where they do not, the click fetches them and the chip waits on a spinner until
   they are in.
