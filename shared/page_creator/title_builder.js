@@ -123,6 +123,22 @@ function mdbTitle_escapeReLooseSpaces( name ) {
     return mdbTitle_escapeRe( String( name || "" ) ).split( /\s+/ ).join( "\\s*" );
 }
 
+// mdbTitle_escapeReLooseSeparators
+// mdbTitle_escapeReLooseSpaces plus: a dash or colon INSIDE the name matches any other one,
+// and none at all. The same show is written "Juno Daily - In The Mix", "Juno Daily \u2013 In The
+// Mix", "Juno Daily: In The Mix" and "Juno Daily In The Mix" by the same uploader in the same
+// month, and a curated name that only matches the punctuation it happens to be written with
+// leaves the rest of the show name standing in the title as if it were an artist. The WORDS
+// still all have to stand there in order - only what sits between them is loose.
+// Used for the mdbTitleChannelSeriesConversions keys, where the name is a whole title part
+// rather than a single word.
+function mdbTitle_escapeReLooseSeparators( name ) {
+    return String( name || "" )
+        .split( /\s*[-\u2013\u2014:|]+\s*/ )
+        .map( mdbTitle_escapeReLooseSpaces )
+        .join( "\\s*[-\u2013\u2014:|]*\\s*" );
+}
+
 // mdbTitle_fractionLeadRe
 // A text OPENING on a fraction - "1/2 Faultierdisko", "3/4 Peace". Digits on both sides of a
 // slash with no blank near it is how a name writes a fraction, and the slash is then no
@@ -3590,9 +3606,10 @@ function mdbTitle_channelSeriesConversion( text, username ) {
         candidates = [ entity, words ].sort( function( a, b ) { return b.length - a.length; } );
 
         for( c = 0; c < candidates.length; c++ ) {
-            // the same looseness a mapped channel name gets: any case, inner spaces optional,
-            // word boundaries around the whole name (see mdbTitle_escapeReLooseSpaces)
-            re = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSpaces( candidates[c] ) + "(?![\\w])", "i" );
+            // more looseness than a mapped channel name gets: any case, inner spaces optional
+            // AND the dash/colon between the words free (see mdbTitle_escapeReLooseSeparators),
+            // word boundaries around the whole name
+            re = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSeparators( candidates[c] ) + "(?![\\w])", "i" );
 
             if( re.test( text ) ) {
                 // "found" keeps the words as the TITLE wrote them ("DJ MIX"), so the panel's

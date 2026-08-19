@@ -346,6 +346,12 @@ var mdbTitleUsernameConversions = {
  * - the channel lookup is case-insensitive, so a casing slip in a key still works
  * - the words are matched in any case and with their inner spaces optional ("DJ MIX",
  *   "DJMix"), always as whole words - the same looseness a mapped channel name gets
+ * - and, on top of that, the dash or colon BETWEEN the words is free: write the key the way
+ *   the channel writes it and it still matches every other punctuation the same uploader
+ *   uses for the same show ("Juno Daily - In The Mix", "Juno Daily: In The Mix",
+ *   "Juno Daily In The Mix"), see mdbTitle_escapeReLooseSeparators. So a key is never a
+ *   regex and never needs to be one - "[-\u2013]" in a key would look for those brackets
+ *   in the title, and the key doubles as what the report panel shows a reporter
  * - of the two names the longer one is looked for first, so whichever of them contains the
  *   other, the more specific match wins: "Dance TV DJ Mix #680" does not grow a second
  *   "Dance TV" in front of itself, and "Juno Daily - In The Mix: Space Ghost" loses the
@@ -353,8 +359,8 @@ var mdbTitleUsernameConversions = {
  * - several word entries per channel are fine; the first one found in the title wins
  */
 var mdbTitleChannelSeriesConversions = {
-    "Dance TV": { "DJ Mix": "Dance TV DJ Mix" },
-    "Juno Daily": { "Juno Daily – In The Mix": "Juno Daily" }
+    "Dance TV": { "DJ Mix": "Dance TV DJ Mix" }, // https://soundcloud.com/dancetelevision/mister-joshooa-detroit-usa
+    "Juno Daily": { "Juno Daily – In The Mix": "Juno Daily" } // https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-space
 };
 
 
