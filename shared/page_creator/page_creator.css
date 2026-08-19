@@ -1332,11 +1332,37 @@
     color: #e0e0e0;
 }
 
-#mdb-pageCreator-modal .mdb-pageCreator-modal-frame {
+/*
+ * The frame stack (mdbPageCreator_modalFrame): one iframe per page the modal has visited,
+ * all of them stacked in the same place and only the front one visible. Keeping the loaded
+ * documents is what makes a step instant - MixesDB takes the better part of a second to
+ * render a page and forbids caching it, so a page that has to be fetched again IS the wait.
+ */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frames {
+    position: relative;
     flex: 1;
+    background-color: #fff;
+}
+
+/*
+ * visibility, not display: none. A display:none iframe has no box, so the page inside it lays
+ * itself out against a zero-width viewport and everything that reads a width on load - the
+ * skin's breakpoints, the images' sizes - decides against that. visibility keeps the box (and
+ * the layout that goes with it) and only stops the painting, so the hidden frames are laid
+ * out exactly as they will be seen.
+ */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frame {
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
     border: 0;
     background-color: #fff;
+    visibility: hidden;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frame-on {
+    visibility: visible;
 }
 
 /*
