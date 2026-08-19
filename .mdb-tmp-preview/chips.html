@@ -1,0 +1,1693 @@
+<!doctype html><html><head><meta charset="utf-8"><title>chips mock</title>
+<style>
+body { background:#121212; color:#eee; font-family: Helvetica, Arial, sans-serif; margin:20px; }
+.wrap { max-width: 1200px; }
+</style>
+<style>
+/*
+ * MixesDB page creator - the row page_creator.js builds (#mdb-pageCreator).
+ *
+ * Loaded with loadRawCss() by every site script that calls mdbPageCreator_add(), next to that
+ * script's own script.css. Nothing in here is site-specific: where the row SITS is the site
+ * script's business (the target/placement it hands over), how it LOOKS is this file's.
+ *
+ * Only added when the toolkit found no MixesDB page for this player - or, with the debug
+ * setting mdbPageCreator_showForUsedPlayers on, for a used one as well: that row gets the class
+ * .mdb-pageCreator-used and the #mdb-pageCreator-usedNote marker styled further down.
+ *
+ * Deliberately theme-neutral (inherited colour, translucent background/border): the same markup
+ * is used on light pages and dark ones (SoundCloud alone has both).
+ */
+
+/*
+ * The corner radius of everything that SHOWS THE TITLE: the input of the row and the chips of
+ * the reasoning panel that carry a whole title (sections 2, 4 and 5). Those chips quote the
+ * field, so they have to round like it - one value, changed in one place. Every OTHER chip
+ * keeps its pill radius: it carries a chunk or a name, not the title.
+ */
+:root {
+    --mdb-title-element-radius: .4em;
+    --mdb-grey-muted: #999;
+}
+
+#mdb-pageCreator {
+    display: grid;
+    /*
+     * One grid row instead of a wrapping flex row, so the INPUT is what gives way when the
+     * container runs out: a wrapping flex container breaks the trailing items onto a new line
+     * before it ever shrinks the input. Column 1 grows with the input's text (the ch width the
+     * script sets) and shrinks first; the three max-content columns (copy button, score column,
+     * "Create"/"Exists") always keep their natural width - on every site, whatever its fonts,
+     * with no per-site max-width guesswork. The trailing 1fr is an always-empty filler: without
+     * it a full-width child (the report box, grid-column 1 / -1) would only span the content
+     * columns, not the whole container. A fifth inline item would land in that filler - add a
+     * column here if one is ever added to the row.
+     */
+    grid-template-columns: minmax(0, max-content) repeat(3, max-content) 1fr;
+    align-items: center;
+    margin: 10px 0;
+}
+
+/*
+ * The monospace font is set HERE and the input deliberately does NOT get the .mono class:
+ * global.css has ".mono { font-size: 12px !important }", which no ID selector can override.
+ */
+#mdb-pageCreator-title {
+    /* content-box so the ch width the script sets really is the character count of the title
+       (the padding stays outside of it) */
+    box-sizing: content-box;
+    /* The grid column above may shrink below the ch width - these let the input follow it.
+       100% is the own grid track; minus the horizontal padding (2*6px) and border (2*1px),
+       which content-box keeps outside the width. */
+    min-width: 0;
+    max-width: calc(100% - 14px);
+    padding: 2px 6px;
+    font-family: Consolas, monospace;
+    font-size: .9rem;
+    line-height: 1.75;
+    color: inherit;
+    background-color: rgba(127, 127, 127, 0.12);
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: var(--mdb-title-element-radius);
+}
+
+#mdb-pageCreator-title::selection {
+    background-color: #fc0;
+    color: #fff;
+}
+
+/*
+ * The copy button, between the title and the score. 10px is the row's ONE gap: it separates the
+ * input from this button, this button from the score column and that column from "Create", so
+ * the four items read as one evenly spaced row rather than as pairs.
+ */
+#mdb-pageCreator .mdb-copy-text-control {
+    margin-left: 0; /* global.css sets 12px - the spacing here comes from padding-left */
+    padding-left: 7px;
+}
+
+#mdb-pageCreator .mdb-copy-text-button {
+    padding: 3px 8px !important;
+}
+
+/*
+ * The score with "BETA" behind it, and "Report" on a second line under them. A <br> cannot make
+ * that line break inside the flex row above - it would become a flex item instead of breaking
+ * the line - so the two lines share this column and the row sees one item.
+ */
+#mdb-pageCreator-confidence {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center; /* looks weird when aligned left */
+    line-height: 1.15;
+    font-size: 0.8rem;
+}
+
+#mdb-pageCreator-scoreLine {
+    display: inline-flex;
+    align-items: baseline;
+}
+
+/*
+ * Confidence that the title needs no changes. Colours picked to stay readable on BOTH light and
+ * dark pages, so no plain "green"/"red" (too dark on black).
+ */
+#mdb-pageCreator-score {
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-score.mdb-pageCreator-score-high {
+    color: #2eb82e;
+}
+
+#mdb-pageCreator-score.mdb-pageCreator-score-mid {
+    color: #e8930c;
+}
+
+#mdb-pageCreator-score.mdb-pageCreator-score-low {
+    color: #ef4444;
+}
+
+/*
+ * Opens the new page's edit form, prefilled with the (possibly edited) title and page text - the
+ * one thing in this row that DOES something, hence bold. The colour is left to the site: it is a
+ * real link, and the site's link colour is the one that is guaranteed to work on its background.
+ *
+ * Two IDs for the same reason as "Report" below: it is an <a>, and these sites style their <a>s
+ * hard enough to beat a single ID. The gap in front of it comes from the row's own spacing rule
+ * further down, not from here.
+ */
+#mdb-pageCreator #mdb-pageCreator-create {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+/*
+ * "Report" under the score - opens the report box below the row. Deliberately NOT styled as a
+ * link: it is the same kind of side note as #mdb-pageCreator-beta above it, and the two sit in
+ * one column, so it takes that grey and that size.
+ *
+ * Written with the wrapper's ID in front, which is not decoration: it is an <a>, and these sites
+ * style their <a>s hard enough to beat a single ID (SoundCloud's Material layout paints it blue
+ * and underlines it). Two IDs beat that without reaching for !important - the same reasoning as
+ * the #tlEditor-feedback note further down.
+ */
+#mdb-pageCreator #mdb-pageCreator-report {
+    color: var(--mdb-grey-muted);
+    font-weight: normal;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/*
+ * The report box. "grid-column: 1 / -1" is what puts it on a full-width line of its own under
+ * the row: it spans every column INCLUDING the 1fr filler, which is what makes its 100% the
+ * whole container and not just the content columns.
+ * Same colours as the tracklist box further down, since it is the same kind of thing: a plain
+ * text box of ours on a page whose own background we do not know.
+ *
+ * No "rows" and no height here: mdbPageCreator_growReport() sets the height from the text, so
+ * the box is always exactly as tall as what is in it. "overflow: hidden" keeps a scrollbar from
+ * flashing up in the moment between a keystroke and that measurement.
+ */
+#mdb-pageCreator-report-box {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 15px;
+    padding: 4px 6px;
+    overflow: hidden;
+    color: #444;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    background-color: #fcfcfc;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+    resize: none; /* dragging it taller fights the auto-grow, which wins on the next keystroke */
+}
+
+/*
+ * The reasoning panel above the report box (mdbPageCreator_renderReasoning in page_creator.js):
+ * how the suggestion was built, in five numbered sections. Hardcoded dark greys like the
+ * loading skeleton, and for the same reason: both sites showing it (SoundCloud, TrackId.net)
+ * are dark-themed, and grey-on-white next to their pages was hard to read.
+ *
+ * Each section carries an accent colour - count bubble, left bar and heading - so the five read
+ * as five at a glance: blue for the raw material (1 chunks, 3 lookups), orange for the two title
+ * builds (2, 4), green for the categories (5). The tones on the notes are semantic, stated at
+ * .mdb-pageCreator-note-*: green = the wiki confirms it,
+ * blue = worth knowing, amber = check before creating, red = the request died, grey = a fact.
+ *
+ * Generous spacing on purpose: the panel is read once, carefully, when something went wrong -
+ * it is allowed to take room.
+ */
+#mdb-pageCreator-reasoning {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 15px;
+    padding: 16px 18px;
+    color: #c9c9c9;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+}
+
+/* the left accent bar is what separates the sections - no ruled lines needed on top of it */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section {
+    margin-top: 20px;
+    padding-left: 14px;
+    border-left: 3px solid rgba(255, 255, 255, 0.15);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section:first-child {
+    margin-top: 0;
+}
+
+/* Three columns - bubble, heading, hint - instead of packing them into a flex row: the five
+   headings differ by more than ten characters, so behind a flex row every section's grey hint
+   started at a different x and the panel read as five unrelated blocks. The heading column is
+   capped, not fixed, so a narrow player column shrinks it rather than pushing the hint out of
+   the panel; a heading too long for it wraps and keeps the column. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 130px) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 10px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #f0f0f0;
+}
+
+/* the little count bubble in front of each heading - tinted per section below */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
+    display: inline-flex;
+    align-items: center;
+    align-self: start; /* = vertical-align top */
+    justify-content: center;
+    align-self: center;
+    box-sizing: border-box;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* The accents: blue for the raw-material sections (the chunks, the lookups), the copy button's
+   orange (#f60/#f90, see global.css) for the title stages - 2 and 4 are the same stage run
+   on either side of the lookup, and 5 (the format read off the entity's recent pages) is the
+   third and last thing that shapes the title, so all three share the accent - green for the
+   final categories, and citrus for the page text learned from the same recent pages: the
+   yellow next to the title stages' orange says "same source, about the PAGE rather than the
+   title". Each section states its accent ONCE as three custom properties and the three
+   rules under them paint the bar, the heading and the count bubble off it, so a section's
+   colour is one block to read and one block to change - the chips keep their own STATE colours
+   (grey candidate, red ignored, green used), which is a different question from which section
+   they stand in. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-1,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-3 {
+    --mdb-reasoning-accent: #6cb2f7;
+    --mdb-reasoning-accent-bar: rgba(77, 159, 236, 0.65);
+    --mdb-reasoning-accent-soft: rgba(77, 159, 236, 0.18);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-2,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-4,
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-5 {
+    --mdb-reasoning-accent: #ff9900;
+    --mdb-reasoning-accent-bar: rgba(255, 102, 0, 0.65);
+    --mdb-reasoning-accent-soft: rgba(255, 102, 0, 0.16);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-6 {
+    --mdb-reasoning-accent: #58c96b;
+    --mdb-reasoning-accent-bar: rgba(46, 184, 46, 0.65);
+    --mdb-reasoning-accent-soft: rgba(46, 184, 46, 0.18);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-7 {
+    --mdb-reasoning-accent: #e8e05a;
+    --mdb-reasoning-accent-bar: rgba(219, 208, 51, 0.65);
+    --mdb-reasoning-accent-soft: rgba(219, 208, 51, 0.16);
+}
+
+/* the fallbacks are what an unnumbered section gets - the panel's own greys, as before */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section {
+    border-left-color: var(--mdb-reasoning-accent-bar, rgba(255, 255, 255, 0.15));
+}
+
+/* the heading in the section's colour rather than white: the bar alone had to carry the
+   grouping, and at 3px next to a long grey hint it was easy to read past */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-title {
+    color: var(--mdb-reasoning-accent-bar, #f0f0f0);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-no {
+    color: var(--mdb-reasoning-accent, #c9c9c9);
+    background-color: var(--mdb-reasoning-accent-soft, rgba(255, 255, 255, 0.12));
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-hint {
+    color: #8b8b8b;
+    font-weight: normal;
+    font-size: 11.5px;
+}
+
+/* the chunk/name chips - monospace like the title field, since they quote it */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip {
+    display: inline-block;
+    padding: 2px 9px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #e0e0e0;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/*
+ * A chip that is a whole TITLE, not a chunk or a name: the "Title candidate:" of 2, the "Title
+ * after lookup:" of 4 and the "Final title:" of 5. It rounds like the title input above
+ * (--mdb-title-element-radius) instead of wearing the pill, because it quotes that field - and
+ * because a pill around a title long enough to wrap reads as a blob, not as a chip.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-title {
+    border-radius: var(--mdb-title-element-radius);
+}
+
+/* .mdb-pageCreator-chip-channel keeps the base grey on purpose: chips are coloured by
+   STATE (grey candidate, red ignored, green used), and the channel is a candidate like
+   every chunk - the class only still marks WHICH chip quotes the channel */
+
+/* green - by state: what ends up USED. A name that became a category of the new page, the
+   show a channel maps to, the final title in section 4 */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-kept {
+    color: #58c96b;
+    background-color: rgba(46, 184, 46, 0.10);
+    border-color: rgba(46, 184, 46, 0.35);
+}
+
+/* what the split removed outright (label credits, place lists) - red,
+   "this never played a part and was not looked up" */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-removed {
+    color: #ef6a6a;
+    background-color: rgba(217, 83, 83, 0.10);
+    border-color: rgba(217, 83, 83, 0.35);
+}
+
+/* a looked-up name that did NOT end up a category of the new page - same red as removed,
+   but its own class: this one WAS asked about, the message differs */
+#mdb-pageCreator-reasoning .mdb-pageCreator-chip-notCat {
+    color: #ef6a6a;
+    background-color: rgba(217, 83, 83, 0.10);
+    border-color: rgba(217, 83, 83, 0.35);
+}
+
+/* Section 6's closing block: what the sibling pages share and the page does not get. Set off
+   from the category rows above it, and plain text - the panel is reading, not a place to click
+   a category open. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cathints {
+    grid-column: 1 / -1;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cathint {
+    color: #9a9a9a;
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+/* the "Channel:" / "Title candidate:" / "Final title:" / "Not asked:" side lines */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-aside {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    color: #9a9a9a;
+    font-size: 12px;
+}
+
+/*
+ * The cleanup steps, the lookups and the categories are all two-column grids: the left column
+ * as wide as its widest reasonable entry, the right one taking the rest. display:contents on
+ * the rows is what lets one row's two spans land in the shared columns, so all labels line up.
+ * fit-content instead of max-content where the left side quotes free text, so a monster name
+ * wraps instead of pushing the answers off screen.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-steps {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 14px;
+    align-items: baseline;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step {
+    display: contents;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-label {
+    font-weight: 600;
+    font-size: 12px;
+    color: #e6e6e6;
+}
+
+/* The panel's own font, not monospace: a detail is as often a prose sentence ("the upload
+ * date stands in: ...") as a quoted title, and the arrow and the chips already mark the
+ * quoted halves - code styling on prose read as a style break. The definition blocks
+ * (-defs-pre) keep their monospace: those really are the JS they quote. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-detail {
+    font-size: 12px;
+    color: #a8a8a8;
+    word-break: break-word;
+}
+
+/* chips inside a step's detail (the channel -> show mappings): a hair of vertical margin so
+   wrapped lines do not touch */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-step-detail .mdb-pageCreator-chip {
+    margin: 1px 0;
+}
+
+/* the "before -> after" arrow inside a step detail - amber like the section it lives in.
+   Larger than the detail's 12px on purpose: at text size the glyph reads as a speck;
+   line-height 1 keeps the bigger glyph from stretching the row */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-arrow {
+    padding: 0 5px;
+    color: var(--mdb-grey-muted);
+    font-weight: bold;
+    font-size: 17px;
+    line-height: 1;
+}
+
+/*
+ * The round "?" behind a cleanup step's label and the block it toggles: the
+ * title_definitions.js list the step worked off. The block is the step row's third child and
+ * spans both grid columns - the row is display:contents, so a wrapper of its own would take
+ * the label and the detail out of the shared columns.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    border-radius: 50%;
+    color: #b9b9b9;
+    font-family: Consolas, monospace;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-toggle:hover,
+#mdb-pageCreator-reasoning .mdb-pageCreator-defs-open {
+    color: #f0a943;
+    border-color: rgba(232, 147, 12, 0.65);
+    background-color: rgba(232, 147, 12, 0.14);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs {
+    grid-column: 1 / -1;
+    margin: 2px 0 4px;
+    padding: 9px 11px;
+    border-left: 2px solid rgba(232, 147, 12, 0.45);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-name {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f0a943;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-what {
+    margin: 3px 0 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #9a9a9a;
+}
+
+/* a long list (the countries) scrolls in place rather than pushing the report box away */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-pre {
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    max-height: 240px;
+    overflow: auto;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.30);
+    font-family: Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #cfcfcf;
+    white-space: pre;
+    tab-size: 4;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-defs-pre:last-child {
+    margin-bottom: 0;
+}
+
+/* section 3: the two candidate columns side by side - who could be the ARTIST, what could
+   be the ENTITY, decided from the title's shape before the lookup fires. Each column holds
+   the chips asked for that role, with the wiki's answers of that kind next to them. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookups {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 28px;
+    align-items: start;
+}
+
+/* min-width lets the inner grid shrink instead of pushing the panel wide */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookupCol {
+    min-width: 0;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-colHead {
+    display: block;
+    margin-bottom: 9px;
+    font-size: 10.5px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #9a9a9a;
+}
+
+/* One column's rows: chip left, that role's answers right. minmax(0, 1fr) and not 1fr: the
+   answers may wrap as narrow as their track, so the two columns of section 3 shrink with the
+   panel instead of pushing a horizontal scrollbar onto it. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookupCol-rows {
+    display: grid;
+    grid-template-columns: fit-content(45%) minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: center;
+}
+
+/* Where an asked name came from - its own line under the row, spanning both tracks. Section 3
+   asks about names BUILT from the chunks (the channel, a chunk without its episode number),
+   and this is the line that says so; inside the answer column it would eat the width the
+   answers need. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-origin {
+    grid-column: 1 / -1;
+    margin-top: -2px;
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
+/* A looked-up name is ONE name: it may wrap between words, never inside one. The shared chip
+   rule breaks anywhere (a chunk chip can hold half a player title), and that makes a name's
+   min-content ONE CHARACTER - which is how wide fit-content() above is then free to squeeze
+   the track: "HouseMusicWithLove" came out as a column of single letters as soon as the
+   answers next to it grew a line. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup > .mdb-pageCreator-chip {
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup {
+    display: contents;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    font-size: 12px;
+}
+
+/* the "–" of a name whose answers are all of the other column's kind */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-lookup-none {
+    color: #6f6f6f;
+    font-size: 12px;
+    cursor: help;
+}
+
+/* One server match: the wiki's spelling, the type badge, the mix count. Wraps: it is three
+   things next to each other, not one word, and in the narrow track of a candidate column an
+   unwrappable answer used to run off the panel. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-match {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-mixes {
+    color: #8b8b8b;
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+
+/*
+ * How strongly one answer backs the name it was asked for. Same bands as the row's score, but
+ * the panel's own greens and reds - the row has to stay readable on a light page, this box is
+ * always dark.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore {
+    font-size: 11.5px;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore.mdb-pageCreator-score-high { color: #58c96b; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore.mdb-pageCreator-score-mid  { color: #f0a943; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-matchScore.mdb-pageCreator-score-low  { color: #ef4444; }
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    line-height: 1.6;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-artist { color: #6cb2f7; background-color: rgba(77, 159, 236, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-series { color: #b18cff; background-color: rgba(177, 140, 255, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-venue  { color: #58c96b; background-color: rgba(46, 184, 46, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-event  { color: #f0a943; background-color: rgba(232, 147, 12, 0.16); }
+#mdb-pageCreator-reasoning .mdb-pageCreator-typeBadge-other  { color: #aaa;    background-color: rgba(255, 255, 255, 0.10); }
+
+/*
+ * A name the wiki confirms, in the wiki's spelling - the panel's strongest signal, and a link to
+ * that category page. Written with the wrapper's ID in front of the panel's, like "Report" and
+ * "Exists" above: it is an <a> now, and these sites style their <a>s hard enough to beat a single
+ * ID (SoundCloud paints them blue and underlines them). Two IDs keep the green without
+ * !important. The underline is kept for the hover, where it is the only thing that has to say
+ * "this opens something" - the colour is carrying the meaning, not the link-ness.
+ */
+#mdb-pageCreator #mdb-pageCreator-reasoning .mdb-pageCreator-known {
+    color: #58c96b;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-reasoning a.mdb-pageCreator-known:visited {
+    color: #58c96b;
+}
+
+#mdb-pageCreator #mdb-pageCreator-reasoning a.mdb-pageCreator-known:hover {
+    color: #58c96b;
+    text-decoration: underline;
+}
+
+/* the annotations - the tone states what the reader should DO with the line */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-note {
+    font-style: italic;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-good  { color: #58c96b; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-info  { color: #6cb2f7; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-warn  { color: #e8a33d; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-bad   { color: #ef6a6a; }
+#mdb-pageCreator-reasoning .mdb-pageCreator-note-muted { color: #8b8b8b; }
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cats {
+    display: grid;
+    grid-template-columns: fit-content(55%) 1fr;
+    gap: 6px 14px;
+    align-items: baseline;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat {
+    display: contents;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-name {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    color: #e0e0e0;
+    word-break: break-word;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-empty {
+    color: #5f5f5f;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #9a9a9a;
+}
+
+/* Why this name got this slot - the answer the section leads with, so it takes the note's
+ * first line for itself instead of sitting between the lookup chips. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-cat-why {
+    flex: 0 0 100%;
+    color: #c8c8c8;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-empty {
+    color: #8b8b8b;
+    font-style: italic;
+}
+
+/*
+ * The panel's own loading state (mdbPageCreator_reasoningSkeleton): "Report" clicked before
+ * every lookup answered - four stand-in rows shaped like the numbered sections, pulsing with
+ * the page skeleton's keyframes below. Swapped for the real content in one render.
+ */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-row:first-child {
+    margin-top: 0;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bubble {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.10);
+    animation: mdb-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bar {
+    height: 12px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.10);
+    animation: mdb-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* grey, so it reads as a warning label and not as part of the title */
+#mdb-pageCreator-beta {
+    padding-left: 5px; /* it sits directly behind the score, which needs the air */
+    color: var(--mdb-grey-muted);
+    cursor: help;
+}
+
+/*
+ * Debug only (mdbPageCreator_showForUsedPlayers, top of the site's script.user.js): the row for
+ * a player that already has a MixesDB page. Takes the "Create" link's place, bold, so a debug
+ * row is never read as the normal "nothing on MixesDB yet" one at a glance. An <a> to that very
+ * page, grey on purpose: it is a marker, not a call to action. Two IDs for the same reason as
+ * "Report" above - these sites style their <a>s hard enough to beat a single ID.
+ */
+#mdb-pageCreator #mdb-pageCreator-usedNote {
+    padding-left: 10px;
+    color: var(--mdb-grey-muted);
+    font-weight: bold;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-confidence,
+#mdb-pageCreator-create {
+    padding-left: 10px;
+}
+
+/*
+ * The hints bar - the row's second line (mdbPageCreator_renderHints in page_creator.js): what
+ * the title itself cannot say, above all which of the categories the page would be filed under
+ * MixesDB actually has.
+ *
+ * "grid-column: 1 / -1" is what makes it a line of its own rather than a fifth item in the row,
+ * the same way the report box and the reasoning panel sit under it - it spans every column
+ * INCLUDING the 1fr filler.
+ *
+ * Framed and dark like the reasoning panel, and for the same reason: both sites showing it are
+ * dark-themed, and this is the second panel of the row rather than a note tacked onto it - so it
+ * takes the panel's box (#1d1d1d, the same border and radius) and, with it, the panel's palette:
+ * #58c96b / #ef6a6a / #6cb2f7 read against that background, where the row's own greens and reds
+ * (picked for a site background that may be white) would be too dark on it.
+ *
+ * Tighter padding than the panel: that one is read once, carefully, and may take room; this one
+ * is on screen the whole time and holds a line or two.
+ *
+ * A COLUMN, not a row of hints side by side - more hints are coming (row_enrichment.md), and
+ * they are sentences, not chips. The "Used categories" line inside it IS chips (below), but
+ * inside a chip everything is plain inline flow, spaced by margins rather than by a flex gap:
+ * the loupe and the count have to sit against the name they belong to, not float next to it
+ * like words of their own.
+ */
+#mdb-pageCreator-hints {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    margin-top: 15px;
+    padding: 10px 14px;
+    color: #c9c9c9;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+}
+
+/*
+ * How well one category fits THIS page, behind its chip. The row score's colours, not the
+ * reasoning panel's: the bar sits on the site's own page, which may be light, and the panel's
+ * greens are picked for a box that is always dark.
+ */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit {
+    margin-left: 7px;
+    font-size: 11.5px;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+/* the chip's own colour would otherwise win inside it - same reason the mix count restates
+   its own (the green-chip rule paints everything in a known chip) */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-high { color: #2eb82e; }
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-mid  { color: #e8930c; }
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-low  { color: #ef4444; }
+
+/*
+ * The "Hints:" row - the categories the entity's sibling pages share, which the page does NOT
+ * get. Laid out exactly like "Used categories:" above it, so the two labels share the column
+ * and the chips line up; one chip per line, because each carries a note behind it and a note
+ * needs its line.
+ */
+#mdb-pageCreator-hints #mdb-pageCreator-hintCats {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+#mdb-pageCreator-hints #mdb-pageCreator-hintCats .mdb-pageCreator-hint-items {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+/* one hint: the chip and its note on one line, the note allowed to wrap under it */
+#mdb-pageCreator-hints .mdb-pageCreator-hintCat {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    max-width: 100%;
+}
+
+/* where it came from, in the bar's muted grey - the row answers that without a hover */
+#mdb-pageCreator-hints .mdb-pageCreator-hintCat-note {
+    color: #8b8b8b;
+    font-size: 12px;
+}
+
+/*
+ * The "Used categories:" in front - the panel's muted grey, the same as its own side notes.
+ *
+ * A fixed width, and it is a COLUMN: every hint of the bar starts with such a label, and the
+ * things they introduce have to line up under one another rather than each starting wherever
+ * its own label happens to end. Wide enough for the labels there are; a longer one wraps
+ * inside its column instead of pushing the chips out of line.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-hint-label {
+    flex: 0 0 100px;
+    color: #8b8b8b;
+}
+
+/* One hint: the label's column, then everything the hint says. baseline, not center: an open
+   chip grows a list downward, and the label has to stay on its first line. */
+#mdb-pageCreator-hints #mdb-pageCreator-usedCats {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+/* The chips' own column - one chip per category, the flex gap the only spacing, no separators
+   in the markup. min-width: 0 lets it shrink rather than push the bar wide, and being a column
+   of its own is what makes a wrapped row start under the row above it and not under the label. */
+#mdb-pageCreator-hints .mdb-pageCreator-hint-items {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+/*
+ * One category as a chip: the reasoning panel's chip look (monospace, hairline border, pill
+ * radius - .mdb-pageCreator-chip above) coloured by the VERDICT, but with no fill: the bar is
+ * on screen the whole time, and a row of filled chips shouted. max-width keeps a chip that
+ * folded its recent mixes out inside the bar.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat {
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px 9px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+}
+
+/* the chip border in the verdict's colour - the panel's kept/removed border tints */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-known {
+    border-color: rgba(46, 184, 46, 0.35);
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing {
+    border-color: rgba(217, 83, 83, 0.35);
+}
+
+/*
+ * The states of a category name. Written with the wrapper's ID in front of the link ones
+ * for the same reason as "Report", "Create" and the panel's confirmed names above: these are
+ * <a>s, and the sites style their <a>s hard enough to beat a single class - SoundCloud paints
+ * ours blue and underlines them. :visited is spelled out for the same reason the panel spells
+ * it out: an unstated visited colour turns the name purple on the second look, and the colour
+ * here IS the verdict.
+ */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a:visited {
+    color: #58c96b;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a:hover {
+    color: #58c96b;
+    text-decoration: underline;
+}
+
+/* a red name IS the search link - there is no category page its colour could promise, so the
+   click answers the question the red poses: really new, or spelled differently on MixesDB? */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a:visited {
+    color: #ef6a6a;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a:hover {
+    color: #ef6a6a;
+    text-decoration: underline;
+}
+
+/* the flat loupe behind the red name, marking it as that search. stroke: currentColor in the
+   markup, so it wears the link's red without a colour of its own here */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-loupe {
+    width: 12px;
+    height: 12px;
+    margin-left: 5px;
+    vertical-align: -1px;
+}
+
+/* the wiki has not been asked (yet) - the panel's candidate grey, never red: nobody denied
+   this name */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-unknown > span {
+    color: #e0e0e0;
+    cursor: help;
+}
+
+/*
+ * A category with no wiki answer behind it - the year, a style, "Promo Mix", the "Tracklist:"
+ * filing. Muted grey and a dimmer border than the rest: they are on the page like the green
+ * and red names next to them, but nothing about them is a question, so they must not draw the
+ * eye away from the two names that are. No link and no count in the markup either.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-plain {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-plain > span {
+    color: #8b8b8b;
+    cursor: help;
+}
+
+/*
+ * The "N mixes" behind a confirmed name - the panel's muted count (.mdb-pageCreator-reasoning-
+ * mixes above). Where it is the recent-mixes toggle it is an <a> without an href; the dotted
+ * underline is what says "this opens something" without promising a page, and the hover
+ * brightens rather than recolours - the count is a side note either way. The toggle is a
+ * direct child of the chip like the green name link, so the known-link rule above hits it
+ * too - the second class here is what outranks that rule's green and bold.
+ */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-usedCat-mixes {
+    margin-left: 7px;
+    color: #8b8b8b;
+    font-size: 11.5px;
+    font-weight: normal;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat a.mdb-pageCreator-usedCat-mixes {
+    cursor: pointer;
+    border-bottom: 1px dotted rgba(139, 139, 139, 0.7);
+}
+
+/* text-decoration restated: the known-link hover rule above underlines every direct-child
+   <a> of a green chip on hover, and the dotted border is this element's only line */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat a.mdb-pageCreator-usedCat-mixes:hover {
+    color: #e0e0e0;
+    text-decoration: none;
+    border-bottom-color: rgba(224, 224, 224, 0.7);
+}
+
+/*
+ * The recent mix pages, folded out INSIDE the chip: the chip trades its pill radius for a
+ * rounder box and the list sits under a hairline in the chip's own green, so chip and list
+ * read as ONE bordered thing - which they are. Hidden by the chip's open class rather than
+ * jQuery's toggle: the bar is rebuilt whole on every render, and the class is what
+ * mdbPageCreator_openUsedCatRecent restores.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open {
+    border-radius: 12px;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent {
+    display: none;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
+    display: block;
+    margin-top: 4px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(46, 184, 46, 0.25);
+}
+
+/* one mix page per line - the ordinary link blue: these are pages, not verdicts */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:visited {
+    display: block;
+    padding: 1px 0;
+    color: #6cb2f7;
+    font-size: 11.5px;
+    font-weight: normal;
+    text-decoration: none;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:hover {
+    color: #6cb2f7;
+    text-decoration: underline;
+}
+
+/*
+ * The list's word while it has no links - the waiter above all: a chip whose pages the lookup
+ * answer did not bring fetches them on its first click (mdbPageCreator_usedCatFetchRecent),
+ * and this is what stands there until they land. The ring is the only spinner in the row; the
+ * skeleton's pulse would read as "this text is a placeholder", and the text here is real.
+ */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-note {
+    display: block;
+    padding: 1px 0;
+    color: #8b8b8b;
+    font-size: 11.5px;
+    font-weight: normal;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-waiting::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border: 1.5px solid rgba(139, 139, 139, 0.35);
+    border-top-color: #8b8b8b;
+    border-radius: 50%;
+    animation: mdb-pageCreator-spin .8s linear infinite;
+}
+
+@keyframes mdb-pageCreator-spin {
+    to { transform: rotate(360deg); }
+}
+
+/*
+ * The "Switch title:" line under the categories (mdbPageCreator_switchTitleHint in
+ * page_creator.js): the readings the build decided against, each as the full title it would
+ * make. The items column is stacked - one reading per line, block chips - on purpose: a click
+ * swaps the chip with the title field and the re-render puts the way back into the SAME slot,
+ * and chips that keep their line cannot re-order under the pointer.
+ */
+#mdb-pageCreator-hints #mdb-pageCreator-switchTitle {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+#mdb-pageCreator-hints #mdb-pageCreator-switchTitle .mdb-pageCreator-hint-items {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+/* one alternative reading: the category chips' size and hairline pill, but neutral - a chip
+   here is a candidate, not a verdict, and candidates stay grey (the panel's chip rule) */
+#mdb-pageCreator-hints .mdb-pageCreator-titleAlt {
+    display: block;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px 9px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+}
+
+/* the whole title is the click - candidate grey, brightening on hover the way the count
+   toggle does, with no underline: a chip this long underlined reads as a link to a page,
+   and there is no page, only the swap */
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a:visited {
+    color: #e0e0e0;
+    cursor: pointer;
+    text-decoration: none;
+    overflow-wrap: break-word;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+#mdb-pageCreator-hints .mdb-pageCreator-titleAlt:hover {
+    border-color: rgba(255, 255, 255, 0.40);
+}
+
+/*
+ * The MixesDB modal (mdbPageCreator_modalOpen in page_creator.js): the framed MixesDB page a
+ * plain left click on a "Used categories" link opens on a desktop-wide window. The box takes
+ * the panels' dark frame; the iframe itself stays white, because MixesDB is a light page and
+ * white is what it will paint anyway - a dark hole that flashes bright on load is worse.
+ * z-index at the top of the scale: the sites layer their own overlays generously, and a modal
+ * half under a player bar is unusable.
+ */
+#mdb-pageCreator-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 2vw;
+
+    /* Make the background blur. The rgba() tint is not optional next to it: pure blur alone
+       leaves the background too busy and hurts the contrast of the modal text. Lighter than
+       the flat 0.65 this had before the blur - the blur does half that work now. */
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);  /* Safari < 18 */
+    background-color: rgba(0, 0, 0, .35);
+
+    /* Fade in on INSERTION, not off a class: mdbPageCreator_modalOpen() builds this overlay
+       fresh on every open and mdbPageCreator_modalClose() removes it again, so there is no
+       closed resting state for a transition to run from - "opacity: 0" as the default simply
+       stayed, and the modal opened invisibly (which read as the category links being dead).
+       Animating backdrop-filter itself is expensive, so the whole overlay's opacity moves. */
+    animation: mdb-pageCreator-modal-in .25s ease-out;
+}
+
+@keyframes mdb-pageCreator-modal-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-box {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* wide: a MixesDB page lays its artwork out next to the text, and the 1100px this had
+       squeezed the images down to thumbnails on a screen that had the room for them */
+    width: min(1240px, 100%);
+    /* all the height the overlay's padding leaves (92vh) - a wiki page is read scrolling,
+       and a cap that looked fine on a laptop left half of a tall screen unused */
+    height: 100%;
+    overflow: hidden;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    color: #e0e0e0;
+    /* the row's own font, like every panel of the page creator. Stated here and not left to
+       inherit: the header would otherwise take whatever the SITE sets on its body - a serif
+       counter on one site, something else on the next - and the modal is our furniture, not
+       the page's. */
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* The two sides of the header, empty on the left and the buttons on the right. Both grow,
+   so they end up the same width and the nav between them sits on the header's real centre -
+   "flex: 1" on the nav alone would only centre it in whatever the buttons leave over. */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-side {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-side-end {
+    justify-content: flex-end;
+}
+
+/* The box takes the focus on every open and every step (mdbPageCreator_modalShow) so the
+   arrow keys reach the document instead of the framed page - but it is a panel, not a
+   control, and a focus ring around the whole modal reads as an error state. */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-box:focus {
+    outline: none;
+}
+
+/*
+ * The step arrows and the "3 / 12" between them - the row's links walked one by one
+ * (mdbPageCreator_modalStep). Centred in the header and the only thing in it that is about
+ * the modal rather than about the page in it, so it is also the only thing the eye has to
+ * find up there: bright enough and big enough to be read at a glance while stepping through
+ * a dozen pages. The arrow at either end of the row greys out rather than disappearing, so
+ * the counter does not jump sideways on the first and last step.
+ */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-step {
+    padding: 0 6px;
+    color: #e0e0e0;
+    /* a <button> takes the browser's form-control font unless it is told otherwise - the
+       header's font-family does NOT reach it by inheritance */
+    font-family: inherit;
+    font-size: 20px;
+    line-height: 1;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-step:hover {
+    color: #fff;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-step-off,
+#mdb-pageCreator-modal .mdb-pageCreator-modal-step-off:hover {
+    color: #6a6a6a;
+    cursor: default;
+}
+
+/* tabular figures: the counter sits between the two arrows, and "9 / 12" must not shift them
+   when it becomes "10 / 12" */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-count {
+    min-width: 60px;
+    color: #f0f0f0;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+/* the way out when a quick look turns into real reading - and the fallback if the frame
+   will not load. ID + class outruns the sites' <a> styling, like every link above. */
+#mdb-pageCreator-modal a.mdb-pageCreator-modal-ext,
+#mdb-pageCreator-modal a.mdb-pageCreator-modal-ext:visited {
+    color: #6cb2f7;
+    font-size: 12px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator-modal a.mdb-pageCreator-modal-ext:hover {
+    color: #6cb2f7;
+    text-decoration: underline;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-close {
+    padding: 0 4px;
+    color: #8b8b8b;
+    font-family: inherit;  /* same as the step buttons: <button> does not inherit it */
+    font-size: 22px;
+    line-height: 1;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-close:hover {
+    color: #e0e0e0;
+}
+
+/*
+ * The frame stack (mdbPageCreator_modalFrame): one iframe per page the modal has visited,
+ * all of them stacked in the same place and only the front one visible. Keeping the loaded
+ * documents is what makes a step instant - MixesDB takes the better part of a second to
+ * render a page and forbids caching it, so a page that has to be fetched again IS the wait.
+ */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frames {
+    position: relative;
+    flex: 1;
+    background-color: #fff;
+}
+
+/*
+ * visibility, not display: none. A display:none iframe has no box, so the page inside it lays
+ * itself out against a zero-width viewport and everything that reads a width on load - the
+ * skin's breakpoints, the images' sizes - decides against that. visibility keeps the box (and
+ * the layout that goes with it) and only stops the painting, so the hidden frames are laid
+ * out exactly as they will be seen.
+ */
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background-color: #fff;
+    visibility: hidden;
+}
+
+#mdb-pageCreator-modal .mdb-pageCreator-modal-frame-on {
+    visibility: visible;
+}
+
+/*
+ * The tracklist found in the player's description (page_creator.js, "Tracklist" section). Sits
+ * wherever the site script put it - above the description it was read out of - and not inside
+ * #mdb-pageCreator, which is one flex row and no place for a textarea.
+ *
+ * The box itself is the shared #tlEditor from global.js, styled by tracklistEditor_copy.css,
+ * which fixTLbox() loads. Only the wrapper and its headline are this file's business.
+ */
+#mdb-pageCreator-tracklist {
+    margin: 0 0 10px;
+}
+
+/*
+ * "Tracklist (from description)" - two elements doing two things. The word is the toggle, so it
+ * carries the pointer and the caret; the bracket is an <abbr> whose title says where the
+ * tracklist was read out of. A tooltip on the word would fight the click.
+ */
+#mdb-pageCreator-tracklist-headline {
+    margin-top: 20px;
+    font-size: 1.4rem;
+    
+    & abbr {
+        font-size: 13px;
+    }
+}
+
+#mdb-pageCreator-tracklist-headline > strong::after {
+    content: " \25B8"; /* right-pointing triangle - the box is closed */
+    font-size: 0.9em;
+}
+
+#mdb-pageCreator-tracklist.mdb-pageCreator-tracklist-open #mdb-pageCreator-tracklist-headline > strong::after {
+    content: " \25BE"; /* down-pointing - the box is open */
+}
+
+/* the dotted underline browsers give a titled <abbr> is the whole point - keep the cue honest */
+#mdb-pageCreator-tracklist-headline > abbr {
+    cursor: help;
+}
+
+/*
+ * NO "color" here, however tempting on a dark page. tracklistEditor_copy.css states the feedback
+ * colour per status (".tlEditor-feedback-complete #tlEditor-feedback { color: #090 }" and its
+ * hint/warning siblings) - green for complete, orange for incomplete, red for a warning - and
+ * that colour IS the message. Two IDs beat one ID and a class, so anything set here would win
+ * over all three and flatten them into one, which is how this rule was first written and what it
+ * cost. Each of those rules brings its own pale background, so they stay readable on dark pages
+ * without help from us.
+ */
+#mdb-pageCreator-tracklist #tlEditor-feedback {
+    font-size: 0.85rem;
+}
+
+/*
+ * "position: static" is not paranoia: these sites ship utility-class CSS of their own, and on
+ * SoundCloud's Material layout ".fixed" - which fixTLbox() used to put on the textarea - means
+ * "position: fixed", which lifted the box out of the flow and laid it over the page. That class
+ * is namespaced now, but the box sits in markup we do not own on every site, so the property it
+ * must never lose is stated rather than assumed.
+ */
+#mdb-pageCreator-tracklist #mixesdb-TLbox {
+    position: static !important;
+    box-sizing: border-box;
+    padding: 4px 6px;
+    color: #444;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    background-color: #fcfcfc;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 4px;
+}
+
+
+/*
+ * Loading skeleton (mdbSkeleton_* in page_creator.js)
+ *
+ * While mdb-skeleton-loading is on the covered container, everything real in it is
+ * display:none and only #mdb-skeleton shows: pulsing grey stand-ins shaped (and sized) like
+ * the content being built underneath, so the swap lands where the grey stood.
+ * mdbSkeleton_reveal() removes class and skeleton in one step.
+ * display:none is safe for everything built in there - the one thing that MEASURES itself
+ * (the tracklist textarea) sizes via its rows attribute, counted from the text, not from
+ * the DOM. Hardcoded dark greys: both sites showing it (SoundCloud's redesigned track
+ * pages, TrackId.net) are dark-themed.
+ */
+/* .mdb-skeleton-keep marks direct children the site wants visible DURING loading (the keep
+   option of mdbSkeleton_show() - TID's embedded player) */
+.mdb-skeleton-loading > :not(#mdb-skeleton):not(.mdb-skeleton-keep) {
+    display: none !important;
+}
+
+/* Fixed height (the height option of mdbSkeleton_show() overrides inline), not the
+   stand-ins' natural height - the box reserves the space of the TYPICAL final content, and
+   an area that ends up taller simply grows in the one reveal step. Flex column: the fixed
+   rows keep their size and the toolkit stand-in absorbs whatever height is left. */
+#mdb-skeleton {
+    box-sizing: border-box;
+    height: 280px;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #1c1c1c;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#mdb-skeleton > div {
+    flex: 0 0 auto;
+}
+
+#mdb-skeleton .mdb-skeleton-bar {
+    background-color: #2e2e2e;
+    border-radius: 4px;
+    animation: mdb-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mdb-skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #mdb-pageCreator-modal,
+    #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-waiting::before,
+    #mdb-skeleton .mdb-skeleton-bar,
+    #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bubble,
+    #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-skeleton-bar {
+        animation: none;
+    }
+}
+
+/* "head" row: headline left, artwork bar right (mirrors SC's floated #mdb-sc-trackHead) */
+#mdb-skeleton .mdb-skeleton-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 14px;
+}
+
+#mdb-skeleton .mdb-skeleton-headline {
+    height: 22px;
+    width: 60%;
+    max-width: 560px;
+}
+
+/* same 336px as SC's .mdb-artwork-input-wrapper-trackHeader, shrinking on narrow windows */
+#mdb-skeleton .mdb-skeleton-artwork {
+    height: 26px;
+    width: 336px;
+    max-width: 35%;
+    margin-right: 24px;
+}
+
+#mdb-skeleton .mdb-skeleton-row {
+    display: flex;
+    align-items: center;
+}
+
+/* "dates" row */
+#mdb-skeleton .mdb-skeleton-dates {
+    gap: 10px;
+    margin-bottom: 14px;
+}
+#mdb-skeleton .mdb-skeleton-dates .mdb-skeleton-bar {
+    height: 10px;
+    width: 110px;
+}
+#mdb-skeleton .mdb-skeleton-dates .mdb-skeleton-bar:nth-child(2) { width: 90px; }
+#mdb-skeleton .mdb-skeleton-dates .mdb-skeleton-bar:nth-child(3) { width: 100px; }
+
+/* "buttons" row - the 40px pills of SC's #mdb-sc-trackButtons */
+#mdb-skeleton .mdb-skeleton-buttons {
+    gap: 15px;
+    margin-bottom: 15px;
+}
+#mdb-skeleton .mdb-skeleton-buttons .mdb-skeleton-bar {
+    height: 40px;
+    width: 86px;
+    border-radius: 999px;
+}
+#mdb-skeleton .mdb-skeleton-buttons .mdb-skeleton-bar:nth-child(2) { width: 52px; }
+#mdb-skeleton .mdb-skeleton-buttons .mdb-skeleton-bar:nth-child(3) { width: 46px; }
+
+/* "player" row - one embed-sized block (the audiostream iframes are 120-166px) */
+#mdb-skeleton .mdb-skeleton-player {
+    height: 150px;
+    width: 100%;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+/* "toolkit" stand-in - the flex absorber that fills the box below the other rows */
+#mdb-skeleton .mdb-skeleton-block {
+    background-color: #212121;
+    border-radius: 6px;
+    padding: 12px;
+}
+#mdb-skeleton .mdb-skeleton-block .mdb-skeleton-bar {
+    height: 9px;
+    background-color: #2b2b2b;
+}
+#mdb-skeleton .mdb-skeleton-toolkit {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar {
+    width: 45%;
+}
+#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar + .mdb-skeleton-bar {
+    margin-top: 8px;
+}
+#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar:nth-child(2) { width: 30%; }
+
+/*
+ * The one-step reveal: a short fade on the container's direct children instead of a hard
+ * swap. Direct children only - nested toggled content (SC's #mdb-toggle-target boxes) would
+ * re-run the animation on every display toggle. Kept children were visible the whole time,
+ * so fading them too would make them blink.
+ */
+.mdb-skeleton-revealed > :not(.mdb-skeleton-keep) {
+    animation: mdb-skeleton-reveal .18s ease-out;
+}
+
+@keyframes mdb-skeleton-reveal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 
+ * 
+ * Site specific rules
+ * 
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+ * No margin below tracklist wrapper
+ */
+body.soundcloud-com #mdb-pageCreator-tracklist {
+    margin-bottom: 0;
+}
+
+/*
+ * The "Create" link in the new layout's own link colour. Here and not in page_creator.css: a
+ * --mui-* variable is this layout's design system, and nothing in the shared file may know about
+ * a single site.
+ *
+ * Scoped to #mdb-sc-trackExtras, which is our new-layout wrapper and exists nowhere else - that
+ * is also what stands in for a fallback value. The variable only lives on that document's :root,
+ * so an unscoped rule would fire on the old layout too, find nothing, and leave the link with the
+ * plain text colour instead of the link colour it has there today.
+ *
+ * Two IDs and no "body.soundcloud-com" in front: the specificity is already there without it, and
+ * this layout renders into its own document (the webi iframe), where the class global.js puts on
+ * the body is not something to bet a rule on. :hover is spelled out because MUI states a link
+ * colour for it too.
+ */
+body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create,
+body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
+    color: var(--mui-palette-link-light, inherit);
+}
+
+/* 
+ * soundcloud.com
+ */
+body.soundcloud-com {
+    /* Report link */
+    & #mdb-pageCreator #mdb-pageCreator-report {
+        color: var(--mui-palette-link-main);
+    }
+}
+
+
+/*
+ * trackid.net
+ */
+body.trackid-net {
+    & #mdb-skeleton {
+        height: 125px;
+    }
+    
+    & #mdb-pageCreator-confidence * {
+        font-size: 12px !important;
+    }
+    
+    & #mdb-pageCreator-create {
+        color: var(--main);
+        text-decoration: none;
+        
+        &:visited {
+            color: var(--main-very-dark);
+        }
+    }
+}</style></head><body><div class="wrap">
+<div id="mdb-pageCreator">
+  <div id="mdb-pageCreator-hints">
+    <span id="mdb-pageCreator-usedCats">
+      <span class="mdb-pageCreator-hint-label">Used categories:</span>
+      <span class="mdb-pageCreator-hint-items">
+        <span class="mdb-pageCreator-usedCat mdb-pageCreator-usedCat-plain"><span>2026</span></span>
+        <span class="mdb-pageCreator-usedCat mdb-pageCreator-usedCat-known mdb-pageCreator-usedCat-open">
+          <a href="#">Black Rave Culture</a><a class="mdb-pageCreator-usedCat-mixes">5 mixes</a><span class="mdb-pageCreator-catFit mdb-pageCreator-score-high">95%</span><span class="mdb-pageCreator-usedCat-recent"><a href="#">2022-04-08 &ndash; Black Rave Culture &amp; Gremlinz &ndash; Invisible City Radio</a><a href="#">2022-12-15 &ndash; Black Rave Culture &ndash; 3024 Tapes 001</a><a href="#">2024-07-31 &ndash; JD. Reid, Black Rave Culture &ndash; Rinse FM</a><a href="#">2025-02-03 &ndash; Black Rave Culture &ndash; RA Podcast (RA.974)</a><a href="#">2026-08-18 &ndash; Black Rave Culture &ndash; Groove Podcast 514</a></span>
+        </span>
+        <span class="mdb-pageCreator-usedCat mdb-pageCreator-usedCat-known mdb-pageCreator-usedCat-open">
+          <a href="#">Groove Podcast</a><a class="mdb-pageCreator-usedCat-mixes">514 mixes</a><span class="mdb-pageCreator-catFit mdb-pageCreator-score-high">95%</span><span class="mdb-pageCreator-usedCat-recent"><a href="#">2025-09-13 &ndash; Jane Fitz @ 10 Years Sound Metaphors, Cascina Cappuccina, Milan (Groove Podcast 505, 2026-06-03)</a><a href="#">2026-06-10 &ndash; Luigi Tozzi &ndash; Groove Podcast 506</a><a href="#">2026-06-17 &ndash; SHOKI287 &ndash; Groove Podcast 507</a><a href="#">2026-06-24 &ndash; Lolsnake &ndash; Groove Podcast 508</a><a href="#">2026-07-08 &ndash; GiGi FM &ndash; Groove Podcast 509</a><a href="#">2026-05-02 &ndash; Chris Liebing @ Watergate Open Air, SAGE, Berlin (Groove Podcast 510, 2026-07-15)</a><a href="#">2026-07-22 &ndash; DJ Godfather &ndash; Groove Podcast 511</a><a href="#">2026-07-29 &ndash; Identified Patient &ndash; Groove Podcast 512</a><a href="#">2026-08-12 &ndash; Danny Daze &ndash; Groove Podcast 513</a><a href="#">2026-08-18 &ndash; Black Rave Culture &ndash; Groove Podcast 514</a></span>
+        </span>
+        <span class="mdb-pageCreator-usedCat mdb-pageCreator-usedCat-plain"><span>Tracklist: none</span></span>
+      </span>
+    </span>
+  </div>
+</div>
+</div></body></html>
