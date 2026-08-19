@@ -1204,7 +1204,7 @@
     flex-direction: column;
     /* wide: a MixesDB page lays its artwork out next to the text, and the 1100px this had
        squeezed the images down to thumbnails on a screen that had the room for them */
-    width: min(1600px, 100%);
+    width: min(1240px, 100%);
     /* all the height the overlay's padding leaves (92vh) - a wiki page is read scrolling,
        and a cap that looked fine on a laptop left half of a tall screen unused */
     height: 100%;
