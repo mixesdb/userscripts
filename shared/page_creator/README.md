@@ -154,8 +154,9 @@ asked about, one chip per name, its colour saying whether the wiki already has i
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. The pages behind the links on screen are prefetched, so the modal
-is usually there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
+serve is a five-second one. The pages behind the links on screen are prefetched, and opening
+the modal warms every page its arrow keys can reach, so the first page and every step after it
+are usually there at once. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
 header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
 the links directly. On a narrow window the links open as tabs, as before.
 
@@ -163,9 +164,10 @@ The open modal is walked with the **left and right arrow keys**: one key frames 
 the next MixesDB link of the line, so a whole category and every mix page folded out under it
 can be looked through without going back to the row between two pages. It walks exactly what is
 on screen – a chip whose mix pages are not folded out is one step, not eleven – in the order the
-line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) and
-carries the same two arrows as buttons; at either end of the line the arrow greys out, since
-the walk does not wrap around. The line is re-read on every step, so a category answer that
+line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) in
+its middle and carries the same two arrows as buttons; at either end of the line the arrow
+greys out, since the walk does not wrap around. The header names nothing else – which page is
+framed is the framed page's own headline to say. The line is re-read on every step, so a category answer that
 lands while the modal is open is part of the walk from the next key on.
 
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB

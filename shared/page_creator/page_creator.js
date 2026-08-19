@@ -1631,7 +1631,6 @@ function mdbPageCreator_usedCategory( entry, state, title ) {
                 // mdbPageCreator_modalOpen - and this href is what every other click keeps.
                 .attr( "href", mdbPageCreator_categoryUrl( spelled ) )
                 .attr( "target", "_blank" )
-                .attr( "data-mdb-modal-label", "Category: " + spelled )
                 .attr( "title", "MixesDB has this category - opens [[Category:" + spelled + "]]." + note )
                 .text( entry.name )
         );
@@ -1670,7 +1669,6 @@ function mdbPageCreator_usedCategory( entry, state, title ) {
         $("<a>")
             .attr( "href", mdbPageCreator_searchUrl( entry.name ) )
             .attr( "target", "_blank" )
-            .attr( "data-mdb-modal-label", "MixesDB search: " + entry.name )
             .attr( "title", "MixesDB has no " + ( entry.role === "artist" ? "artist " : "" ) + "category of this name - a new name, or spelled differently there. Search MixesDB for it to tell those two apart." )
             .text( entry.name )
             .append( mdbPageCreator_usedCatLoupe() )
@@ -3572,7 +3570,9 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
  * Once it is open the arrow keys walk the bar: left/right frames the previous/next MixesDB
  * link that is on screen right now, so the whole line - every category, every folded-out mix
  * page - can be looked through without going back to the row for each one. The header counts
- * the steps ("3 / 12") and carries the same two arrows as buttons.
+ * the steps ("3 / 12") and carries the same two arrows as buttons. Opening the modal warms
+ * every page of that walk at once (mdbPageCreator_modalPrefetchWalk), on top of what the
+ * bar's own render already prefetched, so a step is as immediate as the first click was.
  */
 var mdbPageCreator_modalMinWidth = 1024,
     // every MixesDB page already prefetched, by URL - the bar rebuilds constantly and the
@@ -3633,15 +3633,15 @@ $(document).on( "click", "#mdb-pageCreator-usedCats a[href]", function( e ) {
     if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
 
     e.preventDefault();
-    mdbPageCreator_modalOpen( this.href, $(this).attr( "data-mdb-modal-label" ) || $(this).text() );
+    mdbPageCreator_modalOpen( this.href );
 });
 
 // mdbPageCreator_modalOpen
 // One modal at a time - opening replaces whatever is up. The overlay is class mdb-element,
 // so the shared navigation cleanup (onUrlChange in global.js) takes it down with the row.
-// The frame and the header's texts are filled by mdbPageCreator_modalShow, which is also
+// The frame and the header's link are filled by mdbPageCreator_modalShow, which is also
 // what every arrow key runs afterwards - opening is just the first step of the walk.
-function mdbPageCreator_modalOpen( url, label ) {
+function mdbPageCreator_modalOpen( url ) {
     logVar( "mdbPageCreator_modalOpen", url );
 
     mdbPageCreator_modalClose();
@@ -3658,27 +3658,35 @@ function mdbPageCreator_modalOpen( url, label ) {
         // tabindex so the box itself can hold the focus: the framed page is cross-origin, and
         // a focused iframe eats the arrow keys before the document ever sees them
         $("<div>").addClass( "mdb-pageCreator-modal-box" ).attr( "tabindex", "-1" ).append(
+            // no page name in the header: the framed page carries its own headline, and the
+            // arrows are the only thing up here that cannot be read off the page itself
             $("<div>").addClass( "mdb-pageCreator-modal-head" ).append(
-                $("<span>").addClass( "mdb-pageCreator-modal-title" ),
+                // an empty side that grows exactly like the one holding the buttons - the
+                // pair is what centres the arrows on the HEADER instead of on the space
+                // left over next to them
+                $("<span>").addClass( "mdb-pageCreator-modal-side" ),
                 mdbPageCreator_modalNav(),
-                $("<a>")
-                    .addClass( "mdb-pageCreator-modal-ext" )
-                    .attr( "target", "_blank" )
-                    .attr( "title", "Open this page as its own tab" )
-                    .text( "Open on MixesDB" ),
-                $("<button>")
-                    .addClass( "mdb-pageCreator-modal-close" )
-                    .attr( "type", "button" )
-                    .attr( "title", "Close (Esc)" )
-                    .text( "×" )
-                    .on( "click", mdbPageCreator_modalClose )
+                $("<span>").addClass( "mdb-pageCreator-modal-side mdb-pageCreator-modal-side-end" ).append(
+                    $("<a>")
+                        .addClass( "mdb-pageCreator-modal-ext" )
+                        .attr( "target", "_blank" )
+                        .attr( "title", "Open this page as its own tab" )
+                        .text( "Open on MixesDB" ),
+                    $("<button>")
+                        .addClass( "mdb-pageCreator-modal-close" )
+                        .attr( "type", "button" )
+                        .attr( "title", "Close (Esc)" )
+                        .text( "×" )
+                        .on( "click", mdbPageCreator_modalClose )
+                )
             )
         )
     );
 
     $("body").append( overlay );
 
-    mdbPageCreator_modalShow( url, label );
+    mdbPageCreator_modalShow( url );
+    mdbPageCreator_modalPrefetchWalk();
 
     $(document).on( "keydown.mdbPageCreatorModal", function( e ) {
         if( e.key === "Escape" ) { mdbPageCreator_modalClose(); return; }
@@ -3693,6 +3701,33 @@ function mdbPageCreator_modalOpen( url, label ) {
 
         mdbPageCreator_modalStep( e.key === "ArrowRight" ? 1 : -1 );
     });
+}
+
+// mdbPageCreator_modalPrefetchWalk
+// Every page the arrow keys can reach from here, warmed the moment the modal is up. The walk
+// is what the modal is FOR - a reader steps through a dozen pages in the time one of them
+// would take to open in a tab - so the whole line is fetched at once rather than one page per
+// key. Cheap even where it is redundant: mdbPageCreator_prefetch remembers every URL it has
+// been given, so the links the bar's own render already warmed cost nothing a second time.
+//
+// And it is not always redundant. The render's prefetch is gated on a desktop-wide window
+// (mdbPageCreator_prefetchHintLinks), and a window WIDENED after the bar was built re-renders
+// nothing - the modal opening is then the first moment anything knows those links are
+// reachable at all.
+//
+// The framed page itself is skipped: the iframe is fetching it while this runs, and a
+// prefetch of the same URL is a second request for bytes already on the way.
+function mdbPageCreator_modalPrefetchWalk() {
+    var links = mdbPageCreator_modalLinks(),
+        i;
+
+    logVar( "mdbPageCreator_modalPrefetchWalk", links.length );
+
+    for( i = 0; i < links.length; i++ ) {
+        if( links[i].href === mdbPageCreator_modalUrl ) continue;
+
+        mdbPageCreator_prefetch( links[i].href );
+    }
 }
 
 // mdbPageCreator_modalNav
@@ -3720,14 +3755,14 @@ function mdbPageCreator_modalNav() {
 }
 
 // mdbPageCreator_modalShow
-// Frames one page in the modal that is already up - the header's name, its "Open on MixesDB"
-// link, the counter and the frame itself.
+// Frames one page in the modal that is already up - its "Open on MixesDB" link, the counter
+// and the frame itself.
 //
 // The iframe is REPLACED rather than pointed at the new URL: assigning src to a frame that
 // already loaded something pushes an entry onto the TOP page's session history, so five steps
 // through the row would bury the site's own Back button five clicks deep. A fresh iframe's
 // first load replaces instead of pushing.
-function mdbPageCreator_modalShow( url, label ) {
+function mdbPageCreator_modalShow( url ) {
     var overlay = $("#mdb-pageCreator-modal"),
         box = overlay.find( ".mdb-pageCreator-modal-box" );
 
@@ -3737,7 +3772,6 @@ function mdbPageCreator_modalShow( url, label ) {
 
     mdbPageCreator_modalUrl = url;
 
-    overlay.find( ".mdb-pageCreator-modal-title" ).text( label );
     overlay.find( "a.mdb-pageCreator-modal-ext" ).attr( "href", url );
 
     box.find( ".mdb-pageCreator-modal-frame" ).remove();
@@ -3786,17 +3820,13 @@ function mdbPageCreator_modalIndex( links ) {
 function mdbPageCreator_modalStep( dir ) {
     var links = mdbPageCreator_modalLinks(),
         at = mdbPageCreator_modalIndex( links ),
-        next = at + dir,
-        link;
+        next = at + dir;
 
     if( at < 0 || next < 0 || next >= links.length ) return;
 
-    link = $(links[ next ]);
-
     // links[next].href, not the attribute: the URL is what the next step looks the position
     // up by, so it has to be the same absolute string the DOM reports.
-    mdbPageCreator_modalShow( links[ next ].href,
-        link.attr( "data-mdb-modal-label" ) || $.trim( link.text() ) );
+    mdbPageCreator_modalShow( links[ next ].href );
 }
 
 // mdbPageCreator_modalCount
@@ -4805,7 +4835,6 @@ function mdbPageCreator_reasoningRecentRead( info ) {
             .addClass( "mdb-pageCreator-known" )
             .attr( "href", mdbPageCreator_categoryUrl( info.catTitle ) )
             .attr( "target", "_blank" )
-            .attr( "data-mdb-modal-label", "Category: " + info.catTitle )
             .attr( "title", "Open [[Category:" + info.catTitle + "]] on MixesDB" )
             .text( "Category:" + info.catTitle )
     );
