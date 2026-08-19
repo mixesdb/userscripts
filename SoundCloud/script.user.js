@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.19.11
+// @version      2026.08.19.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_119
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_33
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_47
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_34
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_48
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_12
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_58
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_59
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_5
 // @include      http*soundcloud.com*
@@ -1836,6 +1836,26 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.19.12
+ * Festival sets whose title says so only with a "-" now come out as live recordings
+ * (title_builder.js v_48, title_definitions.js v_34, page_creator.js v_59). From two more
+ * reports on 3000Grad uploads. "Kollektiv Ost - 3000Grad Festival 3023" was filed as the
+ * channel's own Promo Mix: the event branch refuses a name that reads as a numbered series,
+ * and it counted the digits of "3000Grad" as the number - a number that COUNTS ends where the
+ * digits end, and these run on into letters, which is a spelling. MixesDB answering "event"
+ * about a name is now enough on its own as well, whatever separator the uploader typed, so an
+ * event whose name does not say what it is ("Fusion", "Melt") opens the same reading; behind
+ * an event only a country is kept as the second place, exactly as before.
+ * "Timboletti im Chapeau Club - 3000Grad Festival 3025 - Rosmarin und Lavendel -
+ * Undercover-Ambient" scored 10% and asked the wiki about the whole glued chain. A chunk long
+ * enough to be a CHAIN of names is now asked about in pieces as well as whole ("Timboletti" is
+ * a category, "Timboletti im Chapeau Club" never will be), split at "im", "in", "am", "at",
+ * "auf", "bei", "on", "und", "and" and "by". The place words among them also shorten the name,
+ * but only inside a set played at an event and only when the channel or MixesDB backs the part
+ * in front: there the place is settled by the event, so a corner of its site goes the way the
+ * set name and the genre already go. Both come out as
+ * "2023 - Kollektiv Ost @ 3000Grad Festival" and "2025 - Timboletti @ 3000Grad Festival".
  *
  * 2026.08.19.11
  * A part an uploader wrapped in dashes is now a chunk of its own, and 3000Grad's joke year is

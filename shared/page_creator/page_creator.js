@@ -3029,12 +3029,14 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
 
 // mdbPageCreator_reasoningOrigin
 // Where an asked name came from, as a note - or nothing when the name IS the chunk section 1
-// shows, which needs no explaining. The five that do: the channel (asked though it stands
+// shows, which needs no explaining. The six that do: the channel (asked though it stands
 // nowhere in the title), a channel that names several, a curated show name, a chunk the
 // candidate reduced (the trailing episode number comes off, since a category name never
-// carries one), and a name the first parse read out of its chunk (the chunk itself carries
-// more than the name, so the chunk side could never ask it). A name typed into the title
-// field afterwards says so too, so it is not read as something the player title contained.
+// carries one), one of the names a long chunk strings together with a little word
+// ("Timboletti im Chapeau Club"), and a name the first parse read out of its chunk (the chunk
+// itself carries more than the name, so the chunk side could never ask it). A name typed into
+// the title field afterwards says so too, so it is not read as something the player title
+// contained.
 function mdbPageCreator_reasoningOrigin( name, source ) {
     if( !source || !source.origin ) return null;
 
@@ -3063,6 +3065,10 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
             if( source.chunk && mdbTitle_normalizeCompare( source.chunk ) !== mdbTitle_normalizeCompare( name ) ) {
                 text = "from the chunk \"" + source.chunk + "\" - a category name carries no episode number";
             }
+            break;
+        case "chunk part":
+            text = "one of the names the chunk \"" + source.chunk + "\" strings together - the chunk is asked " +
+                   "about as a whole too, but a chain of names can only answer empty";
             break;
     }
 

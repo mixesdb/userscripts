@@ -438,6 +438,39 @@ var mdbTitleExamples = [
         expect: "2025 - Ri0D. @ 3000Grad Festival"
     },
 
+    {
+        url: "https://soundcloud.com/kollektivost/kollektiv-ost-3000grad-festival-3023",
+        title: "Kollektiv Ost - 3000Grad Festival 3023",
+        channel: "Kollektiv Ost",
+        date: "2023-08-18",
+        known: { "3000Grad Festival": { type: "event", mixes: 276 }, "Kollektiv Ost": { type: "artist", mixes: 18 } },
+        // a festival set written with a "-". The event branch used to refuse it: its "an event
+        // is a place, not a series" guard counted the digits of "3000Grad" as an episode
+        // number, so the title fell through to the channel-as-artist reading and came out as
+        // the channel's own Promo Mix. A number that COUNTS ends where the digits end - these
+        // run on into letters, which is a spelling
+        expectArtists: [ "Kollektiv Ost" ],
+        expectEntity: "3000Grad Festival",
+        expect: "2023 - Kollektiv Ost @ 3000Grad Festival"
+    },
+    {
+        url: "https://soundcloud.com/timboletti/rosmarinlavendel",
+        title: "Timboletti im Chapeau Club - 3000Grad Festival 3025 - Rosmarin und Lavendel - Undercover-Ambient",
+        channel: "timboletti",
+        date: "2025-08-13",
+        known: { "3000Grad Festival": { type: "event", mixes: 276 }, "Timboletti": { type: "artist", mixes: 8 } },
+        // four chunks, of which a MixesDB title carries two. The first is a chain - the artist
+        // and the corner of the festival site they played in - and asking the wiki about the
+        // pair can only answer empty, so a long chunk is asked about in pieces as well
+        // ("Timboletti" is a category, "Timboletti im Chapeau Club" never will be). The place
+        // word is also what shortens the name: inside a set played at an event the place is
+        // settled, so what stands behind "im" goes the way the set name and the genre go
+        expectArtists: [ "Timboletti" ],
+        expectEntity: "3000Grad Festival",
+        expectChunks: [ "Timboletti im Chapeau Club", "3000Grad Festival", "Rosmarin und Lavendel", "Undercover-Ambient" ],
+        expect: "2025 - Timboletti @ 3000Grad Festival"
+    },
+
     // Reported before the URLs were kept
     {
         title: "HATE Podcast 496 - Fadi Mohem",

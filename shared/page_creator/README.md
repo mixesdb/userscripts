@@ -21,7 +21,11 @@ score next to it says how sure the suggestion is.
 
 MixesDB's own category names sharpen the guess: the names in the title and the channel name are
 looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venue or event is
-read as exactly that – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
+read as exactly that – a name it knows as an **event** makes the title a live recording however
+the uploader separated it, so `Kollektiv Ost - 3000Grad Festival` is a set played there and not
+a mix released under that name. A chunk long enough to be a **chain** of names is asked about in
+pieces as well as whole – `Timboletti im Chapeau Club` is looked up as itself, as `Timboletti`
+and as `Chapeau Club`, because the wiki can only answer empty about the pair – and written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
 tamed to "DJ Maria.", because the category holding her mixes is spelled that way).
 
@@ -42,7 +46,11 @@ one place group behind it. `Live at`, `live@` and a typed `@` all read the same,
 `@` folds into the place group – `live@3000Grad Festival @Utopia` becomes
 `@ 3000Grad Festival, Utopia`, filed under the first place alone – unless a place further back
 names the event (`… @ Dark Skies, Horst Festival`), which is the same group written the other way
-round and is filed under the festival. A group whose steps the uploader separated with a bracket,
+round and is filed under the festival. Such a title carries the artist and the place and nothing
+else: a stage, a camp, the set's own name, the genre – and the corner of the site named behind an
+`im`/`at`/`bei` in the artist's own chunk (`Timboletti im Chapeau Club @ 3000Grad Festival`
+becomes `Timboletti @ 3000Grad Festival`, once the channel or the wiki backs the name in front of
+the word) – all go. A group whose steps the uploader separated with a bracket,
 a `|` or a dash wrap instead of a second `@` is joined the same way
 (`@ Utopia | Ritter Butzke | Berlin` becomes `@ Utopia, Ritter Butzke, Berlin`). Such a title claims only the
 year, and a year the place list itself names wins over the upload year and leaves the list
