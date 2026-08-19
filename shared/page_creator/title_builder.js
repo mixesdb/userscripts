@@ -2436,6 +2436,18 @@ function mdbTitle_canonicalArtists( known, group ) {
     return parts.join( "" );
 }
 
+// mdbTitle_stripTrailingNumber
+// A trailing episode number or year off a name, because that is how a series name stands in a
+// title: "HATE Podcast 496" is filed as "HATE Podcast", "Trommel.251" as "Trommel", "Landjuweel
+// Festival 2026" as "Landjuweel Festival". From the RIGHT only - with 57,000+ artist categories
+// nearly every common word is one, so shortening a name from the left invents matches ("MOLTO
+// IN THE MIX" must not find the show "In The Mix").
+function mdbTitle_stripTrailingNumber( name ) {
+    return String( name || "" )
+        .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?\s*\d{1,4}\s*$/i, "" )
+        .trim();
+}
+
 // mdbTitle_categoryCandidates
 // The names worth asking about: the channel, and every chunk of the title. The chunks are the
 // SHARED split (mdbTitle_titleChunks): brackets read as separators and the series-"by" split
@@ -2478,8 +2490,13 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
     function take( name, role, origin, chunk ) {
         if( !name ) return;
 
-        // the replaced channel name - the one name the maps already answer for
-        if( channelReplaced && mdbTitle_normalizeCompare( name ) === mdbTitle_normalizeCompare( spacedUser ) ) return;
+        // the replaced channel name - the one name the maps already answer for. Not the
+        // curated show itself, however much it may READ like the channel name: a channel
+        // series entry may well map to the channel's own name ("In The Mix" on "Juno Daily"
+        // -> the show "Juno Daily"), and the show is the one name that has to be asked -
+        // it is the entity the page is filed under.
+        if( channelReplaced && origin !== "curated show" &&
+            mdbTitle_normalizeCompare( name ) === mdbTitle_normalizeCompare( spacedUser ) ) return;
 
         mdbTitle_noteCandidateRole( name, role );
         mdbTitle_noteCandidateSource( name, origin, chunk );
@@ -2523,17 +2540,35 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
                     : mdbTitle_seriesScore( bit ) > 0 ? "entity"
                     : "artist";
 
+        // What the curated channel rule already answered for is not asked about: the words
+        // it read ("In The Mix" on "Juno Daily", "DJ MIX #679" on "Dance TV") name the show
+        // only together with the channel, so on their own they are either not a category at
+        // all or the WRONG one - and the show they name is already a candidate, in the
+        // channel's priority slot above. Chunk by chunk, since a consumed phrase can span
+        // several ("Juno Daily" + "In The Mix"), and against the number-stripped form too,
+        // which is where "DJ MIX #679" turns into the "DJ Mix" that must not be asked.
+        var consumed = seriesConv ? mdbTitle_normalizeCompare( seriesConv.found ) : "",
+            bitKey = mdbTitle_normalizeCompare( bit ),
+            bitBase = mdbTitle_normalizeCompare( mdbTitle_stripTrailingNumber( bit ) );
+
+        if( consumed && ( ( bitKey.length >= 3 && consumed.indexOf( bitKey ) !== -1 ) ||
+                          ( bitBase.length >= 3 && consumed.indexOf( bitBase ) !== -1 ) ) ) {
+            // ... but a chunk that IS the show needs no "not asked" line: it stands in the
+            // list above under its own name, and reading it in both places at once is the
+            // panel contradicting itself
+            if( bitKey !== mdbTitle_normalizeCompare( seriesConv.entity ) ) {
+                mdbTitle_noteChunkNotAsked( bits[i],
+                    "the curated channel rule already read it as the show \"" + seriesConv.entity + "\", which is asked instead" );
+            }
+
+            continue;
+        }
+
         // a page title that long is not a name, and asking wastes the request
         if( bit && bit.length <= 80 ) {
-            // a trailing episode number or year taken off, because that is how a series name
-            // stands in a title: "HATE Podcast 496" is filed as "HATE Podcast", "Trommel.251"
-            // as "Trommel", "Landjuweel Festival 2026" as "Landjuweel Festival". From the
-            // RIGHT only - with 57,000+ artist categories nearly every common word is one, so
-            // shortening a name from the left invents matches ("MOLTO IN THE MIX" must not
-            // find the show "In The Mix").
-            var stripped = bit
-                .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?\s*\d{1,4}\s*$/i, "" )
-                .trim();
+            // the trailing episode number or year off, because that is how a series name
+            // stands in a title - see mdbTitle_stripTrailingNumber
+            var stripped = mdbTitle_stripTrailingNumber( bit );
 
             // Only the REDUCED form is asked: a category name never carries the episode
             // number, so the full "DJ Mix #677" could only answer empty - and finding the
@@ -3568,8 +3603,13 @@ function mdbTitle_showFromUsername( username ) {
 // mdbTitleChannelSeriesConversions (title_definitions.js): the channel and a word in the title
 // name the show TOGETHER. Returns { text, entity, words } with the words grown into the curated
 // name inside the text, or null when the channel is not listed or the title carries none of its
-// words. The full curated name is tried before the bare words, so a title already carrying it
-// only gets its spelling corrected and never grows a second channel name in front of itself.
+// words.
+// All of the channel's entries are searched at once, longest name first - every entry's words
+// AND the show they map to, in one list. A channel writes the same show both ways, in full
+// ("Juno Daily - In The Mix: Space Ghost") and halved ("In The Mix: Ben Diggins"), which takes
+// two entries; each of the two names is also a piece of the other, so whichever stands in the
+// title, the more specific one has to be found first. Trying entry by entry cannot do that -
+// it would make the ORDER the entries happen to be written in decide the suggestion.
 function mdbTitle_channelSeriesConversion( text, username ) {
     var map = ( typeof mdbTitleChannelSeriesConversions !== "undefined" && mdbTitleChannelSeriesConversions ) ? mdbTitleChannelSeriesConversions : {},
         key = "",
@@ -3587,45 +3627,52 @@ function mdbTitle_channelSeriesConversion( text, username ) {
     if( !key ) return null;
 
     var entries = map[key],
-        words, entity, candidates, re, c;
+        candidates = [],
+        words, entity, re, c;
 
+    // Every name the channel's entries offer, each remembering the entry it came from: the
+    // words a title may carry, and the show they map to - a title already carrying the show
+    // in full is the same lookup, it just needs no rewriting.
     for( words in entries ) {
         if( !Object.prototype.hasOwnProperty.call( entries, words ) ) continue;
 
         entity = entries[words];
         if( !entity ) continue;
 
-        // Longest first, never "entity, then words": which of the two CONTAINS the other
-        // differs per entry, and the shorter one always matches inside the longer one.
-        // "Dance TV DJ Mix" (entity) contains "DJ Mix" (words), so the entity has to be
-        // tried first there or a title already carrying it grows a second "Dance TV".
-        // "Juno Daily – In The Mix" (words) contains "Juno Daily" (entity), so the entity
-        // tried first matches its own first two words, replaces them with themselves and
-        // leaves the rest of the show name standing in the title as if it were an artist.
-        // Longest-first is right in both directions - it is always the more specific match.
-        candidates = [ entity, words ].sort( function( a, b ) { return b.length - a.length; } );
+        candidates.push( { name: entity, entity: entity, words: words } );
+        candidates.push( { name: words,  entity: entity, words: words } );
+    }
 
-        for( c = 0; c < candidates.length; c++ ) {
-            // more looseness than a mapped channel name gets: any case, inner spaces optional
-            // AND the dash/colon between the words free (see mdbTitle_escapeReLooseSeparators),
-            // word boundaries around the whole name
-            re = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSeparators( candidates[c] ) + "(?![\\w])", "i" );
+    // Longest first, and never "entity before words" or "entry before entry": which name
+    // contains which differs per entry, and the shorter one always matches inside the longer.
+    // "Dance TV DJ Mix" (show) contains "DJ Mix" (words), so a title already carrying the show
+    // must not grow a second "Dance TV"; "Juno Daily - In The Mix" (words) contains "Juno
+    // Daily" (show), so the show found first would match its own first two words, replace them
+    // with themselves and leave "- In The Mix" standing in the title as if it were an artist.
+    // Longest-first is right in every direction - it is always the more specific match.
+    candidates.sort( function( a, b ) { return b.name.length - a.name.length; } );
 
-            if( re.test( text ) ) {
-                // "found" keeps the words as the TITLE wrote them ("DJ MIX"), so the panel's
-                // step can quote the title rather than the curated key
-                var found = "";
+    for( c = 0; c < candidates.length; c++ ) {
+        // more looseness than a mapped channel name gets: any case, inner spaces optional
+        // AND the dash/colon between the words free (see mdbTitle_escapeReLooseSeparators),
+        // word boundaries around the whole name
+        re = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSeparators( candidates[c].name ) + "(?![\\w])", "i" );
 
-                return {
-                    text: text.replace( re, function( all, lead ) {
-                        found = all.slice( lead.length );
-                        return lead + entity;
-                    } ),
-                    entity: entity,
-                    words: words,
-                    found: found
-                };
-            }
+        if( re.test( text ) ) {
+            // "found" keeps the words as the TITLE wrote them ("DJ MIX"), so the panel's
+            // step can quote the title rather than the curated key
+            var found = "",
+                entry = candidates[c];
+
+            return {
+                text: text.replace( re, function( all, lead ) {
+                    found = all.slice( lead.length );
+                    return lead + entry.entity;
+                } ),
+                entity: entry.entity,
+                words: entry.words,
+                found: found
+            };
         }
     }
 

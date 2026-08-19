@@ -24,8 +24,8 @@ const source = [ "title_definitions.js", "title_builder.js", "title_examples.js"
     .map( file => Deno.readTextFileSync( dir + file ) )
     .join( "\n" );
 
-const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitleExamples ] =
-    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitleExamples ]" );
+const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitle_categoryCandidates, mdbTitleExamples ] =
+    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitle_categoryCandidates, mdbTitleExamples ]" );
 
 let failed = 0;
 
@@ -76,6 +76,18 @@ for( const example of mdbTitleExamples ) {
           chunksOk = !example.expectChunks ||
                      chunks.join( " | " ) === example.expectChunks.join( " | " );
 
+    // And the names the lookup ASKS the wiki about (mdbTitle_categoryCandidates) - the same
+    // list the second pass and the panel's section 3 are built from. expectAsked names what
+    // must be in it, expectNotAsked what may never be: a name a curated rule has already
+    // answered for costs a request out of the 10 and can only answer wrong.
+    const asked = ( example.expectAsked || example.expectNotAsked )
+              ? mdbTitle_categoryCandidates( example.title, example.channel, example.description || "", example.date )
+              : null,
+          askedOk = ( !example.expectAsked ||
+                      example.expectAsked.every( name => asked.some( a => mdbTitle_normalizeCompare( a ) === mdbTitle_normalizeCompare( name ) ) ) ) &&
+                    ( !example.expectNotAsked ||
+                      example.expectNotAsked.every( name => !asked.some( a => mdbTitle_normalizeCompare( a ) === mdbTitle_normalizeCompare( name ) ) ) );
+
     // A case may state the switchable readings the build has to OFFER - the hints bar's
     // "Switch title:" chips - as the fact kinds that must be present ("livePa", "promoMix",
     // "placeWord"), and expectNoAlternatives as the kinds it may never offer. Presence and
@@ -88,10 +100,10 @@ for( const example of mdbTitleExamples ) {
                    ( !example.expectNoAlternatives ||
                      example.expectNoAlternatives.every( kind => altKinds.indexOf( kind ) === -1 ) );
 
-    if( !titleOk || !artistsOk || !entityOk || !chunksOk || !altsOk ) failed++;
+    if( !titleOk || !artistsOk || !entityOk || !chunksOk || !askedOk || !altsOk ) failed++;
 
     console.log(
-        ( titleOk && artistsOk && entityOk && chunksOk && altsOk ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk && entityOk && chunksOk && askedOk && altsOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
         "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
@@ -107,6 +119,11 @@ for( const example of mdbTitleExamples ) {
         ( example.expectChunks
             ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +
               ( chunksOk ? "" : "\n              expected   chunks " + JSON.stringify( example.expectChunks ) )
+            : "" ) +
+        ( example.expectAsked || example.expectNotAsked
+            ? "\n              " + ( askedOk ? "" : "got      " ) + "asked " + JSON.stringify( asked ) +
+              ( askedOk ? "" : "\n              expected   asked " + JSON.stringify( example.expectAsked || [] ) +
+                              ( example.expectNotAsked ? ", never " + JSON.stringify( example.expectNotAsked ) : "" ) )
             : "" ) +
         ( example.expectAlternatives || example.expectNoAlternatives
             ? "\n              " + ( altsOk ? "" : "got      " ) + "alternatives " + JSON.stringify( altKinds ) +

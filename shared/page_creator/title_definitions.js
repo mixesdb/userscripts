@@ -356,11 +356,17 @@ var mdbTitleUsernameConversions = {
  *   other, the more specific match wins: "Dance TV DJ Mix #680" does not grow a second
  *   "Dance TV" in front of itself, and "Juno Daily - In The Mix: Space Ghost" loses the
  *   whole show name rather than just the "Juno Daily" at its front
- * - several word entries per channel are fine; the first one found in the title wins
+ * - several word entries per channel are fine, and a channel that writes the same show both
+ *   in full and halved needs two of them ("Juno Daily - In The Mix" AND "In The Mix"). They
+ *   are searched TOGETHER, longest name first, so the order they are written in does not
+ *   matter and the more specific of two overlapping names always wins
  */
 var mdbTitleChannelSeriesConversions = {
     "Dance TV": { "DJ Mix": "Dance TV DJ Mix" }, // https://soundcloud.com/dancetelevision/mister-joshooa-detroit-usa
-    "Juno Daily": { "Juno Daily – In The Mix": "Juno Daily" } // https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-space
+    "Juno Daily": {
+        "Juno Daily – In The Mix": "Juno Daily", // https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-space
+        "In The Mix": "Juno Daily"               // https://soundcloud.com/junodailyonline/in-the-mix-ben-diggins
+    }
 };
 
 
