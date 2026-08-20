@@ -516,7 +516,9 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   in `mdbPageCreator_styleCatCache`, never reset - styles repeat across entities, so the second
   Techno series costs no request), and `mdbPageCreator_recentLearnedCategories()` splits the
   winners on the answer: a name the wiki files under `Category:Style` goes into the page's style
-  lines (at most two, the rest of the block keeps its blank rows), everything else stays the
+  lines (at most two, with ONE blank row behind them - the blanks are a spare to type into, not
+  a shape to fill, so two of them stand only where nothing was written; asked for on 2026-08-20),
+  everything else stays the
   HINT it was - `mdbPageCreator_recentHintCategories()` feeds the bar's "Hints:" row (chip + a
   note saying which pages it came off) and the block closing section 6, where the same lines are
   plain text. Pending and failed answers write nothing: only "yes" writes.

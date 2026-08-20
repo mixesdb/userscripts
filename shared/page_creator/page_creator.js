@@ -672,14 +672,16 @@ function mdbPageCreator_styleCategories() {
 // mix is a promo mix, and how its tracklist is filed.
 //
 // "Date - Artist - Entity" gives the year, one category per artist (every joiner between two
-// names means another one - "See Bastian b2b Afin" is two categories), and the entity. Then two
-// style slots, filled by whoever can answer what the mix sounds like: a site that SUGGESTS
-// styles (the stylesBox option, TrackId.net) reads them off the mix itself and wins; where
-// there is no such box, a style at least 90% of the entity's recent pages carry takes a slot
-// (mdbPageCreator_recentLearnedCategories) - and where neither answers, the slot stays the
-// blank the editor cannot miss, because a guess there is worse than nothing. The "Tracklist:"
-// filing is whatever the Tracklist Editor API last said about the box - "none" when there is no
-// tracklist at all.
+// names means another one - "See Bastian b2b Afin" is two categories), and the entity. Then the
+// styles, from whoever can answer what the mix sounds like: a site that SUGGESTS styles (the
+// stylesBox option, TrackId.net) reads them off the mix itself and wins; where there is no such
+// box, a style at least 90% of the entity's recent pages carry is written
+// (mdbPageCreator_recentLearnedCategories) - and where neither answers, two blank rows stand
+// there, because a guess is worse than a blank the editor cannot miss. Behind a style that WAS
+// written stands one blank row, not two: it is the spare a second style is typed into, and one
+// line too many is deleted faster than a missing one is added. The "Tracklist:" filing is
+// whatever the Tracklist Editor API last said about the box - "none" when there is no tracklist
+// at all.
 function mdbPageCreator_pageCategories( title ) {
     var entries = mdbPageCreator_categoryEntries( title ),
         out = "",
@@ -763,9 +765,11 @@ function mdbPageCreator_categoryEntries( title ) {
             written++;
         }
 
-        // the block keeps its two style lines whatever was learned: an empty row is where the
-        // editor puts the style nobody could read off the siblings
-        for( i = written; i < 2; i++ ) {
+        // ONE blank row behind whatever was learned, never two. The blanks are a convenience,
+        // not a shape: the spare is there so a second style can be typed straight in, and
+        // deleting a line is faster than adding one. Where nothing was learned the block is
+        // the two blanks every mix page starts with.
+        for( i = 0; i < ( written ? 1 : 2 ); i++ ) {
             entries.push( { name: "", role: "style" } );
         }
     }
@@ -2800,8 +2804,8 @@ function mdbPageCreator_styleCatFetch( names, catTitle ) {
 // The categories the entity's recent sibling pages agree on, split by what MixesDB says they
 // ARE - the one place that split is made, so the page text, the bar and the panel can never
 // tell three stories about the same name:
-// - styles: filed under Category:Style, so they go ONTO the page (at most two - the category
-//   block has two style lines)
+// - styles: filed under Category:Style, so they go ONTO the page (at most two - a vote is a
+//   heuristic, and the blank row behind them is where a third is typed)
 // - hints:  everything else that cleared the vote, the names still being asked about among
 //   them. Reported under the row and written nowhere (mdbPageCreator_recentHintCategories)
 function mdbPageCreator_recentLearnedCategories( title ) {
