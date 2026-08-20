@@ -1274,7 +1274,7 @@ function toolkit_addTidLink( playerUrl, title ) {
                     logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                     if( trackidurl ) {
-                        li_tidLink_out += '<a href="'+trackidurl+'" target="_top">This player exists on TrackId.net</a>';
+                        li_tidLink_out += '<a href="'+trackidurl+'" target="_top"><img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> This player exists on TrackId.net</a>';
                     }
 
                     if( lastCheckedAgainstMixesDB ) {
