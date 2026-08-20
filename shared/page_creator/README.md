@@ -44,16 +44,18 @@ show played by Ricky Montana. With a third chunk the two together answer the who
 channel picks itself out, and the chunk left over is who played it, so the channel name (the
 crew putting the series out) does not join the title.
 
-A series only ever written as its **initials** is read as the channel abbreviating itself:
-`DSS 140 | Space Drum Meditation` on the channel *Deep Space Series* spells that channel's
-initials, so once MixesDB confirms it knows *Deep Space Series* as a podcast – and has no
-series category called `DSS` – the title comes out as
-`2026-08-20 - Space Drum Meditation - Deep Space Series (DSS 140)`, the way that category's own
-pages are titled, and the page files under `Category:Deep Space Series` instead of opening a
-lone `DSS` beside it. The acronym has to be written in caps and spell the channel name's
-initials – a word that merely starts like the channel never counts – and a show really called
-by the letters keeps them: the wiki's answer, not the resemblance, is what decides, and without
-it nothing expands.
+A series written as nothing but an **acronym and a number** is expanded to the name MixesDB
+files it under, and what settles that is how the wiki's own pages are titled: every page of
+`Category:Deep Space Series` is called `… - Deep Space Series (DSS 012)`, so the `DSS 140` of
+`DSS 140 | Space Drum Meditation` is that series' episode id and the title comes out as
+`2026-08-20 - Space Drum Meditation - Deep Space Series (DSS 140)`, filed under
+`Category:Deep Space Series` instead of a lone `DSS` beside it. Those pages decide however old
+they are – a page titled that way says how the series is written whatever year it was written
+in – and their spelling of the id wins over the uploader's. Where no page writes such an id,
+the acronym **spelling the channel name's initials** is the fallback: `DSS` on the channel
+*Deep Space Series*, in caps, with MixesDB knowing that channel as a podcast. That one is a
+resemblance rather than evidence, so it costs confidence and says so. Either way a show really
+called by the letters keeps them, and without MixesDB's answers nothing is expanded at all.
 
 The series' own recent pages then settle the format – but only where those pages can say
 anything about **this** mix. Two things stop them, and then nothing at all is read: the title
@@ -62,6 +64,14 @@ its editions, a place does not – `Undercurrent 5` and the Amsterdam club `Unde
 things sharing a name), or the category's newest page is more than three years older than the
 mix (a category nobody has written in that long has no convention to copy, and may not be this
 mix's at all). The reasoning panel says which of the two it was.
+
+The age one steps aside where the pages **prove** the category is this mix's after all: their
+titles carry the very episode id this title does (`Deep Space Series (DSS 012)` under a mix
+numbering `DSS 140`), or their wikitext links this mix's channel. `Category:Deep Space Series`
+stopped in 2016 and the new mix is episode 140 of the same series on the same channel – the gap
+says MixesDB stopped keeping up, not that those pages belong to somebody else, and a series
+titles its episode 140 the way it titled its episode 012. The **Read:** line of the reasoning
+panel then says how far behind the category is and what kept it in.
 
 Otherwise, once the entity resolves to a MixesDB category, its newest mix pages are read, and
 where at least 90% of them agree – or all of the
@@ -227,7 +237,8 @@ that one weighs whether the wiki's answer is about the right **name**, and by th
 Amsterdam venue `Undercurrent` scores 95% even on a mix that has nothing to do with it. The fit
 score starts there and takes off what argues against the category: the title numbers its entity
 while MixesDB knows a venue or event of that name, or the category's newest page is years older
-than the mix. One thing raises it: the entity category's own newest pages **linking this mix's
+than the mix – unless those pages prove the category is this mix's, which drops that doubt
+altogether. One thing raises it: the entity category's own newest pages **linking this mix's
 channel** – `soundcloud.com/deep-space-series` standing in their wikitext is the pages
 themselves saying whose series the category is, which no name match can. Hover it for what
 lowered or backed it. What it cannot tell you – and its tooltip says so –

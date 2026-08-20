@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.18
+// @version      2026.08.20.20
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_62
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_64
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_97
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_98
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1902,6 +1902,38 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.20
+ * The acronym expansion is decided by the CATEGORY'S OWN PAGE TITLES now, with the channel's
+ * initials demoted to the fallback (title_builder.js v_64, page_creator.js v_98). Every page
+ * of Category:Deep Space Series is titled "... - Deep Space Series (DSS 012)", which is the
+ * wiki saying the "DSS" of "DSS 140 | Space Drum Meditation" is that series' episode id -
+ * where "DSS" resembling "Deep Space Series" was only ever a resemblance. So the pages decide
+ * first, cost no confidence (85% instead of 80%), and their spelling of the id wins over the
+ * uploader's; the initials answer only where no page writes such an id, and still cost 5.
+ * The titles come out of the `recent` list the category lookup already carries, so this reads
+ * the wiki without asking it anything twice, and it does not care how old those pages are - a
+ * page titled that way says how the series is written whatever year it was written in.
+ * Which of the two answered is named by the reasoning step, the pick sentence and the
+ * confidence, so the change is never credited to the weaker reading.
+ * With it, the recent-pages age gate steps aside where the pages PROVE the category is this
+ * mix's: their titles carrying the very episode id this title does, or their wikitext linking
+ * this mix's channel. Category:Deep Space Series stopped in 2016 while this mix is episode 140
+ * of the same series on the same channel - the ten-year gap says MixesDB stopped keeping up,
+ * not that the pages are somebody else's, so the format, the page text and the entity chip's
+ * score use them again, and the panel's "Read:" line says how far behind the category is and
+ * what kept it in. The mix whose report built that gate (DEEP & HAZY on Category:Undercurrent)
+ * is untouched: no bracketed id in its title, and its 2015 club nights link no channel of the
+ * mix.
+ *
+ * 2026.08.20.19
+ * The acronym step of reasoning section 4 names what DECIDED, not what merely matched
+ * (title_builder.js v_63): "Series acronym read as the channel's initials" claimed the
+ * resemblance as the reason, when the initials only make the channel worth asking about -
+ * without the wiki's answers the title keeps "DSS 140". It now reads "Series acronym expanded
+ * to the channel's name" and its detail names all three facts in the order they were checked:
+ * the letters spell the channel's initials, MixesDB has no series category "DSS", and it knows
+ * "Deep Space Series" as a podcast. Display only, no title changes.
  *
  * 2026.08.20.18
  * From the "DSS 140 | Space Drum Meditation" report (title_builder.js v_62, page_creator.js
