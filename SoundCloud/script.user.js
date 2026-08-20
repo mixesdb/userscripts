@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.24
+// @version      2026.08.20.26
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_66
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_44
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_68
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_101
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_103
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 163,
+var cacheVersion = 164,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1902,6 +1902,57 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.26
+ * The UFO95 @ Dommune report, in four rules. (1) The title builder no longer reads a NAME as
+ * an episode id (title_builder.js v_68): "UFO95 LIVE @ DOMMUNE" on the channel UFO95 had the
+ * artist's own name consumed as a glued id, which turned the title inside out - the venue
+ * became the artist and the page filed under [[Category:Dommune]] as its ARTIST
+ * ("2025-03-13 - Dommune - UFO95 (UFO95)"). An id-shaped token touching an "@" is a name
+ * (the both-sides rule mdbTitle_takeShowOutOfTitle already held to), and so is a token
+ * MixesDB knows as a category of any type ("UFO95", "Route 8" - digits can be part of a
+ * name). The title now comes out as "2025-03-13 - UFO95 @ Dommune" on the FIRST parse
+ * already. (2) The wiki's role answers are never used and argued against in one breath:
+ * where the artist slot holds a name known only as a venue/event and the show slot one known
+ * only as an artist - or the show slot alone holds a place - the exit puts the slots the
+ * wiki's way round, into the live "<artist> @ <place>" form (mdbTitle_result; a name also
+ * known in its slot's own role keeps the slot, a series answer keeps the entity, a promo and
+ * a real episode number block the flip). (3) A category chip whose name EXISTS under another
+ * type is never RED any more (page_creator.js v_103, page_creator.css): red is a wiki's "no
+ * such page", and the red "Dommune" led its reader to a category standing right there. Such a
+ * chip is yellow like "Similar:", links the category itself and says what is really in doubt
+ * - the title's roles; its folded-out mix list wears the same yellow. (4) The reasoning
+ * panel's % no longer docks a name for holding FEW mixes (title_builder.js): 7 mixes back a
+ * name exactly as 298 do, and the smaller number read as if it had settled a choice it never
+ * decides - the count only ever spoke to the display, never to the artist/entity decision,
+ * and now says so ("UFO95" scores 95% next to "Dommune" 95%). And a COUNTRY never files as an
+ * artist or entity and never becomes a chip, red or otherwise - it may stand in the title
+ * (behind an event: "@ S.U.N Festival, Hungary"), but no category line is written off it
+ * unless the wiki itself answers for the name. 145 examples, all pass.
+ *
+ * 2026.08.20.25
+ * A title that writes an "@" in front of a "#"-numbered EPISODE is read as the SERIES now, with
+ * the live reading offered next to it (title_builder.js v_67, title_definitions.js v_44,
+ * page_creator.js v_102). From the "Colossio @ Melodic Therapy #217 - Mexico" report on the
+ * channel CONNECT: such a title says two things that cannot both be written - the "@" that the
+ * set was played somewhere, the "#217" that the name behind it is a series - and read as a live
+ * recording it came out as "2026 - Mexico - Colossio @ Melodic Therapy 217", the country in the
+ * ARTIST slot with Colossio standing right there in front of the "@". The series is what is
+ * written now, because it is the half a number can prove: a show counts its episodes, a place
+ * does not. Neither half is thrown away - the date stays a gig's (the year alone: if the set
+ * really was played at that show, the upload day is not when it was played), and the live
+ * reading is a "Switch title" chip, country and all: "2026 - Colossio @ Melodic Therapy 217,
+ * Mexico". The page files under the same name either way, and the picked reading costs
+ * confidence and says so. Only the "#" spelling does this ("@ Club 69" keeps its joiner), an
+ * event keeps its "@" however it numbers its editions, and so does a title opening on the "@".
+ * The report's other half: a LONE country is left out of the written title wherever it would be
+ * a group too many - behind an artist AND an entity it is where the artist is from, the same
+ * byline the bracketed "(BE)" of "Adjust (BE)" writes - and it is no chunk and no lookup
+ * candidate there either, since a country is never a category. Only written in full, never as
+ * one of the country list's codes ("CAN", "NO", "IT" are everyday words), and only where two
+ * chunks are left standing without it: "Some Podcast 12 - Georgia" still files under Georgia.
+ * The reported title now comes out as "2026 - Colossio - Melodic Therapy 217". 144 examples,
+ * all pass.
  *
  * 2026.08.20.24
  * The "Similar:" row now asks about the names the TITLE writes too, not only about the bar's

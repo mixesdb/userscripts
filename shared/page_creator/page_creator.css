@@ -957,8 +957,12 @@
     border-radius: 999px;
 }
 
-/* the chip border in the verdict's colour - the panel's kept/removed border tints */
+/* The chip border in the verdict's colour - the panel's kept/removed border tints. The
+   colour doubles as --mdb-usedCat-border, which the open chip's neck, arc and box read: a
+   chip that can fold its mix pages out (green and yellow both do) keeps its own tint on
+   every part of the fold-out. */
 #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known {
+    --mdb-usedCat-border: rgba(46, 184, 46, 0.35);
     border-color: rgba(46, 184, 46, 0.35);
 }
 
@@ -1015,6 +1019,29 @@
 }
 
 #mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-similar > a:hover {
+    color: #e3b341;
+    text-decoration: underline;
+}
+
+/* A category that EXISTS, under another type than the page would file it as - "Dommune" as
+   the page's artist while the wiki knows it as a venue. The "Similar:" yellow on purpose:
+   red is a wiki's "no such page" and would send the reader to a category that stands right
+   there (reported 2026-08-20), green would bless a filing the types contradict. A look to
+   take, not a verdict - the link opens the category, and the tooltip says what is really
+   in doubt: the title's roles. */
+#mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole {
+    --mdb-usedCat-border: rgba(227, 179, 65, 0.35);
+    border-color: rgba(227, 179, 65, 0.35);
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole > a,
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole > a:visited {
+    color: #e3b341;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#mdb-pageCreator #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole > a:hover {
     color: #e3b341;
     text-decoration: underline;
 }
@@ -1127,7 +1154,7 @@
     width: calc(100% + 7px);
     height: 6px;
     background-color: #1d1d1d;
-    border-left: 1px solid rgba(46, 184, 46, 0.35);
+    border-left: 1px solid var(--mdb-usedCat-border, rgba(46, 184, 46, 0.35));
 }
 
 /*
@@ -1150,8 +1177,8 @@
     box-sizing: border-box;
     width: 6px;
     height: 6px;
-    border-left: 1px solid rgba(46, 184, 46, 0.35);
-    border-bottom: 1px solid rgba(46, 184, 46, 0.35);
+    border-left: 1px solid var(--mdb-usedCat-border, rgba(46, 184, 46, 0.35));
+    border-bottom: 1px solid var(--mdb-usedCat-border, rgba(46, 184, 46, 0.35));
     border-bottom-left-radius: 6px;
 }
 
@@ -1184,7 +1211,7 @@
     max-width: min(920px, 85vw);
     padding: 4px 9px 6px;
     background-color: #1d1d1d;
-    border: 1px solid rgba(46, 184, 46, 0.35);
+    border: 1px solid var(--mdb-usedCat-border, rgba(46, 184, 46, 0.35));
     border-radius: 0 12px 12px 12px;
 }
 

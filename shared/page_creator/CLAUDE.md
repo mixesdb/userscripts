@@ -901,6 +901,16 @@ renders them. Settled, so it does not get re-litigated:
   and `mdbTitle_placeGroupEntity` steps over a slot part either way, so the chip moves the
   title and not the filing - the same deal the room word gets, toggled on the EVENT the fact
   names rather than on the end of the title. Kind `slotPart`.
+- **The live reading of an "@" over a numbered episode is offered** (2026-08-20, reported on
+  "Colossio @ Melodic Therapy #217 - Mexico"): such a title says "played there" and "this is a
+  series" at once, `mdbTitle_atEpisodeSeparator` writes the series (a show counts its episodes,
+  a place does not), and the chip offers the live half back. Kind `liveAt`, toggled on the
+  ENTITY group at the end of the title, with `city` - the lone country 3h dropped - going back
+  in behind the place, where a live title carries it and a series title does not carry it at
+  all. The filing does not move: a place group files under its place and
+  `mdbTitle_placeGroupNames` skips a country, so both readings put the page under the same
+  name. The decision is charged (5) and says so in the reasons, and the date is a gig's in
+  either reading - `mdbTitle_atEpisodeRead` is what the date step reads for that.
 - **A chip may never propose a DIFFERENT PAGE, only a different title for this one.** That is
   the line every candidate reading is measured against, and it is what rules out the dropped
   chunks of 1c - "Part 2" above all (dropped again 2026-08-19, second round: it had been built

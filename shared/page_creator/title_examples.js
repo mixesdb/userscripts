@@ -40,6 +40,19 @@ var mdbTitleExamples = [
 
     // Reported from SoundCloud
     {
+        url: "https://soundcloud.com/ufo95ufo95/ufo95-live-dommune-13032025",
+        title: "UFO95 LIVE @ DOMMUNE 13/03/2025",
+        channel: "UFO95",
+        date: "2025-03-14",
+        known: {
+            "UFO95":   { type: "artist", mixes: 7 },
+            "Dommune": { type: "venue", mixes: 298 }
+        },
+        expect: "2025-03-13 - UFO95 @ Dommune",
+        expectArtists: [ "UFO95" ],
+        expectEntity: "Dommune"
+    },
+    {
         url: "https://soundcloud.com/limbpromo/limb-podcast-yuka-09",
         title: "LIMB #9 – Yuka",
         channel: "LIMB",
@@ -554,6 +567,29 @@ var mdbTitleExamples = [
         expectChunks: [ "Timboletti im Chapeau Club", "3000Grad Festival", "Rosmarin und Lavendel", "Undercover-Ambient" ],
         expect: "2025 - Timboletti @ 3000Grad Festival"
     },
+    {
+        url: "https://soundcloud.com/connectch/colossio-melodic-therapy-217-1",
+        title: "Colossio @ Melodic Therapy #217 - Mexico",
+        channel: "CONNECT",
+        date: "2026-08-08",
+        // The title says two things at once - an "@" (played somewhere) and a "#"-numbered
+        // episode (a series) - and the country behind them hardened the live reading. Read as
+        // a live recording it came out as "2026 - Mexico - Colossio @ Melodic Therapy 217":
+        // the country in the ARTIST slot with the artist standing right there in front of the
+        // "@", which is the worst way to be wrong about a title. The series wins now, since a
+        // show numbers its episodes and a place does not, while the live half is kept where it
+        // still holds: the date stays a gig's (the year alone, never the upload day) and the
+        // live reading is OFFERED as a chip - "2026 - Colossio @ Melodic Therapy 217, Mexico",
+        // country and all. "Mexico" itself goes out of the written title, the chunks and the
+        // lookup: a country alone stays a name wherever it could BE one of the groups ("Some
+        // Podcast 12 - Georgia" below), never where an artist and an entity are already there
+        expectArtists: [ "Colossio" ],
+        expectEntity: "Melodic Therapy 217",
+        expectChunks: [ "Colossio", "Melodic Therapy #217" ],
+        expectNotAsked: [ "Mexico" ],
+        expectAlternatives: [ "liveAt" ],
+        expect: "2026 - Colossio - Melodic Therapy 217"
+    },
 
     // Reported before the URLs were kept
     {
@@ -705,6 +741,25 @@ var mdbTitleExamples = [
     },
 
     // Built by hand, to hold a rule at its edge where no report happened to sit
+    {
+        // the two edges of the "@ #-numbered episode" rule. An EVENT keeps its joiner however
+        // it numbers its editions - a festival on its 12th is still the place the set was
+        // played at - so this stays a live recording and offers no switch
+        title: "Some DJ @ Some Fusion Festival #12",
+        channel: "Some Channel",
+        date: "2026-08-08",
+        expectNoAlternatives: [ "liveAt" ],
+        expect: "2026 - Some DJ @ Some Fusion Festival"
+    },
+    {
+        // and a title OPENING on the "@" keeps it too: there the channel is who played, and no
+        // artist stands in front of the joiner to be cut loose from it
+        title: "@ Some Place #12",
+        channel: "Some Channel",
+        date: "2026-08-08",
+        expectNoAlternatives: [ "liveAt" ],
+        expect: "2026 - Some Channel @ Some Place"
+    },
     {
         title: "HATE Podcast 496 Fadi Mohem",
         channel: "HATE",

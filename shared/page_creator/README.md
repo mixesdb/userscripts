@@ -127,6 +127,25 @@ names nothing but its month is the monthly mix MixesDB has a name for –
 is written – and the page files under `Category:Promo Mix`. Keeping the stamp as the mix's own
 name (`… - August 2026 (Promo Mix)`) is offered as a **Switch title** chip.
 
+A title writing an `@` in front of a **`#`-numbered episode** says two things that cannot both
+be written: the `@` that the set was played somewhere, the `#217` that the name behind it is a
+series. `Colossio @ Melodic Therapy #217 - Mexico` comes out as
+`2026 - Colossio - Melodic Therapy 217` – the **series** is written, because that is the half a
+number can prove: a show counts its episodes, a place does not. The live half is not thrown
+away. The date stays a gig's, the **year alone** (if the set really was played at that show, the
+upload day is not when it was played), and the live reading is offered as a **Switch title**
+chip, country and all: `2026 - Colossio @ Melodic Therapy 217, Mexico`. Both readings file the
+page under the same name. Only the `#` spelling does this – a bare number behind a name is a
+venue's own as readily as an episode (`@ Club 69`) – and a place naming an **event** keeps its
+`@` however it numbers its editions.
+
+The country such a title ends in is where the artist is **from**, which a mix page title does
+not carry, so it is left out of the written title: a lone country goes wherever the title
+already names an artist and a show both, and stays wherever it could be one of them itself,
+since `Georgia`, `France` and `Japan` are artists and mix names as readily as places. Left in
+where the title had no room for it, it does not merely sit there – it takes the **artist** slot,
+which is how `Mexico` came to be filed as the artist of a mix Colossio played.
+
 An event whose name says nothing about being one is read from two hints together: a chunk
 ending in a bare year is an edition, and a chunk ending in a slot of the night – `Closing`,
 `Opening`, `Peak Time` – is where inside it the set was played. Neither counts alone, and
@@ -176,10 +195,16 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   itself, for artists as well as for shows, so the list is there the moment the chip is
   opened; where they do not, the click fetches them and the chip waits on a spinner until
   they are in. One list stands open at a time: opening a chip folds the one before it shut.
-- **red** – MixesDB has no such category. That is not a mistake in itself (every artist has a
-  first page), but it is exactly where a typo or a second spelling hides – so the name itself,
-  marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
-  knows it under another name.
+- **yellow** – the category exists, but MixesDB knows the name as something else than the page
+  would file it as: `Dommune` standing as the page's **artist** while the wiki knows it as a
+  venue. Never red – in a wiki, red means the page does not exist, and this one does – and not
+  green either, because the filing the chip stands for is probably wrong: what such a chip
+  really says is that the **roles in the title** are the wrong way round, and its tooltip says
+  so. The name links the existing category, with the same mix-count toggle as a green chip.
+- **red** – MixesDB has no such category **under any type**. That is not a mistake in itself
+  (every artist has a first page), but it is exactly where a typo or a second spelling hides –
+  so the name itself, marked by the loupe icon behind it, looks the name up on MixesDB: a hit
+  there means the wiki knows it under another name.
 - **grey** – MixesDB has not been asked about this name (yet), so there is no answer either way.
 
 A name MixesDB has no category of gets a second, looser question: the wiki is asked what it has
@@ -328,6 +353,14 @@ says why the build decided the other way. Offered today:
   not worth naming. The page files under the event either way, so this chip changes the title
   alone.
 
+- **The set played at the show** – the title wrote an `@` in front of a `#`-numbered episode,
+  which says "played there" and "this is a series" in one breath. The series was written, since
+  a show counts its episodes and a place does not; the chip offers the live reading
+  (`2026 - Colossio - Melodic Therapy 217` becomes
+  `2026 - Colossio @ Melodic Therapy 217, Mexico`), with the country the series reading left
+  out back behind the place, where a live title carries it. The date is the year in both
+  readings, and the page files under the same name either way.
+
 A chip only ever offers a different **title for this same page** – never one that would create a
 different page. That is why a `Part 2` the title carried is dropped and *not* offered back: the
 parts of one recording belong on one mix page, with every file in the file details, a player
@@ -369,9 +402,10 @@ ends up used.
   two chunks) – the units section 3's lookups are built from. What the parse
   removes outright is shown in red on a `Removed:` line instead – a bracket crediting
   the artist's labels (`Tooker (SONARA / Crosstown Rebels)`), a list of places saying where
-  the artist is from, or a bracketed country behind the artist's name (the `(BE)` of
-  `Adjust (BE)`, even in a live title) – with the reason spelled out behind it; those names
-  are never sent to the lookup
+  the artist is from, a lone country behind an artist and a show both (the `Mexico` of
+  `Colossio @ Melodic Therapy #217 - Mexico`), or a bracketed country behind the artist's name
+  (the `(BE)` of `Adjust (BE)`, even in a live title) – with the reason spelled out behind it;
+  those names are never sent to the lookup
 - **2 Title fixed and cleaned** – the first parse, before the wiki has been asked anything.
   Every fix and removal by name: typos, decoration, the date that
   was read out, joiners rewritten, chunks a mix page title does not carry (what the
