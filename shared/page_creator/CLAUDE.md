@@ -15,7 +15,7 @@ reads the values off its own page/API and hands them over.
 | File | What it is |
 | --- | --- |
 | `page_creator.js` | The row and the "Create" link, plus the tracklist box. `mdbPageCreator_*`. Public entry points: `mdbPageCreator_add(options)`, `mdbPageCreator_addTracklist(options)`, `mdbPageCreator_addTracklistNotice(html)` and `mdbPageCreator_watchToolkit()` - see the header comment for the options. Also the loading skeleton (`mdbSkeleton_*`, entry point `mdbSkeleton_show(options)`) - see its section comment |
-| `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup. Also `mdbTitle_titleCategories()`, the way back: a finished title -> the year, the artists and the entity the page is filed under |
+| `title_builder.js` | `buildMixesdbTitle()` and the `mdbTitle_*` parser. No DOM, no network except the MixesDB category lookup. Also `mdbTitle_titleCategories()`, the way back: a finished title -> the year, the artists and the entity the page is filed under (plus `entities`, every name its place group offers) |
 | `title_definitions.js` | The word lists and channel->show mappings the parser uses. Plain data, meant to be extended by hand - this is where the learning from each report goes |
 | `tracklist_detector.js` | `mdbTracklist_detectInText()` / `mdbTracklist_detectInComments()`: which lines of a description are the tracklist. No DOM, no network - see below |
 | `page_creator.css` | Styles the row, the tracklist box and the loading skeleton. Loaded with `loadRawCss()` by each site script |
@@ -319,8 +319,8 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   place behind it was ever canonicalized where the group was built, so `Ri0D. & Jonbot @ ...`
   kept the stylized spelling even with the wiki's answer in hand.
 - **The first pass's own names are candidates too** (`mdbPageCreator_addParsedNames()` in
-  `page_creator.js`, since 2026-08-19): the artists and the entity category of the title the
-  first parse built, appended LAST (an over-full list drops them first) and deduped against
+  `page_creator.js`, since 2026-08-19): the artists and every entity category of the title the
+  first parse built (`mdbPageCreator_entityLookupNames`), appended LAST (an over-full list drops them first) and deduped against
   the chunk candidates, so on the usual title - where the parse's names ARE chunks - they add
   nothing. They exist for the name only the parse can see: `RA.971 DJ MARIA.` is ONE chunk,
   the episode id being no separator, so the chunk side asked a name that cannot exist while
@@ -451,6 +451,27 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
   a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never
   "(Promo Mix)" and never charged the "not in the known-shows list" doubt.
+- **A place group files the page under EVERY name the wiki has** (2026-08-20, reported on
+  "Lord Of The Isles at Far Blue @ Noordspace"): the created page carried `Category:Far Blue`
+  alone while MixesDB has the venue behind the comma, `Noordspace`, as a category of its own -
+  and MixesDB files such a page under both (`2026-05-23 - Dosem @ Anjunadeep, Ritter Butzke,
+  Berlin` carries the party AND the club). `mdbTitle_titleCategories` returns `entities` for
+  it, every part of the group in title order (`mdbTitle_placeGroupNames`: a slot part and the
+  group's country drop out, the CITY does not), next to the unchanged `entity` - which stays
+  the ONE name the parse picked and the one every analysis keeps running on
+  (`mdbPageCreator_recentAnalysisFor` and its two gates, sections 5 and 7, the chip's stale
+  drop). `mdbPageCreator_entityCategoriesFor` turns that into the filing: the picked name
+  whether or not the wiki has it - a venue new to MixesDB gets its category created together
+  with the page - and every FURTHER name only where the lookup answers venue or event FOR THAT
+  EXACT NAME (`mdbPageCreator_placeMatch`; the qualifier match `Utopia` -> `Utopia (Event)` is
+  the wiki's other Utopia, not the Berlin one the title means). That is what keeps the city out
+  without a city list - no city is a category - and it is why the city IS asked about: its
+  empty answer is the only thing that tells it from the venue standing next to it. Everything
+  downstream reads the entries, so the page text, the "Used categories" chips, the report's
+  "Entity category:" lines and section 6 can only say the same thing; the second entry carries
+  its own "why" sentence, since no branch picked it and the pick's sentence is about the other
+  name. A sibling page's own second entity is skipped in the style vote for the same reason the
+  first one is (`mdbPageCreator_recentPageTextFindings`).
 - The module takes **10 names max** per request - the candidate list is priority-ordered
   (channel first) and truncated, not split into a second request.
 - **A non-artist match then reads the ~10 newest mix pages in that category and copies their
@@ -893,6 +914,10 @@ fixing the report, not a separate step or something to ask about first. Per repo
    `expect`. `expect` is my expected title. When the report is about the CATEGORIES the page is
    filed under rather than the title, add `expectArtists` as well - the artist categories, one
    per artist, which the runner reads off the built title with `mdbTitle_titleCategories()`.
+   `expectEntity` does the same for the name the page is filed under and `expectEntities` for
+   every name a place group offers ("@ Far Blue, Noordspace" offers both) - which of the offered
+   ones the page really carries is the wiki's answer at filing time and is not in the runner,
+   which does not load `page_creator.js`.
    `description` is optional and only matters to the label test (`mdbTitleKnownLabels`), which
    reads the labels a tracklist credits (`Artist - Title [Label]`) out of it.
 2. `channel` is the channel/uploader name as the site's API gives it, NOT the URL slug - they
