@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.21
+// @version      2026.08.20.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_65
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_66
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_99
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_100
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 162,
+var cacheVersion = 163,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1902,6 +1902,36 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.23
+ * A chunk whose names a joiner strings together is read as the LINE-UP it is
+ * (title_builder.js v_66): "Asa 808 b2b Third Guy" scored as a series on the digits of a NAME,
+ * which sorted it into the entity column and skipped the per-name split, so neither artist was
+ * ever asked - and a title ending in such a list ("Third Guy b2b Asa 808") was number-stripped
+ * to "Third Guy b2b Asa" on top. A b2b/&/vs/comma list is artists whatever digits stand in it,
+ * only a series WORD still overrules it ("Drumcode Radio Live & Friends 123" stays one show's
+ * episode), and the number stays where the uploader wrote it: it belongs to the last name in
+ * the list, and no episode of a series is written as a b2b. Each member is asked exactly as
+ * written - "Asa 808" and "Third Guy", not "Asa". Follows the .21 round, which found the same
+ * "digits mean a series" reading on single names. No suggested title changes: all 141 examples
+ * pass unchanged.
+ *
+ * 2026.08.20.22
+ * A red category chip now gets a prefix round: once the exact lookup has answered empty, the
+ * red names are asked once more with mdbnames' match=prefix - all of them in ONE request -
+ * and what MixesDB has that STARTS like them renders as a "Similar:" row of yellow chips
+ * directly under "Used categories" (page_creator.js v_100, page_creator.css / cacheVersion
+ * 163). Yellow on purpose: not green (the page does not get them) and not red (nobody denied
+ * them) - a look to take, not a verdict, so the chips carry no fit score either (the used
+ * categories' percentage is a real fit score, and a number here would only dress the name
+ * resemblance up as one). Each chip links its category - joining the modal and its arrow-key
+ * walk - with the type and mix count as its note. Gentle for a start: at most 3 per red name,
+ * categories under 2 mixes dropped (mdbPageCreator_prefixMaxPerName / _prefixMinMixes), and a
+ * failed request is not retried. The answers live in their own cache and never reach the
+ * builder's - the title builder stays on exact match (row_enrichment.md's rule), so nothing
+ * about the suggestion changes. Section 3 closes with the request as an "API call" link like
+ * the other rounds. First cut of roadmap step 2's category family; the around-the-date
+ * sibling window stays open.
  *
  * 2026.08.20.21
  * A name ending in a number is asked about BOTH ways now (title_builder.js v_65,

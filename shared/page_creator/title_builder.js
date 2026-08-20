@@ -2654,10 +2654,21 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             continue;
         }
 
+        // The names a joiner strings together, read before the role is decided: "Asa 808 b2b
+        // Third Guy" names two artists, and a b2b/&/vs/"," list is a LINE-UP, never a series -
+        // whatever the digits in it may score. In front of the "@" only; behind it the same
+        // punctuation strings places.
+        var members = inPlace ? [] : mdbTitle_splitArtists( bit ),
+            // a series word still overrules it, the way it outweighs a number in
+            // mdbTitle_seriesScore: "Drumcode Radio Live & Friends 123" is one show's episode,
+            // not two acts
+            artistList = members.length > 1 && !mdbTitle_hasSeriesWord( bit );
+
         // behind the "@" everything is a place - an entity candidate, never an artist. In
         // front of it a series-looking bit ("MNMT Recordings", "HATE Podcast") asks as the
         // entity, anything else as the artist.
         var bitRole = inPlace ? "entity"
+                    : artistList ? "artist"
                     : mdbTitle_seriesScore( bit ) > 0 ? "entity"
                     : "artist";
 
@@ -2689,8 +2700,10 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
         if( bit && bit.length <= 80 ) {
             // the trailing episode number or year off, because that is how a series name
             // stands in a title - see mdbTitle_stripTrailingNumber
+            // ... but never off a line-up: the number at its end belongs to the LAST name in
+            // it ("Third Guy b2b Asa 808"), and no episode of a series is written as a b2b
             var stripped = mdbTitle_stripTrailingNumber( bit ),
-                reduced = stripped && stripped !== bit && stripped.length >= 3;
+                reduced = !artistList && stripped && stripped !== bit && stripped.length >= 3;
 
             // The REDUCED form is the first question: a series category never carries the
             // episode number, so the full "DJ Mix #677" could only answer empty - and finding
@@ -2758,11 +2771,12 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             // no category and never will be, while "Ri0D." is one - and the confirmed name is
             // what settles which bit names who PLAYED (mdbTitle_takeEventTitle's first tier).
             // The whole group stays the first question, since a duo can be a category of its
-            // own ("Above & Beyond"). Artist-role bits only: behind the "@" the names are
-            // places, and a series-looking bit strings no line-up.
+            // own ("Above & Beyond"). Each member is asked AS WRITTEN, number and all: a name
+            // in a line-up is a name, so "Asa 808" is asked as "Asa 808". Artist-role bits
+            // only: behind the "@" the names are places, and a bit carrying a series word
+            // strings no line-up.
             if( bitRole === "artist" ) {
-                var members = mdbTitle_splitArtists( bit ),
-                    mb;
+                var mb;
 
                 for( mb = 0; members.length > 1 && mb < members.length; mb++ ) {
                     if( members[mb].length >= 3 ) {

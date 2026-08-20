@@ -88,6 +88,13 @@ cache, "Dekmantel" would read as a podcast (Dekmantel São Paulo Podcast is one)
 side. Two different questions, two match modes - keep the flag out of
 `mdbTitle_lookupCategories` entirely and call prefix mode only from the row code.
 
+**First cut BUILT 2026-08-20, for the RED names only**: the bar's "Similar:" row
+(`mdbPageCreator_prefixEnsure()` in page_creator.js - own cache, one request for all red
+names, yellow chips under "Used categories", hints only by decision). The family around a
+KNOWN name - the Dekmantel case above - stays open with the around-the-date window. Verified
+while building: the mode needs no `recentlimit`, and it matches at word granularity - a
+mid-word prefix ("Deep Space Serie") answers empty.
+
 ### 2. Sibling titles: the two most recent, and around the mix date
 
 Under each matched category (the artist's and the entity's - not every candidate), show:

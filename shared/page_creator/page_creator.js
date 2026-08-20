@@ -332,6 +332,12 @@ function mdbPageCreator_add( options ) {
         // are the series' real format, so once they are on hand the suggestion is refined to
         // match them; the first call also STARTS their fetch, whose settle path re-applies.
         mdbPageCreator_applyRecentToSuggestion();
+
+        // ... and the names the exact lookup just answered EMPTY about get their prefix
+        // round, for the bar's "Similar:" row (mdbPageCreator_prefixEnsure - a settle path,
+        // like the recent fetch above)
+        mdbPageCreator_prefixEnsure( mdbPageCreator_title );
+
         mdbPageCreator_render();
     });
 }
@@ -1507,6 +1513,10 @@ function mdbPageCreator_renderHints( wrapper ) {
 
     var title = $.trim( wrapper.find( "#mdb-pageCreator-title" ).val() ),
         usedCats = mdbPageCreator_usedCategoriesHint( title ),
+        // directly under them: what MixesDB has that STARTS like a red name - the prefix
+        // answers (mdbPageCreator_similarCategoriesHint); null while nothing is red or
+        // nothing came back
+        similarCats = mdbPageCreator_similarCategoriesHint( title ),
         // under the categories the page GETS: what the entity's sibling pages have in common
         // and the page does not get (mdbPageCreator_hintCategoriesHint)
         hintCats = mdbPageCreator_hintCategoriesHint( title ),
@@ -1534,6 +1544,7 @@ function mdbPageCreator_renderHints( wrapper ) {
         fresh = $("<div>");
 
     if( usedCats ) fresh.append( usedCats );
+    if( similarCats ) fresh.append( similarCats );
     if( hintCats ) fresh.append( hintCats );
     if( switchTitle ) fresh.append( switchTitle );
 
@@ -1716,6 +1727,227 @@ function mdbPageCreator_usedCategoryState( entry ) {
     if( match ) return { verdict: "known", match: match };
 
     return { verdict: mdbPageCreator_categoryUnanswered( entry.name ) ? "unknown" : "missing", match: null };
+}
+
+/*
+ * Similar categories - the prefix round behind a red chip
+ *
+ * A red name says MixesDB has no category of it, and that is where a second spelling or a
+ * longer form hides: the wiki may file the series as "Deep Space Series Podcast" while the
+ * title says "Deep Space Series". mdbnames' prefix mode (match=prefix, live 2026-08-16,
+ * row_enrichment.md §1) answers with every typed category STARTING with the name, so once
+ * the exact lookup has answered empty the red names are asked once more that way - all of
+ * them in ONE request - and what comes back renders as a "Similar:" row of yellow chips
+ * directly under "Used categories": neither green (the page does not get them) nor red
+ * (nobody denied them), a look to take, not a verdict.
+ *
+ * HINTS ONLY, by decision (2026-08-20): the answers stay in their own cache and never reach
+ * mdbTitle_categoryCache - with prefix matches in there the builder would read "Dekmantel"
+ * as a podcast (Dekmantel São Paulo Podcast is one) and the exact-match discipline would be
+ * undone from the server side (row_enrichment.md: "The row uses prefix mode. The title
+ * builder NEVER does"). No similarity score either: the used-cat chips carry a REAL fit
+ * score, and a number on these would read as one.
+ *
+ * Gentle thresholds for a start, named here so they are one edit away: at most
+ * mdbPageCreator_prefixMaxPerName chips per red name, matches under
+ * mdbPageCreator_prefixMinMixes mixes dropped (the API ranks by mix count already).
+ */
+var mdbPageCreator_prefixCache = {},
+    mdbPageCreator_prefixMaxPerName = 3,
+    mdbPageCreator_prefixMinMixes = 2,
+    // the row's last logged content, quieted like mdbPageCreator_hintsLogged
+    mdbPageCreator_similarLogged = "";
+
+// mdbPageCreator_prefixMissingNames
+// The red names of this title's bar: artist/entity entries the exact lookup answered empty
+// about. Read off the same entries and the same state the chips render from, so the row and
+// the request can never disagree about what is red.
+function mdbPageCreator_prefixMissingNames( title ) {
+    var entries = mdbPageCreator_categoryEntries( title ),
+        out = [],
+        seen = {},
+        i, entry, key;
+
+    for( i = 0; i < entries.length; i++ ) {
+        entry = entries[i];
+
+        if( !entry.name || ( entry.role !== "artist" && entry.role !== "entity" ) ) continue;
+        if( mdbPageCreator_usedCategoryState( entry ).verdict !== "missing" ) continue;
+
+        key = mdbTitle_normalizeCompare( entry.name );
+
+        if( !key || seen[key] ) continue;
+
+        seen[key] = true;
+        out.push( entry.name );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_prefixEnsure
+// Starts the one prefix request for this title's red names, where none ran yet. Called from
+// the two settle paths (the suggestion's lookup callback and the debounced edit path) like
+// mdbPageCreator_recentEnsureFor - never from a render. A name already asked is not asked
+// again, failed included: the row is a hint, not something worth retrying for.
+function mdbPageCreator_prefixEnsure( title ) {
+    var names = mdbPageCreator_prefixMissingNames( title ),
+        wanted = [],
+        i, key;
+
+    for( i = 0; i < names.length; i++ ) {
+        key = mdbTitle_normalizeCompare( names[i] );
+
+        if( mdbPageCreator_prefixCache[key] ) continue;
+
+        mdbPageCreator_prefixCache[key] = { status: "pending", matches: [] };
+        wanted.push( names[i] );
+    }
+
+    if( !wanted.length ) return;
+
+    logVar( "mdbPageCreator_prefixEnsure: asking prefix matches for", wanted.join( " | " ) );
+
+    var apiData = {
+            action: "mdbnames",
+            format: "json",
+            formatversion: 2,
+            origin: "*",
+            names: wanted.join( "|" ),
+            match: "prefix"
+        },
+        apiCall = mdbPageCreator_noteApiCall( "prefix", "",
+                      "categories whose names START like the red one" + ( wanted.length === 1 ? "" : "s" ) +
+                      " (" + wanted.join( ", " ) + ") - the \"Similar:\" row",
+                      apiData );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: apiData,
+        success: function( data ) {
+            apiCall.status = "done";
+
+            var rows = ( data && data.mdbnames ) || [],
+                i, key;
+
+            // every asked name settles, answered or not - an empty answer IS an answer
+            for( i = 0; i < wanted.length; i++ ) {
+                mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( wanted[i] ) ].status = "done";
+            }
+
+            for( i = 0; i < rows.length; i++ ) {
+                key = mdbTitle_normalizeCompare( String( rows[i].name || "" ) );
+
+                if( key && mdbPageCreator_prefixCache[key] ) {
+                    mdbPageCreator_prefixCache[key].matches = rows[i].matches || [];
+                }
+            }
+
+            // looked up again rather than closed over, like every other late answer
+            var row = $("#mdb-pageCreator");
+
+            mdbPageCreator_renderHints( row );
+            mdbPageCreator_renderReasoning( row );
+        },
+        error: function( xhr, status ) {
+            apiCall.status = "failed";
+            log( "mdbPageCreator_prefixEnsure FAILED (" + status + ") for " + wanted.join( " | " ) );
+
+            for( var i = 0; i < wanted.length; i++ ) {
+                mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( wanted[i] ) ].status = "failed";
+            }
+        }
+    });
+}
+
+// mdbPageCreator_similarCategoriesHint
+// The "Similar:" row - the prefix answers rendered under "Used categories". Per red name at
+// most mdbPageCreator_prefixMaxPerName chips, thin categories dropped, and never a name the
+// bar already carries: a similar that IS a used category would say nothing. Each chip links
+// the category and its note says what it is - the type and the count are facts, where a
+// similarity number would only dress the resemblance up as one.
+function mdbPageCreator_similarCategoriesHint( title ) {
+    var entries = mdbPageCreator_categoryEntries( title ),
+        taken = {},
+        chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
+        logged = [],
+        any = false,
+        i, j, entry, cached, match, shown, matchKey, mixes, note;
+
+    // everything on the bar is off limits for the chips, whatever its verdict
+    for( i = 0; i < entries.length; i++ ) {
+        if( entries[i].name ) taken[ mdbTitle_normalizeCompare( entries[i].name ) ] = true;
+    }
+
+    for( i = 0; i < entries.length; i++ ) {
+        entry = entries[i];
+
+        if( !entry.name || ( entry.role !== "artist" && entry.role !== "entity" ) ) continue;
+        if( mdbPageCreator_usedCategoryState( entry ).verdict !== "missing" ) continue;
+
+        cached = mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( entry.name ) ];
+
+        if( !cached || cached.status !== "done" ) continue;
+
+        shown = 0;
+
+        for( j = 0; j < cached.matches.length && shown < mdbPageCreator_prefixMaxPerName; j++ ) {
+            match = cached.matches[j];
+
+            // only real prefix matches: an exact or redirect answer would have answered the
+            // exact round already, and a qualified one turns the chip green over there
+            if( String( match.matchType || "" ) !== "prefix" || !match.title ) continue;
+
+            mixes = ( typeof match.mixes === "number" ) ? match.mixes : 0;
+
+            if( mixes < mdbPageCreator_prefixMinMixes ) continue;
+
+            matchKey = mdbTitle_normalizeCompare( match.title );
+
+            if( !matchKey || taken[matchKey] ) continue;
+
+            taken[matchKey] = true;
+            shown++;
+            any = true;
+
+            note = String( match.type || "category" ) + ", " + mixes + " mix" + ( mixes === 1 ? "" : "es" );
+
+            // the chip and its note side by side, like the "Hints:" row's pairs - the note
+            // outside the pill, or the border would take it in
+            chips.append(
+                $("<span>").addClass( "mdb-pageCreator-hintCat" ).append(
+                    $("<span>").addClass( "mdb-pageCreator-usedCat mdb-pageCreator-usedCat-similar" ).append(
+                        $("<a>")
+                            .attr( "href", mdbPageCreator_categoryUrl( match.title ) )
+                            .attr( "target", "_blank" )
+                            .attr( "title", "MixesDB has no category \"" + entry.name + "\", but this name starts the same" +
+                                            " - opens [[Category:" + match.title + "]] (" + note + ")." +
+                                            "\nOnly the NAME is similar: whether it is this page's is yours to judge." )
+                            .text( match.title )
+                    ),
+                    $("<span>").addClass( "mdb-pageCreator-hintCat-note" ).text( "(" + note + ")" )
+                )
+            );
+
+            logged.push( match.title + " (" + note + ", starts like \"" + entry.name + "\")" );
+        }
+    }
+
+    if( !any ) return null;
+
+    if( logged.join( " | " ) !== mdbPageCreator_similarLogged ) {
+        mdbPageCreator_similarLogged = logged.join( " | " );
+        logVar( "mdbPageCreator hints: similar categories", mdbPageCreator_similarLogged );
+    }
+
+    return $("<span>")
+        .attr( "id", "mdb-pageCreator-similarCats" )
+        .append(
+            $("<span>").addClass( "mdb-pageCreator-hint-label" ).text( "Similar:" ),
+            chips
+        );
 }
 
 // mdbPageCreator_plainCategoryNote
@@ -4303,7 +4535,7 @@ function mdbPageCreator_hintLinkOnScreen( link ) {
 // Bound once, on the document, so it survives every rebuild of the bar; the width is tested
 // INSIDE the handler because the window resizes. Only links WITH an href: the "N mixes"
 // toggle is an <a> without one.
-$(document).on( "click", "#mdb-pageCreator-usedCats a[href]", function( e ) {
+$(document).on( "click", "#mdb-pageCreator-usedCats a[href], #mdb-pageCreator-similarCats a[href]", function( e ) {
     if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.which !== 1 ) return;
     if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
 
@@ -4735,7 +4967,9 @@ function mdbPageCreator_modalShow( url ) {
 // constantly (a title edit, a lookup answering, a chip toggled), and a stored list would step
 // to links that are no longer on the page.
 function mdbPageCreator_modalLinks() {
-    return $("#mdb-pageCreator-usedCats a[href]").filter( function() {
+    // both category rows: the "Similar:" chips serve the same five-second look, and a
+    // combined selector returns document order, which is the order the bar reads
+    return $("#mdb-pageCreator-usedCats a[href], #mdb-pageCreator-similarCats a[href]").filter( function() {
         return mdbPageCreator_hintLinkOnScreen( this );
     }).get();
 }
@@ -5106,6 +5340,10 @@ function mdbPageCreator_queueCategoryUpdate() {
             // and the page text read that category's pages, so start their fetch here (the
             // settle path re-renders; an already-fetched category costs nothing)
             mdbPageCreator_recentEnsureFor( $.trim( $("#mdb-pageCreator-title").val() ) );
+
+            // ... and its red names their prefix round, for the "Similar:" row - a name
+            // already asked costs nothing (mdbPageCreator_prefixEnsure)
+            mdbPageCreator_prefixEnsure( $.trim( $("#mdb-pageCreator-title").val() ) );
 
             // looked up again rather than closed over: seconds have passed, and on these
             // sites the row of the moment is the one to draw into
@@ -6464,6 +6702,8 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     // that lets the reader read them in the raw belongs where they are shown.
     s3.append( mdbPageCreator_reasoningApiCalls( "mdbnames" ) );
     s3.append( mdbPageCreator_reasoningApiCalls( "hintRecent" ) );
+    // the prefix round behind the bar's "Similar:" row - fired only where a chip is red
+    s3.append( mdbPageCreator_reasoningApiCalls( "prefix" ) );
 
     panel.append( s3 );
 
@@ -6715,6 +6955,9 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_reportOpen = false;
     mdbPageCreator_hintsLogged = "";
     mdbPageCreator_hintCatsLogged = "";
+    // the prefix CACHE stays, like the category cache - an answer about a name does not
+    // change from page to page; only the log quieter is per page
+    mdbPageCreator_similarLogged = "";
     mdbPageCreator_alternatives = [];
     mdbPageCreator_altsLogged = "";
     mdbPageCreator_openDefinitions = {};

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.20
+// @version      2026.08.20.22
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,9 +14,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_65
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_66
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_99
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_100
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 165,
+var cacheVersion = 166,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,25 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.22
+ * A chunk whose names a joiner strings together is read as the line-up it is (title_builder.js
+ * v_66, from a SoundCloud report): "Asa 808 b2b Third Guy" scored as a series on the digits of
+ * a NAME, so neither artist was asked, and a title ending in such a list was number-stripped
+ * to "Third Guy b2b Asa" on top. A b2b/&/vs/comma list is artists whatever digits stand in it
+ * (only a series word still overrules it), the number stays where it was written since it
+ * belongs to the last name in the list, and each member is asked exactly as written. Follows
+ * the .20 round, which found the same reading on single names. No suggested title changes:
+ * all 141 examples pass unchanged.
+ *
+ * 2026.08.20.21
+ * A red category chip now gets a prefix round (page_creator.js v_100, page_creator.css /
+ * cacheVersion 166): the names the exact lookup answered empty about are asked once more with
+ * mdbnames' match=prefix, one request for all of them, and what MixesDB has that starts like
+ * them renders as a "Similar:" row of yellow chips directly under "Used categories" - a look
+ * to take, not a verdict: no fit score, at most 3 per red name, thin categories dropped. The
+ * answers stay in their own cache; the title builder stays on exact match and the suggestion
+ * does not change.
  *
  * 2026.08.20.20
  * A name ending in a number is asked about both ways now (title_builder.js v_65,

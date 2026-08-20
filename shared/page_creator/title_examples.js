@@ -1400,5 +1400,27 @@ var mdbTitleExamples = [
         expectAsked: [ "Flirt", "Route 8", "BRL" ],
         expectNotAsked: [ "Flirt w/ Route" ],
         expect: "2025-12-07 - Flirt, Route 8 - BRL (Promo Mix)"
+    },
+    {
+        // Same round, reported about the lookup again: a chunk whose names a JOINER strings
+        // together scored as a series on the digits of a name, so it was sorted into the
+        // entity column and the per-name split - which only runs on artist-role chunks -
+        // never ran. Neither artist was asked. A b2b/&/vs/comma list is a line-up whatever
+        // digits stand in it (only a series WORD still overrules it), and its number is not
+        // stripped either: it belongs to the last NAME in the list, and no episode of a
+        // series is written as a b2b. Both members are asked as written, "Asa 808" and not
+        // "Asa" - the point of the case, which is why it states the asked names.
+        title: "Asa 808 b2b Third Guy",
+        channel: "Rinse FM",
+        date: "2026-08-20",
+        known: {
+            "Asa 808": { type: "artist", mixes: 6 },
+            "Third Guy": { type: "artist", mixes: 3 },
+            "Rinse FM": { type: "radio", mixes: 900 }
+        },
+        expectArtists: [ "Asa 808", "Third Guy" ],
+        expectAsked: [ "Asa 808 b2b Third Guy", "Asa 808", "Third Guy" ],
+        expectNotAsked: [ "Asa" ],
+        expect: "2026-08-20 - Asa 808 b2b Third Guy - Rinse FM"
     }
 ];
