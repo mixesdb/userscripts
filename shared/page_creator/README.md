@@ -484,8 +484,19 @@ Filling the edit form, showing that preview and filling the upload field needs t
 
 The tracklist an uploader wrote into the description ends up in an editable box next to the
 player and, from there, on the created page. Comments are read only when the description held no
-tracklist, and only for a whole numbered tracklist – single track IDs in comments are never
-taken.
+tracklist, and only for a whole one somebody posted in a single comment – single track IDs in
+comments are never taken. Such a comment is one long line, so its tracks have to be marked before
+they can be told apart: either **numbered** (`1.`, `2.` … starting at 1 and counting up without a
+gap) or **cued** (`(00)`, `[05]`, `1:02:30` – a number in brackets or a clock time carrying its
+colon, never a bare number, and never running backwards). A cue arrives in the box written the
+way MixesDB writes cues, with the digits left as they were typed, so
+`(00)Gerd-Echo Jammz (02)ID? (05)Tikkle-Bubbles (Club Mix)` becomes
+
+```
+[00] Gerd - Echo Jammz
+[02] ID?
+[05] Tikkle - Bubbles (Club Mix)
+```
 
 A description holding several tracklists, each under its own headline – a resident's hour and a
 guest mix, say – becomes one tracklist in
@@ -533,6 +544,13 @@ dash is a capital and the title carries on behind it: a hyphen with no space aro
 hyphen inside a word far more often than it is a separator, `Jerome Isma-Ae - Encounter` has to
 keep splitting where its uploader put the spaces, and a line that simply ends after the compound
 (`Live at Berlin-Mitte`) is prose.
+
+A **`?` hanging off the end of a track** is the writer saying they are not sure, not part of the
+title: `Gerd - Echo Jammz?` arrives as `Gerd - Echo Jammz`, and a trailing `…` goes the same way.
+This only happens in a tracklist that already writes `?` the way MixesDB does somewhere else –
+in place of the artist, in place of the title, or as the whole track (`?`, `Will Hofbauer - ?`).
+Without such a mark nothing is touched, so `Haddaway - What Is Love?` keeps its question mark. A
+`?` that IS the artist or the title always stays.
 
 A **credit the uploader wrapped onto a line of its own** no longer cuts the tracklist in two.
 `Oliver Koletzki,` on one line and `Niko Schwind, Sidartha Siliceo-Satinka (Kermesse Remix)` on

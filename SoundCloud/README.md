@@ -36,7 +36,8 @@ nothing is written.
 
 The tracklist an uploader wrote into the description lands in an editable box below the toolkit,
 formatted in wiki syntax. When the description holds none, the track's comments are asked once
-for a complete numbered tracklist. Details in [Page creator](../shared/page_creator/).
+for a complete tracklist somebody posted there – numbered (`1.`, `2.` …) or cued (`(00)`, `[05]`,
+`1:02:30`). Details in [Page creator](../shared/page_creator/).
 
 Uploaders often credit remixers by their SoundCloud channel handle rather than by name –
 `Blur - Tender (@reyneke Reinterpretation)`, `@drparnassus - Locomotiva`. Every `@handle` in a

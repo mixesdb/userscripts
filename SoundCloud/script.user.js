@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.6
+// @version      2026.08.20.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_60
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_87
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
@@ -1896,6 +1896,33 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.7
+ * A tracklist posted as a comment is now found when its tracks are marked with CUES instead of
+ * numbering (tracklist_detector.js v_14). From the report on
+ * horstartsandmusicfestival/dave-huismans-at-dark-skies, whose 26 tracks read
+ * "(00)Gerd-Echo Jammz? (02)ID? (05)Tikkle-Bubbles (Club Mix) ...": the only split a comment
+ * had was the numbering, and it wants markers starting at 1 and counting up one by one, which
+ * minutes into a mix never do. Cues get their own split, on the one thing a cue list always
+ * does: it never runs backwards. That alone is weak, so everything still rests on the bar a
+ * comment tracklist has had all along - six tracks, half of them a real "Artist - Title" - and
+ * a marker has to be a number in brackets, "(00)" or "[05]", or a clock time carrying its
+ * colon, "1:02:30". A bare number stays the numbering's business. The cue is rewritten into
+ * the brackets MixesDB writes it in, digits untouched: "(00)Gerd" would otherwise reach the
+ * Tracklist Editor API as an artist called "(00)Gerd".
+ *
+ * The spaceless-separator second pass now runs over a split comment too, which is what turns
+ * that comment's "Gerd-Echo Jammz" into "Gerd - Echo Jammz" - the split had only just made
+ * lines out of the one line a comment is, and those lines need the same reading a
+ * description's do. "Artist-?" spaces out as well now: a title the writer does not know,
+ * written the way MixesDB writes an unknown one.
+ *
+ * And the "?" somebody hangs off the end of a track they are unsure about comes off
+ * ("Gerd - Echo Jammz?" -> "Gerd - Echo Jammz"), together with a trailing "…" - but only in a
+ * block that already writes "?" the MixesDB way somewhere, in place of an artist or a title
+ * ("?", "Will Hofbauer - ?"). Without such a mark nothing is touched, which is what leaves
+ * "Haddaway - What Is Love?" alone. Four new cases in tracklist_examples.js guard it; all 29
+ * pass.
  *
  * 2026.08.20.5
  * Via the shared page creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):

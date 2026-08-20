@@ -250,11 +250,26 @@ Settled, so it does not get re-litigated:
   cue and takes a trailing one for part of the title, so this cannot be left to it. Only done when
   at least half the block's lines carry such a cue - one title ending in something clock-shaped is
   not a pattern.
-- **Comments are asked only when the description gave nothing**, and only for a WHOLE numbered
-  tracklist starting at 1. Single track IDs - which is what nearly every comment naming an
-  "Artist - Title" is - must never be taken, and an unnumbered comment tracklist is left alone
-  because nothing can split it back into tracks. The site script fetches them (it owns the API
-  token); this file decides whether they are worth fetching.
+- **Comments are asked only when the description gave nothing**, and only for a WHOLE
+  tracklist. A comment is one long line, so what MARKS its tracks is the only thing to split on,
+  and there are two markers: the NUMBERING (`1.`, `2.` ..., starting at 1 and counting up
+  without a gap, `mdbTracklist_splitNumbered()`) and the CUES (`(00)`, `[05]`, `1:02:30` - a
+  number in brackets or a clock time carrying its colon, never a bare one, never running
+  backwards, `mdbTracklist_splitCued()`). Either way six tracks have to come out of the split
+  and half of them have to read "Artist - Title", which is the bar the markers really rest on:
+  single track IDs - what nearly every comment naming an "Artist - Title" is - must never be
+  taken. A comment tracklist with NO marker is left alone because nothing can split it back into
+  tracks. The split lines then get the same spaceless-separator second pass a description gets
+  (`mdbTracklist_acceptSplit()`), and a cue is rewritten into the brackets MixesDB writes it in,
+  digits untouched - `(00)Gerd` would reach the API as an artist called `(00)Gerd`. The site
+  script fetches the comments (it owns the API token); this file decides whether they are worth
+  fetching.
+- **A trailing `?` is the writer's, not the title's** (`mdbTracklist_tidyUnsure()`):
+  `Gerd - Echo Jammz?` loses it, and so does a trailing `…`. Only ever in a block that ALREADY
+  writes `?` the MixesDB way somewhere - in place of an artist, in place of a title, or as the
+  whole track (`?`, `Will Hofbauer - ?`) - which is what leaves `Haddaway - What Is Love?` and
+  every other title really ending in a question mark alone. A `?` that IS the artist or the
+  title keeps its place whatever the block does.
 
 Run the examples before and after touching `tracklist_detector.js`:
 
