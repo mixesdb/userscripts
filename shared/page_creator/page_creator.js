@@ -5693,12 +5693,12 @@ function mdbPageCreator_reasoningRecentText( title ) {
                              "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" + imgAside } );
     } else if( f.image && f.image.value === "none" ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " carry no artwork - no image line" + imgAside } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " carry no artwork -> no image line" + imgAside } );
     } else if( f.image ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " name their artwork after something else - nothing a new page could predict, no image line" + imgAside } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " name their artwork after something else (nothing a new page could predict) -> no image line" + imgAside } );
     } else {
-        rows.push( { label: "Lead artwork", detail: "no 90% agreement - no image line" + imgAside } );
+        rows.push( { label: "Lead artwork", detail: "no 90% agreement -> no image line" + imgAside } );
     }
 
     // the file details body
@@ -5713,13 +5713,13 @@ function mdbPageCreator_reasoningRecentText( title ) {
         } else {
             rows.push( { label: "File details",
                          detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use {{" + f.body.value + "}}, but this file's " + ( durText || "unknown duration" ) +
-                                 " is too far off its stated length - the dur table stays (the category may be a misread)" } );
+                                 " is too far off its stated length -> the dur table stays (the category may be a misread)" } );
         }
     } else if( f.body && f.body.value === "table" ) {
         rows.push( { label: "File details",
-                     detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use the dur/MB/kbps table - kept" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use the dur/MB/kbps table -> kept" } );
     } else {
-        rows.push( { label: "File details", detail: "no 90% agreement - the dur table stays" } );
+        rows.push( { label: "File details", detail: "no 90% agreement -> the dur table stays" } );
     }
 
     // The {{Player}}. Only the mirrors shape is ever copied, and the line for the second
@@ -5738,15 +5738,15 @@ function mdbPageCreator_reasoningRecentText( title ) {
                              " and the other line empty for the mirror. MixesDB shows \"No value for one of the players!\" until it is filled in or removed" } );
     } else if( f.player && f.player.value === "plain" ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a plain {{Player}} with one URL - kept" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a plain {{Player}} with one URL -> kept" } );
     } else if( f.player && f.player.value === "none" ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " carry no player at all - the plain {{Player}} stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " carry no player at all -> the plain {{Player}} stays" } );
     } else if( f.player ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a {{Player}} mode that needs a title per line (mode=multi) - nothing a page with one URL can be started as, the plain {{Player}} stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a {{Player}} mode that needs a title per line (mode=multi), which a page with one URL cannot start as -> the plain {{Player}} stays" } );
     } else {
-        rows.push( { label: "Player", detail: "no 90% agreement - the plain {{Player}} stays" } );
+        rows.push( { label: "Player", detail: "no 90% agreement -> the plain {{Player}} stays" } );
     }
 
     // The Notes section and, separately, the host its links point at. Only a series that has
@@ -5759,14 +5759,14 @@ function mdbPageCreator_reasoningRecentText( title ) {
         if( f.notesHost && f.notesHost.value !== "none" ) {
             rows.push( { label: "Notes link",
                          detail: mdbPageCreator_reasoningRecentCount( f.notesHost ) + " link to " + f.notesHost.value +
-                                 ( f.notesSample ? " (e.g. " + f.notesSample + ")" : "" ) + " - " +
+                                 ( f.notesSample ? " (e.g. " + f.notesSample + ")" : "" ) + " -> " +
                                  mdbPageCreator_reasoningNotesLink( f.notesHost.value ) } );
         } else {
             rows.push( { label: "Notes link",
-                         detail: "no 90% agreement on a host those sections link - nothing to look for in the description, the section stays empty" } );
+                         detail: "no 90% agreement on a host those sections link -> nothing to look for in the description, the section stays empty" } );
         }
     } else {
-        rows.push( { label: "Notes section", detail: "no 90% agreement - no Notes section" } );
+        rows.push( { label: "Notes section", detail: "no 90% agreement -> no Notes section" } );
     }
 
     // What the pages agree on, and what that name IS - the vote alone answers what these pages
@@ -5816,7 +5816,7 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
         rows.push( { label: "Shared categories",
                      detail: ( tally ? "nothing stands on 90% of the pages (" + tally + ")" : "the pages share no categories beyond this one" ) +
-                             " - no style to write and nothing to hint at" } );
+                             " -> no style to write and nothing to hint at" } );
     }
 
     s.append( mdbPageCreator_reasoningSteps( rows ) );
