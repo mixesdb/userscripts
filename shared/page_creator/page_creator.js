@@ -28,6 +28,7 @@ log( "/shared/page_creator/page_creator.js loaded" );
  *         releaseDate: "",                           // optional, beats createdAt when set
  *         durationMs:  4321000,                      // optional, gates the 20 min minimum
  *         playerUrl:   "https://...",                // optional, goes into {{Player}}
+ *         channelUrl:  "https://...",                // optional, the uploader's channel URL
  *         artworkUrl:  "https://...",                // optional, for MixesDB's upload form
  *         description: "01. Artist - Title [Label]", // optional, see below
  *         purchaseUrl: "https://...",                // optional, the "Buy" / download link
@@ -51,6 +52,13 @@ log( "/shared/page_creator/page_creator.js loaded" );
  * its "Buy" / "Free download" field (SoundCloud's purchase_url); it is never written to the
  * page as itself, it is only searched, because on a podcast that field is where the episode's
  * own page is linked.
+ *
+ * channelUrl is the uploader's own page on the site (SoundCloud's user.permalink_url), read
+ * off the site's API like the channel name - never derived from playerUrl in here, since how
+ * a site's URLs nest is site knowledge. Only the channel-link check reads it: a sibling page
+ * of the entity's category whose wikitext links this URL is direct evidence the category
+ * really is this channel's series (mdbPageCreator_channelLinkFinding). A site that hands
+ * none over simply skips that check.
  *
  *     mdbPageCreator_watchToolkit();  // whenever the toolkit is (re)built
  *
@@ -124,6 +132,9 @@ var mdbPageCreator_title = "",
     // mdbPageCreator_add() rather than read off the DOM, since only the site script knows
     // where its page keeps them
     mdbPageCreator_playerUrl = "",
+    // the uploader's channel page URL (the channelUrl option), "" where the site hands none
+    // over - see the header comment; read only by mdbPageCreator_channelLinkFinding()
+    mdbPageCreator_channelUrl = "",
     mdbPageCreator_durationMs = 0,
     mdbPageCreator_artworkUrl = "",
     // The two places the "== Notes ==" section's link is looked for (signal D). The
@@ -253,6 +264,7 @@ function mdbPageCreator_add( options ) {
         description = o.description || "";
 
     mdbPageCreator_playerUrl = o.playerUrl || "";
+    mdbPageCreator_channelUrl = o.channelUrl || "";
     mdbPageCreator_artworkUrl = o.artworkUrl || "";
     mdbPageCreator_description = description;
     mdbPageCreator_purchaseUrl = o.purchaseUrl || "";
@@ -1749,6 +1761,8 @@ function mdbPageCreator_categoryFit( entry, state, title ) {
     // the recent-pages sections use (mdbPageCreator_recentAnalysisFor - it starts no fetch, so
     // a render stays free of side effects) and only for the entity, which is the only chip
     // that HAS sibling pages.
+    var backing = [];
+
     if( entry.role === "entity" && title ) {
         var info = mdbPageCreator_recentAnalysisFor( title );
 
@@ -1757,9 +1771,24 @@ function mdbPageCreator_categoryFit( entry, state, title ) {
                 "the newest page in this category is " + info.stale + " years older than this mix - it may have" +
                 " stopped being used, or not be this mix's at all" );
         }
+
+        // 3) ... and the one signal that RAISES it: the category's own pages link this mix's
+        // channel, which no name collision can fake. Worth +15 against doubts like "a single
+        // word the wiki barely knows"; the clamp in percent() keeps the ceiling at 95, and
+        // absence adds no doubt (see mdbPageCreator_channelLinkFinding). Reported 2026-08-20
+        // on "DSS 140 | Space Drum Meditation".
+        var linked = ( !info.skip && info.entry && mdbTitle_normalizeCompare( info.catTitle ) === key )
+                ? mdbPageCreator_channelLinkFinding( info.entry )
+                : null;
+
+        if( linked && linked.count ) {
+            conf.score += 15;
+            backing.push( linked.count + " of the category's " + linked.n + " newest pages link this mix's channel (" +
+                          linked.url + ") - the pages themselves say whose series this is" );
+        }
     }
 
-    return { percent: conf.percent(), reasons: conf.reasons };
+    return { percent: conf.percent(), reasons: conf.reasons, backing: backing };
 }
 
 // mdbPageCreator_categoryFitScore
@@ -1773,13 +1802,19 @@ function mdbPageCreator_categoryFitScore( entry, state, title ) {
 
     var intro = "Confidence that [[Category:" + entry.name + "]] is the right category for this page.",
         caveat = "\n\nIt weighs the wiki's answer and how well it fits this page - never whether the title" +
-                 " picked the right words. A category can score high and still be the wrong reading.";
+                 " picked the right words. A category can score high and still be the wrong reading.",
+        // the channel-link confirmation - the one positive signal, so it gets its own line
+        // instead of standing among the doubts (a stale cached page_creator.js sends no
+        // backing field, hence the guard)
+        backs = ( fit.backing && fit.backing.length )
+            ? "\n\nWhat backs it:\n- " + fit.backing.join( "\n- " )
+            : "";
 
     return $("<span>")
         .addClass( "mdb-pageCreator-catFit mdb-pageCreator-score-" + mdbPageCreator_confidenceBand( fit.percent ) )
         .attr( "title", ( fit.reasons.length
             ? intro + "\n\nWhat lowered it:\n- " + fit.reasons.join( "\n- " )
-            : intro + "\nThe wiki has this exact name, and nothing about this page argues against it." ) + caveat )
+            : intro + "\nThe wiki has this exact name, and nothing about this page argues against it." ) + backs + caveat )
         .text( fit.percent + "%" );
 }
 
@@ -2609,6 +2644,49 @@ function mdbPageCreator_recentStaleBy( info, mixYear ) {
     var gap = year - newest;
 
     return gap > mdbPageCreator_recentMaxAgeYears ? gap : 0;
+}
+
+// mdbPageCreator_channelLinkFinding
+// How many of the entity category's fetched sibling pages link THIS mix's channel - the URL
+// evidence that the category really is this channel's series. Category:Deep Space Series'
+// pages all embed soundcloud.com/deep-space-series/... players, so the channel URL standing
+// in their wikitext ties the category to the channel more directly than any name can
+// (reported 2026-08-20 on "DSS 140 | Space Drum Meditation", where a lone "DSS" and the
+// channel's own category competed for the filing). Presence is the only signal: pages
+// WITHOUT the URL prove nothing - older pages, other platforms, a series that moved hosts -
+// so nothing anywhere charges for absence.
+//
+// Computed fresh per call, never baked into the category's cached findings: the cache
+// survives navigations, and the next mix resolving the same category belongs to a different
+// channel. Ten indexOf runs over ~10 wikitexts cost nothing.
+//
+// Returns { url, count, n } or null where nothing can be compared: no channelUrl handed
+// over, no pages fetched, or a channel URL without a path - a bare host would "confirm"
+// every category whose pages embed anything from that site.
+function mdbPageCreator_channelLinkFinding( entry ) {
+    if( !mdbPageCreator_channelUrl || !entry || entry.status !== "done" || !entry.pages.length ) return null;
+
+    // scheme, "www."/"m." and a trailing slash off, so what is compared is the part that
+    // names the channel: "soundcloud.com/deep-space-series"
+    var needle = String( mdbPageCreator_channelUrl ).toLowerCase()
+            .replace( /^https?:\/\//, "" )
+            .replace( /^(?:www|m)\./, "" )
+            .replace( /\/+$/, "" );
+
+    if( needle.indexOf( "/" ) === -1 ) return null;
+
+    // The needle has to sit at URL boundaries in the text: preceded by the scheme's slash (or
+    // a "www." the sibling wrote), and ended where a URL part ends - so a track URL of the
+    // channel ("...deep-space-series/solma") counts and "...deep-space-series-2" does not.
+    var re = new RegExp( "(?:^|[\\s\\/.\"'=|<>(\\[{])" + mdbTitle_escapeRe( needle ) + "(?=[\\/?#\"'|\\s<>\\]})]|$)", "i" ),
+        count = 0,
+        i;
+
+    for( i = 0; i < entry.pages.length; i++ ) {
+        if( re.test( String( entry.pages[i].text || "" ) ) ) count++;
+    }
+
+    return { url: needle, count: count, n: entry.pages.length };
 }
 
 // mdbPageCreator_recentEnsureFor
@@ -5867,6 +5945,21 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
     s.append( mdbPageCreator_reasoningRecentRead( info ) );
 
+    // Whether these pages really are this channel's - the URL evidence, in front of the
+    // conventions read off them, since it is about the "siblings" claim they all rest on.
+    // Only where the site handed a channelUrl over; only presence says anything
+    // (mdbPageCreator_channelLinkFinding).
+    var linked = mdbPageCreator_channelLinkFinding( info.entry );
+
+    if( linked ) {
+        rows.push( { label: "Channel link",
+                     detail: linked.count
+                         ? linked.count + " of the " + linked.n + " pages link this mix's channel (" + linked.url +
+                           ") -> the pages themselves say this is the channel's category; the entity chip's score counts it too"
+                         : "none of the " + linked.n + " pages link this mix's channel (" + linked.url +
+                           ") - says nothing either way: older pages and other platforms are common" } );
+    }
+
     // The lead artwork line. Where live recordings were left out of the vote
     // (mdbPageCreator_recentImageVote) the row says so: without it the count reads like the
     // whole sample, and "8 of the 8 newest pages" next to a "Read: the 10 newest pages" line
@@ -6500,6 +6593,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_confidenceReasons = [];
     mdbPageCreator_promoCategory = false;
     mdbPageCreator_playerUrl = "";
+    mdbPageCreator_channelUrl = "";
     mdbPageCreator_durationMs = 0;
     mdbPageCreator_artworkUrl = "";
     mdbPageCreator_description = "";

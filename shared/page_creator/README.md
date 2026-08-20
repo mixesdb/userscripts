@@ -44,6 +44,17 @@ show played by Ricky Montana. With a third chunk the two together answer the who
 channel picks itself out, and the chunk left over is who played it, so the channel name (the
 crew putting the series out) does not join the title.
 
+A series only ever written as its **initials** is read as the channel abbreviating itself:
+`DSS 140 | Space Drum Meditation` on the channel *Deep Space Series* spells that channel's
+initials, so once MixesDB confirms it knows *Deep Space Series* as a podcast – and has no
+series category called `DSS` – the title comes out as
+`2026-08-20 - Space Drum Meditation - Deep Space Series (DSS 140)`, the way that category's own
+pages are titled, and the page files under `Category:Deep Space Series` instead of opening a
+lone `DSS` beside it. The acronym has to be written in caps and spell the channel name's
+initials – a word that merely starts like the channel never counts – and a show really called
+by the letters keeps them: the wiki's answer, not the resemblance, is what decides, and without
+it nothing expands.
+
 The series' own recent pages then settle the format – but only where those pages can say
 anything about **this** mix. Two things stop them, and then nothing at all is read: the title
 **numbers** its entity while MixesDB knows that name as a venue or an event (a series numbers
@@ -216,7 +227,10 @@ that one weighs whether the wiki's answer is about the right **name**, and by th
 Amsterdam venue `Undercurrent` scores 95% even on a mix that has nothing to do with it. The fit
 score starts there and takes off what argues against the category: the title numbers its entity
 while MixesDB knows a venue or event of that name, or the category's newest page is years older
-than the mix. Hover it for what lowered it. What it cannot tell you – and its tooltip says so –
+than the mix. One thing raises it: the entity category's own newest pages **linking this mix's
+channel** – `soundcloud.com/deep-space-series` standing in their wikitext is the pages
+themselves saying whose series the category is, which no name match can. Hover it for what
+lowered or backed it. What it cannot tell you – and its tooltip says so –
 is whether the title picked the right **words**: `Leon` is a real artist category with 69 mixes
 and still the wrong reading of *Leon Row x Shimon*.
 
@@ -414,7 +428,13 @@ ends up used.
   answer that the name really is a style
 
 - **7 Page text analysis of recent mixes** – what the same pages' wikitext settles about the
-  page the **Create** link writes, one line per signal with its count: whether the pages open
+  page the **Create** link writes, one line per signal with its count. It opens with a
+  **Channel link** line where the site knows the uploader's channel URL: how many of the pages
+  link this mix's channel (`3 of the 10 pages link this mix's channel
+  (soundcloud.com/deep-space-series)`) – the URL standing in their wikitext is the pages
+  themselves saying whose series the category is, and a hit also raises the entity chip's fit
+  score, while none found says nothing either way (older pages and other platforms are
+  common). Then, one per signal: whether the pages open
   with an artwork named after the page itself (then the page text starts with the
   `[[File:…|right|360px]]` line, in the extension the siblings use – the live recordings among
   the siblings are left out of that count, and the line says how many), whether the file details
