@@ -416,6 +416,27 @@ api.php?action=query&list=categorymembers&cmtitle=Category:Amplify Series&cmlimi
 cat_subcats`. `cat_files` is right (29 files really are filed there); `cat_pages` says 30 where
 the category holds 58, so the subtraction leaves 1.
 
+**Reproducible without the API at all.** The category page counts its own mixes with DPL and
+reads `(29 out of 29)`, while the stored counter on the same page reads 1. Both numbers on one
+line, pasted into any page:
+
+```
+Stored counter: {{PAGESINCATEGORY:Amplify Series|pages}} pages, {{PAGESINCATEGORY:Amplify Series|files}} files, {{PAGESINCATEGORY:Amplify Series|all}} total
+
+Real count: {{#dpl:
+|category=Amplify Series
+|namespace=
+|count=500
+|noresultsheader=0
+|resultsheader=%TOTALPAGES%
+|format=,,,
+}}
+```
+
+renders as `Stored counter: 1 pages, 29 files, 30 total` / `Real count: 29` (verified
+2026-08-20). `{{PAGESINCATEGORY:}}`, `prop=categoryinfo` and `mdbnames`'s `mixes` are three
+readers of the one stale row; DPL is the only one of the four that counts.
+
 **How widespread.** Counting the members of 40 randomly drawn categories (`list=allcategories`
 with `acmin=3`, then `list=categorymembers` per namespace) found **3 with a wrong count**, and
 the drift goes both ways:
