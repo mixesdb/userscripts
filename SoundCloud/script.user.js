@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.23
+// @version      2026.08.20.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_66
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_100
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_101
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1902,6 +1902,22 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.24
+ * The "Similar:" row now asks about the names the TITLE writes too, not only about the bar's
+ * red chips (page_creator.js v_101). From the "NTS - Sacred Pools - Toshiki Ohta - August 2026
+ * (No Voice Over)" report: the mix is built as a promo, so the only categories on the bar are
+ * the year, the artist and "Promo Mix" - the mix's own name stands in no category slot at all -
+ * and the "NTS" the exact lookup had just been told no about was asked by nobody, while
+ * MixesDB's "NTS Radio" starts exactly like it. The round now takes those names off the lookup
+ * log as well: only ones the wiki was really asked about and really denied (a name dropped over
+ * the 10-name limit or whose request died is neither), only while the title still writes them
+ * word for word, and never one that OPENS a name already on the bar - "HATE" under a green
+ * "HATE Podcast" chip would only ask a looser question about a filing the bar has settled, and
+ * that fence is also what keeps a fully-green row from firing a request it never fired before.
+ * The row renders off the same list the request was built from, so the two cannot disagree, and
+ * the request caps at 10 names like the exact round. Still hints only: the answers stay in their
+ * own cache, and nothing about the suggestion or the filing changes.
  *
  * 2026.08.20.23
  * A chunk whose names a joiner strings together is read as the LINE-UP it is

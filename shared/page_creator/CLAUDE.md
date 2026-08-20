@@ -775,10 +775,10 @@ title and a hint is no filing to be confident about.
 
 ## The "Similar:" row (hints bar, since 2026-08-20)
 
-The prefix round behind a red chip: once the exact lookup has answered EMPTY about a name, it
-is asked once more with `match=prefix` - every red name of the bar in ONE request
-(`mdbPageCreator_prefixEnsure`, fired from the two settle paths next to the recent fetch,
-never from a render) - and what MixesDB has that starts like it renders as yellow chips
+The prefix round behind a name the wiki denied: once the exact lookup has answered EMPTY about
+a name, it is asked once more with `match=prefix` - every denied name of this title in ONE
+request (`mdbPageCreator_prefixEnsure`, fired from the two settle paths next to the recent
+fetch, never from a render) - and what MixesDB has that starts like it renders as yellow chips
 directly under "Used categories" (`mdbPageCreator_similarCategoriesHint`). Settled, so it does
 not get re-litigated:
 
@@ -801,6 +801,49 @@ not get re-litigated:
   click interception read both category rows, in document order, which is the order the bar
   reads. Section 3 closes with the request as an "API call" link like the other rounds
   (kind `prefix`).
+
+### The second source of names: what the TITLE writes (2026-08-20, second round)
+
+The first cut asked the bar's RED CHIPS, and a report walked straight through the hole in that:
+`NTS - Sacred Pools - Toshiki Ohta - August 2026 (No Voice Over)` (SoundCloud, channel
+"Toshiki Ohta") is built as `2026-08 - Toshiki Ohta - NTS Sacred Pools - No Voice Over (Promo
+Mix)`, so its bar carries the year, the artist and "Promo Mix" - **the mix's own name stands in
+no category slot on a promo**, `mdbPageCreator_entityCategoriesFor` returns the bucket alone.
+The exact round HAD asked "NTS" (a chunk candidate) and been told no; nothing then asked it a
+second way, and the wiki's `NTS Radio` - which starts exactly like it - stayed invisible. The
+reporter's own fix was a wiki-side redirect `NTS` -> `NTS Radio`, which is the sanctioned route
+while the row is hints-only; the row still has to be able to point at it.
+
+So `mdbPageCreator_prefixMissingNames` returns two rounds of names, and both mean "asked, and
+the wiki said no": the bar's red chips first, then the names the TITLE writes that are no chip
+at all, read off `mdbTitle_lookupLog` (this page's asked names, original spelling). The fences,
+each of which a case walked into while building:
+
+- **Denied means denied as ANYTHING** for the second round - `mdbTitle_knownMatch( cache, name,
+  null )`. These names stand in no category slot, so unlike a bar chip there is no role to hold
+  the answer against.
+- **Never asked is not denied**: a name dropped over the exact round's 10-name limit
+  (`entry.skipped`) or one whose request died (`entry.failed`) is skipped - a chip reading
+  "MixesDB has no category ..." about it would be a lie.
+- **The title has to still write it**, as whole words (`mdbPageCreator_titleWritesName`, on
+  `mdbPageCreator_nameWords`). A channel the parse threw away is no filing anyone is about to
+  make. Word-wise and NOT on the normalized keys, which have no spaces left in them: "nts" sits
+  inside "toshikiohtants" there and every short name would find itself somewhere. The wiki's
+  prefix mode matches at word granularity too (row_enrichment.md §1), so both ends agree about
+  where a name begins.
+- **A name that OPENS one the bar carries stays out** (`mdbPageCreator_nameStartsName`): "HATE"
+  next to a green "HATE Podcast" chip would ask a looser question about a filing the bar has
+  already settled, and the family around a name the wiki KNOWS is a whole addition of its own
+  that is not built (row_enrichment.md §1, the Dekmantel case). This is also what keeps the
+  common, fully-green row from firing a request it never fired before - measured on the
+  `HATE Podcast 496` and `Deep Space Series 004` fixtures.
+- **The request caps at 10 names**, the module's limit like the exact round's, and the seeds of
+  the dropped ones come back out of `mdbPageCreator_prefixCache` so a later call can still get
+  to them.
+
+`mdbPageCreator_similarCategoriesHint` walks that same list rather than the bar's entries a
+second time - half of those names are on no chip - which is what keeps the row and the request
+from ever disagreeing about what was asked. A name with nothing cached simply renders nothing.
 
 ## The "Switch title" line (hints bar, since 2026-08-19)
 
