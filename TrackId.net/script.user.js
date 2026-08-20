@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.6
+// @version      2026.08.20.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_60
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_87
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1965,6 +1965,29 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.7
+ * A style at least 90% of the entity's recent MixesDB pages carry is written onto the created
+ * page again (page_creator.js v_88). Reported on
+ * soundcloud.com/dirtyepicla/amplify-series-138-reka-zalan: Category:Amplify Series carries
+ * [[Category:Techno]] on 10 of its 10 newest pages, reasoning section 7 said exactly that, and
+ * the page still came out with two blank style rows to be filled in by hand. The vote stopped
+ * writing on 2026-08-19 because it cannot tell a style from a coincidence: "Amsterdam Dance
+ * Event" stands on all 10 pages of Category:Undercurrent, whose MixesDB pages happen to be
+ * festival sets, and filing an unrelated podcast episode there is a wrong filing made for the
+ * editor.
+ *
+ * It is no longer guessed - MixesDB is asked. Its style categories are the ones filed under
+ * Category:Style, so one prop=categories request classifies whatever the vote produced (Techno,
+ * Deep House, Drum & Bass come back carrying it; Amsterdam Dance Event carries Category:Event),
+ * and only a confirmed style takes a style line. Every other winner stays the "Hints:" chip it
+ * has been, and so does a name whose answer is still on its way: nothing is filed on a name
+ * nobody confirmed. A written style joins the "Used categories" row as a plain grey chip like
+ * "Promo Mix", its tooltip naming the pages it was learned off, reasoning section 6 says the same
+ * next to the category line, and section 7 names the verdict per shared category and offers that request as
+ * its own "API call" link. Answers are cached per name for the session, so the second series
+ * voting for Techno costs no request at all. A site's own style suggestions box (TrackId.net) is
+ * untouched and still wins - those styles are read off the mix itself.
  *
  * 2026.08.20.5
  * Via the shared page creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):
