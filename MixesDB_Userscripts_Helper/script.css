@@ -49,9 +49,9 @@
        inside a .playerWrapper up to width:100% and .fixedWidth is the exclusion it honours,
        so only the sizing left over from that is ours */
     & .tidSubmit-icon {
-        height: 12px; /* same as the integrated icon it shares the line with */
+        height: 14px;
         vertical-align: middle;
-        padding-right: 2px;
+        margin-top: -2px;
     }
     
     & .mdb-checked-icon {

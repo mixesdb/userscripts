@@ -232,6 +232,17 @@ var mdbTracklist_indexRe = /^([#(]?)(\d{1,3})([.):\]]+|\s*[-–—])?[ \t]+/;
 // A cue in front of the artist: "[000]", "[00:12:30]", "[cue]"
 var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
 
+// The same thing as a MARKER inside the one line a comment has: "(00)Gerd-Echo Jammz? (02)ID?
+// ...". Read by mdbTracklist_splitCued() and by nothing else - a description splits into tracks
+// by its line breaks and needs none of this.
+//
+// A bare number is deliberately no marker here: "1 Artist - Title" is the NUMBERING's shape and
+// mdbTracklist_splitNumbered() is what reads that. The brackets, or the colon of a clock time,
+// are what make a number a cue - which is also why the seconds of "(1:02)" may be one digit but
+// those of a bare "1:02" may not: without brackets around it, "5:3" is a score, a date or a
+// Bible verse far more often than it is a timestamp.
+var mdbTracklist_commentCueRe = /(?:^|\s)(?:\((\d{1,3}(?::\d{1,2}){0,2})\)|\[(\d{1,3}(?::\d{1,2}){0,2})\]|(\d{1,3}:\d{2}(?::\d{2})?))[ \t]*(?=\S)/g;
+
 // The bullet an uploader writes a list with instead of numbering it: "- Artist - Title",
 // "• Artist - Title". Same characters mdbTracklist_chapterName() peels off a headline, plus the
 // three dashes - see mdbTracklist_stripBullets() for what each of them costs.
@@ -273,9 +284,12 @@ var mdbTracklist_slashTitleRe = /(\S)\s[\/\\]{1,2}\s(\S)/;
 // The CAPITAL behind the dash is what carries the whole rule. A hyphen without spaces around it
 // is a hyphen inside a word nine times out of ten, and a word is lowercase behind it ("lo-fi",
 // "dub-hazed", "much-needed"); a title is not. A digit is not allowed there either - "2026-08-19"
-// and "24-7" would pass, and a date list is exactly what these descriptions are full of. The two
-// groups are the characters either side, kept so the same regex can do the rewriting.
-var mdbTracklist_tightDashRe = /([\p{L}\p{N}])[-–—](\p{Lu})/u;
+// and "24-7" would pass, and a date list is exactly what these descriptions are full of. A "?"
+// passes as well, because "Will Hofbauer-?" is a track whose title the writer does not know,
+// written the way MixesDB writes an unknown one - and no compound word carries a question mark
+// behind its hyphen. The two groups are the characters either side, kept so the same regex can
+// do the rewriting.
+var mdbTracklist_tightDashRe = /([\p{L}\p{N}])[-–—](\p{Lu}|\?)/u;
 
 // A cue written behind the track instead of in front of it, with whatever the uploader hung off
 // it: "Artist - Title 00:52:09", "Artist - Title 00:56:00- CLASSIC OF THE WEEK".
@@ -574,9 +588,11 @@ function mdbTracklist_evenIndexLine( line, style, lead, sep ) {
 // mdbTracklist_tidy
 // Everything the block gets on the way to the API, in the order the steps read the line: the
 // bullet in front of it off first, then the numbering behind that evened out, then the separator
-// in the middle, then the cue behind the track moved in front of it.
+// in the middle, then the cue behind the track moved in front of it - and last the writer's own
+// "?" off the end, which has to come last because it is the only step that reads the separator
+// the steps above it wrote.
 function mdbTracklist_tidy( lines ) {
-    return mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( mdbTracklist_stripBullets( lines ) ) ) ) );
+    return mdbTracklist_tidyUnsure( mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( mdbTracklist_stripBullets( lines ) ) ) ) ) );
 }
 
 // mdbTracklist_dashifySeparators
@@ -705,6 +721,74 @@ function mdbTracklist_tidyCues( lines ) {
 
     for( i = 0; i < lines.length; i++ ) {
         out.push( mdbTracklist_tidyLine( lines[i] ) );
+    }
+
+    return out;
+}
+
+// mdbTracklist_unsureMark
+// Whether this line writes a "?" the way MixesDB does - IN PLACE of the artist, in place of the
+// title, or as the whole track. That is the mark mdbTracklist_tidyUnsure() waits for before it
+// believes a "?" hanging off the end of any other line.
+function mdbTracklist_unsureMark( line ) {
+    var text = String( line || "" ),
+        body = text.slice( mdbTracklist_bodyAt( text ) ).trim(),
+        at = body.indexOf( " - " );
+
+    if( body === "?" ) return true;
+    if( at < 0 ) return false;
+
+    return body.slice( 0, at ).trim() === "?" || body.slice( at + 3 ).trim() === "?";
+}
+
+// mdbTracklist_tidyUnsure
+// The "?" a writer hangs off the END of a track they are not certain about taken off: "(00)Gerd-
+// Echo Jammz?" is Gerd's "Echo Jammz" with a question mark of the writer's own on it, not a title
+// that asks a question. A "…" behind the title is the same thing - somebody trailing off, or a
+// comment cut short where it was read - and neither belongs in a MixesDB tracklist.
+//
+// Only ever done in a block that ALREADY writes "?" the MixesDB way somewhere: in place of the
+// artist, in place of the title, or as the whole track ("(42)?", "(62)Will Hofbauer-?"). THAT is
+// what says this writer marks what they do not know with a "?" - and without one, nothing here
+// is touched, which is what leaves "Haddaway - What Is Love?" and every other title that really
+// does end in a question mark alone. The same "a pattern or nothing" rule the slashes and the
+// trailing cues are rewritten by.
+//
+// A "?" that IS the artist or the title stays whatever the block does - taking it off would
+// leave "Will Hofbauer - " with nothing behind the separator - and so does a line with no
+// separator at all, where "ID?" is all anyone knows about the track.
+function mdbTracklist_tidyUnsure( lines ) {
+    var marks = 0,
+        changed = 0,
+        out = [],
+        i;
+
+    for( i = 0; i < lines.length; i++ ) {
+        if( mdbTracklist_unsureMark( lines[i] ) ) marks++;
+    }
+
+    if( !marks ) return lines;
+
+    for( i = 0; i < lines.length; i++ ) {
+        var line = String( lines[i] ),
+            at = mdbTracklist_bodyAt( line ),
+            body = line.slice( at ),
+            sep = body.indexOf( " - " ),
+            title = sep > -1 ? body.slice( sep + 3 ).trim() : "",
+            bare = title.replace( /\s*(?:\?+|\.\.\.|…)$/, "" ).trim();
+
+        if( bare && bare !== title ) {
+            out.push( line.slice( 0, at ) + body.slice( 0, sep + 3 ) + bare );
+            changed++;
+        } else {
+            out.push( lines[i] );
+        }
+    }
+
+    if( changed ) {
+        log( "mdbTracklist_tidyUnsure: " + marks + " of the " + lines.length +
+             " lines write \"?\" for what the writer does not know - taking the same mark off the end of " +
+             changed + " named track(s)." );
     }
 
     return out;
@@ -1188,6 +1272,147 @@ function mdbTracklist_splitNumbered( text ) {
     return out;
 }
 
+// mdbTracklist_cueSeconds
+// A cue as seconds, so that two of them can be compared. A bare number is MINUTES - that is what
+// "[000]" means on a MixesDB tracklist and what a comment writer means by "(45)" - "1:02" is
+// minutes and seconds, "1:02:30" hours, minutes and seconds.
+function mdbTracklist_cueSeconds( cue ) {
+    var parts = String( cue ).split( ":" ),
+        h = 0,
+        m = 0,
+        s = 0;
+
+    if( parts.length === 1 ) {
+        m = parseInt( parts[0], 10 );
+    } else if( parts.length === 2 ) {
+        m = parseInt( parts[0], 10 );
+        s = parseInt( parts[1], 10 );
+    } else {
+        h = parseInt( parts[0], 10 );
+        m = parseInt( parts[1], 10 );
+        s = parseInt( parts[2], 10 );
+    }
+
+    return h * 3600 + m * 60 + s;
+}
+
+// mdbTracklist_splitCued
+// The other way a whole tracklist arrives in ONE line: marked with CUES instead of numbering -
+// "(00)Gerd-Echo Jammz? (02)ID? (05)Tikkle-Bubbles (Club Mix) ...". The split above cannot see
+// those, and must not: they neither start at 1 nor count up one by one, because they are minutes
+// into the mix and not track numbers.
+//
+// What takes the place of that rule is that a cue list never runs BACKWARDS. The longest stretch
+// of markers that only ever goes up is the tracklist, and the sentence somebody wrapped around it
+// is not part of it. On its own that is weak - two times mentioned in one sentence are in some
+// order too - so everything else rests on the bar every comment tracklist has to clear anyway:
+// mdbTracklist_minCommentTracks tracks, half of them a real "Artist - Title". "the one at 42 is
+// Objekt - Ganzfeld, and 1:02:30 too" brings two markers and one track and gets nowhere near it.
+//
+// The cue is rewritten into the brackets MixesDB writes it in, with the digits left exactly as
+// they were typed: "(00)" -> "[00] ". The Tracklist Editor API reads a leading "[00]" and would
+// take "(00)Gerd" for an artist called "(00)Gerd".
+function mdbTracklist_splitCued( text ) {
+    var line = mdbTracklist_normalize( text ).replace( /\n+/g, " " ).trim(),
+        marks = [],
+        m;
+
+    // a shared /g regex remembers where it stopped - and this one is asked once per comment
+    mdbTracklist_commentCueRe.lastIndex = 0;
+
+    while( ( m = mdbTracklist_commentCueRe.exec( line ) ) !== null ) {
+        // the match may start on the space in front of the marker, and it eats the space behind
+        // it - the cue starts at the bracket, the track behind whatever follows it
+        var cue = m[1] || m[2] || m[3],
+            lead = m[0].match( /^\s*/ )[0].length;
+
+        marks.push({
+            at:    m.index + lead,
+            track: m.index + m[0].length,
+            cue:   cue,
+            secs:  mdbTracklist_cueSeconds( cue )
+        });
+    }
+
+    var best = { at: 0, len: 0 },
+        start = 0,
+        i;
+
+    for( i = 1; i <= marks.length; i++ ) {
+        if( i < marks.length && marks[i].secs >= marks[i - 1].secs ) continue;
+
+        if( i - start > best.len ) best = { at: start, len: i - start };
+
+        start = i;
+    }
+
+    var taken = marks.slice( best.at, best.at + best.len );
+
+    if( taken.length < mdbTracklist_minCommentTracks ) {
+        if( marks.length ) {
+            logVar( "mdbTracklist_splitCued: cues found, longest stretch that never runs backwards", taken.length );
+        }
+
+        return null;
+    }
+
+    // Markers that all name the SAME time are no cue list: a row of "(1)"s is a numbering the
+    // split above reads, or a comment repeating itself. Only ever going up is not enough on its
+    // own - it has to arrive somewhere.
+    if( taken[ taken.length - 1 ].secs <= taken[0].secs ) {
+        log( "mdbTracklist_splitCued: " + taken.length + " cues that never move on from " + taken[0].cue + " - not a cue list." );
+        return null;
+    }
+
+    var out = [];
+
+    for( i = 0; i < taken.length; i++ ) {
+        var to = ( i + 1 < taken.length ) ? taken[i + 1].at : line.length;
+
+        out.push( "[" + taken[i].cue + "] " + line.slice( taken[i].track, to ).trim() );
+    }
+
+    log( "mdbTracklist_splitCued: split a comment at " + out.length + " cues running from " +
+         taken[0].cue + " to " + taken[ taken.length - 1 ].cue + "." );
+
+    return out;
+}
+
+// mdbTracklist_acceptSplit
+// What a comment's split lines have to pass before they are a tracklist, and what they get on the
+// way out. Shared by both splits above, because neither of them says anything about the tracks -
+// they only say where one ends and the next begins.
+//
+// The second pass is the one mdbTracklist_detectInText() runs over a description, for the same
+// reason: a comment's tracks are written "Artist-Title" without the spaces at least as often as a
+// description's lines are, and the split has just turned the comment INTO lines, so the same
+// rewriting answers here. Only asked when the lines as they stand are no tracklist - a split that
+// already passed must not be touched, exactly as over there.
+function mdbTracklist_acceptSplit( split ) {
+    if( !split ) return null;
+
+    var score = mdbTracklist_acceptRun( split, mdbTracklist_minCommentTracks );
+
+    if( !score ) {
+        var spaced = mdbTracklist_spaceTightDashes( split.join( "\n" ) );
+
+        if( !spaced ) return null;
+
+        split = spaced.split( "\n" );
+        score = mdbTracklist_acceptRun( split, mdbTracklist_minCommentTracks );
+
+        if( !score ) return null;
+    }
+
+    split = mdbTracklist_tidy( split );
+
+    return {
+        text: split.join( "\n" ),
+        lines: split.length,
+        indexed: score.indexed * 2 >= score.rows
+    };
+}
+
 // mdbTracklist_detectInComments
 // comments: an array of comment bodies, newest or oldest first - it does not matter, the longest
 // tracklist wins either way.
@@ -1207,14 +1432,10 @@ function mdbTracklist_detectInComments( comments ) {
         // the higher bar - the same "a whole tracklist or nothing" rule applies
         var found = mdbTracklist_detectInText( body, mdbTracklist_minCommentTracks );
 
-        if( !found ) {
-            var split = mdbTracklist_splitNumbered( body );
-
-            if( split && mdbTracklist_acceptRun( split, mdbTracklist_minCommentTracks ) ) {
-                split = mdbTracklist_tidy( split );
-                found = { text: split.join( "\n" ), lines: split.length, indexed: true };
-            }
-        }
+        // Numbering first: it is the stricter of the two splits, and a list carrying both a
+        // number and a cue per track ("1. (00) Artist - Title") is numbered to whoever wrote it.
+        if( !found ) found = mdbTracklist_acceptSplit( mdbTracklist_splitNumbered( body ) );
+        if( !found ) found = mdbTracklist_acceptSplit( mdbTracklist_splitCued( body ) );
 
         if( found && ( !best || found.lines > best.lines ) ) {
             best = found;
