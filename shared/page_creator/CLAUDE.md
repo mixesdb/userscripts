@@ -278,6 +278,18 @@ the canonical spelling, the type and the mix count; `mdbTitle_lookupCategories()
 to the first letter** (`$wgCapitalLinks = false`), which is why a verbatim `Category:` lookup
 missed `trommel`/`BASSIANI` for months and why the module exists at all.
 
+**`mixes` is the wiki's own `categoryinfo` count and some of those counts are wrong** (found
+2026-08-20 on `Category:Amplify Series`, reported to the maintainer). MediaWiki keeps a
+category's member counts in the `category` table instead of counting on read, and on this wiki
+several of those counters have drifted: `Amplify Series` answers `1 mix` where the category
+holds 29 mix pages, and 3 of 40 randomly sampled categories are off in one direction or the
+other. The answer contradicts itself where it happens - `"mixes": 1` next to the ten titles the
+same match carries in `recent` - but `recentlimit` is capped at 10, so `recent.length` is only
+ever a lower bound and cannot correct the count. **Nothing here works around it**: the count is
+worth at most -10 in `mdbTitle_matchConfidence` and the chip is a display, so a drifted counter
+costs a chip that reads wrong, never a wrong title. The fix belongs on the server
+(`recountCategories.php`) - do not build a client-side guess for it.
+
 Rules the implementation follows, settled before it was built - do not re-litigate:
 
 - **A resolved name is written in the wiki's spelling**, not the source's: `trommel` ->
@@ -817,6 +829,21 @@ Settled about what it shows:
 - The open "?" blocks are the one thing the panel remembers across a re-render
   (`mdbPageCreator_openDefinitions`) - the rebuild is what a title EDIT triggers, and a list
   opened to compare the title against must not close on the first keystroke.
+- **Every api.php request the page fired is a link in the section that reads its answer**
+  (2026-08-20) - `mdbTitle_apiCallLog` in `title_builder.js`, written by
+  `mdbTitle_noteApiCall()` at the three call sites (`mdbTitle_lookupCategories`,
+  `mdbPageCreator_recentFetch`, `mdbPageCreator_usedCatFetchRecent`) and rendered by
+  `mdbPageCreator_reasoningApiCalls()` as an "API call" row closing sections 3 (the mdbnames
+  lookup, plus every hints-bar chip fetch - that is where those chips' categories were
+  answered about), 5 and 7 (the one recent-pages request, which carries titles and wikitext
+  both). The URL is built with `$.param` off the SAME data object the `$.ajax` call sends,
+  never a second hand-written one: a link opening a slightly different request than the one
+  whose answer is on screen is worse than no link at all. Built off the Amplify Series report -
+  the hints bar said "1 mix" where the category holds 29, and turning that into something the
+  MixesDB maintainer can act on meant rebuilding the request by hand. The log is cleared per
+  page with the lookup log, so a section whose answer came out of the cache of a track opened
+  earlier shows no row: the request was not made for this page and the panel may not say it
+  was.
 
 Every title reported as wrongly suggested lives in `title_examples.js` as its input and the
 title it should produce. Run them before and after touching anything the suggestion uses

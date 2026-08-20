@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.4
+// @version      2026.08.20.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_59
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_60
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_85
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_86
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 160,
+var cacheVersion = 161,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1896,6 +1896,18 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.5
+ * Via the shared page creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):
+ * sections 3, 5 and 7 of the reasoning panel each close with an "API call" link - the exact
+ * api.php URL that section's answers came out of, opening the raw answer in a new tab. Section
+ * 3 carries the one lookup request plus every per-chip page fetch the hints bar fired off its
+ * answers; 5 and 7 share the single recent-pages request, which brings their titles and their
+ * wikitext in one go. Built off the Amplify Series report: the hints bar reads "1 mix" where
+ * Category:Amplify Series holds 29 mix pages, because MixesDB's own category counter has
+ * drifted there, and writing that up for the wiki's maintainer meant rebuilding the request by
+ * hand. Every link is built off the SAME data object its request is sent with, so it opens
+ * what was really asked rather than an approximation of it.
  *
  * 2026.08.20.2
  * The box under an open hints bar chip hangs 5px lower (page_creator.css), and chip and box

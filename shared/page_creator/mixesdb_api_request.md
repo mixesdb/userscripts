@@ -14,6 +14,12 @@
 > **Follow-up, same day:** `match=prefix` went live too (opt-in, default stays strict), with
 > `matchType` (`exact`|`redirect`|`prefix`), `matchedTitle`, prefix results ranked by mix count
 > and capped at 10 - see `row_enrichment.md` §1 for the verified details and what uses it.
+>
+> **Open, reported 2026-08-20:** the `mixes` count is right for most categories and stale for
+> some - `Amplify Series` answers `"mixes": 1` next to the ten titles the same match hands over
+> in `recent`, while the category holds 29 mix pages. Nothing to change in the module: the
+> number is `categoryinfo`'s, and `categoryinfo` is reading a drifted row of the `category`
+> table. Measurement and the suggested fix in section 11.
 
 **What we would like:** one API call that takes a list of names and answers, for each, *does
 MixesDB have a category of that name, and what kind of thing is it* – matched
@@ -373,3 +379,71 @@ section 9 ignored entirely if it is off the mark.
 **Case-insensitive matching is the one thing we cannot build ourselves**, and the canonical
 spelling is the one that most improves the result. The `recent` titles are a convenience – very
 valuable to us, but we can get them without you.
+
+---
+
+## 11. Follow-up: some `category` table counters are stale (found 2026-08-20)
+
+**This is not an `mdbnames` bug** - the module hands on what `categoryinfo` says, and
+`categoryinfo` reads MediaWiki's `category` table, which stores the member counts rather than
+counting on read. On this wiki some of those rows have drifted apart from the category's real
+contents. It is written up here because `mixes` is the field section 5 asks for, and because a
+wrong count is invisible from the outside unless somebody counts the members by hand.
+
+**The case it was found on.** `Amplify Series`, from a SoundCloud track page:
+
+```
+api.php?action=mdbnames&format=json&formatversion=2&origin=*
+       &names=Dirty Epic|Amplify Series|VIL&recentlimit=10
+
+  { "title": "Amplify Series", "mixes": 1, "type": "podcast",
+    "recent": [ 10 titles, "2025-07-07 - Infinity Division - Amplify Series 119" first ] }
+```
+
+`"mixes": 1` and ten `recent` titles in the same object, and
+[Category:Amplify Series](https://www.mixesdb.com/w/Category:Amplify_Series) lists 29 mix pages.
+The count comes straight out of core:
+
+```
+api.php?action=query&prop=categoryinfo&titles=Category:Amplify Series
+  -> { "size": 30, "pages": 1, "files": 29, "subcats": 0 }
+
+api.php?action=query&list=categorymembers&cmtitle=Category:Amplify Series&cmlimit=max
+  -> 29 pages in ns 0 and 29 in ns 6, 58 members
+```
+
+`size` is `cat_pages`, and the API derives `pages` from it as `cat_pages - cat_files -
+cat_subcats`. `cat_files` is right (29 files really are filed there); `cat_pages` says 30 where
+the category holds 58, so the subtraction leaves 1.
+
+**How widespread.** Counting the members of 40 randomly drawn categories (`list=allcategories`
+with `acmin=3`, then `list=categorymembers` per namespace) found **3 with a wrong count**, and
+the drift goes both ways:
+
+| Category | `categoryinfo` pages/files/subcats | really |
+| --- | --- | --- |
+| `Amplify Series` | 1 / 29 / 0 | 29 / 29 / 0 |
+| `Alphabet Podcast` | 7 / 53 / 0 | 53 / 53 / 0 |
+| `Acid Reflux Mix Series` | 0 / 20 / 0 | 20 / 20 / 0 |
+| `Anané` | 12 / 23 / 0 | 55 / 29 / 0 |
+| `Alter Disco Podcast` | 141 / 175 / 0 | 183 / 181 / 0 |
+| `Analogue Podcast` | 28 / 45 / 0 | 45 / 45 / 0 |
+| `Vhyce` | 21 / 3 / 0 | 8 / 3 / 0 |
+| `Scalameriya` | 13 / 7 / 0 | 14 / 7 / 0 |
+| `Head Front Panel` | 4 / 1 / 0 | 5 / 1 / 0 |
+
+`cat_pages` is off in every one of them; `cat_files` is off as well on the two largest
+(`Anané`, `Alter Disco Podcast`). Categories of every size and type are affected, and plenty of
+big ones are perfectly fine - `HATE Podcast` (500), `Essential Mix` (1763), `Trommel` (29) and
+`Bassiani` (39/29/2) all count exactly right.
+
+**The fix, as far as we can see it from outside:** `maintenance/recountCategories.php` is the
+core script for exactly this (`--mode=pages`, then `files` and `subcats`). Nothing is asked of
+`mdbnames` itself.
+
+**What we do on our side:** nothing, deliberately. `recentlimit` is capped at 10, so
+`recent.length` is a lower bound and cannot be used to correct `mixes`. The count is worth at
+most -10 of our confidence score and is otherwise a chip in the row, so a stale counter costs a
+number that reads wrong, never a wrong page title. Since 2026-08-20 the reasoning panel prints
+the `api.php` URL of every request it made as an "API call" link, so the next one of these can
+be checked in the raw instead of reconstructed by hand.
