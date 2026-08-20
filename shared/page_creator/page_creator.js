@@ -882,11 +882,19 @@ function mdbPageCreator_entityCategoryFor( title, entity ) {
 // "Trommel.038" are both [[Category:HATE Podcast]] / [[Category:Trommel]], and an event keeps
 // its name without the edition ("Sunwaves 31" -> Sunwaves). The bracketed tail a title can
 // carry - "(RA.971)", "(Promo Mix)" - is never part of a category name either.
+//
+// The number stays where the wiki has ANSWERED for the name as it stands: not every
+// "<name> <number>" counts editions - "Route 8" is an artist and the digits are part of the
+// name, so cutting them would file the page under "Route", a category MixesDB does not have,
+// next to the one it does. Same shape as the room reduction below: only a real answer may
+// overrule the written name, and without one the cut runs as before.
 function mdbPageCreator_entityCategory( entity ) {
-    var name = String( entity || "" )
-        .replace( /\s*\([^()]*\)\s*$/, "" )
-        .replace( /[\s.]+\d+$/, "" )
-        .trim();
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        name = String( entity || "" ).replace( /\s*\([^()]*\)\s*$/, "" ).trim();
+
+    if( !( /[\s.]+\d+$/.test( name ) && mdbTitle_knownAs( cache, name ) ) ) {
+        name = name.replace( /[\s.]+\d+$/, "" ).trim();
+    }
 
     return mdbPageCreator_venueOfRoom( name );
 }
@@ -1016,7 +1024,7 @@ function mdbPageCreator_entityLookupNames( title, read ) {
         names = ( read.entities && read.entities.length ) ? read.entities : ( read.entity ? [ read.entity ] : [] ),
         out = [],
         keys = [],
-        i, name, key;
+        i, name, key, full;
 
     for( i = 0; i < names.length; i++ ) {
         name = promo ? names[i] : mdbPageCreator_entityCategory( names[i] );
@@ -1026,6 +1034,21 @@ function mdbPageCreator_entityLookupNames( title, read ) {
 
         keys.push( key );
         out.push( name );
+
+        // ... and the name WITH its trailing number when that number may be part of it
+        // ("Route 8"), the same second question the chunk candidates ask
+        // (mdbTitle_numberBelongsToName): the reduction above is what an answer for this form
+        // stops, so without asking it the answer can never come. typeof-guarded like the
+        // notes below - a cached title_builder.js from before this may not have the helper.
+        if( !promo && typeof mdbTitle_numberBelongsToName === "function" &&
+            mdbTitle_numberBelongsToName( names[i] ) ) {
+            full = mdbTitle_normalizeCompare( names[i] );
+
+            if( full && keys.indexOf( full ) === -1 ) {
+                keys.push( full );
+                out.push( names[i] );
+            }
+        }
     }
 
     return out;
@@ -5325,10 +5348,11 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
 
 // mdbPageCreator_reasoningOrigin
 // Where an asked name came from, as a note - or nothing when the name IS the chunk section 1
-// shows, which needs no explaining. The six that do: the channel (asked though it stands
+// shows, which needs no explaining. The ones that do: the channel (asked though it stands
 // nowhere in the title), a channel that names several, a curated show name, a chunk the
-// candidate reduced (the trailing episode number comes off, since a category name never
-// carries one), one of the names a long chunk strings together with a little word
+// candidate reduced (the trailing episode number comes off, since a series category never
+// carries one) and the same chunk asked WITH its number next to it (an artist name may end in
+// digits), one of the names a long chunk strings together with a little word
 // ("Timboletti im Chapeau Club"), a place behind the "@" without the word naming a room inside
 // it ("Elsewhere Loft" -> "Elsewhere"), and a name the first parse read out of its chunk (the chunk
 // itself carries more than the name, so the chunk side could never ask it). A name typed into
@@ -5360,8 +5384,13 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
         case "chunk":
             // only worth a line when the two differ - otherwise the chip already says it
             if( source.chunk && mdbTitle_normalizeCompare( source.chunk ) !== mdbTitle_normalizeCompare( name ) ) {
-                text = "from the chunk \"" + source.chunk + "\" - a category name carries no episode number";
+                text = "from the chunk \"" + source.chunk + "\" - a series category carries no episode number";
             }
+            break;
+        case "number kept":
+            text = "the chunk as it stands, asked next to the same name without its trailing number - " +
+                   "not every \"<name> <number>\" counts episodes, an artist name can end in digits " +
+                   "(\"Route 8\", \"Asa 808\"), and only MixesDB can tell the two apart";
             break;
         case "place base":
             text = "the place \"" + source.chunk + "\" without the word naming a room inside it - " +

@@ -379,12 +379,40 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   year), never from the left. With 57,462 artist categories nearly every common word is a real
   category, so left-stripping invents matches: `MOLTO IN THE MIX` would find `In The Mix`, a
   genuine Show with 779 mixes, and wreck the title. (Verified the server does not left-match
-  either.) **Only the reduced form is asked** - `DJ Mix #677` asks as `DJ Mix` alone, and the
-  reasoning panel's re-lookup asks the entity category, not the numbered entity: a category
-  name never carries the episode number, so the full form could only answer empty, and the
+  either.) **The reduced form is the FIRST question** - `DJ Mix #677` asks as `DJ Mix`, and the
+  reasoning panel's re-lookup asks the entity category, not the numbered entity: a series
+  category never carries the episode number, so that form could only answer empty, and the
   episode family behind the reduced name is the row's planned prefix round
-  (`row_enrichment.md`), never this exact-match lookup. Accepted price: an artist whose name
-  ends in digits ("Asa 808") loses its exact match.
+  (`row_enrichment.md`), never this exact-match lookup.
+- **... but the name WITH its number is asked next to it, unless the title said the number
+  counts editions** (2026-08-20, reported on "Flirt w/ Route 8 | BRL-071225"): not every
+  `<name> <number>` is a numbered series. `Route 8` and `Asa 808` are artists, `Studio 80`,
+  `Bar 25` and `Club 69` are venues, and their category carries the digits - asking only the
+  reduced form does not merely answer empty, it answers WRONG: `Studio` finds four other clubs
+  and `Front` a venue with 17 mixes. Nothing in the words can settle it, only the wiki can, so
+  both readings are asked, the reduced one first (numbering is the commoner one, and the
+  10-name cap drops from the end). `mdbTitle_numberBelongsToName` is what says when the second
+  question is worth a slot - not when a counting word, a `#` or the `.` of a series edition
+  introduces the number (`Vol. 3`, `DJ Mix #677`, `RA.971`), not when the name in front of it
+  carries a series word (`HATE Podcast 498`), not when the number is a year. The numbered form
+  asks as the ARTIST (as the place behind an `@`): a series category never carries its own
+  episode number, so if that form is a category at all it is a name ending in digits. The
+  answer is also what stops the cut at filing time - `mdbPageCreator_entityCategory` keeps the
+  number where the wiki has answered for the name as it stands, the same shape as the room
+  reduction below, and `mdbPageCreator_entityLookupNames` asks the numbered form so that
+  answer can exist. This is NOT the prefix round: `match=prefix` on `Route` ranks
+  `Route 94` first and would poison the cache (`row_enrichment.md` - the builder never uses
+  prefix mode). Exact-matching the written name costs one slot and cannot answer wrong.
+- **`w/` and `with` end a CHUNK the way they end a name in the parse** (2026-08-20, same
+  report): step 3b takes the further artists out of the title, and `mdbTitle_titleChunks`
+  mirrors it, so the guest is a unit and a candidate of their own while the connector belongs
+  to no name. Without the mirror the whole thing stayed one chunk (`Flirt w/ Route 8`) and the
+  number strip then asked about `Flirt w/ Route`, while `Route 8` was never asked from the
+  chunk side at all; `Slowciety w/ Asa 808` asked as `Slowciety w/ Asa`. Read in FRONT of the
+  place group only - the connector's capture runs to the next separator and an `@` is none, so
+  `... w/ Route 8 @ 3000Grad Festival` would come back as one artist named after the festival -
+  and the taken names go back in behind the chunk the connector stood behind, so the chunks
+  read in title order.
 - **A ROOM inside a venue asks about the venue too** (2026-08-19, reported on
   "Live@Elsewhere Loft July"): `Elsewhere Loft` is no category and never will be, while
   `Elsewhere` is the club, so behind the `@` the base name is asked NEXT TO the full one

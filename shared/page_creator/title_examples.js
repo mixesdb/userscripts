@@ -1376,5 +1376,29 @@ var mdbTitleExamples = [
         expectEntity: "Far Blue",
         expectEntities: [ "Far Blue", "Noordspace" ],
         expect: "2026-06-13 - Lord Of The Isles @ Far Blue, Noordspace"
+    },
+    {
+        // Reported about the LOOKUP, not the title: the wiki was asked about "Flirt w/ Route",
+        // a name that cannot exist, while Category:Route 8 - an artist with 8 mixes - was
+        // never asked from the chunk side at all. Two rules:
+        // - "w/" ends a CHUNK the way it ends a name in the parse (3b): the guest is a unit
+        //   of the title and a candidate of their own, and the connector belongs to no name
+        // - the trailing number comes off for the lookup, but the name WITH it is asked next
+        //   to the reduced one unless the title said the number counts editions
+        //   (mdbTitle_numberBelongsToName). Not every "<name> <number>" is a numbered series:
+        //   "Route 8" and "Asa 808" are artists, "Studio 80" and "Bar 25" are venues, and the
+        //   reduced form does not merely answer empty - "Studio" finds four other clubs.
+        url: "https://soundcloud.com/rblmedia/flirt-w-route-8-brl-071225",
+        title: "Flirt w/ Route 8 | BRL-071225",
+        channel: "rbl.media",
+        date: "2025-12-11",
+        known: {
+            "Route 8": { type: "artist", mixes: 8 }
+        },
+        expectArtists: [ "Flirt", "Route 8" ],
+        expectChunks: [ "Flirt", "Route 8", "BRL" ],
+        expectAsked: [ "Flirt", "Route 8", "BRL" ],
+        expectNotAsked: [ "Flirt w/ Route" ],
+        expect: "2025-12-07 - Flirt, Route 8 - BRL (Promo Mix)"
     }
 ];
