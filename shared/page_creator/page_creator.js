@@ -435,6 +435,11 @@ function mdbPageCreator_syncCreateHref( input, link ) {
         href = mdbPageCreator_editUrl +
                "?title=" + encodeURIComponent( title ) +
                "&action=edit" +
+               // says who opened the form, the way the toolkit's EDIT link says "toolkit".
+               // The Helper reads it to show the preview right away - see its "Edit: show the
+               // preview right away" section - so it has to stand in front of "insert", where
+               // it is still readable in the address bar.
+               "&from=PageCreator" +
                "&insert=" + encodeURIComponent( mdbPageCreator_pageText( title ) );
 
     // Not part of the page text: whether the mix page gets a picture at all is the editor's

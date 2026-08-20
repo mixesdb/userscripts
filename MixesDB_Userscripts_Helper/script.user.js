@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.17.2
+// @version      2026.08.20.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -543,6 +543,92 @@ d.ready(function () {
     textbox[0].setSelectionRange( 0, 0 );
 
     log( "Edit: insert - filled the edit box with the " + insertText.length + " characters from the URL." );
+});
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Edit: show the preview right away
+ *
+ * A page text that arrived ready-made (the page creator's "Create" link, see the "insert"
+ * section above) is read, not written: the first thing to do with it is look at the page it
+ * makes - the players, the artwork's red file link, the tracklist. MediaWiki has no URL
+ * parameter for that, the preview is a POST of the edit form, so this clicks the form's own
+ * Preview button.
+ *
+ * Only for &from=PageCreator, which the page creator's link carries and nothing else does -
+ * the toolkit's EDIT link says "toolkit" in the same parameter and opens an EXISTING page to
+ * change one line, where a preview would only be a page load in the way.
+ *
+ * The preview POST goes to action=submit and carries no query string of its own, so the
+ * parameters that brought us here are gone afterwards and nothing can loop through this a
+ * second time on its own. A Back out of the preview is the one way back to this URL, and it
+ * is a deliberate one - the marker below is what keeps it from bouncing straight into the
+ * next preview. sessionStorage for it, like the img1url section: one tab, one page.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var autoPreview_storageKey = "mdb-helper-autoPreviewed";
+
+// autoPreview_wasDone
+// True once this tab has previewed this page by itself. Unreadable storage counts as done: one
+// preview missing is a nuisance, a form the editor cannot get back to is a trap.
+function autoPreview_wasDone() {
+    try {
+        return sessionStorage.getItem( autoPreview_storageKey ) === mw.config.get("wgPageName");
+    } catch( e ) {
+        log( "Edit: auto preview - storage cannot be read (" + e.message + ") - not previewing." );
+        return true;
+    }
+}
+
+d.ready(function () { // needs mw.config
+
+    if( getURLParameter("from") != "PageCreator" ) return;
+    if( getURLParameter("action") != "edit" ) return;
+
+    logFunc( "Edit: auto preview" );
+
+    var textbox = $("#wpTextbox1"),
+        // MediaWiki's own id; the name is the fallback, in case the skin ever renders the
+        // button without it - nothing else on a MixesDB page is called wpPreview
+        preview = $("#wpPreview, [name='wpPreview']").first();
+
+    if( !textbox.length || !preview.length ) {
+        log( "Edit: auto preview - no edit form to preview. #wpTextbox1: " + textbox.length +
+             ", Preview button: " + preview.length + ". (Not logged in, or the page is protected?)" );
+        return;
+    }
+
+    // Registered after the "insert" handler above, so this sees the filled box. Empty means
+    // the fill did not happen (text was already there, or the URL carried none) - and an empty
+    // page previews to nothing worth looking at.
+    if( $.trim( textbox.val() ) === "" ) {
+        log( "Edit: auto preview - the edit box is empty - leaving the form alone." );
+        return;
+    }
+
+    if( autoPreview_wasDone() ) {
+        log( "Edit: auto preview - this tab already previewed this page - leaving the form alone." );
+        return;
+    }
+
+    try {
+        sessionStorage.setItem( autoPreview_storageKey, mw.config.get("wgPageName") );
+    } catch( e ) {
+        log( "Edit: auto preview - could not remember the preview: " + e.message );
+    }
+
+    log( "Edit: auto preview - clicking Preview." );
+
+    // Last, not now: the sections below this one are ready handlers too (the img1url one, whose
+    // whole job is to put the artwork URL into sessionStorage BEFORE the preview navigates
+    // away), and they all run in this same tick. A timeout of 0 lands behind every one of them.
+    setTimeout(function() {
+        // the element's own click, not jQuery's: it is what makes the browser submit the form
+        // WITH this button as the submitter - the difference between a preview and a save
+        preview[0].click();
+    }, 0);
 });
 
 

@@ -42,6 +42,16 @@ details table, and the `[[File:…]]` line is pointed at the new page's name.
 
 Nothing is ever saved automatically, and a field that already holds something is left alone.
 
+### Edit form: the preview opens by itself
+
+A link that says it came from the page creator (`&from=PageCreator`) lands on the edit form and
+goes straight to **Preview**: the new mix page is on screen – players, the artwork's red file
+link, the tracklist – with the edit box under it, instead of a wall of wikitext to read. Only
+that link does it. The toolkit's **EDIT** link opens an existing page to change one line, where a
+preview would only be a page load in the way.
+
+Once per page and tab, so **Back** out of the preview really lands on the form.
+
 ### Edit form: the "Tracklist:" indicator follows the text
 
 Under the edit box sit three indicator icons for the tracklist filing – none, incomplete,
