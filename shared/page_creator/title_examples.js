@@ -199,14 +199,27 @@ var mdbTitleExamples = [
         title: "DSS 140 | Space Drum Meditation",
         channel: "Deep Space Series",
         date: "2026-08-20",
-        // needs the wiki: "DSS" spells the channel's initials and is no series category of
-        // its own (the wiki's DSS is the qualified "DSS (Das Schwarze Schaf)", an artist),
-        // while the channel name is a podcast whose pages are titled
-        // "... - Deep Space Series (DSS 012)" - so the entity is the full name with the
-        // title's own id in brackets, and the page files under Category:Deep Space Series
-        // (the filing strips the bracket, mdbPageCreator_entityCategory)
+        // needs the wiki, and the RECENT titles above all: every page of
+        // Category:Deep Space Series is titled "... - Deep Space Series (DSS <n>)", which is
+        // the wiki's own titles saying the "DSS" of this title is that series' episode id -
+        // evidence, where the letters spelling the channel's initials would only be a
+        // resemblance. Their age says nothing about it (these are from 2016, the mix is 140
+        // episodes later). The entity is the full name with the title's own id in brackets,
+        // and the page files under Category:Deep Space Series - the filing strips the
+        // bracket (mdbPageCreator_entityCategory).
+        // "DSS" itself is no series category: the wiki answers with its qualified
+        // "DSS (Das Schwarze Schaf)", an artist, which is its OTHER DSS.
         known: {
-            "Deep Space Series": { type: "podcast", mixes: 8 },
+            "Deep Space Series": { type: "podcast", mixes: 8, recent: [
+                "2016-08-18 - Joachim Spieth - Deep Space Series (DSS 012)",
+                "2016-08-01 - Border One - Deep Space Series (DSS 011)",
+                "2016-05-06 - Alderaan - Deep Space Series (DSS 008)",
+                "2016-03-30 - Ntogn - Deep Space Series (DSS 006)",
+                "2016-02-26 - THNTS - Deep Space Series (DSS 004)",
+                "2016-02-05 - Hydrangea - Deep Space Series (DSS 003)",
+                "2016-01-24 - Oubys - Deep Space Series (DSS 002)",
+                "2015-12-15 - Ness - Deep Space Series (DSS 001)"
+            ] },
             "DSS": { matches: [ { title: "DSS (Das Schwarze Schaf)", type: "artist", mixes: 1, matchedTitle: "DSS (Das Schwarze Schaf)", matchType: "qualified" } ] }
         },
         expect: "2026-08-20 - Space Drum Meditation - Deep Space Series (DSS 140)",

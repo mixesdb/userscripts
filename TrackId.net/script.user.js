@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.17
+// @version      2026.08.20.19
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,9 +14,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_62
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_64
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_97
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_98
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1965,6 +1965,22 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.19
+ * The acronym expansion is decided by the category's own page titles now, with the channel's
+ * initials demoted to the fallback (title_builder.js v_64, page_creator.js v_98): a category
+ * whose pages are titled "... - Deep Space Series (DSS 012)" is the wiki saying that "DSS" is
+ * that series' episode id, which the letters merely resembling the channel name never was. The
+ * titles come out of the `recent` list the category lookup already carries, so nothing is asked
+ * twice. With it, the recent-pages age gate steps aside where the pages prove the category is
+ * this mix's - their titles carrying the same episode id, or (on a site that hands a channelUrl
+ * over, which this one does not) their wikitext linking the mix's channel.
+ *
+ * 2026.08.20.18
+ * The acronym step of reasoning section 4 names what DECIDED, not what merely matched
+ * (title_builder.js v_63): the initials only make the channel worth asking about, so the step
+ * is "Series acronym expanded to the channel's name" now and its detail names the wiki's two
+ * answers next to them. Display only, no title changes.
  *
  * 2026.08.20.17
  * An entity written as a bare acronym plus a number, where the letters spell the channel

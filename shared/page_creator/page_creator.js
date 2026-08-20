@@ -2518,7 +2518,10 @@ function mdbPageCreator_recentConsensus( values ) {
 //   never STARTS a fetch, that is mdbPageCreator_recentEnsureFor()
 function mdbPageCreator_recentAnalysisFor( title ) {
     var read = mdbTitle_titleCategories( title ),
-        info = { entity: read.entity || "", catName: "", catTitle: "", match: null, isPlace: false, entry: null, skip: "" },
+        // stale/proven/staleKept are filled at the age gate at the bottom: by how many years
+        // the category lags, why it was kept anyway, and the lag it was kept with
+        info = { entity: read.entity || "", catName: "", catTitle: "", match: null, isPlace: false, entry: null, skip: "",
+                 stale: 0, proven: "", staleKept: 0 },
         catName = mdbPageCreator_entityCategoryFor( title, read.entity );
 
     if( !info.entity || !catName ) {
@@ -2588,6 +2591,21 @@ function mdbPageCreator_recentAnalysisFor( title ) {
     // gate belongs here, where that claim is made, and not on each of the things learned.
     info.stale = mdbPageCreator_recentStaleBy( info, read.year );
 
+    // ... unless the pages PROVE the category is this mix's after all
+    // (mdbPageCreator_recentProvenOwn): the gate doubts whose category this is as much as
+    // how current it is, and evidence answering the first makes dropping it for the second
+    // wrong. The proof is kept for the panel, which has to say why pages this old were read.
+    if( info.stale ) {
+        info.proven = mdbPageCreator_recentProvenOwn( info, read );
+
+        if( info.proven ) {
+            logVar( "mdbPageCreator_recentAnalysisFor: dormant category kept, proven this mix's",
+                    info.catTitle + " - " + info.proven );
+            info.staleKept = info.stale;
+            info.stale = 0;
+        }
+    }
+
     if( info.stale ) {
         // the entry goes with the verdict: every reader of info.entry then finds nothing,
         // whether or not it thought to ask about skip, and the two sections report the reason
@@ -2644,6 +2662,51 @@ function mdbPageCreator_recentStaleBy( info, mixYear ) {
     var gap = year - newest;
 
     return gap > mdbPageCreator_recentMaxAgeYears ? gap : 0;
+}
+
+// mdbPageCreator_recentProvenOwn
+// Why this category is PROVEN to be this mix's, or "" where nothing proves it. What lifts
+// the age gate below: `stale` doubts two things at once - "a convention nobody has written
+// in years is no convention for this upload" and "this category may not even be this mix's"
+// - and a category that answers the second with evidence has no business being dropped for
+// the first. Reported 2026-08-20 on "DSS 140 | Space Drum Meditation": Category:Deep Space
+// Series' newest page is from 2016 and the mix is episode 140 of the same series on the same
+// channel, so the ten-year gap says the wiki stopped keeping up, not that the pages are
+// somebody else's. How a series titles its pages does not go stale.
+//
+// Two proofs, both off pages already fetched:
+// 1. their titles carry the very episode id this title does ("Deep Space Series (DSS 012)"
+//    against a title numbering "DSS 140") - available on every site, since it compares the
+//    title against the wiki
+// 2. their wikitext links this mix's channel (mdbPageCreator_channelLinkFinding), which
+//    needs the site to have handed a channelUrl over
+//
+// Neither proof is about the CONVENTIONS being current - they say whose category this is.
+// That is the doubt worth answering: a series whose MixesDB pages stopped in 2016 still
+// titles episode 140 the way it titled episode 012, and where the two disagree the 90% vote
+// is what decides anyway.
+function mdbPageCreator_recentProvenOwn( info, read ) {
+    var entry = info.entry;
+
+    if( !entry || entry.status !== "done" || !entry.titles.length ) return "";
+
+    // 1) the pages write the episode id this title carries
+    var bracket = /\(([^()]*)\)\s*$/.exec( String( read.entity || "" ) ),
+        acro = bracket ? /^([A-Za-z]{2,})[\s.#-]*\d{1,5}$/.exec( mdbTitle_trimSeparators( bracket[1] ) ) : null,
+        scheme = acro ? mdbTitle_seriesIdPrefix( { title: info.catTitle, recent: entry.titles } ) : "";
+
+    if( scheme && scheme.toUpperCase() === acro[1].toUpperCase() ) {
+        return "its pages are titled \"" + info.catTitle + " (" + scheme + " <n>)\", the very episode id this title carries";
+    }
+
+    // 2) ... or they link this mix's channel
+    var linked = mdbPageCreator_channelLinkFinding( entry );
+
+    if( linked && linked.count ) {
+        return linked.count + " of its " + linked.n + " pages link this mix's channel (" + linked.url + ")";
+    }
+
+    return "";
 }
 
 // mdbPageCreator_channelLinkFinding
@@ -5739,7 +5802,7 @@ function mdbPageCreator_reasoningRecentRead( info ) {
             ? ( n === 1 ? "the only page of" : "all " + n + " pages of" )
             : "the " + n + " newest pages of";
 
-    return $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+    var line = $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
         $("<span>").text( "Read:" ),
         $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( read ),
         $("<a>")
@@ -5751,6 +5814,18 @@ function mdbPageCreator_reasoningRecentRead( info ) {
             // prefix belongs in the wikitext lines section 6 prints, not on a link
             .text( info.catTitle )
     );
+
+    // A category the age gate would have dropped says why it was read anyway - without it a
+    // reader who knows the gate sees pages a decade older than the mix being copied from,
+    // with nothing on screen saying that was a decision (mdbPageCreator_recentProvenOwn).
+    if( info.staleKept ) {
+        line.append(
+            $("<span>").addClass( "mdb-pageCreator-reasoning-hint" )
+                .text( "- newest page " + info.staleKept + " years older than this mix, read all the same: " + info.proven )
+        );
+    }
+
+    return line;
 }
 
 // mdbPageCreator_reasoningApiCalls

@@ -414,23 +414,34 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   writes a room where it is worth naming, but it writes no line-up fraction anywhere. The slash
   is no separator either: `mdbTitle_fractionLeadRe` keeps `mdbTitle_findEpisode` off it, which
   had read the "1" as a leading episode number and left the artist as "2 Faultierdisko".
-- **An entity written as the channel's INITIALS is the channel's series abbreviating itself**
-  (2026-08-20, reported on "DSS 140 | Space Drum Meditation" on the channel "Deep Space
-  Series"): the title filed under a lone `DSS` while Category:Deep Space Series - the
-  channel, a podcast with 8 mixes - holds the episodes and titles every one of them
-  "... - Deep Space Series (DSS 012)". So the exit expands it
+- **An acronym in the entity slot is expanded off the CATEGORY'S OWN PAGE TITLES first, and
+  only then off the channel's initials** (2026-08-20, reported on "DSS 140 | Space Drum
+  Meditation" on the channel "Deep Space Series"): the title filed under a lone `DSS` while
+  Category:Deep Space Series - the channel, a podcast with 8 mixes - holds the episodes and
+  titles every one of them "... - Deep Space Series (DSS 012)". The exit expands it
   (`mdbTitle_expandChannelAcronym`, in `mdbTitle_result` like the room and fraction
   reductions, so every branch that can leave an acronym in the slot is covered): the entity
-  becomes the channel name in the wiki's spelling, the id as the title wrote it goes into an
-  `episode` of kind `id` - the assemble shape "Show (ID)". Same two-halves guard as those
-  reductions, answered by the wiki: the letters are NO series category of their own (a show
-  really called by them keeps them, and only an answer about THIS name blocks - the wiki's
-  qualified "DSS (Das Schwarze Schaf)" is its OTHER DSS), and the channel name IS one
-  (`mdbTitle_entityTypes`). What ties the two names is `mdbTitle_isChannelInitials` - caps
-  required, a prefix of the initials counts - off the new `mdbTitle_channelUsed` global, and
-  the artist must not BE the channel (the numbered-series branch reads the channel as who
-  played, and one name cannot be both groups). Costs 5 confidence: the equivalence of
-  acronym and channel is our inference, the wiki only confirmed the two halves. The filing
+  becomes the channel name in the wiki's spelling and the id goes into an `episode` of kind
+  `id` - the assemble shape "Show (ID)".
+  **Which signal answers is the whole point, and they are not worth the same.** The pages'
+  own titles (`mdbTitle_seriesIdPrefix`, read off the `recent` list the mdbnames answer
+  already carries - no request) are the WIKI SAYING the id belongs to this series, so they
+  decide first, cost no confidence, and their spelling of the prefix wins over the
+  uploader's (`Xyz 140` -> `XYZ 140`, the same rule a category name follows). Two pages
+  have to agree - one bracket is a qualifier, several are a scheme. Their AGE is not asked
+  about: a page titled "Deep Space Series (DSS 012)" says how the series is written whatever
+  year it was written in, which is a different question from whether its conventions are
+  current. The initials (`mdbTitle_isChannelInitials`, caps required, off the new
+  `mdbTitle_channelUsed` global) are the FALLBACK for a series MixesDB knows without a page
+  that writes such an id, and stay worth -5: `DSS` resembling `Deep Space Series` is an
+  inference, not evidence. The trace step, the pick sentence and the confidence each name
+  which of the two answered - crediting the initials on a title the pages settled would put
+  the weakest reading we have behind the change.
+  Three fences hold whichever answered: the letters are NO series category of their own (a
+  show really called by them keeps them, and only an answer about THIS name blocks - the
+  wiki's qualified "DSS (Das Schwarze Schaf)" is its OTHER DSS), the channel name IS one
+  (`mdbTitle_entityTypes`), and the artist is not the channel itself (the numbered-series
+  branch reads the channel as who played, and one name cannot be both groups). The filing
   needs nothing new - `mdbPageCreator_entityCategory` already strips a trailing bracket, so
   the page files under the channel's category; `mdbTitle_titleCategories` keeps the bracket
   in the SLOT it returns, which `mdbPageCreator_entityIsNumbered` depends on.
@@ -540,6 +551,19 @@ Rules the implementation follows, settled before it was built - do not re-litiga
     this mix's. Only this direction - siblings NEWER than the mix are the normal case for an
     old recording added today. Checked after the fetch, so `info.entry` is nulled with the
     verdict and every reader of it finds nothing whether or not it thought to ask about skip.
+    **Unless the pages PROVE the category is this mix's** (`mdbPageCreator_recentProvenOwn`,
+    2026-08-20, the DSS report): the gate doubts WHOSE category this is as much as how
+    current it is, and evidence answering the first makes dropping it for the second wrong -
+    Category:Deep Space Series' newest page is from 2016 while the mix is episode 140 of the
+    same series on the same channel, so the gap says the wiki stopped keeping up, not that
+    the pages are somebody else's. Two proofs, both off pages already fetched: their titles
+    carry the very episode id this title does (works on every site - it compares the title
+    against the wiki), or their wikitext links this mix's channel (needs `channelUrl`).
+    Neither claims the CONVENTIONS are current; where those disagree the 90% vote decides as
+    always. `info.staleKept` keeps the lag so the panel's "Read:" line can say why pages that
+    old were read, and the chip's dormancy drop goes with the verdict. Undercurrent is
+    untouched by it: no bracketed id in the title, and its 2015 club nights link no
+    SoundCloud channel of the mix.
   The entity CHIP says the first one too, in its tooltip: the category exists, so the chip is
   green, but the page would join that venue's category and only the editor can tell whether
   that is right.
