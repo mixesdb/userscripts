@@ -59,13 +59,20 @@ for( const example of mdbTitleExamples ) {
     // A case may also state the artist categories the page has to be filed under - one per
     // artist, which is what a joiner between two names decides. Read off the built title, the
     // same way the "Create" link reads it off the (editable) input. expectEntity guards the
-    // entity category the same way - a live title is filed under its FIRST place alone.
+    // name the title FILES the page under, expectEntities every name its entity slot offers as
+    // a category, in title order ("@ Far Blue, Noordspace" offers both). Which of the offered
+    // ones the created page really carries is not decided here but asked of the wiki at filing
+    // time (mdbPageCreator_entityCategoriesFor in page_creator.js, which this runner does not
+    // load): a city stands in that list exactly like the venue next to it, and only MixesDB's
+    // answer tells the two apart.
     const categories = mdbTitle_titleCategories( got.title ),
           artists = categories.artists,
           artistsOk = !example.expectArtists ||
                       artists.join( " | " ) === example.expectArtists.join( " | " ),
           entityOk = !( "expectEntity" in example ) ||
-                     categories.entity === example.expectEntity;
+                     categories.entity === example.expectEntity,
+          entitiesOk = !example.expectEntities ||
+                       categories.entities.join( " | " ) === example.expectEntities.join( " | " );
 
     // And the chunks of the SHARED split (mdbTitle_titleChunks) - the units the report panel
     // shows and the lookup candidates come from. What a case states here is what may be ASKED
@@ -100,10 +107,10 @@ for( const example of mdbTitleExamples ) {
                    ( !example.expectNoAlternatives ||
                      example.expectNoAlternatives.every( kind => altKinds.indexOf( kind ) === -1 ) );
 
-    if( !titleOk || !artistsOk || !entityOk || !chunksOk || !askedOk || !altsOk ) failed++;
+    if( !titleOk || !artistsOk || !entityOk || !entitiesOk || !chunksOk || !askedOk || !altsOk ) failed++;
 
     console.log(
-        ( titleOk && artistsOk && entityOk && chunksOk && askedOk && altsOk ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk && entityOk && entitiesOk && chunksOk && askedOk && altsOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
         "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
@@ -115,6 +122,10 @@ for( const example of mdbTitleExamples ) {
         ( "expectEntity" in example
             ? "\n              " + ( entityOk ? "" : "got      " ) + "entity " + JSON.stringify( categories.entity ) +
               ( entityOk ? "" : "\n              expected   entity " + JSON.stringify( example.expectEntity ) )
+            : "" ) +
+        ( example.expectEntities
+            ? "\n              " + ( entitiesOk ? "" : "got      " ) + "entities " + JSON.stringify( categories.entities ) +
+              ( entitiesOk ? "" : "\n              expected   entities " + JSON.stringify( example.expectEntities ) )
             : "" ) +
         ( example.expectChunks
             ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +

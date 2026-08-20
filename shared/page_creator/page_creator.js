@@ -345,16 +345,14 @@ function mdbPageCreator_addParsedNames( names, title ) {
         parsed.push( { name: read.artists[i], role: "artist" } );
     }
 
-    if( read.entity ) {
-        // the entity CATEGORY (episode number stripped) is the only spelling worth asking
-        // about - same reduction the edit round makes. For a promo the "category" is the
-        // Promo Mix bucket, so the entity's own name is what the wiki is asked about.
-        var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
+    // the entity CATEGORY (episode number stripped) is the only spelling worth asking about -
+    // same reduction the edit round makes - and every name the slot offers, not only the picked
+    // one: whether the venue behind the comma is filed too is what its answer decides
+    // (mdbPageCreator_entityLookupNames)
+    var entityNames = mdbPageCreator_entityLookupNames( title, read );
 
-        parsed.push( {
-            name: entityCategory && entityCategory !== "Promo Mix" ? entityCategory : read.entity,
-            role: "entity"
-        } );
+    for( i = 0; i < entityNames.length; i++ ) {
+        parsed.push( { name: entityNames[i], role: "entity" } );
     }
 
     for( i = 0; i < parsed.length; i++ ) {
@@ -672,10 +670,12 @@ function mdbPageCreator_styleCategories() {
 // mix is a promo mix, and how its tracklist is filed.
 //
 // "Date - Artist - Entity" gives the year, one category per artist (every joiner between two
-// names means another one - "See Bastian b2b Afin" is two categories), and the entity. Then the
-// styles, from whoever can answer what the mix sounds like: a site that SUGGESTS styles (the
-// stylesBox option, TrackId.net) reads them off the mix itself and wins; where there is no such
-// box, a style at least 90% of the entity's recent pages carry is written
+// names means another one - "See Bastian b2b Afin" is two categories), and the entity - two of
+// them where a place group names an event AND a venue MixesDB has a category of each
+// (mdbPageCreator_entityCategoriesFor). Then the styles, from whoever can answer what the mix
+// sounds like: a site that SUGGESTS styles (the stylesBox option, TrackId.net) reads them off
+// the mix itself and wins; where there is no such box, a style at least 90% of the entity's
+// recent pages carry is written
 // (mdbPageCreator_recentLearnedCategories) - and where neither answers, two blank rows stand
 // there, because a guess is worse than a blank the editor cannot miss. Behind a style that WAS
 // written stands one blank row, not two: it is the spare a second style is typed into, and one
@@ -709,20 +709,31 @@ function mdbPageCreator_categoryEntries( title ) {
         entries.push( mdbPageCreator_categoryEntry( read.artists[i], "artist" ) );
     }
 
-    var entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
+    // One line per entity the title files the page under - usually one, two where its place
+    // group names an event AND a venue the wiki has both of (mdbPageCreator_entityCategoriesFor)
+    var entityCategories = mdbPageCreator_entityCategoriesFor( title, read );
 
-    if( entityCategory ) {
+    for( i = 0; i < entityCategories.length; i++ ) {
         // "Promo Mix" is ours, not a name the wiki could spell differently
-        var entityEntry = entityCategory === "Promo Mix"
-                ? { name: entityCategory, role: "promo" }
-                : mdbPageCreator_categoryEntry( entityCategory, "entity" );
+        var entityEntry = entityCategories[i].name === "Promo Mix"
+                ? { name: entityCategories[i].name, role: "promo" }
+                : mdbPageCreator_categoryEntry( entityCategories[i].name, "entity" );
 
         // whether the TITLE numbers this entity - a series does, a place does not. Carried on
         // the entry so the chip can say where the wiki's answer and the title disagree
         // (mdbPageCreator_usedCategory): "Undercurrent 5" filed into the Amsterdam venue's
         // category is a name collision, and the chip is the only place a reader sees it.
-        if( entityEntry.role === "entity" && mdbPageCreator_entityIsNumbered( read.entity ) ) {
+        if( entityEntry.role === "entity" && mdbPageCreator_entityIsNumbered( entityCategories[i].entity ) ) {
             entityEntry.numbered = true;
+        }
+
+        // a name the parse did NOT pick, filed because the wiki has it too. The sentence comes
+        // with it, since the pick's sentence is about the other name and repeating it there
+        // would be the panel telling a story the parse never told
+        // (mdbPageCreator_reasoningCategoryRow).
+        if( !entityCategories[i].primary ) {
+            entityEntry.alsoNamed = true;
+            entityEntry.why = entityCategories[i].why;
         }
 
         entries.push( entityEntry );
@@ -888,6 +899,124 @@ function mdbPageCreator_venueOfRoom( name ) {
     var venue = mdbTitle_knownMatch( cache, room.base, [ "venue", "event" ] );
 
     return ( venue && venue.title ) ? venue.title : name;
+}
+
+// mdbPageCreator_entityCategoriesFor
+// EVERY category the title's entity slot files the page under, in title order, as
+// { name, entity, primary, why }: the category name, the name in the title it was read off,
+// whether it is the one the parse picked - and, for the ones it did not, the sentence the
+// reasoning panel prints instead of the pick's.
+//
+// A place group can name two things that both have a category, and MixesDB files such a page
+// under both: "2026-05-23 - Dosem @ Anjunadeep, Ritter Butzke, Berlin" carries
+// [[Category:Anjunadeep]] AND [[Category:Ritter Butzke]] - the party and the club - while the
+// city carries none. Position in the group decides none of that, the wiki does
+// (mdbPageCreator_placeMatch).
+//
+// The PICKED name is written whether or not the wiki has it: a venue new to MixesDB gets its
+// category created together with the page, and the entity filing is the one a mix page must
+// never be missing. Every FURTHER name has to be a category that really exists - a second one
+// invented out of a word in the group would be exactly the empty category next to the real one
+// that a category line must never be.
+function mdbPageCreator_entityCategoriesFor( title, read ) {
+    var primary = mdbPageCreator_entityCategoryFor( title, read.entity );
+
+    if( !primary ) return [];
+
+    // a self-released mix files under the bucket alone - what stands in the entity slot is the
+    // mix's own name, and a name next to it is no filing either
+    if( primary === "Promo Mix" ) return [ { name: primary, entity: read.entity || "", primary: true } ];
+
+    var names = ( read.entities && read.entities.length ) ? read.entities : ( read.entity ? [ read.entity ] : [] ),
+        primaryKey = mdbTitle_normalizeCompare( primary ),
+        out = [],
+        i, cat, match;
+
+    for( i = 0; i < names.length; i++ ) {
+        cat = mdbPageCreator_entityCategory( names[i] );
+
+        if( !cat || mdbPageCreator_entriesCarry( out, cat ) ) continue;
+
+        if( mdbTitle_normalizeCompare( cat ) === primaryKey ) {
+            out.push( { name: cat, entity: names[i], primary: true } );
+            continue;
+        }
+
+        match = mdbPageCreator_placeMatch( cat );
+
+        if( !match ) continue;
+
+        out.push( {
+            name: cat,
+            entity: names[i],
+            primary: false,
+            why: "the place group names it next to \"" + primary + "\", and MixesDB has it as a " +
+                 match.type + " - a title naming both is filed under both"
+        } );
+    }
+
+    // the picked name even where the group's own parts came to nothing
+    if( !mdbPageCreator_entriesCarry( out, primary ) ) {
+        out.unshift( { name: primary, entity: read.entity || "", primary: true } );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_placeMatch
+// Does MixesDB really have a category of this name, as a venue or an event? The question a
+// name of the place group has to answer before the page is filed under it BESIDES the picked
+// one - and the only thing that tells the club behind the comma from the city behind it:
+// "Ritter Butzke" answers, "Berlin" does not, and neither does a party the wiki has never
+// heard of. Returns the match, whose type is what the reasoning panel names.
+//
+// The answer has to be about THIS name, not about one it merely resembles: "Utopia" matched to
+// "Utopia (Event)" is the wiki offering ITS Utopia, which is not the Berlin one the title means
+// (the lookup's qualifier rule, mixesdb_api_request.md). The same rule the canonicalization
+// holds to, with the same single exception - a redirect from the name itself whose target is
+// that name up to one substituted character ("Ri0D." -> "RiOD.") is the wiki correcting a
+// spelling, and the target is the category that holds the mixes.
+function mdbPageCreator_placeMatch( name ) {
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        match = mdbTitle_knownMatch( cache, name, [ "venue", "event" ] ),
+        key = mdbTitle_normalizeCompare( name ),
+        titleKey = match ? mdbTitle_normalizeCompare( match.title || "" ) : "";
+
+    if( !key || !titleKey ) return null;
+    if( titleKey === key ) return match;
+
+    var viaRedirect = match.matchedTitle && mdbTitle_normalizeCompare( match.matchedTitle ) === key;
+
+    return ( viaRedirect && mdbTitle_oneCharApart( titleKey, key ) ) ? match : null;
+}
+
+// mdbPageCreator_entityLookupNames
+// Which names of the title's entity slot a lookup round asks the wiki about: the category
+// spelling of every name the slot OFFERS (mdbTitle_titleCategories' entities), not only of the
+// one that got picked - whether a second one is filed too is precisely what the answer decides.
+// The city among them is asked like the rest: "no category of this name" IS the answer that
+// keeps it out, and it is the only way to tell it from the venue standing next to it.
+//
+// For a promo the category is our own bucket, so what the wiki is asked about is the name in
+// the slot itself - a name it may well know as something else.
+function mdbPageCreator_entityLookupNames( title, read ) {
+    var promo = mdbPageCreator_entityCategoryFor( title, read.entity ) === "Promo Mix",
+        names = ( read.entities && read.entities.length ) ? read.entities : ( read.entity ? [ read.entity ] : [] ),
+        out = [],
+        keys = [],
+        i, name, key;
+
+    for( i = 0; i < names.length; i++ ) {
+        name = promo ? names[i] : mdbPageCreator_entityCategory( names[i] );
+        key = mdbTitle_normalizeCompare( name );
+
+        if( !key || keys.indexOf( key ) !== -1 ) continue;
+
+        keys.push( key );
+        out.push( name );
+    }
+
+    return out;
 }
 
 // mdbPageCreator_bucketCategories
@@ -3829,9 +3958,17 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
             seenHere = {},
             cm, name, key;
 
+        // every name the sibling's own title files it under, not only the picked one: the
+        // event a venue's page names next to the venue is that page's second entity category,
+        // and counted as a style the venue's regular party would win the vote
+        var ownEntities = ( own.entities && own.entities.length ) ? own.entities : [ own.entity ];
+
         skip[ catKey ] = true;
-        skip[ mdbTitle_normalizeCompare( own.entity ) ] = true;
         skip[ mdbTitle_normalizeCompare( "Promo Mix" ) ] = true;
+
+        for( j = 0; j < ownEntities.length; j++ ) {
+            skip[ mdbTitle_normalizeCompare( ownEntities[j] ) ] = true;
+        }
 
         for( j = 0; j < own.artists.length; j++ ) {
             skip[ mdbTitle_normalizeCompare( own.artists[j] ) ] = true;
@@ -4645,7 +4782,17 @@ function mdbPageCreator_reportText( title ) {
         lines.push( "–> Artist category: " + artists[i] );
     }
 
-    lines.push( "–> Entity category: " + mdbPageCreator_entityCategoryFor( title, read.entity ) );
+    // one line per entity category, like the artists above: a live title whose place group
+    // names an event at a venue files the page under both where MixesDB has both of them. A
+    // title with no entity at all still gets the empty line, so the shape never changes.
+    var entityCategories = mdbPageCreator_entityCategoriesFor( title, read );
+
+    if( !entityCategories.length ) lines.push( "–> Entity category: " );
+
+    for( i = 0; i < entityCategories.length; i++ ) {
+        lines.push( "–> Entity category: " + entityCategories[i].name );
+    }
+
     lines.push( "-> Mistake / learning: " );
     lines.push( "-> Expected title: " );
     // A SECOND title that would also be right - the reading the suggestion should have offered
@@ -4759,12 +4906,12 @@ function mdbPageCreator_queueCategoryUpdate() {
             // and that spelling is the only one worth asking about: the entity WITH its
             // number ("HATE Podcast 496") is never a category name and could only answer
             // empty - the same reduction the first-round candidates make
-            // (mdbTitle_categoryCandidates).
-            entityCategory = mdbPageCreator_entityCategoryFor( title, read.entity );
+            // (mdbTitle_categoryCandidates). Every name the slot offers is asked, not only the
+            // picked one: an edited title that writes the venue behind the event is where the
+            // second entity category comes from (mdbPageCreator_entityLookupNames).
+            entityNames = mdbPageCreator_entityLookupNames( title, read );
 
-        if( read.entity ) {
-            names.push( entityCategory && entityCategory !== "Promo Mix" ? entityCategory : read.entity );
-        }
+        names = names.concat( entityNames );
 
         // an edited title says the roles outright - its artists are artist candidates, its
         // entity the entity one - so section 3 files the fresh chips into the right column.
@@ -4773,8 +4920,8 @@ function mdbPageCreator_queueCategoryUpdate() {
             for( var n = 0; n < read.artists.length; n++ ) {
                 mdbTitle_noteCandidateRole( read.artists[n], "artist" );
             }
-            if( read.entity ) {
-                mdbTitle_noteCandidateRole( names[ names.length - 1 ], "entity" );
+            for( var e = 0; e < entityNames.length; e++ ) {
+                mdbTitle_noteCandidateRole( entityNames[e], "entity" );
             }
         }
 
@@ -5352,7 +5499,12 @@ function mdbPageCreator_reasoningCategoryMatch( cache, name, match ) {
 function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
     var row = $("<div>").addClass( "mdb-pageCreator-reasoning-cat" ),
         note = $("<span>").addClass( "mdb-pageCreator-reasoning-cat-note" ),
-        why = ( picks && ( entry.role === "artist" || entry.role === "entity" ) ) ? picks[ entry.role ] : "",
+        // a second entity was picked by nobody - it is filed because the wiki has that name
+        // too, and it brings the sentence saying so (mdbPageCreator_entityCategoriesFor). The
+        // pick's sentence is about the OTHER name and would read here as if this one had been
+        // decided by the parse.
+        why = entry.why ||
+              ( ( picks && ( entry.role === "artist" || entry.role === "entity" ) ) ? picks[ entry.role ] : "" ),
         match;
 
     row.append(
@@ -5365,7 +5517,7 @@ function mdbPageCreator_reasoningCategoryRow( entry, cache, picks ) {
         note.append(
             $("<span>")
                 .addClass( "mdb-pageCreator-reasoning-cat-why" )
-                .text( "picked as the " + entry.role + ": " + why )
+                .text( ( entry.alsoNamed ? "filed as a second entity: " : "picked as the " + entry.role + ": " ) + why )
         );
     }
 
@@ -5478,19 +5630,34 @@ function mdbPageCreator_reasoningRecentState( info ) {
 // How many pages carry a verdict, phrased the way the reader should weigh it: a plain
 // "9 of the 10 newest pages", or the unanimous newest run that overruled a disagreeing sample
 // (mdbPageCreator_recentConsensus's recentOnly).
-function mdbPageCreator_reasoningRecentCount( c ) {
-    return c.recentOnly
-        ? "all " + c.n + " newest pages (the older ones disagree - newer pages win)"
-        : c.count + " of the " + c.n + " newest pages";
+function mdbPageCreator_reasoningRecentCount( c, whole ) {
+    // "newest" only where pages were left behind: in a category of four, "4 of the 4 newest
+    // pages" reads as if six had been skipped (reported 2026-08-20)
+    var pages = whole ? " pages" : " newest pages";
+
+    if( c.recentOnly ) return "all " + c.n + " newest pages (the older ones disagree - newer pages win)";
+
+    // a unanimous sample is "all of them", never "N of the N"
+    if( c.count === c.n ) return c.n === 1 ? "the only page" : "all " + c.n + pages;
+
+    return c.count + " of the " + c.n + pages;
+}
+
+// mdbPageCreator_recentWholeCategory
+// Are the fetched pages the WHOLE category? Fewer than the limit asked for, with the API
+// offering no continuation, means nothing was left behind - and then the panel says "all 4
+// pages" rather than talking about the "newest" ones, which implies a cut that never happened.
+function mdbPageCreator_recentWholeCategory( info ) {
+    var entry = info && info.entry;
+
+    return !!( entry && entry.pages && entry.pages.length < mdbPageCreator_recentPageLimit && !entry.more );
 }
 
 // mdbPageCreator_reasoningRecentRead
 // The "Read:" line both sections open with: which pages the findings are read off.
 function mdbPageCreator_reasoningRecentRead( info ) {
     var n = info.entry.pages.length,
-        // 10 is what was asked for, so fewer than that with nothing left over IS the category
-        whole = n < mdbPageCreator_recentPageLimit && !info.entry.more,
-        read = whole
+        read = mdbPageCreator_recentWholeCategory( info )
             ? ( n === 1 ? "the only page of" : "all " + n + " pages of" )
             : "the " + n + " newest pages of";
 
@@ -5562,6 +5729,7 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
         s.append( mdbPageCreator_reasoningNote( state, "muted" ) );
     } else {
         var f = mdbPageCreator_recentTitleFindings( info ),
+            whole = mdbPageCreator_recentWholeCategory( info ),
             rows = [],
             // The applied-change rows concern the SUGGESTION. Once the field was edited they
             // may be about another entity entirely (the findings follow the field, the changes
@@ -5578,7 +5746,7 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
 
         if( f.written ) {
             rows.push( { label: "Name as written",
-                         detail: "\"" + f.written.value + "\" - " + mdbPageCreator_reasoningRecentCount( f.written ) } );
+                         detail: "\"" + f.written.value + "\" - " + mdbPageCreator_reasoningRecentCount( f.written, whole ) } );
         } else {
             rows.push( { label: "Name as written",
                          detail: "no 90% agreement (the name stands in " + f.matched + " of " + f.n + " titles)" } );
@@ -5587,10 +5755,10 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
         if( !info.isPlace ) {
             if( f.format && f.format.none ) {
                 rows.push( { label: "Episode number",
-                             detail: "none - " + mdbPageCreator_reasoningRecentCount( f.format ) + " write the bare name" } );
+                             detail: "none - " + mdbPageCreator_reasoningRecentCount( f.format, whole ) + " write the bare name" } );
             } else if( f.format ) {
                 rows.push( { label: "Episode format",
-                             detail: "\"" + f.format.display + "\" - " + mdbPageCreator_reasoningRecentCount( f.format ) +
+                             detail: "\"" + f.format.display + "\" - " + mdbPageCreator_reasoningRecentCount( f.format, whole ) +
                                      ( f.format.pad ? " - N zero-padded to " + f.format.pad + " digits" : "" ) } );
             } else {
                 rows.push( { label: "Episode format", detail: "no 90% agreement - the title stays as built" } );
@@ -5598,7 +5766,7 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
         } else {
             if( f.city ) {
                 rows.push( { label: "City behind the place",
-                             detail: "\"" + f.city.value + "\" - " + mdbPageCreator_reasoningRecentCount( f.city ) } );
+                             detail: "\"" + f.city.value + "\" - " + mdbPageCreator_reasoningRecentCount( f.city, whole ) } );
             } else {
                 rows.push( { label: "City behind the place", detail: "no 90% agreement - nothing appended" } );
             }
@@ -5693,6 +5861,7 @@ function mdbPageCreator_reasoningRecentText( title ) {
     }
 
     var f = info.entry.text,
+        whole = mdbPageCreator_recentWholeCategory( info ),
         rows = [],
         i;
 
@@ -5711,14 +5880,14 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
     if( f.image && f.image.value === "same" ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " open with an artwork named after the page itself (." + f.imageExt + ") -> " +
+                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " open with an artwork named after the page itself (." + f.imageExt + ") -> " +
                              "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" + imgAside } );
     } else if( f.image && f.image.value === "none" ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " carry no artwork -> no image line" + imgAside } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " carry no artwork -> no image line" + imgAside } );
     } else if( f.image ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image ) + " name their artwork after something else (nothing a new page could predict) -> no image line" + imgAside } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " name their artwork after something else (nothing a new page could predict) -> no image line" + imgAside } );
     } else {
         rows.push( { label: "Lead artwork", detail: "no 90% agreement -> no image line" + imgAside } );
     }
@@ -5730,16 +5899,16 @@ function mdbPageCreator_reasoningRecentText( title ) {
     if( f.body && /^StandardShow/.test( String( f.body.value || "" ) ) ) {
         if( chosen ) {
             rows.push( { label: "File details",
-                         detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use {{" + f.body.value + "}} -> written instead of the dur table" +
+                         detail: mdbPageCreator_reasoningRecentCount( f.body, whole ) + " use {{" + f.body.value + "}} -> written instead of the dur table" +
                                  ( durText ? " (this file's " + durText + " fits)" : "" ) } );
         } else {
             rows.push( { label: "File details",
-                         detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use {{" + f.body.value + "}}, but this file's " + ( durText || "unknown duration" ) +
+                         detail: mdbPageCreator_reasoningRecentCount( f.body, whole ) + " use {{" + f.body.value + "}}, but this file's " + ( durText || "unknown duration" ) +
                                  " is too far off its stated length -> the dur table stays (the category may be a misread)" } );
         }
     } else if( f.body && f.body.value === "table" ) {
         rows.push( { label: "File details",
-                     detail: mdbPageCreator_reasoningRecentCount( f.body ) + " use the dur/MB/kbps table -> kept" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.body, whole ) + " use the dur/MB/kbps table -> kept" } );
     } else {
         rows.push( { label: "File details", detail: "no 90% agreement -> the dur table stays" } );
     }
@@ -5755,18 +5924,18 @@ function mdbPageCreator_reasoningRecentText( title ) {
         for( h = 0; h < ( f.playerHosts || [] ).length; h++ ) order.push( f.playerHosts[h] || "?" );
 
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use {{Player|mode=mirrors}} with " + ( f.playerSlots || 2 ) + " URLs" +
+                     detail: mdbPageCreator_reasoningRecentCount( f.player, whole ) + " use {{Player|mode=mirrors}} with " + ( f.playerSlots || 2 ) + " URLs" +
                              ( order.length ? " (" + order.join( " > " ) + ")" : "" ) + " -> written that way, this URL on line " + slotNo +
                              " and the other line empty for the mirror. MixesDB shows \"No value for one of the players!\" until it is filled in or removed" } );
     } else if( f.player && f.player.value === "plain" ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a plain {{Player}} with one URL -> {{Player}} with single URL stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player, whole ) + " use a plain {{Player}} with one URL -> {{Player}} with single URL stays" } );
     } else if( f.player && f.player.value === "none" ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " carry no player at all -> {{Player}} with single URL stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player, whole ) + " carry no player at all -> {{Player}} with single URL stays" } );
     } else if( f.player ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a {{Player}} mode that needs a title per line (mode=multi), which a page with one URL cannot start as -> {{Player}} with single URL stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player, whole ) + " use a {{Player}} mode that needs a title per line (mode=multi), which a page with one URL cannot start as -> {{Player}} with single URL stays" } );
     } else {
         rows.push( { label: "Player", detail: "no 90% agreement -> {{Player}} with single URL stays" } );
     }
@@ -5776,11 +5945,11 @@ function mdbPageCreator_reasoningRecentText( title ) {
     // the second row is where a reader sees which of the two was missing.
     if( f.notes && f.notes.value === "notes" ) {
         rows.push( { label: "Notes section",
-                     detail: mdbPageCreator_reasoningRecentCount( f.notes ) + " carry a \"== Notes ==\" section -> written above the tracklist, for the editor to fill" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.notes, whole ) + " carry a \"== Notes ==\" section -> written above the tracklist, for the editor to fill" } );
 
         if( f.notesHost && f.notesHost.value !== "none" ) {
             rows.push( { label: "Notes link",
-                         detail: mdbPageCreator_reasoningRecentCount( f.notesHost ) + " link to " + f.notesHost.value +
+                         detail: mdbPageCreator_reasoningRecentCount( f.notesHost, whole ) + " link to " + f.notesHost.value +
                                  ( f.notesSample ? " (e.g. " + f.notesSample + ")" : "" ) + " -> " +
                                  mdbPageCreator_reasoningNotesLink( f.notesHost.value ) } );
         } else {
@@ -5804,7 +5973,7 @@ function mdbPageCreator_reasoningRecentText( title ) {
         if( verdict === "yes" ) wroteStyle = true;
 
         rows.push( { label: "Shared styles",
-                     detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
+                     detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i], whole ) +
                              ( verdict === "yes"
                                  ? " -> written into the page's style lines"
                                  : verdict === "no"

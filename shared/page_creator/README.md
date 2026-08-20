@@ -189,6 +189,16 @@ The first page of a walk is the only one you wait for.
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
 files it as, since a podcast, a show, a venue and a festival can all stand in that slot.
 
+A live title's place group can name **two things that both have a category**, and then the page
+is filed under both: `2026-06-13 - Lord Of The Isles @ Far Blue, Noordspace` carries
+`[[Category:Far Blue]]` for the event *and* `[[Category:Noordspace]]` for the venue it was held
+at, the way `2026-05-23 - Dosem @ Anjunadeep, Ritter Butzke, Berlin` carries the party and the
+club. What decides is MixesDB, not the position in the group: the name the title is filed under
+is written whether or not the wiki has it yet – a new venue's category is created together with
+the page – while every further name of the group has to be a category that really exists, asked
+for by that exact name. So the city keeps its place in the title and gets no category of its
+own, and neither does a party MixesDB has never heard of.
+
 The other chips – the year, the styles, **Promo Mix** and the `Tracklist:` filing – stay a
 muted grey and carry neither link nor mix count: none of them is a name anyone could have
 spelled wrong, so there is nothing to look up about them. They are listed all the same, because
@@ -396,7 +406,9 @@ ends up used.
   the entity: "S.U.N Festival" carries an event word, so the title reads as a set PLAYED at
   it – it becomes the place behind the " @ ", and the channel is not used as a show on top of
   that`. That is the line to quote in a report when the wrong name ended up in a slot: it
-  names the rule that put it there. Under it stands what the lookup knows – a known artist
+  names the rule that put it there. A second entity was picked by no rule at all and says so
+  instead – `filed as a second entity: the place group names it next to "Far Blue", and
+  MixesDB has it as a venue – a title naming both is filed under both`. Under it stands what the lookup knows – a known artist
   confirmed with its mix count, an unknown one flagged as possibly new or misspelled. A style
   read off the entity's recent pages says so here too, with its count and with the wiki's
   answer that the name really is a style
@@ -482,7 +494,9 @@ Opens the edit form of the new page, prefilled with:
   from. Only a link that really leads to the site those Notes use is written – anywhere else
   and the line stays empty, and a URL is never built out of the title. Series that use no Notes
   section get none
-- the categories the title gives away (year, artists, the entity the page is filed under)
+- the categories the title gives away: the year, the artists, and the entity the page is filed
+  under – two of them where the place group names an event at a venue MixesDB has both of (see
+  **Used categories**)
 - the style categories: the site's own suggestions where it has any (TrackId.net's style
   suggestions box), otherwise a style at least 90% of the entity's recent pages carry, where
   MixesDB files that name under `Category:Style` – a series whose ten newest pages all carry

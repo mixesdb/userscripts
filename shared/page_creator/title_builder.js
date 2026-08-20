@@ -3267,23 +3267,28 @@ function mdbTitle_splitArtists( artistField ) {
 }
 
 // mdbTitle_titleCategories
-// A finished MixesDB title -> { year, artists, entity }, i.e. what the wiki files the page
-// under. Read off the TITLE and not off what the parser had in mind: the suggestion is editable,
-// and a corrected title has to take its categories with it. Which is also why this parses rather
-// than remembers - the title it is handed may never have been built here at all.
+// A finished MixesDB title -> { year, artists, entity, entities }, i.e. what the wiki files the
+// page under. Read off the TITLE and not off what the parser had in mind: the suggestion is
+// editable, and a corrected title has to take its categories with it. Which is also why this
+// parses rather than remembers - the title it is handed may never have been built here at all.
+//
+// entity is the ONE name the parse files the page under; entities is every name the entity slot
+// OFFERS, in title order and the picked one among them. A place group can name two things that
+// both have a category - "@ Anjunadeep, Ritter Butzke, Berlin" is the party at the club, and
+// MixesDB files such a page under both - while the city in the same group has none. Nothing
+// about the words tells those two apart, so which of the offered names really is a category is
+// not decided here but asked of the wiki (mdbPageCreator_entityCategoriesFor).
 function mdbTitle_titleCategories( title ) {
     var text = String( title || "" ),
         bits = text.split( mdbTitle_bitSplitRe() ),
         year = ( text.match( /^\s*(\d{4})/ ) || [ "", "" ] )[1],
         artistField = bits[1] || "",
-        entity = bits[2] || "";
+        entity = bits[2] || "",
+        places = [];
 
     // A live recording has no third bit: what stands behind the "@" is the entity there. The
-    // city behind the venue is not a category of its own - "... @ Wire Club, Leeds" is filed
-    // under Wire Club alone - so only the part in front of the comma is taken. The FIRST
-    // place alone, even in an edited title still holding a second " @ ": a MixesDB title
-    // never carries the joiner twice, and the venue behind the festival is not what the page
-    // is filed under either.
+    // FIRST place group alone, even in an edited title still holding a second " @ ": a MixesDB
+    // title never carries the joiner twice.
     var atParts = artistField.split( /\s+@\s+/ );
 
     if( atParts.length > 1 ) {
@@ -3291,6 +3296,7 @@ function mdbTitle_titleCategories( title ) {
 
         if( !entity ) {
             entity = mdbTitle_placeGroupEntity( atParts[1] );
+            places = mdbTitle_placeGroupNames( atParts[1] );
         }
     }
 
@@ -3298,11 +3304,52 @@ function mdbTitle_titleCategories( title ) {
     // filed under Promo Mix and the name in the slot is "Unedited". Which reading of the title
     // it is - the page's categories, the report, the lookup of an edited title - it is the
     // bare name every time.
+    var name = mdbTitle_trimSeparators( mdbTitle_dropMarkers( entity ) ),
+        entities = places.length ? places : ( name ? [ name ] : [] ),
+        key = mdbTitle_normalizeCompare( name ),
+        have = false,
+        i;
+
+    for( i = 0; key && i < entities.length; i++ ) {
+        if( mdbTitle_normalizeCompare( entities[i] ) === key ) { have = true; break; }
+    }
+
+    // the picked name is always among them: mdbTitle_placeGroupEntity falls back to the first
+    // part where the whole group is slots, and a slot is no name mdbTitle_placeGroupNames keeps
+    if( key && !have ) entities.unshift( name );
+
     return {
         year: year,
         artists: mdbTitle_splitArtists( artistField ),
-        entity: mdbTitle_trimSeparators( mdbTitle_dropMarkers( entity ) )
+        entity: name,
+        entities: entities
     };
+}
+
+// mdbTitle_placeGroupNames
+// The names a live title's place group offers as categories, in title order: every part of it
+// except the ones that name no thing at all. A SLOT is such a part - "@ Obstgarten Closing,
+// Rote Dichte" is the closing set of an event, and mdbTitle_placeGroupEntity steps over it for
+// the same reason - and so is the group's COUNTRY, which MixesDB writes in a title and files
+// nothing under (mdbTitleCountries; a country is not sent to the lookup anywhere else either).
+//
+// The CITY stays in the list like every other part: nothing about the words tells "Ritter
+// Butzke" from "Berlin", and the wiki is what does - it has no category for a city, so none is
+// ever written (mdbPageCreator_entityCategoriesFor).
+function mdbTitle_placeGroupNames( group ) {
+    var parts = String( group || "" ).split( "," ),
+        out = [],
+        i, name;
+
+    for( i = 0; i < parts.length; i++ ) {
+        name = mdbTitle_trimSeparators( mdbTitle_dropMarkers( parts[i] ) );
+
+        if( !name || mdbTitle_endsWithSlotWord( name ) || mdbTitle_isCountry( name ) ) continue;
+
+        out.push( name );
+    }
+
+    return out;
 }
 
 // mdbTitle_placeGroupEntity

@@ -22,9 +22,11 @@
  * expectArtists is optional and holds the ARTIST CATEGORIES the finished title has to be filed
  * under, as reported. Only worth writing down where the split is the point of the case - a
  * title naming two artists, a name that must NOT be split - since for a single artist it only
- * repeats the middle group of expect. expectEntity is its sibling for the ENTITY category,
- * worth writing down where reading it off the title is the point - a live title's first
- * place, say.
+ * repeats the middle group of expect. expectEntity is its sibling for the ENTITY category the
+ * page is filed under, worth writing down where reading it off the title is the point - which
+ * part of a live title's place group it is, say - and expectEntities holds every name that
+ * group OFFERS as a category, in title order, for a case whose point is that a page files
+ * under more than one of them ("@ Far Blue, Noordspace").
  *
  * Why a case matters is not written per case either: it is in the rule it belongs to, in
  * title_definitions.js. A case that fails sends you there.
@@ -1318,5 +1320,28 @@ var mdbTitleExamples = [
         expectEntity: "Drumcomplexed Radio Show 311",
         expectAsked: [ "Drumcomplexed Radio Show" ],
         expect: "2026-08-18 - Drumcomplex - Drumcomplexed Radio Show 311"
+    },
+    {
+        // Reported about the CATEGORIES, not the title: the title was right and the page was
+        // filed under the event alone, while MixesDB has the venue behind the comma as a
+        // category of its own - the created page carries [[Category:Far Blue]] AND
+        // [[Category:Noordspace]]. A place group offers every one of its parts now
+        // (mdbTitle_placeGroupNames), and which of them the page really files under is the
+        // wiki's answer, asked at filing time (mdbPageCreator_entityCategoriesFor): the venue
+        // answers, the city in the same group answers nothing and stays out of the categories
+        // while staying in the title.
+        url: "https://soundcloud.com/farblue/lord-of-the-isles-at-far-blue",
+        title: "Lord Of The Isles at Far Blue @ Noordspace - 13.06.26",
+        channel: "Far Blue",
+        date: "2026-08-20",
+        known: {
+            "Lord Of The Isles": { type: "artist", mixes: 36 },
+            "Far Blue": { type: "event", mixes: 1 },
+            "Noordspace": { type: "venue", mixes: 1 }
+        },
+        expectArtists: [ "Lord Of The Isles" ],
+        expectEntity: "Far Blue",
+        expectEntities: [ "Far Blue", "Noordspace" ],
+        expect: "2026-06-13 - Lord Of The Isles @ Far Blue, Noordspace"
     }
 ];
