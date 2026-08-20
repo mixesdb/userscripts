@@ -2209,8 +2209,8 @@ var mdbTitle_categoryCache = {},
     // Reset with the log - the same name can play a different role on the next page.
     mdbTitle_candidateRoles = {},
     // WHERE each candidate came from: normalized name -> { origin, chunk }. origin is
-    // "channel" | "channel name" | "curated show" | "chunk" | "title field", chunk holds the
-    // chunk a name was reduced from when it was one.
+    // "channel" | "channel name" | "curated show" | "chunk" | "number kept" | "title field",
+    // chunk holds the chunk a name was reduced from when it was one.
     //
     // The panel's section 3 prints it, because the names asked are NOT the chunks shown: the
     // channel is asked though it stands nowhere in the title, and a chunk is asked without its
@@ -2531,6 +2531,36 @@ function mdbTitle_stripTrailingNumber( name ) {
         .trim();
 }
 
+// mdbTitle_numberBelongsToName
+// Whether a name's trailing number may be part of the NAME rather than the edition it counts.
+// Not every "<word> <number>" is a numbered series: "Route 8" and "Asa 808" are artists whose
+// category carries the digits, and the strip above would ask the wiki about "Route" - a name
+// it does not have, while the one it does have is never asked. Nothing in the words can settle
+// that, only the wiki can, so this says when the numbered form is worth one of the ten lookup
+// slots NEXT TO the reduced one (mdbTitle_categoryCandidates, mdbPageCreator_entityLookupNames).
+//
+// It is not, when the title has already said "this counts editions":
+//   - a counting word, a "#" or the "." a series writes its edition with introduces the number
+//     ("Vol. 3", "DJ Mix #677", "RA.971", "Trommel.234")
+//   - the name in front of it carries a series word ("HATE Podcast 498")
+//   - the number is a year ("Landjuweel Festival 2026") - no category name carries one
+function mdbTitle_numberBelongsToName( name ) {
+    var text = String( name || "" ).trim(),
+        base = mdbTitle_stripTrailingNumber( text ),
+        // what the strip took off, separators and counting word included
+        tail = base ? text.slice( base.length ) : "";
+
+    if( !base || base === text ) return false;
+
+    // a letter in the tail is the counting word ("Vol. 3"), the punctuation is the same thing
+    // written as a sign - a bare blank or hyphen in front of the digits says nothing
+    if( /[a-z]/i.test( tail ) || /[#.]/.test( tail ) ) return false;
+
+    if( /(?:19|20)\d{2}\s*$/.test( tail ) ) return false;
+
+    return !mdbTitle_hasSeriesWord( base );
+}
+
 // mdbTitle_categoryCandidates
 // The names worth asking about: the channel, and every chunk of the title. The chunks are the
 // SHARED split (mdbTitle_titleChunks): brackets read as separators and the series-"by" split
@@ -2659,18 +2689,31 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
         if( bit && bit.length <= 80 ) {
             // the trailing episode number or year off, because that is how a series name
             // stands in a title - see mdbTitle_stripTrailingNumber
-            var stripped = mdbTitle_stripTrailingNumber( bit );
+            var stripped = mdbTitle_stripTrailingNumber( bit ),
+                reduced = stripped && stripped !== bit && stripped.length >= 3;
 
-            // Only the REDUCED form is asked: a category name never carries the episode
-            // number, so the full "DJ Mix #677" could only answer empty - and finding the
-            // episode family behind "DJ Mix" is the row's planned prefix round
-            // (row_enrichment.md), never this exact-match lookup. Accepted price: an artist
-            // whose name ends in digits ("Asa 808") loses its exact match here.
-            // a stripped name always asks as the entity: the strip requires a trailing
-            // number, and a numbered name is a series - which is also what bitRole says,
-            // since the digit alone already scores
-            if( stripped && stripped !== bit && stripped.length >= 3 ) {
+            // The REDUCED form is the first question: a series category never carries the
+            // episode number, so the full "DJ Mix #677" could only answer empty - and finding
+            // the episode family behind "DJ Mix" is the row's planned prefix round
+            // (row_enrichment.md), never this exact-match lookup.
+            // a stripped name asks in the chunk's role: the strip requires a trailing number,
+            // and a numbered name reads as a series - which is what bitRole says anyway, since
+            // the digit alone already scores
+            if( reduced ) {
                 take( stripped, bitRole, "chunk", bits[i] );
+
+                // ... and the name WITH its number right behind it, unless the title has said
+                // the number counts editions (mdbTitle_numberBelongsToName): "Route 8" and
+                // "Asa 808" are artists, their category carries the digits, and asking only
+                // "Route" files the page under a category MixesDB does not have while the one
+                // it does have is never asked. Second, not first: numbering is the commoner
+                // reading of "<name> <number>", and the 10-name cap drops from the end.
+                // As the ARTIST - a series category never carries its own episode number, so
+                // if this form is a category at all it is a name that ends in digits. Behind
+                // the "@" it is a place like everything there.
+                if( mdbTitle_numberBelongsToName( bit ) ) {
+                    take( bit, inPlace ? "entity" : "artist", "number kept", bits[i] );
+                }
             } else {
                 take( bit, bitRole, "chunk", bits[i] );
             }
@@ -2682,7 +2725,7 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             // words are the place; in front of it the same words sit inside artist names.
             // See "A room inside a venue is not the venue" in title_definitions.js.
             var space = inPlace
-                ? mdbTitle_venueSpaceBase( ( stripped && stripped !== bit && stripped.length >= 3 ) ? stripped : bit )
+                ? mdbTitle_venueSpaceBase( reduced ? stripped : bit )
                 : null;
 
             if( space ) {
@@ -4309,6 +4352,22 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
         joined = mdbTitle_takeMonthlyEdition( joined, refDate || "" ).text;
     }
 
+    // The further-artist mirror: the same take the parse runs (3b). "w/ Asa 808" and
+    // "with STRAUSS." name ANOTHER artist, whom the parse writes into the artist group on
+    // their own, so each of them is a unit of the title and a candidate of its own while the
+    // connector belongs to no name. Without this the whole thing stayed one chunk
+    // ("Flirt w/ Route 8") and the trailing-number strip then asked about "Flirt w/ Route",
+    // while "Route 8" - the artist category MixesDB really has - was never asked at all.
+    // Read in FRONT of the place group only: the connector's capture runs to the next
+    // separator, and an "@" is none of them ("... w/ Route 8 @ 3000Grad Festival" would come
+    // back as one artist called after the festival). Behind the "@" stand places anyway, and
+    // a place is never a further artist.
+    var atCut = live ? joined.indexOf( "@" ) : -1,
+        placeTail = atCut === -1 ? "" : joined.slice( atCut ),
+        extraArtists = mdbTitle_takeExtraArtists( atCut === -1 ? joined : joined.slice( 0, atCut ) );
+
+    joined = extraArtists.text + placeTail;
+
     // the shared split, "@"s and all - see mdbTitle_traceChunks
     var chunks = mdbTitle_traceChunks( joined ),
         kept = [];
@@ -4331,6 +4390,30 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
         } else {
             kept.push( chunks[i] );
         }
+    }
+
+    // The further artists go back in behind the chunk the connector stood behind (the take's
+    // "before"), so the chunks read in title order - "Flirt w/ Route 8 | BRL-071225" shows
+    // "Flirt", "Route 8", "BRL" and not the guest last. Failing that, in front of the place
+    // group: they are artists, and everything from the "@" on is a place, so a chunk appended
+    // behind it would be asked about as one.
+    if( extraArtists.artists.length ) {
+        var into = -1;
+
+        for( i = 0; extraArtists.before && i < kept.length; i++ ) {
+            if( mdbTitle_normalizeCompare( mdbTitle_cleanArtist( kept[i] ) ) === mdbTitle_normalizeCompare( extraArtists.before ) ) {
+                into = i + 1;
+                break;
+            }
+        }
+
+        if( into === -1 ) into = ( placeFrom === -1 ) ? kept.length : placeFrom;
+
+        for( i = 0; i < extraArtists.artists.length; i++ ) {
+            kept.splice( into + i, 0, extraArtists.artists[i] );
+        }
+
+        if( placeFrom !== -1 && into <= placeFrom ) placeFrom += extraArtists.artists.length;
     }
 
     return { chunks: kept, removed: removed, placeFrom: placeFrom };

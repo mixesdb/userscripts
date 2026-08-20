@@ -28,7 +28,14 @@ the wiki knows as an **artist** is who played there, so a city standing between 
 the line-up does not end up in either name. A chunk long enough to be a **chain** of names is asked about in
 pieces as well as whole – `Timboletti im Chapeau Club` is looked up as itself, as `Timboletti`
 and as `Chapeau Club`, because the wiki can only answer empty about the pair – and so are the
-artists an `&` joins: `Ri0D. & Jonbot` is looked up as the pair and as each name. Everything
+artists an `&` joins: `Ri0D. & Jonbot` is looked up as the pair and as each name, and the guest
+behind a `w/`: `Flirt w/ Route 8` asks about `Flirt` and about `Route 8`, never about the two
+of them glued together. A name **ending in a number** is asked both ways, with the number and
+without it, because the number is not always counting episodes: `HATE Podcast 498` is episode
+498 of `HATE Podcast`, while `Route 8` is an artist and `Studio 80` a club whose category
+carries the digits – and dropping them there does not merely find nothing, it finds the wrong
+category (`Studio` is four other clubs). Where MixesDB knows the numbered name, the number
+stays in the category the page is filed under. Everything
 found is written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
 tamed to "DJ Maria.", because the category holding her mixes is spelled that way) – which

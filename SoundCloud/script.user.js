@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.20
+// @version      2026.08.20.21
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_64
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_65
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_98
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_99
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1902,6 +1902,28 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.21
+ * A name ending in a number is asked about BOTH ways now (title_builder.js v_65,
+ * page_creator.js v_99). From the "Flirt w/ Route 8 | BRL-071225" report: the lookup took the
+ * trailing number off every name, because that is how a series stands in a title
+ * ("HATE Podcast 498" is filed under "HATE Podcast") - but not every "<name> <number>" counts
+ * episodes. "Route 8" and "Asa 808" are artists, "Studio 80", "Bar 25" and "Club 69" are
+ * venues, and their category carries the digits. Asking the reduced form alone does not merely
+ * answer empty either: "Studio" finds four other clubs and "Front" a venue with 17 mixes, so
+ * the page could be filed under a category that has nothing to do with it. Both readings are
+ * asked now, the reduced one first, and the numbered one only where the title has not said the
+ * number counts editions - a counting word, a "#" or the "." of a series edition in front of
+ * it, a series word in the name, or a year all keep it out, so "HATE Podcast 498", "RA.971"
+ * and "Landjuweel Festival 2026" ask exactly what they asked before. Where the wiki knows the
+ * numbered name, the created page keeps the number in its category.
+ * The same report's other half: "w/" and "with" now end a CHUNK the way they already end a
+ * name in the parse. The guest is a candidate of their own ("Flirt", "Route 8"), where the
+ * whole thing used to be looked up glued together and number-stripped as "Flirt w/ Route" -
+ * "Slowciety w/ Asa 808" asked as "Slowciety w/ Asa". Read in front of the place group only,
+ * so "... w/ Route 8 @ 3000Grad Festival" does not come back as one artist named after the
+ * festival, and the guest stands where the title wrote them.
+ * No suggested title changes: all 140 examples pass unchanged.
  *
  * 2026.08.20.20
  * The acronym expansion is decided by the CATEGORY'S OWN PAGE TITLES now, with the channel's
