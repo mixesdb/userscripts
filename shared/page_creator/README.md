@@ -486,8 +486,9 @@ Opens the edit form of the new page, prefilled with:
   suggestions box), otherwise a style at least 90% of the entity's recent pages carry, where
   MixesDB files that name under `Category:Style` – a series whose ten newest pages all carry
   `[[Category:Techno]]` writes Techno. Anything else those pages share is a **Hints** chip under
-  the row and is never written for you. Whatever is left of the two style rows stays empty to
-  fill in
+  the row and is never written for you. Behind a written style stands one empty row, not two –
+  the spare a second style is typed into; where nothing was written, the two empty rows a mix
+  page starts with stay as they are
 - the tracklist from the box below, when there is one
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text

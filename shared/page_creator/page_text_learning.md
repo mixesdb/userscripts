@@ -80,9 +80,11 @@
 > name for the session - `Techno` is asked once however many series vote for it), and
 > `mdbPageCreator_recentLearnedCategories()` splits them on the answer:
 >
-> - **filed under `Category:Style`** -> written into the page's style lines, at most two, the
->   rest of the block keeping its blank rows. The chip on the "Used categories" row is green and
->   linked, and its tooltip names the pages it was learned off
+> - **filed under `Category:Style`** -> written into the page's style lines, at most two, with
+>   ONE blank row behind them: the blank rows are a spare to type a further style into, not a
+>   shape to fill, so the two of them stand only where nothing was written. The chip on the
+>   "Used categories" row is a plain grey one like `Promo Mix`, and its tooltip names the pages
+>   the style was learned off
 > - **anything else, and everything not answered yet** -> the HINT of the delta above, unchanged
 >
 > Measured on the live API 2026-08-20: `Techno`, `Deep House`, `Tech House`, `Acid Techno`,
