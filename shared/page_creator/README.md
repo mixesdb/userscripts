@@ -215,7 +215,9 @@ take, not a verdict, which is also why they carry no score of any kind (the fit 
 is a real one, and a number here would only dress a name resemblance up as one). A chip links
 its category – opening in the same modal as the others – and says behind it what the name is
 (`(podcast, 8 mixes)`). Deliberately few: at most three per name, and categories with
-hardly any mixes are left out.
+hardly any mixes are left out. Which answers were left out, and why each one was, is on
+screen too – section 8 of the reasoning panel lists every answer the request brought back
+with its verdict.
 
 The red chips are not the only names asked. A name the **title** writes that never became a
 chip at all is asked too, which is where a show hides on a mix filed as a promo: in
@@ -382,12 +384,13 @@ you type. Editing the title field above refills it, but anything typed into the 
 never overwritten.
 
 Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
-learning" line can name the step that went wrong. Its seven sections are numbered in the order
+learning" line can name the step that went wrong. Its eight sections are numbered in the order
 the build really ran: the title is parsed once before MixesDB is asked anything, once more
 with its answers, and then measured against the entity's own recent pages – sections **2**,
 **4** and **5** are the stages that shape the title, and their shared orange accent (the copy
-button's colour) marks them against the blue of 1/3, the green of 6 and the citrus yellow of
-7, the page text read off the same recent pages – the number, the bar down the left and the
+button's colour) marks them against the blue of 1/3, the green of 6, the citrus yellow of
+7, the page text read off the same recent pages, and the yellow of 8, the **Similar:** row's
+own colour – the number, the bar down the left and the
 heading itself all carry it. That is also why the
 names in 3 are not read off the title of 2: the lookup is built from the chunks of **1**,
 never from the cleaned title. Chips everywhere are coloured by **state**, not by what they
@@ -531,13 +534,25 @@ ends up used.
   Whatever clears no bar keeps today's default page text, so nothing here can make the page
   worse than before
 
-Sections **3**, **5** and **7** each close with an **API call** link: the exact `api.php` URL
+- **8 Similar categories on MixesDB** – the looser round behind the hints bar's **Similar:**
+  row, in full. Every name the exact lookups denied stands here as a red chip, and next to it
+  **every** answer the prefix request brought back – not only the ones the row shows. Each
+  answer is printed like an answer in section 3 – the category as a link, its type, its mix
+  count and the same hoverable percentage, which starts low on purpose: MixesDB not having a
+  category of the asked name itself is the built-in doubt that makes these hints – followed by
+  the row's verdict: `shown on the "Similar:" row`, or `not shown` with the reason (only so
+  many chips per name, too few mixes, already a chip on the bar, already shown behind an
+  earlier name). The section and the row are read off one and the same decision, so what this
+  section says was shown is exactly what the row shows. It is last because it decides
+  nothing: the chips are pointers for the editor, never part of the title or the filing
+
+Sections **3**, **5**, **7** and **8** each close with an **API call** link: the exact `api.php` URL
 whose answer that section is read off, opening the raw answer in a new tab. Section 3 has the
 one lookup request – plus one per category chip whose mix pages you folded open in the hints
 bar – and 5 and 7 share the single request that fetched the recent pages, since it carries
 their titles and their wikitext in one go. Section 7 carries a second link where a shared
 category had to be classified: the request that asked MixesDB whether it files that name under
-`Category:Style`. Everything those sections say about a category is the
+`Category:Style`. Section 8 has the one prefix request behind the **Similar:** row. Everything those sections say about a category is the
 wiki's own answer, so when one of the numbers looks wrong the link is what a report to MixesDB
 is written from rather than a URL retyped by hand. A section with no link was not asked again:
 its answer came out of the cache of a track opened earlier in the same session.

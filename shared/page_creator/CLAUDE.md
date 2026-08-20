@@ -788,19 +788,29 @@ not get re-litigated:
   in there the builder would read "Dekmantel" as a podcast and the exact-match discipline
   would be undone from the server side (row_enrichment.md: "The row uses prefix mode. The
   title builder NEVER does"). Nothing about the suggestion or the filing changes.
-- **Yellow, and no score of any kind**: not green (the page does not get them), not red
-  (nobody denied them), and the chips carry no percentage - the used-cat chips' number is a
+- **Yellow, and no score of any kind ON THE BAR**: not green (the page does not get them), not
+  red (nobody denied them), and the chips carry no percentage - the used-cat chips' number is a
   REAL fit score, and one here would dress the name resemblance up as one. The note behind
-  each chip says facts instead: the type and the mix count.
+  each chip says facts instead: the type and the mix count. The reasoning panel's section 8 is
+  the one place a number stands: `mdbTitle_matchConfidence`, the same per-answer score as
+  section 3's, whose prefix branch charges the asked name being only the START of the
+  category's - a diagnostic in a diagnostic surface, never on the bar.
 - **Gentle thresholds, named so they are one edit away** (`mdbPageCreator_prefixMaxPerName` 3,
   `mdbPageCreator_prefixMinMixes` 2): at most 3 chips per red name, thin categories dropped -
   the API ranks by mix count already. Only `matchType: "prefix"` renders (an exact or redirect
   answer would have answered the exact round; a qualified one turns that chip green), never a
   name the bar already carries, and a failed request is not retried.
+- **ONE walk decides shown-or-dropped for the bar and the panel alike**
+  (`mdbPageCreator_prefixDecisions`, 2026-08-20): it applies the thresholds above in the
+  row's order (the cap first - an answer the full cap kept the row from looking at claims no
+  dedupe key) and records the verdict per answer with its reason. The row renders the
+  survivors, the panel's section 8 the whole list - so the two can never disagree about which
+  answer made the row, and "why didn't we see that related cat" is answered on screen.
 - **The chips join the modal and its arrow-key walk** - `mdbPageCreator_modalLinks()` and the
   click interception read both category rows, in document order, which is the order the bar
-  reads. Section 3 closes with the request as an "API call" link like the other rounds
-  (kind `prefix`).
+  reads. Section 8 closes with the request as an "API call" link (kind `prefix`) - moved
+  there from section 3 on 2026-08-20: nothing in 3 reads the prefix answers, and the link
+  belongs where its answer is on screen.
 
 ### The second source of names: what the TITLE writes (2026-08-20, second round)
 
@@ -946,17 +956,21 @@ the time, and an empty one says there is a single right answer, so it is no reas
 needs - do not ask back for any of it when the box was used.
 
 Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`), numbered in the
-order the build RAN - **1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7**: the title chunks, the first parse's
+order the build RAN - **1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8**: the title chunks, the first parse's
 cleanup (closing with the title it built as one grey "Title candidate:" chip), the mdbnames
 lookups with their answers, the second parse (what those answers changed, closing with the grey
 "Title after lookup:" chip), the recent-pages title analysis (what the entity's newest pages
 settled about the format, closing with the green "Final title:" chip - the green finale lives
 in the LAST title stage, and only there, or two "final" chips would contradict each other), the
-created page's categories annotated from the lookup cache, and the recent-pages page text
-analysis. 2, 4 and 5 are the title-shaping stages - 2 and 4 ONE stage run twice on either side
+created page's categories annotated from the lookup cache, the recent-pages page text
+analysis, and the similar categories (`mdbPageCreator_reasoningSimilar()`: every answer of the
+prefix round with its score and the "Similar:" row's verdict - shown, or dropped and why -
+last because it decides nothing about the title or the page). 2, 4 and 5 are the title-shaping
+stages - 2 and 4 ONE stage run twice on either side
 of the lookup, 5 the format read off the wiki itself - and their shared orange accent (the copy
-button's colour, vs the blue of 1/3, the green of 6 and the citrus of 7, which says "same
-recent pages, about the PAGE rather than the title") says so; the accent paints the count
+button's colour, vs the blue of 1/3, the green of 6, the citrus of 7, which says "same
+recent pages, about the PAGE rather than the title", and the "Similar:" chips' yellow of 8)
+says so; the accent paints the count
 bubble, the left bar AND the heading, stated once per section as the
 `--mdb-reasoning-accent*` properties in `page_creator.css`. The CHIPS are a different
 question and stay coloured by STATE, never by type: grey candidate, red ignored, green used. Its
@@ -1066,7 +1080,8 @@ Settled about what it shows:
   `mdbPageCreator_reasoningApiCalls()` as an "API call" row closing sections 3 (the mdbnames
   lookup, plus every hints-bar chip fetch - that is where those chips' categories were
   answered about), 5 and 7 (the one recent-pages request, which carries titles and wikitext
-  both). The URL is built with `$.param` off the SAME data object the `$.ajax` call sends,
+  both) and 8 (the prefix round - its answers render there and on the bar's "Similar:" row,
+  never in 3). The URL is built with `$.param` off the SAME data object the `$.ajax` call sends,
   never a second hand-written one: a link opening a slightly different request than the one
   whose answer is on screen is worse than no link at all. Built off the Amplify Series report -
   the hints bar said "1 mix" where the category holds 29, and turning that into something the

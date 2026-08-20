@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.26
+// @version      2026.08.20.28
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_68
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_103
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_104
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 164,
+var cacheVersion = 166,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1902,6 +1902,22 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.28
+ * The reasoning panel grew section 8, "Similar categories on MixesDB" (page_creator.js v_104,
+ * page_creator.css / cacheVersion 166): every answer of the prefix round behind the bar's
+ * "Similar:" row, the dropped ones included - each with the category, its type, its mix count,
+ * the same per-answer % as section 3, and the row's verdict (shown, or not shown with the
+ * reason: the per-name cap, too few mixes, already a chip on the bar, already shown behind an
+ * earlier name). Row and section render off ONE decision walk, so they cannot disagree. The
+ * prefix request's "API call" link moved from section 3 into the new section - nothing in 3
+ * reads its answers.
+ *
+ * 2026.08.20.27
+ * The "Similar:" chips flow inline and wrap, like the "Used categories" chips above them
+ * (page_creator.css / cacheVersion 165) - the one-per-line column was borrowed from the
+ * "Hints:" row, whose long notes need their own line, and left a row of empty space behind
+ * every short "(artist, 21 mixes)" note here. Each chip-plus-note pair still wraps as a unit.
  *
  * 2026.08.20.26
  * The UFO95 @ Dommune report, in four rules. (1) The title builder no longer reads a NAME as

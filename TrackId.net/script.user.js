@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.25
+// @version      2026.08.20.27
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_68
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_103
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_104
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 167,
+var cacheVersion = 169,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,21 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.27
+ * The reasoning panel grew section 8, "Similar categories on MixesDB" (page_creator.js v_104,
+ * page_creator.css / cacheVersion 169): every answer of the prefix round behind the bar's
+ * "Similar:" row, the dropped ones included - each with the category, its type, its mix count,
+ * the same per-answer % as section 3, and the row's verdict (shown, or not shown with the
+ * reason: the per-name cap, too few mixes, already a chip on the bar, already shown behind an
+ * earlier name). Row and section render off ONE decision walk, so they cannot disagree. The
+ * prefix request's "API call" link moved from section 3 into the new section - nothing in 3
+ * reads its answers.
+ *
+ * 2026.08.20.26
+ * The "Similar:" chips flow inline and wrap instead of stacking one per line
+ * (page_creator.css / cacheVersion 168) - the short "(artist, 21 mixes)" notes never needed
+ * the "Hints:" row column they had borrowed.
  *
  * 2026.08.20.25
  * The page creator's title builder and hints bar learned four rules from a SoundCloud report
