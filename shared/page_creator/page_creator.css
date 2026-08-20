@@ -295,6 +295,14 @@
     --mdb-reasoning-accent-soft: rgba(219, 208, 51, 0.16);
 }
 
+/* 8, the prefix round behind the bar's "Similar:" row, in those chips' own yellow (#e3b341):
+   neither a verdict green nor a denial red - the same statement the row itself makes */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section-8 {
+    --mdb-reasoning-accent: #e3b341;
+    --mdb-reasoning-accent-bar: rgba(227, 179, 65, 0.65);
+    --mdb-reasoning-accent-soft: rgba(227, 179, 65, 0.16);
+}
+
 /* the fallbacks are what an unnumbered section gets - the panel's own greys, as before */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-section {
     border-left-color: var(--mdb-reasoning-accent-bar, rgba(255, 255, 255, 0.15));
@@ -618,6 +626,17 @@
     white-space: nowrap;
 }
 
+/* Section 8: one prefix answer per line - the match as section 3 prints one, the row's
+   verdict behind it. flex-basis 100% gives each answer its own line of the wrapping result
+   flex, so a verdict cannot run into the next answer. */
+#mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-similar-answer {
+    display: inline-flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
 /*
  * How strongly one answer backs the name it was asked for. Same bands as the row's score, but
  * the panel's own greens and reds - the row has to stay readable on a light page, this box is
@@ -874,9 +893,14 @@
 /*
  * The "Hints:" row - the categories the entity's sibling pages share, which the page does NOT
  * get. Laid out exactly like "Used categories:" above it, so the two labels share the column
- * and the chips line up; one chip per line, because each carries a note behind it and a note
- * needs its line. The "Similar:" row (the prefix answers behind a red name) is the same
- * chip-plus-note shape, so it shares these rules.
+ * and the chips line up; one chip per line, because each carries a long note behind it
+ * ("all 10 of Undercurrent's newest pages carry it") and such a note needs its line.
+ *
+ * The "Similar:" row shares only the label line, NOT the column: its chip-plus-note pairs are
+ * short ("(artist, 21 mixes)"), so they flow inline and wrap like the "Used categories" chips
+ * - three chips stacked left a row of empty space each (asked for on 2026-08-20). The pairs
+ * come from .mdb-pageCreator-hint-items' own flex-wrap; each pair wraps as a unit
+ * (.mdb-pageCreator-hintCat below).
  */
 #mdb-pageCreator-hints #mdb-pageCreator-hintCats,
 #mdb-pageCreator-hints #mdb-pageCreator-similarCats {
@@ -885,8 +909,7 @@
     gap: .5rem;
 }
 
-#mdb-pageCreator-hints #mdb-pageCreator-hintCats .mdb-pageCreator-hint-items,
-#mdb-pageCreator-hints #mdb-pageCreator-similarCats .mdb-pageCreator-hint-items {
+#mdb-pageCreator-hints #mdb-pageCreator-hintCats .mdb-pageCreator-hint-items {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;

@@ -1319,7 +1319,7 @@ function mdbPageCreator_render() {
     // page that already has it, which is exactly when something worth reporting turns up.
     var report = $("<a>")
             .attr( "id", "mdb-pageCreator-report" )
-            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, the format read off the entity's recent pages, the categories, and the page text learned from those same pages." )
+            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, the format read off the entity's recent pages, the categories, the page text learned from those same pages, and the similar categories behind the names MixesDB denied." )
             .text( "Report" );
 
     report.on( "click", function() {
@@ -2024,28 +2024,29 @@ function mdbPageCreator_prefixEnsure( title ) {
     });
 }
 
-// mdbPageCreator_similarCategoriesHint
-// The "Similar:" row - the prefix answers rendered under "Used categories". Per denied name at
-// most mdbPageCreator_prefixMaxPerName chips, thin categories dropped, and never a name the
-// bar already carries: a similar that IS a used category would say nothing. Each chip links
-// the category and its note says what it is - the type and the count are facts, where a
-// similarity number would only dress the resemblance up as one.
+// mdbPageCreator_prefixDecisions
+// EVERY prefix answer of this title's denied names, each with the verdict the "Similar:" row
+// gives it: shown, or not shown and why. ONE walk decides for both surfaces - the row renders
+// the survivors, the panel's section 8 renders the whole list with the reasons - so the two
+// can never disagree about which answer made the row. The filters run in the row's order,
+// the cap first: it used to be the loop's own condition, so an answer arriving after the cap
+// was full was never looked at and claims no dedupe key.
 //
 // Walks mdbPageCreator_prefixMissingNames, the list the REQUEST was built from, rather than the
 // bar's entries a second time: half of those names are on no chip (the promo case in the
-// section comment above), and a row reading a different list than the request could only ever
-// show less than was asked for. A name with nothing cached yet - the request has not settled,
-// or it fell off the 10-name limit - simply renders nothing.
-function mdbPageCreator_similarCategoriesHint( title ) {
+// section comment above), and a walk reading a different list than the request could only ever
+// judge less than was asked for. A name with nothing cached - the request has not settled, or
+// it fell off the 10-name limit - carries its status and no decisions.
+function mdbPageCreator_prefixDecisions( title ) {
     var entries = mdbPageCreator_categoryEntries( title ),
         names = mdbPageCreator_prefixMissingNames( title ),
         taken = {},
-        chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
-        logged = [],
-        any = false,
-        i, j, name, cached, match, shown, matchKey, mixes, note;
+        out = [],
+        i, j, name, cached, rec, match, shown, matchKey, mixes, why;
 
-    // everything on the bar is off limits for the chips, whatever its verdict
+    // everything on the bar is off limits for the chips, whatever its verdict. true marks a
+    // bar name, a STRING the denied name whose chip claimed the key first - the two "why not"
+    // sentences are different facts.
     for( i = 0; i < entries.length; i++ ) {
         if( entries[i].name ) taken[ mdbTitle_normalizeCompare( entries[i].name ) ] = true;
     }
@@ -2054,27 +2055,71 @@ function mdbPageCreator_similarCategoriesHint( title ) {
         name = names[i];
         cached = mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( name ) ];
 
-        if( !cached || cached.status !== "done" ) continue;
+        rec = {
+            name: name,
+            status: cached ? cached.status : "unasked",
+            matches: ( cached && cached.matches ) ? cached.matches : [],
+            decisions: []
+        };
+        out.push( rec );
+
+        if( rec.status !== "done" ) continue;
 
         shown = 0;
 
-        for( j = 0; j < cached.matches.length && shown < mdbPageCreator_prefixMaxPerName; j++ ) {
-            match = cached.matches[j];
-
-            // only real prefix matches: an exact or redirect answer would have answered the
-            // exact round already, and a qualified one turns the chip green over there
-            if( String( match.matchType || "" ) !== "prefix" || !match.title ) continue;
-
+        for( j = 0; j < rec.matches.length; j++ ) {
+            match = rec.matches[j];
             mixes = ( typeof match.mixes === "number" ) ? match.mixes : 0;
+            matchKey = mdbTitle_normalizeCompare( String( match.title || "" ) );
+            why = "";
 
-            if( mixes < mdbPageCreator_prefixMinMixes ) continue;
+            if( shown >= mdbPageCreator_prefixMaxPerName ) {
+                why = "the row caps at " + mdbPageCreator_prefixMaxPerName + " chips per name, and they were taken";
+            } else if( String( match.matchType || "" ) !== "prefix" || !match.title ) {
+                // an exact or redirect answer would have answered the exact round already,
+                // and a qualified one turns that chip green over there
+                why = match.title
+                    ? "a \"" + String( match.matchType || "?" ) + "\" answer, not a prefix one - the exact round is where it counts"
+                    : "the answer names no category";
+            } else if( mixes < mdbPageCreator_prefixMinMixes ) {
+                why = "only " + mixes + " mix" + ( mixes === 1 ? "" : "es" ) + " - under the row's minimum of " + mdbPageCreator_prefixMinMixes;
+            } else if( !matchKey || taken[matchKey] === true ) {
+                why = "already a chip on the bar - a similar that IS a used category would say nothing";
+            } else if( taken[matchKey] ) {
+                why = "already shown as a similar of \"" + taken[matchKey] + "\"";
+            } else {
+                taken[matchKey] = name;
+                shown++;
+            }
 
-            matchKey = mdbTitle_normalizeCompare( match.title );
+            rec.decisions.push( { index: j, mixes: mixes, shown: !why, why: why } );
+        }
+    }
 
-            if( !matchKey || taken[matchKey] ) continue;
+    return out;
+}
 
-            taken[matchKey] = true;
-            shown++;
+// mdbPageCreator_similarCategoriesHint
+// The "Similar:" row - the prefix answers rendered under "Used categories". Only the
+// survivors of mdbPageCreator_prefixDecisions render; which answer was dropped and why is
+// that walk's call, shared with the panel's section 8. Each chip links the category and its
+// note says what it is - the type and the count are facts, where a similarity number would
+// only dress the resemblance up as one.
+function mdbPageCreator_similarCategoriesHint( title ) {
+    var decisions = mdbPageCreator_prefixDecisions( title ),
+        chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
+        logged = [],
+        any = false,
+        i, j, rec, match, mixes, note;
+
+    for( i = 0; i < decisions.length; i++ ) {
+        rec = decisions[i];
+
+        for( j = 0; j < rec.decisions.length; j++ ) {
+            if( !rec.decisions[j].shown ) continue;
+
+            match = rec.matches[ rec.decisions[j].index ];
+            mixes = rec.decisions[j].mixes;
             any = true;
 
             note = String( match.type || "category" ) + ", " + mixes + " mix" + ( mixes === 1 ? "" : "es" );
@@ -2087,7 +2132,7 @@ function mdbPageCreator_similarCategoriesHint( title ) {
                         $("<a>")
                             .attr( "href", mdbPageCreator_categoryUrl( match.title ) )
                             .attr( "target", "_blank" )
-                            .attr( "title", "MixesDB has no category \"" + name + "\", but this name starts the same" +
+                            .attr( "title", "MixesDB has no category \"" + rec.name + "\", but this name starts the same" +
                                             " - opens [[Category:" + match.title + "]] (" + note + ")." +
                                             "\nOnly the NAME is similar: whether it is this page's is yours to judge." )
                             .text( match.title )
@@ -2096,7 +2141,7 @@ function mdbPageCreator_similarCategoriesHint( title ) {
                 )
             );
 
-            logged.push( match.title + " (" + note + ", starts like \"" + name + "\")" );
+            logged.push( match.title + " (" + note + ", starts like \"" + rec.name + "\")" );
         }
     }
 
@@ -5449,7 +5494,7 @@ function mdbPageCreator_reportDay( date ) {
  * The reasoning panel
  *
  * Opens with the report box, above it: the sections that say how the suggestion was built, in
- * the order the build really ran - 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7.
+ * the order the build really ran - 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8.
  *
  *   (1) the chunks the player title split into - the lookup's raw material
  *   (2) what the FIRST parse fixed and removed, before the wiki was asked anything, closing
@@ -5466,19 +5511,22 @@ function mdbPageCreator_reportDay( date ) {
  *       lookup cache says about it - exactly the check a reporter otherwise runs by hand
  *   (7) the recent-pages PAGE TEXT analysis: what the same pages' wikitext settles about the
  *       page the "Create" link writes - lead artwork, file details body, styles
+ *   (8) the SIMILAR categories: the prefix round behind the bar's "Similar:" row, every
+ *       answer with its score and the row's verdict - shown, or dropped and why
  *
  * 2, 4 and 5 are the title-shaping stages - 2 and 4 ONE stage run twice on either side of the
  * lookup, 5 the format read off the wiki's own pages - said by their shared
  * accent, the copy button's orange, against the grey of the raw-material sections 1/3, the
- * green of 6 and the citrus of 7 (the same recent pages, about the PAGE rather than the
- * title). The chips are coloured the same way, by STATE and not by type: grey while
+ * green of 6, the citrus of 7 (the same recent pages, about the PAGE rather than the
+ * title) and the "Similar:" chips' own yellow of 8. The chips are coloured the same way, by
+ * STATE and not by type: grey while
  * a name or title is only a candidate, red for what was ignored, green for what ends up used.
  *
  * The sources are title_builder.js's plain-data globals (mdbTitle_trace, mdbTitle_lookupLog,
  * mdbTitle_categoryCache, mdbTitle_candidateSources) plus mdbPageCreator_tracePreLookup - the
  * first pass's trace, which only this file can keep, since the parser cannot tell its own
  * passes apart - plus the title as it stands in the field. Sections 1-4 describe the PLAYER
- * title and only change when the suggestion is rebuilt; 5, 6 and 7 follow every edit of the
+ * title and only change when the suggestion is rebuilt; 5, 6, 7 and 8 follow every edit of the
  * field - debounced, because a corrected name may need a lookup of its own and firing one per
  * keystroke would spam the wiki.
  *
@@ -6676,6 +6724,75 @@ function mdbPageCreator_reasoningRecentText( title ) {
     return s;
 }
 
+// mdbPageCreator_reasoningSimilar
+// Section 8, "Similar categories on MixesDB": the prefix round behind the bar's "Similar:"
+// row, with EVERY answer the request brought back - the row shows only the survivors, and
+// which answer was dropped for which threshold was invisible before this section. One walk
+// (mdbPageCreator_prefixDecisions) decides for both surfaces, so the two cannot disagree
+// about what was shown. The % is section 3's score (mdbTitle_matchConfidence), which charges
+// a prefix answer for the asked name being only the START of the category's - the built-in
+// doubt that makes these hints rather than filings.
+function mdbPageCreator_reasoningSimilar( title ) {
+    var s = mdbPageCreator_reasoningSection( "8", "Similar categories on MixesDB",
+            "the looser round behind the bar's \"Similar:\" row: every name the exact lookups of 3 DENIED is asked once more for categories whose names merely START like it. Every answer is listed - shown on the row, or dropped with the reason. Hints only: nothing here changes the title or the filing. The % is the same score as in 3, and starts low on purpose: the wiki has no category of the asked name itself" ),
+        decisions = mdbPageCreator_prefixDecisions( title ),
+        rows, i, j, rec, d, result;
+
+    if( !decisions.length ) {
+        // no early return: a prefix request already fired for this page (a title edited all
+        // green afterwards) still closes the section as its "API call" row
+        s.append( $("<div>").addClass( "mdb-pageCreator-reasoning-empty" )
+            .text( "No denied names - nothing to look for similar categories to." ) );
+    }
+
+    rows = $("<div>").addClass( "mdb-pageCreator-reasoning-lookupCol-rows" );
+
+    for( i = 0; i < decisions.length; i++ ) {
+        rec = decisions[i];
+        result = $("<span>").addClass( "mdb-pageCreator-reasoning-lookup-result" );
+
+        for( j = 0; j < rec.decisions.length; j++ ) {
+            d = rec.decisions[j];
+
+            // one answer per line: the match as section 3 prints one - link, type, count,
+            // score - then the row's verdict about it
+            result.append(
+                $("<span>").addClass( "mdb-pageCreator-reasoning-similar-answer" ).append(
+                    mdbPageCreator_reasoningMatch( rec.name, rec.matches, d.index, false ),
+                    d.shown
+                        ? mdbPageCreator_reasoningNote( "shown on the \"Similar:\" row", "good" )
+                        : mdbPageCreator_reasoningNote( "not shown - " + d.why, "muted" )
+                )
+            );
+        }
+
+        if( !rec.decisions.length ) {
+            if( rec.status === "pending" )      result.append( mdbPageCreator_reasoningNote( "looking for similar names …", "info" ) );
+            else if( rec.status === "failed" )  result.append( mdbPageCreator_reasoningNote( "the request failed - not retried, the row is only a hint", "bad" ) );
+            else if( rec.status === "unasked" ) result.append( mdbPageCreator_reasoningNote( "not asked yet - over the 10-name request limit", "muted" ) );
+            else                                result.append( mdbPageCreator_reasoningNote( "no category starts like this name either", "muted" ) );
+        }
+
+        // red chip like section 3's: these are exactly the names that did not become a
+        // category, re-asked the looser way
+        rows.append(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-lookup" ).append(
+                $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-notCat" ).text( rec.name ),
+                result
+            )
+        );
+    }
+
+    if( decisions.length ) s.append( rows );
+
+    // the prefix request itself - moved here from section 3 (2026-08-20): its answers render
+    // in THIS section and on the bar's row, never in 3, and an "API call" link belongs where
+    // its answer is read
+    s.append( mdbPageCreator_reasoningApiCalls( "prefix" ) );
+
+    return s;
+}
+
 // mdbPageCreator_reasoningReady
 // Whether the panel has everything it wants to show: the loading skeleton is gone (the page's
 // pieces are on screen) and no name lookup is still in flight. Rendered before that, the panel
@@ -6918,11 +7035,10 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
 
     // The lookup request itself, and the per-chip page fetches the hints bar fired off its
     // answers: the mix counts and types this whole section prints are the wiki's, so the row
-    // that lets the reader read them in the raw belongs where they are shown.
+    // that lets the reader read them in the raw belongs where they are shown. The prefix
+    // request is NOT here: nothing in this section reads its answers - section 8 does.
     s3.append( mdbPageCreator_reasoningApiCalls( "mdbnames" ) );
     s3.append( mdbPageCreator_reasoningApiCalls( "hintRecent" ) );
-    // the prefix round behind the bar's "Similar:" row - fired only where a chip is red
-    s3.append( mdbPageCreator_reasoningApiCalls( "prefix" ) );
 
     panel.append( s3 );
 
@@ -7049,8 +7165,13 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     panel.append( s6 );
 
     // 7) the recent-pages PAGE TEXT analysis - what the same pages' wikitext settles about
-    // the page the "Create" link writes. Last: it is about the page, no longer about the title
+    // the page the "Create" link writes. It is about the page, no longer about the title
     panel.append( mdbPageCreator_reasoningRecentText( title ) );
+
+    // 8) the prefix round behind the bar's "Similar:" row - every answer with the row's
+    // verdict, the dropped ones included. Last: it decides nothing about the title or the
+    // page, it only points at categories a denied name may have meant
+    panel.append( mdbPageCreator_reasoningSimilar( title ) );
 }
 
 
