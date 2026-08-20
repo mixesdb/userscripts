@@ -190,7 +190,27 @@ var mdbTitleExamples = [
         title: "DSS 139 | Solma",
         channel: "Deep Space Series",
         date: "2026-08-05",
+        // no "known" on purpose: without the wiki's answers the acronym stays as written -
+        // this is the fence of the expansion the case below guards
         expect: "2026-08-05 - Solma - DSS 139"
+    },
+    {
+        url: "https://soundcloud.com/deep-space-series/spacedrummeditation",
+        title: "DSS 140 | Space Drum Meditation",
+        channel: "Deep Space Series",
+        date: "2026-08-20",
+        // needs the wiki: "DSS" spells the channel's initials and is no series category of
+        // its own (the wiki's DSS is the qualified "DSS (Das Schwarze Schaf)", an artist),
+        // while the channel name is a podcast whose pages are titled
+        // "... - Deep Space Series (DSS 012)" - so the entity is the full name with the
+        // title's own id in brackets, and the page files under Category:Deep Space Series
+        // (the filing strips the bracket, mdbPageCreator_entityCategory)
+        known: {
+            "Deep Space Series": { type: "podcast", mixes: 8 },
+            "DSS": { matches: [ { title: "DSS (Das Schwarze Schaf)", type: "artist", mixes: 1, matchedTitle: "DSS (Das Schwarze Schaf)", matchType: "qualified" } ] }
+        },
+        expect: "2026-08-20 - Space Drum Meditation - Deep Space Series (DSS 140)",
+        expectEntity: "Deep Space Series (DSS 140)"
     },
     {
         url: "https://soundcloud.com/groove-magazin/anja-schneider-live-at-docklands-smirnoff-sound-collective-camp",

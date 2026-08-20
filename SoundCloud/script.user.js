@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.17
+// @version      2026.08.20.18
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_43
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_61
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_62
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_96
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_97
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1284,6 +1284,12 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         releaseDate: release_date,
                                         durationMs:  dur_ms,
                                         playerUrl:   getScPlayerUrl(),
+                                        // The uploader's channel page, off the same API answer
+                                        // as the channel name. The page creator compares it to
+                                        // the URLs in the entity category's sibling pages -
+                                        // the wikitext linking this channel is what ties a
+                                        // category to a channel beyond the name.
+                                        channelUrl:  ( t.user && t.user.permalink_url ) ? t.user.permalink_url : "",
                                         artworkUrl:  scArtworkOriginalUrl( apiArtworkUrl ),
                                         // Not for the tracklist - that is the separate call below.
                                         // The TITLE builder reads the labels the tracklist credits
@@ -1896,6 +1902,24 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.18
+ * From the "DSS 140 | Space Drum Meditation" report (title_builder.js v_62, page_creator.js
+ * v_97): an entity written as a bare acronym plus a number, where the letters spell the
+ * channel name's initials in caps, is the channel's series abbreviating itself - and where
+ * MixesDB knows the channel name as a podcast/show while it has no series category of the
+ * letters alone, the suggestion now writes the full name with the title's own id in
+ * brackets: "2026-08-20 - Space Drum Meditation - Deep Space Series (DSS 140)", the way
+ * Category:Deep Space Series titles every one of its pages, and the page files under the
+ * channel's category instead of a lone "DSS". A show really called by the letters keeps
+ * them, and without the wiki's answers nothing expands.
+ * Second, the pick is hardened with URL evidence: the uploader's channel URL (new
+ * channelUrl option, read off the same SC API answer as the channel name) is compared to
+ * the URLs in the entity category's newest pages' wikitext - pages embedding
+ * soundcloud.com/deep-space-series players say whose series the category is, which no name
+ * match can. A hit raises the entity chip's fit score by 15 and names itself under
+ * "What backs it" in its tooltip, and reasoning section 7 opens with a "Channel link" row;
+ * absence proves nothing (older pages, other platforms) and charges nothing.
  *
  * 2026.08.20.16
  * A live title whose place group names an event AND a venue now files the created page under

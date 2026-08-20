@@ -3535,6 +3535,13 @@ var mdbTitle_channelSpelling = "";
 // runs deep inside the parser and cannot be handed the channel through every caller.
 var mdbTitle_channelInitials = "";
 
+// The channel name those initials were made of, exactly as the parser used it (after
+// mdbTitle_pickChannelName, so a channel listing several names contributes the one the title
+// picked). Set once per suggestion next to the initials, read at the single exit: an entity
+// written as the initials plus a number is the channel's series abbreviating itself, and
+// the exit asks the wiki about the full name (mdbTitle_expandChannelAcronym).
+var mdbTitle_channelUsed = "";
+
 // Whether this upload says the set was a LIVE PA - the act performing its own tracks - and
 // where it said so. Set once per suggestion in buildMixesdbTitle, read in mdbTitle_result,
 // which writes " (Live PA)" behind the artist's name. Two flags because the two sources carry
@@ -4346,6 +4353,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     // filled in once the channel's name is settled below - a channel may name several, and
     // the initials of the one actually used are the ones an acronym is checked against
     mdbTitle_channelInitials = "";
+    mdbTitle_channelUsed = "";
     // for mdbTitle_result, which canonicalizes the finished groups against the wiki
     mdbTitle_knownNow = known || null;
     mdbTitle_livePaTitle = false;
@@ -4493,6 +4501,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         }
 
         mdbTitle_channelInitials = mdbTitle_initialsOf( username );
+        mdbTitle_channelUsed = username;
 
         // The title spelling the channel name exactly the way the channel does is the real
         // spelling, and Normal Case must not touch it. After 1b, so a channel name in brackets
@@ -5750,6 +5759,76 @@ function mdbTitle_reduceLineupFraction( group ) {
     return mdbTitle_canonicalName( known, lineup.base, [ "artist" ] ) + rest;
 }
 
+// mdbTitle_expandChannelAcronym
+// "DSS 140" on the channel "Deep Space Series" -> entity "Deep Space Series" with the id
+// "DSS 140" kept in brackets: an entity that is a bare ACRONYM plus a number, where the
+// letters spell the channel name's initials, is the channel's series abbreviating itself -
+// and MixesDB files such a series under the full name, with the title's own id behind it,
+// the way it writes "RA Podcast (RA.971)" (Category:Deep Space Series titles its pages
+// "... - Deep Space Series (DSS 012)"). Reported 2026-08-20 on
+// "DSS 140 | Space Drum Meditation", which filed under a lone "DSS" while the channel's
+// category held the episodes.
+//
+// Both halves of the condition have to hold, like the room and fraction reductions above,
+// and the wiki answers both: the letters are NO series category of their own (a show really
+// called by them keeps them - the title's own words win), and the channel name IS one
+// (mdbTitle_entityTypes), which is the wiki confirming the full name is the filing. The
+// initials are what ties the two names together - without that match the channel would
+// override any short word standing in the entity slot - and mdbTitle_isChannelInitials
+// demands the title write them in CAPS, so a word that merely starts like the channel
+// never reads as its abbreviation. Never on a title whose artist IS the channel: there the
+// channel was read as who played, and one name cannot be both groups at once.
+//
+// Returns { entity, episode } or null. The number usually sits inside the entity ("DSS 140"
+// arrives whole from the artist/entity split); an episode already cut out of the title is
+// folded back into the id the way the title wrote it, digits untouched.
+function mdbTitle_expandChannelAcronym( artist, entity, episode ) {
+    var known = mdbTitle_knownNow,
+        channel = mdbTitle_channelUsed;
+
+    if( !known || !channel || !entity || entity.indexOf( "@" ) !== -1 ) return null;
+
+    var acro, id;
+
+    if( !episode ) {
+        acro = mdbTitle_stripTrailingNumber( entity );
+
+        if( !acro || acro === entity ) return null;
+
+        id = entity;
+    } else if( episode.kind === "number" || episode.kind === "dotted" ) {
+        acro = entity;
+        id = entity + ( episode.kind === "dotted" ? "." : " " ) + episode.text;
+    } else {
+        // an id episode already carries its own series spelling - nothing to expand
+        return null;
+    }
+
+    // one word of letters, written as the channel's initials
+    if( !/^[A-Za-z]+$/.test( acro ) || !mdbTitle_isChannelInitials( acro ) ) return null;
+
+    // the channel is this title's ARTIST reading - a name cannot be both groups at once
+    if( mdbTitle_normalizeCompare( artist ) === mdbTitle_normalizeCompare( channel ) ) return null;
+
+    // the letters themselves are a series category -> the title's own words win. Only an
+    // answer about THIS name blocks it: "DSS" answered with the wiki's qualified
+    // "DSS (Das Schwarze Schaf)" is the wiki offering its OTHER DSS, not this series.
+    var acroMatch = mdbTitle_knownMatch( known, acro, mdbTitle_entityTypes );
+
+    if( acroMatch && mdbTitle_normalizeCompare( String( acroMatch.title || "" ) ) === mdbTitle_normalizeCompare( acro ) ) return null;
+
+    // ... and the channel name IS one - the wiki confirming the full name is the filing
+    var channelMatch = mdbTitle_knownMatch( known, channel, mdbTitle_entityTypes );
+
+    if( !channelMatch ) return null;
+
+    return {
+        entity: mdbTitle_canonicalName( known, channel, mdbTitle_entityTypes ),
+        episode: { kind: "id", text: id },
+        type: String( channelMatch.type || "" )
+    };
+}
+
 // mdbTitle_result
 // The single exit of buildMixesdbTitle: appends the extra artists, assembles, and enforces
 // the three-group rule "Date - Artist - Entity" (see title_definitions.js). A 4th group is
@@ -5787,6 +5866,34 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
             artist = mdbTitle_canonicalArtists( mdbTitle_knownNow, canonFront ) + canonTrail + artist.slice( canonAt );
         }
         entity = mdbTitle_canonicalName( mdbTitle_knownNow, entity, mdbTitle_entityTypes );
+    }
+
+    // An entity written as the channel's initials plus a number is the channel's series
+    // abbreviating itself - "DSS 140" on "Deep Space Series" - and files under the full name
+    // with the title's own id in brackets. At the exit like the reductions below, so every
+    // branch that can leave an acronym in the slot is covered by the one rule; the function
+    // holds the fences (mdbTitle_expandChannelAcronym).
+    var acronymFull = mdbTitle_expandChannelAcronym( artist, entity, episode );
+
+    if( acronymFull ) {
+        logVar( "mdbTitle_result: entity acronym expanded to the channel name",
+                entity + " -> " + acronymFull.entity + " (" + acronymFull.episode.text + ")" );
+        mdbTitle_traceStep( "Series acronym read as the channel's initials",
+                            entity + " -> " + acronymFull.entity + " (" + acronymFull.episode.text + ")" );
+
+        conf.drop( 5, "\"" + acronymFull.episode.text + "\" was read as \"" + acronymFull.entity +
+                      "\" numbering itself - the letters spell the channel name's initials, and MixesDB knows the channel as a " +
+                      acronymFull.type + " while it has no series category of the letters alone. Check that the acronym really means the channel" );
+
+        // the deciding branch writes the sentence - this one asked the wiki, so it may say so
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.entity = "the title writes the series as its initials - MixesDB has no series category of the " +
+                "letters alone, while \"" + acronymFull.entity + "\" is a " + acronymFull.type +
+                " it knows, so the page files under the channel's full name with the title's own id in brackets";
+        }
+
+        entity = acronymFull.entity;
+        episode = acronymFull.episode;
     }
 
     // The one-" @ " rule holds at the exit, whatever branch built the group: the event and

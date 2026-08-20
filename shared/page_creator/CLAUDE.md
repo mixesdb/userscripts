@@ -414,6 +414,26 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   writes a room where it is worth naming, but it writes no line-up fraction anywhere. The slash
   is no separator either: `mdbTitle_fractionLeadRe` keeps `mdbTitle_findEpisode` off it, which
   had read the "1" as a leading episode number and left the artist as "2 Faultierdisko".
+- **An entity written as the channel's INITIALS is the channel's series abbreviating itself**
+  (2026-08-20, reported on "DSS 140 | Space Drum Meditation" on the channel "Deep Space
+  Series"): the title filed under a lone `DSS` while Category:Deep Space Series - the
+  channel, a podcast with 8 mixes - holds the episodes and titles every one of them
+  "... - Deep Space Series (DSS 012)". So the exit expands it
+  (`mdbTitle_expandChannelAcronym`, in `mdbTitle_result` like the room and fraction
+  reductions, so every branch that can leave an acronym in the slot is covered): the entity
+  becomes the channel name in the wiki's spelling, the id as the title wrote it goes into an
+  `episode` of kind `id` - the assemble shape "Show (ID)". Same two-halves guard as those
+  reductions, answered by the wiki: the letters are NO series category of their own (a show
+  really called by them keeps them, and only an answer about THIS name blocks - the wiki's
+  qualified "DSS (Das Schwarze Schaf)" is its OTHER DSS), and the channel name IS one
+  (`mdbTitle_entityTypes`). What ties the two names is `mdbTitle_isChannelInitials` - caps
+  required, a prefix of the initials counts - off the new `mdbTitle_channelUsed` global, and
+  the artist must not BE the channel (the numbered-series branch reads the channel as who
+  played, and one name cannot be both groups). Costs 5 confidence: the equivalence of
+  acronym and channel is our inference, the wiki only confirmed the two halves. The filing
+  needs nothing new - `mdbPageCreator_entityCategory` already strips a trailing bracket, so
+  the page files under the channel's category; `mdbTitle_titleCategories` keeps the bracket
+  in the SLOT it returns, which `mdbPageCreator_entityIsNumbered` depends on.
 - **Only the REPLACED channel name is no candidate** - a channel name a conversion map
   replaces ("Dance TV", "Resident Advisor") is the one name not worth a request: the map
   overrides whatever the wiki would answer for it. The curated show standing in its place
@@ -523,6 +543,21 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   The entity CHIP says the first one too, in its tooltip: the category exists, so the chip is
   green, but the page would join that venue's category and only the editor can tell whether
   that is right.
+- **The entity category's pages LINKING the mix's channel is the one signal that RAISES the
+  fit score** (2026-08-20, the DSS report's "choice hardening"): the sibling wikitexts the
+  recent-pages fetch already holds are searched for the uploader's channel URL
+  (soundcloud.com/deep-space-series standing in a `{{Player}}` is the pages themselves saying
+  whose series the category is, which no name match can). The URL arrives as the `channelUrl`
+  option of `mdbPageCreator_add()` - NEVER derived from `playerUrl` in shared code, since how
+  a site's URLs nest is site knowledge: SoundCloud passes `t.user.permalink_url`, TrackId.net
+  deliberately nothing (a trackid.net page's uploader is not the mix's channel). A hit is +15
+  on `mdbPageCreator_categoryFit` (the percent clamp keeps the ceiling at 95) with its own
+  "What backs it" tooltip line, and section 7 opens with a "Channel link" row. Presence is
+  the ONLY signal - absence proves nothing (older pages, other platforms, a series that
+  moved hosts) and charges nothing, nowhere. Computed fresh per call off the current
+  `channelUrl` (`mdbPageCreator_channelLinkFinding`), never baked into the per-category
+  findings cache, which outlives the page and would answer the next channel's mix with this
+  channel's evidence.
 - **What the sibling pages SHARE is written only where MixesDB calls it a STYLE**
   (2026-08-20; the vote itself is signal C, unchanged at 90%). The vote answers "what do these
   pages have in COMMON", which is not "what does this mix sound like", and Category:Undercurrent

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.16
+// @version      2026.08.20.17
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,9 +14,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_61
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_62
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_96
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_97
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1965,6 +1965,17 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.17
+ * An entity written as a bare acronym plus a number, where the letters spell the channel
+ * name's initials in caps, is the channel's series abbreviating itself (title_builder.js
+ * v_62, page_creator.js v_97, from a SoundCloud report): where MixesDB knows the channel
+ * name as a podcast/show while it has no series category of the letters alone, the
+ * suggestion writes the full name with the title's own id in brackets
+ * ("... - Deep Space Series (DSS 140)") and the page files under the channel's category.
+ * The channel-link hardening that came with it (comparing the uploader's channel URL to the
+ * URLs in the entity category's sibling pages) stays off here on purpose: this script hands
+ * no channelUrl over - a trackid.net page's uploader is not the mix's channel.
  *
  * 2026.08.20.15
  * A live title whose place group names an event AND a venue now files the created page under
