@@ -40,7 +40,8 @@ being visited.
 ### TrackId.net check
 
 **This player exists on TrackId.net**, plus whether that tracklist is integrated into MixesDB
-already – or a **Submit to TrackId.net** link when it does not.
+already – or a **Submit this player URL to TrackId.net** link when it does not. The row always
+starts with the TrackId.net icon, so it can be told apart from the other rows at a glance.
 
 ### Newer than the MixesDB page
 

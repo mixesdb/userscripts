@@ -576,6 +576,17 @@ textarea.mono {
     line-height: 1;
 }
 
+/* TrackId.net check
+   The icon starts the row instead of sitting inside a link, so the generic
+   a.mdb-tidSubmit img.tidSubmit-icon rule above does not reach it and it needs its own box.
+   display must be stated: Mixcloud's CSS reset makes every img display:block, which would put
+   the icon on its own line above the row text. */
+.mdb-toolkit-tidLink img.tidSubmit-icon {
+    display: inline-block;
+    max-height: 1.3em !important;
+    padding: 0 5px 0 0;
+}
+
 /*
  * Domain specific rules
  */

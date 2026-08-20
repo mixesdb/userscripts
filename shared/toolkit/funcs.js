@@ -1256,25 +1256,32 @@ function toolkit_addTidLink( playerUrl, title ) {
             dataType: 'json',
             async: true,
             success: function(data) {
+                /*
+                 * The row is about TrackId.net whatever the API answered, so the icon starts it
+                 * in every case - the submit link, the "exists" link and the integration state
+                 * that is shown on its own when the API knows the player but has no TID URL for
+                 * it. It sits in the <li>, not inside the links, because that last case has no
+                 * link to put it in.
+                 */
+                var tidIcon = '<img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> ',
+                    li_tidLink_out = "";
+
                 // avoid undefined error
                 if( ( data.error && data.error.code == "notfound" )  ) {
                     // no result
-                    var keywords = normalizeTitleForSearch( title ),
-                        tidLink = makeTidSubmitLink( playerUrl, keywords, "text" );
-                    if( tidLink ) {
-                        jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidLink+'</li>' ).show();
-                    }
+                    var keywords = normalizeTitleForSearch( title );
+
+                    li_tidLink_out = makeTidSubmitLink( playerUrl, keywords, "text" );
                     // if no error
                 } else {
-                    var li_tidLink_out = "",
-                        trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                    var trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
                         lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
 
                     logVar( "trackidurl", trackidurl );
                     logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                     if( trackidurl ) {
-                        li_tidLink_out += '<a href="'+trackidurl+'" target="_top"><img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> This player exists on TrackId.net</a>';
+                        li_tidLink_out += '<a href="'+trackidurl+'" target="_top">This player exists on TrackId.net</a>';
                     }
 
                     if( lastCheckedAgainstMixesDB ) {
@@ -1283,10 +1290,10 @@ function toolkit_addTidLink( playerUrl, title ) {
                     } else {
                         li_tidLink_out += ' (not integrated yet)';
                     }
+                }
 
-                    if( li_tidLink_out != "" ) {
-                        jNode.append( '<li class="mdb-toolkit-tidLink filled">'+li_tidLink_out+'</li>' ).show();
-                    }
+                if( li_tidLink_out != "" ) {
+                    jNode.append( '<li class="mdb-toolkit-tidLink filled">'+tidIcon+li_tidLink_out+'</li>' ).show();
                 }
 
                 reorderToolkitItems();
