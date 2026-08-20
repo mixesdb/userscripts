@@ -147,7 +147,7 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  *
  * Tidying, before the API sees it
  * -------------------------------
- * The block is handed over as the uploader wrote it, with five exceptions.
+ * The block is handed over as the uploader wrote it, with six exceptions.
  *
  * A list bullet in front of the track is taken off: "- Eddie Richards - Someday" -> "Eddie
  * Richards - Someday". The hyphen is the expensive one - the Tracklist Editor API reads it as
@@ -177,7 +177,7 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  * the artist names" under it. Only the first separator of a line moves; a dash further right is
  * part of the title.
  *
- * And a cue written BEHIND the
+ * A cue written BEHIND the
  * track ("Artist - Title 00:52:09") is moved in front of it, where MixesDB writes cues
  * ("[00:52:09] Artist - Title"), and anything trailing the cue becomes a bold note in front of the
  * artist ("00:56:00- CLASSIC OF THE WEEK" -> "'''CLASSIC OF THE WEEK:''' Artist - Title").
@@ -185,15 +185,34 @@ log( "/shared/page_creator/tracklist_detector.js loaded" );
  * title, so this has to happen on our side. Only done when at least half the lines of the block
  * carry such a cue - one title that happens to end in something clock-shaped is not a pattern.
  *
+ * And the "?" somebody hangs off the END of a track they are unsure about ("Gerd - Echo Jammz?")
+ * is taken off, together with a trailing "…" - but only in a block that already writes "?" the
+ * MixesDB way somewhere, in place of an artist or a title ("?", "Will Hofbauer - ?"). Without
+ * such a mark nothing is touched, which is what leaves "Haddaway - What Is Love?" alone.
+ *
  *
  * Comments
  * --------
  * Only ever asked when the description has nothing, and only for a WHOLE tracklist - the "the
  * track at 25 min is X - Y" comments are what this must not fall for. A SoundCloud comment is a
- * single line, so the numbering is the only thing left to split on: markers "1.", "2." ... that
- * start at 1, count up without a gap and appear at least mdbTracklist_minCommentTracks times.
- * A comment tracklist without numbers cannot be split back into tracks by anyone and is left
- * alone on purpose.
+ * single line, so what MARKS the tracks is the only thing left to split on, and there are two
+ * kinds of marker:
+ *
+ *   - the NUMBERING: "1.", "2." ... starting at 1 and counting up without a gap
+ *   - the CUES: "(00)", "[05]", "1:02:30" - a number in brackets or a clock time carrying its
+ *     colon, never a bare one, and never running backwards. Cues neither start at 1 nor count up
+ *     one by one, because they are minutes into the mix and not track numbers, so the numbering
+ *     rule cannot see them at all; that they only ever go UP, and arrive somewhere, is what
+ *     takes its place
+ *
+ * Either way at least mdbTracklist_minCommentTracks tracks have to come out of the split and half
+ * of them have to read "Artist - Title" - which is the bar the two markers really rest on, since
+ * a comment mentioning a time or a number brings one track, not six. And because a comment's
+ * tracks are written "Artist-Title" without the spaces at least as often as a description's lines
+ * are, the second pass below runs over the split lines too when the first reading finds nothing.
+ *
+ * A comment tracklist with no marker at all cannot be split back into tracks by anyone and is
+ * left alone on purpose.
  *
  *
  *
@@ -1334,6 +1353,10 @@ function mdbTracklist_splitCued( text ) {
         });
     }
 
+    // The longest stretch of markers that never steps back, kept as a window into `marks` rather
+    // than as a copy - the split below needs where each of them SAT in the line, not just what it
+    // said. One stray time in the sentence in front of the list ("the drop at (60) is unreal, btw
+    // (00)...") is exactly what this drops.
     var best = { at: 0, len: 0 },
         start = 0,
         i;

@@ -562,17 +562,17 @@ d.ready(function () {
  *
  * The preview POST goes to action=submit and carries no query string of its own, so the
  * parameters that brought us here are gone afterwards and nothing can loop through this a
- * second time on its own. A Back out of the preview is the one way back to this URL, and it
- * is a deliberate one - the marker below is what keeps it from bouncing straight into the
- * next preview. sessionStorage for it, like the img1url section: one tab, one page.
+ * second time on its own. The marker below covers whatever else lands on this URL again in the
+ * same tab: the auto preview fires at most once per page, and a form reached a second time is
+ * left as it is. sessionStorage for it, like the img1url section: one tab, one page.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var autoPreview_storageKey = "mdb-helper-autoPreviewed";
 
 // autoPreview_wasDone
-// True once this tab has previewed this page by itself. Unreadable storage counts as done: one
-// preview missing is a nuisance, a form the editor cannot get back to is a trap.
+// True once this tab has previewed this page by itself. Unreadable storage counts as done:
+// previewing again by itself is worse than not previewing at all.
 function autoPreview_wasDone() {
     try {
         return sessionStorage.getItem( autoPreview_storageKey ) === mw.config.get("wgPageName");

@@ -50,8 +50,6 @@ link, the tracklist – with the edit box under it, instead of a wall of wikitex
 that link does it. The toolkit's **EDIT** link opens an existing page to change one line, where a
 preview would only be a page load in the way.
 
-Once per page and tab, so **Back** out of the preview really lands on the form.
-
 ### Edit form: the "Tracklist:" indicator follows the text
 
 Under the edit box sit three indicator icons for the tracklist filing – none, incomplete,

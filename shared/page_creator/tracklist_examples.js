@@ -268,8 +268,9 @@ var mdbTracklistExamples = [
     }
 ];
 
-// Comment tracklists. A SoundCloud comment is a single line, so numbering is the only thing
-// left to split on - see the header of tracklist_detector.js.
+// Comment tracklists. A SoundCloud comment is a single line, so what MARKS the tracks - the
+// numbering or the cues - is the only thing left to split on. See the header of
+// tracklist_detector.js.
 var mdbTracklistCommentExamples = [
     {
         // The real thing: one comment holding the whole tracklist, numbered right through.
@@ -306,6 +307,57 @@ var mdbTracklistCommentExamples = [
             "Mietze Conte - soni Mietze Conte - MOP Mietze Conte - keee Ann Annie - Moons Apart Fools - Limba Green House - Peperomia Seedling Haruhisa Tanaka - Sprout"
         ],
         expect: null
+    },
+    {
+        // Cues instead of numbering, and everything that comes with them - from the report on
+        // horstartsandmusicfestival/dave-huismans-at-dark-skies. The whole text is asserted
+        // because the split is only half of what this case is about: the "(00)" markers become
+        // MixesDB cues, the spaceless "Gerd-Echo Jammz" gets its separator spaced out on the
+        // second pass, and the writer's own "?" and "…" come off the named tracks while the
+        // three that ARE a "?" keep theirs.
+        what: "a tracklist posted as one comment, marked with cues",
+        comments: [
+            "(00)Gerd-Echo Jammz? (02)ID? (05)Tikkle-Bubbles (Club Mix) (07)Frits Wentink-Filthboi69 (11)Armando-The Future (Bonus Track) (14)51 Days-Trracktion (19)I:Cube-Session 2 (Live) (22)Louie Vega-Deep Burnt (Feature Axel Tosca ) (30)Ian Pooley-Calypso Theme (33)Peven Everrett-Put Your BaCK iNTO iT (39) DJ Q-Delirious (42)? (45)Detachments-Circles (Dutch Hero) (49)? (53) Novalima-Yo Voy (Seiji Remix) (56)INVT-Acid Guaracha (62)Will Hofbauer-? (64)Point Blank-Frug (66)Yaleesa Hall -First Cullen (72)gyrofield-Bolete (77) Fabrice Lig-Fusion (81)Kyle Hall-Sarabi (85)Dario ZenKER-Round Ritmo (87)DJ Firmeza-Inenso (92)Jeff Mills-Gamma Player? (95)k.Alexi-Black Mystery…"
+        ],
+        expect: {
+            lines: 26,
+            text: "[00] Gerd - Echo Jammz\n[02] ID?\n[05] Tikkle - Bubbles (Club Mix)\n[07] Frits Wentink - Filthboi69\n[11] Armando - The Future (Bonus Track)\n[14] 51 Days - Trracktion\n[19] I:Cube - Session 2 (Live)\n[22] Louie Vega - Deep Burnt (Feature Axel Tosca )\n[30] Ian Pooley - Calypso Theme\n[33] Peven Everrett - Put Your BaCK iNTO iT\n[39] DJ Q - Delirious\n[42] ?\n[45] Detachments - Circles (Dutch Hero)\n[49] ?\n[53] Novalima - Yo Voy (Seiji Remix)\n[56] INVT - Acid Guaracha\n[62] Will Hofbauer - ?\n[64] Point Blank - Frug\n[66] Yaleesa Hall - First Cullen\n[72] gyrofield - Bolete\n[77] Fabrice Lig - Fusion\n[81] Kyle Hall - Sarabi\n[85] Dario ZenKER - Round Ritmo\n[87] DJ Firmeza - Inenso\n[92] Jeff Mills - Gamma Player\n[95] k.Alexi - Black Mystery"
+        }
+    },
+    {
+        // Bare clock times as the marker, the other shape a cue list is written in.
+        what: "a comment tracklist marked with clock times",
+        comments: [
+            "0:00 Baldo - Wanna Be 5:12 Chaos In The CBD - Multiverse 11:40 Mall Grab - Sun Ra 19:05 Ross From Friends - Talk To Me 26:30 DJ Boring - Winona 33:15 Palms Trax - Equation 41:02 Hodge - Ruby"
+        ],
+        expect: {
+            lines: 7,
+            first: "[0:00] Baldo - Wanna Be",
+            last:  "[41:02] Hodge - Ruby"
+        }
+    },
+    {
+        // Six cues that only ever go up, and not one track between them - which is what the
+        // "half the lines have to read Artist - Title" bar is for. Ascending markers alone must
+        // never be enough.
+        what: "a comment naming times but no tracks",
+        comments: [
+            "so good! the bit at (12) is my favourite, then (30), (44), (56), (61) and (78) - what a set"
+        ],
+        expect: null
+    },
+    {
+        // A title that really does end in a question mark, in a block that never writes "?" for
+        // an unknown artist or title. Nothing may be taken off it.
+        what: "a comment tracklist whose title ends in a question mark",
+        comments: [
+            "1. Robin S - Show Me Love 2. Haddaway - What Is Love? 3. Snap! - Rhythm Is A Dancer 4. Corona - The Rhythm Of The Night 5. Culture Beat - Mr. Vain 6. 2 Unlimited - No Limit"
+        ],
+        expect: {
+            lines: 6,
+            first: "1. Robin S - Show Me Love",
+            last:  "6. 2 Unlimited - No Limit"
+        }
     },
     {
         // Numbers that do not start at 1 and do not count up are a conversation, not a tracklist.
