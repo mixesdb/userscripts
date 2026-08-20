@@ -5482,7 +5482,9 @@ function mdbPageCreator_reasoningRecentRead( info ) {
             .attr( "href", mdbPageCreator_categoryUrl( info.catTitle ) )
             .attr( "target", "_blank" )
             .attr( "title", "Open [[Category:" + info.catTitle + "]] on MixesDB" )
-            .text( "Category:" + info.catTitle )
+            // the bare name, like every other category link in the panel - the "Category:"
+            // prefix belongs in the wikitext lines section 6 prints, not on a link
+            .text( info.catTitle )
     );
 }
 
@@ -5781,7 +5783,7 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
         if( verdict === "yes" ) wroteStyle = true;
 
-        rows.push( { label: verdict === "yes" ? "Shared styles" : "Shared category",
+        rows.push( { label: "Shared styles",
                      detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
                              ( verdict === "yes"
                                  ? " -> written into the page's style lines"
@@ -5814,7 +5816,7 @@ function mdbPageCreator_reasoningRecentText( title ) {
             tally += ( tally ? ", " : "" ) + f.styles.tally[i].name + " " + f.styles.tally[i].count + "/" + f.styles.tally[i].n;
         }
 
-        rows.push( { label: "Shared categories",
+        rows.push( { label: "Shared styles",
                      detail: ( tally ? "nothing stands on 90% of the pages (" + tally + ")" : "the pages share no categories beyond this one" ) +
                              " -> no style to write and nothing to hint at" } );
     }
