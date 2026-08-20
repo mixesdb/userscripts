@@ -74,17 +74,21 @@
 > see and nobody acts on.
 >
 > What was missing was never the vote, it was knowing what the winning NAME is. MixesDB knows:
-> its style categories are the ones filed under `Category:Style`. So one
-> `prop=categories&clcategories=Category:Style` request classifies the winners
-> (`mdbPageCreator_styleCatFetch()`, fired the moment there is a name to ask about and cached per
-> name for the session - `Techno` is asked once however many series vote for it), and
-> `mdbPageCreator_recentLearnedCategories()` splits them on the answer:
+> its style categories are the ones filed under `Category:Style` - and that list is essentially
+> static (111 members on 2026-08-20, added to rarely, never renamed), so it is baked in as
+> `mdbPageCreator_knownStyles` and the usual case costs no request at all. Only a winner NOT on
+> the list asks the API (`mdbPageCreator_styleCatFetch()`, one
+> `prop=categories&clcategories=Category:Style` request, cached per name for the session), which
+> is what catches a style added after the snapshot. `mdbPageCreator_recentLearnedCategories()`
+> splits the winners on the answer:
 >
-> - **filed under `Category:Style`** -> written into the page's style lines, at most two, with
->   ONE blank row behind them: the blank rows are a spare to type a further style into, not a
->   shape to fill, so the two of them stand only where nothing was written. The chip on the
->   "Used categories" row is a plain grey one like `Promo Mix`, and its tooltip names the pages
->   the style was learned off
+> - **a style category** -> written into the page's style lines, at most two. The blank rows
+>   behind them are a spare to type a further style into, not a shape to fill, and the tally
+>   decides how many: ONE where single sibling pages carry a style beyond the written ones
+>   (`otherStyles` - Tech House on 1 of Amplify Series' 10 says this mix may carry a second
+>   style too), NONE where the siblings use nothing else, and the plain two where no style was
+>   written at all. The chip on the "Used categories" row is a plain grey one like `Promo Mix`,
+>   and its tooltip names the pages the style was learned off
 > - **anything else, and everything not answered yet** -> the HINT of the delta above, unchanged
 >
 > Measured on the live API 2026-08-20: `Techno`, `Deep House`, `Tech House`, `Acid Techno`,
