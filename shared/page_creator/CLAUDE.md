@@ -968,8 +968,8 @@ prefix round with its score and the "Similar:" row's verdict - shown, or dropped
 last because it decides nothing about the title or the page). 2, 4 and 5 are the title-shaping
 stages - 2 and 4 ONE stage run twice on either side
 of the lookup, 5 the format read off the wiki itself - and their shared orange accent (the copy
-button's colour, vs the blue of 1/3, the green of 6, the citrus of 7, which says "same
-recent pages, about the PAGE rather than the title", and the "Similar:" chips' yellow of 8)
+button's colour, vs the blue of 1, 3 and 8 - the chunks and both lookup rounds - the green of
+6, and the citrus of 7, which says "same recent pages, about the PAGE rather than the title")
 says so; the accent paints the count
 bubble, the left bar AND the heading, stated once per section as the
 `--mdb-reasoning-accent*` properties in `page_creator.css`. The CHIPS are a different

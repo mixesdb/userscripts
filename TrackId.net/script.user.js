@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.27
+// @version      2026.08.20.28
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 169,
+var cacheVersion = 170,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,12 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.28
+ * The reasoning panel's section 8, "Similar categories on MixesDB", now wears the blue of 1
+ * and 3 instead of the "Similar:" row's yellow (page_creator.css / cacheVersion 170): it is a
+ * lookup round like those two, and the yellow is the CHIPS' state colour on the bar, which the
+ * panel never uses to group sections.
  *
  * 2026.08.20.27
  * The reasoning panel grew section 8, "Similar categories on MixesDB" (page_creator.js v_104,
