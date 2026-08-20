@@ -45,6 +45,15 @@
 .playerWrapper .tidLink {
     text-align: right;
     
+    /* the icon carries .fixedWidth in the markup: MediaWiki:Common.css blows every element
+       inside a .playerWrapper up to width:100% and .fixedWidth is the exclusion it honours,
+       so only the sizing left over from that is ours */
+    & .tidSubmit-icon {
+        height: 12px; /* same as the integrated icon it shares the line with */
+        vertical-align: middle;
+        padding-right: 2px;
+    }
+    
     & .mdb-checked-icon {
         height: 12px;
         width: auto !important;
