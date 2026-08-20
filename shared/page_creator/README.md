@@ -28,7 +28,8 @@ the wiki knows as an **artist** is who played there, so a city standing between 
 the line-up does not end up in either name. A chunk long enough to be a **chain** of names is asked about in
 pieces as well as whole – `Timboletti im Chapeau Club` is looked up as itself, as `Timboletti`
 and as `Chapeau Club`, because the wiki can only answer empty about the pair – and so are the
-artists an `&` joins: `Ri0D. & Jonbot` is looked up as the pair and as each name, and the guest
+artists a `&`, `b2b`, `vs` or a comma joins: `Ri0D. & Jonbot` and `Asa 808 b2b Third Guy` are
+looked up as the pair and as each name, digits and all, and so is the guest
 behind a `w/`: `Flirt w/ Route 8` asks about `Flirt` and about `Route 8`, never about the two
 of them glued together. A name **ending in a number** is asked both ways, with the number and
 without it, because the number is not always counting episodes: `HATE Podcast 498` is episode
@@ -180,6 +181,16 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   marked by the loupe icon behind it, looks the name up on MixesDB: a hit there means the wiki
   knows it under another name.
 - **grey** – MixesDB has not been asked about this name (yet), so there is no answer either way.
+
+A red name also gets a second, looser question: MixesDB is asked what it has that **starts
+like** it – one request for all the red names together – and the answers appear as a
+**Similar:** row of yellow chips directly under the categories. Yellow on purpose: not green,
+because the page does not get them, and not red, because nobody denied them – each is a look to
+take, not a verdict, which is also why they carry no score of any kind (the fit score next door
+is a real one, and a number here would only dress a name resemblance up as one). A chip links
+its category – opening in the same modal as the others – and says behind it what the name is
+(`(podcast, 8 mixes)`). Deliberately few: at most three per red name, and categories with
+hardly any mixes are left out.
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
@@ -715,9 +726,11 @@ placeholder only holds the space below it.
 2. **Double-check info in the row** – live since 2026-08-18 as the
    [Used categories](#hints-under-the-title) chips: which of the page's categories MixesDB
    already has, the mix count of each, and – behind every count – the category's most recently
-   added mix pages. Still to come: the category *family* around a name (`Dekmantel` →
-   `Dekmantel Mix`, `Dekmantel Selectors`, `Dekmantel São Paulo Podcast`, …) and the pages
-   around the mix date. So "this page may already exist" is visible **before** creating.
+   added mix pages. Since 2026-08-20 a red name also asks what MixesDB has that *starts like*
+   it, shown as the **Similar:** row of yellow chips. Still to come: the full category
+   *family* around a known name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
+   `Dekmantel São Paulo Podcast`, …) and the pages around the mix date. So "this page may
+   already exist" is visible **before** creating.
 3. **Duplicate protection on Create** – a mix page that carries the track's URL only as a
    commented-out mirror looks like "not on MixesDB yet" today and invites duplicates; a search in
    the page source catches it. Plus a sanity check when **Create** is clicked – exact and fuzzy

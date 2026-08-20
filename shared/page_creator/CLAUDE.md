@@ -365,7 +365,14 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   "Brotfabrik X k²0 Open Air - 25.07.2026 - Leipzig - Ri0D. & Jonbot"): `Ri0D. & Jonbot` is no
   category and never will be, so each name of an artist-role chunk's group is asked next to
   the whole (origin `group member` in the panel's section 3; the whole stays first - a duo can
-  be a category of its own). The confirmed name is what settles which bit of an event/venue
+  be a category of its own). **A joiner is what MAKES the chunk artist-role** (2026-08-20):
+  `Asa 808 b2b Third Guy` used to score as a series on the digits of a NAME, which put it in
+  the entity column and skipped the member split, so neither artist was asked. A b2b/&/vs/comma
+  list is a line-up whatever digits stand in it - only a series WORD overrules that, the way it
+  outweighs a number in `mdbTitle_seriesScore` (`Drumcode Radio Live & Friends 123` stays one
+  show's episode). Such a chunk is not number-stripped either: the digits at its end belong to
+  the last NAME in the list (`Third Guy b2b Asa 808`), and no episode is written as a b2b. The
+  members are asked as written, number and all. The confirmed name is what settles which bit of an event/venue
   title names who PLAYED: `mdbTitle_takeEventTitle`/`_takeVenueTitle` pick the bit the wiki
   backs as an artist first (`mdbTitle_groupHasKnownArtist`), then a bit that writes a line-up
   (`mdbTitle_joinedArtistBit` - the comma deliberately not counting, it strings places), and
@@ -725,7 +732,7 @@ mirror of this table - keep the two in step):
 | # | Work | Plan file | State |
 | --- | --- | --- | --- |
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
-| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. Since 2026-08-19 the line names EVERY category the page text writes, in its order: the year, the styles, "Promo Mix" and the `Tracklist:` filing ride along as plain grey chips without link or count (verdict `plain`, `mdbPageCreator_plainCategoryNote()`) - they are no name the wiki could spell differently, but leaving them out read as if the page did not get them. An artist or an entity is still required for the line to appear at all. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open, ONE chip at a time since 2026-08-19 and in a box hung UNDER the chip since the same day (CSS-only: the list stays the chip's child, `position:absolute` off the chip - the chip keeps its exact size, so the line never moves, and the box lies over what follows until folded shut; inside the chip it dragged the line apart, as a full-width row it tore chip and list into two unrelated things) (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched - and since 2026-08-19 the arrow keys step it through every link the bar has on screen, `mdbPageCreator_modalStep()`). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
+| 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. Since 2026-08-19 the line names EVERY category the page text writes, in its order: the year, the styles, "Promo Mix" and the `Tracklist:` filing ride along as plain grey chips without link or count (verdict `plain`, `mdbPageCreator_plainCategoryNote()`) - they are no name the wiki could spell differently, but leaving them out read as if the page did not get them. An artist or an entity is still required for the line to appear at all. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open, ONE chip at a time since 2026-08-19 and in a box hung UNDER the chip since the same day (CSS-only: the list stays the chip's child, `position:absolute` off the chip - the chip keeps its exact size, so the line never moves, and the box lies over what follows until folded shut; inside the chip it dragged the line apart, as a full-width row it tore chip and list into two unrelated things) (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched - and since 2026-08-19 the arrow keys step it through every link the bar has on screen, `mdbPageCreator_modalStep()`). **The prefix round's first cut DONE 2026-08-20** as the "Similar:" row (`mdbPageCreator_prefixEnsure()` / `_similarCategoriesHint()`): the bar's RED names are asked once more with `match=prefix`, one request for all of them, and the answers render as yellow chips directly under "Used categories" - hints only, in their own cache (`mdbPageCreator_prefixCache`), never the builder's; no similarity score (the used-cat percentage is a real fit score and a number here would pose as one); gentle thresholds as named constants (`mdbPageCreator_prefixMaxPerName` 3, `_prefixMinMixes` 2). The full family around a KNOWN name and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match; confirmed 2026-08-20 that it needs no `recentlimit`, and that a mid-word prefix can answer empty - the server matches at word granularity) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
 | 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension - the live recordings among the siblings do not vote on it since 2026-08-19, `mdbPageCreator_recentImageVote()`: their artwork is the event's, and 2 of 10 such pages cost Groove Podcast the artwork line all its episodes carry -, `{{StandardShow*}}` when the duration roughly fits, an empty `== Notes ==` section where the series has one, prefilled from the description where its Notes link a host the description names too, `{{Player|mode=mirrors}}` with the mirror line empty where the series publishes every episode twice - the 90% style vote fills a style line again since 2026-08-20, but only for a name MixesDB files under `Category:Style` - one `prop=categories&clcategories=Category:Style` request, `mdbPageCreator_styleCatFetch()`/`_recentLearnedCategories()`; every other winner stays the "Hints:" chip it was) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
@@ -765,6 +772,35 @@ a venue whose newest page is 12 years old 65%, `HATE Podcast` and `Leon` 95%.
 WORDS - because that is the one thing neither score can see and a bare percentage next to a
 category name implies it. Only the page's own categories get one: the "Hints:" row passes no
 title and a hint is no filing to be confident about.
+
+## The "Similar:" row (hints bar, since 2026-08-20)
+
+The prefix round behind a red chip: once the exact lookup has answered EMPTY about a name, it
+is asked once more with `match=prefix` - every red name of the bar in ONE request
+(`mdbPageCreator_prefixEnsure`, fired from the two settle paths next to the recent fetch,
+never from a render) - and what MixesDB has that starts like it renders as yellow chips
+directly under "Used categories" (`mdbPageCreator_similarCategoriesHint`). Settled, so it does
+not get re-litigated:
+
+- **Hints only, by decision** (2026-08-20; "when i later often end up on examples 'why didn't
+  we use that related cat' i'll get back on the earlier route"): the answers live in
+  `mdbPageCreator_prefixCache` and never reach `mdbTitle_categoryCache` - with prefix matches
+  in there the builder would read "Dekmantel" as a podcast and the exact-match discipline
+  would be undone from the server side (row_enrichment.md: "The row uses prefix mode. The
+  title builder NEVER does"). Nothing about the suggestion or the filing changes.
+- **Yellow, and no score of any kind**: not green (the page does not get them), not red
+  (nobody denied them), and the chips carry no percentage - the used-cat chips' number is a
+  REAL fit score, and one here would dress the name resemblance up as one. The note behind
+  each chip says facts instead: the type and the mix count.
+- **Gentle thresholds, named so they are one edit away** (`mdbPageCreator_prefixMaxPerName` 3,
+  `mdbPageCreator_prefixMinMixes` 2): at most 3 chips per red name, thin categories dropped -
+  the API ranks by mix count already. Only `matchType: "prefix"` renders (an exact or redirect
+  answer would have answered the exact round; a qualified one turns that chip green), never a
+  name the bar already carries, and a failed request is not retried.
+- **The chips join the modal and its arrow-key walk** - `mdbPageCreator_modalLinks()` and the
+  click interception read both category rows, in document order, which is the order the bar
+  reads. Section 3 closes with the request as an "API call" link like the other rounds
+  (kind `prefix`).
 
 ## The "Switch title" line (hints bar, since 2026-08-19)
 
