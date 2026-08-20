@@ -473,9 +473,11 @@ Opens the edit form of the new page, prefilled with:
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text
 
-Nothing is saved: what opens is the normal edit form, to check and submit.
+The form opens with the **preview already on screen** – the mix page as it will look, players,
+artwork line and tracklist included, with the edit box under it. Nothing is saved: what opens is
+the normal edit form, to check and submit.
 
-Filling the edit form and the upload field needs the
+Filling the edit form, showing that preview and filling the upload field needs the
 [MixesDB Userscripts Helper](../../MixesDB_Userscripts_Helper/) installed as well.
 
 ### Tracklist from the description
