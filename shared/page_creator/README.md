@@ -182,15 +182,23 @@ asked about, one chip per name, its colour saying whether the wiki already has i
   knows it under another name.
 - **grey** – MixesDB has not been asked about this name (yet), so there is no answer either way.
 
-A red name also gets a second, looser question: MixesDB is asked what it has that **starts
-like** it – one request for all the red names together – and the answers appear as a
-**Similar:** row of yellow chips directly under the categories. Yellow on purpose: not green,
+A name MixesDB has no category of gets a second, looser question: the wiki is asked what it has
+that **starts like** it – one request for all those names together – and the answers appear as
+a **Similar:** row of yellow chips directly under the categories. Yellow on purpose: not green,
 because the page does not get them, and not red, because nobody denied them – each is a look to
 take, not a verdict, which is also why they carry no score of any kind (the fit score next door
 is a real one, and a number here would only dress a name resemblance up as one). A chip links
 its category – opening in the same modal as the others – and says behind it what the name is
-(`(podcast, 8 mixes)`). Deliberately few: at most three per red name, and categories with
+(`(podcast, 8 mixes)`). Deliberately few: at most three per name, and categories with
 hardly any mixes are left out.
+
+The red chips are not the only names asked. A name the **title** writes that never became a
+chip at all is asked too, which is where a show hides on a mix filed as a promo: in
+`NTS - Sacred Pools - Toshiki Ohta - August 2026` nothing but the year, the artist and
+`Promo Mix` is a category, so the wiki was told no about "NTS" and nobody looked further – while
+`NTS Radio` has been there all along. Only names the title really carries, and only ones the
+wiki was really asked about and really denied: a name that merely opens one of the chips above
+(`HATE` under a green `HATE Podcast`) is left alone, since that filing is already settled.
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
@@ -726,8 +734,9 @@ placeholder only holds the space below it.
 2. **Double-check info in the row** – live since 2026-08-18 as the
    [Used categories](#hints-under-the-title) chips: which of the page's categories MixesDB
    already has, the mix count of each, and – behind every count – the category's most recently
-   added mix pages. Since 2026-08-20 a red name also asks what MixesDB has that *starts like*
-   it, shown as the **Similar:** row of yellow chips. Still to come: the full category
+   added mix pages. Since 2026-08-20 a name MixesDB has no category of – a red chip, or a name
+   the title writes that is no chip at all – also asks what the wiki has that *starts like* it,
+   shown as the **Similar:** row of yellow chips. Still to come: the full category
    *family* around a known name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
    `Dekmantel São Paulo Podcast`, …) and the pages around the mix date. So "this page may
    already exist" is visible **before** creating.

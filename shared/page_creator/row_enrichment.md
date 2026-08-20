@@ -88,12 +88,21 @@ cache, "Dekmantel" would read as a podcast (Dekmantel São Paulo Podcast is one)
 side. Two different questions, two match modes - keep the flag out of
 `mdbTitle_lookupCategories` entirely and call prefix mode only from the row code.
 
-**First cut BUILT 2026-08-20, for the RED names only**: the bar's "Similar:" row
-(`mdbPageCreator_prefixEnsure()` in page_creator.js - own cache, one request for all red
+**First cut BUILT 2026-08-20, for the names the wiki DENIED**: the bar's "Similar:" row
+(`mdbPageCreator_prefixEnsure()` in page_creator.js - own cache, one request for all denied
 names, yellow chips under "Used categories", hints only by decision). The family around a
 KNOWN name - the Dekmantel case above - stays open with the around-the-date window. Verified
 while building: the mode needs no `recentlimit`, and it matches at word granularity - a
 mid-word prefix ("Deep Space Serie") answers empty.
+
+The first cut asked the RED CHIPS alone, which left out every denied name the bar has no slot
+for. Reported the same day: `NTS - Sacred Pools - Toshiki Ohta - August 2026 (No Voice Over)`
+files under Promo Mix, so the mix's own name is on no chip, the "NTS" the exact round had just
+been told no about was asked by nobody, and `NTS Radio` stayed invisible. Since then the round
+also asks the names the TITLE writes (`mdbPageCreator_prefixMissingNames`, second loop) - only
+ones really asked and really denied, only while the title still carries them word for word, and
+never one that OPENS a name already on the bar, which is what keeps this out of the KNOWN-name
+family above and keeps a fully-green row from firing a request at all.
 
 ### 2. Sibling titles: the two most recent, and around the mix date
 

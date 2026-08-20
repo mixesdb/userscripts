@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.22
+// @version      2026.08.20.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_66
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_100
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_101
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1965,6 +1965,17 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.23
+ * The "Similar:" row now asks about the names the TITLE writes too, not only about the bar's
+ * red chips (page_creator.js v_101, from a SoundCloud report): a mix built as a promo has the
+ * year, the artist and "Promo Mix" on its bar and nothing else, so the mix's own name stands in
+ * no category slot and a name the exact lookup denied inside it was asked by nobody - the
+ * reported case being "NTS", with MixesDB's "NTS Radio" starting exactly like it. Those names
+ * come off the lookup log now: only ones really asked and really denied, only while the title
+ * still writes them word for word, and never one that opens a name already on the bar (which is
+ * what keeps a fully-green row from firing a request it never fired before). Still hints only -
+ * the suggestion does not change.
  *
  * 2026.08.20.22
  * A chunk whose names a joiner strings together is read as the line-up it is (title_builder.js

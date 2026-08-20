@@ -1730,16 +1730,24 @@ function mdbPageCreator_usedCategoryState( entry ) {
 }
 
 /*
- * Similar categories - the prefix round behind a red chip
+ * Similar categories - the prefix round behind a name the wiki denied
  *
- * A red name says MixesDB has no category of it, and that is where a second spelling or a
+ * A denied name says MixesDB has no category of it, and that is where a second spelling or a
  * longer form hides: the wiki may file the series as "Deep Space Series Podcast" while the
  * title says "Deep Space Series". mdbnames' prefix mode (match=prefix, live 2026-08-16,
  * row_enrichment.md §1) answers with every typed category STARTING with the name, so once
- * the exact lookup has answered empty the red names are asked once more that way - all of
+ * the exact lookup has answered empty those names are asked once more that way - all of
  * them in ONE request - and what comes back renders as a "Similar:" row of yellow chips
  * directly under "Used categories": neither green (the page does not get them) nor red
  * (nobody denied them), a look to take, not a verdict.
+ *
+ * TWO sources of names, and both mean "asked, and the wiki said no": the bar's red chips,
+ * and the names the TITLE writes that never became a chip at all. The second half was added
+ * 2026-08-20 on a report the first half could not answer - "NTS - Sacred Pools - Toshiki
+ * Ohta - August 2026 (No Voice Over)" files under Promo Mix, so its bar carries the year,
+ * the artist and "Promo Mix" and nothing else: the mix's own name stands in no category
+ * slot, the "NTS" the lookup had just denied was asked by nobody, and the wiki's NTS Radio -
+ * which starts exactly like it - stayed invisible.
  *
  * HINTS ONLY, by decision (2026-08-20): the answers stay in their own cache and never reach
  * mdbTitle_categoryCache - with prefix matches in there the builder would read "Dekmantel"
@@ -1758,15 +1766,98 @@ var mdbPageCreator_prefixCache = {},
     // the row's last logged content, quieted like mdbPageCreator_hintsLogged
     mdbPageCreator_similarLogged = "";
 
+// mdbPageCreator_nameWords
+// A name as its lower-cased words, everything else dropped - the unit
+// mdbPageCreator_titleWritesName compares in.
+function mdbPageCreator_nameWords( text ) {
+    var parts = String( text || "" ).toLowerCase().split( /[^a-z0-9]+/ ),
+        out = [],
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        if( parts[i] ) out.push( parts[i] );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_titleWritesName
+// Does the title write this name, as whole words standing next to each other? The fence around
+// the second half of the prefix round: a name the wiki denied is only worth a "Similar:" chip
+// while the title still carries it - a channel the parse threw away is no filing anyone is
+// about to make, and hinting at categories for it would be the bar talking about another mix.
+//
+// Word-wise rather than on the normalized keys, which have no spaces left in them
+// (mdbTitle_normalizeCompare strips everything but letters and digits): "nts" sits inside
+// "toshikiohtants" there, and every short name would find itself somewhere. The wiki's prefix
+// mode matches at word granularity too (row_enrichment.md §1), so both ends of this round agree
+// about where a name begins.
+function mdbPageCreator_titleWritesName( title, name ) {
+    var hay = mdbPageCreator_nameWords( title ),
+        needle = mdbPageCreator_nameWords( name ),
+        i, j, hit;
+
+    if( !needle.length || needle.length > hay.length ) return false;
+
+    for( i = 0; i + needle.length <= hay.length; i++ ) {
+        hit = true;
+
+        for( j = 0; j < needle.length; j++ ) {
+            if( hay[ i + j ] !== needle[j] ) { hit = false; break; }
+        }
+
+        if( hit ) return true;
+    }
+
+    return false;
+}
+
+// mdbPageCreator_nameStartsName
+// Do the words of one name OPEN the other? "HATE" opens "HATE Podcast", "Deep Space" opens
+// "Deep Space Series", "NTS" opens neither "Toshiki Ohta" nor "Promo Mix". Word-wise like
+// mdbPageCreator_titleWritesName, and for the same reason.
+function mdbPageCreator_nameStartsName( name, other ) {
+    var a = mdbPageCreator_nameWords( name ),
+        b = mdbPageCreator_nameWords( other ),
+        i;
+
+    if( !a.length || a.length > b.length ) return false;
+
+    for( i = 0; i < a.length; i++ ) {
+        if( a[i] !== b[i] ) return false;
+    }
+
+    return true;
+}
+
 // mdbPageCreator_prefixMissingNames
-// The red names of this title's bar: artist/entity entries the exact lookup answered empty
-// about. Read off the same entries and the same state the chips render from, so the row and
-// the request can never disagree about what is red.
+// The names of this title the exact lookup answered EMPTY about, in the order the request
+// should ask them. Two rounds, and the row renders off this same list, so the two can never
+// disagree about which names are being asked:
+//
+// 1. the bar's red chips - artist/entity entries read off the same entries and the same state
+//    the chips render from
+// 2. the names the TITLE writes that are no chip at all: the mix's own name on a promo, a
+//    show word the parse glued into it, anything the lookup asked about and the bar has no
+//    slot for. Denied here means denied as ANYTHING - these names stand in no category slot,
+//    so there is no role to hold the answer against - and the lookup LOG is the source, being
+//    this page's asked names in their original spelling. A name that was never really asked
+//    (dropped over the 10-name limit) or whose request died is not one the wiki denied, and a
+//    chip saying "MixesDB has no category ..." about it would be a lie.
+//
+//    ... and a name that OPENS one the bar already carries stays out: "HATE" next to a chip
+//    reading "HATE Podcast" would only ask a looser question about a filing the bar has
+//    already settled, and the family around a name the wiki KNOWS is a whole addition of its
+//    own that is not built (row_enrichment.md §1, the Dekmantel case). Where the longer name
+//    is red it is being asked in this very request, and every answer the shorter one could
+//    add would sit under the same three-chip cap.
 function mdbPageCreator_prefixMissingNames( title ) {
     var entries = mdbPageCreator_categoryEntries( title ),
+        log = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
         out = [],
         seen = {},
-        i, entry, key;
+        i, j, entry, key, opensBarName;
 
     for( i = 0; i < entries.length; i++ ) {
         entry = entries[i];
@@ -1782,11 +1873,32 @@ function mdbPageCreator_prefixMissingNames( title ) {
         out.push( entry.name );
     }
 
+    for( i = 0; i < log.length; i++ ) {
+        key = log[i].key;
+
+        if( !key || seen[key] ) continue;
+        if( log[i].pending || log[i].failed || log[i].skipped ) continue;
+        if( mdbTitle_knownMatch( cache, log[i].name, null ) ) continue;
+        if( !mdbPageCreator_titleWritesName( title, log[i].name ) ) continue;
+
+        for( j = 0, opensBarName = false; j < entries.length; j++ ) {
+            if( entries[j].name && mdbPageCreator_nameStartsName( log[i].name, entries[j].name ) ) {
+                opensBarName = true;
+                break;
+            }
+        }
+
+        if( opensBarName ) continue;
+
+        seen[key] = true;
+        out.push( log[i].name );
+    }
+
     return out;
 }
 
 // mdbPageCreator_prefixEnsure
-// Starts the one prefix request for this title's red names, where none ran yet. Called from
+// Starts the one prefix request for this title's denied names, where none ran yet. Called from
 // the two settle paths (the suggestion's lookup callback and the debounced edit path) like
 // mdbPageCreator_recentEnsureFor - never from a render. A name already asked is not asked
 // again, failed included: the row is a hint, not something worth retrying for.
@@ -1804,6 +1916,21 @@ function mdbPageCreator_prefixEnsure( title ) {
         wanted.push( names[i] );
     }
 
+    // the module takes 10 names per request, the exact round's limit (mixesdb_api_request.md
+    // §4) - and the names come in the order mdbPageCreator_prefixMissingNames ranks them, the
+    // bar's own chips first, so what falls off is the least likely to matter. The seeds of the
+    // dropped ones come back out: pre-seeding them as asked would answer for them forever,
+    // while a later call - the next keystroke's - can still get to them.
+    if( wanted.length > 10 ) {
+        logVar( "mdbPageCreator_prefixEnsure: over the 10-name limit, dropping", wanted.slice( 10 ).join( " | " ) );
+
+        for( i = 10; i < wanted.length; i++ ) {
+            delete mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( wanted[i] ) ];
+        }
+
+        wanted = wanted.slice( 0, 10 );
+    }
+
     if( !wanted.length ) return;
 
     logVar( "mdbPageCreator_prefixEnsure: asking prefix matches for", wanted.join( " | " ) );
@@ -1817,8 +1944,8 @@ function mdbPageCreator_prefixEnsure( title ) {
             match: "prefix"
         },
         apiCall = mdbPageCreator_noteApiCall( "prefix", "",
-                      "categories whose names START like the red one" + ( wanted.length === 1 ? "" : "s" ) +
-                      " (" + wanted.join( ", " ) + ") - the \"Similar:\" row",
+                      "categories whose names START like the name" + ( wanted.length === 1 ? "" : "s" ) +
+                      " MixesDB has no category of (" + wanted.join( ", " ) + ") - the \"Similar:\" row",
                       apiData );
 
     $.ajax({
@@ -1863,31 +1990,34 @@ function mdbPageCreator_prefixEnsure( title ) {
 }
 
 // mdbPageCreator_similarCategoriesHint
-// The "Similar:" row - the prefix answers rendered under "Used categories". Per red name at
+// The "Similar:" row - the prefix answers rendered under "Used categories". Per denied name at
 // most mdbPageCreator_prefixMaxPerName chips, thin categories dropped, and never a name the
 // bar already carries: a similar that IS a used category would say nothing. Each chip links
 // the category and its note says what it is - the type and the count are facts, where a
 // similarity number would only dress the resemblance up as one.
+//
+// Walks mdbPageCreator_prefixMissingNames, the list the REQUEST was built from, rather than the
+// bar's entries a second time: half of those names are on no chip (the promo case in the
+// section comment above), and a row reading a different list than the request could only ever
+// show less than was asked for. A name with nothing cached yet - the request has not settled,
+// or it fell off the 10-name limit - simply renders nothing.
 function mdbPageCreator_similarCategoriesHint( title ) {
     var entries = mdbPageCreator_categoryEntries( title ),
+        names = mdbPageCreator_prefixMissingNames( title ),
         taken = {},
         chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
         logged = [],
         any = false,
-        i, j, entry, cached, match, shown, matchKey, mixes, note;
+        i, j, name, cached, match, shown, matchKey, mixes, note;
 
     // everything on the bar is off limits for the chips, whatever its verdict
     for( i = 0; i < entries.length; i++ ) {
         if( entries[i].name ) taken[ mdbTitle_normalizeCompare( entries[i].name ) ] = true;
     }
 
-    for( i = 0; i < entries.length; i++ ) {
-        entry = entries[i];
-
-        if( !entry.name || ( entry.role !== "artist" && entry.role !== "entity" ) ) continue;
-        if( mdbPageCreator_usedCategoryState( entry ).verdict !== "missing" ) continue;
-
-        cached = mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( entry.name ) ];
+    for( i = 0; i < names.length; i++ ) {
+        name = names[i];
+        cached = mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( name ) ];
 
         if( !cached || cached.status !== "done" ) continue;
 
@@ -1922,7 +2052,7 @@ function mdbPageCreator_similarCategoriesHint( title ) {
                         $("<a>")
                             .attr( "href", mdbPageCreator_categoryUrl( match.title ) )
                             .attr( "target", "_blank" )
-                            .attr( "title", "MixesDB has no category \"" + entry.name + "\", but this name starts the same" +
+                            .attr( "title", "MixesDB has no category \"" + name + "\", but this name starts the same" +
                                             " - opens [[Category:" + match.title + "]] (" + note + ")." +
                                             "\nOnly the NAME is similar: whether it is this page's is yours to judge." )
                             .text( match.title )
@@ -1931,7 +2061,7 @@ function mdbPageCreator_similarCategoriesHint( title ) {
                 )
             );
 
-            logged.push( match.title + " (" + note + ", starts like \"" + entry.name + "\")" );
+            logged.push( match.title + " (" + note + ", starts like \"" + name + "\")" );
         }
     }
 
