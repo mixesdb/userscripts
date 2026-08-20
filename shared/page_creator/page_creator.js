@@ -2446,6 +2446,13 @@ function mdbPageCreator_entityIsNumbered( entity ) {
     return !!name && ( /\([^()]*\)$/.test( name ) || /[\s.]\d{1,5}$/.test( name ) );
 }
 
+// mdbPageCreator_recentPageLimit
+// How many of a category's newest pages are fetched and voted on. The one place the number
+// lives: the request asks for it twice (generator + list), the "API call" line names it, and
+// the panel's "Read:" line tells "the 10 newest pages of" a big category from "all 4 pages of"
+// a small one by comparing against it.
+var mdbPageCreator_recentPageLimit = 10;
+
 // mdbPageCreator_recentMaxAgeYears
 // How far the newest page of a category may lag behind the mix before its pages stop being
 // evidence about it. Three years: a series that has not had a page written in three years is
@@ -2538,7 +2545,7 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             gcmnamespace: 0, // without it the answer is half File: pages
             gcmsort: "sortkey",
             gcmdir: "desc",
-            gcmlimit: 10,
+            gcmlimit: mdbPageCreator_recentPageLimit,
             prop: "revisions",
             rvprop: "content",
             rvslots: "main",
@@ -2553,10 +2560,10 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             cmnamespace: 0,
             cmsort: "sortkey",
             cmdir: "desc",
-            cmlimit: 10
+            cmlimit: mdbPageCreator_recentPageLimit
         },
         apiCall = mdbPageCreator_noteApiCall( "recent", catTitle,
-                      "the 10 newest pages of Category:" + catTitle + " with their wikitext",
+                      "the " + mdbPageCreator_recentPageLimit + " newest pages of Category:" + catTitle + " with their wikitext",
                       apiData );
 
     $.ajax({
@@ -2605,6 +2612,12 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
 
             entry.status = "done";
             entry.pages = got;
+            // Does the category hold MORE than the 10 asked for? The answer carries a
+            // "continue" exactly then - both modules asked the same category with the same
+            // limit - and without it these pages are the whole category, which is what the
+            // "Read:" line says instead of "the 4 newest pages" (reported 2026-08-20: that
+            // reads like 6 pages were skipped, when Category:(Extended Mix) simply has 4).
+            entry.more = !!( data && data.continue );
             entry.titles = got.map( function( p ) { return p.title; } );
             entry.text = mdbPageCreator_recentPageTextFindings( catTitle, got );
 
@@ -5474,9 +5487,16 @@ function mdbPageCreator_reasoningRecentCount( c ) {
 // mdbPageCreator_reasoningRecentRead
 // The "Read:" line both sections open with: which pages the findings are read off.
 function mdbPageCreator_reasoningRecentRead( info ) {
+    var n = info.entry.pages.length,
+        // 10 is what was asked for, so fewer than that with nothing left over IS the category
+        whole = n < mdbPageCreator_recentPageLimit && !info.entry.more,
+        read = whole
+            ? ( n === 1 ? "the only page of" : "all " + n + " pages of" )
+            : "the " + n + " newest pages of";
+
     return $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
         $("<span>").text( "Read:" ),
-        $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( "the " + info.entry.pages.length + " newest pages of" ),
+        $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( read ),
         $("<a>")
             .addClass( "mdb-pageCreator-known" )
             .attr( "href", mdbPageCreator_categoryUrl( info.catTitle ) )
@@ -5740,15 +5760,15 @@ function mdbPageCreator_reasoningRecentText( title ) {
                              " and the other line empty for the mirror. MixesDB shows \"No value for one of the players!\" until it is filled in or removed" } );
     } else if( f.player && f.player.value === "plain" ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a plain {{Player}} with one URL -> kept" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a plain {{Player}} with one URL -> {{Player}} with single URL stays" } );
     } else if( f.player && f.player.value === "none" ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " carry no player at all -> the plain {{Player}} stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " carry no player at all -> {{Player}} with single URL stays" } );
     } else if( f.player ) {
         rows.push( { label: "Player",
-                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a {{Player}} mode that needs a title per line (mode=multi), which a page with one URL cannot start as -> the plain {{Player}} stays" } );
+                     detail: mdbPageCreator_reasoningRecentCount( f.player ) + " use a {{Player}} mode that needs a title per line (mode=multi), which a page with one URL cannot start as -> {{Player}} with single URL stays" } );
     } else {
-        rows.push( { label: "Player", detail: "no 90% agreement -> the plain {{Player}} stays" } );
+        rows.push( { label: "Player", detail: "no 90% agreement -> {{Player}} with single URL stays" } );
     }
 
     // The Notes section and, separately, the host its links point at. Only a series that has
