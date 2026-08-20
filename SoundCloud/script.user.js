@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.28
+// @version      2026.08.20.29
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 166,
+var cacheVersion = 167,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1902,6 +1902,12 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.20.29
+ * The reasoning panel's section 8, "Similar categories on MixesDB", now wears the blue of 1
+ * and 3 instead of the "Similar:" row's yellow (page_creator.css / cacheVersion 167): it is a
+ * lookup round like those two, and the yellow is the CHIPS' state colour on the bar, which the
+ * panel never uses to group sections.
  *
  * 2026.08.20.28
  * The reasoning panel grew section 8, "Similar categories on MixesDB" (page_creator.js v_104,

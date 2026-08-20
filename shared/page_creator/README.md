@@ -388,9 +388,9 @@ learning" line can name the step that went wrong. Its eight sections are numbere
 the build really ran: the title is parsed once before MixesDB is asked anything, once more
 with its answers, and then measured against the entity's own recent pages – sections **2**,
 **4** and **5** are the stages that shape the title, and their shared orange accent (the copy
-button's colour) marks them against the blue of 1/3, the green of 6, the citrus yellow of
-7, the page text read off the same recent pages, and the yellow of 8, the **Similar:** row's
-own colour – the number, the bar down the left and the
+button's colour) marks them against the blue of 1, 3 and 8 – the chunks and the two rounds of
+category lookups – the green of 6 and the citrus yellow of
+7, the page text read off the same recent pages – the number, the bar down the left and the
 heading itself all carry it. That is also why the
 names in 3 are not read off the title of 2: the lookup is built from the chunks of **1**,
 never from the cleaned title. Chips everywhere are coloured by **state**, not by what they
