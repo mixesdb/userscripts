@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.1
+// @version      2026.08.20.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -28,7 +28,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 14,
+var cacheVersion = 15,
     scriptName = "MixesDB_Userscripts_Helper";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -195,7 +195,7 @@ d.ready(function(){ // needed for mw.config
                         // avoid undefined error
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
-                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
                             playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
@@ -206,7 +206,7 @@ d.ready(function(){ // needed for mw.config
                             logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                             if( trackidurl ) {
-                                tidLink += '<a href="'+trackidurl+'"><img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
+                                tidLink += '<a href="'+trackidurl+'"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
 
                                 if( lastCheckedAgainstMixesDB ) {
                                     tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
