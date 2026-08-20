@@ -745,31 +745,36 @@ function mdbPageCreator_categoryEntries( title ) {
         // festival votes for the festival, and that is a filing only the editor can make. It
         // is reported as the bar's "Hints:" row and in section 7 instead
         // (mdbPageCreator_recentHintCategories).
-        var learnedStyles = mdbPageCreator_recentLearnedCategories( title ).styles,
-            written = 0;
+        var split = mdbPageCreator_recentLearnedCategories( title ),
+            written = 0,
+            blanks;
 
-        for( i = 0; i < learnedStyles.length; i++ ) {
+        for( i = 0; i < split.styles.length; i++ ) {
             // a name the page already carries as its artist or its entity is no second
             // category - it would be written twice
-            if( mdbPageCreator_entriesCarry( entries, learnedStyles[i].name ) ) continue;
+            if( mdbPageCreator_entriesCarry( entries, split.styles[i].name ) ) continue;
 
             entries.push( {
-                name: learnedStyles[i].name,
+                name: split.styles[i].name,
                 role: "style",
                 learned: true,
-                count: learnedStyles[i].count,
-                n: learnedStyles[i].n,
-                catTitle: learnedStyles[i].catTitle
+                count: split.styles[i].count,
+                n: split.styles[i].n,
+                catTitle: split.styles[i].catTitle
             } );
 
             written++;
         }
 
-        // ONE blank row behind whatever was learned, never two. The blanks are a convenience,
-        // not a shape: the spare is there so a second style can be typed straight in, and
-        // deleting a line is faster than adding one. Where nothing was learned the block is
-        // the two blanks every mix page starts with.
-        for( i = 0; i < ( written ? 1 : 2 ); i++ ) {
+        // The blank rows are a convenience, not a shape - deleting a line is faster than
+        // adding one, so a blank stands exactly where a style may still be typed in:
+        // - nothing learned: the two blanks every mix page starts with
+        // - a style written and SOME sibling pages carry further styles (Tech House on 1 of
+        //   Amplify Series' 10): one blank - this mix may be such a page
+        // - a style written and the siblings use nothing else: no blank at all
+        blanks = written ? ( split.otherStyles.length ? 1 : 0 ) : 2;
+
+        for( i = 0; i < blanks; i++ ) {
             entries.push( { name: "", role: "style" } );
         }
     }
@@ -2673,9 +2678,41 @@ function mdbPageCreator_recentSettled() {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// The parent category MixesDB files its style categories under. One name, not a list of styles:
-// the vocabulary is the wiki's and changes without us.
+// The parent category MixesDB files its style categories under.
 var mdbPageCreator_styleParent = "Style";
+
+// Every member of Category:Style, fetched 2026-08-20 (111 names, one call, no continuation).
+// Baked in because the vocabulary is essentially static - style categories are added rarely and
+// never renamed - so the usual case costs no request at all: only a learned name NOT on this
+// list still asks the API, which is what catches a style added after this snapshot.
+var mdbPageCreator_knownStyles = [
+    "2 Step", "Acid", "Acid House", "Acid Techno", "Afro House", "Afrobeat", "Amapiano",
+    "Ambient", "Balearic", "Ballroom", "Bass", "Bassline", "Big Beat", "Bigroom", "Boogie",
+    "Booty", "Breakbeat", "Breakbeat Hardcore", "Breakcore", "Breaks", "Broken Beat",
+    "Chill Out", "Chiptune", "Classical", "Club Music", "Dancehall", "Darkwave", "Deep House",
+    "Deep Tech House", "Deep Techno", "Detroit Techno", "Disco", "Downtempo", "Drum & Bass",
+    "Dub", "Dub Techno", "Dubstep", "EBM", "Electro", "Electro Pop", "Electro Swing",
+    "Electronica (Synthesizer)", "Euro House", "Experimental", "Freestyle", "Funk",
+    "Future Jazz", "Future Rave", "Ghetto", "Goa Trance", "Gospel", "Gqom", "Grime",
+    "Halftime", "Happy Hardcore", "Hard House", "Hard Techno", "Hard Trance", "Hardcore",
+    "Hardcore Techno", "Hardstyle", "Hip Hop", "Hip House", "House", "House (Old School)",
+    "Hyper Pop", "IDM", "Indie Dance", "Industrial", "Italodance", "Jazz", "Juke", "Jungle",
+    "Latin", "Leftfield", "Library Music", "Lo-Fi House", "Lovers Rock", "Minimal", "New Beat",
+    "Noise", "Northern Soul", "Pop", "Prog Rock", "Progressive", "Progressive House",
+    "Progressive Trance", "Psychedelic", "Psytrance", "R&B", "Rare Groove", "Rave", "Reggae",
+    "Rhythmic Noise", "Rock", "Soul", "Soundtrack", "Synth Pop", "Synthwave", "Tech House",
+    "Techno", "Trance", "Trap", "Tribal", "Trip Hop", "Turntablism", "UK Funky", "UK Garage",
+    "Various", "Vocal House", "World Music"
+];
+
+// ... as a lookup, exact spelling - the wiki is case-sensitive, so "techno" is not "Techno"
+var mdbPageCreator_knownStyleSet = {};
+
+(function() {
+    for( var i = 0; i < mdbPageCreator_knownStyles.length; i++ ) {
+        mdbPageCreator_knownStyleSet[ mdbPageCreator_knownStyles[i] ] = true;
+    }
+})();
 
 // What MixesDB answered about a shared category, keyed by the name exactly as the sibling
 // pages write it - the wiki is case-sensitive, so "Techno" and "techno" are two categories and
@@ -2689,6 +2726,9 @@ var mdbPageCreator_styleCatCache = {};
 // "yes" | "no" | "" (nobody asked, the answer is still out, or the request died). Only "yes"
 // writes a category onto the page, so every other state falls back to the hint.
 function mdbPageCreator_styleCatVerdict( name ) {
+    // the baked-in Category:Style membership answers most names without anyone being asked
+    if( mdbPageCreator_knownStyleSet[ name ] ) return "yes";
+
     var entry = Object.prototype.hasOwnProperty.call( mdbPageCreator_styleCatCache, name )
             ? mdbPageCreator_styleCatCache[ name ]
             : null;
@@ -2713,7 +2753,10 @@ function mdbPageCreator_styleCatEnsure( findings, catTitle ) {
     for( i = 0; i < learned.length && ask.length < 10; i++ ) {
         name = learned[i].name;
 
-        if( !name || Object.prototype.hasOwnProperty.call( mdbPageCreator_styleCatCache, name ) ) continue;
+        // a name on the baked-in style list needs no request - only an unknown one might be a
+        // style added to the wiki after the snapshot
+        if( !name || mdbPageCreator_knownStyleSet[ name ] ) continue;
+        if( Object.prototype.hasOwnProperty.call( mdbPageCreator_styleCatCache, name ) ) continue;
 
         mdbPageCreator_styleCatCache[ name ] = { status: "pending", isStyle: false };
         ask.push( name );
@@ -2804,15 +2847,21 @@ function mdbPageCreator_styleCatFetch( names, catTitle ) {
 // The categories the entity's recent sibling pages agree on, split by what MixesDB says they
 // ARE - the one place that split is made, so the page text, the bar and the panel can never
 // tell three stories about the same name:
-// - styles: filed under Category:Style, so they go ONTO the page (at most two - a vote is a
-//   heuristic, and the blank row behind them is where a third is typed)
+// - styles: known style categories, so they go ONTO the page (at most two - a vote is a
+//   heuristic)
 // - hints:  everything else that cleared the vote, the names still being asked about among
 //   them. Reported under the row and written nowhere (mdbPageCreator_recentHintCategories)
+// - otherStyles: styles some pages carried WITHOUT clearing the vote (Tech House on 1 of
+//   Amplify Series' 10). They are not written - but they are why a blank style row is left
+//   behind the written ones: this mix may be one of the pages that carry a second style. A
+//   series whose pages use only the written style leaves no blank behind it.
 function mdbPageCreator_recentLearnedCategories( title ) {
     var info = mdbPageCreator_recentAnalysisFor( title ),
         findings = ( !info.skip && info.entry && info.entry.status === "done" ) ? info.entry.text : null,
         learned = ( findings && findings.styles && findings.styles.learned ) || [],
-        out = { styles: [], hints: [] },
+        tally = ( findings && findings.styles && findings.styles.tally ) || [],
+        out = { styles: [], hints: [], otherStyles: [] },
+        written = {},
         i, entry;
 
     for( i = 0; i < learned.length; i++ ) {
@@ -2827,12 +2876,22 @@ function mdbPageCreator_recentLearnedCategories( title ) {
             entry.role = "style";
             entry.learned = true;
 
-            if( out.styles.length < 2 ) out.styles.push( entry );
+            if( out.styles.length < 2 ) {
+                out.styles.push( entry );
+                written[ entry.name ] = true;
+            }
         } else {
             entry.role = "hint";
 
             if( out.hints.length < 2 ) out.hints.push( entry );
         }
+    }
+
+    for( i = 0; i < tally.length; i++ ) {
+        if( written[ tally[i].name ] ) continue;
+        if( mdbPageCreator_styleCatVerdict( tally[i].name ) !== "yes" ) continue;
+
+        out.otherStyles.push( { name: tally[i].name, count: tally[i].count, n: tally[i].n } );
     }
 
     return out;
@@ -5710,22 +5769,42 @@ function mdbPageCreator_reasoningRecentText( title ) {
         rows.push( { label: "Notes section", detail: "no 90% agreement - no Notes section" } );
     }
 
-    // What the pages agree on, and what MixesDB says that name IS - the vote alone answers what
-    // these pages have in common, which is not what the mix sounds like: a venue whose MixesDB
-    // pages are all from one festival votes for the festival. So a winner is written only where
-    // the wiki files it under Category:Style, and every other one stays a hint under the row
+    // What the pages agree on, and what that name IS - the vote alone answers what these pages
+    // have in common, which is not what the mix sounds like: a venue whose MixesDB pages are
+    // all from one festival votes for the festival. So a winner is written only where it is a
+    // style category, and every other one stays a hint under the row
     // (mdbPageCreator_styleCatVerdict / mdbPageCreator_recentHintCategories).
-    for( i = 0; i < f.styles.learned.length; i++ ) {
-        var verdict = mdbPageCreator_styleCatVerdict( f.styles.learned[i].name ),
-            outcome = verdict === "yes"
-                ? "MixesDB files it under Category:" + mdbPageCreator_styleParent + " -> written into the page's style lines"
-                : verdict === "no"
-                    ? "MixesDB does not file it under Category:" + mdbPageCreator_styleParent + ", so it is no style -> shown as a hint under the row, the page's style lines stay empty for the editor"
-                    : "still asking MixesDB whether it files it under Category:" + mdbPageCreator_styleParent + " -> a hint under the row until that answer is in";
+    var wroteStyle = false;
 
-        rows.push( { label: "Shared category",
+    for( i = 0; i < f.styles.learned.length; i++ ) {
+        var verdict = mdbPageCreator_styleCatVerdict( f.styles.learned[i].name );
+
+        if( verdict === "yes" ) wroteStyle = true;
+
+        rows.push( { label: verdict === "yes" ? "Shared styles" : "Shared category",
                      detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
-                             " - " + outcome } );
+                             ( verdict === "yes"
+                                 ? " -> written into the page's style lines"
+                                 : verdict === "no"
+                                     ? " - no style category -> shown as a hint under the row, the style lines stay empty for the editor"
+                                     : " - not a known style, asking MixesDB -> a hint under the row until that answer is in" ) } );
+    }
+
+    // ... and why there is (not) a blank style row behind the written ones: single pages
+    // carrying a further style are the reason a spare line is worth keeping
+    if( wroteStyle ) {
+        var others = mdbPageCreator_recentLearnedCategories( title ).otherStyles,
+            othersText = "",
+            j;
+
+        for( j = 0; j < others.length && j < 3; j++ ) {
+            othersText += ( othersText ? ", " : "" ) + "\"" + others[j].name + "\" on " + others[j].count;
+        }
+
+        rows.push( { label: "Other styles",
+                     detail: othersText
+                         ? othersText + " of the " + f.n + " pages -> one style line left empty, this mix may carry one too"
+                         : "the pages use no style beyond the written one -> no empty style line" } );
     }
 
     if( !f.styles.learned.length ) {

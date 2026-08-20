@@ -416,9 +416,10 @@ ends up used.
   that had to be followed – so it is clear whether an empty Notes line means the series links
   nothing or only that this player named nothing –
   and which categories at least 90% of the pages share, each with what MixesDB says that name
-  is. A name the wiki files under `Category:Style` is a style and is **written** into the page's
-  style lines (`"Techno" on all 10 of the newest pages → MixesDB files it under Category:Style
-  → written into the page's style lines`); anything else that cleared the same vote is
+  is. A style category is **written** into the page's style lines (`"Techno" on all 10 of the
+  newest pages → written into the page's style lines`), and an **Other styles** line under it
+  says why an empty style row was (not) left behind the written ones; anything else that
+  cleared the same vote is
   **reported, never written**, because what those pages have in common is not the same question
   as what this mix sounds like: `Category:Undercurrent`'s newest pages carry Techno 5, House 3
   and Tech House 2 – no style clears the bar – while `Amsterdam Dance Event` stands on all 10,
@@ -486,9 +487,11 @@ Opens the edit form of the new page, prefilled with:
   suggestions box), otherwise a style at least 90% of the entity's recent pages carry, where
   MixesDB files that name under `Category:Style` – a series whose ten newest pages all carry
   `[[Category:Techno]]` writes Techno. Anything else those pages share is a **Hints** chip under
-  the row and is never written for you. Behind a written style stands one empty row, not two –
-  the spare a second style is typed into; where nothing was written, the two empty rows a mix
-  page starts with stay as they are
+  the row and is never written for you. The empty rows follow what the siblings show: where
+  some of them carry a further style beyond the written one (Tech House on 1 of Amplify
+  Series' 10), one empty row is left to type it into; where they use nothing else, none is –
+  and where no style was written at all, the two empty rows a mix page starts with stay as
+  they are
 - the tracklist from the box below, when there is one
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text

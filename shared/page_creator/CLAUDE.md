@@ -511,14 +511,17 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   that made the whole finding a hint and nothing was written; reported back on
   `Amplify Series 138`, whose category carries `Techno` on 10 of 10 and whose new page still
   came out with two blank style rows.
-  So the split is not guessed, it is ASKED: `mdbPageCreator_styleCatFetch()` sends one
-  `prop=categories&clcategories=Category:Style` request over the winning names (cached per name
-  in `mdbPageCreator_styleCatCache`, never reset - styles repeat across entities, so the second
-  Techno series costs no request), and `mdbPageCreator_recentLearnedCategories()` splits the
+  So the split is not guessed, it is KNOWN: all 111 members of `Category:Style` are baked in as
+  `mdbPageCreator_knownStyles` (fetched 2026-08-20 - the vocabulary is essentially static), so
+  the usual case costs no request. Only a winning name NOT on that list still asks the API -
+  `mdbPageCreator_styleCatFetch()`, one `prop=categories&clcategories=Category:Style` request,
+  cached per name in `mdbPageCreator_styleCatCache` - which is what catches a style added after
+  the snapshot; and `mdbPageCreator_recentLearnedCategories()` splits the
   winners on the answer: a name the wiki files under `Category:Style` goes into the page's style
-  lines (at most two, with ONE blank row behind them - the blanks are a spare to type into, not
-  a shape to fill, so two of them stand only where nothing was written; asked for on 2026-08-20),
-  everything else stays the
+  lines (at most two; the blank rows behind them are a spare to type into, not a shape to fill:
+  one blank where the tally shows further styles on single pages - `otherStyles` in the split -
+  no blank where the siblings use nothing else, and the plain two where nothing was written at
+  all; asked for on 2026-08-20), everything else stays the
   HINT it was - `mdbPageCreator_recentHintCategories()` feeds the bar's "Hints:" row (chip + a
   note saying which pages it came off) and the block closing section 6, where the same lines are
   plain text. Pending and failed answers write nothing: only "yes" writes.
