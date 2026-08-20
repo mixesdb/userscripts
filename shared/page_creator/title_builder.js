@@ -550,6 +550,63 @@ function mdbTitle_atDateSeparator( text ) {
     return out + s.slice( last );
 }
 
+// mdbTitle_atEpisodeSeparator
+// "Colossio @ Melodic Therapy #217 - Mexico" -> "Colossio - Melodic Therapy #217 - Mexico":
+// an "@" pointing at a "#"-numbered EPISODE is written as the separator it also is.
+//
+// Such a title says two things that cannot both be written. The "@" says the set was PLAYED
+// somewhere; the "#217" says the name behind it is a SERIES, counting its episodes. The series
+// is the half that can be CHECKED - a show numbers its episodes, a place does not - and an "@"
+// is everyday shorthand for "guest on" as readily as it is the joiner, so the series is what
+// the suggestion writes. The other half is neither refuted nor thrown away:
+//
+//   - the DATE stays a live recording's, the year alone. If the set really was played at that
+//     show, the upload date is not the day it was played, and claiming a day would be a guess
+//     either way (mdbTitle_atEpisodeRead, read in the date step).
+//   - the live reading is OFFERED as a "Switch title" chip, country and all
+//     ("2026 - Colossio @ Melodic Therapy 217, Mexico"), so the call is made in the open
+//     instead of silently - see the alternatives in mdbTitle_result.
+//
+// The "#" is what says it, and only the "#": it marks digits as a pure episode count and
+// nothing else in a title does - see the "#" section in title_definitions.js -
+// while a bare number behind a name is a venue's own as readily as an episode ("@ Club 69").
+// A tail naming an EVENT keeps its "@" whatever it counts: an event numbering its editions is
+// still the place the set was played at.
+//
+// Only an "@" with something in FRONT of it, and never the "at" spelling. A title opening on
+// the joiner names no artist of its own and is the channel's own set ("@ Some Show #12"), and
+// "at" carries the live markers with it ("Live at ..."), which have their own rules below.
+//
+// Runs next to mdbTitle_atDateSeparator at the top of mdbTitle_applyJoiners, for the same
+// reason: the parse and the chunk split both go through it and have to see the same title.
+function mdbTitle_atEpisodeSeparator( text ) {
+    var s = String( text || "" ),
+        eventRe = mdbTitle_eventWordRe(),
+        re = /\s*@\s*/g,
+        out = "",
+        last = 0,
+        m;
+
+    while( ( m = re.exec( s ) ) !== null ) {
+        if( !m[0].length ) { re.lastIndex++; continue; } // never loop forever
+
+        var after = s.slice( m.index + m[0].length ),
+            split = mdbTitle_bitSplitRe(),
+            next = split.exec( after ),
+            tail = mdbTitle_trimSeparators( next ? after.slice( 0, next.index ) : after ),
+            episode = tail ? mdbTitle_findEpisode( tail ) : null;
+
+        if( episode && episode.marked &&
+            !( eventRe && eventRe.test( tail ) ) &&
+            mdbTitle_trimSeparators( s.slice( last, m.index ) ) ) {
+            out += s.slice( last, m.index ) + " - ";
+            last = m.index + m[0].length;
+        }
+    }
+
+    return out + s.slice( last );
+}
+
 // mdbTitle_takeTrailingYear
 // A four-digit year ending the text, taken off together with the blank and a dangling comma
 // in front of it. Returns { text, year }, year "" when the text does not end in one. Something
@@ -686,6 +743,26 @@ function mdbTitle_confidence() {
     };
 }
 
+// mdbTitle_idIsName
+// Whether an id-shaped token ("UFO95", "RA.971") is really a NAME standing in the title, so
+// the episode finder has to leave it alone. Two ways a token says so:
+// - it touches an "@": what stands in front of the joiner is who played and what stands
+//   behind it is the place - the same both-sides rule mdbTitle_takeShowOutOfTitle holds to.
+//   "UFO95 LIVE @ DOMMUNE" on the channel "UFO95" is the artist's own name at a venue, and
+//   reading the name as an episode id turned the title inside out: the venue became the
+//   artist and the id went behind the channel-show ("Dommune - UFO95 (UFO95)"). Reported
+//   2026-08-20.
+// - MixesDB knows the token as a category of ANY type: digits can be part of a name ("UFO95",
+//   "Route 8", "Asa 808"), and only a real answer may say so (mdbTitle_knownNow - absent on
+//   the first parse, where the "@" rule is the cover). The whole token is asked, never its
+//   letter half: "RA" being a known podcast must not veto the id "RA.971".
+function mdbTitle_idIsName( text, index, length, token ) {
+    if( /^\s*@/.test( text.slice( index + length ) ) ) return true;
+    if( /@\s*$/.test( text.slice( 0, index ) ) ) return true;
+
+    return !!( mdbTitle_knownNow && mdbTitle_knownAs( mdbTitle_knownNow, token ) );
+}
+
 // mdbTitle_findEpisode
 // Returns { text, kind: "id"|"number", index, length } or null.
 // The digits are kept exactly as the title writes them - "SEVEN Mix 084" is episode "084",
@@ -702,6 +779,10 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     while( ( m = idRe.exec( text ) ) !== null ) {
         if( mdbTitle_episodeWords().indexOf( m[2].toLowerCase() ) === -1 ) {
             var lead = m[1] ? m[1].length : 0;
+
+            // a name is never an episode id - see mdbTitle_idIsName
+            if( mdbTitle_idIsName( text, m.index + lead, m[0].length - lead, m[2] + "." + m[3] ) ) continue;
+
             return {
                 text: m[2] + "." + m[3],
                 kind: "id",
@@ -773,6 +854,10 @@ function mdbTitle_findEpisode( text, entityKnown ) {
     while( ( m = gluedRe.exec( text ) ) !== null ) {
         if( mdbTitle_episodeWords().indexOf( m[2].toLowerCase() ) === -1 ) {
             var gluedLead = m[1] ? m[1].length : 0;
+
+            // a name is never an episode id - see mdbTitle_idIsName
+            if( mdbTitle_idIsName( text, m.index + gluedLead, m[0].length - gluedLead, m[2] + m[3] ) ) continue;
+
             return {
                 text: m[2] + m[3],
                 kind: "id",
@@ -1371,6 +1456,12 @@ function mdbTitle_applyJoiners( text ) {
     // an "@"/"at" in front of a pure date is no joiner at all - before every rule below, so
     // none of them reads the date as the place it was played at
     text = mdbTitle_atDateSeparator( text );
+
+    // an "@" in front of a "#"-numbered episode is the series it numbers, not the place it
+    // looks like - same place in the order, so no rule below reads that show as a venue. The
+    // live half of such a title is not lost here, it is carried by the build: see
+    // mdbTitle_atEpisodeSeparator and mdbTitle_atEpisodeRead.
+    text = mdbTitle_atEpisodeSeparator( text );
 
     var live = ( typeof mdbTitleLiveAtWords !== "undefined" && mdbTitleLiveAtWords ) ? mdbTitleLiveAtWords : [],
         venue = ( typeof mdbTitleVenueConnectors !== "undefined" && mdbTitleVenueConnectors ) ? mdbTitleVenueConnectors : [],
@@ -2040,12 +2131,13 @@ function mdbTitle_isCountry( name ) {
 }
 
 // mdbTitle_isLocationChunk
-// Whether a whole chunk reads as WHERE the artist is from: a list of place names separated by
-// "," or "/" whose LAST one is a country - "Ibiza/ Dusseldorf, Germany". At least TWO parts:
-// a country standing alone is an artist or a mix name as readily as a place ("Georgia",
-// "France", "Japan"), so a lone name never drops a chunk. Every part has to look like a place
-// NAME - short, no digits - or a sentence that happens to end in a country would go with it.
-// See mdbTitleCountries in title_definitions.js.
+// Whether a whole chunk reads as WHERE the artist is from ON ITS OWN: a list of place names
+// separated by "," or "/" whose LAST one is a country - "Ibiza/ Dusseldorf, Germany". At least
+// TWO parts: a country standing alone is an artist or a mix name as readily as a place
+// ("Georgia", "France", "Japan"), so a lone name is not this shape - where it still goes is a
+// question of what ELSE the title holds, which mdbTitle_locationChunkFlags below answers. Every
+// part has to look like a place NAME - short, no digits - or a sentence that happens to end in a
+// country would go with it. See mdbTitleCountries in title_definitions.js.
 function mdbTitle_isLocationChunk( chunk ) {
     var parts = String( chunk || "" ).split( /\s*[,\/;]+\s*/ ),
         i;
@@ -2061,10 +2153,66 @@ function mdbTitle_isLocationChunk( chunk ) {
     return true;
 }
 
+// mdbTitle_locationChunkFlags
+// Which of a title's chunks say WHERE the artist is from and go - one true/false per chunk, in
+// chunk order. The one reader of both location shapes, so the parse (mdbTitle_dropLocationChunks)
+// and the chunk split (mdbTitle_titleChunks) can never disagree about a title.
+//
+// A place LIST ending in a country goes on its own, see above. A LONE country goes only where
+// dropping it still leaves TWO chunks standing: a country alone is an artist or a mix name as
+// readily as a place ("Georgia", "France", "Japan"), so "Some Podcast 12 - Georgia" keeps it
+// and files the page under Georgia. Standing behind an artist AND an entity it can only be a
+// byline about the artist - the same thing the bracketed "(BE)" of "Adjust (BE) @ S.U.N
+// Festival" is, and the same thing a fourth group always turns out to be (see "The three
+// groups" in title_definitions.js):
+//
+//     "Colossio @ Melodic Therapy #217 - Mexico"  (channel "CONNECT")
+//     ->  2026 - Colossio - Melodic Therapy 217
+//
+// Which is also the rule's whole point: read as a place, that title had no chunk left for the
+// ARTIST but the country, and came out as "2026 - Mexico - Colossio @ Melodic Therapy 217".
+//
+// The long-form name only, never one of the list's codes: "CAN", "NO", "IT", "IN" and "US" are
+// everyday English words, and they are on mdbTitleCountries because a code is only ever read as
+// the last part of a place LIST, where nothing else can be. A lone chunk is not that place, so
+// it has to say the country in full.
+//
+// The caller runs this on a NON-live title only: behind the "@" the places are the venue's
+// city and country, which MixesDB writes.
+function mdbTitle_locationChunkFlags( chunks ) {
+    var flags = [],
+        lone = [],
+        lists = 0,
+        bit,
+        i;
+
+    for( i = 0; i < chunks.length; i++ ) {
+        bit = mdbTitle_trimSeparators( chunks[i] );
+
+        if( bit && mdbTitle_isLocationChunk( bit ) ) {
+            flags.push( true );
+            lists++;
+        } else {
+            flags.push( false );
+            if( bit && mdbTitle_isCountry( bit ) &&
+                mdbTitle_normalizeCompare( bit ).length > 3 ) lone.push( i );
+        }
+    }
+
+    // dropped left to right, and only while two chunks are left over for the two groups a
+    // MixesDB title is made of
+    for( i = 0; i < lone.length && chunks.length - lists - ( i + 1 ) >= 2; i++ ) {
+        flags[ lone[i] ] = true;
+    }
+
+    return flags;
+}
+
 // mdbTitle_dropLocationChunks
-// Takes the place lists out of a title - "Miss Luna | Ibiza/ Dusseldorf, Germany" (the
-// bracket became a chunk of its own long before this) loses the chunk that only says where
-// Miss Luna is from. Returns { text, dropped: [] }, built exactly like mdbTitle_dropBits.
+// Takes the places out of a title - "Miss Luna | Ibiza/ Dusseldorf, Germany" (the bracket
+// became a chunk of its own long before this) loses the chunk that only says where Miss Luna
+// is from. Which chunks those are is mdbTitle_locationChunkFlags' answer, the one the chunk
+// split reads too. Returns { text, dropped: [] }, built exactly like mdbTitle_dropBits.
 // The caller guards this with "no @ in the title": on a live recording the places are the
 // venue's city and country, which MixesDB writes - see mdbTitleCountries.
 function mdbTitle_dropLocationChunks( text ) {
@@ -2072,6 +2220,7 @@ function mdbTitle_dropLocationChunks( text ) {
 
     // the separator is captured, so parts reads [ chunk, sep, chunk, sep, chunk, ... ]
     var parts = result.text.split( new RegExp( "((?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+)" ) ),
+        chunks = [],
         kept = [],
         i;
 
@@ -2079,12 +2228,16 @@ function mdbTitle_dropLocationChunks( text ) {
     if( parts.length < 3 ) return result;
 
     for( i = 0; i < parts.length; i += 2 ) {
-        var bit = mdbTitle_trimSeparators( parts[i] );
+        chunks.push( mdbTitle_trimSeparators( parts[i] ) );
+    }
 
+    var flags = mdbTitle_locationChunkFlags( chunks );
+
+    for( i = 0; i < parts.length; i += 2 ) {
         // each chunk carries the separator that stood in FRONT of it, so dropping a chunk
         // drops that separator with it and never leaves a dangling " | " behind
-        if( bit && mdbTitle_isLocationChunk( bit ) ) {
-            result.dropped.push( bit );
+        if( flags[ i / 2 ] ) {
+            result.dropped.push( chunks[ i / 2 ] );
         } else {
             kept.push( { sep: i ? parts[i - 1] : "", text: parts[i] } );
         }
@@ -2417,22 +2570,21 @@ function mdbTitle_matchConfidence( name, matches, index, overruled ) {
         conf.drop( 25, "the wiki's category is spelled \"" + title + "\", not \"" + asked + "\"" );
     }
 
-    // 2) the mix count, worth little on purpose: it says how well the wiki knows the name, not
-    // whether the name is the right reading of these words. A category with 500 mixes can be the
-    // wrong word just as easily as one with two - so a full category vouches for nothing, and a
-    // near-empty one is only a small doubt about the name existing at all.
-    if( typeof mixes === "number" ) {
-        if( mixes <= 1 ) {
-            conf.drop( 10, "the category holds " + ( mixes === 1 ? "a single mix" : "no mixes yet" ) );
-        } else if( mixes < 5 ) {
-            conf.drop( 5, "the category holds only " + mixes + " mixes" );
-        }
+    // 2) the mix count, worth almost nothing on purpose: it says how well the wiki knows the
+    // name, not whether the name is the right reading of these words. A category with 500 mixes
+    // can be the wrong word just as easily as one with two - and a LOW count is no doubt either:
+    // 7 mixes back a name exactly as 298 do, and docking the smaller answer made the two look
+    // like a choice the number had settled (reported 2026-08-20, "UFO95" 80% next to "Dommune"
+    // 95%). Only a category holding NOTHING is a small doubt about the name at all.
+    if( typeof mixes === "number" && mixes === 0 ) {
+        conf.drop( 10, "the category holds no mixes yet" );
     }
 
     // 3) a single word is what a fragment of a longer name looks like, and with 57,000 artist
-    // categories almost every word is somebody. Charged only where the count does not vouch for
-    // the name anyway - "Trommel" with 29 mixes is a name, not a fragment.
-    if( typeof mixes === "number" && mixes < 10 && asked && asked.indexOf( " " ) === -1 ) {
+    // categories almost every word is somebody. Charged only where the category is all but
+    // empty and so cannot vouch for the name - a handful of mixes already says the name is
+    // real ("Trommel" with 29 is a name; so is "UFO95" with 7, which this used to dock).
+    if( typeof mixes === "number" && mixes < 3 && asked && asked.indexOf( " " ) === -1 ) {
         conf.drop( 20, "\"" + asked + "\" is a single word, and the mix count does not vouch for it" );
     }
 
@@ -3631,6 +3783,23 @@ var mdbTitle_promoDeclined = false;
 // itself, and only there - the first pass runs without the wiki's answers and never reduces.
 var mdbTitle_placeWordDropped = null;
 
+// mdbTitle_atEpisodeRead
+// Whether the title wrote an "@" in front of a "#"-numbered episode and the series reading won
+// it (mdbTitle_atEpisodeSeparator), false on every other title. Two things read it, and both
+// are about the half of the title that was NOT written: the date step, which claims the year
+// alone the way it does for every set that was played somewhere, and mdbTitle_result, which
+// offers the live reading as a "Switch title" chip. Set once per suggestion, by the BUILD's
+// call only - the chunk split runs the same rewrite, and a signal about the SUGGESTION belongs
+// to the build alone, exactly like mdbTitle_liveWordSeen above.
+var mdbTitle_atEpisodeRead = false;
+
+// mdbTitle_locationDropped
+// The LONE country 3h took out of a non-live title - "Mexico", "" on every other title. Kept
+// for the live chip above, which puts it back where a live title carries it: behind the place,
+// as the place group's own country ("@ Melodic Therapy 217, Mexico"). A place LIST is not kept:
+// it is a byline in any reading, never a place group MixesDB writes.
+var mdbTitle_locationDropped = "";
+
 // mdbTitle_slotPartRead
 // The slot the 3g2 branch read into a place group: { slot, event }, null on every other title.
 // "Obstgarten Closing" is where inside the night the set was played, and the page files under
@@ -4398,8 +4567,10 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
         placeFrom = mdbTitle_traceChunks( joined.slice( 0, atIdx ) ).length;
     }
 
+    var locations = live ? null : mdbTitle_locationChunkFlags( chunks );
+
     for( i = 0; i < chunks.length; i++ ) {
-        if( !live && mdbTitle_isLocationChunk( chunks[i] ) ) {
+        if( locations && locations[i] ) {
             removed.push( { text: chunks[i], reason: "location" } );
         } else {
             kept.push( chunks[i] );
@@ -4458,6 +4629,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_liveWordSeen = false;
     mdbTitle_promoDeclined = false;
     mdbTitle_placeWordDropped = null;
+    mdbTitle_atEpisodeRead = false;
+    mdbTitle_locationDropped = "";
     mdbTitle_slotPartRead = null;
     mdbTitle_monthOnlyName = "";
     mdbTitle_monthOnlyStamp = "";
@@ -4702,6 +4875,33 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             mdbTitle_traceStep( "\"@\" in front of a date read as a separator", rest + " -> " + atDated );
             rest = atDated;
             mdbTitle_traceCleaned( rest );
+        }
+
+        // 2c) And an "@" pointing at a "#"-numbered EPISODE - "Colossio @ Melodic Therapy #217"
+        // says a set was played somewhere AND that the name behind the "@" is a series counting
+        // its episodes, and only one of the two can be written. The series wins and the live
+        // reading is kept alive as a flag rather than dropped: it still decides the DATE (a set
+        // played somewhere is uploaded whenever it is ready) and it is offered back as a
+        // "Switch title" chip at the exit. See mdbTitle_atEpisodeSeparator.
+        // Its own step next to 2b rather than inside the joiner rewrite further down, because
+        // this is where the reading is DECIDED - the joiner rules run the rewrite again
+        // (mdbTitle_applyJoiners), which is what the chunk split goes through, and it is
+        // idempotent, so saying it twice costs nothing.
+        var atEpisode = mdbTitle_atEpisodeSeparator( rest );
+
+        if( atEpisode !== rest ) {
+            logVar( "buildMixesdbTitle: \"@\" in front of a numbered episode, read as the series", rest + " -> " + atEpisode );
+            mdbTitle_traceStep( "\"@\" in front of a \"#\"-numbered episode: read as the series, not as a place",
+                rest + " -> " + atEpisode );
+            rest = atEpisode;
+            mdbTitle_atEpisodeRead = true;
+            mdbTitle_traceCleaned( rest );
+
+            // a reading was PICKED between two the title states equally plainly, which is a
+            // guess about the recording however well the number argues for it
+            conf.drop( 5, "the title says both that the set was played somewhere (\"@\") and that the name " +
+                          "behind it is a series (a \"#\"-numbered episode) - it was read as the series, and the " +
+                          "live reading is offered as a switchable title" );
         }
 
         // 3) date. The creation date only DISAMBIGUATES a date written in the title
@@ -5029,6 +5229,21 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
                 date = live.date;
                 rest = live.group;
+
+            } else if( mdbTitle_atEpisodeRead && mdbTitle_yearOf( date ) ) {
+                // 2c read the title as the series it numbers itself as, but the "@" the
+                // uploader typed still says the set was PLAYED at that show - and a set played
+                // somewhere goes up whenever the recording is ready. So the day is not claimed
+                // here either: the year is what both readings agree on. No month is read out of
+                // the rest the way mdbTitle_liveDate reads one out of a place group - outside a
+                // place name a bare month is part of a name far more often than it is a date.
+                logVar( "buildMixesdbTitle: \"@\" over a numbered episode, only the year is claimed", date + " -> " + mdbTitle_yearOf( date ) );
+                conf.drop( 10, "only the year is known - the title's \"@\" says the set was played at the show it " +
+                               "numbers, and a set played somewhere is uploaded whenever the recording is ready, " +
+                               "not on the day it was played" );
+
+                date = mdbTitle_yearOf( date );
+
             } else {
                 conf.drop( 15, uploadDateReason );
             }
@@ -5046,6 +5261,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             if( locations.dropped.length ) {
                 logVar( "buildMixesdbTitle: location chunks dropped", locations.dropped.join( " | " ) );
                 conf.drop( 3, "\"" + locations.dropped.join( "\", \"" ) + "\" was left out - it says where the artist is from, which a mix page title does not carry" );
+
+                // A LONE country is the one a live reading would carry behind the place, as the
+                // place group's own country - kept for the "Switch title" chip, which is the
+                // only reader. A place list is a byline in every reading and is not kept.
+                for( var lc = 0; lc < locations.dropped.length; lc++ ) {
+                    if( mdbTitle_isCountry( locations.dropped[lc] ) ) mdbTitle_locationDropped = locations.dropped[lc];
+                }
 
                 // The chunk section's "Removed:" line already names what the shared split
                 // took out - a step here would say it twice. Only drift is worth a line: a
@@ -6038,6 +6260,88 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         entity = mdbTitle_canonicalName( mdbTitle_knownNow, entity, mdbTitle_entityTypes );
     }
 
+    // The wiki's role answers are never used and argued AGAINST in one breath: a title read as
+    // "<place> - <artist>" - a venue in the artist slot, an artist standing as the show - files
+    // the page exactly backwards, and every answer needed to see it is already in hand.
+    // Reported 2026-08-20: "UFO95 LIVE @ DOMMUNE" came out as "Dommune - UFO95 (UFO95)" with
+    // the wiki answering artist for UFO95 and venue for Dommune all along. Where MixesDB knows
+    // the name in the ARTIST slot only as a venue/event and the name in the ENTITY slot only
+    // as an artist, the two are put the wiki's way round, in the live form those two types
+    // spell: "<artist> @ <place>". At the exit like the reductions below, so every branch that
+    // can leave the slots crossed is covered by the one rule. Narrow on purpose: a name the
+    // wiki also knows in its slot's own role keeps the slot ("fabric" the artist stays one), a
+    // series answer keeps the entity a series, a promo keeps the mix's own name in the slot,
+    // and an episode blocks the flip unless it is one of the two names misread - a real
+    // number says the entity really numbers its episodes.
+    if( mdbTitle_knownNow && artist && entity && !promoMix && artist.indexOf( "@" ) === -1 ) {
+        var slotPlace  = mdbTitle_knownMatch( mdbTitle_knownNow, artist, [ "venue", "event" ] ),
+            slotArtist = mdbTitle_knownMatch( mdbTitle_knownNow, artist, [ "artist" ] ),
+            showArtist = mdbTitle_knownMatch( mdbTitle_knownNow, entity, [ "artist" ] ),
+            showSeries = mdbTitle_knownMatch( mdbTitle_knownNow, entity, mdbTitle_entityTypes ),
+            showPlace  = mdbTitle_knownMatch( mdbTitle_knownNow, entity, [ "venue", "event" ] ),
+            episodeIsName = !episode ||
+                mdbTitle_normalizeCompare( episode.text ) === mdbTitle_normalizeCompare( entity ) ||
+                mdbTitle_normalizeCompare( episode.text ) === mdbTitle_normalizeCompare( artist );
+
+        if( slotPlace && !slotArtist && showArtist && !showSeries && episodeIsName ) {
+            var flippedArtist = mdbTitle_canonicalName( mdbTitle_knownNow, entity, [ "artist" ] ),
+                flippedPlace  = mdbTitle_canonicalName( mdbTitle_knownNow, artist, [ "venue", "event" ] );
+
+            logVar( "mdbTitle_result: artist and place put the wiki's way round",
+                    artist + " - " + entity + " -> " + flippedArtist + " @ " + flippedPlace );
+            mdbTitle_traceStep( "Artist and place put the wiki's way round",
+                artist + " - " + entity + " -> " + flippedArtist + " @ " + flippedPlace +
+                " - MixesDB knows \"" + flippedArtist + "\" only as an artist and \"" + flippedPlace +
+                "\" only as a " + slotPlace.type + ", so the parse had the two slots crossed" );
+
+            conf.drop( 10, "the parse read \"" + flippedPlace + "\" as the artist and \"" + flippedArtist +
+                           "\" as the show - MixesDB knows them the other way round (a " + slotPlace.type +
+                           " and an artist), so the title was put into the live form; check that it reads right" );
+
+            // the deciding branch writes the sentences - this one asked the wiki, so it may say so
+            if( mdbTitle_trace && mdbTitle_trace.picks ) {
+                mdbTitle_trace.picks = {
+                    artist: "MixesDB knows \"" + flippedArtist + "\" as an artist and not as a series - " +
+                            "the parse had the name standing as the show, and the wiki's answer is what put it in front of the \" @ \"",
+                    entity: "MixesDB knows \"" + flippedPlace + "\" as a " + slotPlace.type + " and not as an artist, " +
+                            "so the title reads as a set PLAYED there - the parse had the two names the other way round"
+                };
+            }
+
+            artist = flippedArtist + " @ " + flippedPlace;
+            entity = "";
+            episode = null;
+
+        // The same answers the other way round: the ARTIST slot already holds the artist, but
+        // the name standing as the show is one the wiki knows ONLY as a venue/event - a set
+        // played somewhere, written as if the place were a series ("UFO95 - Dommune"). The
+        // place goes behind an " @ " where it belongs; nothing about the artist changes.
+        } else if( !slotPlace && showPlace && !showArtist && !showSeries &&
+                   ( !episode || mdbTitle_normalizeCompare( episode.text ) === mdbTitle_normalizeCompare( entity ) ) ) {
+            var placeName = mdbTitle_canonicalName( mdbTitle_knownNow, entity, [ "venue", "event" ] );
+
+            logVar( "mdbTitle_result: the entity is a place, written as the live form",
+                    artist + " - " + entity + " -> " + artist + " @ " + placeName );
+            mdbTitle_traceStep( "The show slot names a place",
+                artist + " - " + entity + " -> " + artist + " @ " + placeName +
+                " - MixesDB knows \"" + placeName + "\" only as a " + showPlace.type +
+                ", and a place is where a set was played, never the series it belongs to" );
+
+            conf.drop( 10, "the parse read \"" + placeName + "\" as a show - MixesDB knows it only as a " +
+                           showPlace.type + ", so the title was put into the live form; check that it reads right" );
+
+            // the deciding branch writes the sentence - this one asked the wiki, so it may say so
+            if( mdbTitle_trace && mdbTitle_trace.picks ) {
+                mdbTitle_trace.picks.entity = "MixesDB knows \"" + placeName + "\" as a " + showPlace.type +
+                    " and not as a series, so the title reads as a set PLAYED there and the name goes behind the \" @ \"";
+            }
+
+            artist = artist + " @ " + placeName;
+            entity = "";
+            episode = null;
+        }
+    }
+
     // An entity written as the channel's initials plus a number is the channel's series
     // abbreviating itself - "DSS 140" on "Deep Space Series" - and files under the full name
     // with the title's own id in brackets. At the exit like the reductions below, so every
@@ -6357,6 +6661,37 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                         " and the page files under \"" + mdbTitle_slotPartRead.event + "\" either way." +
                         " Where the slot is not worth naming, the title carries the event alone."
             } );
+        }
+
+        // The live reading of a title that wrote an "@" in front of a "#"-numbered episode.
+        // 2c wrote the series, because that is the half a number can prove - but the "@" is the
+        // uploader's own, and where the show really is a venue or an event this is how MixesDB
+        // writes it. The country 3h took off the title comes back with it, as the place group's
+        // own country ("@ Melodic Therapy 217, Mexico"), which is exactly where a live title
+        // carries it. The filing does not move: a place group is filed under its place and a
+        // country is never a category, so both readings put the page under the same name.
+        // Read off the finished TITLE, not off the groups above, so the chip's toggle searches
+        // for the words the field really holds.
+        if( mdbTitle_atEpisodeRead ) {
+            var altGroups = title.split( " - " ),
+                altPlace = altGroups.length > 2 ? altGroups.slice( 2 ).join( " - " ) : "";
+
+            // Never onto an entity carrying a bracketed marker ("(Promo Mix)", "(RA.971)"):
+            // the toggle would write the bracket into the middle of a place group, and a
+            // marker is not a place to have played at anyway.
+            if( altPlace && title.indexOf( " @ " ) === -1 && !/\)\s*$/.test( altPlace ) ) {
+                alternatives.push( {
+                    kind: "liveAt",
+                    place: altPlace,
+                    city: mdbTitle_locationDropped,
+                    reason: "The title writes an \"@\" in front of \"" + altPlace + "\", which says the set was PLAYED there," +
+                            " and a \"#\"-numbered episode, which says it is a series - and only one of the two can be written." +
+                            " The series was written, because a show numbers its episodes and a place does not." +
+                            ( mdbTitle_locationDropped
+                                ? " On the live reading the \"" + mdbTitle_locationDropped + "\" behind it is the place's country, not where the artist is from."
+                                : "" )
+                } );
+            }
         }
 
         // A chunk 1c dropped is never offered back - a "Part 2" above all. The parts of one

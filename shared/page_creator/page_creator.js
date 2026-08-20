@@ -724,6 +724,10 @@ function mdbPageCreator_categoryEntries( title ) {
     if( read.year ) entries.push( { name: read.year, role: "year" } );
 
     for( i = 0; i < read.artists.length; i++ ) {
+        // a country never files as an artist (mdbPageCreator_countryNoCategory) - the name
+        // may stay in the TITLE, but no category line and no chip is written off it
+        if( mdbPageCreator_countryNoCategory( read.artists[i], [ "artist" ] ) ) continue;
+
         entries.push( mdbPageCreator_categoryEntry( read.artists[i], "artist" ) );
     }
 
@@ -753,6 +757,10 @@ function mdbPageCreator_categoryEntries( title ) {
             entityEntry.alsoNamed = true;
             entityEntry.why = entityCategories[i].why;
         }
+
+        // a country never files as the entity either - same rule as the artists above
+        if( entityEntry.role === "entity" &&
+            mdbPageCreator_countryNoCategory( entityEntry.name, null ) ) continue;
 
         entries.push( entityEntry );
     }
@@ -865,6 +873,21 @@ function mdbPageCreator_categoryEntry( name, role ) {
     }
 
     return { name: match.title, titleName: name, role: role };
+}
+
+// mdbPageCreator_countryNoCategory
+// Whether a name is a COUNTRY the wiki does not answer for in the given role - a name that
+// must never become a category line or a chip. MixesDB writes countries into titles (behind
+// an event: "@ S.U.N Festival, Hungary") and files nothing under them, so a country in a
+// category slot is always a misread - and creating [[Category:Georgia]] off one would found
+// the very category the wiki refuses to have. The single exception is the wiki's own answer:
+// an act really called like the place answers as an artist, and that answer may keep it.
+function mdbPageCreator_countryNoCategory( name, types ) {
+    if( typeof mdbTitle_isCountry !== "function" || !mdbTitle_isCountry( name ) ) return false;
+
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {};
+
+    return !mdbTitle_knownMatch( cache, name, types );
 }
 
 // mdbPageCreator_entityCategoryFor
@@ -1706,14 +1729,20 @@ function mdbPageCreator_logHints( summary ) {
 
 // mdbPageCreator_usedCategoryState
 // What the wiki says about one category name, as data - so the markup below and the log line
-// above can never tell two different stories about the same name. One of four verdicts:
+// above can never tell two different stories about the same name. One of five verdicts:
 //
-// - known    MixesDB has the category; .match carries its own spelling, type and mix count
-// - missing  MixesDB was asked and has no such category
-// - unknown  MixesDB has not been asked (yet) - no answer either way
-// - plain    not a name the wiki is asked about at all - the year, a style, "Promo Mix", the
-//            "Tracklist:" filing. There is no verdict to have about these, only the fact that
-//            the page gets them.
+// - known     MixesDB has the category; .match carries its own spelling, type and mix count
+// - otherRole MixesDB has the category, but not in the role the page would file it as -
+//             "Dommune" standing as the page's ARTIST while the wiki knows it as a venue.
+//             .match carries what it IS. Never folded into "missing": in a wiki red means
+//             "no such page", and a reader following a red "Dommune" to its search found
+//             Category:Dommune standing right there (reported 2026-08-20). The mismatch is
+//             not about the category existing - it says the title's roles are probably wrong.
+// - missing   MixesDB was asked and has no such category under any type
+// - unknown   MixesDB has not been asked (yet) - no answer either way
+// - plain     not a name the wiki is asked about at all - the year, a style, "Promo Mix", the
+//             "Tracklist:" filing. There is no verdict to have about these, only the fact that
+//             the page gets them.
 //
 // Read the same way the reasoning panel's category rows read it, off the same cache, so the
 // two can never contradict each other: an artist has to be known AS an artist, an entity as
@@ -1725,6 +1754,12 @@ function mdbPageCreator_usedCategoryState( entry ) {
         match = mdbTitle_knownMatch( cache, entry.name, entry.role === "artist" ? [ "artist" ] : null );
 
     if( match ) return { verdict: "known", match: match };
+
+    // the category exists under another type - only the artist slot can land here, the
+    // entity slot already accepts any type above
+    var other = mdbTitle_knownMatch( cache, entry.name, null );
+
+    if( other ) return { verdict: "otherRole", match: other };
 
     return { verdict: mdbPageCreator_categoryUnanswered( entry.name ) ? "unknown" : "missing", match: null };
 }
@@ -2211,6 +2246,11 @@ function mdbPageCreator_categoryFitScore( entry, state, title ) {
 //            mdbPageCreator_usedCatMixes). The link carries the WIKI's spelling, which is the
 //            page that really exists; where that differs from what the title writes, the
 //            tooltip says so, since that difference is a refinement worth making.
+// - otherRole yellow like the "Similar:" chips, linked to the category page: the category
+//            EXISTS - red would say it does not - but the wiki knows the name as something
+//            the page's filing does not say ("Dommune" the venue as the page's artist). A
+//            look to take, not a verdict: what is probably wrong is the title's roles, and
+//            the tooltip says so.
 // - missing  red, and the name IS the search link, the flat loupe behind it saying so - there
 //            is no category page to open, and the search is the point: a red name is either
 //            new or misspelled, and only a look at what MixesDB does have under that name
@@ -2263,6 +2303,27 @@ function mdbPageCreator_usedCategory( entry, state, title ) {
         // mdbPageCreator_usedCatMixes.
         mdbPageCreator_usedCatMixes( out, entry, state.match,
             title ? mdbPageCreator_categoryFitScore( entry, state, title ) : null );
+
+        return out;
+    }
+
+    if( state.verdict === "otherRole" ) {
+        var otherSpelled = state.match.title || entry.name,
+            otherType = String( state.match.type || "category" );
+
+        out.addClass( "mdb-pageCreator-usedCat-otherRole" ).append(
+            $("<a>")
+                .attr( "href", mdbPageCreator_categoryUrl( otherSpelled ) )
+                .attr( "target", "_blank" )
+                .attr( "title", "MixesDB has this category, but knows \"" + otherSpelled + "\" as a " + otherType +
+                       " - not as an artist, which is how this page would file it. The roles in the title above are" +
+                       " probably the wrong way round - check them before creating. Opens [[Category:" + otherSpelled + "]]." )
+                .text( entry.name )
+        );
+
+        // the count toggle a green chip carries, no fit score: the fit would rate the answer
+        // as a filing in this role, which is exactly what the chip is doubting
+        mdbPageCreator_usedCatMixes( out, entry, state.match, null );
 
         return out;
     }
@@ -2773,6 +2834,34 @@ function mdbPageCreator_altToggle( title, fact ) {
 
         if( slotRe.test( title ) ) {
             return { title: title.replace( slotRe, "$1" + fact.text + ", $2" ), adding: true };
+        }
+
+        return null;
+    }
+
+    // The live reading of a title that wrote an "@" in front of a "#"-numbered episode
+    // ("2026 - Colossio - Melodic Therapy 217" <-> "2026 - Colossio @ Melodic Therapy 217,
+    // Mexico"). Toggled on the ENTITY group the fact names, at the end of the title, which is
+    // where that name stands in either reading - and the country goes with it, since a live
+    // title carries it behind the place and a series title does not carry it at all. The
+    // filing does not move: a place group is filed under its place, a country is never a
+    // category, so both readings put the page under the same name.
+    if( fact.kind === "liveAt" && fact.place ) {
+        var placeTail = mdbTitle_escapeRe( fact.place ) +
+                        ( fact.city ? "(?:\\s*,\\s*" + mdbTitle_escapeRe( fact.city ) + ")?" : "" ),
+            liveRe = new RegExp( "\\s+@\\s*" + placeTail + "\\s*$", "i" );
+
+        if( liveRe.test( title ) ) {
+            return { title: title.replace( liveRe, " - " + fact.place ), adding: false };
+        }
+
+        var showRe = new RegExp( "\\s*[-\u2013]\\s*" + mdbTitle_escapeRe( fact.place ) + "\\s*$", "i" );
+
+        if( showRe.test( title ) ) {
+            return {
+                title: title.replace( showRe, " @ " + fact.place + ( fact.city ? ", " + fact.city : "" ) ),
+                adding: true
+            };
         }
 
         return null;

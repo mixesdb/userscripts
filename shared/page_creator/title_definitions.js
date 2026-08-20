@@ -263,7 +263,12 @@ var mdbTitlePromoMixImpliedWords = [
  *
  * The "@" is what says it, whichever rule put it there: the words of mdbTitleLiveAtWords, the
  * mdbTitleVenueConnectors, an event name (mdbTitleEventWords), a venue MixesDB knows, or an "@"
- * the uploader typed. All of them mean the same thing, so they get the same date.
+ * the uploader typed. All of them mean the same thing, so they get the same date. An "@" in
+ * front of a DATE is none of them and is read as the separator it is long before this, since a
+ * date is not a place. An "@" in front of a "#"-numbered EPISODE is the one case where the
+ * title comes out as a SERIES and still gets this date: the series is what is written, but the
+ * "@" is the uploader's own and a set played somewhere is uploaded whenever it is ready, so the
+ * day is not claimed there either (see the "#" section below).
  *
  * A MONTH refines that year, and only there:
  *
@@ -1193,6 +1198,37 @@ var mdbTitleGuestMarkers = [
  * 496 Fadi Mohem" has the channel name to say where the entity ends): behind an unmarked
  * number a word is far more often part of the name ("Deep House Mix 2 Hours") than an
  * artist glued on.
+ *
+ * The same "#" is also what settles a title against an "@". No PLACE is on episode 217, so a
+ * title writing both says two things that cannot both be written - the "@" that the set was
+ * PLAYED somewhere, the "#217" that the name behind it is a SERIES:
+ *
+ *     "Colossio @ Melodic Therapy #217 - Mexico"  (channel "CONNECT")
+ *     WRONG: 2026 - Mexico - Colossio @ Melodic Therapy 217
+ *     RIGHT: 2026 - Colossio - Melodic Therapy 217
+ *     and offered next to it: 2026 - Colossio @ Melodic Therapy 217, Mexico
+ *
+ * The SERIES is written, because it is the half that can be checked: a show numbers its
+ * episodes, a place does not, and an "@" is everyday shorthand for "guest on" as readily as it
+ * is the joiner. Neither half of the title is thrown away, though:
+ *
+ * - the DATE stays a live recording's, the year alone. If the set really was played at that
+ *   show, the upload date is not the day it was played - see "The date of a live recording".
+ * - the live reading is OFFERED as a "Switch title" chip, with the country back behind the
+ *   place, where a live title carries it. The page files under the same name either way.
+ *
+ * What the wrong reading cost is worth naming, because it is the worst shape a title can come
+ * out in: with the show read as the venue, the country was the only chunk left over for the
+ * ARTIST slot, so "Mexico" was filed as the artist while Colossio stood right there in front of
+ * the "@". A country is never a name where the title offers one - see mdbTitleCountries.
+ *
+ * Only the "#" spelling does this: a bare number behind a name is a venue's own as readily as
+ * an episode ("@ Club 69"). A tail naming an EVENT keeps its "@" whatever it counts, since an
+ * event numbering its editions is still the place the set was played at, and a title OPENING on
+ * the "@" keeps it too - there the channel is who played, and no artist stands in front to be
+ * cut loose from. mdbTitle_atEpisodeSeparator in title_builder.js, next to the same rule for a
+ * date ("Ingo Sanger @ August 2026"), which is the older and simpler half of it: a date is
+ * never a place, while a series and a place are two readings of one name.
  */
 
 
@@ -1811,11 +1847,29 @@ var mdbTitleDroppedBitPatterns = [
  * places next to the venue are the venue's city and country, which MixesDB DOES write
  * ("@ Ritter Butzke, Berlin"), so a live title keeps every place it names.
  *
- * A country standing ALONE never drops a chunk: "Georgia", "France" and "Japan" are artists
- * and mix names as readily as countries, and a lone name says too little. The reported shape
- * is the LIST ending in a country, and only that is matched - which is also what keeps
- * "Techno Germany Podcast 226" safe, where the country stands inside a name rather than
- * ending a place list.
+ * A country standing ALONE says too little on its own: "Georgia", "France" and "Japan" are
+ * artists and mix names as readily as countries, so a lone one is kept wherever it could BE a
+ * group of the title - "Some Podcast 12 - Georgia" files the page under Georgia. Only that is
+ * matched, which is also what keeps "Techno Germany Podcast 226" safe, where the country stands
+ * inside a name rather than ending a place list.
+ *
+ * It drops on one condition, and the condition is COUNTING: two chunks are left standing
+ * without it. A MixesDB title is made of three groups (see "The three groups" above), so a
+ * country behind an artist AND an entity is a fourth one, and a fourth group is always
+ * something that belongs to another group or to no title at all. Here it is the byline the
+ * bracket writes one line down, only without the bracket:
+ *
+ *     "Colossio @ Melodic Therapy #217 - Mexico"  (channel "CONNECT")
+ *     WRONG: 2026 - Mexico - Colossio @ Melodic Therapy 217
+ *     RIGHT: 2026 - Colossio - Melodic Therapy 217
+ *
+ * That WRONG line is the reason the rule exists: the country was not merely carried along, it
+ * took the ARTIST slot while Colossio stood right there in the title. A country is a name only
+ * where the title offers no other, and never where it would be a group too many.
+ *
+ * In FULL, never as one of the codes below: a code is only ever read as the last part of a
+ * place list, which is what makes it safe to list everyday words like "CAN" and "NO" at all
+ * (see further down). A lone " - US" chunk stays where it stands.
  *
  * A BRACKET is the exception to both of those rules (mdbTitle_dropLocationBrackets in
  * title_builder.js, from the "MNMT Recordings : Adjust (BE) @ S.U.N Festival" report): a
@@ -1841,10 +1895,11 @@ var mdbTitleDroppedBitPatterns = [
  * and the two-letter code ("France", "FRA", "FR").
  *
  * Some of those codes are everyday English words ("CAN", "NO", "IT", "IN", "US"). They are
- * safe HERE and would not be safe on a list matched against words of the title: a name only
- * counts as a location as the LAST part of a place list ("Toronto, CAN"), never on its own,
- * so the word inside a title is never even asked about. That guard is the reason the list may
- * hold them, and the reason a lone "Georgia" still comes out as the artist it usually is.
+ * safe HERE and would not be safe on a list matched against words of the title: a CODE only
+ * counts as a location as the LAST part of a place list ("Toronto, CAN"), never on its own and
+ * never as the lone country of the rule above, so the word inside a title is never even asked
+ * about. That guard is the reason the list may hold them, and the reason a lone "Georgia" still
+ * comes out as the artist it usually is.
  *
  * Two codes are deliberately NOT here. "SA" names Saudi Arabia as much as South Africa, and a
  * code that names two countries names neither. "ARE" (the UAE's three-letter code) is an

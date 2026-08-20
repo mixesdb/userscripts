@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.20.23
+// @version      2026.08.20.25
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,10 +13,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_120
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_41
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_66
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_44
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_68
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_101
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_103
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -35,7 +35,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 166,
+var cacheVersion = 167,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 
@@ -1965,6 +1965,40 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.20.25
+ * The page creator's title builder and hints bar learned four rules from a SoundCloud report
+ * ("UFO95 LIVE @ DOMMUNE"). (1) A NAME is never read as an episode id (title_builder.js
+ * v_68): the artist's own "UFO95" was consumed as a glued id, which made the venue the
+ * artist and filed the page under [[Category:Dommune]] as its ARTIST. An id-shaped token
+ * touching an "@" is a name, and so is one MixesDB knows as a category of any type. (2) The
+ * wiki's role answers are never used and argued against in one breath: slots holding a
+ * venue/event where the artist belongs (or a place standing as the show) are put the wiki's
+ * way round at the exit, into the live "<artist> @ <place>" form (mdbTitle_result). (3) A
+ * category chip whose name EXISTS under another type is never RED any more (page_creator.js
+ * v_103, page_creator.css): red is a wiki's "no such page". Such a chip is yellow like
+ * "Similar:", links the category itself and says what is really in doubt - the title's
+ * roles. (4) The panel's % no longer docks a name for holding FEW mixes: 7 mixes back a name
+ * exactly as 298 do, and the count never spoke to the artist/entity decision. And a COUNTRY
+ * never files as an artist or entity and never becomes a chip - no category line is written
+ * off one unless the wiki itself answers for the name. 145 examples, all pass.
+ *
+ * 2026.08.20.24
+ * A title that writes an "@" in front of a "#"-numbered EPISODE is read as the SERIES now, with
+ * the live reading offered next to it (title_builder.js v_67, title_definitions.js v_44,
+ * page_creator.js v_102, from a SoundCloud report on "Colossio @ Melodic Therapy #217 -
+ * Mexico"): such a title says two things that cannot both be written, and read as a live
+ * recording it came out as "2026 - Mexico - Colossio @ Melodic Therapy 217" - the country in the
+ * ARTIST slot with the artist standing right there in front of the "@". The series wins, since a
+ * show counts its episodes and a place does not; the date stays a gig's (the year alone) and the
+ * live reading is a "Switch title" chip, country and all ("2026 - Colossio @ Melodic Therapy
+ * 217, Mexico"), filed under the same name either way. Only the "#" spelling does this
+ * ("@ Club 69" keeps its joiner), and an event keeps its "@" however it numbers its editions.
+ * The same report's other half: a LONE country is left out of the written title wherever it
+ * would be a group too many - behind an artist AND an entity it is where the artist is from -
+ * and it is no chunk and no lookup candidate there either. Only written in full and only with
+ * two chunks left standing: "Some Podcast 12 - Georgia" still files under Georgia.
+ * 144 examples, all pass.
  *
  * 2026.08.20.23
  * The "Similar:" row now asks about the names the TITLE writes too, not only about the bar's
