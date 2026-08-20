@@ -65,7 +65,10 @@ creating the page.
 
 The [style suggestions](#style-suggestions) fill the new page's style categories the same way:
 whatever is in that box when **Create** is clicked, so correct it there first. Without
-suggestions the page keeps the two empty category rows to fill in by hand.
+suggestions a style at least 90% of the entity's recent MixesDB pages carry takes a row – only
+where MixesDB files that name under `Category:Style`, so a festival or a venue those pages share
+stays a hint under the row – and whatever is left of the two rows stays empty to fill in by
+hand.
 
 Other players (Mixcloud, YouTube, hearthis.at) do not get the row yet.
 

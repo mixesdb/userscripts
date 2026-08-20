@@ -502,24 +502,37 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   The entity CHIP says the first one too, in its tooltip: the category exists, so the chip is
   green, but the page would join that venue's category and only the editor can tell whether
   that is right.
-- **What the sibling pages SHARE is reported, never written** (2026-08-19, reported on the
-  DEEP & HAZY / Undercurrent mix, where `Amsterdam Dance Event` appeared among the new page's
-  categories with nothing on screen saying where it came from). Signal C used to fill the
-  page's style lines. It no longer fills anything: the vote answers "what do these pages have
-  in COMMON", which is not "what does this mix sound like". Category:Undercurrent shows both
-  halves at once - its 10 newest pages carry Techno 5, House 3, Tech House 2, so no style
-  clears the 90% bar, while `Amsterdam Dance Event` stands on all 10, because the venue's
-  MixesDB pages are sets from four different ADE editions. The finding is now a HINT:
-  `mdbPageCreator_recentHintCategories()` feeds the bar's "Hints:" row (chip + a note saying
-  which pages it came off) and the block closing section 6, where the same lines are plain
-  text - the panel is reading, not a place to click a category open. The created page keeps
-  its two empty style rows, which the editor fills.
-  A rejected first attempt is worth recording, so it is not built again: classifying the
-  learned name with `mdbnames` (it answers empty about `Techno`/`House`/`Deep House` and with
-  a type about `Amsterdam Dance Event`) and writing the ones that came back empty. It worked
-  and it was too clever - a second request, a filter with three states (known/pending/failed)
-  and a page still filed on a guess, where the honest answer is that the script cannot tell a
-  style from a coincidence and should say what it saw instead.
+- **What the sibling pages SHARE is written only where MixesDB calls it a STYLE**
+  (2026-08-20; the vote itself is signal C, unchanged at 90%). The vote answers "what do these
+  pages have in COMMON", which is not "what does this mix sound like", and Category:Undercurrent
+  shows both halves at once - its 10 newest pages carry Techno 5, House 3, Tech House 2, so no
+  style clears the bar, while `Amsterdam Dance Event` stands on all 10, because the venue's
+  MixesDB pages are sets from four different ADE editions. Between 2026-08-19 and 2026-08-20
+  that made the whole finding a hint and nothing was written; reported back on
+  `Amplify Series 138`, whose category carries `Techno` on 10 of 10 and whose new page still
+  came out with two blank style rows.
+  So the split is not guessed, it is ASKED: `mdbPageCreator_styleCatFetch()` sends one
+  `prop=categories&clcategories=Category:Style` request over the winning names (cached per name
+  in `mdbPageCreator_styleCatCache`, never reset - styles repeat across entities, so the second
+  Techno series costs no request), and `mdbPageCreator_recentLearnedCategories()` splits the
+  winners on the answer: a name the wiki files under `Category:Style` goes into the page's style
+  lines (at most two, the rest of the block keeps its blank rows), everything else stays the
+  HINT it was - `mdbPageCreator_recentHintCategories()` feeds the bar's "Hints:" row (chip + a
+  note saying which pages it came off) and the block closing section 6, where the same lines are
+  plain text. Pending and failed answers write nothing: only "yes" writes.
+  The written style chip is a PLAIN grey one on the "Used categories" row, like `Promo Mix` and
+  the year (asked for on 2026-08-20, after a first cut made it green and linked): it is a
+  category the page gets like every other on that row, and the row's colours answer "could the
+  wiki spell this differently", which is not a question about a style. What it must keep doing is
+  say where it came from - its tooltip (`mdbPageCreator_plainCategoryNote`) and the panel's
+  category row name the pages it was learned off, because a filing the editor did not make has to
+  be traceable.
+  A rejected first attempt is worth recording, so it is not built again: classifying the learned
+  name with `mdbnames` (it answers empty about `Techno`/`House`/`Deep House` and with a type
+  about `Amsterdam Dance Event`) and writing the ones that came back EMPTY. Same request cost,
+  but it infers a style from silence - a name MixesDB simply does not have yet reads as a style
+  and gets filed. Asking `Category:Style` has the wiki say what the name IS, which is the same
+  question the editor would ask.
 - **The same call also brings those pages' wikitext, which shapes the new page's text**
   (`mdbPageCreator_recentPageTextFindings()`, applied in `mdbPageCreator_pageText()` /
   `_categoryEntries()`) -
@@ -601,7 +614,7 @@ mirror of this table - keep the two in step):
 | 1 | Category lookup rework: case-insensitive, all types, canonical spelling into the title | `mixesdb_api_request.md` | **DONE 2026-08-16** on the live `action=mdbnames` |
 | 2 | Double-check info in the row: category links + family via `match=prefix`, sibling titles recent + around the mix date | `row_enrichment.md` §1-2 | **category links DONE 2026-08-18** as the hints bar (`mdbPageCreator_renderHints()`) - the artist and entity categories as green/red chips (a red name searches MixesDB, marked by a loupe), off the answers the title lookup already has. Since 2026-08-19 the line names EVERY category the page text writes, in its order: the year, the styles, "Promo Mix" and the `Tracklist:` filing ride along as plain grey chips without link or count (verdict `plain`, `mdbPageCreator_plainCategoryNote()`) - they are no name the wiki could spell differently, but leaving them out read as if the page did not get them. An artist or an entity is still required for the line to appear at all. **Recent siblings DONE the same day**: the lookup asks `recentlimit=10` - since 2026-08-19 the server attaches `recent` to EVERY type, artists included, and sorts it by sortkey, so the chip usually needs no request of its own - `mdbPageCreator_usedCatFetchRecent()` is the fallback for the chip clicked before its pages are in (a name edited into the title is answered a moment before them), and the chip stands open on a waiter while it runs - and every green chip's mix count toggles the pages open, ONE chip at a time since 2026-08-19 and in a box hung UNDER the chip since the same day (CSS-only: the list stays the chip's child, `position:absolute` off the chip - the chip keeps its exact size, so the line never moves, and the box lies over what follows until folded shut; inside the chip it dragged the line apart, as a full-width row it tore chip and list into two unrelated things) (on desktop the chips' links open a MixesDB modal, `mdbPageCreator_modalOpen()`, prefetched - and since 2026-08-19 the arrow keys step it through every link the bar has on screen, `mdbPageCreator_modalStep()`). Family and the around-the-date window still open, fully unblocked - `match=prefix` + `matchedTitle` + `matchType` went LIVE 2026-08-16 (verified; row-only - the title builder stays on exact match) |
 | 3 | Duplicate protection: `insource:` mirror-URL check in the toolkit's player search, and the Create-click sanity check with the two-step "Yes, still create" button | `row_enrichment.md` §3-4 | open, nothing blocks it |
-| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension - the live recordings among the siblings do not vote on it since 2026-08-19, `mdbPageCreator_recentImageVote()`: their artwork is the event's, and 2 of 10 such pages cost Groove Podcast the artwork line all its episodes carry -, `{{StandardShow*}}` when the duration roughly fits, an empty `== Notes ==` section where the series has one, prefilled from the description where its Notes link a host the description names too, `{{Player|mode=mirrors}}` with the mirror line empty where the series publishes every episode twice - the 90% style vote fills no style line since 2026-08-19, it is a "Hints:" chip instead) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
+| 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension - the live recordings among the siblings do not vote on it since 2026-08-19, `mdbPageCreator_recentImageVote()`: their artwork is the event's, and 2 of 10 such pages cost Groove Podcast the artwork line all its episodes carry -, `{{StandardShow*}}` when the duration roughly fits, an empty `== Notes ==` section where the series has one, prefilled from the description where its Notes link a host the description names too, `{{Player|mode=mirrors}}` with the mirror line empty where the series publishes every episode twice - the 90% style vote fills a style line again since 2026-08-20, but only for a name MixesDB files under `Category:Style` - one `prop=categories&clcategories=Category:Style` request, `mdbPageCreator_styleCatFetch()`/`_recentLearnedCategories()`; every other winner stays the "Hints:" chip it was) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
 
 **Step 5 in full.** Today `window.mdbPageCreator_showForUsedPlayers = true` ships in both site

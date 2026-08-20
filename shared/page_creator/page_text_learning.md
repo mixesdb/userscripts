@@ -66,6 +66,36 @@
 > Rejected as too clever: it costs a request, needs a three-state filter, and still files a
 > page on a guess. The script cannot tell a style from a coincidence, so it says what it saw.
 
+> **Delta added 2026-08-20: signal C writes the STYLES again - and only those.** The delta
+> above threw out the answer with the guess. Reported on
+> `soundcloud.com/dirtyepicla/amplify-series-138-reka-zalan`: `Category:Amplify Series` carries
+> `Techno` on 10 of its 10 newest pages, section 7 said so, and the created page still came out
+> with two blank style rows for the editor to fill in by hand - a 10 of 10 that everybody can
+> see and nobody acts on.
+>
+> What was missing was never the vote, it was knowing what the winning NAME is. MixesDB knows:
+> its style categories are the ones filed under `Category:Style`. So one
+> `prop=categories&clcategories=Category:Style` request classifies the winners
+> (`mdbPageCreator_styleCatFetch()`, fired the moment there is a name to ask about and cached per
+> name for the session - `Techno` is asked once however many series vote for it), and
+> `mdbPageCreator_recentLearnedCategories()` splits them on the answer:
+>
+> - **filed under `Category:Style`** -> written into the page's style lines, at most two, the
+>   rest of the block keeping its blank rows. The chip on the "Used categories" row is green and
+>   linked, and its tooltip names the pages it was learned off
+> - **anything else, and everything not answered yet** -> the HINT of the delta above, unchanged
+>
+> Measured on the live API 2026-08-20: `Techno`, `Deep House`, `Tech House`, `Acid Techno`,
+> `Dub Techno`, `Drum & Bass`, `Ambient`, `Disco`, `Electro`, `Hardcore`, `Progressive House`
+> all carry `Category:Style`; `Amsterdam Dance Event` carries `Category:Event`; `Amplify Series`
+> carries `Category:Podcast`; `Melodic Techno` does not exist on MixesDB at all. The ADE case
+> the delta above was written for behaves exactly as it did - it is not a style, so it is not
+> written - and it now has a reason on record rather than a blanket refusal.
+>
+> Why this is not the rejected `mdbnames` attempt in new clothes: that one wrote the names the
+> wiki answered NOTHING about, so a style MixesDB does not have yet was filed on silence. This
+> one writes only what the wiki confirms, and silence keeps the page blank.
+
 > **Delta added 2026-08-19: signal B is read off the EPISODE pages only.** The live recordings
 > among a series' recent pages no longer vote on the lead artwork
 > (`mdbPageCreator_recentImageVote()`, `mdbPageCreator_titleIsLiveRecording()`): the artwork

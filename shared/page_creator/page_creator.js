@@ -1382,14 +1382,15 @@ function mdbPageCreator_renderHints( wrapper ) {
 //
 // Two kinds of chip. The artist and the entity name are the ones the wiki could spell
 // differently, so they carry the verdict colours, the category link and the mix count. The
-// year, a style, "Promo Mix" and the "Tracklist:" filing are nobody's spelling - the year
-// category always exists, a style is the editor's own call or the site's, the last two are
-// ours - so they are plain grey chips: no link, no count, nothing to look up. They used to be
-// left out entirely, which read as if the page did not get them at all - "Promo Mix" missing
-// from "Used categories" while the page text writes it was the report (2026-08-19).
-// The one style that is not grey is the one learned off the entity's recent pages: MixesDB was
-// asked about that name and answered, so it is linked like any confirmed category and its
-// tooltip says which pages it came off (mdbPageCreator_usedCategoryState).
+// year, the styles, "Promo Mix" and the "Tracklist:" filing are nobody's spelling - the year
+// category always exists, a style is the editor's call, the site's or the one the siblings
+// settled, the last two are ours - so they are plain grey chips: no link, no count, nothing to
+// look up. They used to be left out entirely, which read as if the page did not get them at all
+// - "Promo Mix" missing from "Used categories" while the page text writes it was the report
+// (2026-08-19). A style learned off the entity's recent pages is grey like the rest of them:
+// only its tooltip differs, saying which pages it came off
+// (mdbPageCreator_plainCategoryNote) - it is a category the page gets, which is exactly what
+// every other chip on this row is.
 //
 // The line still needs an artist or an entity to appear at all: a title that names neither has
 // nothing worth saying here, and a bar holding only the year and "Tracklist: none" would be
@@ -1534,12 +1535,6 @@ function mdbPageCreator_logHints( summary ) {
 // two can never contradict each other: an artist has to be known AS an artist, an entity as
 // anything at all ("fabric" is a venue, and that answers the entity slot).
 function mdbPageCreator_usedCategoryState( entry ) {
-    // A style learned off the sibling pages is a category that demonstrably exists: its name
-    // was read out of the wikitext of pages filed under it, and MixesDB answered that it files
-    // it under Category:Style. So it is green and linked like any confirmed name - but without
-    // a mix count, because nobody counted (same as the "Hints:" row's chips).
-    if( entry.role === "style" && entry.learned ) return { verdict: "known", match: { title: entry.name } };
-
     if( entry.role !== "artist" && entry.role !== "entity" ) return { verdict: "plain", match: null };
 
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
@@ -1558,7 +1553,15 @@ function mdbPageCreator_plainCategoryNote( entry ) {
     if( entry.role === "year" ) return "The year of the mix date - every year category exists on MixesDB.";
     if( entry.role === "promo" ) return "A self-released mix is filed under Promo Mix - our own filing, not a name read off the title.\nWhere the title above does not carry \"(Promo Mix)\" itself, that is because its name already says it (\"Mix\", \"Vol.\", ...).";
     if( entry.role === "tracklist" ) return "How the tracklist is filed - the Tracklist Editor API's answer about the box, not a name to look up.";
-    if( entry.role === "style" ) return "A style category - the editor's call, not a name read off the title.";
+    if( entry.role === "style" ) {
+        // a style the siblings settled is a filing the editor did not make, so the tooltip is
+        // where it says who did and off what pages (mdbPageCreator_recentHintNote)
+        return entry.learned
+            ? "A style category read off the entity's recent pages: " + mdbPageCreator_recentHintNote( entry ) +
+              ", and MixesDB files this name under Category:" + mdbPageCreator_styleParent +
+              ".\nDelete the line on the created page where this mix is something else."
+            : "A style category - the editor's call, not a name read off the title.";
+    }
 
     return "This category goes on the page as it stands - nothing to look up on MixesDB.";
 }
@@ -1580,10 +1583,6 @@ function mdbPageCreator_plainCategoryNote( entry ) {
 function mdbPageCreator_categoryFit( entry, state, title ) {
     if( typeof mdbTitle_matchConfidence !== "function" || typeof mdbTitle_confidence !== "function" ) return null;
     if( !state || state.verdict !== "known" || !state.match ) return null;
-
-    // only the two names a lookup answered ABOUT - a learned style is green off the wiki's
-    // "yes, that is a style", which is not a lookup with alternatives to be confident between
-    if( entry.role !== "artist" && entry.role !== "entity" ) return null;
 
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
         key = mdbTitle_normalizeCompare( entry.name ),
@@ -1676,14 +1675,6 @@ function mdbPageCreator_usedCategory( entry, state, title ) {
                 : ( spelled !== entry.name
                     ? "\nMixesDB spells it \"" + spelled + "\" - worth correcting the title above."
                     : "" );
-
-        // where the style came from - the chip is a filing the editor did not make, so the
-        // tooltip has to say who did and off what (mdbPageCreator_recentHintNote)
-        if( entry.role === "style" && entry.learned ) {
-            note += "\n\nRead off the entity's recent pages: " + mdbPageCreator_recentHintNote( entry ) +
-                    ", and MixesDB files this name under Category:" + mdbPageCreator_styleParent +
-                    ". Delete the line on the created page where this mix is something else.";
-        }
 
         // The title numbers this entity, so it is a series - and the wiki knows the name as a
         // place, which numbers no editions. The category exists, which is why the chip is
@@ -5725,12 +5716,12 @@ function mdbPageCreator_reasoningRecentText( title ) {
             outcome = verdict === "yes"
                 ? "MixesDB files it under Category:" + mdbPageCreator_styleParent + " -> written into the page's style lines"
                 : verdict === "no"
-                    ? "MixesDB does not file it under Category:" + mdbPageCreator_styleParent + ", so it is no style -> shown as a hint under the row; the page's style lines stay empty for the editor"
-                    : "still asking MixesDB whether it files it under Category:" + mdbPageCreator_styleParent + " - until that answer is in it is a hint under the row";
+                    ? "MixesDB does not file it under Category:" + mdbPageCreator_styleParent + ", so it is no style -> shown as a hint under the row, the page's style lines stay empty for the editor"
+                    : "still asking MixesDB whether it files it under Category:" + mdbPageCreator_styleParent + " -> a hint under the row until that answer is in";
 
         rows.push( { label: "Shared category",
                      detail: "\"" + f.styles.learned[i].name + "\" on " + mdbPageCreator_reasoningRecentCount( f.styles.learned[i] ) +
-                             " -> " + outcome } );
+                             " - " + outcome } );
     }
 
     if( !f.styles.learned.length ) {
@@ -5742,7 +5733,7 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
         rows.push( { label: "Shared categories",
                      detail: ( tally ? "nothing stands on 90% of the pages (" + tally + ")" : "the pages share no categories beyond this one" ) +
-                             " - nothing to hint at" } );
+                             " - no style to write and nothing to hint at" } );
     }
 
     s.append( mdbPageCreator_reasoningSteps( rows ) );

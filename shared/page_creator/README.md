@@ -192,7 +192,10 @@ files it as, since a podcast, a show, a venue and a festival can all stand in th
 The other chips – the year, the styles, **Promo Mix** and the `Tracklist:` filing – stay a
 muted grey and carry neither link nor mix count: none of them is a name anyone could have
 spelled wrong, so there is nothing to look up about them. They are listed all the same, because
-the page really is filed under them; the tooltip of each says what decided it.
+the page really is filed under them; the tooltip of each says what decided it. A style read off
+the entity's own recent pages (see **Hints** below) is grey like every other style – it is a
+category the page gets, no different from the rest of the row – and only its tooltip differs: it
+names the pages the style was learned off, since that is a filing you did not make.
 
 The line follows the title field: correct the title and, after a short pause, the categories are
 re-read from it and any new names are looked up.
@@ -214,6 +217,13 @@ category the new page does not get. Each chip says behind it which pages it came
 venue whose MixesDB pages happen to be festival sets votes for the festival, and only you can
 tell whether this mix belongs there. The same lines close section 6 of the reasoning panel, as
 plain text.
+
+What lands here and what lands on the page above is decided by MixesDB, not by us: a shared
+category the wiki files under `Category:Style` – `Techno`, `Deep House`, `Drum & Bass` – is a
+**style**, so the new page gets it, on the **Used categories** row. Everything else that the
+sibling pages share is a hint, because a festival, a venue or a label is not what a mix sounds
+like. Until the wiki has answered, a shared category stays a hint too: nothing is filed on a
+name nobody confirmed.
 
 **Switch title** appears under the categories when the suggestion involved a close call the
 build decided one way but could defensibly have decided the other. Each line is the full title
@@ -388,7 +398,8 @@ ends up used.
   that`. That is the line to quote in a report when the wrong name ended up in a slot: it
   names the rule that put it there. Under it stands what the lookup knows – a known artist
   confirmed with its mix count, an unknown one flagged as possibly new or misspelled. A style
-  the recent pages settled says so here too, with its count
+  read off the entity's recent pages says so here too, with its count and with the wiki's
+  answer that the name really is a style
 
 - **7 Page text analysis of recent mixes** – what the same pages' wikitext settles about the
   page the **Create** link writes, one line per signal with its count: whether the pages open
@@ -404,12 +415,15 @@ ends up used.
   where a page on it was found – the description, the **Buy** field, or behind a shortened link
   that had to be followed – so it is clear whether an empty Notes line means the series links
   nothing or only that this player named nothing –
-  and which categories at least 90% of the pages share. That last one is
-  **reported, never written**: the vote answers what those pages have in common, which is not
-  the same question as what this mix sounds like. `Category:Undercurrent`'s newest pages carry
-  Techno 5, House 3 and Tech House 2 – no style clears the bar – while `Amsterdam Dance Event`
-  stands on all 10, because the venue's MixesDB pages happen to be festival sets. It shows up
-  as a **Hints** chip and in section 6, and the page's style lines stay empty.
+  and which categories at least 90% of the pages share, each with what MixesDB says that name
+  is. A name the wiki files under `Category:Style` is a style and is **written** into the page's
+  style lines (`"Techno" on all 10 of the newest pages → MixesDB files it under Category:Style
+  → written into the page's style lines`); anything else that cleared the same vote is
+  **reported, never written**, because what those pages have in common is not the same question
+  as what this mix sounds like: `Category:Undercurrent`'s newest pages carry Techno 5, House 3
+  and Tech House 2 – no style clears the bar – while `Amsterdam Dance Event` stands on all 10,
+  because the venue's MixesDB pages happen to be festival sets. That one shows up as a **Hints**
+  chip and in section 6, and the page's style lines stay empty.
   Whatever clears no bar keeps today's default page text, so nothing here can make the page
   worse than before
 
@@ -417,7 +431,9 @@ Sections **3**, **5** and **7** each close with an **API call** link: the exact 
 whose answer that section is read off, opening the raw answer in a new tab. Section 3 has the
 one lookup request – plus one per category chip whose mix pages you folded open in the hints
 bar – and 5 and 7 share the single request that fetched the recent pages, since it carries
-their titles and their wikitext in one go. Everything those sections say about a category is the
+their titles and their wikitext in one go. Section 7 carries a second link where a shared
+category had to be classified: the request that asked MixesDB whether it files that name under
+`Category:Style`. Everything those sections say about a category is the
 wiki's own answer, so when one of the numbers looks wrong the link is what a report to MixesDB
 is written from rather than a URL retyped by hand. A section with no link was not asked again:
 its answer came out of the cache of a track opened earlier in the same session.
@@ -466,9 +482,12 @@ Opens the edit form of the new page, prefilled with:
   and the line stays empty, and a URL is never built out of the title. Series that use no Notes
   section get none
 - the categories the title gives away (year, artists, the entity the page is filed under)
-- the style categories, where the site suggests any (TrackId.net's style suggestions box) –
-  otherwise two empty category rows to fill in. What the entity's recent pages share is offered
-  as a **Hints** chip under the row and never written for you
+- the style categories: the site's own suggestions where it has any (TrackId.net's style
+  suggestions box), otherwise a style at least 90% of the entity's recent pages carry, where
+  MixesDB files that name under `Category:Style` – a series whose ten newest pages all carry
+  `[[Category:Techno]]` writes Techno. Anything else those pages share is a **Hints** chip under
+  the row and is never written for you. Whatever is left of the two style rows stays empty to
+  fill in
 - the tracklist from the box below, when there is one
 - the artwork URL, handed over for MixesDB's own image upload form – it is not written into the
   page text
@@ -660,10 +679,11 @@ placeholder only holds the space below it.
    the description names it – and the `{{Player|mode=mirrors}}` of a series that publishes
    every episode on two platforms, with the line for the second one left empty.
    A category at least 90% of
-   the recent episodes share is shown as a **Hints** chip and never written onto the page –
-   what those pages have in common is not what this mix sounds like. Two new reasoning panel
-   sections show what was read and what it changed. `Category:Promo Mix` is exempt – it
-   collects unrelated mixes.
+   the recent episodes share is written as a style where MixesDB files that name under
+   `Category:Style`, and shown as a **Hints** chip where it does not – what those pages have in
+   common is only what this mix sounds like when the wiki says the name is a style. Two new
+   reasoning panel sections show what was read and what it changed. `Category:Promo Mix` is
+   exempt – it collects unrelated mixes.
 
 5. **End of the beta** – the row stops appearing altogether for a mix that already has a page.
    The **Exists** row is a beta device for comparing the suggestion against the title a human
