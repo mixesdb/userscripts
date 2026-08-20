@@ -195,7 +195,7 @@ d.ready(function(){ // needed for mw.config
                         // avoid undefined error
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
-                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank">Submit to TrackId.net</a>';
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
                             playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
@@ -206,7 +206,7 @@ d.ready(function(){ // needed for mw.config
                             logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                             if( trackidurl ) {
-                                tidLink += '<a href="'+trackidurl+'">Exists on TrackId.net</a>';
+                                tidLink += '<a href="'+trackidurl+'"><img class="tidSubmit-icon" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
 
                                 if( lastCheckedAgainstMixesDB ) {
                                     tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
