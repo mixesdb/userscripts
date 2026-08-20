@@ -413,6 +413,15 @@ ends up used.
   Whatever clears no bar keeps today's default page text, so nothing here can make the page
   worse than before
 
+Sections **3**, **5** and **7** each close with an **API call** link: the exact `api.php` URL
+whose answer that section is read off, opening the raw answer in a new tab. Section 3 has the
+one lookup request – plus one per category chip whose mix pages you folded open in the hints
+bar – and 5 and 7 share the single request that fetched the recent pages, since it carries
+their titles and their wikitext in one go. Everything those sections say about a category is the
+wiki's own answer, so when one of the numbers looks wrong the link is what a report to MixesDB
+is written from rather than a URL retyped by hand. A section with no link was not asked again:
+its answer came out of the cache of a track opened earlier in the same session.
+
 The panel follows the title field: correct the title above and, after a short pause, the
 categories are re-read from it and any new names are looked up on MixesDB. It follows the
 tracklist box too: leave the box after an edit and the `Tracklist:` line in section 6 answers
@@ -590,6 +599,12 @@ placeholder only holds the space below it.
   page – from then on the keys belong to that page and scroll it. A click on the modal's header,
   or one of its two arrow buttons, hands them back. Scrolling the framed page with the mouse or
   the trackpad needs no click and leaves the keys alone.
+- The mix count behind a category – in the hints bar and in the reasoning panel – is the
+  number MixesDB itself reports, and a few of those numbers are wrong on the wiki. The clearest
+  case is `Amplify Series`, which answers "1 mix" while its category page lists 29. The count
+  is worth almost nothing to the suggestion, so a wrong one costs a chip that reads oddly, not
+  a wrong title. It is reported to MixesDB and has to be fixed there; use the section's
+  **API call** link when you want to see what the wiki really answered.
 - Shortened **Notes** links are only followed on SoundCloud, and only for the handful of
   shorteners the script knows (`bit.ly`, `tinyurl.com`, `t.co` and a few more). On TrackId.net
   they are not followed at all – the script would need a permission it deliberately does not

@@ -675,6 +675,27 @@
     text-decoration: underline;
 }
 
+/*
+ * The "API call" link a section closes with (mdbPageCreator_reasoningApiCalls): the exact
+ * api.php URL that section's answers came out of. Written like the "Not asked:" / "Read:"
+ * labels it stands among - it is the label of its own row, not a highlight - and it only takes
+ * a link's colour on hover, where that is the one thing that has to say it opens something.
+ * Two IDs for the same reason as .mdb-pageCreator-known above: these sites paint every <a>
+ * blue and underline it hard enough to beat a single ID.
+ */
+#mdb-pageCreator #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-apiCall,
+#mdb-pageCreator #mdb-pageCreator-reasoning a.mdb-pageCreator-reasoning-apiCall:visited {
+    color: #c9c9c9;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-pageCreator #mdb-pageCreator-reasoning a.mdb-pageCreator-reasoning-apiCall:hover {
+    color: #6cb2f7;
+    text-decoration: underline;
+}
+
 /* the annotations - the tone states what the reader should DO with the line */
 #mdb-pageCreator-reasoning .mdb-pageCreator-reasoning-note {
     font-style: italic;

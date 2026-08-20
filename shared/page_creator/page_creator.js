@@ -1838,6 +1838,17 @@ function mdbPageCreator_usedCatMixes( chip, entry, match, fit ) {
     chip.append( list );
 }
 
+// mdbPageCreator_noteApiCall
+// mdbTitle_noteApiCall with the stale-cache guard every cross-file read in here carries: a
+// userscript manager still holding an old title_builder.js has no call log, and a page fetch
+// must not die of a missing PANEL feature. The stand-in record swallows the status writes the
+// handlers make, so the caller needs no second branch.
+function mdbPageCreator_noteApiCall( kind, subject, what, data ) {
+    return ( typeof mdbTitle_noteApiCall === "function" )
+        ? mdbTitle_noteApiCall( kind, subject, what, data )
+        : { status: "" };
+}
+
 // mdbPageCreator_usedCatFetchRecent
 // The recent mix pages of a category whose lookup answer brought none - the one request behind
 // a chip clicked before its pages were on hand. One list=categorymembers call,
@@ -1863,11 +1874,9 @@ function mdbPageCreator_usedCatFetchRecent( match, fallbackName ) {
 
     match.recentPending = true;
 
-    $.ajax({
-        url: mdbTitle_categoryApiUrl,
-        type: "get",
-        dataType: "json",
-        data: {
+    // recorded before it goes out, so the reasoning panel's section 3 can offer this exact URL
+    // as an "API call" link next to the chip's category (mdbTitle_noteApiCall)
+    var apiData = {
             action: "query",
             format: "json",
             formatversion: 2,
@@ -1879,7 +1888,18 @@ function mdbPageCreator_usedCatFetchRecent( match, fallbackName ) {
             cmdir: "desc",
             cmlimit: 10
         },
+        apiCall = mdbPageCreator_noteApiCall( "hintRecent", catTitle,
+                      "the 10 newest pages of Category:" + catTitle + ", asked when its chip was folded open",
+                      apiData );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: apiData,
         success: function( data ) {
+            apiCall.status = "done";
+
             var members = ( data && data.query && data.query.categorymembers ) || [],
                 titles = [],
                 i;
@@ -1899,6 +1919,7 @@ function mdbPageCreator_usedCatFetchRecent( match, fallbackName ) {
             mdbPageCreator_renderHints( $("#mdb-pageCreator") );
         },
         error: function( xhr, status ) {
+            apiCall.status = "failed";
             log( "mdbPageCreator_usedCatFetchRecent FAILED (" + status + ") for " + catTitle );
             match.recentPending = false;
             match.recentFailed = true;
@@ -2428,11 +2449,9 @@ function mdbPageCreator_recentEnsureFor( title ) {
 function mdbPageCreator_recentFetch( catTitle, key ) {
     logVar( "mdbPageCreator_recentFetch", catTitle );
 
-    $.ajax({
-        url: mdbTitle_categoryApiUrl,
-        type: "get",
-        dataType: "json",
-        data: {
+    // recorded before it goes out, so sections 5 and 7 can offer this exact URL as an
+    // "API call" link - they are read off nothing else (mdbTitle_noteApiCall)
+    var apiData = {
             action: "query",
             format: "json",
             formatversion: 2,
@@ -2459,7 +2478,18 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             cmdir: "desc",
             cmlimit: 10
         },
+        apiCall = mdbPageCreator_noteApiCall( "recent", catTitle,
+                      "the 10 newest pages of Category:" + catTitle + " with their wikitext",
+                      apiData );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: apiData,
         success: function( data ) {
+            apiCall.status = "done";
+
             var entry = mdbPageCreator_recentAnalysisCache[ key ],
                 pages = ( data && data.query && data.query.pages ) || [],
                 ordered = ( data && data.query && data.query.categorymembers ) || [],
@@ -2523,6 +2553,7 @@ function mdbPageCreator_recentFetch( catTitle, key ) {
             mdbPageCreator_recentSettled();
         },
         error: function( xhr, status ) {
+            apiCall.status = "failed";
             log( "mdbPageCreator_recentFetch FAILED (" + status + ") for " + catTitle );
 
             mdbPageCreator_recentAnalysisCache[ key ].status = "failed";
@@ -5132,6 +5163,43 @@ function mdbPageCreator_reasoningRecentRead( info ) {
     );
 }
 
+// mdbPageCreator_reasoningApiCalls
+// The "API call" rows of a section: one per api.php request whose answer that section is read
+// off, each opening the exact URL the script asked (mdbTitle_apiCallLog). Reported numbers are
+// the wiki's own, and where one of them is wrong - Category:Amplify Series answers "1 mix"
+// next to 29 pages - the raw answer is what a bug report to the maintainer is written from,
+// so it should not have to be reassembled by hand from the console.
+// _blank like every other look-it-up link in the panel: the reader is judging THIS page and
+// comes back to it.
+// Nothing is rendered where no call stands for this page - an answer served out of the cache
+// of a track opened earlier was not asked for again, and a link claiming otherwise would be
+// the one thing this row must not be.
+function mdbPageCreator_reasoningApiCalls( kind, subject ) {
+    var calls = ( typeof mdbTitle_apiCalls === "function" ) ? mdbTitle_apiCalls( kind, subject ) : [],
+        rows = [],
+        i, state;
+
+    for( i = 0; i < calls.length; i++ ) {
+        state = calls[i].status === "pending" ? " - still waiting for the answer"
+              : calls[i].status === "failed"  ? " - the request failed"
+              : "";
+
+        rows.push(
+            $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+                $("<a>")
+                    .addClass( "mdb-pageCreator-reasoning-apiCall" )
+                    .attr( "href", calls[i].url )
+                    .attr( "target", "_blank" )
+                    .attr( "title", "Open this request's raw answer on mixesdb.com" )
+                    .text( "API call" ),
+                $("<span>").addClass( "mdb-pageCreator-reasoning-hint" ).text( calls[i].what + state )
+            )
+        );
+    }
+
+    return rows;
+}
+
 // mdbPageCreator_reasoningRecentTitle
 // Section 5, "Title analysis of recent mixes": how the entity's own newest pages write their
 // titles, and what that did to the suggestion. The third and last title stage - which is why
@@ -5220,6 +5288,10 @@ function mdbPageCreator_reasoningRecentTitle( title ) {
         );
     }
 
+    // the request the whole section is read off - also in the states above, where it is what
+    // says whether the pages are still on their way or were never asked for
+    if( info.catTitle ) s.append( mdbPageCreator_reasoningApiCalls( "recent", info.catTitle ) );
+
     return s;
 }
 
@@ -5269,6 +5341,9 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
     if( state ) {
         s.append( mdbPageCreator_reasoningNote( state, "muted" ) );
+
+        if( info.catTitle ) s.append( mdbPageCreator_reasoningApiCalls( "recent", info.catTitle ) );
+
         return s;
     }
 
@@ -5394,6 +5469,9 @@ function mdbPageCreator_reasoningRecentText( title ) {
     }
 
     s.append( mdbPageCreator_reasoningSteps( rows ) );
+
+    // the same request as section 5 - one call carries the titles and the wikitext both
+    if( info.catTitle ) s.append( mdbPageCreator_reasoningApiCalls( "recent", info.catTitle ) );
 
     return s;
 }
@@ -5637,6 +5715,12 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
             )
         );
     }
+
+    // The lookup request itself, and the per-chip page fetches the hints bar fired off its
+    // answers: the mix counts and types this whole section prints are the wiki's, so the row
+    // that lets the reader read them in the raw belongs where they are shown.
+    s3.append( mdbPageCreator_reasoningApiCalls( "mdbnames" ) );
+    s3.append( mdbPageCreator_reasoningApiCalls( "hintRecent" ) );
 
     panel.append( s3 );
 
@@ -5918,6 +6002,9 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_titlePostRecent = "";
     mdbPageCreator_recentTitleChanges = [];
     mdbTitle_lookupLog = [];
+    // the api.php requests of the previous mix - the answers they brought stay in the caches,
+    // but no link may claim a request was made for THIS page when it was not
+    if( typeof mdbTitle_apiCallLog !== "undefined" ) mdbTitle_apiCallLog = [];
     if( typeof mdbTitle_candidateRoles !== "undefined" ) mdbTitle_candidateRoles = {};
     if( typeof mdbTitle_candidateSources !== "undefined" ) mdbTitle_candidateSources = {};
     if( typeof mdbTitle_chunksNotAsked !== "undefined" ) mdbTitle_chunksNotAsked = [];

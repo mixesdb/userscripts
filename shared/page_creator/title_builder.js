@@ -2177,6 +2177,19 @@ function mdbTitle_dropLocationBrackets( text ) {
  */
 var mdbTitle_categoryCache = {},
     mdbTitle_categoryApiUrl = "https://www.mixesdb.com/w/api.php",
+    // Every api.php request fired for THIS page, in the order they went out, each
+    // { kind, subject, what, url, status }. The reasoning panel prints them as an "API call"
+    // link next to the section that reads the answer, so a number that looks wrong can be
+    // read where the script read it instead of being rebuilt by hand - which is exactly the
+    // work the "1 mix" that MixesDB served for Category:Amplify Series (29 pages, 10 of them
+    // in the same answer's "recent") cost before this existed.
+    // kind files the call under its section: "mdbnames" -> 3, "recent" -> 5 and 7,
+    // "hintRecent" -> the hints bar's per-chip fetch, which 3 lists as well, since that is
+    // where the chip's category was answered about. subject is the category a per-category
+    // call was fired for, so a section shows ITS call and not every category's.
+    // Reset per page with the lookup log: a section whose answer came out of the cache of a
+    // track opened earlier shows no link, because no request was made for it.
+    mdbTitle_apiCallLog = [],
     // the types that say a name is a SERIES a mix belongs to rather than a person or a place -
     // a name the wiki knows this way is never "(Promo Mix)" and never doubted as a show
     mdbTitle_entityTypes = [ "podcast", "show", "radio", "internet radio" ],
@@ -2239,6 +2252,43 @@ function mdbTitle_lookupLogSettle( names, failed ) {
 
         if( entry ) { entry.pending = false; entry.failed = failed; }
     }
+}
+
+// mdbTitle_apiCallUrl
+// The GET URL an $.ajax data block goes out as. Built with jQuery's own $.param, so the link
+// opens the request as the browser really made it - a hand-rolled encoder would answer a
+// slightly different URL than the one whose answer is on screen, which is the one thing an
+// "open the raw answer" link must not do.
+function mdbTitle_apiCallUrl( data ) {
+    return mdbTitle_categoryApiUrl + "?" + $.param( data );
+}
+
+// mdbTitle_noteApiCall
+// Records one api.php request and hands the record back, so the caller can settle its status
+// in its own handlers. "what" is the line the panel prints behind the link.
+function mdbTitle_noteApiCall( kind, subject, what, data ) {
+    var call = { kind: kind, subject: subject || "", what: what, url: mdbTitle_apiCallUrl( data ), status: "pending" };
+
+    mdbTitle_apiCallLog.push( call );
+
+    return call;
+}
+
+// mdbTitle_apiCalls
+// The recorded calls of one kind, oldest first. subject narrows them to the one category a
+// per-category kind ("recent", "hintRecent") was fired for; "" means every call of the kind.
+function mdbTitle_apiCalls( kind, subject ) {
+    var out = [],
+        i;
+
+    for( i = 0; i < mdbTitle_apiCallLog.length; i++ ) {
+        if( mdbTitle_apiCallLog[i].kind !== kind ) continue;
+        if( subject && mdbTitle_apiCallLog[i].subject !== subject ) continue;
+
+        out.push( mdbTitle_apiCallLog[i] );
+    }
+
+    return out;
 }
 
 // mdbTitle_noteCandidateRole
@@ -2784,11 +2834,9 @@ function mdbTitle_lookupCategories( names, callback ) {
         if( entry ) { entry.pending = true; entry.skipped = false; }
     }
 
-    $.ajax({
-        url: mdbTitle_categoryApiUrl,
-        type: "get",
-        dataType: "json",
-        data: {
+    // the request as an object of its own, so it can be recorded BEFORE it goes out: the
+    // reasoning panel's "API call" link in section 3 opens exactly this URL
+    var apiData = {
             action: "mdbnames",
             format: "json",
             formatversion: 2,
@@ -2798,7 +2846,18 @@ function mdbTitle_lookupCategories( names, callback ) {
             // (contract caps this at 10) - the hints bar shows them behind the category chips
             recentlimit: 10
         },
+        apiCall = mdbTitle_noteApiCall( "mdbnames", "",
+                      wanted.length + ( wanted.length === 1 ? " name" : " names" ) + " in one request: " + wanted.join( " | " ),
+                      apiData );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: apiData,
         success: function( data ) {
+            apiCall.status = "done";
+
             var entries = ( data && data.mdbnames ) || [],
                 i;
 
@@ -2835,6 +2894,7 @@ function mdbTitle_lookupCategories( names, callback ) {
             callback( mdbTitle_categoryCache );
         },
         error: function( xhr, status ) {
+            apiCall.status = "failed";
             log( "mdbTitle_lookupCategories FAILED (" + status + ") - carrying on with the title alone." );
             mdbTitle_lookupLogSettle( wanted, true );
             callback( mdbTitle_categoryCache );
