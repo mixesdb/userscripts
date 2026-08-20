@@ -580,11 +580,15 @@ textarea.mono {
    The icon starts the row instead of sitting inside a link, so the generic
    a.mdb-tidSubmit img.tidSubmit-icon rule above does not reach it and it needs its own box.
    display must be stated: Mixcloud's CSS reset makes every img display:block, which would put
-   the icon on its own line above the row text. */
+   the icon on its own line above the row text.
+   margin-bottom overrides the per-site nudges further down: those align icons that have no
+   vertical-align of their own, so on top of middle they would push this one off again. */
 .mdb-toolkit-tidLink img.tidSubmit-icon {
     display: inline-block;
     max-height: 1.3em !important;
-    padding: 0 5px 0 0;
+    padding: 0 2px 0 0;
+    margin-bottom: 0 !important;
+    vertical-align: middle;
 }
 
 /*
