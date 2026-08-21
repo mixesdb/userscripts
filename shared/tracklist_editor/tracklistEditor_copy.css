@@ -419,6 +419,12 @@ textarea.mono {
  *
  * 28px is the chips' height, which is why it is stated in px here as well: side by side with
  * them, the icons have to be a chip, not a bump in the row.
+ *
+ * The float is stated here AND as "floatR" on the element (toolkit/funcs.js) on purpose. This
+ * file arrives through loadRawCss() at runtime, funcs.js through @require, so the two can be a
+ * cache generation apart - and the one thing that must not go missing in between is the float:
+ * without it the row is a full-width block that takes a line of its own above the chips and
+ * pushes them down. Leave both in place.
  */
 .mdb-tlEditor-tlState {
     float: right;
