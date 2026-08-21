@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.3
+// @version      2026.08.21.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,12 +11,12 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_120
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_46
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_71
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_48
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_72
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_105
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_106
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -1319,8 +1319,17 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
             log( "tl_fixedCues:\n" + tl_fixedCues );
 
+            // The second pass is not only about the TEXT: a tracklist that was incomplete
+            // ONLY because of those "?" rows is valid AND complete once they are gone, so the
+            // verdict has to be asked again for the tracklist that actually goes into the box.
+            // https://trackid.net/audiostreams/aka-aka-pres-rhythm-prism-radio-053
             var res_fixedCues = apiTracklist( tl_fixedCues, "trackidNet" ),
-                tlApi_fixedCues = res_fixedCues.text;
+                tlApi_fixedCues = res_fixedCues.text,
+                feedback_fixedCues = res_fixedCues.feedback;
+
+            log( 'tlApi_fixedCues ("trackidNet", status: ' +
+                 ( feedback_fixedCues && feedback_fixedCues.status ? feedback_fixedCues.status : "(none)" ) +
+                 "):\n" + tlApi_fixedCues );
 
             if( tlApi_fixedCues ) {
                 tlWrapper.before( ta );
@@ -1329,7 +1338,11 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                     .val( tlApi_fixedCues )
                     .attr( "data-tlcandidate", tlApi );
 
-                fixTLbox( res.feedback );
+                // ...and that fresh answer is the one printed. Handing fixTLbox() the FIRST
+                // one left the box orange - "valid and incomplete: # [??] ?" - under a
+                // tracklist that no longer holds a single "?", and with the row count of the
+                // longer version it was talking about.
+                fixTLbox( feedback_fixedCues );
             }
 
             if( tlApi.split("\n").length != tlApi_fixedCues.split("\n").length ) {
@@ -1338,7 +1351,13 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                 //info_cuesRemoved += '&nbsp; <span id="select_tidminGap_wrapper" style="display:none">Max gap: <select id="select_tidminGap"><option>1</option><option>2</option><option selected="selected">3</option></select> minutes</span>';
                 info_cuesRemoved += '</li>';
 
-                $("#tlEditor-feedback-topInfo").prepend( info_cuesRemoved );
+                // The list is created when the fresh answer has none, which is now the
+                // usual case here: taking the "?" rows out is exactly what makes a tracklist
+                // complete, and a complete answer comes as a bare message without a list. The
+                // notice and its Toggle would otherwise go missing on the very pages they
+                // explain - and with them the cue format switch and the Tracklist Merger link,
+                // which both wait for this list to turn up.
+                tlBoxTopInfoList().prepend( info_cuesRemoved );
             }
 
             // fix CSS
@@ -1965,6 +1984,31 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.21.5
+ * The Tracklist Editor feedback under the box now answers the tracklist that is IN the box.
+ * The likely-false "?" tracks are taken out after the first API answer and the shortened
+ * tracklist is sent a second time, but the PRINTED answer was still the first one - the one
+ * about the version that still had those rows. A tracklist that is incomplete only because of
+ * them is valid and complete once they are gone, so the box stayed orange ("valid and
+ * incomplete: # [??] ?") with the row count of the longer version, under a tracklist without a
+ * single "?" left in it. https://trackid.net/audiostreams/aka-aka-pres-rhythm-prism-radio-053
+ * The notice about the removed rows and its Toggle now create the feedback's top info list
+ * when that fresh answer has none - a complete answer comes as a bare message without one -
+ * which is also the list the cue format switch and the Tracklist Merger link wait for.
+ * (tracklist_editor/funcs.js v_13)
+ *
+ * 2026.08.21.4
+ * Via the shared title builder (title_definitions.js v_48, title_builder.js v_72,
+ * page_creator.js v_106), from a SoundCloud report: a credit behind an artist's name now comes
+ * off the title, and the lookup asks about the act on its own. "KODE9 FOR MAHARISHI" was one
+ * candidate and a name MixesDB will never have, while Category:Kode9 and its 94 mixes were
+ * never asked about at all. "for" now ends the act's name, the name in front of it is asked
+ * next to the whole, the shortened forms of a long artist name ride along as the last
+ * questions of the request, and the credit comes off only where the wiki answers nothing about
+ * the written name AND knows the act as an artist. The dropped words come back as a "Switch
+ * title" chip - a name can be built around the word ("Dance For Life") - and that chip moves
+ * the page's artist category with it, since the category is read off the title.
  *
  * 2026.08.21.3
  * Via the shared title builder (title_builder.js v_71), from a SoundCloud report: an episode

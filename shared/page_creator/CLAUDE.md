@@ -449,6 +449,51 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   writes a room where it is worth naming, but it writes no line-up fraction anywhere. The slash
   is no separator either: `mdbTitle_fractionLeadRe` keeps `mdbTitle_findEpisode` off it, which
   had read the "1" as a leading episode number and left the artist as "2 Faultierdisko".
+- **A CREDIT is the third reduction, and the second one allowed to shorten the name a title
+  ends up carrying** (2026-08-21, reported on "KODE9 FOR MAHARISHI - HYPERDUB 2014-2019
+  DRIVE-BY", channel `kodenine`): "for" says who the mix was MADE FOR - maharishi is a clothing
+  label - so `KODE9 For Maharishi` is a name MixesDB has never had and never will, while
+  `Category:Kode9` holds 94 mixes and was never asked about at all. The whole bit was one
+  candidate, one lookup and one empty answer, and the page was about to be filed under a
+  brand-new empty category standing next to the real one - which is the one thing a category
+  line may never be. `mdbTitleNameCreditConnectors` in `title_definitions.js` is the list, the
+  third connector subset next to `mdbTitleNamePlaceConnectors`; `mdbTitle_nameCreditBase` reads
+  it (the FIRST connector splits, so "A for B for C" reads its act as "A"), the candidates take
+  the act next to the whole (origin `credit base`), and `mdbTitle_reduceNameCredit` at the
+  single exit puts it into the title under the same two conditions the room word and the
+  line-up fraction are reduced under: the wiki answers NOTHING about the written name AND knows
+  the act as an ARTIST.
+  **The connector also settles the ROLE**, which is what made the bit askable at all: `KODE9`
+  ends in a digit, so `mdbTitle_seriesScore` scored the bit as a series and sorted it into the
+  entity column - and a bit written "<name> for <somebody>" is an act and a credit whatever
+  digits stand in the name. ARTIST side only, and that is the whole fence: behind the "@" the
+  same little words connect places, and in the entity slot the reduction answers WRONG far more
+  often than right - this very title's `Hyperdub 2014-2019 Drive-By` reduces to
+  `Category:Hyperdub`, the Rinse FM show with 48 episodes, and filing a maharishi promo under it
+  is a mistake no empty answer could correct.
+  Unlike the fraction the dropped words ARE offered back, as a `nameCredit` "Switch title" chip:
+  MixesDB writes names built around the word ("Dance For Life" is an event), and this is the one
+  chip that moves the FILING with it - a page's artist category is read off the title, so the
+  toggle decides which category the page joins. It is also the one reduction that costs
+  confidence (-3), for the same reason: the other two are fenced by a shape or by a curated word
+  that cannot be part of a name, this one is not.
+- **A long artist name is asked about SHORTENED, a word at a time from the right** (2026-08-21,
+  same report - "run more shortened variations" was what it asked for): `mdbTitle_nameHeads`
+  turns `KODE9 For Maharishi` into `KODE9 For` and `KODE9`. A name of several words the wiki has
+  never heard of usually carries one it does know at its front, and asking about the whole alone
+  leaves that one unasked. Three words is the floor - a two-word name reduces to a single first
+  name, and "Daniel", "Asa" and "Black" are all real artist categories with one mix each - and
+  `mdbTitleNameHeadMax` (3) the ceiling.
+  **They are QUESTIONS and nothing else.** No branch shortens a title on a head: each reduction
+  has its own shape to go by (a room word, a fraction, a credit connector), and a head that
+  answers is a name for the panel and the reporter to read. That is deliberate - "chop until the
+  wiki nods" would shorten "Sven Väth Sound Of The Season" to its artist and drop the mix's own
+  name, and with 57,462 artist categories the answer would come often enough to look right.
+  Taken LAST of all and only while `names.length < mdbTitleNameHeadRoom` (6): they are the
+  speculative names of the request, and one of them pushing a name some rule actually read out
+  of the ten would cost more than it can ever answer. The parse's own names
+  (`mdbPageCreator_addParsedNames`) are appended after this function returns, which is what the
+  room leaves space for.
 - **An acronym in the entity slot is expanded off the CATEGORY'S OWN PAGE TITLES first, and
   only then off the channel's initials** (2026-08-20, reported on "DSS 140 | Space Drum
   Meditation" on the channel "Deep Space Series"): the title filed under a lone `DSS` while

@@ -341,6 +341,54 @@ function tlBoxSettleFeedbackHeight( box, from ) {
 }
 
 /*
+ * tlBoxTopInfoList
+ *
+ * The <ul id="tlEditor-feedback-topInfo"> the site scripts hang their own rows in, created when
+ * the answer on screen does not carry one.
+ *
+ * The API only sends that list when it has something to SAY about the tracklist - incomplete,
+ * a hint, a warning. "The tracklist seems valid and complete." arrives as a bare <div> instead,
+ * and every row a script wants to add (TrackId.net's notice about the removed "?" tracks with
+ * its Toggle, the cue format switch, the Tracklist Merger's link) then has nowhere to go and
+ * silently does not appear. The better the tracklist, the fewer of our own controls - the exact
+ * opposite of what they are there for.
+ *
+ * Created in front of the message, which is where the API's own list stands, and only when a
+ * caller actually has a row for it: an empty list would still push the message down by the
+ * margin tracklistEditor_copy.css gives "#tlEditor-feedback-topInfo + div".
+ */
+function tlBoxTopInfoList( target ) {
+    var box = $();
+
+    if( target ) {
+        var scope = $(target).first();
+
+        // fixTLbox() puts the feedback box after the textarea, so from a textarea it is a
+        // SIBLING - from a wrapper (#tlEditor) it is a child
+        box = scope.nextAll( "#tlEditor-feedback" ).first();
+
+        if( !box.length ) box = scope.find( "#tlEditor-feedback" ).first();
+    }
+
+    if( !box.length ) box = $("#tlEditor-feedback").first();
+    if( !box.length ) return $();
+
+    var list = box.find( "#tlEditor-feedback-topInfo" ).first();
+
+    if( list.length ) return list;
+
+    list = $("<ul>").attr( "id", "tlEditor-feedback-topInfo" ).addClass( "mdb-element" );
+
+    // the close button and the rows chip float right and belong at the top of the box; ours
+    // and the API's chips are .mdb-element - what is left is the message the list goes above
+    var message = box.children().not( "#tlEditor-feedback-close, #tlEditor-feedback-rows, .mdb-element" ).first();
+
+    if( message.length ) message.before( list ); else box.append( list );
+
+    return list;
+}
+
+/*
  * The API call counter
  *
  * Every Tracklist Editor request this page has made, printed as a chip in the feedback box
