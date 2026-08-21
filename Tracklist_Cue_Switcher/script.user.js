@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Cue Switcher (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.3
+// @version      2026.08.21.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -27,9 +27,10 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 4,
+var cacheVersion = 5,
     scriptName = "Tracklist_Cue_Switcher";
 window.scriptName = scriptName; // in case other shared files rely on this global
+window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
 
 var cuePreferredFormatStorageKey = "mdb_tracklistCueSwitcherPreferredFormat";
 
