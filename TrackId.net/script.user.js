@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.5
+// @version      2026.08.21.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1336,7 +1336,11 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
                 $("#mixesdb-TLbox").addClass("mixesdb-TLbox")
                     .val( tlApi_fixedCues )
-                    .attr( "data-tlcandidate", tlApi );
+                    .attr( "data-tlcandidate", tlApi )
+                    // Both verdicts are in hand here, so the Toggle can swap them with the
+                    // text instead of asking the API a third time on every click.
+                    .data( "mdbTlFeedback", feedback_fixedCues )
+                    .data( "mdbTlFeedbackCandidate", res.feedback );
 
                 // ...and that fresh answer is the one printed. Handing fixTLbox() the FIRST
                 // one left the box orange - "valid and incomplete: # [??] ?" - under a
@@ -1346,18 +1350,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             }
 
             if( tlApi.split("\n").length != tlApi_fixedCues.split("\n").length ) {
-                var info_cuesRemoved = '<li class="info_cuesRemoved">Possibly false <code>"?"</code> tracks have been removed due to short cue differences.';
-                info_cuesRemoved += ' <button id="toggleTlCandidate" class="hand">Toggle</button>';
-                //info_cuesRemoved += '&nbsp; <span id="select_tidminGap_wrapper" style="display:none">Max gap: <select id="select_tidminGap"><option>1</option><option>2</option><option selected="selected">3</option></select> minutes</span>';
-                info_cuesRemoved += '</li>';
-
-                // The list is created when the fresh answer has none, which is now the
-                // usual case here: taking the "?" rows out is exactly what makes a tracklist
-                // complete, and a complete answer comes as a bare message without a list. The
-                // notice and its Toggle would otherwise go missing on the very pages they
-                // explain - and with them the cue format switch and the Tracklist Merger link,
-                // which both wait for this list to turn up.
-                tlBoxTopInfoList().prepend( info_cuesRemoved );
+                showInfoCuesRemoved();
             }
 
             // fix CSS
@@ -1542,32 +1535,72 @@ $(document).on("click", "#switchCueFormat", function(e) {
     toggleTracklistTextareaCueFormat();
 });
 
+/*
+ * showInfoCuesRemoved
+ *
+ * The line above the box saying that likely-false "?" tracks were taken out, with the Toggle
+ * that shows the unfiltered version.
+ *
+ * A function rather than a one-off because it has to be put back: it lives INSIDE the feedback
+ * box, and every re-rendered verdict rebuilds that box's content - which is exactly what the
+ * Toggle itself now does. It also creates the list it goes into when the answer on screen has
+ * none: "valid and complete" comes as a bare message, and that is the usual answer here once
+ * the "?" rows are gone.
+ */
+function showInfoCuesRemoved() {
+    if( $("#toggleTlCandidate").length ) return;
+
+    var info_cuesRemoved = '<li class="info_cuesRemoved">Possibly false <code>"?"</code> tracks have been removed due to short cue differences.';
+    info_cuesRemoved += ' <button id="toggleTlCandidate" class="hand">Toggle</button>';
+    //info_cuesRemoved += '&nbsp; <span id="select_tidminGap_wrapper" style="display:none">Max gap: <select id="select_tidminGap"><option>1</option><option>2</option><option selected="selected">3</option></select> minutes</span>';
+    info_cuesRemoved += '</li>';
+
+    tlBoxTopInfoList().prepend( info_cuesRemoved );
+}
+
 // toggleTlCandidate
-waitForKeyElements("#toggleTlCandidate", function( jNode ) {
-    jNode.click(function() {
-        logFunc( "toggleTlCandidate" );
+// Delegated, not bound to the button that happens to be on the page: showInfoCuesRemoved()
+// builds a NEW button whenever the feedback box was re-rendered, and a handler bound to the
+// old one would go with it.
+$(document).on("click", "#toggleTlCandidate", function() {
+    logFunc( "toggleTlCandidate" );
 
-        var ta = $("textarea.mixesdb-TLbox"),
-            ta_rows = ta.attr("rows"),
-            tl_orig = ta.val(),
-            tl_candidate = ta.attr("data-tlcandidate");
+    var ta = $("textarea.mixesdb-TLbox"),
+        ta_rows = ta.attr("rows"),
+        tl_orig = ta.val(),
+        tl_candidate = ta.attr("data-tlcandidate");
 
-        logVar( "tl_orig", tl_orig );
-        logVar( "tl_candidate", tl_candidate );
+    logVar( "tl_orig", tl_orig );
+    logVar( "tl_candidate", tl_candidate );
 
-        if( tl_candidate ) {
-            var tl_candidate_rows = tl_candidate.split("\n").length;
+    if( tl_candidate ) {
+        var tl_candidate_rows = tl_candidate.split("\n").length,
+            feedback_orig = ta.data("mdbTlFeedback"),
+            feedback_candidate = ta.data("mdbTlFeedbackCandidate");
 
-            ta.val( tl_candidate )
-                .attr( "data-tlcandidate", tl_orig );
+        ta.val( tl_candidate )
+            .attr( "data-tlcandidate", tl_orig )
+            .data( "mdbTlFeedback", feedback_candidate )
+            .data( "mdbTlFeedbackCandidate", feedback_orig );
 
-            //$("#select_tidminGap_wrapper").show();
+        //$("#select_tidminGap_wrapper").show();
 
-            if( ta_rows < tl_candidate_rows ) {
-                ta.attr( "rows", tl_candidate_rows );
-            }
+        if( ta_rows < tl_candidate_rows ) {
+            ta.attr( "rows", tl_candidate_rows );
         }
-    });
+
+        // The verdict follows the text. Without this the box keeps saying "valid and complete"
+        // while the "?" rows it was complete WITHOUT are back on screen - the same wrong
+        // pairing the second API call was added to end, one click later.
+        // Both texts came from the API, so the memo the blur update compares against moves
+        // with them too and leaving the box stays quiet.
+        if( feedback_candidate ) {
+            tlBoxRenderFeedback( ta, feedback_candidate );
+            showInfoCuesRemoved();
+        }
+
+        ta.data( "mdbTlboxKnown", tl_candidate );
+    }
 });
 
 
@@ -1984,6 +2017,16 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.21.6
+ * The Toggle between the filtered and the unfiltered tracklist now flips the feedback with the
+ * text - the same wrong pairing .5 fixed came back with one click on it: the box kept saying
+ * "valid and complete" while the "?" rows it was complete WITHOUT were back on screen. Both
+ * verdicts are already asked for when the box is built, so they are stashed on it and swapped,
+ * which costs no further API call. The notice with the Toggle is put back after the swap - it
+ * lives inside the feedback box, and rendering another verdict rebuilds that box's content.
+ * The cue format switch needs none of this: the API keeps whichever cue format it is given and
+ * answers [059] and [0:59] identically, rows and status included.
  *
  * 2026.08.21.5
  * The Tracklist Editor feedback under the box now answers the tracklist that is IN the box.

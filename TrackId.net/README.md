@@ -24,7 +24,8 @@ pages:
 Tracks whose cue is suspiciously close to the previous one are treated as false positives and
 removed; a **Toggle** button above the box shows the unfiltered version. The filtered tracklist
 is then checked once more, so the feedback belongs to the version in the box: a tracklist that
-was incomplete only because of those `?` rows comes back green once they are gone.
+was incomplete only because of those `?` rows comes back green once they are gone - and the
+feedback follows the **Toggle**, back to orange while the unfiltered version is on screen.
 
 ### Style suggestions
 
