@@ -483,6 +483,15 @@ function tlBoxShowApiCount() {
                 ? "Live updates are ON: after a typing pause - and at once on Enter or a click in the box - the tracklist is checked, this feedback follows it and every line except the one you are typing on is formatted.\nClick to switch off."
                 : "Live updates are OFF: the box is only checked and formatted when you leave it or click \"Create\".\nClick to switch on - useful while writing a tracklist out, at one API call per typing pause." );
     });
+
+    // The toolkit's tracklist state buttons sit in the same box and are wiped by the same
+    // swap that wipes the chips above (see tlBoxSetFeedbackHtml), so they are put back from
+    // here as well - and re-lit, because the answer that triggered this render is what they
+    // read their state from. Guarded: a feedback box does not mean the toolkit is loaded,
+    // several of our scripts show one without it.
+    if( typeof toolkit_tlStateButtons === "function" ) {
+        toolkit_tlStateButtons();
+    }
 }
 
 // tlBoxClearFeedback

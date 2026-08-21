@@ -332,22 +332,35 @@ function make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, target="detail pag
     return output;
 }
 
+// toolkit_tlStatusFromFeedback
+// What the Tracklist Editor said about ONE feedback box: "incomplete", "complete", or "" when
+// it said neither.
+//
+// Read from the box's TEXT, not from its list items as this used to be. The API only builds a
+// list when it has more to say about the tracklist; one it is happy with is answered with a
+// bare line instead ("The tracklist seems valid and complete." - see tlBoxTopInfoList() in
+// tracklist_editor/funcs.js), and the list-only reading never saw that one. So the state that
+// is worth carrying over to MixesDB the most - a complete tracklist - was the one the EDIT
+// links never got.
+function toolkit_tlStatusFromFeedback( box ) {
+    var match = String( $(box).text() ).match( /tracklist seems (?:to be )?valid and (incomplete|complete)/i );
+
+    return match ? match[1].toLowerCase() : "";
+}
+
 // toolkit_getSiteHasTlStatus
 function toolkit_getSiteHasTlStatus() {
+    // a state picked by hand outranks whatever the API last said - see the state buttons below
+    if( toolkit_tlStatePicked() ) {
+        return toolkit_tlStatePicked();
+    }
+
     var status = "";
 
-    $("ul.tlEditor-feedback-topInfo li, ul#tlEditor-feedback-topInfo li").each(function () {
-        var liText = $(this).text().trim();
+    $("#tlEditor-feedback, ul.tlEditor-feedback-topInfo, ul#tlEditor-feedback-topInfo").each(function () {
+        status = toolkit_tlStatusFromFeedback( this );
 
-        if (/^The tracklist seems to be valid and incomplete/i.test(liText) || /^The tracklist seems valid and incomplete/i.test(liText)) {
-            status = "incomplete";
-            return false;
-        }
-
-        if (/^The tracklist seems to be valid and complete/i.test(liText) || /^The tracklist seems valid and complete/i.test(liText)) {
-            status = "complete";
-            return false;
-        }
+        if( status ) return false;
     });
 
     return status;
@@ -392,6 +405,116 @@ function toolkit_updateEditLinksSiteHasTl( fromSite="", siteHasTl="" ) {
         href = href.replace(/(fromSite=[^&]+)/, "$1&siteHasTl=" + status);
 
         editLink.attr("href", href);
+    });
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The tracklist state buttons
+ *
+ * MixesDB's edit page carries three of them under the edit box (#afterTextbox1): none,
+ * incomplete, complete - the [[Category:Tracklist: ...]] the page is filed under, the one that
+ * applies lit and the other two dimmed. Two of the three are repeated in the bottom right of
+ * every Tracklist Editor feedback box we put on a player site, because that is where the
+ * state is DECIDED: the toolkit's EDIT links carry it to MixesDB as &siteHasTl=..., and the
+ * block at the end of this file presets the category from it once the edit page opens.
+ *
+ * "none" is not repeated. A box only exists where a tracklist was found, so that button could
+ * never be anything but the dark one of the row.
+ *
+ * Until one is clicked the state is READ from the feedback ("The tracklist seems valid and
+ * complete.") - which is what the EDIT links did before the buttons existed, so a reader who
+ * never touches them sees what was already happening. A click PINS it: from then on the pick
+ * is what the links carry and a later API answer no longer moves it. The reader knows things
+ * about the mix the formatter cannot see - a tracklist that is complete although half of it
+ * is "?", a "complete" one that stops an hour before the mix does.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// toolkit_tlStatePicked
+// What a click picked, "" while the feedback is still what decides.
+//
+// Kept on the feedback box rather than in a variable of ours, because that is the lifetime the
+// pick has: it is about THIS tracklist. A re-rendered answer only swaps the box's CONTENT, so
+// the pick survives it - and on the single-page sites the box is taken down on navigation
+// (mdbResetForNewPage() in global.js removes #tlEditor), so the pick cannot follow the reader
+// to the next mix, which a variable of ours would have done.
+function toolkit_tlStatePicked() {
+    return $("#tlEditor-feedback").first().attr( "data-mdb-tlstate-picked" ) || "";
+}
+
+// the two states the buttons offer, in the order MixesDB shows them in
+var toolkit_tlStates = [
+    {
+        state: "incomplete",
+        title: "The tracklist is INCOMPLETE.\nClick to say so yourself: the MixesDB EDIT links then file the page under [[Category:Tracklist: incomplete]], whatever the check above says."
+    },
+    {
+        state: "complete",
+        title: "The tracklist is COMPLETE.\nClick to say so yourself: the MixesDB EDIT links then file the page under [[Category:Tracklist: complete]], whatever the check above says."
+    }
+];
+
+// toolkit_tlStateIcon
+// MixesDB draws these with Font Awesome (fa-question-circle, fa-check-circle): a filled circle
+// with the glyph knocked white out of it. Font Awesome is loaded on MixesDB and on none of the
+// player sites, so the same two shapes are drawn here rather than asked for by class name.
+// currentColor, so the colour is the button's and the dimming is one opacity on the button.
+function toolkit_tlStateIcon( state ) {
+    var glyph = state == "complete"
+        ? '<path d="M4.6 8.4l2.2 2.2 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+        : '<path d="M5.9 6.3C5.9 4.6 10.1 4.6 10.1 6.4 10.1 7.9 8 8.2 8 9.9" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="12" r="1" fill="#fff"/>';
+
+    return '<svg class="mdb-tlEditor-tlState-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="currentColor"/>' + glyph + '</svg>';
+}
+
+// toolkit_tlStateButtons
+// Puts the row into every feedback box on the page, or re-lights the one already there. Called
+// on every feedback render (tlBoxShowApiCount() in tracklist_editor/funcs.js, which rebuilds
+// the box from the API's HTML and would otherwise take the row off the page with it) and when
+// a box first appears, which is what lights the right icon on load.
+function toolkit_tlStateButtons() {
+    // MixesDB has the real ones under its edit box: a second row for the same category on the
+    // same page would be one row too many, and the EDIT links this one drives are not there.
+    if( typeof domain !== "undefined" && domain == "mixesdb.com" ) {
+        return;
+    }
+
+    $("#tlEditor-feedback").each(function() {
+        var box = $(this),
+            state = ( box.attr( "data-mdb-tlstate-picked" ) || "" ) || toolkit_tlStatusFromFeedback( box ),
+            row = box.children( ".mdb-tlEditor-tlState" ).first();
+
+        if( !row.length ) {
+            row = $("<div>").addClass( "mdb-tlEditor-tlState mdb-element" );
+
+            $.each( toolkit_tlStates, function( i, def ) {
+                row.append(
+                    $("<span>")
+                        .addClass( "mdb-tlEditor-tlState-button mdb-tlEditor-tlState-" + def.state )
+                        .attr( "data-mdb-tlstate", def.state )
+                        .attr( "title", def.title )
+                        .html( toolkit_tlStateIcon( def.state ) )
+                        .on( "click", function() {
+                            box.attr( "data-mdb-tlstate-picked", def.state );
+
+                            log( "toolkit_tlStateButtons: \"" + def.state + "\" picked by hand - the EDIT links carry it from here." );
+
+                            toolkit_tlStateButtons();
+                            toolkit_updateEditLinksSiteHasTl( typeof domain !== "undefined" ? domain : "", "auto" );
+                        })
+                );
+            });
+
+            box.append( row );
+        }
+
+        row.children( ".mdb-tlEditor-tlState-button" ).each(function() {
+            var button = $(this);
+
+            button.toggleClass( "mdb-tlEditor-tlState-on", button.attr( "data-mdb-tlstate" ) == state );
+        });
     });
 }
 
@@ -1308,6 +1431,10 @@ function toolkit_addTidLink( playerUrl, title ) {
 // keep Toolkit edit links in sync with TL status feedback
 waitForKeyElements("#tlEditor-feedback", function( jNode ) {
     var currentDomain = typeof domain !== "undefined" ? domain : "";
+
+    // the state buttons live in this box - this is what draws them, and what lights the icon
+    // the first answer decided on
+    toolkit_tlStateButtons();
 
     if( currentDomain != "" ) {
         toolkit_updateEditLinksSiteHasTl( currentDomain, "auto" );
