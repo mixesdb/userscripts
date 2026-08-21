@@ -154,6 +154,18 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     margin-left: -1px;
     margin-right: -1px;
 }
+/*
+ * Everything in the top right corner of this box floats (the API's rows count, our chips, the
+ * toolkit's tracklist state buttons), and a one-line answer is shorter than they are: without
+ * this the box was only as tall as its text and the buttons hung out over its bottom border,
+ * onto whatever the page has under the box. A clearfix rather than "overflow: hidden", which
+ * would cut them off instead.
+ */
+#tlEditor-feedback::after {
+    content: "";
+    display: block;
+    clear: both;
+}
 #tlEditor-feedback ul {
 	margin-top: 0;
 	margin-bottom: 0;
@@ -171,41 +183,39 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 }
 
 /*
- * Our own rows in the message list float right instead of stacking.
+ * Our own rows in the message list share ONE line, right-aligned, instead of stacking.
  *
  * Three of them can sit in that list at once - the cue format switch, the Tracklist Merger link
  * and TrackId.net's notice about the removed "?" tracks with its Toggle - and as list items
- * they took a full line each, on top of the message's own. The box is as wide as the page, so
- * the width to the right of the message sat empty the whole time while the box grew downwards,
- * pushing the tracklist and everything under it further down. Height is the expensive direction
- * here, width is not.
+ * they took a full line each, under the message's own. The box is as wide as the page, so the
+ * width to the right sat empty the whole time while the box grew downwards, pushing the
+ * tracklist and everything under it further down. Height is the expensive direction here,
+ * width is not.
  *
- * Floated, they use that empty width: all three share ONE line instead of taking one each.
+ * inline-block in a right-aligned list, NOT floats. Floats leave the flow, and everything in
+ * this box that leaves the flow ends up in the same top-right corner as the box's own chips:
+ * our rows landed on the chip line, which pushed the verdict onto the second line of the box,
+ * and whatever no longer fit hung out over the box's bottom edge. In the flow they cannot do
+ * either - they sit on the line under the verdict, where they belong, and the list is as tall
+ * as they are.
  *
- * That line is always the one under the verdict, and never the verdict's own. The verdict
- * stays the first thing in the box (tlBoxTopInfoList in funcs.js, and the scripts append their
- * rows rather than prepend them), and a float cannot rise back up beside what precedes it in
- * the source. Sharing its line would mean putting our rows in front of the sentence the box
- * was opened for - one line of box is the cheaper price.
- *
- * The clearfix is what keeps the list around them: with nothing in it but floats the list
- * would be zero high, and our rows would hang out of the box's bottom. A clearfix rather than
- * "overflow: hidden" on purpose - that would make the list a block formatting context, which
- * may not overlap the box's own right-hand chips and would narrow or push down the whole list
- * to avoid them.
+ * text-align is set twice on purpose: right on the list, so our inline-blocks line up on its
+ * right edge, and back to left on every row, so the text INSIDE a row reads normally - the
+ * API's own row (the verdict, in the answer where this list is the API's) included.
  */
-#tlEditor-feedback-topInfo::after {
-	content: "";
-	display: block;
-	clear: both;
+#tlEditor-feedback-topInfo {
+	text-align: right;
+}
+#tlEditor-feedback-topInfo > li {
+	text-align: left;
 }
 #tlEditor-feedback-topInfo > li.info_switchCueFormat,
 #tlEditor-feedback-topInfo > li#mergeLink,
 #tlEditor-feedback-topInfo > li.info_cuesRemoved {
-	float: right;
+	display: inline-block;
 	list-style: none;
-	/* the .5em above separates STACKED rows - on a float it only pushes the first one onto a
-	   line of its own */
+	/* the .5em above separates STACKED rows - these share a line, and the gap between them is
+	   the margin-left below */
 	margin-top: 0 !important;
 	margin-left: .8em;
 }
