@@ -407,9 +407,10 @@ textarea.mono {
 }
 
 /*
- * The tracklist state buttons (toolkit_tlStateButtons() in toolkit/funcs.js): MixesDB's
+ * The tracklist state icons (toolkit_tlStateButtons() in toolkit/funcs.js): MixesDB's
  * "Tracklist:" indicators from under its edit box, repeated in this box's chip row, on the
- * outer side of the API's "N rows".
+ * outer side of the API's "N rows". They report the state the EDIT links carry - nothing here
+ * is clickable, so nothing here may look it.
  *
  * In the row rather than under the message because the box is ONE line tall whenever the
  * answer is ("The tracklist seems valid and complete."), and a line of its own for two icons
@@ -440,20 +441,14 @@ textarea.mono {
 .mdb-tlEditor-tlState-button {
     display: inline-block;
     vertical-align: middle;
-    cursor: pointer;
     opacity: .2;
-    transition: opacity .15s ease;
 }
 .mdb-tlEditor-tlState-button + .mdb-tlEditor-tlState-button {
     margin-left: .3em;
 }
-/* halfway lit under the pointer: enough to read the icon before deciding to click it, not so
-   much that it passes for the state that applies */
-.mdb-tlEditor-tlState-button:hover {
-    opacity: .6;
-}
-.mdb-tlEditor-tlState-on,
-.mdb-tlEditor-tlState-on:hover {
+/* the state that applies. The other one stays dim under the pointer as well: a hover that
+   lights it up would promise a click that no longer happens */
+.mdb-tlEditor-tlState-on {
     opacity: 1;
 }
 .mdb-tlEditor-tlState-incomplete {

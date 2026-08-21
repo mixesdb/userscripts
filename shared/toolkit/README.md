@@ -43,20 +43,18 @@ being visited.
 already – or a **Submit this player URL to TrackId.net** link when it does not. The row always
 starts with the TrackId.net icon, so it can be told apart from the other rows at a glance.
 
-### Tracklist state buttons
+### Tracklist state icons
 
 In the chip row of the [Tracklist box](../tracklist_editor/)'s feedback, next to the row
 count: the two `Tracklist:` indicators MixesDB shows under its own edit box, at chip size –
-**?** for incomplete, **✓** for complete. The one that applies is lit and the other dimmed – on
-arrival that is whatever the Tracklist Editor said about the tracklist.
+**?** for incomplete, **✓** for complete. The one that applies is lit and the other dimmed,
+following whatever the Tracklist Editor said about the tracklist.
 
-Click the other one when you know better – a tracklist that is complete although half of it is
-`?`, or a "complete" one that stops an hour before the mix does. The **EDIT** links then carry
-your pick to MixesDB, where the page opens filed under `[[Category:Tracklist: incomplete]]` or
-`[[Category:Tracklist: complete]]` instead of `none`. A pick stays put: a later check of the
-tracklist no longer moves it.
+They only show the state, they do not set it: the **EDIT** links carry the lit one to MixesDB,
+where the page opens filed under `[[Category:Tracklist: incomplete]]` or
+`[[Category:Tracklist: complete]]` instead of `none`.
 
-`none` is not offered. There is a tracklist on the page, so the state is never none.
+`none` is not shown. There is a tracklist on the page, so the state is never none.
 
 ### Newer than the MixesDB page
 

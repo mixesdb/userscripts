@@ -350,11 +350,6 @@ function toolkit_tlStatusFromFeedback( box ) {
 
 // toolkit_getSiteHasTlStatus
 function toolkit_getSiteHasTlStatus() {
-    // a state picked by hand outranks whatever the API last said - see the state buttons below
-    if( toolkit_tlStatePicked() ) {
-        return toolkit_tlStatePicked();
-    }
-
     var status = "";
 
     $("#tlEditor-feedback, ul.tlEditor-feedback-topInfo, ul#tlEditor-feedback-topInfo").each(function () {
@@ -411,49 +406,40 @@ function toolkit_updateEditLinksSiteHasTl( fromSite="", siteHasTl="" ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * The tracklist state buttons
+ * The tracklist state icons
  *
  * MixesDB's edit page carries three of them under the edit box (#afterTextbox1): none,
  * incomplete, complete - the [[Category:Tracklist: ...]] the page is filed under, the one that
  * applies lit and the other two dimmed. Two of the three are repeated in the chip row of every
- * Tracklist Editor feedback box we put on a player site, at the chips' own height, because
- * that is where the state is DECIDED: the toolkit's EDIT links carry it to MixesDB as
- * &siteHasTl=..., and the block at the end of this file presets the category from it once the
- * edit page opens.
+ * Tracklist Editor feedback box we put on a player site, at the chips' own height, so the
+ * reader sees what the toolkit's EDIT links are about to carry to MixesDB as &siteHasTl=...,
+ * which the block at the end of this file turns back into the category once the edit page
+ * opens.
  *
- * "none" is not repeated. A box only exists where a tracklist was found, so that button could
+ * "none" is not repeated. A box only exists where a tracklist was found, so that icon could
  * never be anything but the dark one of the row.
  *
- * Until one is clicked the state is READ from the feedback ("The tracklist seems valid and
- * complete.") - which is what the EDIT links did before the buttons existed, so a reader who
- * never touches them sees what was already happening. A click PINS it: from then on the pick
- * is what the links carry and a later API answer no longer moves it. The reader knows things
- * about the mix the formatter cannot see - a tracklist that is complete although half of it
- * is "?", a "complete" one that stops an hour before the mix does.
+ * They only REPORT: the state is read from the feedback ("The tracklist seems valid and
+ * complete.") and nothing here is clickable. Picking one by hand only means something where
+ * the tracklist itself travels to the mix page and the page text's category travels with it -
+ * the page creator's "Create" - and nowhere else would the pick have anything to change. It
+ * was clickable for a while; git history has that version if it comes back for the creator.
+ *
+ * The function and the CSS classes keep saying "button". funcs.js arrives through @require and
+ * tracklistEditor_copy.css through loadRawCss(), so the two can be a cache generation apart,
+ * and renaming the classes would hand a stale stylesheet elements it has nothing to say about.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// toolkit_tlStatePicked
-// What a click picked, "" while the feedback is still what decides.
-//
-// Kept on the feedback box rather than in a variable of ours, because that is the lifetime the
-// pick has: it is about THIS tracklist. A re-rendered answer only swaps the box's CONTENT, so
-// the pick survives it - and on the single-page sites the box is taken down on navigation
-// (mdbResetForNewPage() in global.js removes #tlEditor), so the pick cannot follow the reader
-// to the next mix, which a variable of ours would have done.
-function toolkit_tlStatePicked() {
-    return $("#tlEditor-feedback").first().attr( "data-mdb-tlstate-picked" ) || "";
-}
-
-// the two states the buttons offer, in the order MixesDB shows them in
+// the two states the icons cover, in the order MixesDB shows them in
 var toolkit_tlStates = [
     {
         state: "incomplete",
-        title: "The tracklist is INCOMPLETE.\nClick to say so yourself: the MixesDB EDIT links then file the page under [[Category:Tracklist: incomplete]], whatever the check above says."
+        title: "The Tracklist Editor says this tracklist is INCOMPLETE.\nThe MixesDB EDIT links file the page under [[Category:Tracklist: incomplete]]."
     },
     {
         state: "complete",
-        title: "The tracklist is COMPLETE.\nClick to say so yourself: the MixesDB EDIT links then file the page under [[Category:Tracklist: complete]], whatever the check above says."
+        title: "The Tracklist Editor says this tracklist is COMPLETE.\nThe MixesDB EDIT links file the page under [[Category:Tracklist: complete]]."
     }
 ];
 
@@ -461,7 +447,7 @@ var toolkit_tlStates = [
 // MixesDB draws these with Font Awesome (fa-question-circle, fa-check-circle): a filled circle
 // with the glyph knocked white out of it. Font Awesome is loaded on MixesDB and on none of the
 // player sites, so the same two shapes are drawn here rather than asked for by class name.
-// currentColor, so the colour is the button's and the dimming is one opacity on the button.
+// currentColor, so the colour is the span's and the dimming is one opacity on the span.
 function toolkit_tlStateIcon( state ) {
     var glyph = state == "complete"
         ? '<path d="M4.6 8.4l2.2 2.2 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
@@ -484,7 +470,7 @@ function toolkit_tlStateButtons() {
 
     $("#tlEditor-feedback").each(function() {
         var box = $(this),
-            state = ( box.attr( "data-mdb-tlstate-picked" ) || "" ) || toolkit_tlStatusFromFeedback( box ),
+            state = toolkit_tlStatusFromFeedback( box ),
             row = box.children( ".mdb-tlEditor-tlState" ).first();
 
         if( !row.length ) {
@@ -504,27 +490,6 @@ function toolkit_tlStateButtons() {
                         .attr( "data-mdb-tlstate", def.state )
                         .attr( "title", def.title )
                         .html( toolkit_tlStateIcon( def.state ) )
-                        // The box hands the reader a tracklist with everything in it already
-                        // selected (fixTLbox() ends on tl.select()), ready for one Cmd/Ctrl+C.
-                        // A mousedown anywhere outside that textarea is what ends the
-                        // selection - the browser blurs the box and collapses it at the point
-                        // clicked - so picking a state cost the reader the selection they came
-                        // for and sent them back to select all over again. Prevented rather
-                        // than repaired afterwards: re-selecting would also fire on the click
-                        // of a reader who had just picked a few lines out of the box by hand.
-                        // The click still fires; these spans are not focusable and have
-                        // nothing to select, so there is no default here worth keeping.
-                        .on( "mousedown", function( e ) {
-                            e.preventDefault();
-                        })
-                        .on( "click", function() {
-                            box.attr( "data-mdb-tlstate-picked", def.state );
-
-                            log( "toolkit_tlStateButtons: \"" + def.state + "\" picked by hand - the EDIT links carry it from here." );
-
-                            toolkit_tlStateButtons();
-                            toolkit_updateEditLinksSiteHasTl( typeof domain !== "undefined" ? domain : "", "auto" );
-                        })
                 );
             });
 
