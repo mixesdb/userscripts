@@ -325,3 +325,54 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 .mdb-tlEditor-liveUpdates-on .mdb-tlEditor-switch-knob {
     left: 1em;
 }
+
+/*
+ * The tracklist state buttons (toolkit_tlStateButtons() in toolkit/funcs.js): MixesDB's
+ * "Tracklist:" indicators from under its edit box, repeated in the bottom right of this box.
+ *
+ * Appended to the box and right-aligned in the normal flow rather than pinned to its corner,
+ * because the box is ONE LINE tall whenever the answer is one line ("The tracklist seems valid
+ * and complete.") - a corner-pinned row would then lie on top of that line and its chips.
+ * clear: both puts it under the floated chip row, so a one-line box simply grows by the one
+ * line the buttons need and everything stays readable.
+ *
+ * The colours are MixesDB's own (.darkorange / .green in its Common.css), not the box's status
+ * colours: the buttons say what the tracklist IS, which is not always what the check above it
+ * said - that is the whole point of being able to click them.
+ */
+.mdb-tlEditor-tlState {
+    clear: both;
+    margin-top: .5em;
+    line-height: 1;
+    text-align: right;
+}
+.mdb-tlEditor-tlState-button {
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+    opacity: .2;
+    transition: opacity .15s ease;
+}
+.mdb-tlEditor-tlState-button + .mdb-tlEditor-tlState-button {
+    margin-left: .45em;
+}
+/* halfway lit under the pointer: enough to read the icon before deciding to click it, not so
+   much that it passes for the state that applies */
+.mdb-tlEditor-tlState-button:hover {
+    opacity: .6;
+}
+.mdb-tlEditor-tlState-on,
+.mdb-tlEditor-tlState-on:hover {
+    opacity: 1;
+}
+.mdb-tlEditor-tlState-incomplete {
+    color: #f70;
+}
+.mdb-tlEditor-tlState-complete {
+    color: #090;
+}
+.mdb-tlEditor-tlState-icon {
+    display: block;
+    width: 1.25em;
+    height: 1.25em;
+}
