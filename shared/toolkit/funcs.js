@@ -504,6 +504,19 @@ function toolkit_tlStateButtons() {
                         .attr( "data-mdb-tlstate", def.state )
                         .attr( "title", def.title )
                         .html( toolkit_tlStateIcon( def.state ) )
+                        // The box hands the reader a tracklist with everything in it already
+                        // selected (fixTLbox() ends on tl.select()), ready for one Cmd/Ctrl+C.
+                        // A mousedown anywhere outside that textarea is what ends the
+                        // selection - the browser blurs the box and collapses it at the point
+                        // clicked - so picking a state cost the reader the selection they came
+                        // for and sent them back to select all over again. Prevented rather
+                        // than repaired afterwards: re-selecting would also fire on the click
+                        // of a reader who had just picked a few lines out of the box by hand.
+                        // The click still fires; these spans are not focusable and have
+                        // nothing to select, so there is no default here worth keeping.
+                        .on( "mousedown", function( e ) {
+                            e.preventDefault();
+                        })
                         .on( "click", function() {
                             box.attr( "data-mdb-tlstate-picked", def.state );
 
