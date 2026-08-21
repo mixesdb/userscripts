@@ -488,7 +488,14 @@ function toolkit_tlStateButtons() {
             row = box.children( ".mdb-tlEditor-tlState" ).first();
 
         if( !row.length ) {
-            row = $("<div>").addClass( "mdb-tlEditor-tlState mdb-element" );
+            // "floatR", although tracklistEditor_copy.css floats this row as well: that is
+            // where every other chip in the row gets its float from (global.css), and the two
+            // files do not arrive together. funcs.js comes through @require, the CSS through
+            // loadRawCss() at runtime, so one of them can be a cache generation behind the
+            // other - and with the float missing, this row is a full-width block that takes a
+            // line of its own above the chips and pushes them down. Stated twice so neither
+            // half can lose it.
+            row = $("<div>").addClass( "mdb-tlEditor-tlState mdb-element floatR" );
 
             $.each( toolkit_tlStates, function( i, def ) {
                 row.append(
