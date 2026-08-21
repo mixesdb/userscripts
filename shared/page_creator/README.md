@@ -43,7 +43,12 @@ found is written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
 tamed to "DJ Maria.", because the category holding her mixes is spelled that way) – which
 follows a spelling-correcting redirect too, so `Ri0D.` is written `RiOD.`, the category that
-really holds the mixes.
+really holds the mixes. An artist name of **several words** the wiki answers nothing about is
+asked about shortened as well, a word at a time from the right – `KODE9 For Maharishi` also
+asks about `KODE9 For` and about `KODE9` – because such a name usually carries a name MixesDB
+does know at its front. Those are the last questions a lookup has room for, and an answer to
+one of them changes no title by itself: it is a name to check, and the reasoning panel is where
+it shows up.
 
 An **episode number stays in the chunk it was typed in** – it is what says which of the names
 around it is the series. `LIMB #9 – Yuka` on the channel *LIMB* is episode 9 of LIMB, while
@@ -69,6 +74,19 @@ real name follows it inside the chunk, though: `<Name> Invites` is a party's or 
 name two dozen times over on MixesDB – `Secret Cinema Invites`, `Yax Invites 166`,
 `Input Invites Podcast 1` – and a word with a separator, a number or a series word behind it
 belongs to that name and is left in it.
+
+A **credit behind the artist's name** – `KODE9 FOR MAHARISHI`, a mix made for a clothing
+label – says who the mix was made for. It is no second artist and no part of the act's name, so
+the little word ends the name and the act is looked up on its own next to the whole. Where
+MixesDB has no category under the name as written while it does know the act as an artist, the
+credit comes off: `KODE9 FOR MAHARISHI - HYPERDUB 2014-2019 DRIVE-BY` becomes
+`2019-11-29 - Kode9 - Hyperdub 2014-2019 Drive-By (Promo Mix)`, filed under `Category:Kode9`
+and its 94 mixes instead of under a brand-new empty category standing next to it. The dropped
+words come back as a **Switch title** chip, since a name can be built around the word –
+`Dance For Life` is an event, not a credit. Only in the artist half of the title: behind an `@`
+the same little words connect places, and in the show slot the shortening would find somebody
+else's series, this title's own `Hyperdub 2014-2019 Drive-By` being `Hyperdub`, the Rinse FM
+show with 48 episodes, which the promo is no episode of.
 
 A show the title calls nothing but a **generic word** – `Podcast`, `Mix`, `Sessions` – is
 named by the channel it was uploaded to: the `Podcast #323` above becomes
@@ -377,6 +395,13 @@ says why the build decided the other way. Offered today:
   how the wiki writes it where the room is worth naming – `2019-05-24 - Robert Hood @ Elsewhere
   Rooftop, NYC`. The page files under the venue either way, so this chip changes the title
   alone, not where the page ends up.
+
+- **The credit behind a name** – the title said who the mix was made *for* (`KODE9 for
+  maharishi`) and those words came off, because MixesDB has no category under the whole name
+  while it knows the act. The chip offers the written name back (`… - Kode9 - …` becomes
+  `… - Kode9 For Maharishi - …`), for the titles where the words really are part of the name.
+  This is the one chip that moves the **filing** with it: a page's artist category is read off
+  the title, so it decides whether the page joins the act's category or gets one of its own.
 
 - **The month as the name** – the title dated itself with a month and named nothing else, so
   it was written the way MixesDB writes a monthly mix (`… - August Promo Mix`). The chip offers

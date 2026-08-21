@@ -2855,6 +2855,28 @@ function mdbPageCreator_altToggle( title, fact ) {
         return null;
     }
 
+    // The credit the build took off the act's name ("Kode9" <-> "Kode9 For Maharishi").
+    // Toggled on the ACT the fact names, not on a fixed slot: the name stands in the artist
+    // group, which can carry an "@" and a place behind it. Unlike the room word the FILING
+    // moves with it - a page's artist category is read off the title - which is exactly what
+    // this chip is for where the words are part of the name after all ("Dance For Life").
+    if( fact.kind === "nameCredit" && fact.text && fact.act ) {
+        var creditRe = new RegExp( "(" + mdbTitle_escapeRe( fact.act ) + ")(\\s+" +
+                                   mdbTitle_escapeRe( fact.text ) + ")(?![\\w])", "i" );
+
+        if( creditRe.test( title ) ) {
+            return { title: title.replace( creditRe, "$1" ), adding: false };
+        }
+
+        creditRe = new RegExp( "(" + mdbTitle_escapeRe( fact.act ) + ")(?![\\w])", "i" );
+
+        if( creditRe.test( title ) ) {
+            return { title: title.replace( creditRe, "$1 " + fact.text ), adding: true };
+        }
+
+        return null;
+    }
+
     // The month stamp the monthly naming replaced ("August Promo Mix" <-> "August 2026 (Promo
     // Mix)"). Toggled on the entity slot the fact names, at the END of the title, which is
     // where the entity stands on a title that has one. The filing does not move - both
@@ -5914,6 +5936,19 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
         case "place base":
             text = "the place \"" + source.chunk + "\" without the word naming a room inside it - " +
                    "MixesDB files a set played in the loft of a club under the club";
+            break;
+        case "line-up base":
+            text = "the act \"" + source.chunk + "\" without the fraction in front of it - " +
+                   "the fraction says how much of the act was on stage, and MixesDB files the page under the act";
+            break;
+        case "credit base":
+            text = "the act \"" + source.chunk + "\" names in front of its \"for\" - the words behind it " +
+                   "say who the mix was made FOR, which is no part of the act's name";
+            break;
+        case "name head":
+            text = "\"" + source.chunk + "\" shortened by a word from the right - a name of several words " +
+                   "MixesDB has never heard of usually carries one it knows at its front, and this is the " +
+                   "last thing the request asks";
             break;
         case "chunk part":
             text = "one of the names the chunk \"" + source.chunk + "\" strings together - the chunk is asked " +

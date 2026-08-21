@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.5
+// @version      2026.08.21.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_47
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_71
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_48
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_72
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_105
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_106
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1902,6 +1902,23 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.21.6
+ * A credit behind an artist's name now comes off the title, and the lookup asks about the act
+ * on its own (title_definitions.js v_48, title_builder.js v_72, page_creator.js v_106). From
+ * the KODE9 report: "KODE9 FOR MAHARISHI - HYPERDUB 2014-2019 DRIVE-BY" was about to be filed
+ * under a brand-new empty Category:KODE9 For Maharishi, while Category:Kode9 holds 94 mixes
+ * and was never asked about at all - the whole bit was one candidate and one name nobody has.
+ * "for" now ends the act's name the way "im" ends it in front of a club: the name in front of
+ * it is asked next to the whole ("credit base" in section 3), the shortened forms of a long
+ * artist name ride along as the last questions of the request ("KODE9 For", origin "name
+ * head"), and the credit comes off only where the wiki answers nothing about the written name
+ * AND knows the act as an artist - the same two halves the room word and the line-up fraction
+ * are reduced under. The title becomes "2019-11-29 - Kode9 - Hyperdub 2014-2019 Drive-By
+ * (Promo Mix)", and the dropped words come back as a "Switch title" chip, since a name can be
+ * built around the word ("Dance For Life" is an event, not a credit) - the one chip that moves
+ * the filing with it. The entity slot is deliberately left alone: this title's own "Hyperdub
+ * 2014-2019 Drive-By" would shorten to Category:Hyperdub, the Rinse FM show with 48 episodes.
  *
  * 2026.08.21.4
  * An episode number the uploader wrote into the NEXT bit of the title now goes to the show
