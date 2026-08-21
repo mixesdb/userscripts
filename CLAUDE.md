@@ -93,6 +93,9 @@ Every script must start with a complete `==UserScript==` metadata block:
 - Prefer plain JS, but do not change existing jQuery code
 - Wrap script body in an IIFE: `(function() { ... })();` right after `// ==/UserScript==`, closed at end of file. No `'use strict'` – too risky to audit every implicit global across this much legacy jQuery code; a silent bug would become a hard `ReferenceError`.
 - If the script declares `scriptName`, add `window.scriptName = scriptName;` right after – `shared/toolkit/funcs.js` reads `scriptName` as a plain (non-`typeof`-guarded) global, so it must survive the IIFE.
+  `window.cacheVersion = cacheVersion;` goes on the next line for the same reason: shared files
+  that load their own CSS (`shared/tracklist_editor/funcs.js`) build the `?v-<script>_<n>`
+  cache param from it, so a CSS change ships with the version bump instead of arriving on its own.
 - The `Load @ressource files with variables` block (`var cacheVersion = N, scriptName = "...";`
   plus `window.scriptName` and the `loadRawCss()` calls) is the FIRST thing inside the IIFE –
   see TrackId.net. Never let it sink into a constants section further down: `cacheVersion` is

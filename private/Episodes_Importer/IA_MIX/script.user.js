@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IA MIX (private)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.14.4
+// @version      2026.08.21.1
 // @description  Add MixesDB creation links to Inverted Audio IA MIX episodes.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -21,8 +21,10 @@
 // @run-at       document-end
 // ==/UserScript==
 
-var cacheVersion = 3,
+var cacheVersion = 4,
     scriptName = "IA_MIX";
+window.scriptName = scriptName; // toolkit.js reads this global directly
+window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 

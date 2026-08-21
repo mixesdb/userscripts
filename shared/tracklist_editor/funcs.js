@@ -104,7 +104,30 @@ function fixTLbox( feedback, target, focus=true ) {
 
         tlBoxShowApiCount();
     }
-    loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/tracklistEditor_copy.css" );
+    loadRawCss( "https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/tracklistEditor_copy.css" + tlBoxCssCacheParam() );
+}
+
+/*
+ * tlBoxCssCacheParam
+ *
+ * The "?v-<script>_<n>" every other CSS file we load carries. This one used to be fetched
+ * without it, which made it the one file that reached the browser on its OWN schedule: a
+ * pushed CSS change turned up on the page while the @require'd JS it belongs to was still the
+ * cached previous version, and the box rendered as neither. Now a CSS change ships exactly
+ * like a JS change - bump cacheVersion in the script and it is a new URL.
+ *
+ * Both globals are read through typeof: this file is @require'd by scripts that declare them
+ * inside their IIFE (they publish them as window.scriptName / window.cacheVersion for exactly
+ * this) and by a couple that have neither, e.g. Apple Music, which loads its CSS as a
+ * @resource. Without them the URL stays the bare one it always was.
+ */
+function tlBoxCssCacheParam() {
+    var name = typeof scriptName !== "undefined" ? scriptName : "",
+        version = typeof cacheVersion !== "undefined" ? cacheVersion : "";
+
+    if( name === "" && version === "" ) return "";
+
+    return "?v-" + name + ( name !== "" && version !== "" ? "_" : "" ) + version;
 }
 
 /*
