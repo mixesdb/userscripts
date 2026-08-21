@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tracklist Merger (Beta)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.3
+// @version      2026.08.21.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -29,7 +29,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 8,
+var cacheVersion = 9,
     scriptName = "Tracklist_Merger";
 window.scriptName = scriptName; // in case other shared files rely on this global
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it

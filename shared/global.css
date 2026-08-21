@@ -382,47 +382,6 @@ a.mdb-copy-text-button:focus,
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Tracklist output
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-textarea#mixesdb-TLbox,
-textarea.mixesdb-TLbox,
-textarea.mdb-tlBox,
-textarea.mono {
-    color: #111 !important;
-}
-#tlEditor-feedback-rows {
-    font-weight: 600;
-    background: hsla(0, 0%, 79%, 0.7);
-    text-shadow: 1px 1px hsla(0, 0%, 39%, 0.5);
-}
-#tlEditor-feedback code {
-    font-size: 12px !important;
-}
-
-#tlEditor-feedback-topInfo {
-    & button {
-        border: 1px solid #ccc !important;
-        color: #777;
-        
-        &:hover,
-        &:active{
-            color: #111;
-        }
-    }
-}
-
-/* Normalizing feedback font */
-#tlEditor-feedback-topInfo span,
-#tlEditor-feedback strong {
-    font-family: sans-serif !important;
-    font-size: .8rem !important;
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
  * Stream actions (filter options)
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
