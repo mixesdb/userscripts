@@ -1722,6 +1722,87 @@ function mdbTitle_takeGuestMarker( text ) {
     return result;
 }
 
+// mdbTitle_guestConnectorRe
+// The mdbTitleGuestConnectors as one regex, with whitespace REQUIRED on both sides: a word
+// with a separator behind it ("Secret Cinema Invites, Catwalk") ends the name it belongs to
+// and is no verb. null when the list is not loaded.
+function mdbTitle_guestConnectorRe() {
+    var list = ( typeof mdbTitleGuestConnectors !== "undefined" && mdbTitleGuestConnectors ) ? mdbTitleGuestConnectors : [];
+
+    if( !list.length ) return null;
+
+    return new RegExp( "\\s+\\b(?:" + mdbTitle_wordListAlternation( list ) + ")\\b\\s+", "i" );
+}
+
+// mdbTitle_guestIsName
+// Whether what stands BEHIND a guest connector is a name at all. The one test that tells the
+// verb from the "<Name> Invites" that is a party's or a series' own name: a number counts that
+// series' editions ("Yax Invites 166") and a series word names the show ("Input Invites
+// Podcast 1"), and in neither is the word a verb standing between two names.
+function mdbTitle_guestIsName( guest ) {
+    return !!guest && !/^[#.\s]*\d{1,5}$/.test( guest ) && !mdbTitle_hasSeriesWord( guest );
+}
+
+// mdbTitle_guestConnectorParts
+// One CHUNK cut at the verb: "Bassiani invites Victor" -> [ "Bassiani", "Victor" ]. null where
+// the chunk carries no such verb, or where the fences above say the word belongs to a name.
+// Shared by the chunk split and the parse, so the units the wiki is asked about are the units
+// the title is read as.
+function mdbTitle_guestConnectorParts( bit ) {
+    var re = mdbTitle_guestConnectorRe(),
+        m = re ? re.exec( String( bit || "" ) ) : null;
+
+    if( !m ) return null;
+
+    var host = mdbTitle_trimSeparators( String( bit ).slice( 0, m.index ) ),
+        guest = mdbTitle_trimSeparators( String( bit ).slice( m.index + m[0].length ) );
+
+    if( !host || !mdbTitle_guestIsName( guest ) ) return null;
+
+    return [ host, guest ];
+}
+
+// mdbTitle_takeGuestConnector
+// "Bassiani invites Victor" -> the word is dropped and "Victor" is remembered as the artist,
+// the host stays standing where it was. Returns { text, artist }.
+// See mdbTitleGuestConnectors in title_definitions.js for why the fences below are what tells
+// the verb from the "<Name> Invites" that is a party's own name.
+function mdbTitle_takeGuestConnector( text ) {
+    var re = mdbTitle_guestConnectorRe(),
+        result = { text: text, artist: "" };
+
+    if( !re ) return result;
+
+    var m = re.exec( text );
+
+    if( !m ) return result;
+
+    var before = text.slice( 0, m.index ),
+        after = text.slice( m.index + m[0].length ),
+        // both sides are read as the BIT they stand in, the way a guest marker reads them:
+        // a hyphen sits inside names ("RAW-ARTES") and only a separator run ends one
+        hostBits = before.split( mdbTitle_bitSplitRe() ),
+        guestBits = after.split( mdbTitle_bitSplitRe() ),
+        host = mdbTitle_trimSeparators( hostBits[ hostBits.length - 1 ] ),
+        guest = mdbTitle_cleanArtist( guestBits[0] );
+
+    // a host in front of it inside the same chunk - without one the word starts the title and
+    // names nobody
+    if( !host || !guest ) return result;
+
+    // ... and a real name behind it - see mdbTitle_guestIsName for what that rules out
+    if( !mdbTitle_guestIsName( guest ) ) return result;
+
+    // The verb becomes a SEPARATOR, the way a dash wrap does (mdbTitle_dashWrapsToSeparators):
+    // the host and the guest are two names, and every rule downstream counts the title's bits
+    // to decide which is which. Written as " | " rather than dropped, or the two would glue
+    // into one name ("Bassiani Victor") that nobody wrote and the wiki cannot answer about.
+    result.artist = guest;
+    result.text = mdbTitle_tidySeparators( before + " | " + after );
+
+    return result;
+}
+
 // mdbTitle_bitSplitRe
 // Splits a title into the bits its separators mark out. A separator run needs whitespace on
 // both sides, so hyphenated names ("RAW-ARTES", "пo-русски") stay in one piece. The colon is
@@ -2118,6 +2199,24 @@ function mdbTitle_dropBits( text ) {
 // "USA" and "usa" are one entry.
 function mdbTitle_isCountry( name ) {
     var list = ( typeof mdbTitleCountries !== "undefined" && mdbTitleCountries ) ? mdbTitleCountries : [],
+        cmp = mdbTitle_normalizeCompare( name ),
+        i;
+
+    if( !cmp ) return false;
+
+    for( i = 0; i < list.length; i++ ) {
+        if( mdbTitle_normalizeCompare( list[i] ) === cmp ) return true;
+    }
+
+    return false;
+}
+
+// mdbTitle_isCity
+// Whether a name is on mdbTitleCities (title_definitions.js), compared the same way as the
+// countries above. Only ever asked about a whole part of a PLACE GROUP: the list carries no
+// codes, and "Berlin" is the city where the title has already said this is a place.
+function mdbTitle_isCity( name ) {
+    var list = ( typeof mdbTitleCities !== "undefined" && mdbTitleCities ) ? mdbTitleCities : [],
         cmp = mdbTitle_normalizeCompare( name ),
         i;
 
@@ -2798,11 +2897,19 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
 
         // The place group's country ("@ S.U.N Festival - Hungary") stays in the title but is
         // not worth a request: a country is never a category, and the 10-name limit is real.
+        // The CITY of "@ Venue, City" is the same answer for the same reason - MixesDB writes
+        // it into the title and files nothing under it (mdbTitleCities).
         // Behind the "@" only - a lone "Georgia" in front of it is an artist as readily as a
-        // country, and its lookup is what says which.
-        if( inPlace && bit && mdbTitle_isCountry( bit ) ) {
+        // country, and its lookup is what says which. A city in front of the "@" is asked for
+        // exactly that reason too: "Berlin" is a band as well as a place, and only the answer
+        // tells the two apart while the title has not yet said which one it means.
+        var placeOnly = ( inPlace && bit )
+                      ? ( mdbTitle_isCountry( bit ) ? "country" : mdbTitle_isCity( bit ) ? "city" : "" )
+                      : "";
+
+        if( placeOnly ) {
             mdbTitle_noteChunkNotAsked( bits[i],
-                "a country behind the \"@\" - never a category, and the 10-name request limit is real" );
+                "a " + placeOnly + " behind the \"@\" - never a category, and the 10-name request limit is real" );
             continue;
         }
 
@@ -2964,6 +3071,30 @@ function mdbTitle_isStaticName( name ) {
     return false;
 }
 
+// mdbTitle_isBareSeriesName
+// Whether a name is nothing but a generic series word and the number behind it - "Podcast",
+// "Podcast 323", "Mix #12", "Sessions". Such a name belongs to no show: MixesDB has no
+// Category:Podcast, no Category:Mix and no Category:Show to file a page under, and the few
+// bare words it does answer about answer QUALIFIED - "Mixtape" finds "Mixtape (Lane 8)",
+// "Sessions" finds "Sessions (Ronski Speed)" - which are other people's series. So the name
+// cannot merely answer empty, it can answer WRONG, and the slot it takes is one of ten.
+//
+// The word list is mdbTitleShowSuffixWords, the same one that turns a bare channel name into
+// the show ("HATE" + "Podcast"): every word on it names a series only TOGETHER with a name,
+// which is exactly why it is the list a bare one is tested against. A number behind it counts
+// the episode however it is written ("Podcast 323", "Podcast #323", "Podcast.12").
+//
+// Not the same as mdbTitle_isStaticName: there the word says which episode or part this is
+// and nothing is missing, here a NAME is missing - which is why the entity slot grows the
+// channel name in front of such a word instead of dropping it (mdbTitle_result).
+function mdbTitle_isBareSeriesName( name ) {
+    var text = mdbTitle_trimSeparators( String( name || "" ).trim() );
+
+    if( !text ) return false;
+
+    return mdbTitle_isSeriesWordToken( text.replace( /[\s.#:-]*\d{1,5}$/, "" ) );
+}
+
 // mdbTitle_lookupCategories
 // Asks the wiki's action=mdbnames module what these names are, all in ONE request, then calls
 // back with the cache. Always calls back - a failed or blocked request just means the parser
@@ -2997,6 +3128,16 @@ function mdbTitle_lookupCategories( names, callback ) {
             // saying why it is not, and none disappears without a word. Guarded against
             // repeats - the edit path asks again without the candidates having run.
             mdbTitle_noteChunkNotAsked( name, "a counting word - it says which episode or which part this is, and MixesDB files nothing under such names" );
+            continue;
+        }
+
+        // ... and a name that is nothing but a generic series word ("Podcast", "Mix 12") is
+        // not asked either: no page is filed under one, and the bare words the wiki does
+        // answer about answer with another show's qualified name. Same funnel, same reason -
+        // see mdbTitle_isBareSeriesName.
+        if( mdbTitle_isBareSeriesName( name ) ) {
+            logVar( "mdbTitle_lookupCategories: bare series word, not asked", name );
+            mdbTitle_noteChunkNotAsked( name, "nothing but a generic series word - it names a show only together with a name, so MixesDB has no category of it" );
             continue;
         }
 
@@ -3188,9 +3329,29 @@ function mdbTitle_takeVenueTitle( text, known ) {
 
     if( venueIndex === -1 ) return null;
 
+    // No place is on episode 323. A bit writing a MARKED episode number says the title is an
+    // episode of a series, and the two readings cannot both be written - the same call the
+    // "@" rule makes ("Colossio @ Melodic Therapy #217", see "#" marks the episode number in
+    // title_definitions.js). Here the uploader typed no "@" at all: what suggests the place is
+    // the wiki knowing one of the names, and a club that also puts out a podcast is a name it
+    // knows either way - "Bassiani invites Victor / Podcast #323" is episode 323 of the club's
+    // podcast, not a set played at the club.
+    // An EVENT is deliberately left alone, exactly as it is there: an event numbering its
+    // editions is still the place a set was played at.
+    var markedEpisode = mdbTitle_findEpisode( text, true );
+
+    if( !isEvent && markedEpisode && markedEpisode.marked ) {
+        logVar( "mdbTitle_takeVenueTitle: the title numbers an episode, so the known name is no place",
+                cleaned[venueIndex] + " | #" + markedEpisode.text );
+        return null;
+    }
+
     // Who played there: the bit the wiki backs as an artist first - "Ritter Butzke | Berlin |
     // Tonino & Lanka" has two non-venue bits, and blind position picks the city - then a bit
-    // that writes a line-up, then the first bit that is not the venue.
+    // that writes a line-up, then the first bit that is neither the venue nor a city
+    // (mdbTitleCities), which is the same reading for the title the wiki answered nothing
+    // about. A city is still taken as the last resort: a group of nothing but places was
+    // misread long before this line, and declining the venue reading over it helps nobody.
     var artist = "",
         artistIndex = -1,
         artistKnown = false;
@@ -3205,6 +3366,10 @@ function mdbTitle_takeVenueTitle( text, known ) {
 
     for( i = 0; !artist && i < cleaned.length; i++ ) {
         if( i !== venueIndex && cleaned[i] && mdbTitle_joinedArtistBit( cleaned[i] ) ) { artist = cleaned[i]; artistIndex = i; }
+    }
+
+    for( i = 0; !artist && i < cleaned.length; i++ ) {
+        if( i !== venueIndex && cleaned[i] && !mdbTitle_isCity( cleaned[i] ) ) { artist = cleaned[i]; artistIndex = i; }
     }
 
     for( i = 0; !artist && i < cleaned.length; i++ ) {
@@ -3484,9 +3649,10 @@ function mdbTitle_splitArtists( artistField ) {
 // entity is the ONE name the parse files the page under; entities is every name the entity slot
 // OFFERS, in title order and the picked one among them. A place group can name two things that
 // both have a category - "@ Anjunadeep, Ritter Butzke, Berlin" is the party at the club, and
-// MixesDB files such a page under both - while the city in the same group has none. Nothing
-// about the words tells those two apart, so which of the offered names really is a category is
-// not decided here but asked of the wiki (mdbPageCreator_entityCategoriesFor).
+// MixesDB files such a page under both - while the city in the same group has none. Which of
+// the offered names really is a category is not decided here but asked of the wiki
+// (mdbPageCreator_entityCategoriesFor); the city is the one part that does not need asking,
+// since a city has no category to find (mdbTitleCities).
 function mdbTitle_titleCategories( title ) {
     var text = String( title || "" ),
         bits = text.split( mdbTitle_bitSplitRe() ),
@@ -3542,9 +3708,12 @@ function mdbTitle_titleCategories( title ) {
 // the same reason - and so is the group's COUNTRY, which MixesDB writes in a title and files
 // nothing under (mdbTitleCountries; a country is not sent to the lookup anywhere else either).
 //
-// The CITY stays in the list like every other part: nothing about the words tells "Ritter
-// Butzke" from "Berlin", and the wiki is what does - it has no category for a city, so none is
-// ever written (mdbPageCreator_entityCategoriesFor).
+// A CITY is the third kind of part that names no thing: "@ Ritter Butzke, Berlin" is the club
+// and the city it stands in, and MixesDB has a category for the club alone (mdbTitleCities).
+// Nothing about the WORDS tells the two apart, which is why this was the wiki's answer to give
+// until the list existed - and still is for a city the list does not carry: it stands in the
+// offered names, and "no category of this name" keeps it out one step later
+// (mdbPageCreator_entityCategoriesFor). The list only spares the question.
 function mdbTitle_placeGroupNames( group ) {
     var parts = String( group || "" ).split( "," ),
         out = [],
@@ -3553,7 +3722,8 @@ function mdbTitle_placeGroupNames( group ) {
     for( i = 0; i < parts.length; i++ ) {
         name = mdbTitle_trimSeparators( mdbTitle_dropMarkers( parts[i] ) );
 
-        if( !name || mdbTitle_endsWithSlotWord( name ) || mdbTitle_isCountry( name ) ) continue;
+        if( !name || mdbTitle_endsWithSlotWord( name ) ||
+            mdbTitle_isCountry( name ) || mdbTitle_isCity( name ) ) continue;
 
         out.push( name );
     }
@@ -3575,6 +3745,12 @@ function mdbTitle_placeGroupNames( group ) {
 // the closing set of an event, and a slot is no name to file a page under, so the first part
 // steps aside and the next one answers. Never the last word - a group whose parts are all
 // slots has nothing better to offer than its first.
+//
+// A CITY or a COUNTRY steps aside for good, and is the one thing that can leave this with
+// NOTHING to answer: the entity is the one name a page is filed under whether or not the wiki
+// has it - that is what gives a venue new to MixesDB its category - so a group of nothing but
+// "@ Berlin" would create the very category that must not exist. Filing under nothing is what
+// a title naming no venue says (mdbTitleCities, mdbTitleCountries).
 function mdbTitle_placeGroupEntity( group ) {
     var parts = String( group || "" ).split( "," ),
         eventRe = mdbTitle_eventWordRe(),
@@ -3589,10 +3765,19 @@ function mdbTitle_placeGroupEntity( group ) {
     for( i = 0; i < parts.length; i++ ) {
         part = mdbTitle_trimSeparators( parts[i] );
 
-        if( part && !mdbTitle_endsWithSlotWord( part ) ) return part;
+        if( part && !mdbTitle_endsWithSlotWord( part ) &&
+            !mdbTitle_isCity( part ) && !mdbTitle_isCountry( part ) ) return part;
     }
 
-    return parts[0];
+    // the all-slots fallback: a slot is a name written badly, so the group's first part still
+    // beats nothing - a city is no name at all, and nothing is what a group of them answers
+    for( i = 0; i < parts.length; i++ ) {
+        part = mdbTitle_trimSeparators( parts[i] );
+
+        if( part && !mdbTitle_isCity( part ) && !mdbTitle_isCountry( part ) ) return part;
+    }
+
+    return "";
 }
 
 // mdbTitle_capitalizeFirst
@@ -3750,6 +3935,14 @@ var mdbTitle_channelInitials = "";
 // written as the initials plus a number is the channel's series abbreviating itself, and
 // the exit asks the wiki about the full name (mdbTitle_expandChannelAcronym).
 var mdbTitle_channelUsed = "";
+
+// How the TITLE spells that channel name, where it names it at all - "DIRTYBIRD" comes back
+// as "Dirtybird" from "Dirtybird Radio 540", see "Which spelling of the channel name to use"
+// in title_definitions.js. The same answer mdbTitle_takeShowOutOfTitle gives the branches, set
+// once per suggestion so the single exit can use it too: an entity that is nothing but a
+// series word grows this name in front of it (mdbTitle_growBareSeriesEntity), and it must not
+// come out shouted where the title itself writes the brand properly.
+var mdbTitle_channelShown = "";
 
 // Whether this upload says the set was a LIVE PA - the act performing its own tracks - and
 // where it said so. Set once per suggestion in buildMixesdbTitle, read in mdbTitle_result,
@@ -4299,7 +4492,7 @@ function mdbTitle_traceChunks( text ) {
     var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
         units = [],
         out = [],
-        i, p, q, c, bit, presParts, byMatch, atParts, commaParts, part;
+        i, p, q, c, g, bit, presParts, invitedParts, byMatch, atParts, commaParts, part;
 
     for( i = 0; i < bits.length; i++ ) {
         bit = mdbTitle_trimSeparators( bits[i] );
@@ -4318,12 +4511,24 @@ function mdbTitle_traceChunks( text ) {
 
             if( !part ) continue;
 
-            byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( part ) ).exec( part );
+            // "<host> invites <guest>" is two names as well, and the same mirror is what makes
+            // the guest a lookup candidate at all: read as one chunk the wiki was asked about
+            // "Bassiani invites Victor" - a name that cannot exist - while "Victor", an artist
+            // it knows, was never asked. Unlike "presents" the word needs its fences: "Secret
+            // Cinema Invites" and "Yax Invites 166" carry it as part of the name
+            // (mdbTitle_guestConnectorParts).
+            invitedParts = mdbTitle_guestConnectorParts( part ) || [ part ];
 
-            if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
-                units.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
-            } else {
-                units.push( part );
+            for( g = 0; g < invitedParts.length; g++ ) {
+                part = invitedParts[g];
+
+                byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( part ) ).exec( part );
+
+                if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
+                    units.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
+                } else {
+                    units.push( part );
+                }
             }
         }
     }
@@ -4622,6 +4827,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     // the initials of the one actually used are the ones an acronym is checked against
     mdbTitle_channelInitials = "";
     mdbTitle_channelUsed = "";
+    mdbTitle_channelShown = "";
     // for mdbTitle_result, which canonicalizes the finished groups against the wiki
     mdbTitle_knownNow = known || null;
     mdbTitle_livePaTitle = false;
@@ -4772,6 +4978,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         mdbTitle_channelInitials = mdbTitle_initialsOf( username );
         mdbTitle_channelUsed = username;
+        // the all-caps rule, asked once here so the exit spells the channel the way the
+        // branches do - the take itself is read-only and its text is thrown away
+        mdbTitle_channelShown = mdbTitle_takeShowOutOfTitle( rest, username, false ).show;
 
         // The title spelling the channel name exactly the way the channel does is the real
         // spelling, and Normal Case must not touch it. After 1b, so a channel name in brackets
@@ -5056,6 +5265,25 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             mdbTitle_traceStep( "Guest-mix marker read", "the guest artist is " + guestArtist,
                 null, [ "mdbTitleGuestMarkers" ] );
             mdbTitle_traceCleaned( rest );
+        }
+
+        // 3d2) "<host> invites <guest>" - the same answer from the other kind of word: a VERB
+        // between two names, so the guest behind it is the artist and the host stays standing
+        // as what names the show. Only where no guest marker has already named one - two
+        // phrases naming two different artists is a title nobody writes, and the marker is the
+        // more explicit of the two.
+        if( !guestArtist ) {
+            var invited = mdbTitle_takeGuestConnector( rest );
+
+            if( invited.artist ) {
+                guestArtist = invited.artist;
+                rest = invited.text;
+
+                logVar( "guest artist (invited)", guestArtist );
+                mdbTitle_traceStep( "Guest connector read", "the host invites " + guestArtist + ", so the guest is the artist",
+                    null, [ "mdbTitleGuestConnectors" ] );
+                mdbTitle_traceCleaned( rest );
+            }
         }
 
         // 3e) "<show> with <artists>" - what stands in front of the connector names a SERIES,
@@ -5515,7 +5743,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                         logVar( "buildMixesdbTitle: the number is in the other bit, so the channel is not the series",
                                 pairArtist + " | " + numberedSeries + " " + titleEpisode.text );
 
-                        if( groupCount === 3 ) {
+                        // ... but not where the series is a bare word ("<channel> | Podcast
+                        // #12 | <name>"): the exit puts the channel name in front of it, so
+                        // it was never dropped and saying so contradicts the line the exit
+                        // writes (mdbTitle_growBareSeriesEntity).
+                        if( groupCount === 3 && !mdbTitle_isBareSeriesName( numberedSeries ) ) {
                             conf.drop( 5, "the channel name was dropped - it stands in a bit of its own next to a numbered series and a name, so it is neither of the two" );
                         }
 
@@ -5551,7 +5783,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // number ("From Paris With Hope Vol.14", not "... Hope Vol 14" reassembled)
             restWithEpisode = rest,
             beforeEpisode = "",
-            afterEpisode = "";
+            afterEpisode = "",
+            // the series word 5a2 joined to the channel name, for the pick sentence at the
+            // assembly - "the channel's own name stands in the title too" is only half of it
+            showGrewWord = "";
 
         if( episode ) {
             logVar( "episode (" + episode.kind + ")", episode.text );
@@ -5561,6 +5796,39 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             beforeEpisode = rest.slice( 0, foundEpisode.index );
             afterEpisode = rest.slice( foundEpisode.index + foundEpisode.length );
             rest = mdbTitle_cut( rest, foundEpisode.index, foundEpisode.length );
+        }
+
+        // 5a2) The series word carrying the number stands AWAY from the channel name:
+        //   "Bassiani invites Victor / Podcast #323"  (channel "BASSIANI")
+        //   WRONG: 2026-08-13 - Victor - Bassiani 323
+        //   RIGHT: 2026-08-13 - Victor - Bassiani Podcast 323
+        // The word names the show together with the channel exactly as it does when the two
+        // stand next to each other ("HATE Podcast 496" -> the show "HATE Podcast",
+        // mdbTitle_takeShowOutOfTitle's allowExtend). Which bit the uploader put it in says
+        // nothing about that - and the cut above takes the word out of the title along with
+        // its number, so without this it is simply lost and the bare channel name is left
+        // standing as the show. That is the worse of the two errors by far: "Podcast 323" is
+        // an episode of nothing, and MixesDB has no Category:Podcast to file it under, while
+        // Category:Bassiani Podcast holds the other 94 episodes.
+        // Same fences as the adjacent case: a mapped channel is curated and never gains a
+        // word from the title, a show that already carries one is left alone, and a word that
+        // only COUNTS ("Episode 72") is no part of any name (mdbTitleCounterWords).
+        if( foundEpisode && foundEpisode.word && taken.taken && !taken.extended && !isMappedChannel &&
+            mdbTitle_isSeriesWordToken( foundEpisode.word ) && !mdbTitle_isCounterWord( foundEpisode.word ) &&
+            show && !mdbTitle_hasSeriesWord( show ) ) {
+
+            var grownShow = show + " " + mdbTitle_toNormalCase( foundEpisode.word );
+
+            logVar( "buildMixesdbTitle: the series word stands in another bit, it names the show with the channel",
+                    show + " -> " + grownShow );
+            mdbTitle_traceStep( "Series word joined to the channel name", show + " -> " + grownShow,
+                { from: show, to: grownShow, words: [ foundEpisode.word ] }, [ "mdbTitleShowSuffixWords" ] );
+
+            show = grownShow;
+            // the show DID gain a word from the title, which is what "extended" records - the
+            // readers below all ask "extended || taken", so nothing changes behind this
+            taken.extended = true;
+            showGrewWord = foundEpisode.word;
         }
 
         // 5b) "Truancy Volume 300: Sunju Hargun" - the channel name ("truantsblog") is nowhere
@@ -5935,10 +6203,17 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // are decided from the same flags - a reader must not be told the channel is mapped by
         // one line and doubted for not being a known show by the other.
         return mdbTitle_result( date, artist, show, episode, false, extraArtists, conf, {
-            artist: "what the title names once the date, the decoration and the show name are out of it",
+            // a guest marker or a host's "invites" already named them - that is a stronger
+            // answer than "whatever was left over", and it is the one the reader needs
+            artist: ( guestArtist && mdbTitle_normalizeCompare( artist ) === mdbTitle_normalizeCompare( guestArtist ) )
+                    ? "the title names them as the guest, and the guest is who played the mix"
+                    : "what the title names once the date, the decoration and the show name are out of it",
             entity: !show ? ""
                     : isMappedChannel ? "the channel \"" + username + "\" is mapped to this show by hand (curated list, section 2)"
                     : showFromEpisodeRule ? "the title reads \"<Show> <Word> <Number> - <Artist>\", so what stands in front of the number is the show"
+                    : showGrewWord ? "the channel's own name stands in the title, and the \"" + showGrewWord +
+                                     "\" the episode number hangs on is what the show is called - the two name it together, " +
+                                     "whichever part of the title the uploader wrote them in"
                     : ( taken.extended || taken.taken ) ? "the channel's own name stands in the title too"
                     : "the title carries no show of its own, so the channel it was uploaded to was taken as the one it belongs to"
         } );
@@ -6221,6 +6496,39 @@ function mdbTitle_expandChannelAcronym( artist, entity, episode ) {
     };
 }
 
+// mdbTitle_growBareSeriesEntity
+// "Podcast 323" on the channel "BASSIANI" -> "Bassiani Podcast 323". An entity that is
+// nothing but a generic series word names no show: nobody's page is filed under
+// Category:Podcast, and the episode number in front of it belongs to a series the title
+// never spelled out. The channel is what says whose series it is - the same answer
+// mdbTitle_takeShowOutOfTitle gives when the two words stand next to each other in the title
+// ("HATE" + "Podcast" -> the show "HATE Podcast").
+//
+// At the single exit like the acronym expansion above, so every branch that can leave a bare
+// word in the slot is covered by the one rule - 4c leaves one whenever the number stands in
+// another bit than the channel name ("<channel> | Podcast #12"), and 5c whenever the title
+// splits into two halves and the second is the word.
+//
+// Returns the grown name, or the entity unchanged. Three fences:
+// - the channel has to name something ELSE: a channel called "Podcast" grows nothing
+// - it must not already stand in the entity - which a bare word cannot, but the test costs
+//   nothing and says what the rule means
+// - the artist is not asked about here, unlike the acronym rule: a channel putting out its
+//   own numbered podcast under its own name is the ordinary case ("Some Artist - Some Artist
+//   Podcast 12"), while an acronym standing for the channel that also played is a
+//   contradiction.
+function mdbTitle_growBareSeriesEntity( entity ) {
+    var channel = mdbTitle_channelShown || mdbTitle_channelUsed;
+
+    if( !entity || !channel || !mdbTitle_isBareSeriesName( entity ) ) return entity;
+
+    if( mdbTitle_isBareSeriesName( channel ) ) return entity;
+
+    if( mdbTitle_normalizeCompare( entity ).indexOf( mdbTitle_normalizeCompare( channel ) ) !== -1 ) return entity;
+
+    return channel + " " + mdbTitle_toNormalCase( entity );
+}
+
 // mdbTitle_result
 // The single exit of buildMixesdbTitle: appends the extra artists, assembles, and enforces
 // the three-group rule "Date - Artist - Entity" (see title_definitions.js). A 4th group is
@@ -6340,6 +6648,27 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
             entity = "";
             episode = null;
         }
+    }
+
+    // An entity that is nothing but a series word is no name at all - the channel's goes in
+    // front of it, so the page files under the series and not under Category:Podcast. Before
+    // the acronym rule below, which reads a name in the slot and would find a common noun.
+    var grownSeries = mdbTitle_growBareSeriesEntity( entity );
+
+    if( grownSeries !== entity ) {
+        logVar( "mdbTitle_result: bare series word grew the channel name", entity + " -> " + grownSeries );
+        mdbTitle_traceStep( "Channel name joined to the bare series word", entity + " -> " + grownSeries,
+            { from: entity, to: grownSeries }, [ "mdbTitleShowSuffixWords" ] );
+
+        conf.drop( 5, "the title calls the show nothing but \"" + entity + "\" - the channel name was put in front of it, since MixesDB files no page under a word like that; check that the series is really called this" );
+
+        // the deciding branch writes the sentence - this one changed the name, so it says why
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.entity = "the title names the show with a generic word alone, which MixesDB has no category for - " +
+                "the channel it was uploaded to is what says whose series it is, so its name went in front of the word";
+        }
+
+        entity = mdbTitle_knownNow ? mdbTitle_canonicalName( mdbTitle_knownNow, grownSeries, mdbTitle_entityTypes ) : grownSeries;
     }
 
     // An entity written as the channel's initials plus a number is the channel's series

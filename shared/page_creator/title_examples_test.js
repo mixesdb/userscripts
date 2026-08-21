@@ -63,8 +63,9 @@ for( const example of mdbTitleExamples ) {
     // a category, in title order ("@ Far Blue, Noordspace" offers both). Which of the offered
     // ones the created page really carries is not decided here but asked of the wiki at filing
     // time (mdbPageCreator_entityCategoriesFor in page_creator.js, which this runner does not
-    // load): a city stands in that list exactly like the venue next to it, and only MixesDB's
-    // answer tells the two apart.
+    // load). A city is the exception that never gets that far: a name on mdbTitleCities is out
+    // of the offered list before the wiki is asked anything, so "@ Ritter Butzke, Berlin"
+    // offers the club alone.
     const categories = mdbTitle_titleCategories( got.title ),
           artists = categories.artists,
           artistsOk = !example.expectArtists ||

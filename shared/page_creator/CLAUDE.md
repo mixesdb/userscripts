@@ -497,8 +497,61 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   spellings. Matched whole and anchored on both ends (`mdbTitle_isStaticName`), so a real name
   carrying the word ("Radio Episode Berlin", "Party") is untouched. Not the same list as
   `mdbTitleCounterWords`, which takes the word OFF a name that has more to it - a word only
-  belongs here when a category of that name would be meaningless, never one a series is named
-  after ("Podcast", "Mix").
+  belongs here when a category of that name would be meaningless. A word a series is named
+  after ("Podcast", "Mix") is meaningless in the same way once it stands ALONE, but it is a
+  different rule and a different list - see the next bullet - because what is missing there is
+  a NAME, and the entity slot grows one rather than dropping the word.
+- **A name that is nothing but a generic SERIES word is no candidate either** (2026-08-21,
+  reported on "Bassiani invites Victor / Podcast #323") - `mdbTitle_isBareSeriesName`, tested
+  against `mdbTitleShowSuffixWords` with a trailing number allowed ("Podcast", "Podcast 323",
+  "Mix #12"). Every word on that list names a series only TOGETHER with a name, which is why a
+  bare one cannot merely answer empty: it can answer WRONG. `Mixtape` comes back as
+  "Mixtape (Lane 8)", `Sessions` as "Sessions (Ronski Speed)" - the wiki's qualifier rule
+  offering somebody else's series. In the same funnel as the counting words, so the skipped
+  name costs no slot of the ten (the cap runs after the skips) and the panel's "Not asked:"
+  line says why.
+  **The entity slot grows the channel name in front of such a word** rather than dropping it
+  (`mdbTitle_growBareSeriesEntity`, at the single exit like the acronym expansion, so every
+  branch that can leave one there is covered): "Podcast 323" on "BASSIANI" becomes
+  "Bassiani Podcast 323", the category that really holds the other 94 episodes. The channel is
+  spelled the way the TITLE spells it where it names it (`mdbTitle_channelShown`, the all-caps
+  rule asked once in `buildMixesdbTitle`), and the grown name is canonicalized against the
+  wiki like any other. `mdbPageCreator_entityCategory` refuses the bare word as a category on
+  top of that - the builder can no longer produce one, but an EDITED title can, and
+  `[[Category:Podcast]]` on a mix page is the one thing a category line may never be.
+  Worth 5 confidence: the word is the title's, the name is only the channel's.
+- **A host INVITING a guest is two names, not one** (2026-08-21, same report) -
+  `mdbTitleGuestConnectors` in `title_definitions.js`, read by `mdbTitle_takeGuestConnector`
+  in the parse and mirrored in the chunk split (`mdbTitle_guestConnectorParts` in
+  `mdbTitle_traceChunks`), the way "presents" is. Read as one chunk the wiki was asked about
+  "Bassiani invites Victor" - a name that cannot exist - while "Victor", an artist it knows
+  with 10 mixes, was never asked at all, and the club (a venue it knows) took the artist slot.
+  The verb becomes a " | " in the parse text rather than being dropped: the two would
+  otherwise glue into "Bassiani Victor". mdbTitleGuestMarkers' one-directional sibling - there
+  the phrase NAMES the thing and the artist may stand on either side of it, here the word is a
+  verb and the sides are settled.
+  **The fences are the whole rule**, because "<Name> Invites" is a party's or a series' own
+  name two dozen times over on MixesDB ("Secret Cinema Invites", "Yax Invites 166",
+  "Input Invites Podcast 1"): whitespace on both sides of the word, a name in front of it
+  inside the same chunk, and behind it a name that is neither a number nor a series word.
+  A separator right behind the word is what most of those real names have, and it alone rules
+  them out.
+- **A "#"-numbered episode blocks the wiki's VENUE reading** (2026-08-21, same report) -
+  `mdbTitle_takeVenueTitle` steps aside where a bit of the title writes a marked episode
+  number. The same call the "@" rule makes ("Colossio @ Melodic Therapy #217"), and needed
+  here because the split above made "Bassiani" a bit of its own: the club is a venue MixesDB
+  knows, so 3g read the podcast episode as a set played at the club. No place is on episode
+  323. An EVENT is deliberately left alone, exactly as it is there - an event numbering its
+  editions is still the place a set was played at.
+- **A series word standing in ANOTHER bit than the channel name still names the show with it**
+  (2026-08-21, same report) - step 5a2 of `buildMixesdbTitle`. "HATE Podcast 496" grows the
+  show in `mdbTitle_takeShowOutOfTitle` because the two words are adjacent; "Bassiani invites
+  Victor / Podcast #323" writes them a chunk apart, and the episode cut then takes the word
+  out of the title along with its number, leaving the bare channel name as the show. Which bit
+  the uploader put the word in says nothing about whose series it is. Same fences as the
+  adjacent case: not for a mapped channel, not onto a show that already carries a series word,
+  and not for a word that only COUNTS (`mdbTitleCounterWords`). Costs nothing - the word is
+  the title's own and the channel name stands in the title too.
 - **"#" is never sent** - `mdbTitle_lookupCategories` writes it out (`X #12` asks as `X 12`):
   the character is illegal in a wiki title, so a name carrying one can only answer empty.
   Sits in the one funnel both lookup rounds pass through, so an edited title's names are

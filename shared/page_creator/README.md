@@ -25,7 +25,9 @@ read as exactly that – a name it knows as an **event** makes the title a live 
 the uploader separated it, so `Kollektiv Ost - 3000Grad Festival` is a set played there and not
 a mix released under that name, and among the chunks around such a place the one holding a name
 the wiki knows as an **artist** is who played there, so a city standing between the event and
-the line-up does not end up in either name. A chunk long enough to be a **chain** of names is asked about in
+the line-up does not end up in either name. Well-known cities are recognised without asking the
+wiki at all – `Ritter Butzke | Berlin | Tonino & Lanka` names the club, the city and who played
+even when MixesDB has never heard of the act. A chunk long enough to be a **chain** of names is asked about in
 pieces as well as whole – `Timboletti im Chapeau Club` is looked up as itself, as `Timboletti`
 and as `Chapeau Club`, because the wiki can only answer empty about the pair – and so are the
 artists a `&`, `b2b`, `vs` or a comma joins: `Ri0D. & Jonbot` and `Asa 808 b2b Third Guy` are
@@ -51,6 +53,24 @@ show played by Ricky Montana. With a third chunk the two together answer the who
 `2026-07-02 - Alexander Bogdanov - Undercurrent 5` – the numbered chunk is the series, the
 channel picks itself out, and the chunk left over is who played it, so the channel name (the
 crew putting the series out) does not join the title.
+
+A **host inviting a guest** names the artist, not the show. `Bassiani invites Victor /
+Podcast #323` on the channel *BASSIANI* is a mix by Victor; read as one name it came out under
+the club, since MixesDB knows `Bassiani` as a venue and the guest was never looked up at all.
+The verb separates the two, so host and guest are each asked about on their own. Only where a
+real name follows it inside the chunk, though: `<Name> Invites` is a party's or a series' own
+name two dozen times over on MixesDB – `Secret Cinema Invites`, `Yax Invites 166`,
+`Input Invites Podcast 1` – and a word with a separator, a number or a series word behind it
+belongs to that name and is left in it.
+
+A show the title calls nothing but a **generic word** – `Podcast`, `Mix`, `Sessions` – is
+named by the channel it was uploaded to: the `Podcast #323` above becomes
+`Bassiani Podcast 323`, the series that really holds the other 94 episodes, exactly as a
+`HATE` and a `Podcast` standing next to each other become `HATE Podcast`. Which chunk the
+uploader typed the word in makes no difference to that. MixesDB has no `Category:Podcast` to
+file a page under, so such a word is never the show on its own, never the category, and never
+asked about on the wiki either – the few bare words it does answer for answer with somebody
+else's qualified name (`Mixtape` finds `Mixtape (Lane 8)`).
 
 A series written as nothing but an **acronym and a number** is expanded to the name MixesDB
 files it under, and what settles that is how the wiki's own pages are titled: every page of
@@ -270,8 +290,15 @@ at, the way `2026-05-23 - Dosem @ Anjunadeep, Ritter Butzke, Berlin` carries the
 club. What decides is MixesDB, not the position in the group: the name the title is filed under
 is written whether or not the wiki has it yet – a new venue's category is created together with
 the page – while every further name of the group has to be a category that really exists, asked
-for by that exact name. So the city keeps its place in the title and gets no category of its
-own, and neither does a party MixesDB has never heard of.
+for by that exact name. So a party MixesDB has never heard of gets no category of its own.
+
+The **city keeps its place in the title and never gets a category**, and no longer needs the
+wiki to say so: a city the script knows is out of the running before anything is asked, so it
+is neither the name the page is filed under nor one of the further names, and it costs none of
+the ten names a lookup may carry. A title that names nothing but the city – `Colossio @ Berlin`
+– therefore files under no place at all instead of opening a `Category:Berlin` next to the real
+ones. A city the script does not know still goes the old way round: it is asked about, and
+"no category of this name" is what keeps it out.
 
 The other chips – the year, the styles, **Promo Mix** and the `Tracklist:` filing – stay a
 muted grey and carry neither link nor mix count: none of them is a name anyone could have
@@ -401,8 +428,9 @@ ends up used.
   a separator, at a bracket, at a part the uploader wrapped in dashes
   (`3000Grad Festival -Rummelplatz-` is two chunks), at every `@` (`Kernel Existence - live@3000Grad Festival @Utopia`
   is the chunks `Kernel Existence | 3000Grad Festival | Utopia` – the live marker is no
-  chunk), and at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
-  two chunks) – the units section 3's lookups are built from. What the parse
+  chunk), at the `by` in front of a numbered series (`Guestroom 779 by Sascha Sibler` is
+  two chunks) and at the verb a host writes in front of its guest (`Bassiani invites Victor`
+  is two chunks) – the units section 3's lookups are built from. What the parse
   removes outright is shown in red on a `Removed:` line instead – a bracket crediting
   the artist's labels (`Tooker (SONARA / Crosstown Rebels)`), a list of places saying where
   the artist is from, a lone country behind an artist and a show both (the `Mexico` of
@@ -445,7 +473,8 @@ ends up used.
   `Ri0D. & Jonbot`, asked on its own because MixesDB files each artist of a pair
   separately). A chunk that was deliberately NOT asked about stands at the end of the section on a
   `Not asked:` line with its reason: the place group's own country
-  (`… @ S.U.N Festival – Hungary`) – a country is never a category – a chunk that is nothing
+  (`… @ S.U.N Festival – Hungary`) or its city (`… @ Ritter Butzke, Berlin`) – neither is ever
+  a category – a chunk that is nothing
   but a counting word and its number (`Episode 72`, `Part 2`, `Pt.3`), which says which
   episode or which part this is and files nothing on MixesDB, a chunk a curated channel rule
   has already read as the show (`DJ MIX #679` on the channel *Dance TV*, `In The Mix` on
@@ -746,6 +775,14 @@ placeholder only holds the space below it.
   MixesDB category lookup, so shows, labels and venues neither has seen before can end up in the
   wrong part of the title. Report a wrong suggestion on Discord – the **Report** box has the
   whole case ready – and it becomes a test case.
+- The list of known cities is what keeps a city out of the categories, so a venue, a party or
+  an act whose name IS a city (`Tokyo`, `Milan`) loses its own category when it stands behind
+  the `@` – the words are the same and only the list is asked. Report one and it can be taken
+  off the list.
+- The list is only read inside the place group, so a city standing where the title names
+  nobody else (`Melodic Therapy 217 - Berlin`) is still read as who played, the same way a
+  lone country is. The title offers no other name there, and a suggestion naming nobody would
+  be worse than one naming the wrong somebody – the row is editable for exactly this.
 - Only tracklists written as a run of neighbouring lines are detected. A tracklist scattered
   through a description is left alone on purpose: a wrong tracklist on a new page is worse than
   none.
