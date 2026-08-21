@@ -1812,9 +1812,20 @@ body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
  * soundcloud.com
  */
 body.soundcloud-com {
-    /* Report link */
+    /*
+     * "Report" in the layout's own link colour.
+     *
+     * The literal is not decoration, it is what makes the rule work at all: the MUI variables
+     * only exist in the NEW layout's document (the webi iframe), and a var() that resolves to
+     * nothing makes the whole declaration invalid at computed-value time - which for an
+     * inherited property like "color" means "inherit", NOT "fall back to the grey rule above".
+     * So on every old-layout page this painted the link in the surrounding text colour instead
+     * of the blue, which is what "grey most of the time, blue now and then" was.
+     * #5590FC is the value --mui-palette-link-main resolves to in the new layout, so the link
+     * looks the same in both.
+     */
     & #mdb-pageCreator #mdb-pageCreator-report {
-        color: var(--mui-palette-link-main);
+        color: var(--mui-palette-link-main, #5590FC);
     }
 }
 

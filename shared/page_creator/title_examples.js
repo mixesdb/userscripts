@@ -500,6 +500,18 @@ var mdbTitleExamples = [
         expect: "2026-03-20 - Ben Diggins - Juno Daily"
     },
     {
+        url: "https://soundcloud.com/playhausww/playhaus-001-guliver",
+        title: "Playhaus: 001 Guliver",
+        channel: "Playhaus",
+        date: "2024-10-02",
+        // the curated rule grows "Playhaus" into "Playhaus Podcast", and the episode number
+        // stands in the NEXT bit of the title - cutting the show name out leaves " : 001
+        // Guliver", where the separator used to sit between the two bits. The number still
+        // opens what is left, which is what says it belongs to the show and not to the artist
+        expectArtists: [ "Guliver" ],
+        expect: "2024-10-02 - Guliver - Playhaus Podcast 001"
+    },
+    {
         url: "https://soundcloud.com/privateplaces/779-sascha-sibler",
         title: "Guestroom 779 by Sascha Sibler",
         channel: "PRIVATEPLACES Mixtapes",
@@ -1520,5 +1532,28 @@ var mdbTitleExamples = [
         expectAsked: [ "Asa 808 b2b Third Guy", "Asa 808", "Third Guy" ],
         expectNotAsked: [ "Asa" ],
         expect: "2026-08-20 - Asa 808 b2b Third Guy - Rinse FM"
+    },
+    {
+        // Reported about the LOOKUP again: "for" says who the mix was MADE FOR - maharishi is
+        // a clothing label - so "KODE9 For Maharishi" is a name MixesDB has never had and
+        // never will, while Category:Kode9 holds 94 mixes and was never asked at all. The
+        // connector now ends the act's name the way "im" ends it in front of a club: the act
+        // is asked next to the whole, and the shortened forms of a long artist name ride
+        // along behind every other candidate ("KODE9 For"), which is what the report asked
+        // for. The digits of "KODE9" are a spelling, not an edition, which is why the bit
+        // asks as an artist at all. The entity chunk is deliberately left alone: "Hyperdub
+        // 2014-2019 Drive-By" would shorten to Category:Hyperdub, the Rinse FM show with 48
+        // episodes, and this promo is no episode of it.
+        url: "https://soundcloud.com/kodenine/kode9-hyperdub-2014-2019-drive-by",
+        title: "KODE9 FOR MAHARISHI - HYPERDUB 2014-2019 DRIVE-BY",
+        channel: "kodenine",
+        date: "2019-11-29",
+        known: {
+            "Kode9": { type: "artist", mixes: 94 }
+        },
+        expectArtists: [ "Kode9" ],
+        expectAsked: [ "KODE9 For Maharishi", "KODE9", "KODE9 For" ],
+        expectNotAsked: [ "Hyperdub", "Hyperdub 2014-2019" ],
+        expect: "2019-11-29 - Kode9 - Hyperdub 2014-2019 Drive-By (Promo Mix)"
     }
 ];
