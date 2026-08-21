@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.7
+// @version      2026.08.21.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,8 +11,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_121
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_122
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_48
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_72
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -1517,7 +1517,9 @@ function toggleTracklistTextareaCueFormat(targetFormat) {
 if( visitDomain == "trackid.net" ) {
     waitForKeyElements("ul#tlEditor-feedback-topInfo", function(jNode) {
         if (!$("#switchCueFormat").length) {
-            jNode.prepend('<li class="info_switchCueFormat"><button id="switchCueFormat" class="hand">Switch cue format (mmm > h:m)</button></li>');
+            // append, not prepend: where the API sent this list itself, its first <li> is the
+            // verdict about the tracklist and stays the first thing in the box
+            jNode.append('<li class="info_switchCueFormat"><button id="switchCueFormat" class="hand">Switch cue format (mmm > h:m)</button></li>');
         }
 
         var preferredFormat = getStoredCueFormatPreference();
@@ -1555,7 +1557,9 @@ function showInfoCuesRemoved() {
     //info_cuesRemoved += '&nbsp; <span id="select_tidminGap_wrapper" style="display:none">Max gap: <select id="select_tidminGap"><option>1</option><option>2</option><option selected="selected">3</option></select> minutes</span>';
     info_cuesRemoved += '</li>';
 
-    tlBoxTopInfoList().prepend( info_cuesRemoved );
+    // append: the API's verdict is the first row of that list where the API sent it, and the
+    // list sits under the verdict where we create it - our notice goes below either way
+    tlBoxTopInfoList().append( info_cuesRemoved );
 }
 
 // toggleTlCandidate

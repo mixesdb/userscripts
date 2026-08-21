@@ -262,7 +262,9 @@ function tlBoxSetFeedbackHtml( tl, html ) {
 /*
  * tlBoxCleanFeedbackHtml
  *
- * Takes "No changes were made." out of the answer - but ONLY while live updates are on.
+ * The one place every API answer passes through before it goes on the page: the verdict's id
+ * is made usable (tlBoxSplitFeedbackTextId), and "No changes were made." is taken out - but
+ * ONLY while live updates are on.
  *
  * The message says "the formatter found nothing to fix in what you sent", which is what an
  * already formatted tracklist gets. Whether that is worth reading depends entirely on who
@@ -279,18 +281,62 @@ function tlBoxSetFeedbackHtml( tl, html ) {
  * gap the message used to sit in.
  */
 function tlBoxCleanFeedbackHtml( html ) {
-    if( !tlBoxAutoUpdate() ) return html;
-    if( String( html ).indexOf( "tlEditor-feedback-noChanges" ) === -1 ) return html;
+    var holder = $( "<div>" ).append( html );
 
-    var holder = $( "<div>" ).append( html ),
-        noChanges = holder.find( "#tlEditor-feedback-noChanges" ),
-        wrapper = noChanges.parent( "#tlEditor-feedback-topInfo-noList" );
+    tlBoxSplitFeedbackTextId( holder );
 
-    noChanges.remove();
+    if( tlBoxAutoUpdate() && String( html ).indexOf( "tlEditor-feedback-noChanges" ) > -1 ) {
+        var noChanges = holder.find( "#tlEditor-feedback-noChanges" ),
+            wrapper = noChanges.parent( "#tlEditor-feedback-topInfo-noList" );
 
-    if( wrapper.length && $.trim( wrapper.text() ) === "" && !wrapper.children().length ) wrapper.remove();
+        noChanges.remove();
+
+        if( wrapper.length && $.trim( wrapper.text() ) === "" && !wrapper.children().length ) wrapper.remove();
+    }
 
     return holder.html();
+}
+
+/*
+ * tlBoxSplitFeedbackTextId
+ *
+ * The API writes the verdict's state INTO its id attribute:
+ * <div id="tlEditor-feedback-text tlEditor-feedback-complete">. An id with a space in it is
+ * a single id no selector can ever match - "#tlEditor-feedback-text" matches nothing, and
+ * neither does anything the site or a userscript would reasonably write to style or find the
+ * verdict.
+ *
+ * So the attribute is taken apart before the answer goes on the page: the first word stays
+ * the id, the rest become classes - which is what they read like and, going by the API's own
+ * naming, what they were meant to be. Everything downstream (tlBoxFeedbackText, the CSS in
+ * tracklistEditor_copy.css) can then say "#tlEditor-feedback-text" and mean it.
+ */
+function tlBoxSplitFeedbackTextId( holder ) {
+    // the trailing space in the prefix is the point - it only matches a compound id
+    holder.find( '[id^="tlEditor-feedback-text "]' ).each(function() {
+        var parts = String( this.id ).split( /\s+/ );
+
+        this.id = parts.shift();
+
+        if( parts.length ) $(this).addClass( parts.join(" ") );
+    });
+}
+
+/*
+ * tlBoxFeedbackText
+ *
+ * The API's verdict inside a feedback box - "The tracklist seems valid and complete.", the
+ * list of duplicates, the hint - as a <div>.
+ *
+ * The prefix match is the safety net for an answer that reached the DOM without passing
+ * through tlBoxCleanFeedbackHtml (see tlBoxSplitFeedbackTextId), where the id is still the
+ * unmatchable compound one.
+ *
+ * Empty for the one answer the API phrases differently: a tracklist that is merely INCOMPLETE
+ * comes as a <ul id="tlEditor-feedback-topInfo"> instead, with no text div at all.
+ */
+function tlBoxFeedbackText( box ) {
+    return $(box).children( '#tlEditor-feedback-text, [id^="tlEditor-feedback-text "]' ).first();
 }
 
 /*
@@ -346,16 +392,19 @@ function tlBoxSettleFeedbackHeight( box, from ) {
  * The <ul id="tlEditor-feedback-topInfo"> the site scripts hang their own rows in, created when
  * the answer on screen does not carry one.
  *
- * The API only sends that list when it has something to SAY about the tracklist - incomplete,
- * a hint, a warning. "The tracklist seems valid and complete." arrives as a bare <div> instead,
- * and every row a script wants to add (TrackId.net's notice about the removed "?" tracks with
- * its Toggle, the cue format switch, the Tracklist Merger's link) then has nowhere to go and
- * silently does not appear. The better the tracklist, the fewer of our own controls - the exact
- * opposite of what they are there for.
+ * The API only sends that list for ONE of its answers - a tracklist that is merely incomplete,
+ * where the list itself carries the verdict. Everything else ("The tracklist seems valid and
+ * complete.", the duplicates, the hints) arrives as <div id="tlEditor-feedback-text"> with no
+ * list anywhere, and every row a script wants to add (TrackId.net's notice about the removed
+ * "?" tracks with its Toggle, the cue format switch, the Tracklist Merger's link) then has
+ * nowhere to go and silently does not appear. The better the tracklist, the fewer of our own
+ * controls - the exact opposite of what they are there for.
  *
- * Created in front of the message, which is where the API's own list stands, and only when a
- * caller actually has a row for it: an empty list would still push the message down by the
- * margin tracklistEditor_copy.css gives "#tlEditor-feedback-topInfo + div".
+ * Created directly under the verdict, and only when a caller actually has a row for it: an
+ * empty list would still take the margin tracklistEditor_copy.css gives it.
+ *
+ * Rows go into it with append(), not prepend(): where the API DID send the list, its own
+ * verdict is the first <li> in it and has to stay that.
  */
 function tlBoxTopInfoList( target ) {
     var box = $();
@@ -379,11 +428,15 @@ function tlBoxTopInfoList( target ) {
 
     list = $("<ul>").attr( "id", "tlEditor-feedback-topInfo" ).addClass( "mdb-element" );
 
-    // the close button and the rows chip float right and belong at the top of the box; ours
-    // and the API's chips are .mdb-element - what is left is the message the list goes above
-    var message = box.children().not( "#tlEditor-feedback-close, #tlEditor-feedback-rows, .mdb-element" ).first();
+    // BELOW the verdict, never above it. The one line the box was opened for is the API's
+    // answer about the tracklist, so that is what the reader has to find first - our own rows
+    // ("Possibly false "?" tracks have been removed", the cue format switch, the merger
+    // link) are controls that go with it, not ahead of it. The list used to be created in
+    // front of the message, which pushed the verdict down by however many rows the scripts on
+    // that page happened to add - a different position per site and per answer.
+    var verdict = tlBoxFeedbackText( box );
 
-    if( message.length ) message.before( list ); else box.append( list );
+    if( verdict.length ) verdict.after( list ); else box.append( list );
 
     return list;
 }
