@@ -78,8 +78,8 @@ link into the Tracklist Merger – sits under the verdict, whatever the answer i
 you opened the box for is always in the same place.
 
 On sites that also show the [Toolkit](../toolkit/), the same verdict is repeated in the top
-right corner of the box as two icons you can overrule by clicking – see
-[Tracklist state buttons](../toolkit/#tracklist-state-buttons).
+right corner of the box as two icons – see
+[Tracklist state icons](../toolkit/#tracklist-state-icons).
 
 With **Live updates** on, the Tracklist Editor's "No changes were made." line is left out. It
 means "the formatter found nothing to fix in what was sent" – a fair answer when you have
