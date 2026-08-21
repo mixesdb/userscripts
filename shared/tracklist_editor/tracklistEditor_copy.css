@@ -192,22 +192,21 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
  * tracklist and everything under it further down. Height is the expensive direction here,
  * width is not.
  *
- * inline-block in a right-aligned list, NOT floats. Floats leave the flow, and everything in
- * this box that leaves the flow ends up in the same top-right corner as the box's own chips:
- * our rows landed on the chip line, which pushed the verdict onto the second line of the box,
- * and whatever no longer fit hung out over the box's bottom edge. In the flow they cannot do
- * either - they sit on the line under the verdict, where they belong, and the list is as tall
- * as they are.
+ * inline-block, NOT floats. Floats leave the flow, and everything in this box that leaves the
+ * flow ends up in the same top-right corner as the box's own chips: our rows landed on the
+ * chip line, which pushed the verdict onto the second line of the box, and whatever no longer
+ * fit hung out over the box's bottom edge. In the flow they cannot do either - they sit on the
+ * line under the verdict, where they belong, and the list is as tall as they are.
  *
- * text-align is set twice on purpose: right on the list, so our inline-blocks line up on its
- * right edge, and back to left on every row, so the text INSIDE a row reads normally - the
- * API's own row (the verdict, in the answer where this list is the API's) included.
+ * They start at the left, like every other line in this box: they are rows of the message list
+ * and read as one column with the verdict above them. Right-aligning them lined them up with
+ * the chips in the opposite corner instead, which made them look like more chips.
  */
-#tlEditor-feedback-topInfo {
-	text-align: right;
-}
-#tlEditor-feedback-topInfo > li {
-	text-align: left;
+/* the list we create ourselves holds no bulleted rows, so it does not need the indent a list
+ * has for them: flush under the verdict is where the message column is. Where the list is the
+ * API's own (the incomplete answer), the indent stays and our rows line up with its bullets. */
+#tlEditor-feedback-text + ul#tlEditor-feedback-topInfo {
+	padding-left: 0;
 }
 #tlEditor-feedback-topInfo > li.info_switchCueFormat,
 #tlEditor-feedback-topInfo > li#mergeLink,
@@ -215,9 +214,9 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 	display: inline-block;
 	list-style: none;
 	/* the .5em above separates STACKED rows - these share a line, and the gap between them is
-	   the margin-left below */
+	   the margin-right below */
 	margin-top: 0 !important;
-	margin-left: .8em;
+	margin-right: .8em;
 }
 .feedbackDone #tlEditor-textarea:focus {
     outline: none;
@@ -382,25 +381,25 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 
 /*
  * The tracklist state buttons (toolkit_tlStateButtons() in toolkit/funcs.js): MixesDB's
- * "Tracklist:" indicators from under its edit box, repeated in the top right of this box.
+ * "Tracklist:" indicators from under its edit box, repeated at the bottom right of this one.
  *
- * Floated like the chips and put in FRONT of them, so they end up in the corner itself: they
- * are the only thing in that row that changes anything when clicked, and that belongs where
- * the eye lands. A row of their own under the message would have cost a whole line of box for
- * two icons - and the box is ONE line tall whenever the answer is ("The tracklist seems valid
- * and complete."). Width is what this box has to spare, height is not.
+ * The last line of the box, in the normal flow and cleared of the floated chips above them -
+ * the same place they have on MixesDB, under everything the box says. In the top corner they
+ * were in the chips' way: two 30px buttons among the small grey chips, in the corner the eye
+ * reads the verdict from.
  *
  * 30px is the size MixesDB draws them at, and stated in px for that reason: they are the same
  * two buttons, not a scaled echo of them in whatever the site's font size happens to be.
  */
 .mdb-tlEditor-tlState {
-    float: right;
-    margin-top: -.2em;
-    margin-left: .8em;
+    clear: both;
+    margin-top: .5em;
     line-height: 1;
+    text-align: right;
 }
 .mdb-tlEditor-tlState-button {
     display: inline-block;
+    vertical-align: middle;
     cursor: pointer;
     opacity: .2;
     transition: opacity .15s ease;
