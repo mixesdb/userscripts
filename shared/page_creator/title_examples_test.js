@@ -73,7 +73,13 @@ for( const example of mdbTitleExamples ) {
           entityOk = !( "expectEntity" in example ) ||
                      categories.entity === example.expectEntity,
           entitiesOk = !example.expectEntities ||
-                       categories.entities.join( " | " ) === example.expectEntities.join( " | " );
+                       categories.entities.join( " | " ) === example.expectEntities.join( " | " ),
+          // Whether the page files under Category:Promo Mix - the one filing that is NOT read
+          // off the title, since a name that already says it ("... Vol 4", "Summer 2026 Mix")
+          // carries no " (Promo Mix)" marker. Without this a report about exactly that filing
+          // has nothing to guard: title, artists and entity all come out unchanged.
+          promoOk = !( "expectPromoCategory" in example ) ||
+                    !!got.promoCategory === !!example.expectPromoCategory;
 
     // And the chunks of the SHARED split (mdbTitle_titleChunks) - the units the report panel
     // shows and the lookup candidates come from. What a case states here is what may be ASKED
@@ -108,10 +114,10 @@ for( const example of mdbTitleExamples ) {
                    ( !example.expectNoAlternatives ||
                      example.expectNoAlternatives.every( kind => altKinds.indexOf( kind ) === -1 ) );
 
-    if( !titleOk || !artistsOk || !entityOk || !entitiesOk || !chunksOk || !askedOk || !altsOk ) failed++;
+    if( !titleOk || !artistsOk || !entityOk || !entitiesOk || !promoOk || !chunksOk || !askedOk || !altsOk ) failed++;
 
     console.log(
-        ( titleOk && artistsOk && entityOk && entitiesOk && chunksOk && askedOk && altsOk ? "  ok  " : "FAIL  " ) +
+        ( titleOk && artistsOk && entityOk && entitiesOk && promoOk && chunksOk && askedOk && altsOk ? "  ok  " : "FAIL  " ) +
         String( got.confidence + "%" ).padStart( 4 ) + "  " +
         JSON.stringify( example.title ) +
         "\n              " + ( titleOk ? "" : "got      " ) + JSON.stringify( got.title ) +
@@ -127,6 +133,10 @@ for( const example of mdbTitleExamples ) {
         ( example.expectEntities
             ? "\n              " + ( entitiesOk ? "" : "got      " ) + "entities " + JSON.stringify( categories.entities ) +
               ( entitiesOk ? "" : "\n              expected   entities " + JSON.stringify( example.expectEntities ) )
+            : "" ) +
+        ( "expectPromoCategory" in example
+            ? "\n              " + ( promoOk ? "" : "got      " ) + "promo category " + JSON.stringify( !!got.promoCategory ) +
+              ( promoOk ? "" : "\n              expected   promo category " + JSON.stringify( !!example.expectPromoCategory ) )
             : "" ) +
         ( example.expectChunks
             ? "\n              " + ( chunksOk ? "" : "got      " ) + "chunks " + JSON.stringify( chunks ) +

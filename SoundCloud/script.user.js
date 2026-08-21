@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.15
+// @version      2026.08.21.16
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,8 +12,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_48
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_72
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_49
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_73
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_106
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
@@ -1903,6 +1903,21 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.21.16
+ * A numbered volume the uploader put out themselves is now filed under Category:Promo Mix
+ * (title_definitions.js v_49, title_builder.js v_73). From the Thumpa report: "Thumpa - We
+ * Call It Jump Up Jungle Vol 4" on the channel Thumpa got the right title, but the page was
+ * about to be created under "We Call It Jump Up Jungle Vol" - the series name with the
+ * counting word left dangling on it, since a "Vol" stays in the entity where an "Episode" is
+ * dropped. A volume is always the name of a THING, and nine out of ten times that thing is
+ * someone's own mix series rather than a numbered podcast, so where the channel stands in the
+ * title as the artist and the other bit carries the number, the page now files under Promo Mix
+ * instead of under the series. The title itself does not change and gains no "(Promo Mix)"
+ * marker - the name already says it - and the score stays where it was: the artist was read
+ * off the title, not guessed. The tenth case is a podcast that took the word into its own name
+ * ("Truancy Volume 300"), which the show words and the wiki's own answer keep out, and a title
+ * whose third bit names a guest keeps its series filing as before.
  *
  * 2026.08.21.6
  * A credit behind an artist's name now comes off the title, and the lookup asks about the act
