@@ -1825,7 +1825,7 @@ body.soundcloud-com {
      * looks the same in both.
      */
     & #mdb-pageCreator #mdb-pageCreator-report {
-        color: var(--mui-palette-link-main, #5590FC);
+        color: var(--mui-palette-link-main, #5590FC) !important;
     }
 }
 
