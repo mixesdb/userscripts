@@ -59,6 +59,17 @@ show played by Ricky Montana. With a third chunk the two together answer the who
 channel picks itself out, and the chunk left over is who played it, so the channel name (the
 crew putting the series out) does not join the title.
 
+A **numbered volume the uploader put out themselves** keeps its title and changes where the
+page is filed. `Thumpa - We Call It Jump Up Jungle Vol 4` on the channel *Thumpa* stays
+`2026-01-02 - Thumpa - We Call It Jump Up Jungle Vol 4` – no `(Promo Mix)` marker, since
+`Vol 4` says as much already – but the page goes into `Category:Promo Mix` instead of under a
+`We Call It Jump Up Jungle Vol` nobody has: a volume is always the name of a thing, and nine
+out of ten times that thing is somebody's own mix series rather than a numbered podcast. The
+tenth is a series that took the word into its name (`Truancy Volume 300`), which a `Podcast`,
+`Radio` or `Show` in the name – or MixesDB knowing the name as one – keeps out of the bucket,
+as does a title whose third chunk names a guest, where the series belongs to somebody else. The
+**Used categories** line is where the filing shows.
+
 One number does leave its chunk: where the **series is already settled** – the channel is a
 known show, or a curated rule named one – a number OPENING the next chunk is that show's
 episode number. `Playhaus: 001 Guliver` on the channel *Playhaus* becomes

@@ -1206,7 +1206,11 @@ fixing the report, not a separate step or something to ask about first. Per repo
    `expectEntity` does the same for the name the page is filed under and `expectEntities` for
    every name a place group offers ("@ Far Blue, Noordspace" offers both) - which of the offered
    ones the page really carries is the wiki's answer at filing time and is not in the runner,
-   which does not load `page_creator.js`.
+   which does not load `page_creator.js`. `expectPromoCategory` guards the one filing that is
+   NOT readable off the title: a name that already says it ("... Vol 4", "Summer 2026 Mix")
+   files under `Category:Promo Mix` without carrying a "(Promo Mix)" marker, so a report about
+   exactly that has nothing else to hold on to - title, artists and entity all come out
+   unchanged. It reads `promoCategory` off the build.
    `description` is optional and only matters to the label test (`mdbTitleKnownLabels`), which
    reads the labels a tracklist credits (`Artist - Title [Label]`) out of it.
 2. `channel` is the channel/uploader name as the site's API gives it, NOT the URL slug - they

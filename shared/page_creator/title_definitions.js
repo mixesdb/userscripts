@@ -201,9 +201,40 @@ var mdbTitleApostropheChars = /[`´‘’‚‛ʻʼ′]/g;
  *
  * The mix is still a promo mix - the suggestion says so under the "Create" link instead, as
  * the category to put the page in.
+ *
+ * The list is also read the other way round, as "the name SAYS this is self-released": a
+ * counted volume is always the name of a thing (never a person, never a date), and nine out of
+ * ten times that thing is someone's own mix series rather than a numbered podcast. So where the
+ * uploader is the artist, a volume in the name is what files the page under Promo Mix:
+ *
+ *     "Thumpa - We Call It Jump Up Jungle Vol 4"  on the channel "Thumpa"
+ *     ->  2026-01-02 - Thumpa - We Call It Jump Up Jungle Vol 4, filed under Promo Mix
+ *         and NOT under "We Call It Jump Up Jungle Vol"
+ *
+ * The tenth is a podcast that took the word into its own name ("Truancy Volume 300"), which
+ * mdbTitleShowNotPromoWords and the wiki's own answer are what keep out.
  */
 var mdbTitlePromoMixImpliedWords = [
     "mix", "mixtape", "volume", "vol"
+];
+
+
+/*
+ * mdbTitleShowNotPromoWords
+ *
+ * The words that keep a name OUT of Category:Promo Mix. A podcast, a radio show or a series is
+ * put out BY something, and a self-released mix is exactly what it is not - so wherever the
+ * parse is about to file a page as a promo, one of these words in the name is what stops it
+ * (mdbTitle_saysShowNotPromo).
+ *
+ * Deliberately NOT mdbTitleShowSuffixWords, although the words overlap: the mix words on that
+ * list ("Mix", "Mixtape", "Volume") are the ones that SAY self-released - a fence built from it
+ * would refuse every name this filing exists for. The wiki answers the other half of the
+ * question: a name it knows as a podcast/show/radio is a show whatever its words say
+ * (mdbTitle_knownEntityType).
+ */
+var mdbTitleShowNotPromoWords = [
+    "podcast", "radio", "radioshow", "show", "sessions", "series", "cast", "fm"
 ];
 
 
@@ -1598,6 +1629,17 @@ var mdbTitleDatedMixWords = [
  * The order of the two bits decides nothing - "Ricky Montana - The Sound of Rome #147" is the
  * same title. Only a title of EXACTLY two bits is read this way: with a third one there is more
  * than one way to pair a name with the number, which is a guess again.
+ *
+ * Where those two bits are the channel and a numbered series, the artist is the uploader
+ * themselves - and if the series name says "mix"/"volume" (mdbTitlePromoMixImpliedWords), the
+ * page files under Promo Mix rather than under the series:
+ *
+ *     "Thumpa - We Call It Jump Up Jungle Vol 4"  on the channel "Thumpa"
+ *     ->  2026-01-02 - Thumpa - We Call It Jump Up Jungle Vol 4, Category:Promo Mix
+ *
+ * With a THIRD bit the channel is neither of the two ("DEEP & HAZY - Undercurrent #5 -
+ * ALEXANDER BOGDANOV" is the crew's series played by a guest), so nobody there released their
+ * own mix and the filing stays with the series name.
  */
 
 /*

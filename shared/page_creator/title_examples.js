@@ -295,7 +295,21 @@ var mdbTitleExamples = [
         title: "From Paris With Hope Vol.14",
         channel: "ZÆINO",
         date: "2026-08-02",
-        expect: "2026-08-02 - ZÆINO - From Paris With Hope Vol.14"
+        expect: "2026-08-02 - ZÆINO - From Paris With Hope Vol.14",
+        expectPromoCategory: true
+    },
+    {
+        // Reported for the FILING, not the title: the page came out under "We Call It Jump Up
+        // Jungle Vol" - the series name with the counting word left dangling on it. A volume is
+        // the uploader's own mix series here (the channel is the artist, standing in a bit of
+        // its own), so the page belongs in Category:Promo Mix.
+        url: "https://soundcloud.com/thedjthumpa/thumpa-we-call-it-jump-up-jungle-vol-4-more-1996-jump-up-jungle-vinyl",
+        title: "Thumpa - We Call It Jump Up Jungle Vol 4",
+        channel: "Thumpa",
+        date: "2026-01-02",
+        expect: "2026-01-02 - Thumpa - We Call It Jump Up Jungle Vol 4",
+        expectArtists: [ "Thumpa" ],
+        expectPromoCategory: true
     },
     {
         url: "https://soundcloud.com/sweetspace/joetvannelli-slavetotherhythmepisode72",

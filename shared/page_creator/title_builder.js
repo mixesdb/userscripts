@@ -5788,7 +5788,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // a podcast/show/radio
             promoMix = !!entity &&
                        entity.indexOf( "@" ) === -1 &&
-                       !/\b(podcast|radio|radioshow|show|sessions|series|cast|fm)\b/i.test( entity ) &&
+                       !mdbTitle_saysShowNotPromo( entity ) &&
                        !/promo\s*mix/i.test( entity ) &&
                        !mdbTitle_knownEntityType( known, entity );
 
@@ -5877,9 +5877,33 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
                     var pairArtist = groupCount === 3 ? leftoverBit : taken.show;
 
+                    // A self-released VOLUME: with two bits the channel IS the artist, so the
+                    // uploader put out their own numbered mix - and where the series name says
+                    // so ("... Vol 4", mdbTitlePromoMixImpliedWords) the page belongs in
+                    // Category:Promo Mix and not under the series. Filing it under the name
+                    // would also invent a category ending in a dangling counting word ("We Call
+                    // It Jump Up Jungle Vol"), since a volume word stays in the entity where an
+                    // "Episode" is dropped (mdbTitleCounterWords).
+                    // No " (Promo Mix)" in the title - the name already says it - and nothing
+                    // charged for the call: the artist was READ off the title rather than
+                    // inferred, and the volume word is the uploader's own statement about what
+                    // this is. The tenth case is a podcast that took the word into its name
+                    // ("Truancy Volume 300"), which the show words and the wiki keep out.
+                    // Three bits are not this: the channel is then neither name, so nobody
+                    // released their own mix (mdbTitle_result files it under the series).
+                    var pairPromo = groupCount === 2 &&
+                                    mdbTitle_saysPromoMix( numberedSeries ) &&
+                                    !mdbTitle_saysShowNotPromo( numberedSeries ) &&
+                                    !/promo\s*mix/i.test( numberedSeries ) &&
+                                    !mdbTitle_knownEntityType( known, numberedSeries );
+
                     if( numberedSeries && pairArtist ) {
                         logVar( "buildMixesdbTitle: the number is in the other bit, so the channel is not the series",
                                 pairArtist + " | " + numberedSeries + " " + titleEpisode.text );
+
+                        if( pairPromo ) {
+                            logVar( "buildMixesdbTitle: the series is the uploader's own numbered mix, so it files under Promo Mix", numberedSeries );
+                        }
 
                         // ... but not where the series is a bare word ("<channel> | Podcast
                         // #12 | <name>"): the exit puts the channel name in front of it, so
@@ -5891,11 +5915,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
                         return mdbTitle_result( date, pairArtist, numberedSeries,
                                                 { text: titleEpisode.text, kind: titleEpisode.kind },
-                                                false, extraArtists, conf, {
+                                                pairPromo, extraArtists, conf, {
                             artist: groupCount === 3
                                     ? "the channel and the numbered series each stand in a bit of their own, so the bit left over is who played it"
                                     : "the channel's own name stands in the title, and the episode number belongs to the other bit",
-                            entity: "the bit carrying the episode number (" + titleEpisode.text + ") is the series"
+                            entity: "the bit carrying the episode number (" + titleEpisode.text + ") is the series" +
+                                    ( pairPromo
+                                      ? " - the uploader's own, since the name says \"mix\"/\"volume\" and it is no known show, so the page is filed as a Promo Mix"
+                                      : "" )
                         } );
                     }
                 }
@@ -7321,4 +7348,18 @@ function mdbTitle_saysPromoMix( entity ) {
     if( !entity || !words.length ) return false;
 
     return new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( words ) + ")\\b\\.?", "i" ).test( entity );
+}
+
+// mdbTitle_saysShowNotPromo
+// The other way round: whether a name carries a word that says it IS a show, which is what
+// keeps it out of Category:Promo Mix. See mdbTitleShowNotPromoWords in title_definitions.js -
+// the words a series is put out under, deliberately without the mix words that say the
+// opposite. Every branch about to file a page as a promo asks this together with the wiki
+// (mdbTitle_knownEntityType), which answers for the names whose words say nothing.
+function mdbTitle_saysShowNotPromo( entity ) {
+    var words = ( typeof mdbTitleShowNotPromoWords !== "undefined" && mdbTitleShowNotPromoWords ) ? mdbTitleShowNotPromoWords : [];
+
+    if( !entity || !words.length ) return false;
+
+    return new RegExp( "\\b(?:" + mdbTitle_wordListAlternation( words ) + ")\\b", "i" ).test( entity );
 }
