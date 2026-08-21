@@ -917,12 +917,23 @@ function mdbPageCreator_entityCategoryFor( title, entity ) {
 // name, so cutting them would file the page under "Route", a category MixesDB does not have,
 // next to the one it does. Same shape as the room reduction below: only a real answer may
 // overrule the written name, and without one the cut runs as before.
+//
+// A slot holding nothing but a generic series word files the page under NOTHING: there is no
+// Category:Podcast and no Category:Mix to put a mix page in - the word names a show only
+// together with a name (mdbTitle_isBareSeriesName). The builder grows the channel name in
+// front of such a word, so a suggestion never arrives here with one; an EDITED title can, and
+// a category of that name would be the one thing a category line may never be.
 function mdbPageCreator_entityCategory( entity ) {
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
         name = String( entity || "" ).replace( /\s*\([^()]*\)\s*$/, "" ).trim();
 
     if( !( /[\s.]+\d+$/.test( name ) && mdbTitle_knownAs( cache, name ) ) ) {
         name = name.replace( /[\s.]+\d+$/, "" ).trim();
+    }
+
+    if( typeof mdbTitle_isBareSeriesName === "function" && mdbTitle_isBareSeriesName( name ) ) {
+        log( "mdbPageCreator_entityCategory: \"" + name + "\" is a generic series word, so the page files under no series" );
+        return "";
     }
 
     return mdbPageCreator_venueOfRoom( name );
@@ -959,8 +970,9 @@ function mdbPageCreator_venueOfRoom( name ) {
 // A place group can name two things that both have a category, and MixesDB files such a page
 // under both: "2026-05-23 - Dosem @ Anjunadeep, Ritter Butzke, Berlin" carries
 // [[Category:Anjunadeep]] AND [[Category:Ritter Butzke]] - the party and the club - while the
-// city carries none. Position in the group decides none of that, the wiki does
-// (mdbPageCreator_placeMatch).
+// city carries none. Position in the group decides none of that: a city the title builder
+// knows as one is not among the offered names at all (mdbTitleCities), and for every other
+// name it is the wiki that answers (mdbPageCreator_placeMatch).
 //
 // The PICKED name is written whether or not the wiki has it: a venue new to MixesDB gets its
 // category created together with the page, and the entity filing is the one a mix page must
@@ -1043,8 +1055,10 @@ function mdbPageCreator_placeMatch( name ) {
 // Which names of the title's entity slot a lookup round asks the wiki about: the category
 // spelling of every name the slot OFFERS (mdbTitle_titleCategories' entities), not only of the
 // one that got picked - whether a second one is filed too is precisely what the answer decides.
-// The city among them is asked like the rest: "no category of this name" IS the answer that
-// keeps it out, and it is the only way to tell it from the venue standing next to it.
+// A known city is not among them - the builder took it out of the offered names, since
+// MixesDB has no category for a city and the request may carry ten names (mdbTitleCities). One
+// the list does not carry is asked like the rest, and there "no category of this name" IS the
+// answer that keeps it out, the only way left to tell it from the venue standing next to it.
 //
 // For a promo the category is our own bucket, so what the wiki is asked about is the name in
 // the slot itself - a name it may well know as something else.

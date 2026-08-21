@@ -1012,8 +1012,9 @@ var mdbTitleLiveAtWords = [
  * name first. An uploader who turned it around says so with an EVENT WORD, and then that part
  * is the entity wherever it stands: "Dave Huismans at Dark Skies, Horst Festival" is a stage
  * and the festival it stands on, and the page belongs under "Horst Festival", not under "Dark
- * Skies" (mdbTitle_placeGroupEntity). Only an event word overrules the order - a city or a
- * venue behind the comma says nothing about which of the two is the bigger name.
+ * Skies" (mdbTitle_placeGroupEntity). Only an event word overrules the order - a venue behind
+ * the comma says nothing about which of the two is the bigger name. A CITY behind it is the
+ * one part that is never the entity at all, whatever its position (mdbTitleCities).
  *
  * Enforced TWICE, and the second one is the one that holds: once on the whole title before
  * the venue rules read it (3c2), and once at the single exit (mdbTitle_result) - the event
@@ -1152,6 +1153,51 @@ var mdbTitleGuestMarkers = [
     "guest podcast",
     "guest show",
     "guest of the week"
+];
+
+
+/*
+ * mdbTitleGuestConnectors
+ *
+ * The VERB a host writes between its own name and the guest it booked:
+ *
+ *     "Bassiani invites Victor / Podcast #323"  (channel "BASSIANI")
+ *     WRONG: 2026-08-13 - Bassiani - Podcast 323
+ *     RIGHT: 2026-08-13 - Victor - Bassiani Podcast 323
+ *
+ * mdbTitleGuestMarkers' one-directional sibling: there the phrase NAMES the thing ("guest
+ * mix") and the artist may stand on either side of it, here the word is a verb with a subject
+ * and an object, so the sides are settled - the host in front, the guest behind. Without it
+ * the whole phrase stays one name, the wiki is asked about "Bassiani invites Victor" (which
+ * can only answer empty) and the guest is never asked about at all, while the club - a venue
+ * MixesDB knows - ends up in the artist slot.
+ *
+ * The word is dropped, exactly like a guest marker: the guest simply IS the artist, and what
+ * is left of the title is what names the show.
+ *
+ * The catch, and the reason for the fences below: "<Name> Invites" is also a PARTY and a
+ * SERIES name in its own right, two dozen times over on MixesDB - "Secret Cinema Invites",
+ * "Yax Invites 166", "Input Invites Podcast 1". What tells the two apart is whether a name
+ * follows the word inside the same chunk:
+ *
+ * - "Bassiani invites Victor"                      -> a verb: Victor is the guest
+ * - "... @ Secret Cinema Invites, Catwalk"         -> a separator behind it, so it ends the
+ *                                                     name and the name is the party
+ * - "aeternae - Yax Invites 166"                   -> a NUMBER behind it counts the series'
+ *                                                     editions, so the name is the series
+ * - "SNTS - Input Invites Podcast 1"               -> a series WORD behind it, same answer
+ *
+ * So: whitespace on both sides of the word (no separator may follow it), a name in front of
+ * it inside the same chunk, and behind it a name that is neither a number nor a series word.
+ * Nothing weaker would do - a bare "Invites" ending a chunk is the commoner of the two
+ * readings by far.
+ *
+ * Read in two places, the way "presents" is: mdbTitle_takeGuestConnector() in the parse, and
+ * the chunk split (mdbTitle_traceChunks), so the host and the guest are each a lookup
+ * candidate of their own instead of one glued name the wiki cannot answer about.
+ */
+var mdbTitleGuestConnectors = [
+    "invites"
 ];
 
 
@@ -1977,6 +2023,307 @@ var mdbTitleCountries = [
 
 
 /*
+ * mdbTitleCities
+ *
+ * City names, for the one part of a place group that names nothing to file a page under.
+ * MixesDB writes a live title as "@ Venue, City" and files the page under the VENUE: the city
+ * has no category and is given none, because a city is where thousands of mixes were recorded
+ * and says nothing about any of them.
+ *
+ * Nothing about the words tells "Ritter Butzke" from "Berlin", so until this list only the
+ * wiki could. The city was asked about like every other name, and "no category of this name"
+ * was the answer that kept it out - one of the ten names a request may carry, spent on
+ * something a list of cities knows for free. And the answer only keeps it out where it comes
+ * back at all; where it does not, the parser reads the city as a name:
+ *
+ *     "Ritter Butzke | Berlin | Tonino & Lanka"
+ *     WRONG: 2026 - Berlin @ Ritter Butzke   (the artist is picked by position, and the city
+ *            stands where a name would)
+ *     RIGHT: 2026 - Tonino & Lanka @ Ritter Butzke, Berlin
+ *
+ *     "Colossio @ Berlin"
+ *     WRONG: the page filed under [[Category:Berlin]] - the entity slot is written whether or
+ *            not the wiki has it, which is what gives a new venue its category
+ *     RIGHT: no entity category at all, since the title names no venue
+ *
+ * Read in the PLACE GROUP only, where the title itself has already said these words are a
+ * place: a city is not asked about behind the "@", is never the name the page is filed under,
+ * is never offered as a second category next to the venue, and is not picked as the artist by
+ * position. What it never does is leave the TITLE - the whole difference to mdbTitleCountries,
+ * which drops what it matches. MixesDB WRITES the city, and a title that lost it would be
+ * missing the part Help:Add_a_new_mix_page asks for.
+ *
+ * A city NOT on the list still works the old way round, asked of the wiki and kept out by the
+ * answer, so this may be short and may grow one report at a time: a missing city costs a
+ * lookup slot, not a wrong title.
+ *
+ * And it is not read by the location rules the countries feed - not by mdbTitle_isLocationChunk
+ * and not by the lone-chunk rule of mdbTitle_locationChunkFlags, however alike the two look.
+ * Those DROP what they match, and the counting they drop by ("two chunks left over") cannot
+ * tell the two shapes apart before the wiki has answered:
+ *
+ *     "Tonino & Lanka | Ritter Butzke | Berlin"   the city MixesDB wants in the title
+ *     "Bee Lincoln | Some Show 12 | Berlin"       the city that only says where they are from
+ *
+ * Both are three chunks with a city last, and dropping the first one's would cost the venue
+ * group its ", Berlin". So a city is never dropped, and the price is the second title: with no
+ * other name in it, "Berlin" is read as who played - exactly what a lone country does there,
+ * and the row is editable for it.
+ *
+ * No codes and no acronyms, unlike the countries: "BER" is an airport, and three letters
+ * standing in a title are an artist's initials far more often than a city (see the "KCE" note
+ * further down). "NYC" is the one short form here, because that is how the city is WRITTEN -
+ * "@ Elsewhere Rooftop, NYC" - and not a code somebody looked up.
+ *
+ * Every city carries the spellings a title may write it in on one line: the English name and
+ * the local one ("Munich", "München"), plus the local one stripped of its diacritics, because
+ * mdbTitle_normalizeCompare DROPS a character it cannot fold ("München" -> "mnchen",
+ * "Munchen" -> "munchen"). Those two are not one entry the way "U.S.A." and "USA" are, and
+ * the German "ue"/"oe" spellings are on the big ones for the same reason. A name written in a
+ * non-latin alphabet cannot be matched and does not belong here.
+ *
+ * Cities whose name is an everyday word are deliberately NOT here - "Nice", "Split", "Bath",
+ * "Reading", "Halle", "Cork". They would be matched as a whole part of a place group, and a
+ * wrong hit there files a page under nothing: a venue really called "Split" would lose its
+ * category. The country codes may be everyday words because a code is only ever read as the
+ * LAST part of a place list; a city name has no such guard.
+ *
+ * No mdbTitleDefinitionDocs entry, and none is due: the panel offers a list behind the "?" of
+ * a cleanup step, and nothing this decides is one - the city stands in the title either way.
+ */
+var mdbTitleCities = [
+    "Aachen",
+    "Aarhus", "Århus",
+    "Abu Dhabi",
+    "Accra",
+    "Adelaide",
+    "Amsterdam",
+    "Ankara",
+    "Antwerp", "Antwerpen",
+    "Athens", "Athina",
+    "Atlanta",
+    "Auckland",
+    "Augsburg",
+    "Austin",
+    "Baku",
+    "Bali",
+    "Bangalore", "Bengaluru",
+    "Bangkok",
+    "Barcelona",
+    "Basel",
+    "Beijing",
+    "Beirut",
+    "Belfast",
+    "Belgrade", "Beograd",
+    "Berlin",
+    "Bern", "Berne",
+    "Bielefeld",
+    "Bilbao",
+    "Birmingham",
+    "Bochum",
+    "Bogota", "Bogotá",
+    "Bologna",
+    "Bonn",
+    "Bordeaux",
+    "Boston",
+    "Bratislava",
+    "Bremen",
+    "Brighton",
+    "Brisbane",
+    "Bristol",
+    "Brno",
+    "Brooklyn",
+    "Brussels", "Bruxelles", "Brussel",
+    "Bucharest", "București", "Bucuresti",
+    "Budapest",
+    "Buenos Aires",
+    "Cairo",
+    "Cape Town",
+    "Cardiff",
+    "Casablanca",
+    "Chemnitz",
+    "Chicago",
+    "Cologne", "Köln", "Koeln", "Koln",
+    "Copenhagen", "København", "Kobenhavn", "Kopenhagen",
+    "Cordoba", "Córdoba",
+    "Dallas",
+    "Darmstadt",
+    "Delhi", "New Delhi",
+    "Denver",
+    "Detroit",
+    "Doha",
+    "Dortmund",
+    "Dresden",
+    "Dubai",
+    "Dublin",
+    "Duisburg",
+    "Dusseldorf", "Düsseldorf", "Duesseldorf",
+    "Durban",
+    "Edinburgh",
+    "Eindhoven",
+    "Erfurt",
+    "Essen",
+    "Florence", "Firenze",
+    "Frankfurt", "Frankfurt am Main",
+    "Freiburg",
+    "Gdansk", "Gdańsk",
+    "Geneva", "Genève", "Geneve", "Genf",
+    "Genoa", "Genova",
+    "Ghent", "Gent",
+    "Glasgow",
+    "Gothenburg", "Göteborg", "Goteborg",
+    "Granada",
+    "Graz",
+    "Grenoble",
+    "Groningen",
+    "Guadalajara",
+    "Hamburg",
+    "Hanoi",
+    "Hanover", "Hannover",
+    "Heidelberg",
+    "Helsinki",
+    "Ho Chi Minh City", "Saigon",
+    "Hong Kong",
+    "Houston",
+    "Ibiza", "Eivissa",
+    "Innsbruck",
+    "Istanbul",
+    "Izmir",
+    "Jakarta",
+    "Jena",
+    "Jerusalem",
+    "Johannesburg",
+    "Karlsruhe",
+    "Kassel",
+    "Kiel",
+    "Krakow", "Kraków", "Cracow",
+    "Kuala Lumpur",
+    "Kyiv", "Kiev",
+    "Kyoto",
+    "Lagos",
+    "Las Vegas",
+    "Lausanne",
+    "Leeds",
+    "Leipzig",
+    "Lille",
+    "Lima",
+    "Lisbon", "Lisboa",
+    "Liverpool",
+    "Ljubljana",
+    "Lodz", "Łódź",
+    "London",
+    "Los Angeles",
+    "Lubeck", "Lübeck", "Luebeck",
+    "Lucerne", "Luzern",
+    "Lviv",
+    "Lyon",
+    "Madrid",
+    "Magdeburg",
+    "Mainz",
+    "Malaga", "Málaga",
+    "Mallorca", "Majorca",
+    "Malmo", "Malmö",
+    "Manchester",
+    "Manila",
+    "Mannheim",
+    "Marrakech", "Marrakesh",
+    "Marseille",
+    "Medellin", "Medellín",
+    "Melbourne",
+    "Mexico City", "Ciudad de Mexico", "Ciudad de México",
+    "Miami",
+    "Milan", "Milano",
+    "Minneapolis",
+    "Minsk",
+    "Montevideo",
+    "Montpellier",
+    "Montreal", "Montréal",
+    "Moscow", "Moskva",
+    "Mumbai",
+    "Munich", "München", "Muenchen", "Munchen",
+    "Münster", "Muenster",
+    "Nairobi",
+    "Nantes",
+    "Naples", "Napoli",
+    "Newcastle",
+    "New Orleans",
+    "New York", "New York City", "NYC",
+    "Nuremberg", "Nürnberg", "Nuernberg",
+    "Odessa", "Odesa",
+    "Osaka",
+    "Oslo",
+    "Ottawa",
+    "Palermo",
+    "Palma",
+    "Paris",
+    "Perth",
+    "Philadelphia",
+    "Portland",
+    "Porto", "Oporto",
+    "Potsdam",
+    "Poznan", "Poznań",
+    "Prague", "Praha", "Prag",
+    "Quito",
+    "Regensburg",
+    "Rennes",
+    "Reykjavik", "Reykjavík",
+    "Riga",
+    "Rimini",
+    "Rio de Janeiro",
+    "Rome", "Roma",
+    "Rostock",
+    "Rotterdam",
+    "Saint Petersburg", "St. Petersburg", "Sankt Petersburg",
+    "Salzburg",
+    "San Diego",
+    "San Francisco",
+    "Santiago",
+    "Sao Paulo", "São Paulo",
+    "Sarajevo",
+    "Seattle",
+    "Seoul",
+    "Seville", "Sevilla",
+    "Shanghai",
+    "Sheffield",
+    "Shenzhen",
+    "Skopje",
+    "Sofia",
+    "Stockholm",
+    "Strasbourg",
+    "Stuttgart",
+    "Sydney",
+    "Taipei",
+    "Tallinn",
+    "Tbilisi",
+    "Tel Aviv",
+    "The Hague", "Den Haag",
+    "Thessaloniki",
+    "Tokyo",
+    "Toronto",
+    "Toulouse",
+    "Tulum",
+    "Tunis",
+    "Turin", "Torino",
+    "Utrecht",
+    "Valencia",
+    "Vancouver",
+    "Venice", "Venezia",
+    "Vienna", "Wien",
+    "Vilnius",
+    "Warsaw", "Warszawa",
+    "Washington DC",
+    "Weimar",
+    "Wellington",
+    "Wiesbaden",
+    "Wroclaw", "Wrocław",
+    "Wuppertal",
+    "Yerevan",
+    "Zagreb",
+    "Zurich", "Zürich", "Zuerich"
+];
+
+
+/*
  * mdbTitleNormalCaseKeepUpper / mdbTitleNormalCaseKeepLower
  *
  * MixesDB writes titles in Normal Case, so a bit read out of the title that is SHOUTED in
@@ -2091,6 +2438,10 @@ var mdbTitleDefinitionDocs = {
         what: "For a title that names its show only HALF: the channel plus the generic words the title uses (\"DJ Mix\") name the show together. An upload whose title carries none of the words is untouched.",
         data: mdbTitleChannelSeriesConversions
     },
+    mdbTitleShowSuffixWords: {
+        what: "Generic words that turn a channel name into the show MixesDB files its uploads under (\"HATE\" + \"Podcast\"). The word carries the episode number wherever it stands, and it names a series only TOGETHER with a name - alone it is no show and no category.",
+        data: mdbTitleShowSuffixWords
+    },
     mdbTitleExtraArtistConnectors: {
         what: "Connectors behind which FURTHER artists stand. What follows one is taken out of the title and joined to the artist group with a comma.",
         data: mdbTitleExtraArtistConnectors
@@ -2110,6 +2461,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleGuestMarkers: {
         what: "Phrases marking a guest mix. The name in front of one is the artist, and the phrase itself is no part of the title.",
         data: mdbTitleGuestMarkers
+    },
+    mdbTitleGuestConnectors: {
+        what: "Verbs a host writes in front of the guest it booked (\"Bassiani invites Victor\"). The name behind one is the artist, the word itself is no part of the title - but only where a real name follows it inside the same chunk, since \"<Name> Invites\" is a party name as well.",
+        data: mdbTitleGuestConnectors
     },
     mdbTitleEventSlotWords: {
         what: "Slots of a party night. A bit ending in one of these names WHEN a set was played, not what a mix is called - and next to a bit ending in a bare year it turns the title into a live recording at that event.",

@@ -89,9 +89,14 @@ var mdbTitleExamples = [
         channel: "Tonino",
         date: "2026-07-20",
         // needs the wiki: Category:Ritter Butzke is a Venue, which is what makes this a live
-        // recording and the bit behind it the city
+        // recording and the bit behind it the city. The city is still ASKED about here - the
+        // title carries no "@" of its own, so nothing has said yet that these words are places
         known: { "Ritter Butzke": "venue", "Berlin": "other" },
-        expect: "2026 - Tonino & Lanka @ Ritter Butzke, Berlin"
+        expect: "2026 - Tonino & Lanka @ Ritter Butzke, Berlin",
+        expectEntity: "Ritter Butzke",
+        // and the city is no name the page can be filed under, whatever the wiki answers
+        // about it (mdbTitleCities)
+        expectEntities: [ "Ritter Butzke" ]
     },
     {
         url: "https://soundcloud.com/shimon-earthly/leon-row-x-shimon-landjuweel",
@@ -113,6 +118,39 @@ var mdbTitleExamples = [
         channel: "BASSIANI",
         date: "2026-07-29",
         expect: "2026-07-29 - Azim Fathi - Zenaari Mix 028"
+    },
+    {
+        url: "https://soundcloud.com/bassiani/bassiani-invites-victor",
+        title: "Bassiani invites Victor / Podcast #323",
+        channel: "BASSIANI",
+        date: "2026-08-13",
+        // the same channel, and both halves of the title had to be read for it: "invites" is a
+        // verb between two names (mdbTitleGuestConnectors), and "Podcast" alone names no show -
+        // the word carries the number, so it names the series together with the channel
+        known: {
+            "Bassiani": { type: "venue", mixes: 39 },
+            "Victor": { type: "artist", mixes: 10 },
+            "Bassiani Podcast": { type: "podcast", mixes: 94 }
+        },
+        expectArtists: [ "Victor" ],
+        expectEntity: "Bassiani Podcast 323",
+        // and the guest is a chunk of its own, which is what gets him asked about at all -
+        // read as one name the wiki only ever saw "Bassiani invites Victor"
+        expectChunks: [ "Bassiani", "Victor", "Podcast #323" ],
+        expectAsked: [ "Victor" ],
+        expect: "2026-08-13 - Victor - Bassiani Podcast 323"
+    },
+    {
+        url: "https://www.mixesdb.com/w/2015-05-24_-_Robert_Babicz_(Live_PA)_%40_Brixton_Invites,_102_Club,_Neuss,_Germany",
+        title: "Robert Babicz @ Brixton Invites, 102 Club, Neuss",
+        channel: "Brixton",
+        date: "2015-05-24",
+        // the other reading of the same word, and the one the fences exist for: "<Name>
+        // Invites" is a party's own name two dozen times over on MixesDB, and here nothing
+        // follows the word inside the chunk - so it is no verb, the place keeps its whole name
+        // and no guest is invented out of the bit behind the comma
+        expectChunks: [ "Robert Babicz", "Brixton Invites, 102 Club, Neuss" ],
+        expect: "2015 - Robert Babicz @ Brixton Invites, 102 Club, Neuss"
     },
     {
         url: "https://soundcloud.com/yoyaku/yoyaku-instore-sessions-with-5",
@@ -1146,8 +1184,13 @@ var mdbTitleExamples = [
         title: "Kernel Existence @ Utopia | Ritter Butzke | Berlin",
         channel: "kernel existence",
         date: "2021-08-10",
-        known: { "Ritter Butzke": "venue", "Berlin": "other" },
-        expect: "2021 - Kernel Existence @ Utopia, Ritter Butzke, Berlin"
+        known: { "Ritter Butzke": "venue" },
+        expect: "2021 - Kernel Existence @ Utopia, Ritter Butzke, Berlin",
+        // the party and the club are both offered as categories, the city is not - and behind
+        // the uploader's own "@" it is not even asked about (mdbTitleCities)
+        expectEntity: "Utopia",
+        expectEntities: [ "Utopia", "Ritter Butzke" ],
+        expectNotAsked: [ "Berlin" ]
     },
     {
         // the marker MixesDB DOES write for how a set was played: "Live PA" - the act
