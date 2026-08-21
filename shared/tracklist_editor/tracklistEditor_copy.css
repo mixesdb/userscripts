@@ -167,8 +167,11 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     clear: both;
 }
 #tlEditor-feedback ul {
-	margin-top: 0;
-	margin-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    padding-inline-start: 15px;
 }
 #tlEditor-feedback ul li+li,
 #tlEditor-feedback ul+ul,
@@ -285,6 +288,14 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     background: #eee;
     border: 1px solid #ccc !important;
     border-radius: .2em;
+    /* one stated height for the whole row - the chips are two <div>s, a <button> and a
+     * flex switch, and each of those finds a different height of its own from font and
+     * padding alone. The tracklist state buttons below are 28px for the same reason: they
+     * ride in this row and have to be one of it, not a bump in it. */
+    height: 28px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
 }
 
 /*
@@ -356,23 +367,70 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     left: 1em;
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Tracklist output
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+textarea#mixesdb-TLbox,
+textarea.mixesdb-TLbox,
+textarea.mdb-tlBox,
+textarea.mono {
+    color: #111 !important;
+}
+#tlEditor-feedback-rows {
+    font-weight: 600;
+    background: hsla(0, 0%, 79%, 0.7);
+    text-shadow: 1px 1px hsla(0, 0%, 39%, 0.5);
+}
+#tlEditor-feedback code {
+    font-size: 12px !important;
+}
+
+#tlEditor-feedback-topInfo {
+    & button {
+        border: 1px solid #ccc !important;
+        color: #777;
+        
+        &:hover,
+        &:active{
+            color: #111;
+        }
+    }
+}
+
+/* Normalizing feedback font */
+#tlEditor-feedback-topInfo span,
+#tlEditor-feedback strong {
+    font-family: sans-serif !important;
+    font-size: 16px !important;
+}
+
 /*
  * The tracklist state buttons (toolkit_tlStateButtons() in toolkit/funcs.js): MixesDB's
- * "Tracklist:" indicators from under its edit box, repeated at the bottom right of this one.
+ * "Tracklist:" indicators from under its edit box, repeated in this box's chip row, on the
+ * outer side of the API's "N rows".
  *
- * The last line of the box, in the normal flow and cleared of the floated chips above them -
- * the same place they have on MixesDB, under everything the box says. In the top corner they
- * were in the chips' way: two 30px buttons among the small grey chips, in the corner the eye
- * reads the verdict from.
+ * In the row rather than under the message because the box is ONE line tall whenever the
+ * answer is ("The tracklist seems valid and complete."), and a line of its own for two icons
+ * doubled it. The row is already there, already floated, and already the place this box keeps
+ * what it has to say ABOUT the tracklist rather than what it says TO you.
  *
- * 30px is the size MixesDB draws them at, and stated in px for that reason: they are the same
- * two buttons, not a scaled echo of them in whatever the site's font size happens to be.
+ * 28px is the chips' height, which is why it is stated in px here as well: side by side with
+ * them, the icons have to be a chip, not a bump in the row.
  */
 .mdb-tlEditor-tlState {
-    clear: both;
-    margin-top: .5em;
+    float: right;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    /* the chips' own font size, so the em margins below land on the same pixel as theirs -
+     * nothing in here is text, it only makes this row measure like the ones next to it */
+    font-size: .85em;
+    margin-top: -.2em;
+    margin-left: .8em;
     line-height: 1;
-    text-align: right;
 }
 .mdb-tlEditor-tlState-button {
     display: inline-block;
@@ -401,6 +459,6 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 }
 .mdb-tlEditor-tlState-icon {
     display: block;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
 }

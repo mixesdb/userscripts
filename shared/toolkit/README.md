@@ -45,8 +45,8 @@ starts with the TrackId.net icon, so it can be told apart from the other rows at
 
 ### Tracklist state buttons
 
-Bottom right of the [Tracklist box](../tracklist_editor/)'s feedback, under everything it
-says: the two `Tracklist:` indicators MixesDB shows under its own edit box, at the same size –
+In the chip row of the [Tracklist box](../tracklist_editor/)'s feedback, next to the row
+count: the two `Tracklist:` indicators MixesDB shows under its own edit box, at chip size –
 **?** for incomplete, **✓** for complete. The one that applies is lit and the other dimmed – on
 arrival that is whatever the Tracklist Editor said about the tracklist.
 
