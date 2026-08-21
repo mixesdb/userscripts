@@ -54,6 +54,13 @@ show played by Ricky Montana. With a third chunk the two together answer the who
 channel picks itself out, and the chunk left over is who played it, so the channel name (the
 crew putting the series out) does not join the title.
 
+One number does leave its chunk: where the **series is already settled** – the channel is a
+known show, or a curated rule named one – a number OPENING the next chunk is that show's
+episode number. `Playhaus: 001 Guliver` on the channel *Playhaus* becomes
+`2024-10-02 - Guliver - Playhaus Podcast 001`, not a mix by somebody called *001 Guliver*. The
+number has to stand at the front of that chunk: everywhere else it is part of a name
+(`Asa 808`) as readily as it is a count.
+
 A **host inviting a guest** names the artist, not the show. `Bassiani invites Victor /
 Podcast #323` on the channel *BASSIANI* is a mix by Victor; read as one name it came out under
 the club, since MixesDB knows `Bassiani` as a venue and the guest was never looked up at all.

@@ -906,7 +906,14 @@ function mdbTitle_findEpisode( text, entityKnown ) {
         // The number ends the entity, and a SPACE is all that separates it from the artist:
         // "HATE Podcast 496 Fadi Mohem" leaves " 496 Fadi Mohem" once the show name is cut.
         // Anchored at the start, because that is what says the number sat behind the entity.
-        m = /^\s*(\d{1,5})(?!\d)\s+/.exec( text );
+        //
+        // The separator the cut left standing is stepped over on the way in: where the show
+        // name and its number sit in different bits of the title ("Playhaus: 001 Guliver"),
+        // cutting the name leaves " : 001 Guliver" and a plain "^\s*" never reaches the
+        // digits. The number still has to OPEN what is left - that is what says it stood
+        // behind the entity and not somewhere in the artist - and the entityKnown guard above
+        // still decides whether a lone number may be claimed at all.
+        m = new RegExp( "^[\\s" + mdbTitle_sepInner + "]*(\\d{1,5})(?!\\d)\\s+" ).exec( text );
         if( m ) {
             return {
                 text: m[1],
@@ -1909,6 +1916,87 @@ function mdbTitle_lineupFractionBase( name ) {
     return { base: base, fraction: m[1] };
 }
 
+// mdbTitle_nameCreditBase
+// The ACT in front of a credit connector: "KODE9 For Maharishi" -> "KODE9", with the little
+// word and the credit behind it. null when the name carries none.
+//
+// The credit says who the mix was MADE FOR - a label, a brand, a shop - and MixesDB files the
+// page under the act: "KODE9 For Maharishi" will never be a category, "Kode9" is one with 94
+// mixes. See "A credit is not part of the act's name" in title_definitions.js.
+//
+// The FIRST connector in the name splits it, so "A for B for C" reads its act as "A": what
+// stands in front of the first one is the only part no credit has been hung off yet.
+//
+// Reading only - whether the act may replace the name is the caller's question, and both
+// callers ask the wiki before they act on it.
+function mdbTitle_nameCreditBase( name ) {
+    var words = ( typeof mdbTitleNameCreditConnectors !== "undefined" && mdbTitleNameCreditConnectors ) ? mdbTitleNameCreditConnectors : [],
+        text = mdbTitle_trimSeparators( String( name || "" ) ),
+        m;
+
+    if( !words.length || !text ) return null;
+
+    m = new RegExp( "^(\\S.*?)\\s+(" + mdbTitle_wordListAlternation( words ) + ")\\s+(\\S.*)$", "i" ).exec( text );
+
+    if( !m ) return null;
+
+    var base = mdbTitle_trimSeparators( m[1] ),
+        credit = mdbTitle_trimSeparators( m[3] );
+
+    // two letters are an abbreviation as readily as a name, and the lookup that follows would
+    // match half the wiki - the same floor mdbTitle_venueSpaceBase has
+    if( base.length < 3 || !credit ) return null;
+
+    return { base: base, credit: credit, word: m[2] };
+}
+
+// mdbTitle_nameHeads
+// The shortened forms of a long name, longest first: "KODE9 For Maharishi" ->
+// [ "KODE9 For", "KODE9" ]. Empty for a name too short to be worth shortening.
+//
+// A question, never an answer: nothing in the parse shortens a title on this, the reductions
+// each have their own shape to go by (a room word, a fraction, a credit connector). What this
+// is for is the LOOKUP - a name of several words that MixesDB has never heard of usually has
+// a name it does know standing at the front of it, and asking about the whole alone leaves
+// that one unasked. Reported on the KODE9 title, where "Kode9" (94 mixes) was never asked
+// while the page was about to be filed under a brand-new empty category.
+//
+// From the RIGHT, word by word, like every other reduction of a candidate: with 57,000+
+// artist categories nearly every common word is one, so shortening from the left invents
+// matches ("MOLTO IN THE MIX" must not find the show "In The Mix").
+//
+// Three words is the floor - a two-word name reduces to a single first name, which is a real
+// category ("Daniel", "Asa") far more often than it is this artist - and mdbTitleNameHeadMax
+// is the ceiling, because these are the speculative names of the request and the module takes
+// ten.
+var mdbTitleNameHeadMax = 3;
+
+// How full the candidate list may already be when the shortened forms are added
+// (mdbTitle_categoryCandidates). The module takes ten names and the first parse's own names
+// are appended after them, so the speculative ones only ride along while there is room to
+// spare - a head that pushes a name some rule actually read out of the request would cost
+// more than it can ever answer.
+var mdbTitleNameHeadRoom = 6;
+
+function mdbTitle_nameHeads( name ) {
+    var text = mdbTitle_trimSeparators( String( name || "" ) ),
+        words = text ? text.split( /\s+/ ) : [],
+        heads = [],
+        head, i;
+
+    if( words.length < 3 ) return heads;
+
+    for( i = words.length - 1; i >= 1 && heads.length < mdbTitleNameHeadMax; i-- ) {
+        head = mdbTitle_trimSeparators( words.slice( 0, i ).join( " " ) );
+
+        // two letters are an abbreviation as readily as a name - the floor the other
+        // reductions have
+        if( head.length >= 3 && head !== text ) heads.push( head );
+    }
+
+    return heads;
+}
+
 // mdbTitle_bracketPairRe
 // One innermost bracket pair of any kind, with its content. Innermost, so a bracket inside a
 // bracket cannot pair up with the wrong one.
@@ -2828,6 +2916,8 @@ function mdbTitle_numberBelongsToName( name ) {
 // text is to learn from (roadmap step 4).
 function mdbTitle_categoryCandidates( playerTitle, username, description, refDate ) {
     var names = [],
+        // the shortened forms of the artist bits, taken below the loop - see there
+        heads = [],
         split = mdbTitle_titleChunks( playerTitle, username, description, refDate ),
         bits = split.chunks,
         // everything from the first "@" on is a place, never a possible artist
@@ -2923,11 +3013,19 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             // not two acts
             artistList = members.length > 1 && !mdbTitle_hasSeriesWord( bit );
 
+        // The ACT in front of a credit connector: "KODE9 For Maharishi" says who the mix was
+        // made FOR, so the bit names an act and not a series - whatever the digits inside the
+        // name score ("KODE9" ends in one, which is a spelling and not an edition). In front
+        // of the "@" only: behind it the same little words connect places. Read here because
+        // it settles the ROLE below; what it is asked about follows further down.
+        var credit = ( inPlace || artistList ) ? null : mdbTitle_nameCreditBase( bit );
+
         // behind the "@" everything is a place - an entity candidate, never an artist. In
         // front of it a series-looking bit ("MNMT Recordings", "HATE Podcast") asks as the
         // entity, anything else as the artist.
         var bitRole = inPlace ? "entity"
                     : artistList ? "artist"
+                    : credit ? "artist"
                     : mdbTitle_seriesScore( bit ) > 0 ? "entity"
                     : "artist";
 
@@ -3014,6 +3112,28 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
                 take( lineup.base, "artist", "line-up base", bits[i] );
             }
 
+            // ... and the ACT in front of the credit connector read above, the same way
+            // round again: no category is called "KODE9 For Maharishi" while "Kode9" is one
+            // with 94 mixes. The whole bit stays the first question, as with every other
+            // reduction. Nothing of the kind is asked in the ENTITY slot, where the reduction
+            // would find somebody else's series - this very title's "Hyperdub 2014-2019
+            // Drive-By" would ask about Category:Hyperdub, the Rinse FM show with 48 episodes.
+            if( credit ) {
+                take( credit.base, "artist", "credit base", bits[i] );
+            }
+
+            // ... and the shortened forms of a long artist name, collected here and asked
+            // LAST of all (below the loop): they are the speculative names of the request,
+            // the ones worth having only when nothing else answers. See mdbTitle_nameHeads.
+            if( !inPlace && !artistList && bitRole === "artist" ) {
+                var headList = mdbTitle_nameHeads( bit ),
+                    hd;
+
+                for( hd = 0; hd < headList.length; hd++ ) {
+                    heads.push( { name: headList[hd], chunk: bits[i] } );
+                }
+            }
+
             // ... and the names the chunk strings together, when it is long enough to be a
             // chain rather than one name ("Timboletti im Chapeau Club"). AFTER the whole,
             // which keeps the priority order the 10-name cap cuts at: the chunk itself is
@@ -3047,6 +3167,16 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
             mdbTitle_noteChunkNotAsked( bits[i],
                 "longer than 80 characters - a page title that long is not a name" );
         }
+    }
+
+    // The shortened artist names last of all, and only onto a request that still has room for
+    // them: they are a guess about where a name ENDS, worth asking because a name of several
+    // words the wiki has never heard of usually carries one it knows at its front - and worth
+    // nothing next to a name some rule of the parse actually read. mdbTitleNameHeadRoom leaves
+    // the ten-name request its last slots for the first parse's own names, which
+    // mdbPageCreator_addParsedNames appends after this function has returned.
+    for( i = 0; i < heads.length && names.length < mdbTitleNameHeadRoom; i++ ) {
+        take( heads[i].name, "artist", "name head", heads[i].chunk );
     }
 
     return names;
@@ -3976,6 +4106,13 @@ var mdbTitle_promoDeclined = false;
 // itself, and only there - the first pass runs without the wiki's answers and never reduces.
 var mdbTitle_placeWordDropped = null;
 
+// The credit mdbTitle_result took off the artist's name - { word, credit, act, full }, null on
+// every other title. "KODE9 For Maharishi" is no category, "Kode9" is the artist, so the words
+// went; the reading is still worth OFFERING, and this is what the alternatives hand to the
+// hints bar's "Switch title" chip. Set once per suggestion, in the reduction itself, and only
+// there - the first pass runs without the wiki's answers and never reduces.
+var mdbTitle_nameCreditDropped = null;
+
 // mdbTitle_atEpisodeRead
 // Whether the title wrote an "@" in front of a "#"-numbered episode and the series reading won
 // it (mdbTitle_atEpisodeSeparator), false on every other title. Two things read it, and both
@@ -4835,6 +4972,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_liveWordSeen = false;
     mdbTitle_promoDeclined = false;
     mdbTitle_placeWordDropped = null;
+    mdbTitle_nameCreditDropped = null;
     mdbTitle_atEpisodeRead = false;
     mdbTitle_locationDropped = "";
     mdbTitle_slotPartRead = null;
@@ -6353,6 +6491,52 @@ function mdbTitle_reduceLineupFraction( group ) {
     return mdbTitle_canonicalName( known, lineup.base, [ "artist" ] ) + rest;
 }
 
+// mdbTitle_reduceNameCredit
+// "KODE9 For Maharishi" -> "Kode9": the credit a title hangs behind the act's name, taken off
+// so the title names what MixesDB files the page under. Returns the group unchanged whenever
+// the wiki does not back the swap, which is every other title.
+//
+// Same two halves as the two reductions above, asked of the same cache: the name the title
+// carries is no category at ALL, and the act IS one - as an ARTIST, since what stands in front
+// of the connector is who played. Without the second half this would shorten a name nobody
+// knows into another name nobody knows.
+//
+// Only where the artist group is ONE name, like the fraction: with a list, which of the names
+// the credit hangs off is the uploader's business and guessing it is worse than leaving the
+// title as written.
+//
+// The dropped words come back as a "Switch title" chip - a name really built around the word
+// ("Dance For Life") is a reading only the uploader can settle, and unlike the line-up
+// fraction MixesDB does write such a name. See "A credit is not part of the act's name" in
+// title_definitions.js.
+function mdbTitle_reduceNameCredit( group ) {
+    var known = mdbTitle_knownNow,
+        text = String( group || "" ),
+        at = text.indexOf( " @ " );
+
+    if( !known ) return text;
+
+    var name = mdbTitle_trimSeparators( at === -1 ? text : text.slice( 0, at ) ),
+        rest = at === -1 ? "" : text.slice( at );
+
+    if( !name || mdbTitle_splitArtists( name ).length !== 1 ) return text;
+
+    // the wiki knowing the written name under any type at all settles it - the name is a
+    // category, and a category is never shortened
+    if( mdbTitle_knownAs( known, name ) ) return text;
+
+    var credit = mdbTitle_nameCreditBase( name );
+
+    if( !credit || !mdbTitle_knownMatch( known, credit.base, [ "artist" ] ) ) return text;
+
+    // in the wiki's own spelling, like every name an answer backs
+    var act = mdbTitle_canonicalName( known, credit.base, [ "artist" ] );
+
+    mdbTitle_nameCreditDropped = { word: credit.word, credit: credit.credit, act: act, full: name };
+
+    return act + rest;
+}
+
 // mdbTitle_seriesIdPrefix
 // The episode-id prefix a category's own page titles carry, or "": every page of
 // Category:Deep Space Series is titled "... - Deep Space Series (DSS 012)", so that series
@@ -6780,6 +6964,38 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         artist = lineupShort;
     }
 
+    // A credit is not part of the act's name: where the wiki knows the name in front of the
+    // little word and nothing about the whole, the credit comes off - "KODE9 For Maharishi"
+    // -> "Kode9". Next to the two reductions above and fenced the same way, and the artist
+    // category follows by itself, since it is read off the finished title. The dropped words
+    // are offered back as a "Switch title" chip below.
+    var creditShort = mdbTitle_reduceNameCredit( artist );
+
+    if( creditShort !== artist ) {
+        var creditWords = mdbTitle_nameCreditDropped.word + " " + mdbTitle_nameCreditDropped.credit;
+
+        logVar( "mdbTitle_result: credit dropped off the act's name", artist + " -> " + creditShort );
+        mdbTitle_traceStep( "Credit dropped off the act's name",
+                            artist + " -> " + creditShort, null, [ "mdbTitleNameCreditConnectors" ] );
+
+        // the deciding branch writes the sentence - this one asked the wiki, so it may say so
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.artist = "MixesDB has no category \"" + mdbTitle_nameCreditDropped.full +
+                "\", while \"" + mdbTitle_nameCreditDropped.act + "\" is an artist it knows - \"" +
+                creditWords + "\" says who the mix was made for, and the page files under the act";
+        }
+
+        // Charged, unlike the room word and the fraction: those two are fenced by a shape or a
+        // curated word that cannot be part of a name, while a name really built around this
+        // word exists ("Dance For Life"), and the words leaving the title are the uploader's own.
+        conf.drop( 3, "\"" + creditWords + "\" left the title - MixesDB has no category \"" +
+                      mdbTitle_nameCreditDropped.full + "\" and knows \"" + mdbTitle_nameCreditDropped.act +
+                      "\" as an artist; check that those words say who the mix was made FOR and are" +
+                      " not part of the name itself" );
+
+        artist = creditShort;
+    }
+
     // "Live PA" said by the title or the description is written behind the artist's NAME, the
     // way MixesDB spells it: "Kernel Existence (Live PA) @ 3000Grad Festival". Only behind
     // ONE name - with several artists only the uploader knows whose set it was. The
@@ -6957,6 +7173,24 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                         mdbTitle_placeWordDropped.place + "\", which is the category the page files under" +
                         " either way - MixesDB has no \"" + mdbTitle_placeWordDropped.full + "\". Where the room" +
                         " is worth naming, the title does carry it."
+            } );
+        }
+
+        // The credit the reduction above took off the act's name. MixesDB does write a name
+        // built around the word - "Dance For Life" is an event, not a credit - so this is a
+        // reading, not a mistake, and only the uploader knows which one this title is. The
+        // filing DOES move with the chip, unlike the room word's: a page's artist category is
+        // read off the title, so the toggle is what puts the page back under the written name.
+        if( mdbTitle_nameCreditDropped ) {
+            alternatives.push( {
+                kind: "nameCredit",
+                text: mdbTitle_nameCreditDropped.word + " " + mdbTitle_nameCreditDropped.credit,
+                act: mdbTitle_nameCreditDropped.act,
+                reason: "\"" + mdbTitle_nameCreditDropped.word + " " + mdbTitle_nameCreditDropped.credit +
+                        "\" reads as who the mix was made for, so it came off the name: MixesDB has no \"" +
+                        mdbTitle_nameCreditDropped.full + "\" and knows \"" + mdbTitle_nameCreditDropped.act +
+                        "\" as an artist. Where the words ARE part of the name, this is the title - and the" +
+                        " page then files under the whole name."
             } );
         }
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.3
+// @version      2026.08.21.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_47
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_70
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_71
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_105
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
@@ -45,7 +45,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 167,
+var cacheVersion = 168,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 logVar( "scriptName", scriptName );
@@ -1902,6 +1902,17 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.21.4
+ * An episode number the uploader wrote into the NEXT bit of the title now goes to the show
+ * instead of staying with the artist (title_builder.js v_71). From the Playhaus report:
+ * "Playhaus: 001 Guliver" on the channel Playhaus became "001 Guliver - Playhaus Podcast",
+ * with the number stuck to the artist and the page filed under it. The curated channel rule
+ * had done its work - "Playhaus" had grown into "Playhaus Podcast" - but cutting the show
+ * name out of the title leaves the colon that used to separate the two bits standing in
+ * front of the number, and the rule that reads a number sitting right behind the show name
+ * ("HATE Podcast 496 Fadi Mohem") started at the first character. It steps over that
+ * separator now: "2024-10-02 - Guliver - Playhaus Podcast 001".
  *
  * 2026.08.20.29
  * The reasoning panel's section 8, "Similar categories on MixesDB", now wears the blue of 1

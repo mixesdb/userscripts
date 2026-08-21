@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.21.2
+// @version      2026.08.21.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_46
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_70
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_71
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_105
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -1965,6 +1965,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.21.3
+ * Via the shared title builder (title_builder.js v_71), from a SoundCloud report: an episode
+ * number the uploader wrote into the NEXT bit of the title now goes to the show instead of
+ * staying with the artist. "Playhaus: 001 Guliver" became "001 Guliver - Playhaus Podcast" -
+ * cutting the show name out of the title leaves the colon that separated the two bits
+ * standing in front of the number, and the rule that reads a number sitting right behind the
+ * show name ("HATE Podcast 496 Fadi Mohem") started at the first character. It steps over
+ * that separator now.
  *
  * 2026.08.20.28
  * The reasoning panel's section 8, "Similar categories on MixesDB", now wears the blue of 1

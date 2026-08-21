@@ -1788,6 +1788,45 @@ var mdbTitleNameChainConnectors = mdbTitleNamePlaceConnectors.concat( [
 
 
 /*
+ * A credit is not part of the act's name
+ *
+ * "KODE9 FOR MAHARISHI - HYPERDUB 2014-2019 DRIVE-BY" (channel "kodenine", 2019-11-29)
+ *     WRONG: 2019-11-29 - KODE9 For Maharishi - Hyperdub 2014-2019 Drive-By (Promo Mix)
+ *     RIGHT: 2019-11-29 - Kode9 - Hyperdub 2014-2019 Drive-By (Promo Mix)
+ *
+ * "KODE9 for maharishi" says who the mix was MADE FOR - a clothing label - and MixesDB has no
+ * category of that name and never will, while "Kode9" is an artist it knows with 94 mixes. So
+ * the little word ends the act's name the way "im" ends it in front of a club, and the words
+ * behind it are a credit rather than a second name: nothing is offered up as a further artist,
+ * the way "w/" and "&" offer theirs.
+ *
+ * The third connector subset, next to the place words above, and like those one of the two
+ * allowed to SHORTEN a name rather than only add a lookup - under the same two conditions the
+ * room and the line-up fraction are reduced under: the wiki answers nothing about the name the
+ * title writes AND knows the name in front of the word as an ARTIST
+ * (mdbTitle_reduceNameCredit in title_builder.js). Without the second half this would shorten
+ * a name nobody knows into another name nobody knows.
+ *
+ * ARTIST side only. Behind the "@" the same little words connect places, and in the ENTITY
+ * slot the reduction would find somebody else's series far more often than the right one:
+ * this very title carries "Hyperdub 2014-2019 Drive-By" as the mix's own name, and
+ * Category:Hyperdub is the Rinse FM show with 48 episodes - filing a maharishi promo under it
+ * is the kind of mistake an empty answer can never correct.
+ *
+ * "by" is deliberately NOT here although it reads the same way round: it is a chain connector
+ * already, and the series-"by" split reads it earlier still ("Guestroom 779 by Sascha
+ * Sibler"), where the name BEHIND it is the artist rather than the credit.
+ *
+ * A name really built around the word ("Dance For Life") is a reading the uploader may have
+ * meant, so the credit comes back as a "Switch title" chip - unlike the line-up fraction,
+ * which MixesDB writes nowhere.
+ */
+var mdbTitleNameCreditConnectors = [
+    "for", "für", "fuer"
+];
+
+
+/*
  * mdbTitleJokeYearEvents
  *
  * Events that write their edition a THOUSAND years ahead. 3000Grad's parties are "3000Grad
@@ -2426,6 +2465,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleNameChainConnectors: {
         what: "Little words that string several names into one chunk. A chunk long enough to be such a chain is asked about in pieces as well as whole, since the wiki can only answer empty about the pair. The place words among them (\"im\", \"bei\", \"at\") are the only ones that may also shorten the name, and only inside a set played at an event.",
         data: mdbTitleNameChainConnectors
+    },
+    mdbTitleNameCreditConnectors: {
+        what: "Little words saying the rest of the name is who the mix was made FOR, not part of the act's name (\"KODE9 for maharishi\"). The credit comes off where MixesDB has no category for the whole name and knows the name in front of the word as an artist - and is offered back as a \"Switch title\" chip, since a name can be built around the word (\"Dance For Life\").",
+        data: mdbTitleNameCreditConnectors
     },
     mdbTitleJokeYearEvents: {
         what: "Events that write their edition a thousand years ahead - 3000Grad's \"Festival 3026\" is the 2026 one. The digits date the recording and leave the title, the way any gig year does.",
