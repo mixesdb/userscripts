@@ -45,10 +45,10 @@ starts with the TrackId.net icon, so it can be told apart from the other rows at
 
 ### Tracklist state buttons
 
-Bottom right of the [Tracklist box](../tracklist_editor/)'s feedback, the two `Tracklist:`
-indicators MixesDB shows under its own edit box: **?** for incomplete, **✓** for complete. The
-one that applies is lit and the other dimmed – on arrival that is whatever the Tracklist Editor
-said about the tracklist.
+Top right corner of the [Tracklist box](../tracklist_editor/)'s feedback, in front of its
+chips: the two `Tracklist:` indicators MixesDB shows under its own edit box, at the same size –
+**?** for incomplete, **✓** for complete. The one that applies is lit and the other dimmed – on
+arrival that is whatever the Tracklist Editor said about the tracklist.
 
 Click the other one when you know better – a tracklist that is complete although half of it is
 `?`, or a "complete" one that stops an hour before the mix does. The **EDIT** links then carry

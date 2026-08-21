@@ -415,10 +415,11 @@ function toolkit_updateEditLinksSiteHasTl( fromSite="", siteHasTl="" ) {
  *
  * MixesDB's edit page carries three of them under the edit box (#afterTextbox1): none,
  * incomplete, complete - the [[Category:Tracklist: ...]] the page is filed under, the one that
- * applies lit and the other two dimmed. Two of the three are repeated in the bottom right of
- * every Tracklist Editor feedback box we put on a player site, because that is where the
- * state is DECIDED: the toolkit's EDIT links carry it to MixesDB as &siteHasTl=..., and the
- * block at the end of this file presets the category from it once the edit page opens.
+ * applies lit and the other two dimmed. Two of the three are repeated in the top right corner
+ * of every Tracklist Editor feedback box we put on a player site, at MixesDB's own size and in
+ * front of the box's chips, because that is where the state is DECIDED: the toolkit's EDIT
+ * links carry it to MixesDB as &siteHasTl=..., and the block at the end of this file presets
+ * the category from it once the edit page opens.
  *
  * "none" is not repeated. A box only exists where a tracklist was found, so that button could
  * never be anything but the dark one of the row.
@@ -507,7 +508,9 @@ function toolkit_tlStateButtons() {
                 );
             });
 
-            box.append( row );
+            // in FRONT of the chips the API and tlBoxShowApiCount() put in the same corner:
+            // they all float right, so the first one in the box is the one furthest right
+            box.prepend( row );
         }
 
         row.children( ".mdb-tlEditor-tlState-button" ).each(function() {
