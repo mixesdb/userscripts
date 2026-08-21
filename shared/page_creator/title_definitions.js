@@ -371,7 +371,8 @@ var mdbTitleChannelSeriesConversions = {
     "Juno Daily": {
         "Juno Daily – In The Mix": "Juno Daily", // https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-space
         "In The Mix": "Juno Daily"               // https://soundcloud.com/junodailyonline/in-the-mix-ben-diggins
-    }
+    },
+    "Playhaus": { "Playhaus": "Playhaus Podcast" } // https://soundcloud.com/playhausww/playhaus-001-guliver
 };
 
 
