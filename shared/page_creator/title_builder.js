@@ -4402,6 +4402,14 @@ var mdbTitle_promoDeclined = false;
 // itself, and only there - the first pass runs without the wiki's answers and never reduces.
 var mdbTitle_placeWordDropped = null;
 
+// The part mdbTitle_result cut off the END of a place group - { text, place, city }, null on
+// every other title. MixesDB closes a group with the town, so a name standing BEHIND the city
+// is something inside the place already named - a floor, a stage, the night's own series - and
+// it went; the reading is still worth OFFERING, and this is what the alternatives hand to the
+// hints bar's "Switch title" chip, which writes it back in FRONT of the group. Set once per
+// suggestion, in the cut itself.
+var mdbTitle_placeTailDropped = null;
+
 // The credit mdbTitle_result took off the artist's name - { word, credit, act, full }, null on
 // every other title. "KODE9 For Maharishi" is no category, "Kode9" is the artist, so the words
 // went; the reading is still worth OFFERING, and this is what the alternatives hand to the
@@ -5356,6 +5364,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_liveWordSeen = false;
     mdbTitle_promoDeclined = false;
     mdbTitle_placeWordDropped = null;
+    mdbTitle_placeTailDropped = null;
     mdbTitle_nameCreditDropped = null;
     mdbTitle_atEpisodeRead = false;
     mdbTitle_locationDropped = "";
@@ -6899,6 +6908,78 @@ function mdbTitle_commaOffCity( group ) {
     return text.slice( 0, at + 3 ) + built;
 }
 
+// mdbTitle_dropAfterCity
+// "A @ Sisyphos, Berlin, Dampfer" -> "A @ Sisyphos, Berlin": the part an uploader hung behind
+// the group's CITY. A MixesDB place group is written from the specific outwards and CLOSES
+// with the town - "@ Event, Venue, City" - so nothing follows the city, and a name that does
+// is not a wider place: it is something INSIDE the one already named, the floor, the stage or
+// the night's own name. Those words are the uploader's aside, not part of where the set was
+// played, and the recent pages of such a venue do not carry them.
+//
+// The name is not lost, it is OFFERED: mdbTitle_result hands it to the hints bar as a "Switch
+// title" chip that writes it back in FRONT of the group ("@ Dampfer, Sisyphos, Berlin"),
+// which is where MixesDB writes a party held at a venue ("@ Utopia, Ritter Butzke, Berlin") -
+// and only the uploader knows whether this one is worth naming.
+//
+// Two fences, and both are about the shape of the group rather than about the words:
+// - a COUNTRY may stand behind the city, since it is the one part wider than the town
+//   ("@ Watergate, Berlin, Germany"), and the group keeps widening to its end
+// - something has to stand in FRONT of the city. A group OPENING with one
+//   ("@ Berlin, Watergate") is an uploader writing it backwards, and cutting there would
+//   throw away the only name the title has
+//
+// No wiki answer is needed and none is asked for, like the comma above: the curated city list
+// (mdbTitleCities) is what says where the group ends. Runs right behind mdbTitle_commaOffCity,
+// so a city the uploader glued onto the name in front of it is already a part of its own and
+// closes the group here too.
+function mdbTitle_dropAfterCity( group ) {
+    var text = String( group || "" ),
+        at = text.indexOf( " @ " );
+
+    if( at === -1 ) return text;
+
+    var parts = mdbTitle_placeGroupParts( text.slice( at + 3 ) ),
+        closes = -1,
+        cut = -1,
+        kept = "",
+        tail = [],
+        i;
+
+    // the first part naming nothing to file a page under closes the group - the city, or the
+    // country of a group that names no city at all ("@ S.U.N Festival, Hungary")
+    for( i = 0; i < parts.length; i++ ) {
+        if( mdbTitle_isCity( parts[i].name ) || mdbTitle_isCountry( parts[i].name ) ) {
+            closes = i;
+            break;
+        }
+    }
+
+    if( closes < 1 ) return text;
+
+    for( i = closes + 1; i < parts.length; i++ ) {
+        if( !mdbTitle_isCountry( parts[i].name ) ) {
+            cut = i;
+            break;
+        }
+    }
+
+    if( cut === -1 ) return text;
+
+    for( i = 0; i < cut; i++ ) {
+        kept += ( i === 0 ? "" : parts[i].sep ) + parts[i].name;
+    }
+
+    // everything from the first stray part on, a country behind it included: once the group
+    // has been closed twice over, the rest is one aside and goes as one
+    for( i = cut; i < parts.length; i++ ) {
+        tail.push( parts[i].name );
+    }
+
+    mdbTitle_placeTailDropped = { text: tail.join( ", " ), place: parts[0].name, city: parts[closes].name };
+
+    return text.slice( 0, at + 3 ) + kept;
+}
+
 // mdbTitle_qualifiedPlaceMatch
 // The wiki's answer for a place whose CATEGORY carries a disambiguation bracket, picked by the
 // rest of the place group: "As You Like It" answers with the Frankfurt one and the San
@@ -7511,6 +7592,32 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         artist = cityComma;
     }
 
+    // Nothing stands behind the group's city: MixesDB closes a place group with the town, so
+    // a part hung onto the end names something INSIDE the place already named - the floor, the
+    // stage, the night. Right behind the comma rule, so a glued city closes the group here as
+    // well, and in front of the reductions below, which read the FIRST part. The cut words are
+    // offered back in front of the group as a "Switch title" chip further down.
+    var placeTail = mdbTitle_dropAfterCity( artist );
+
+    if( placeTail !== artist ) {
+        logVar( "mdbTitle_result: part behind the group's city dropped", artist + " -> " + placeTail );
+        mdbTitle_traceStep( "Part behind the city dropped",
+                            artist + " -> " + placeTail +
+                            " - a place group closes with its town, so \"" + mdbTitle_placeTailDropped.text +
+                            "\" names something inside \"" + mdbTitle_placeTailDropped.place + "\" rather than a place of its own",
+                            null, [ "mdbTitleCities" ] );
+
+        // Charged, unlike the "@" fold and the comma above: those two only respell what the
+        // title already says, while words leave the title here and a floor IS worth naming on
+        // some pages. The chip offers the other reading, the reason asks for the check.
+        conf.drop( 3, "\"" + mdbTitle_placeTailDropped.text + "\" stood behind \"" +
+                      mdbTitle_placeTailDropped.city + "\" and left the title - MixesDB closes a place group" +
+                      " with its town, so those words name something inside \"" + mdbTitle_placeTailDropped.place +
+                      "\"; check whether they are worth naming, and if so put them in front of the place" );
+
+        artist = placeTail;
+    }
+
     // A room inside a venue is not the venue: where the place the title names is no category
     // and the venue around it is one, the word comes off - "@ Elsewhere Loft" -> "@ Elsewhere".
     // After the group is whole (the "@" fold above), so the part being read is the one the
@@ -7799,6 +7906,26 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                         mdbTitle_placeWordDropped.place + "\", which is the category the page files under" +
                         " either way - MixesDB has no \"" + mdbTitle_placeWordDropped.full + "\". Where the room" +
                         " is worth naming, the title does carry it."
+            } );
+        }
+
+        // The part the cut above took off the END of the place group. MixesDB does write the
+        // floor, the stage or the night where it is worth naming - in FRONT of the place
+        // ("@ Utopia, Ritter Butzke, Berlin") - and only the uploader knows whether this set
+        // was one of those. The filing does not move with the chip: the page is filed under
+        // the group's first place either way, and the chip's reading only puts a second name
+        // in front of it, which mdbPageCreator_entityCategoriesFor then asks the wiki about
+        // like any other place.
+        if( mdbTitle_placeTailDropped ) {
+            alternatives.push( {
+                kind: "placeTail",
+                text: mdbTitle_placeTailDropped.text,
+                place: mdbTitle_placeTailDropped.place,
+                reason: "\"" + mdbTitle_placeTailDropped.text + "\" stood behind \"" +
+                        mdbTitle_placeTailDropped.city + "\", where MixesDB writes nothing - a place group" +
+                        " closes with its town. It names something inside \"" + mdbTitle_placeTailDropped.place +
+                        "\" - a floor, a stage, the night's own name - and where that is worth naming, the" +
+                        " title carries it in front of the place."
             } );
         }
 

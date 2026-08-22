@@ -235,6 +235,15 @@ title's – the page joins `[[Category:As You Like It (Frankfurt)]]` and the tit
 without it. Where no word of the group matches a bracket nothing is picked and the name stands
 as typed, which is why a title naming Berlin is not filed under somebody else's `Utopia (Turku)`.
 
+The **city closes the group**, and anything written behind it comes off the title. MixesDB
+writes a place from the specific outwards and ends with the town, so a name standing behind the
+city is not a wider place at all – it is the floor, the stage or the night the uploader played
+on: `Blake Strange @ Sisyphos, Berlin [Dampfer]` becomes `… @ Sisyphos, Berlin`. A country may
+follow the city, being the one name wider than it (`… @ Watergate, Berlin, Germany`), and a
+group that *opens* with a city is left alone – that is a title written backwards, not a tail.
+The dropped words come back as a **Switch title** chip that puts them in front of the place,
+which is where MixesDB writes a party held at a venue.
+
 An `@` in front of a **date** joins nothing and reads as a plain `-`: `Ingo Sänger @ August
 2026` is a mix from August 2026, not a set played at a place of that name. A title that then
 names nothing but its month is the monthly mix MixesDB has a name for –
@@ -483,6 +492,13 @@ says why the build decided the other way. Offered today:
   it was written the way MixesDB writes a monthly mix (`… - August Promo Mix`). The chip offers
   the stamp kept as the mix's own name instead (`… - August 2026 (Promo Mix)`) – the wiki has
   both spellings. The page files under `Category:Promo Mix` either way.
+
+- **The name behind the city** – the title hung a name onto the end of the place group, where
+  MixesDB writes nothing, so it came off (`… @ Sisyphos, Berlin, Dampfer` became
+  `… @ Sisyphos, Berlin`). The chip offers it back in front of the place
+  (`… @ Dampfer, Sisyphos, Berlin`), the way the wiki writes a party held at a venue –
+  `2021 - Kernel Existence @ Utopia, Ritter Butzke, Berlin`. The page files under the first
+  place either way.
 
 - **The slot of the night** – the title named the closing or the opening set at an event, and
   the group was written slot first, event last (`… @ Obstgarten Closing, Rote Dichte`). The chip
