@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.6
+// @version      2026.08.22.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_127
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_76
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_77
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
@@ -1903,6 +1903,29 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.22.7
+ * A name the site writes DECOMPOSED is one name again (title_builder.js v_77). From the
+ * "4AM Records - Milan Hermess | HÖR" report: "HÖR" was asked about as "Hör" and came back
+ * as "no category of this name", while Category:HÖR holds 665 mixes. SoundCloud does not write
+ * the "Ö" as the single character MediaWiki stores it as - it writes an "O" with a combining
+ * diaeresis behind it, which looks exactly the same and is a different string. Decomposed, the
+ * name counts four characters instead of three, so the rule that keeps a SHORT shouted name in
+ * caps ("KCE", "HÖR") no longer knew it for one and re-cased it into a "Hör" nobody is filed
+ * under; the compare key kept the bare "o" of the pair where the composed spelling drops the
+ * "ö" whole, so one name had two cache keys; and api.php, which normalizes what it is asked,
+ * answered "non-normalized data" and echoed the name COMPOSED - so its answer was filed under a
+ * key the asker never looks up. The composed form is put on every bit of outside text now,
+ * before a rule reads a character of it (mdbTitle_nfc: the player title, the channel name, the
+ * description, the edited title field and every name that goes to the wiki), which is the form
+ * MediaWiki stores every title in.
+ * The lookup was never case-sensitive, and nothing about it changed here: MixesDB is the
+ * case-sensitive half ($wgCapitalLinks = false), which is exactly why the API was asked for a
+ * case-INsensitive answer - "hör", "Hör" and "HÖR" all find Category:HÖR, as long as they are
+ * asked in the spelling the wiki stores.
+ * The reported title is unchanged by this: "HÖR" is a known radio with 665 mixes in the panel
+ * and in the report box now, while the entity slot still holds the two chunks glued together
+ * ("4AM Records HÖR"). 155 examples, all pass.
  *
  * 2026.08.22.6
  * A place group ends at its city, and anything an uploader hangs behind it comes off the title

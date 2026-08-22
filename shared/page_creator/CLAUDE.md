@@ -684,6 +684,21 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   strip sits in the same funnel as the "#" rewrite, so no round can ask for one, and in
   `mdbTitle_titleCategories` on top, so the name whose ROLE and ORIGIN the panel records is the
   same name that is asked about.
+- **Every name is sent COMPOSED, and the whole parse works in that form** (2026-08-22,
+  reported on `4AM Records - Milan Hermess | HÖR`) - `mdbTitle_nfc()` puts Unicode's NFC on the
+  player title, the channel name, the description, the edited title field and every name that
+  goes into the request. SoundCloud writes `HÖR` DECOMPOSED, as an `O` with a combining
+  diaeresis behind it (U+004F U+0308) rather than the single U+00D6 MediaWiki stores - the two
+  look identical and are different strings, and all three layers broke on it at once: the
+  decomposed name counts four characters, so `mdbTitle_isShortAcronym` did not know the
+  three-letter acronym for one and re-cased it to `Hör`; `mdbTitle_normalizeCompare` keeps the
+  bare `o` of the pair where it drops a composed `ö` whole, so one name had two cache keys;
+  and `api.php` warns `non-normalized data`, answers anyway and echoes the name COMPOSED, so
+  its answer was cached under a key the asker never read and `Category:HÖR` (665 mixes) came
+  back as "no category of this name". Nothing here is about CASE - the module matches
+  case-insensitively by contract, and `hör`/`Hör`/`HÖR` all find it once they are asked in the
+  form the wiki stores. The composed form sits in `mdbTitle_spaced()`, the one rewrite the
+  title and the channel name pass through on every entry point, so no path can skip it.
 - **All matches per name are kept**, because one name is legitimately several things:
   `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
   a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never

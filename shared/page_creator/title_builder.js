@@ -145,10 +145,34 @@ function mdbTitle_escapeReLooseSeparators( name ) {
 // separator, however much mdbTitle_sepInner says it is one.
 var mdbTitle_fractionLeadRe = /^\s*\d{1,5}[\/\\]\d/;
 
+// mdbTitle_nfc
+// Unicode's COMPOSED form, put on every bit of outside text before any rule reads a character
+// of it. The same name arrives written two ways: "HÖR" is either one character (U+00D6) or an
+// "O" with a combining diaeresis behind it (U+004F U+0308) - and SoundCloud hands over the
+// decomposed one, which is what the HÖR report came from. Nothing downstream survives the
+// difference:
+//   - mdbTitle_isShortAcronym counts the decomposed "HÖR" as FOUR characters, so the acronym
+//     is not one and gets re-cased into the "Hör" nobody is filed under
+//   - mdbTitle_normalizeCompare keeps the bare "o" of the decomposed pair and drops the
+//     composed "ö" whole, so one name ends up under two different cache keys
+//   - api.php answers "non-normalized data" to the request and echoes the name COMPOSED, so
+//     its answer is cached under a key the asker never looks up and the name reads as
+//     "no category of this name" while the category sits right there
+// NFC and not NFD because that is the form MediaWiki stores every title in, and the wiki is
+// what the names are compared against.
+function mdbTitle_nfc( s ) {
+    s = String( s || "" );
+
+    // String.prototype.normalize is ES6. A userscript manager old enough to miss it still gets
+    // a working parser, only one that reads the two spellings as two names - which is what
+    // every version before this did.
+    return s.normalize ? s.normalize( "NFC" ) : s;
+}
+
 // mdbTitle_normalizeCompare
 // Strips everything but letters/digits, so "DJ MARIA." and "dj maria" compare equal
 function mdbTitle_normalizeCompare( s ) {
-    return String( s || "" ).toLowerCase().replace( /[^a-z0-9]/g, "" );
+    return mdbTitle_nfc( s ).toLowerCase().replace( /[^a-z0-9]/g, "" );
 }
 
 // mdbTitle_matchCase
@@ -172,12 +196,15 @@ function mdbTitle_matchCase( sample, word ) {
 // title_definitions.js. Runs before every other rule, including the typo fixes: "_" is a word
 // character to a regex, so every "\b" in the parser (and in mdbTitleTypoFixes) reads
 // "SAXON_AUGUST" as a single word.
+// It is also where the composed form is put on the text (mdbTitle_nfc): this is the one rewrite
+// the player title and the channel name pass through on EVERY entry point, so a name decomposed
+// by the site is composed before a single rule counts a character of it.
 function mdbTitle_spaced( text ) {
     var chars = ( typeof mdbTitleSpaceChars !== "undefined" && mdbTitleSpaceChars ) ? mdbTitleSpaceChars : /_+/g;
 
     chars.lastIndex = 0;
 
-    return String( text || "" ).replace( chars, " " );
+    return mdbTitle_nfc( text ).replace( chars, " " );
 }
 
 // mdbTitle_fixTypos
@@ -3530,7 +3557,11 @@ function mdbTitle_lookupCategories( names, callback ) {
         // Our own markers come off in the same breath (mdbTitle_dropMarkers): no category is
         // called "... (Promo Mix)", so a caller handing one over is asking about a name that
         // cannot exist. Here rather than in the callers alone, so no round can ask for one.
-        name = mdbTitle_dropMarkers( names[i] ).replace( /#/g, " " ).replace( /\s+/g, " " ).trim();
+        // ... and composed (mdbTitle_nfc), so the request carries what MediaWiki stores: the
+        // module answers a decomposed name with a "non-normalized data" warning and echoes it
+        // COMPOSED, and an answer whose name is spelled differently than the question lands
+        // under a cache key nobody reads.
+        name = mdbTitle_nfc( mdbTitle_dropMarkers( names[i] ) ).replace( /#/g, " " ).replace( /\s+/g, " " ).trim();
         key = mdbTitle_normalizeCompare( name );
 
         if( !key ) continue;
@@ -4072,7 +4103,9 @@ function mdbTitle_splitArtists( artistField ) {
 // (mdbPageCreator_entityCategoriesFor); the city is the one part that does not need asking,
 // since a city has no category to find (mdbTitleCities).
 function mdbTitle_titleCategories( title ) {
-    var text = String( title || "" ),
+    // composed like every other bit of outside text (mdbTitle_nfc): the field can be typed into
+    // and pasted into, and the names read out of it go to the wiki
+    var text = mdbTitle_nfc( title ),
         bits = text.split( mdbTitle_bitSplitRe() ),
         year = ( text.match( /^\s*(\d{4})/ ) || [ "", "" ] )[1],
         artistField = bits[1] || "",
@@ -5178,6 +5211,11 @@ function mdbTitle_traceTextWithout( text, removed ) {
 // releaseDate). Only needed so the date cut below lands on the same digits the parse cuts;
 // without it a title carrying two dates could have its chunks cut at the other one.
 function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
+    // the composed form the whole parse works in - mdbTitle_spaced() puts it on the title and
+    // the channel name, the description gets it here. No mdbTitle_spaced() for it: an "_" in a
+    // description is an underscore and not a space.
+    description = mdbTitle_nfc( description );
+
     var text = mdbTitle_fixTypos( mdbTitle_spaced( playerTitle ).replace( /\s+/g, " " ).trim() ),
         removed = [],
         n, i;
@@ -5379,6 +5417,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( !rest ) return nothing;
 
         username = mdbTitle_spaced( username ).replace( /\s+/g, " " ).trim();
+        // read for the label credits and the Live PA phrase, and composed for the same reason
+        // the two above are - see mdbTitle_titleChunks
+        description = mdbTitle_nfc( description );
 
         logVar( "playerTitle", rest );
         logVar( "username", username );

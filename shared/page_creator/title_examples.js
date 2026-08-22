@@ -1700,5 +1700,30 @@ var mdbTitleExamples = [
         expectEntities: [ "Sisyphos" ],
         expectAlternatives: [ "placeTail" ],
         expect: "2026-08-01 - Blake Strange @ Sisyphos, Berlin"
+    },
+    {
+        // Reported: "H\u00d6R" was asked about as "H\u00f6r" and came back as "no category of this
+        // name", while Category:H\u00d6R holds 665 mixes. The name is written DECOMPOSED in the
+        // SoundCloud title - an "O" with a combining diaeresis behind it instead of the single
+        // character - which is why the title below writes it as "HO\u0308R" and not as a plain
+        // "H\u00d6R": the escape is the case. Decomposed, the acronym counts four characters
+        // instead of three, so mdbTitle_isShortAcronym no longer knows it for one and the bit
+        // gets re-cased; and the wiki, which stores every title composed, answers under a
+        // spelling the asker never looks up. Every bit of outside text is composed now
+        // (mdbTitle_nfc), so both halves are one name again.
+        // What this case guards is the NAME, not the shape of the title around it: the entity
+        // is still the two chunks glued together.
+        url: "https://soundcloud.com/milanhermess/milanhermess-4amrecords-hor-aug2026",
+        title: "4AM Records - Milan Hermess | HO\u0308R - August 5, 2026",
+        channel: "Milan Hermess",
+        date: "2026-08-22",
+        known: {
+            "Milan Hermess": { type: "artist", mixes: 2 },
+            "H\u00d6R":          { type: "radio", mixes: 665 }
+        },
+        expectChunks: [ "4AM Records", "Milan Hermess", "H\u00d6R" ],
+        expectAsked: [ "H\u00d6R" ],
+        expectArtists: [ "Milan Hermess" ],
+        expect: "2026-08-05 - Milan Hermess - 4AM Records H\u00d6R (Promo Mix)"
     }
 ];
