@@ -1107,15 +1107,33 @@ renders them. Settled, so it does not get re-litigated:
 ## Title suggestion reports
 
 Reports come out of the **"Report" box** under the score (`mdbPageCreator_reportText()` in
-`page_creator.js`), so they arrive with the page URL, the player title, the channel name **as the
-site's API gives it**, the upload date, the suggested title, the score and the categories already
-filled in,
-plus the reporter's "Mistake / learning", "Expected …" and "Alternative title" lines.
+`page_creator.js`). Since 2026-08-22 it is **Markdown in four headed blocks** - the box is read
+where it is pasted, and on Discord the headings render:
+
+- **`## Created`** - the page URL, the player title, the channel name **as the site's API gives
+  it**, the upload date, the suggested title, the score and the categories, one `* ` bullet each
+- **`## Lookups`** - the reasoning panel's section 3 as text: every asked name under `artists:`
+  or `entities:` (filed by `mdbPageCreator_lookupRoleColumns()`, which the panel's two columns
+  read too), with everything the wiki said about it - `* AKA AKA -> artist, 230 mixes, 95%`,
+  several answers joined with ` | `, the wiki's own spelling in front where it differs from the
+  name asked, and otherwise the same status wording the panel shows (`no category of this name`,
+  `looking it up …`, `lookup failed`, `not asked - over the 10-name request limit`). A case is
+  wrong for one of two reasons - the wiki had nothing, or it had the name and the parse picked
+  another - and only this block tells them apart afterwards
+- **`## Mistakes / learnings`** - free text, not a bullet: naming the step that went wrong takes
+  a sentence or three
+- **`## Expected`** - the reporter's "Expected title", "Alternative title" and "Expected …
+  category" lines
+
 "Alternative title" (since 2026-08-19) is a SECOND title that would also be right - the reading
 the row should have offered as a "Switch title" chip, or one only the reporter can know
 ("Elsewhere Loft" is that club's rooftop). It is the one line that is empty on purpose most of
 the time, and an empty one says there is a single right answer, so it is no reason to ask back. That is exactly the input a case
 needs - do not ask back for any of it when the box was used.
+
+Every line left for the reporter keeps **one blank behind its colon** - that is where the cursor
+goes, and a line ending in ":" makes the writer type the space first. Keep it when the block
+grows a line.
 
 Above the box sits the **reasoning panel** (`mdbPageCreator_renderReasoning()`), numbered in the
 order the build RAN - **1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8**: the title chunks, the first parse's

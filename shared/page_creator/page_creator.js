@@ -1379,7 +1379,7 @@ function mdbPageCreator_render() {
     // page that already has it, which is exactly when something worth reporting turns up.
     var report = $("<a>")
             .attr( "id", "mdb-pageCreator-report" )
-            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistake / learning\" and \"Expected\" lines.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, the format read off the entity's recent pages, the categories, the page text learned from those same pages, and the similar categories behind the names MixesDB denied." )
+            .attr( "title", "Everything needed to report this title as wrongly suggested, ready to paste - fill in the \"Mistakes / learnings\" and \"Expected\" blocks.\nAbove the box, the reasoning panel shows how the suggestion was built, in the order it ran: the title chunks, the first parse, the MixesDB lookups, the second parse with the answers, the format read off the entity's recent pages, the categories, the page text learned from those same pages, and the similar categories behind the names MixesDB denied." )
             .text( "Report" );
 
     report.on( "click", function() {
@@ -5407,19 +5407,29 @@ function mdbPageCreator_modalClose() {
  * The report box
  *
  * "Report" behind the score opens a textarea under the row, holding the case as it is written
- * when a wrong title is reported: the three values the site handed over, what the suggestion made
- * of them, and empty lines for the title and categories it SHOULD have produced.
+ * when a wrong title is reported - as Markdown, in four headed blocks:
+ *
+ *   ## Created                  the values the site handed over and what the suggestion made of
+ *                               them - URL, title, channel, date, title, score, categories
+ *   ## Lookups                  what MixesDB was asked and what came back, split into the
+ *                               "artists:" and "entities:" the panel's section 3 shows
+ *   ## Mistakes / learnings     free text: what went wrong, in the reporter's own words
+ *   ## Expected                 the title, the alternative title and the categories it SHOULD
+ *                               have produced
+ *
+ * Markdown because of where it goes: pasted on Discord the headings render, and the maintainer's
+ * case files quote one block at a time.
  *
  * It exists because the report, not the fix, was the slow part: the player title is on screen,
  * but the channel name is the site API's username and not the name in the URL ("discoanon" ->
  * "Discoholics Anonymous"), and the upload date is nowhere near the player either. Both had to be
  * asked back for, one round trip per report. Everything in the box is already in this file.
  *
- * The two empty "Expected" blocks are the point of it - they are the answer only the reporter has
- * - which is why anything typed into the box stops it from ever being refilled.
+ * "Expected" is the point of it - it is the answer only the reporter has - which is why anything
+ * typed into the box stops it from ever being refilled.
  *
  * Above the box sits the reasoning panel - its own section further down - which explains how
- * the suggestion was built, so the "Mistake / learning" line can name the step that went wrong.
+ * the suggestion was built, so the "Mistakes / learnings" block can name the step that went wrong.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -5475,7 +5485,7 @@ function mdbPageCreator_toggleReport( wrapper ) {
 
 // mdbPageCreator_growReport
 // The box is exactly as tall as its text - it is read as a whole and copied as a whole, so a
-// scrollbar in it is pure friction - and grows as the "Mistake / learning" and "Expected" lines
+// scrollbar in it is pure friction - and grows as the "Mistakes / learnings" and "Expected" lines
 // are typed.
 //
 // Measured rather than counted from the newlines: a long player title wraps, and a wrapped line
@@ -5511,9 +5521,16 @@ function mdbPageCreator_fillReport( wrapper ) {
 }
 
 // mdbPageCreator_reportText
+// The report as Markdown, in four headed blocks - "Created", "Lookups", "Mistakes / learnings",
+// "Expected" - because that is how it is read once it is pasted: Discord renders the headings,
+// and the maintainer's case files quote the blocks one at a time.
+//
 // The categories are read off the TITLE, not off what the parser had in mind - the same way the
 // created page reads them - so a title corrected in the field reports the categories it would
 // really be filed under.
+//
+// Every line that is left for the reporter to fill in keeps ONE blank behind its colon: it is
+// where the cursor goes, and a line ending in ":" makes the writer type the space first.
 function mdbPageCreator_reportText( title ) {
     var read = mdbTitle_titleCategories( title ),
         // one line per artist, since every joiner between two names is another category ("See
@@ -5524,19 +5541,22 @@ function mdbPageCreator_reportText( title ) {
         lines = [],
         i;
 
-    // First line, because it is the one thing that lets a report be looked at again - and the
-    // player URL rather than location.href: the site hands over the clean page URL there, while
-    // location.href carries tracking parameters and, inside a framed layout, is not even this
-    // track's URL.
-    lines.push( "-> " + label + " URL: " + mdbPageCreator_playerUrl );
-    lines.push( "-> " + label + " title: " + mdbPageCreator_sourceTitle );
-    lines.push( "–> Channel name: " + mdbPageCreator_sourceChannel );
-    lines.push( "-> " + label + " date: " + mdbPageCreator_reportDay( mdbPageCreator_sourceDate ) );
-    lines.push( "-> Created title: " + title );
-    lines.push( "–> Confidence score: " + mdbPageCreator_confidencePercent + "%" );
+    lines.push( "## Created" );
+    lines.push( "" );
+
+    // First line of the block, because it is the one thing that lets a report be looked at again
+    // - and the player URL rather than location.href: the site hands over the clean page URL
+    // there, while location.href carries tracking parameters and, inside a framed layout, is not
+    // even this track's URL.
+    lines.push( "* " + label + " URL: " + mdbPageCreator_playerUrl );
+    lines.push( "* " + label + " title: " + mdbPageCreator_sourceTitle );
+    lines.push( "* Channel name: " + mdbPageCreator_sourceChannel );
+    lines.push( "* " + label + " date: " + mdbPageCreator_reportDay( mdbPageCreator_sourceDate ) );
+    lines.push( "* Created title: " + title );
+    lines.push( "* Confidence score: " + mdbPageCreator_confidencePercent + "%" );
 
     for( i = 0; i < artists.length; i++ ) {
-        lines.push( "–> Artist category: " + artists[i] );
+        lines.push( "* Artist category: " + artists[i] );
     }
 
     // one line per entity category, like the artists above: a live title whose place group
@@ -5544,24 +5564,127 @@ function mdbPageCreator_reportText( title ) {
     // title with no entity at all still gets the empty line, so the shape never changes.
     var entityCategories = mdbPageCreator_entityCategoriesFor( title, read );
 
-    if( !entityCategories.length ) lines.push( "–> Entity category: " );
+    if( !entityCategories.length ) lines.push( "* Entity category: " );
 
     for( i = 0; i < entityCategories.length; i++ ) {
-        lines.push( "–> Entity category: " + entityCategories[i].name );
+        lines.push( "* Entity category: " + entityCategories[i].name );
     }
 
-    lines.push( "-> Mistake / learning: " );
-    lines.push( "-> Expected title: " );
+    // What the wiki was asked and what it answered - the reasoning panel's section 3 as text.
+    // It is in the report because it is the half of a case nobody can reconstruct afterwards:
+    // the categories above say what the title was filed under, these lines say what MixesDB
+    // knew at the time, and a suggestion is wrong for one of the two reasons ("the wiki had
+    // nothing" vs "the wiki had it and the parse picked the other name").
+    lines.push( "" );
+    lines.push( "## Lookups" );
+    lines.push( "" );
+    lines.push( "artists:" );
+    lines = lines.concat( mdbPageCreator_reportLookups( "artist" ) );
+    lines.push( "" );
+    lines.push( "entities:" );
+    lines = lines.concat( mdbPageCreator_reportLookups( "entity" ) );
+
+    // Free text, not a "-> " line: what went wrong is a sentence or three about the step that
+    // did it (the panel above numbers them), and a bullet asked for one line.
+    lines.push( "" );
+    lines.push( "## Mistakes / learnings" );
+    lines.push( "" );
+    lines.push( "" );
+
+    lines.push( "" );
+    lines.push( "## Expected" );
+    lines.push( "" );
+    lines.push( "* Expected title: " );
     // A SECOND title that would also be right - the reading the suggestion should have offered
     // as a "Switch title" chip, or the one only the reporter can know ("Elsewhere Loft" is the
     // rooftop of that club). Empty on most reports, and empty is fine: it says there is one
     // right answer. Kept next to "Expected title" because the two are read together - the
     // expected one is what the build has to produce, this one is what it may also offer.
-    lines.push( "-> Alternative title: " );
-    lines.push( "–> Expected artist category: " );
-    lines.push( "–> Expected entity category: " );
+    lines.push( "* Alternative title: " );
+    lines.push( "* Expected artist category: " );
+    lines.push( "* Expected entity category: " );
 
     return lines.join( "\n" );
+}
+
+// mdbPageCreator_reportLookups
+// The "artists:" / "entities:" block: every name the wiki was asked about in that role, with
+// what came back. Filed into the two roles by mdbPageCreator_lookupRoleColumns(), which is what
+// the reasoning panel's section 3 sorts its two columns by - a report that grouped them
+// differently would not match the panel the reporter is looking at while writing it.
+function mdbPageCreator_reportLookups( role ) {
+    var log = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        // typeof-guarded like everything else read out of title_builder.js: a stale cached copy
+        // must cost the report a line, not the box
+        trace = ( typeof mdbTitle_trace !== "undefined" ) ? mdbTitle_trace : null,
+        lines = [],
+        i;
+
+    for( i = 0; i < log.length; i++ ) {
+        var entry = log[i],
+            cached = Object.prototype.hasOwnProperty.call( cache, entry.key ) ? cache[entry.key] : "",
+            matches = ( cached && cached.matches ) ? cached.matches : [];
+
+        if( !mdbPageCreator_lookupRoleColumns( entry, matches )[ role ] ) continue;
+
+        lines.push( "* " + entry.name + " -> " + mdbPageCreator_reportAnswer(
+            entry, matches, mdbPageCreator_lookupOverruledBy( trace, entry.key ) ) );
+    }
+
+    // in the panel's own words, so the two say the same thing about an empty role
+    if( !lines.length ) lines.push( "* no candidates of this role in this title" );
+
+    return lines;
+}
+
+// mdbPageCreator_reportAnswer
+// Everything the wiki said about ONE asked name, on the one line the report gives it: each answer
+// as "type, N mixes, NN%", several joined with " | ". The wiki's own spelling goes in front where
+// it differs from the name asked ("aka aka" -> "AKA AKA") and is left out where it does not - it
+// would only repeat the name the line already opens with.
+//
+// A name with no answer prints the request's status in the same words the panel's section 3 uses,
+// so the two can be read next to each other.
+function mdbPageCreator_reportAnswer( entry, matches, overruledBy ) {
+    var parts = [],
+        m;
+
+    for( m = 0; m < matches.length; m++ ) {
+        var match = matches[m],
+            bits = [];
+
+        if( match.title && mdbTitle_normalizeCompare( match.title ) !== entry.key ) bits.push( match.title );
+
+        bits.push( String( match.type || "?" ) );
+
+        if( typeof match.mixes === "number" ) {
+            bits.push( match.mixes + ( match.mixes === 1 ? " mix" : " mixes" ) );
+        }
+
+        // the same score the panel badges the answer with - the whole answer list is passed,
+        // since a score depends on how many OTHER things the wiki knows the name as
+        if( typeof mdbTitle_matchConfidence === "function" ) {
+            bits.push( mdbTitle_matchConfidence( entry.name, matches, m, !!overruledBy ).percent + "%" );
+        }
+
+        parts.push( bits.join( ", " ) );
+    }
+
+    if( !parts.length ) {
+        parts.push( entry.pending ? "looking it up …"
+                  : entry.skipped ? "not asked - over the 10-name request limit"
+                  : entry.failed  ? "lookup failed"
+                  : "no category of this name" );
+    }
+
+    // A curated channel mapping outranks whatever the wiki knows under the bare words. Without
+    // this, an answer like "show, 369 mixes, 95%" reads like the row the title should have used.
+    if( overruledBy ) {
+        parts.push( "overruled - on this channel these words name \"" + overruledBy + "\" (curated channel rule)" );
+    }
+
+    return parts.join( " | " );
 }
 
 // mdbPageCreator_reportDay
@@ -5712,6 +5835,9 @@ function mdbPageCreator_queueCategoryUpdate() {
             var row = $("#mdb-pageCreator");
 
             mdbPageCreator_renderHints( row );
+            // the report quotes these answers in its "Lookups" block, so it follows them too
+            // - a no-op on a closed box and on one the reporter has written in
+            mdbPageCreator_fillReport( row );
             mdbPageCreator_renderReasoning( row );
         });
     }, mdbPageCreator_categoryDelayMs );
@@ -6020,6 +6146,35 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
     }
 
     return text ? mdbPageCreator_reasoningNote( text, "muted" ) : null;
+}
+
+// mdbPageCreator_lookupRoleColumns
+// Which of the two candidate roles an asked name belongs to - { artist: bool, entity: bool }.
+// The reasoning panel's section 3 files its two columns by it and the report box's "Lookups"
+// block its two lists, so the two always group the same names the same way.
+//
+// The ROLE the title's shape gave the name before the lookup fired decides
+// (mdbTitle_candidateRoles); a name without one - the extra lookups an edited title fires -
+// belongs to both. An ANSWER of the other type pulls the name into that role as well: the wiki
+// also knowing "MONUMENT" as an artist is worth seeing where the parse reads it as the series.
+function mdbPageCreator_lookupRoleColumns( entry, matches ) {
+    // typeof-guarded like the trace - a stale cached title_builder.js without roles files every
+    // name under both
+    var roles = ( typeof mdbTitle_candidateRoles !== "undefined" && mdbTitle_candidateRoles ) ? mdbTitle_candidateRoles : {},
+        // The recorded role is a STRING - "artist" | "entity". Reading .artist off the string was
+        // the bug that dropped every answerless candidate from the panel: a string has neither
+        // property, so a name the wiki answered empty for ("MNMT Recordings", asked as the
+        // entity) landed in no column at all.
+        roleName = roles[ entry.key ] || "",
+        out = { artist: roleName !== "entity", entity: roleName !== "artist" },
+        m;
+
+    for( m = 0; m < ( matches || [] ).length; m++ ) {
+        if( String( matches[m].type || "" ) === "artist" ) out.artist = true;
+        else out.entity = true;
+    }
+
+    return out;
 }
 
 // mdbPageCreator_lookupOverruledBy
@@ -7067,19 +7222,13 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     }
 
     if( lookupLog.length ) {
-        // The candidate ROLES are decided from the title's shape before the lookup fires
-        // (mdbTitle_candidateRoles): the chips sit in the column of what they were asked
-        // FOR, not merely of what came back. typeof-guarded like the trace - a stale cached
-        // title_builder.js without roles files every chip in both columns.
-        var roles = ( typeof mdbTitle_candidateRoles !== "undefined" && mdbTitle_candidateRoles ) ? mdbTitle_candidateRoles : {},
-            // where each name came from (mdbTitle_candidateSources) - the channel stands in no
-            // chunk, and a chunk is asked without its episode number, so a chip that quotes
-            // neither section 1 nor section 2 reads as invented without this
-            sources = ( typeof mdbTitle_candidateSources !== "undefined" && mdbTitle_candidateSources ) ? mdbTitle_candidateSources : {},
+        // where each name came from (mdbTitle_candidateSources) - the channel stands in no
+        // chunk, and a chunk is asked without its episode number, so a chip that quotes
+        // neither section 1 nor section 2 reads as invented without this
+        var sources = ( typeof mdbTitle_candidateSources !== "undefined" && mdbTitle_candidateSources ) ? mdbTitle_candidateSources : {},
             lookups = $("<div>").addClass( "mdb-pageCreator-reasoning-lookups" ),
             artistCol = mdbPageCreator_reasoningLookupColumn( "Artist category candidates" ),
-            entityCol = mdbPageCreator_reasoningLookupColumn( "Entity category candidates" ),
-            m;
+            entityCol = mdbPageCreator_reasoningLookupColumn( "Entity category candidates" );
 
         for( i = 0; i < lookupLog.length; i++ ) {
             var entry = lookupLog[i],
@@ -7088,33 +7237,18 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
                 // read before the matches are rendered: it is part of what each answer is worth,
                 // not only a line under them
                 overruledBy = mdbPageCreator_lookupOverruledBy( trace, entry.key ),
-                // The recorded role is a STRING - "artist" | "entity" - and a name without one
-                // (an edited title's extra lookups) files in both columns. Reading .artist off
-                // the string was the bug that dropped every answerless candidate from the
-                // panel: a string has neither property, so a name the wiki answered empty for
-                // ("MNMT Recordings", asked as the entity) rendered in no column at all.
-                roleName = roles[ entry.key ] || "",
-                askArtist = roleName !== "entity",
-                askEntity = roleName !== "artist",
-                isCat = !!catKeys[ entry.key ],
-                hasArtistAnswer = false,
-                hasEntityAnswer = false;
-
-            // an answer of a type the shape did not expect still pulls the chip into that
-            // column: the wiki also knowing "MONUMENT" as an artist is worth seeing even
-            // where the parse reads the name as the series
-            for( m = 0; m < matches.length; m++ ) {
-                if( String( matches[m].type || "" ) === "artist" ) { hasArtistAnswer = true; }
-                else { hasEntityAnswer = true; }
-            }
+                // the chips sit in the column of what they were asked FOR, not merely of what
+                // came back - shared with the report box's two lists, see the function
+                columns = mdbPageCreator_lookupRoleColumns( entry, matches ),
+                isCat = !!catKeys[ entry.key ];
 
             // no role argument: the COLUMN is the role, and passing one shifted isCat and
             // overruledBy a slot along - which painted every chip green ("artist" is truthy)
             // and put the boolean into the overruled note
-            if( askArtist || hasArtistAnswer ) {
+            if( columns.artist ) {
                 mdbPageCreator_reasoningLookupRow( artistCol, entry, matches, isCat, overruledBy, sources[ entry.key ] );
             }
-            if( askEntity || hasEntityAnswer ) {
+            if( columns.entity ) {
                 mdbPageCreator_reasoningLookupRow( entityCol, entry, matches, isCat, overruledBy, sources[ entry.key ] );
             }
         }
