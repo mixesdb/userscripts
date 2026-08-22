@@ -176,6 +176,20 @@ edition a thousand years ahead is read as the year it means – 3000Grad's `Fest
 that stays is `Live PA`: said by the title – or by the description of a live recording – it is
 written as `(Live PA)` behind the artist's name, while the artist category stays the bare name.
 
+Behind the `@` the group is read as the list of places it is, whichever way the uploader
+punctuated it. A **city glued to the end of a place** gets the comma MixesDB writes it with, so
+the name in front of it ends where the city starts: `Karotte @ AYLI X OURS Frankfurt` becomes
+`… @ As You Like It X OURS, Frankfurt`, and the page is no longer filed under
+`AYLI X OURS Frankfurt`, a category nobody wrote. An **`x` between two places** names two crews
+who shared the night, so each of them is looked up and each gets its category, while the title
+keeps the word exactly as it was typed. And where MixesDB has **more than one category of the
+same name**, the group's own city is what picks: the wiki tells its two `As You Like It` events
+apart as `As You Like It (Frankfurt)` and `As You Like It (San Francisco)`, and a title naming
+Frankfurt means the first. The bracket is the wiki's way of spelling a category, never the
+title's – the page joins `[[Category:As You Like It (Frankfurt)]]` and the title writes the name
+without it. Where no word of the group matches a bracket nothing is picked and the name stands
+as typed, which is why a title naming Berlin is not filed under somebody else's `Utopia (Turku)`.
+
 An `@` in front of a **date** joins nothing and reads as a plain `-`: `Ingo Sänger @ August
 2026` is a mix from August 2026, not a set played at a place of that name. A title that then
 names nothing but its month is the monthly mix MixesDB has a name for –
@@ -327,6 +341,12 @@ club. What decides is MixesDB, not the position in the group: the name the title
 is written whether or not the wiki has it yet – a new venue's category is created together with
 the page – while every further name of the group has to be a category that really exists, asked
 for by that exact name. So a party MixesDB has never heard of gets no category of its own.
+
+A category the wiki spells with a **disambiguation bracket** is written with it, even though the
+title is not: `… @ As You Like It X OURS, Frankfurt` files the page under
+`[[Category:As You Like It (Frankfurt)]]` and `[[Category:OURS]]`. Which of the wiki's
+same-named categories is meant is decided by the place group itself – see the title section
+above – and where nothing in it picks one, the page is filed under the name the title carries.
 
 The **city keeps its place in the title and never gets a category**, and no longer needs the
 wiki to say so: a city the script knows is out of the running before anything is asked, so it
@@ -822,6 +842,15 @@ placeholder only holds the space below it.
   an act whose name IS a city (`Tokyo`, `Milan`) loses its own category when it stands behind
   the `@` – the words are the same and only the list is asked. Report one and it can be taken
   off the list.
+- A city glued to the end of a place is set off with a comma off that same list, so a venue
+  really named after its town (`Bar Bogota` in Berlin) loses the town off its category. The
+  words all stay in the title; only where the name ends moves.
+- Picking between the wiki's same-named categories needs the **city** to stand in the title:
+  `As You Like It` alone, with no Frankfurt and no San Francisco behind it, is filed under the
+  name as typed rather than under either of them. And an **abbreviation** the wiki knows only
+  through a disambiguation page – `AYLI` – is not resolved at all yet: the lookup answers
+  nothing for such a name today, which MixesDB has been asked to change. Until it does, the
+  abbreviation stays in the title.
 - The list is only read inside the place group, so a city standing where the title names
   nobody else (`Melodic Therapy 217 - Berlin`) is still read as who played, the same way a
   lone country is. The title offers no other name there, and a suggestion naming nobody would

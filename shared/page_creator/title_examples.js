@@ -146,10 +146,12 @@ var mdbTitleExamples = [
         channel: "Brixton",
         date: "2015-05-24",
         // the other reading of the same word, and the one the fences exist for: "<Name>
-        // Invites" is a party's own name two dozen times over on MixesDB, and here nothing
-        // follows the word inside the chunk - so it is no verb, the place keeps its whole name
-        // and no guest is invented out of the bit behind the comma
-        expectChunks: [ "Robert Babicz", "Brixton Invites, 102 Club, Neuss" ],
+        // Invites" is a party's own name two dozen times over on MixesDB, and here a separator
+        // stands right behind the word - so it is no verb, the place keeps its whole name and
+        // no guest is invented out of the bit behind the comma. The fence is tested before the
+        // "@" split, on the bit as the uploader wrote it, which is why the place group being
+        // three chunks of its own further down changes nothing about it.
+        expectChunks: [ "Robert Babicz", "Brixton Invites", "102 Club", "Neuss" ],
         expect: "2015 - Robert Babicz @ Brixton Invites, 102 Club, Neuss"
     },
     {
@@ -1569,5 +1571,48 @@ var mdbTitleExamples = [
         expectAsked: [ "KODE9 For Maharishi", "KODE9", "KODE9 For" ],
         expectNotAsked: [ "Hyperdub", "Hyperdub 2014-2019" ],
         expect: "2019-11-29 - Kode9 - Hyperdub 2014-2019 Drive-By (Promo Mix)"
+    },
+    {
+        // Reported: came out as "2026-08-07 - Karotte @ AYLI X OURS Frankfurt", filed under
+        // one category nobody wrote. Three rules out of the report, all behind the "@":
+        // - "Frankfurt" is a city glued to the end of the part, and MixesDB writes it as a
+        //   part of its own - so the comma goes in and the name in front of it ends there
+        // - the " X " names two places that shared the night: both are asked about, both are
+        //   categories, and the title keeps the word as the uploader typed it
+        // - "AYLI" redirects to Category:As You Like It, a DISAMBIGUATION page offering the
+        //   Frankfurt event and the San Francisco one, and the group's own "Frankfurt" is
+        //   what picks. The title writes the name without the bracket and the page files
+        //   under "As You Like It (Frankfurt)" (mdbPageCreator_entityCategoriesFor).
+        // The San Francisco answer is written FIRST on purpose - it holds ten times the
+        // mixes, so a pick going by the server's order would take it.
+        //
+        // The wiki does not answer for "AYLI" today: the lookup drops a redirect whose target
+        // has no type, which a disambiguation page never has. The answer below is the one
+        // mixesdb_api_request.md §5.3 now asks for; without it the title keeps "AYLI" and
+        // everything else in this case still holds.
+        //
+        // The venue is deliberately NOT in the expected title, and not because the builder
+        // cannot reach it: the report first asked for "Sparta Schwimmclub" off the recent
+        // pages of Category:OURS, and the reporter took it back the same day - the two events
+        // pair up at a different venue each time, so the one the siblings agree on says
+        // nothing about THIS edition. A venue is never learned from a series' pages; the city
+        // still is (mdbPageCreator_applyRecentToSuggestion).
+        url: "https://soundcloud.com/karotteskitchen/karotte-ayli-x-ours-2",
+        title: "Karotte @ AYLI X OURS Frankfurt 07-08-2026",
+        channel: "KarottesKitchen",
+        date: "2026-08-17",
+        known: {
+            "Karotte": { type: "artist", mixes: 1225 },
+            "OURS": { type: "event", mixes: 4 },
+            "AYLI": { matches: [
+                { title: "As You Like It (San Francisco)", type: "event", mixes: 47, matchedTitle: "As You Like It (San Francisco)", matchType: "qualified" },
+                { title: "As You Like It (Frankfurt)", type: "event", mixes: 4, matchedTitle: "As You Like It (Frankfurt)", matchType: "qualified" }
+            ] }
+        },
+        expectChunks: [ "Karotte", "AYLI", "OURS", "Frankfurt" ],
+        expectArtists: [ "Karotte" ],
+        expectEntity: "As You Like It",
+        expectEntities: [ "As You Like It", "OURS" ],
+        expect: "2026-08-07 - Karotte @ As You Like It X OURS, Frankfurt"
     }
 ];

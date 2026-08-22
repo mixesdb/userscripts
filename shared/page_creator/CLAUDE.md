@@ -636,6 +636,63 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   its own "why" sentence, since no branch picked it and the pick's sentence is about the other
   name. A sibling page's own second entity is skipped in the style vote for the same reason the
   first one is (`mdbPageCreator_recentPageTextFindings`).
+- **A place group is split by ONE function, and the "," is not its only separator**
+  (2026-08-22, reported on "Karotte @ AYLI X OURS Frankfurt 07-08-2026"):
+  `mdbTitle_placeGroupParts` returns the group's names in title order, each with the separator
+  that stood in front of it, so joining the two fields back reproduces the group verbatim.
+  Three separators, and the last two are new: every comma (behind the "@" a group lists an
+  event, a venue and a city and nothing else, so the artist-list reading a comma has in FRONT
+  of the "@" cannot stand here), an " x " naming two places that shared the night
+  (`mdbTitlePlaceJoinerWords`), and a CITY glued to the end of a part - the "," the uploader
+  left out (`mdbTitle_cityTail`). Every reader works off it: the chunk split
+  (`mdbTitle_traceChunks` behind the "@"), the offered categories
+  (`mdbTitle_placeGroupNames`), the picked entity (`mdbTitle_placeGroupEntity`), the comma the
+  exit writes in (`mdbTitle_commaOffCity`) and the respelling
+  (`mdbTitle_canonicalPlaceGroup`) - which is what stops the chunks, the lookup and the title
+  from drifting apart the way section 1 and section 2 once did. Read as one name the wiki was
+  asked about "AYLI X OURS Frankfurt", which can only answer empty, while "OURS" - an event it
+  knows with 4 mixes - was never asked at all.
+  **The city cut needs no wiki answer and is the one thing on `mdbTitleCities` that CHANGES a
+  title**, so it is fenced by the list alone: longest city match wins ("Frankfurt am Main" is
+  never cut to "Main"), something has to be left in front of it, and a part whose city already
+  stands behind it as its own part is the group written right ("@ Sisyphos Berlin, Berlin").
+  The risk it takes is a venue named after its town, which is the risk the list already ran
+  behind a comma - and the words all stay in the title either way, only the name's end moves.
+  **The " x " is the only joiner read here.** The "&" stands inside place names far too often
+  and where it really joins two places the title reads right either way -
+  "Brotfabrik & k²0 Open Air" was reported and accepted as ONE name, and that case still has to
+  pass. In FRONT of the "@" the same letter joins two ARTISTS and is rewritten to "&"
+  (`mdbTitleArtistSplitJoiners`); behind it the word is kept as the uploader typed it, because
+  MixesDB writes it that way.
+- **A QUALIFIED answer is this title's only where the place group's own city says so**
+  (2026-08-22, same report) - `mdbTitle_qualifiedPlaceMatch`, read by the exit's
+  `mdbTitle_canonicalPlaceGroup` and by `mdbPageCreator_placeQualified` at filing time. MixesDB
+  tells two places of one name apart in the CATEGORY title, and one name legitimately answers
+  with several: `Utopia` comes back as `Utopia (Event)`, `Utopia (Las Vegas)` and
+  `Utopia (Turku)`, `As You Like It` as the Frankfurt event and the San Francisco one. Only the
+  rest of the title can pick, and the place group is where the answer stands - so a qualified
+  answer counts when its bracket holds a city or a country the GROUP itself carries, and
+  otherwise not at all. That is what keeps `mdbPageCreator_placeMatch`'s old refusal intact: a
+  title naming Berlin matches none of the three Utopias and files under the name it carries,
+  exactly as before. A type word in a bracket ("(Show)", "(DJ)") can never be a city, so those
+  answers stay the knowledge they always were.
+  **The TITLE writes the bare name and the CATEGORY writes the bracket** - the one place where
+  the two are deliberately spelled differently. MixesDB's own pages say so
+  (`2016-11-19 - Karotte @ As You Like It, Frankfurt` sits in
+  `Category:As You Like It (Frankfurt)`), and `mdbTitle_bracketedMatch` is what lets the rest of
+  the row read such a name back: it was never asked about WITH its bracket - the lookup sent the
+  bare name and the wiki's qualifier rule answered - so the answer sits under the bare key, and
+  without it a category the page really joins renders as a red chip standing next to itself.
+  `mdbPageCreator_recentAnalysisFor` picks the same way, and that is the half worth watching:
+  without it the sibling pages read for a Frankfurt gig were the San Francisco event's, because
+  that answer holds ten times the mixes and the server ranks it first.
+  **The wiki cannot answer for "AYLI" yet.** `Category:AYLI` redirects to
+  `Category:As You Like It`, a disambiguation page with no type, and `mdbnames` drops a typeless
+  redirect target before its qualifier rule runs - so the name comes back empty and the
+  abbreviation stays in the title. `mixesdb_api_request.md` §12 is the ask; everything else in
+  the report works without it. Do not build a client-side way round it: `match=prefix` cannot
+  find "As You Like It" behind "AYLI" either, and a second `action=query&redirects=1` per
+  unanswered name would cost one request per player page.
 - The module takes **10 names max** per request - the candidate list is priority-ordered
   (channel first) and truncated, not split into a second request.
 - **A non-artist match then reads the ~10 newest mix pages in that category and copies their
@@ -669,6 +726,13 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   SUGGESTION is ever rewritten, never an edited title, and a refinement whose entity would file
   under a different category is dropped. Bucket categories (`mdbPageCreator_bucketCategories`,
   "Promo Mix") are skipped everywhere - their pages are no siblings.
+  **The city is learned this way and the VENUE deliberately is not** (settled 2026-08-22, on
+  the AYLI X OURS report): the city is a property of the event, the venue is a property of one
+  EDITION of it. `Category:OURS` writes "Sparta Schwimmclub" on all four of its pages and the
+  two events still pair up somewhere else the next time, so a venue the siblings agree on says
+  nothing about the night being filed - and a wrong venue in a title is a wrong place, not a
+  missing one. Asked for in the report and taken back by the reporter the same day; do not
+  build it because the numbers look unanimous.
 - **Two gates decide whether the recent pages are this mix's siblings AT ALL**, and where one
   bites nothing is read - not the title format, not the page text, not the shared categories
   (`mdbPageCreator_recentAnalysisFor`, both reported 2026-08-19 on the DEEP & HAZY /

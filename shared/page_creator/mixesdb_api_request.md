@@ -20,6 +20,11 @@
 > in `recent`, while the category holds 29 mix pages. Nothing to change in the module: the
 > number is `categoryinfo`'s, and `categoryinfo` is reading a drifted row of the `category`
 > table. Measurement and the suggested fix in section 11.
+>
+> **Open, reported 2026-08-22:** a name that redirects onto a DISAMBIGUATION category answers
+> `[]` - §5.4 (skip a typeless category) fires before §5.2 (match a qualifier) gets to run, so
+> `AYLI` -> `Category:As You Like It` -> `As You Like It (Frankfurt)` / `(San Francisco)` never
+> comes back. Section 12 has the case and the one-rule change we are asking for.
 
 **What we would like:** one API call that takes a list of names and answers, for each, *does
 MixesDB have a category of that name, and what kind of thing is it* – matched
@@ -468,3 +473,61 @@ most -10 of our confidence score and is otherwise a chip in the row, so a stale 
 number that reads wrong, never a wrong page title. Since 2026-08-20 the reasoning panel prints
 the `api.php` URL of every request it made as an "API call" link, so the next one of these can
 be checked in the raw instead of reconstructed by hand.
+
+---
+
+## 12. Follow-up: a redirect onto a DISAMBIGUATION page answers empty (found 2026-08-22)
+
+**One rule of section 5 is cancelling another.** §5.3 follows category redirects, §5.2 matches a
+name against `<name> (<qualifier>)`, and §5.4 drops a category that has no type. A MixesDB
+disambiguation category has no type by definition - it holds no mixes and sits under
+`Category:Disambiguation pages` alone - so a redirect that lands on one is dropped by §5.4
+before §5.2 ever runs, and the name answers `[]`.
+
+**The case it was found on.** A SoundCloud title reading `Karotte @ AYLI X OURS Frankfurt
+07-08-2026`:
+
+```
+api.php?action=mdbnames&format=json&formatversion=2&origin=*&names=AYLI|As You Like It
+
+  { "name": "AYLI",           "matches": [] }
+  { "name": "As You Like It", "matches": [
+      { "title": "As You Like It (San Francisco)", "mixes": 47, "type": "event",
+        "matchedTitle": "As You Like It (San Francisco)", "matchType": "qualified" },
+      { "title": "As You Like It (Frankfurt)",     "mixes":  4, "type": "event",
+        "matchedTitle": "As You Like It (Frankfurt)",     "matchType": "qualified" } ] }
+```
+
+The wiki knows perfectly well what `AYLI` means - `Category:AYLI` redirects to
+`Category:As You Like It`, whose content is `{{Disambiguation}}` - and the two categories that
+really hold the mixes are the ones the second answer lists. We only ever see the empty first
+one, so the page was about to be filed under `Category:AYLI X OURS Frankfurt`, a category
+nobody wrote and nobody will.
+
+**What we would like:** when following a redirect lands on a category with **no type**, run the
+qualifier rule of §5.2 on the target's name instead of dropping the match. `AYLI` would then
+answer exactly what `As You Like It` answers today - same fields, same `matchType:
+"qualified"`, same `title`/`matchedTitle`. Nothing new in the response shape, and no new
+parameter.
+
+Only for a target that has no type of its own: a redirect onto a typed category keeps answering
+as it does now (`Dekmantel` -> `Dekmantel Festival`, `Panorama Bar` -> `Berghain`), and a
+disambiguation page that no qualified category hangs off still answers `[]`.
+
+**Why it is worth a change on your side.** The alias is the wiki's own knowledge and there is no
+way to reach it from outside in this request: `AYLI` is not a prefix of `As You Like It`, so
+`match=prefix` cannot find it either, and a second `action=query&redirects=1` round trip per
+unanswered name would cost one request per player page to learn something the module already had
+in hand.
+
+**What we do with it.** The place group's own words pick which of the qualified categories the
+title means - `Frankfurt` stands in this very title, so the page files under
+`[[Category:As You Like It (Frankfurt)]]` and the title writes the name without the bracket, the
+way MixesDB writes it: `2026-08-07 - Karotte @ As You Like It X OURS, Frankfurt`. Where no word
+of the group matches a bracket, nothing is picked and the name stands as the uploader wrote it -
+`Utopia` answering `Utopia (Event)`, `Utopia (Las Vegas)` and `Utopia (Turku)` to a title naming
+Berlin still means none of the three.
+
+**Until then** the client behaves exactly as it does today for such a name: an empty answer
+leaves the abbreviation standing in the title. Everything else the report asked for - the comma
+in front of a glued city, the two categories an " x " joins - works without this change.
