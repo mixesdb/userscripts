@@ -1370,7 +1370,21 @@ var mdbTitleGuestConnectors = [
  *
  * The keyword that carried the number goes with it - "Radio Show #069" comes out as
  * "Radio 069", because the word stood there to introduce the number and the name in front of
- * it is what the show is called. A monthly-edition stamp behind the series name ("(JUNE 26)")
+ * it is what the show is called. Unless the WIKI knows the name the word is part of, which is
+ * the one answer that outranks any reading of the shape (mdbTitle_episodeWordKept):
+ *
+ *     "AKA AKA pres. Rhythm Prism Radio #053"  (channel "WHATS POPPIN by AKA AKA")
+ *     ->  2025-03-06 - AKA AKA - Rhythm Prism Radio 053
+ *
+ * "Rhythm Prism Radio" is a podcast with 123 mixes there, so its "Radio" is part of the name
+ * and the cut left a "Rhythm Prism" MixesDB does not have. The default stays the drop, since
+ * that is what the reported "Spannung Radio Show" case came out as with nothing known - the
+ * wiki only ever overrules it where it has an answer. A word that merely COUNTS
+ * (mdbTitleCounterWords) is never part of a name whatever the wiki says, which is the same
+ * call the numbered-pair branch (4c) makes with the same words: there the default is the other
+ * way round - the word STAYS unless it only counts - because the show name is the numbered bit
+ * itself ("Drumcomplexed Radio Show 311") and nothing introduced it.
+ * A monthly-edition stamp behind the series name ("(JUNE 26)")
  * dates the edition the way the number counts one and goes the same way - the date group
  * already carries when the mix is from, and a date belongs in no category name.
  *
@@ -1404,6 +1418,56 @@ var mdbTitleGuestConnectors = [
  * A channel in mdbTitleUsernameConversions is never split - that name is curated, and whatever
  * stands in it stands there on purpose.
  */
+
+
+/*
+ * A channel name crediting its MAKER
+ *
+ * A show account is regularly named after the show AND the person running it, joined by the
+ * same "by" a title uses for the same thing:
+ *
+ *     "AKA AKA pres. Rhythm Prism Radio #053"  (channel "WHATS POPPIN by AKA AKA")
+ *     WRONG: 2025-03-06 - WHATS POPPIN by AKA AKA - AKA AKA pres. Rhythm Prism Radio 053
+ *     RIGHT: 2025-03-06 - AKA AKA - Rhythm Prism Radio 053
+ *
+ * Read as ONE name it is a name MixesDB files nothing under and the wiki can only answer empty
+ * about, while both halves are categories it knows - the maker with 230 mixes, the show the
+ * title names with 123. And it blocks every rule that looks for the channel IN the title:
+ * "AKA AKA" opens that title, but "WHATS POPPIN by AKA AKA" does not stand in it, so the
+ * "pres." behind the channel name was never read as the separator it is (see "The channel
+ * presenting a series" below) and the whole title went into the entity slot.
+ *
+ * Same word, same direction and the same case fence as the title's own rule (see ""by" says a
+ * NAME follows" above): what stands in FRONT of it was made - the show - and who stands behind
+ * it made it - the maker. Which is why these are NOT the equal names a "/" lists: the maker is
+ * the name the account puts its mixes out under, so the maker LEADS - that is the name the
+ * title-names-neither fallback picks - and the two are asked about in the roles their sides
+ * give them, the maker as an artist and the show as an entity.
+ *
+ * Four fences hold it, because a lowercase "by" is an ordinary English preposition as well and
+ * a channel name carries no separator to tell the two apart the way a title does:
+ *
+ * - the CASE fence of the title's rule, unchanged: a "By" inside a name that is not shouted
+ *   throughout is a word of that name ("Stand By Me")
+ * - the whole channel name STANDING in the title (mdbTitle_namesTheChannel): the title and the
+ *   account spelling it the same way are two sources saying it is one name, and a channel
+ *   really called "Death by Audio" writes it out in full
+ * - the two halves being one name written TWICE - "Side by Side", "Step by Step", "Bit by Bit":
+ *   the reduplication that makes up most of the English phrases built on the word
+ * - a maker that reads as a name at all: never a bare number and never a series
+ *   (mdbTitle_guestIsName, the same test the guest connectors make), and never opening on a
+ *   LOWERCASE word no name opens on (mdbTitleNonNameLeadWords - "Live by the Sea"). Lowercase,
+ *   because that is the only thing separating the article of a phrase from the one a name is
+ *   built with: "The Martinez Brothers" keeps its capital and is a name.
+ *
+ * A channel in mdbTitleUsernameConversions is never split, exactly as above - that name is
+ * curated, and whatever stands in it stands there on purpose.
+ */
+var mdbTitleNonNameLeadWords = [
+    "the", "a", "an", "my", "our", "your", "his", "her", "their", "its",
+    "this", "that", "these", "those", "all", "every", "any", "no",
+    "of", "for", "at", "in", "on", "with", "from"
+];
 
 
 /*
@@ -2621,6 +2685,10 @@ var mdbTitleDefinitionDocs = {
     mdbTitleShowSuffixWords: {
         what: "Generic words that turn a channel name into the show MixesDB files its uploads under (\"HATE\" + \"Podcast\"). The word carries the episode number wherever it stands, and it names a series only TOGETHER with a name - alone it is no show and no category.",
         data: mdbTitleShowSuffixWords
+    },
+    mdbTitleNonNameLeadWords: {
+        what: "Little words no NAME opens on. Read on the maker half of a channel name crediting one (\"<show> by <maker>\"), where a lowercase one says the \"by\" is the ordinary preposition and the channel is one name after all (\"Live by the Sea\"). Lowercase only - a capital opens plenty of real names (\"The Martinez Brothers\").",
+        data: mdbTitleNonNameLeadWords
     },
     mdbTitleExtraArtistConnectors: {
         what: "Connectors behind which FURTHER artists stand. What follows one is taken out of the title and joined to the artist group with a comma.",

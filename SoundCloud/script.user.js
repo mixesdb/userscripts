@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.3
+// @version      2026.08.22.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_74
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_109
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_110
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1904,12 +1904,12 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
- * 2026.08.22.3
- * The "Report" box is Markdown now, in four headed blocks (page_creator.js v_109): "## Created"
+ * 2026.08.22.4
+ * The "Report" box is Markdown now, in four headed blocks (page_creator.js v_110): "## Created"
  * with the values the site handed over and what the suggestion made of them, "## Lookups",
- * "## Mistakes / learnings" for free text, and "## Expected" for the answers only the reporter
- * has. Pasted on Discord the headings render as headings, and a case file can quote one block
- * at a time instead of a run of arrow lines.
+ * "## Mistakes / learnings" with two empty bullets, and "## Expected" for the answers only the
+ * reporter has. Pasted on Discord the headings render as headings, and a case file can quote
+ * one block at a time instead of a run of arrow lines.
  * "## Lookups" is new material, not a re-wording: it lists every name MixesDB was asked about
  * under "Artists:" and "Entities:" - the two columns of the reasoning panel's section 3, now
  * sorted by one shared function - each in quotes, with what came back ("AKA AKA" -> artist, 230

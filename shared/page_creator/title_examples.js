@@ -1614,5 +1614,33 @@ var mdbTitleExamples = [
         expectEntity: "As You Like It",
         expectEntities: [ "As You Like It", "OURS" ],
         expect: "2026-08-07 - Karotte @ As You Like It X OURS, Frankfurt"
+    },
+    {
+        // Reported: came out as "2025-03-06 - WHATS POPPIN by AKA AKA - AKA AKA pres. Rhythm
+        // Prism Radio 053" - the same name standing in BOTH groups, and neither group a
+        // category MixesDB has, while every name it does have was in the lookup's hands. Two
+        // rules out of the report:
+        // - the channel name credits its maker ("<show> by <maker>"), which is two names and
+        //   can never be used as one. Split, "AKA AKA" is the channel name STANDING in the
+        //   title, which is what lets 4a2 read the "pres." behind it as the separator it is -
+        //   glued, the channel was nowhere in the title and the whole of it went into the
+        //   entity slot. The show half is asked about too; before this it never was, so the
+        //   one channel name the lookup spent a request on was the one that cannot answer.
+        // - the episode keyword "Radio" stays in the show name, because the wiki knows
+        //   "Rhythm Prism Radio" as a podcast with 123 mixes (mdbTitle_episodeWordKept). Cut
+        //   with its number - the default, and right where nothing is known ("Spannung Radio
+        //   Show #069" above) - it left "Rhythm Prism", which is no category.
+        url: "https://soundcloud.com/aka-aka/aka-aka-pres-rhythm-prism-radio-053",
+        title: "AKA AKA pres. Rhythm Prism Radio #053",
+        channel: "WHATS POPPIN by AKA AKA",
+        date: "2025-03-06",
+        known: {
+            "AKA AKA": { type: "artist", mixes: 230 },
+            "Rhythm Prism Radio": { type: "podcast", mixes: 123 }
+        },
+        expectArtists: [ "AKA AKA" ],
+        expectEntity: "Rhythm Prism Radio 053",
+        expectAsked: [ "AKA AKA", "WHATS POPPIN", "Rhythm Prism Radio" ],
+        expect: "2025-03-06 - AKA AKA - Rhythm Prism Radio 053"
     }
 ];
