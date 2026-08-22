@@ -930,6 +930,42 @@ var mdbTitleArtistSplitJoiners = [
 
 
 /*
+ * mdbTitlePlaceJoinerWords
+ *
+ * The little word that strings two PLACES together behind the "@" - two crews throwing one
+ * night, an event visiting a club. MixesDB writes it the way the uploader does and files the
+ * page under BOTH names:
+ *
+ *     "Karotte @ AYLI X OURS Frankfurt"
+ *     ->  2026-08-07 - Karotte @ As You Like It X OURS, Frankfurt
+ *         [[Category:As You Like It (Frankfurt)]] [[Category:OURS]]
+ *
+ * Only "x", and only behind the "@". In front of it the same letter joins two ARTISTS and is
+ * rewritten to the "&" MixesDB spells a line-up with (mdbTitleArtistSplitJoiners) - which is
+ * a different job: a line-up is one group of names in one slot, these are two names the page
+ * is filed under separately.
+ *
+ * The "&" is deliberately NOT here, however alike the two look. Behind the "@" it stands
+ * inside names far too often ("Rock & Roll Bar"), and where it really joins two places the
+ * title reads right either way - "Brotfabrik & k²0 Open Air" was reported and accepted as one
+ * name. An "x" with whitespace on both sides is the one joiner no place is called by, which
+ * is what makes it safe to split on; the same whitespace is what keeps the "x" of "Maxxi
+ * Soundsystem" out of it.
+ *
+ * What the split is FOR is the lookup: read as one name the wiki is asked about
+ * "AYLI X OURS", which can only answer empty, while "OURS" - an event it knows - is never
+ * asked at all. The TITLE keeps the word exactly as the uploader typed it.
+ *
+ * No mdbTitleDefinitionDocs entry: the panel offers a list behind the "?" of a cleanup STEP,
+ * and this list writes none - the split it decides is what section 1 shows as two chunks
+ * instead of one, which is where a reporter sees it.
+ */
+var mdbTitlePlaceJoinerWords = [
+    "x"
+];
+
+
+/*
  * mdbTitleVenueConnectors
  *
  * Words that put a VENUE or EVENT behind the artist, replaced by the "@" joiner of
@@ -2135,6 +2171,29 @@ var mdbTitleCountries = [
  * which drops what it matches. MixesDB WRITES the city, and a title that lost it would be
  * missing the part Help:Add_a_new_mix_page asks for.
  *
+ * A city GLUED to the end of a part gets its comma
+ *
+ * An uploader writes the group without the comma as readily as with it, and then the city is
+ * not a part of its own but the last words of one - which is the one shape where the list has
+ * to CHANGE the title rather than only read it (mdbTitle_cityTail, mirrored in the chunk
+ * split so the same words are asked about):
+ *
+ *     "Karotte @ AYLI X OURS Frankfurt"
+ *     WRONG: 2026-08-07 - Karotte @ AYLI X OURS Frankfurt   (and the page filed under
+ *            [[Category:AYLI X OURS Frankfurt]], a category nobody wrote)
+ *     RIGHT: 2026-08-07 - Karotte @ As You Like It X OURS, Frankfurt
+ *
+ * The comma is where MixesDB puts it, so the words all stay - the city only stops being part
+ * of the name in front of it. Behind the "@" only, like everything else this list decides,
+ * and only where something is LEFT in front of it: "@ Frankfurt" is a lone city and goes the
+ * way it always did, into the title and under no category.
+ *
+ * The risk it takes is a venue really called after its city ("Bar Bogota" in Berlin), which
+ * would lose the word off its category - and it is the same risk the list already runs when
+ * such a name stands behind a comma. What keeps it small is that the list carries no everyday
+ * word (see below) and that the longest city name matching wins, so "Frankfurt am Main" is
+ * never cut down to "Main".
+ *
  * A city NOT on the list still works the old way round, asked of the wiki and kept out by the
  * answer, so this may be short and may grow one report at a time: a missing city costs a
  * lookup slot, not a wrong title.
@@ -2170,8 +2229,9 @@ var mdbTitleCountries = [
  * category. The country codes may be everyday words because a code is only ever read as the
  * LAST part of a place list; a city name has no such guard.
  *
- * No mdbTitleDefinitionDocs entry, and none is due: the panel offers a list behind the "?" of
- * a cleanup step, and nothing this decides is one - the city stands in the title either way.
+ * The panel offers the list behind the "?" of the one step this list decides - the comma in
+ * front of a glued city. Nothing else it does is a cleanup step: the city stands in the title
+ * whichever way the question is answered, only its comma and its category hang on the list.
  */
 var mdbTitleCities = [
     "Aachen",
@@ -2406,6 +2466,40 @@ var mdbTitleCities = [
 
 
 /*
+ * A qualified category and the city that picks it
+ *
+ * MixesDB tells two places of the same name apart in the CATEGORY title, in brackets - the
+ * lookup already matches such a category for a title that writes the bare name
+ * (mixesdb_api_request.md §5.2), and one name can answer with several of them:
+ *
+ *     "Utopia"           ->  Utopia (Event), Utopia (Las Vegas), Utopia (Turku)
+ *     "As You Like It"   ->  As You Like It (Frankfurt), As You Like It (San Francisco)
+ *
+ * Which one the title means is a question only the REST of the title can answer, and the
+ * place group is where the answer stands: a group naming Frankfurt means the Frankfurt one.
+ * So a qualified answer counts as this title's ONLY where its qualifier is a city or a
+ * country the group itself carries (mdbTitle_qualifiedPlaceMatch):
+ *
+ *     "Karotte @ AYLI X OURS Frankfurt"
+ *     ->  ... @ As You Like It X OURS, Frankfurt   [[Category:As You Like It (Frankfurt)]]
+ *
+ * The bracket is the WIKI's way of spelling a category, never the title's: MixesDB writes
+ * "@ As You Like It, Frankfurt" and files the page under "As You Like It (Frankfurt)". So the
+ * title gets the qualifier stripped off and the category keeps it - the one place where the
+ * two are deliberately spelled differently.
+ *
+ * Without a matching word in the group nothing is picked and the name stands as written. That
+ * is what keeps "Kernel Existence @ Utopia, Ritter Butzke, Berlin" filed under the Utopia the
+ * uploader means: no group word says "Event", "Las Vegas" or "Turku", so all three answers
+ * are the wiki offering ITS Utopia and the page files under the name the title carries -
+ * exactly as it did before this rule existed (mdbPageCreator_placeMatch).
+ *
+ * A type word in the brackets ("(Show)", "(Event)", "(DJ)") can never be a city, so a
+ * disambiguation of that kind is untouched by this and stays the knowledge it always was.
+ */
+
+
+/*
  * mdbTitleNormalCaseKeepUpper / mdbTitleNormalCaseKeepLower
  *
  * MixesDB writes titles in Normal Case, so a bit read out of the title that is SHOUTED in
@@ -2563,5 +2657,9 @@ var mdbTitleDefinitionDocs = {
     mdbTitleCountries: {
         what: "Country names and codes, for spotting what only says where an artist is from - which a mix page title never carries. A bracket behind a name goes even when it holds a lone code (\"Adjust (BE)\") and even on a live title, as long as it stands in front of the \"@\"; an unbracketed chunk only goes as a place LIST ending in a country (\"Ibiza/ Dusseldorf, Germany\"), and only on a non-live title, where the same words are not the venue's city and country.",
         data: mdbTitleCountries
+    },
+    mdbTitleCities: {
+        what: "City names, for the one part of a place group that names nothing to file a page under. The city stays in the title and never becomes a category - and where an uploader glued it onto the place in front of it (\"@ AYLI X OURS Frankfurt\"), it gets the comma MixesDB writes it with. Cities whose name is an everyday word are deliberately missing; a missing one costs a lookup, not a wrong title.",
+        data: mdbTitleCities
     }
 };

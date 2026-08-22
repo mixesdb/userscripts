@@ -961,6 +961,34 @@ function mdbPageCreator_venueOfRoom( name ) {
     return ( venue && venue.title ) ? venue.title : name;
 }
 
+// mdbPageCreator_placeQualified
+// MixesDB's disambiguation bracket for one name of the title's place group, picked by the
+// group's own city: "As You Like It" is two categories - the Frankfurt one and the San
+// Francisco one - and a title that names Frankfurt means the first. Returns the match (whose
+// .title carries the bracket) or null.
+//
+// The TITLE never writes the bracket, which is why this is asked here and not read off the
+// name: MixesDB writes "@ As You Like It, Frankfurt" and files the page under
+// "As You Like It (Frankfurt)". Read off the finished title so an EDITED one is answered by
+// its own words, the same way every other reading in here is.
+//
+// Nothing is picked where no word of the group stands in a bracket - "Utopia" answers
+// "Utopia (Event)", "Utopia (Las Vegas)" and "Utopia (Turku)" for a title naming Berlin, and
+// all three are the wiki offering ITS Utopia. See "A qualified category and the city that
+// picks it" in title_definitions.js.
+function mdbPageCreator_placeQualified( name, title ) {
+    if( typeof mdbTitle_qualifiedPlaceMatch !== "function" ) return null;
+
+    var bits = String( title || "" ).split( mdbTitle_bitSplitRe() ),
+        atParts = String( bits[1] || "" ).split( /\s+@\s+/ );
+
+    if( atParts.length < 2 ) return null;
+
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {};
+
+    return mdbTitle_qualifiedPlaceMatch( cache, name, mdbTitle_placeGroupCityWords( atParts[1] ) );
+}
+
 // mdbPageCreator_entityCategoriesFor
 // EVERY category the title's entity slot files the page under, in title order, as
 // { name, entity, primary, why }: the category name, the name in the title it was read off,
@@ -988,22 +1016,37 @@ function mdbPageCreator_entityCategoriesFor( title, read ) {
     // mix's own name, and a name next to it is no filing either
     if( primary === "Promo Mix" ) return [ { name: primary, entity: read.entity || "", primary: true } ];
 
+    // the wiki's disambiguation bracket, where the place group's own city picks one of several
+    // same-named categories: the title says "As You Like It", the page joins
+    // [[Category:As You Like It (Frankfurt)]]
+    var primaryQual = mdbPageCreator_placeQualified( primary, title );
+
+    if( primaryQual ) primary = primaryQual.match.title;
+
     var names = ( read.entities && read.entities.length ) ? read.entities : ( read.entity ? [ read.entity ] : [] ),
         primaryKey = mdbTitle_normalizeCompare( primary ),
         out = [],
-        i, cat, match;
+        i, cat, qual, match;
 
     for( i = 0; i < names.length; i++ ) {
         cat = mdbPageCreator_entityCategory( names[i] );
 
-        if( !cat || mdbPageCreator_entriesCarry( out, cat ) ) continue;
+        if( !cat ) continue;
+
+        qual = mdbPageCreator_placeQualified( cat, title );
+
+        if( qual ) cat = qual.match.title;
+
+        if( mdbPageCreator_entriesCarry( out, cat ) ) continue;
 
         if( mdbTitle_normalizeCompare( cat ) === primaryKey ) {
             out.push( { name: cat, entity: names[i], primary: true } );
             continue;
         }
 
-        match = mdbPageCreator_placeMatch( cat );
+        // the bracket the group picked IS the answer - asking again under the bracketed name
+        // would find nothing, since that name was never the one sent
+        match = qual ? qual.match : mdbPageCreator_placeMatch( cat );
 
         if( !match ) continue;
 
@@ -1039,7 +1082,10 @@ function mdbPageCreator_entityCategoriesFor( title, read ) {
 // spelling, and the target is the category that holds the mixes.
 function mdbPageCreator_placeMatch( name ) {
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
-        match = mdbTitle_knownMatch( cache, name, [ "venue", "event" ] ),
+        // a name already carrying its bracket was never asked about under that spelling - the
+        // answer sits under the bare name it was sent as (mdbTitle_bracketedMatch)
+        match = ( typeof mdbTitle_bracketedMatch === "function" && mdbTitle_bracketedMatch( cache, name, [ "venue", "event" ] ) ) ||
+                mdbTitle_knownMatch( cache, name, [ "venue", "event" ] ),
         key = mdbTitle_normalizeCompare( name ),
         titleKey = match ? mdbTitle_normalizeCompare( match.title || "" ) : "";
 
@@ -1765,13 +1811,20 @@ function mdbPageCreator_usedCategoryState( entry ) {
     if( entry.role !== "artist" && entry.role !== "entity" ) return { verdict: "plain", match: null };
 
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
-        match = mdbTitle_knownMatch( cache, entry.name, entry.role === "artist" ? [ "artist" ] : null );
+        types = entry.role === "artist" ? [ "artist" ] : null,
+        // a category name carrying a disambiguation bracket was asked about WITHOUT it - the
+        // wiki's qualifier rule is what answered, and the answer sits under the bare name. Read
+        // the same way here, or a category the page really joins reads as one MixesDB does not
+        // have: a red chip on a category standing right there.
+        match = ( typeof mdbTitle_bracketedMatch === "function" && mdbTitle_bracketedMatch( cache, entry.name, types ) ) ||
+                mdbTitle_knownMatch( cache, entry.name, types );
 
     if( match ) return { verdict: "known", match: match };
 
     // the category exists under another type - only the artist slot can land here, the
     // entity slot already accepts any type above
-    var other = mdbTitle_knownMatch( cache, entry.name, null );
+    var other = ( typeof mdbTitle_bracketedMatch === "function" && mdbTitle_bracketedMatch( cache, entry.name, null ) ) ||
+                mdbTitle_knownMatch( cache, entry.name, null );
 
     if( other ) return { verdict: "otherRole", match: other };
 
@@ -3093,10 +3146,16 @@ function mdbPageCreator_recentAnalysisFor( title ) {
     }
 
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        // The disambiguation bracket the title's own place group picks, before anything else:
+        // "As You Like It" answers with the Frankfurt category and the San Francisco one, and
+        // the plain read below would take whichever the server ranked first - the pages read
+        // as this mix's siblings would then be another continent's club nights.
+        qualified = mdbPageCreator_placeQualified( catName, title ),
         // the entity reading first: "fabric" the venue is the entity even where "Fabric" the
         // artist answers too - only a name the wiki knows as NOTHING else falls to the artist
         // match, which is then a skip
-        match = mdbTitle_knownMatch( cache, catName, [ "podcast", "show", "radio", "internet radio", "internetradio", "venue", "event", "recordlabel", "record label" ] ) ||
+        match = ( qualified && qualified.match ) ||
+                mdbTitle_knownMatch( cache, catName, [ "podcast", "show", "radio", "internet radio", "internetradio", "venue", "event", "recordlabel", "record label" ] ) ||
                 mdbTitle_knownMatch( cache, catName, null );
 
     if( !match ) {

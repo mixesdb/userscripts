@@ -2317,6 +2317,134 @@ function mdbTitle_isCity( name ) {
     return false;
 }
 
+// mdbTitle_cityTail
+// The CITY glued to the end of a place-group part: "AYLI X OURS Frankfurt" ->
+// { base: "AYLI X OURS", city: "Frankfurt" }, or null when the part ends in no city the list
+// carries. An uploader writes the group without its comma as readily as with it, and then the
+// city is not a part of its own but the last words of one - so the comma has to be put in
+// before anything else reads the part as a name (mdbTitleCities in title_definitions.js).
+//
+// Longest match wins, so "Frankfurt am Main" is never cut down to "Main", and something has to
+// be LEFT in front of it - a part that IS the city is no tail, it is the city part the group
+// already handles. Each spelling on the list is matched as written (that is why the list
+// carries "Munich" and "München" both): a suffix cannot be folded the way a whole name is.
+function mdbTitle_cityTail( name ) {
+    var list = ( typeof mdbTitleCities !== "undefined" && mdbTitleCities ) ? mdbTitleCities : [],
+        text = mdbTitle_trimSeparators( String( name || "" ) );
+
+    if( !list.length || !text ) return null;
+
+    // Longest first, because a regex alternation takes the FIRST branch that matches and the
+    // list is written alphabetically: "Frankfurt am Main" has to be tried before "Frankfurt",
+    // or "@ Some Club Frankfurt am Main" would keep "am Main" inside the club's name.
+    var sorted = list.slice().sort( function( a, b ) { return b.length - a.length; } ),
+        // the blank in front of the city is the boundary - a name simply ENDING in the letters
+        // ("Frankfurter") is no city standing behind anything. No comma either: a part of the
+        // group ends at the comma, and this is the comma the uploader did NOT write.
+        m = new RegExp( "^([^,]*\\S)\\s+(" + mdbTitle_wordListAlternation( sorted ).replace( /\s+/g, "\\s+" ) + ")$", "i" )
+                .exec( text );
+
+    return ( m && m[1] ) ? { base: mdbTitle_trimSeparators( m[1] ), city: m[2] } : null;
+}
+
+// mdbTitle_placeJoinerParts
+// The two places an " x " strings together behind the "@" - "AYLI X OURS" -> [ "AYLI", "OURS" ]
+// - or null when the part names one place. See mdbTitlePlaceJoinerWords in title_definitions.js
+// for why this is the one joiner read behind the "@" and why the "&" is not.
+//
+// Whitespace on both sides is required, which is what keeps the "x" of "Maxxi Soundsystem" out
+// of it, and every piece has to be long enough to be a name: a one-letter scrap is the joiner
+// itself typed twice, never a place.
+function mdbTitle_placeJoinerParts( text ) {
+    var list = ( typeof mdbTitlePlaceJoinerWords !== "undefined" && mdbTitlePlaceJoinerWords ) ? mdbTitlePlaceJoinerWords : [],
+        name = mdbTitle_trimSeparators( String( text || "" ) ),
+        parts, out, i, piece;
+
+    if( !list.length || !name ) return null;
+
+    // the joiner is CAPTURED, so the split keeps the word as the uploader typed it ("X", "x")
+    // - the title writes their spelling back, only the names around it are ours
+    parts = name.split( new RegExp( "(\\s+(?:" + mdbTitle_wordListAlternation( list ) + ")\\s+)", "i" ) );
+
+    if( parts.length < 3 ) return null;
+
+    out = [];
+
+    for( i = 0; i < parts.length; i += 2 ) {
+        piece = mdbTitle_trimSeparators( parts[i] );
+
+        if( piece.length < 2 ) return null;
+
+        out.push( { name: piece, sep: i === 0 ? "" : parts[ i - 1 ].replace( /\s+/g, " " ) } );
+    }
+
+    return out;
+}
+
+// mdbTitle_placeGroupParts
+// A live title's place group as the NAMES it holds, in title order, each with the separator
+// that stood in front of it: "As You Like It X OURS, Frankfurt" ->
+// [ { name: "As You Like It", sep: "" }, { name: "OURS", sep: " X " },
+//   { name: "Frankfurt", sep: ", " } ]. Joining the two fields back together reproduces the
+// group verbatim, which is what lets the canonicalization rewrite one name without touching
+// how the uploader punctuated the rest.
+//
+// Three separators, and they are not the same thing: the "," lists a place inside a place (the
+// club, its city), the " x " names two places that shared the night, and a CITY glued to the
+// end of a part is the "," an uploader left out. All three are read here because each side of
+// them is a name the page can be filed under - everything downstream (the chunk split, the
+// offered categories, the picked entity, the respelling, the comma the exit writes in) works
+// off this one split, so what is shown, what is asked and what the title carries cannot drift.
+//
+// Behind the "@" EVERY comma separates, unlike in front of it: a place group lists an event, a
+// venue, a city and nothing else, so the artist list a comma joins elsewhere ("ANA, Johnny D,
+// DJ Koze") cannot stand here (mdbTitle_splitEventComma is the front-of-the-"@" rule).
+function mdbTitle_placeGroupParts( group ) {
+    var commas = String( group || "" ).split( "," ),
+        out = [],
+        i, j, part, sep, tail, joined;
+
+    for( i = 0; i < commas.length; i++ ) {
+        sep = i === 0 ? "" : ", ";
+        part = mdbTitle_trimSeparators( commas[i] );
+
+        // the city an uploader glued to the end of the part is a part of its own here as well,
+        // so an EDITED title that kept the glued form still offers the place alone as the
+        // category - the suggestion itself gets the comma written in at the exit
+        // (mdbTitle_commaOffCity)
+        tail = mdbTitle_cityTail( part );
+
+        // ... unless the city ALREADY stands behind it as its own part: the group is then
+        // written the way MixesDB writes it, and the words in front are a place really named
+        // after the town ("@ Sisyphos Berlin, Berlin")
+        if( tail && mdbTitle_isCity( mdbTitle_trimSeparators( commas[ i + 1 ] || "" ) ) ) tail = null;
+
+        if( tail ) {
+            joined = mdbTitle_placeJoinerParts( tail.base ) || [ { name: tail.base, sep: "" } ];
+
+            for( j = 0; j < joined.length; j++ ) {
+                out.push( { name: joined[j].name, sep: j === 0 ? sep : joined[j].sep } );
+            }
+
+            out.push( { name: tail.city, sep: ", " } );
+            continue;
+        }
+
+        joined = mdbTitle_placeJoinerParts( part );
+
+        if( !joined ) {
+            out.push( { name: part, sep: sep } );
+            continue;
+        }
+
+        for( j = 0; j < joined.length; j++ ) {
+            out.push( { name: joined[j].name, sep: j === 0 ? sep : joined[j].sep } );
+        }
+    }
+
+    return out;
+}
+
 // mdbTitle_isLocationChunk
 // Whether a whole chunk reads as WHERE the artist is from ON ITS OWN: a list of place names
 // separated by "," or "/" whose LAST one is a country - "Ibiza/ Dusseldorf, Germany". At least
@@ -2690,6 +2818,27 @@ function mdbTitle_knownAs( known, name ) {
     return ( entry.matches && entry.matches.length ) ? String( entry.matches[0].type || "" ) : "";
 }
 
+// mdbTitle_knownMatches
+// EVERY answer the wiki gave for a name, as the array mdbnames sent - the readers that ask by
+// type go through mdbTitle_knownMatch, this is for the ones that have to weigh the whole list
+// (the disambiguation pick, which compares each bracket against the title's own words).
+// A fixture's plain type string reads as one match spelled the way the fixture wrote it, the
+// same way mdbTitle_knownMatch reads it.
+function mdbTitle_knownMatches( known, name ) {
+    if( !known || !name ) return [];
+
+    var key = mdbTitle_normalizeCompare( name ),
+        entry = Object.prototype.hasOwnProperty.call( known, key ) ? known[key] : "";
+
+    if( !entry ) return [];
+
+    if( typeof entry === "string" ) {
+        return [ { title: name, type: entry, mixes: 1, exactCase: true } ];
+    }
+
+    return entry.matches || [];
+}
+
 // mdbTitle_knownMatch
 // The best match of one of the given types, or null. This is how "fabric" answers both ways:
 // the venue branch asks for a venue and gets the club, an artist reader would get "Fabric".
@@ -2708,6 +2857,30 @@ function mdbTitle_knownMatch( known, name, types ) {
 
     for( var i = 0; i < matches.length; i++ ) {
         if( !types || types.indexOf( String( matches[i].type || "" ) ) !== -1 ) return matches[i];
+    }
+
+    return null;
+}
+
+// mdbTitle_bracketedMatch
+// The wiki's answer for a name that already CARRIES its disambiguation bracket - the other way
+// round from mdbTitle_qualifiedPlaceMatch, which is how such a name comes to be written in the
+// first place. "As You Like It (Frankfurt)" was never asked about: the lookup asked the bare
+// "As You Like It" and the wiki answered with its qualified categories, so the answer sits
+// under the bare key. Without this a category the page really files under reads as one the
+// wiki does not have - a red chip on a category standing right there.
+function mdbTitle_bracketedMatch( known, name, types ) {
+    var split = /^(.+?)\s*\([^()]+\)\s*$/.exec( String( name || "" ) );
+
+    if( !split ) return null;
+
+    var matches = mdbTitle_knownMatches( known, split[1] ),
+        key = mdbTitle_normalizeCompare( name ),
+        i;
+
+    for( i = 0; i < matches.length; i++ ) {
+        if( mdbTitle_normalizeCompare( matches[i].title ) === key &&
+            ( !types || types.indexOf( String( matches[i].type || "" ) ) !== -1 ) ) return matches[i];
     }
 
     return null;
@@ -3844,13 +4017,17 @@ function mdbTitle_titleCategories( title ) {
 // until the list existed - and still is for a city the list does not carry: it stands in the
 // offered names, and "no category of this name" keeps it out one step later
 // (mdbPageCreator_entityCategoriesFor). The list only spares the question.
+//
+// The "," is not the only separator here: an " x " names two places that shared the night
+// ("@ As You Like It X OURS, Frankfurt"), and both are names the page is filed under - which
+// is what mdbTitle_placeGroupParts reads for every caller at once.
 function mdbTitle_placeGroupNames( group ) {
-    var parts = String( group || "" ).split( "," ),
+    var parts = mdbTitle_placeGroupParts( group ),
         out = [],
         i, name;
 
     for( i = 0; i < parts.length; i++ ) {
-        name = mdbTitle_trimSeparators( mdbTitle_dropMarkers( parts[i] ) );
+        name = mdbTitle_trimSeparators( mdbTitle_dropMarkers( parts[i].name ) );
 
         if( !name || mdbTitle_endsWithSlotWord( name ) ||
             mdbTitle_isCountry( name ) || mdbTitle_isCity( name ) ) continue;
@@ -3876,24 +4053,28 @@ function mdbTitle_placeGroupNames( group ) {
 // steps aside and the next one answers. Never the last word - a group whose parts are all
 // slots has nothing better to offer than its first.
 //
+// The parts an " x " joins are read in the same order as the ones a "," lists
+// (mdbTitle_placeGroupParts), so "@ As You Like It X OURS" files under the first of the two -
+// the group is written from the outside in whichever separator the uploader used.
+//
 // A CITY or a COUNTRY steps aside for good, and is the one thing that can leave this with
 // NOTHING to answer: the entity is the one name a page is filed under whether or not the wiki
 // has it - that is what gives a venue new to MixesDB its category - so a group of nothing but
 // "@ Berlin" would create the very category that must not exist. Filing under nothing is what
 // a title naming no venue says (mdbTitleCities, mdbTitleCountries).
 function mdbTitle_placeGroupEntity( group ) {
-    var parts = String( group || "" ).split( "," ),
+    var parts = mdbTitle_placeGroupParts( group ),
         eventRe = mdbTitle_eventWordRe(),
         i, part;
 
     for( i = 0; eventRe && i < parts.length; i++ ) {
-        part = mdbTitle_trimSeparators( parts[i] );
+        part = parts[i].name;
 
         if( part && eventRe.test( part ) ) return part;
     }
 
     for( i = 0; i < parts.length; i++ ) {
-        part = mdbTitle_trimSeparators( parts[i] );
+        part = parts[i].name;
 
         if( part && !mdbTitle_endsWithSlotWord( part ) &&
             !mdbTitle_isCity( part ) && !mdbTitle_isCountry( part ) ) return part;
@@ -3902,7 +4083,7 @@ function mdbTitle_placeGroupEntity( group ) {
     // the all-slots fallback: a slot is a name written badly, so the group's first part still
     // beats nothing - a city is no name at all, and nothing is what a group of them answers
     for( i = 0; i < parts.length; i++ ) {
-        part = mdbTitle_trimSeparators( parts[i] );
+        part = parts[i].name;
 
         if( part && !mdbTitle_isCity( part ) && !mdbTitle_isCountry( part ) ) return part;
     }
@@ -4625,11 +4806,17 @@ function mdbTitle_traceCleaned( text ) {
 // mdbPageCreator_renderReasoning), so an "@" pass one level up left section 2 showing
 // "Green Lake Project @ 3000Grad Festival 3021" as one chip where section 1 showed two. One
 // splitter, so the two sections cannot disagree about what a unit is.
+//
+// BEHIND the "@" two further splits run, where the title has said these words are places: a
+// city glued to the end of a part gets the comma the uploader left out ("AYLI X OURS
+// Frankfurt"), and an " x " names two places that shared the night ("AYLI X OURS"). Both are
+// mirrors of what the parse writes at the exit - see mdbTitle_cityTail and
+// mdbTitle_placeJoinerParts.
 function mdbTitle_traceChunks( text ) {
     var bits = String( text || "" ).split( mdbTitle_bitSplitRe() ),
         units = [],
         out = [],
-        i, p, q, c, g, bit, presParts, invitedParts, byMatch, atParts, commaParts, part;
+        i, p, q, c, g, bit, presParts, invitedParts, byMatch, atParts, commaParts, placeParts, part;
 
     for( i = 0; i < bits.length; i++ ) {
         bit = mdbTitle_trimSeparators( bits[i] );
@@ -4677,6 +4864,23 @@ function mdbTitle_traceChunks( text ) {
         atParts = units[i].split( /\s*@\s*/ );
 
         for( p = 0; p < atParts.length; p++ ) {
+            // Behind the "@" the PLACE GROUP's own split answers instead - every comma, an
+            // " x " naming two places that shared the night, and the city an uploader glued
+            // to the end of a part. The parse rebuilds the group from the same function at
+            // the exit (mdbTitle_commaOffCity, mdbTitle_canonicalPlaceGroup), so what is
+            // shown, what is asked and what the title carries cannot drift: read as one name
+            // the wiki was asked about "AYLI X OURS Frankfurt", which can only answer empty,
+            // while "OURS" - an event it knows - was never asked at all.
+            if( p > 0 ) {
+                placeParts = mdbTitle_placeGroupParts( atParts[p] );
+
+                for( c = 0; c < placeParts.length; c++ ) {
+                    if( placeParts[c].name ) out.push( placeParts[c].name );
+                }
+
+                continue;
+            }
+
             commaParts = mdbTitle_splitEventComma( atParts[p] );
 
             for( c = 0; c < commaParts.length; c++ ) {
@@ -6477,6 +6681,158 @@ function mdbTitle_reducePlaceGroup( group ) {
     return text.slice( 0, at + 3 ) + venue + rest;
 }
 
+// mdbTitle_commaOffCity
+// "A @ AYLI X OURS Frankfurt" -> "A @ AYLI X OURS, Frankfurt": the comma an uploader left out
+// in front of the group's city. MixesDB writes the city as a part of its own, and until it is
+// one it is the last words of a NAME - the page files under "AYLI X OURS Frankfurt", a
+// category nobody wrote and nobody will.
+//
+// No wiki answer is needed and none is asked for, unlike the three reductions below: the
+// curated city list is what decides (mdbTitleCities), and this changes no word of the title -
+// it only says where one part ends and the next begins. Every part of the group is read, not
+// only the last: an uploader who wrote "@ Watergate Berlin, Germany" glued the city onto the
+// first one.
+//
+// Runs at the single exit, right behind the "@" fold, so the room reduction below reads a
+// first part that has already lost its city.
+function mdbTitle_commaOffCity( group ) {
+    var text = String( group || "" ),
+        at = text.indexOf( " @ " );
+
+    if( at === -1 ) return text;
+
+    var parts = mdbTitle_placeGroupParts( text.slice( at + 3 ) ),
+        built = "",
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        built += ( i === 0 ? "" : parts[i].sep ) + parts[i].name;
+    }
+
+    return text.slice( 0, at + 3 ) + built;
+}
+
+// mdbTitle_qualifiedPlaceMatch
+// The wiki's answer for a place whose CATEGORY carries a disambiguation bracket, picked by the
+// rest of the place group: "As You Like It" answers with the Frankfurt one and the San
+// Francisco one, and only a group naming Frankfurt says which is meant. Returns
+// { match, base } - the answer and its title without the bracket, which is what the TITLE
+// writes - or null.
+//
+// words are the group's own cities and countries (mdbTitle_placeGroupCityWords). Without one
+// of them in the bracket nothing is picked: "Utopia" answers "Utopia (Event)", "Utopia (Las
+// Vegas)" and "Utopia (Turku)", and a title naming Berlin means none of the three - the wiki
+// is offering ITS Utopia, which is the reading mdbPageCreator_placeMatch has always refused.
+// A type word in a bracket ("(Show)", "(DJ)") can never be a city, so those answers stay the
+// knowledge they were.
+//
+// See "A qualified category and the city that picks it" in title_definitions.js.
+function mdbTitle_qualifiedPlaceMatch( known, name, words ) {
+    if( !known || !name || !words || !words.length ) return null;
+
+    var matches = mdbTitle_knownMatches( known, name ),
+        i, w, m, split, key;
+
+    for( i = 0; i < matches.length; i++ ) {
+        m = matches[i];
+
+        if( !/^(venue|event)$/.test( String( m.type || "" ) ) ) continue;
+
+        split = /^(.+?)\s*\(([^()]+)\)\s*$/.exec( String( m.title || "" ) );
+
+        if( !split ) continue;
+
+        key = mdbTitle_normalizeCompare( split[2] );
+
+        for( w = 0; w < words.length; w++ ) {
+            if( key && key === mdbTitle_normalizeCompare( words[w] ) ) {
+                return { match: m, base: mdbTitle_trimSeparators( split[1] ) };
+            }
+        }
+    }
+
+    return null;
+}
+
+// mdbTitle_placeGroupCityWords
+// The parts of a place group that name no thing to file a page under - its cities and its
+// country. They are what a disambiguation bracket is checked against
+// (mdbTitle_qualifiedPlaceMatch): the group says WHERE, and the wiki's bracket says which of
+// its same-named places stands there.
+function mdbTitle_placeGroupCityWords( group ) {
+    var parts = mdbTitle_placeGroupParts( group ),
+        out = [],
+        i, name;
+
+    for( i = 0; i < parts.length; i++ ) {
+        name = parts[i].name;
+
+        if( name && ( mdbTitle_isCity( name ) || mdbTitle_isCountry( name ) ) ) out.push( name );
+    }
+
+    return out;
+}
+
+// mdbTitle_canonicalPlaceGroup
+// Every name of a live title's place group in the wiki's own spelling: "@ ayli x ours,
+// Frankfurt" -> "@ As You Like It X OURS, Frankfurt". Returns { text, picks } - the rewritten
+// group and one entry per name a disambiguation bracket answered for, which is what the trace
+// and the confidence report.
+//
+// Two rules, and they are the ones every other name follows:
+// - a plain answer respells name-for-name, exactly like mdbTitle_canonicalName does in front
+//   of the "@" (a server match naming a different thing stays knowledge and is not written)
+// - a QUALIFIED answer the group's own city picks writes the category's name WITHOUT the
+//   bracket, because that is how MixesDB writes it in a title: the page files under
+//   "As You Like It (Frankfurt)" and the title says "@ As You Like It, Frankfurt"
+//
+// Cities and countries are skipped - no category answers for them, and the one on the list is
+// not asked about at all. The separators are the uploader's own, joiner spelling included
+// (mdbTitle_placeGroupParts), so nothing but the names can change here.
+//
+// Sits at the single exit like the reductions above, so every branch composing a place group
+// is covered by the one rule. Only the place behind the "@" - the names in front of it are
+// artists and mdbTitle_canonicalArtists has them.
+function mdbTitle_canonicalPlaceGroup( group ) {
+    var known = mdbTitle_knownNow,
+        text = String( group || "" ),
+        at = text.indexOf( " @ " ),
+        out = { text: text, picks: [] };
+
+    if( !known || at === -1 ) return out;
+
+    var place = text.slice( at + 3 ),
+        parts = mdbTitle_placeGroupParts( place ),
+        words = mdbTitle_placeGroupCityWords( place ),
+        built = "",
+        i, name, qualified;
+
+    for( i = 0; i < parts.length; i++ ) {
+        name = parts[i].name;
+
+        if( name && !mdbTitle_isCity( name ) && !mdbTitle_isCountry( name ) ) {
+            qualified = mdbTitle_qualifiedPlaceMatch( known, name, words );
+
+            if( qualified ) {
+                // recorded whether or not the NAME changes: what the pick decides is the
+                // category, and "As You Like It" spelled out in full still files under one of
+                // two brackets the title has to answer for
+                out.picks.push( { written: name, category: qualified.match.title,
+                                  name: qualified.base, type: String( qualified.match.type || "" ) } );
+                name = qualified.base;
+            } else {
+                name = mdbTitle_canonicalName( known, name, [ "venue", "event" ] );
+            }
+        }
+
+        built += ( i === 0 ? "" : parts[i].sep ) + name;
+    }
+
+    out.text = text.slice( 0, at + 3 ) + built;
+
+    return out;
+}
+
 // mdbTitle_reduceLineupFraction
 // "1/2 Faultierdisko @ 3000Grad Festival" -> "Faultierdisko @ 3000Grad Festival": the act
 // behind a line-up fraction, so the title names what MixesDB files the page under. Returns the
@@ -6952,6 +7308,22 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         artist = oneAtGroup;
     }
 
+    // The comma in front of the group's city, where the uploader glued it onto the name -
+    // "@ AYLI X OURS Frankfurt" -> "@ AYLI X OURS, Frankfurt". Before the reductions below, so
+    // the first part they read is the place alone. A spelling rule off the curated city list
+    // and no guess about a word, so it costs no confidence - the same deal the "@" fold gets.
+    var cityComma = mdbTitle_commaOffCity( artist );
+
+    if( cityComma !== artist ) {
+        logVar( "mdbTitle_result: the group's city got its comma", artist + " -> " + cityComma );
+        mdbTitle_traceStep( "City set off from the place it stands in",
+                            artist + " -> " + cityComma +
+                            " - MixesDB writes the city as a part of its own, so the name in front of it ends there",
+                            null, [ "mdbTitleCities" ] );
+
+        artist = cityComma;
+    }
+
     // A room inside a venue is not the venue: where the place the title names is no category
     // and the venue around it is one, the word comes off - "@ Elsewhere Loft" -> "@ Elsewhere".
     // After the group is whole (the "@" fold above), so the part being read is the one the
@@ -7021,6 +7393,46 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                       " not part of the name itself" );
 
         artist = creditShort;
+    }
+
+    // Every name of the place group in the wiki's own spelling, and the disambiguation bracket
+    // the group's own city picks written into the CATEGORY while the title keeps the bare name.
+    // Last of the place-group rules, so the names it respells are the ones the reductions above
+    // settled on.
+    var placeCanon = mdbTitle_canonicalPlaceGroup( artist );
+
+    if( placeCanon.text !== artist ) {
+        logVar( "mdbTitle_result: place group spelled the wiki's way", artist + " -> " + placeCanon.text );
+        mdbTitle_traceStep( "Place group spelled the wiki's way", artist + " -> " + placeCanon.text );
+
+        artist = placeCanon.text;
+    }
+
+    for( var qp = 0; qp < placeCanon.picks.length; qp++ ) {
+        var pick = placeCanon.picks[qp];
+
+        // Only where the TITLE changed - section 4 reports what the parse did to the title, and
+        // a name the wiki spells the way the uploader already did is no step of it. The pick
+        // still writes its sentence and its confidence reason below: what it decides is the
+        // CATEGORY, which is a filing and not a word of the title.
+        if( mdbTitle_normalizeCompare( pick.written ) !== mdbTitle_normalizeCompare( pick.name ) ) {
+            mdbTitle_traceStep( "Disambiguated place picked by the group's own city",
+                                pick.written + " -> " + pick.name +
+                                " - MixesDB has several categories of this name and files this one as \"" +
+                                pick.category + "\", which the place group's own words name; the title writes it without the bracket",
+                                null, [ "mdbTitleCities" ] );
+        }
+
+        // the deciding branch writes the sentence - this one asked the wiki, so it may say so
+        if( mdbTitle_trace && mdbTitle_trace.picks ) {
+            mdbTitle_trace.picks.entity = "MixesDB knows several places called \"" + pick.name +
+                "\" and tells them apart in the category name - the place group names \"" +
+                pick.category.replace( /^.*\(([^()]*)\)\s*$/, "$1" ) + "\", so the page files under \"" +
+                pick.category + "\" while the title writes the name without the bracket";
+        }
+
+        conf.drop( 5, "MixesDB has more than one \"" + pick.name + "\" and the page was filed under \"" +
+                      pick.category + "\" because the title names that place - check that this is the right one" );
     }
 
     // "Live PA" said by the title or the description is written behind the artist's NAME, the
