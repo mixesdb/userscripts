@@ -569,6 +569,29 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   whatever the wiki says. The numbered-pair branch (4c) makes the same call on the same words
   with the opposite default, the word STAYING unless it only counts, because there the show
   name is the numbered bit itself ("Drumcomplexed Radio Show 311") and no word introduced it.
+- **An answer can only be read where the title still HAS a place group** (2026-08-22, reported
+  on "Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC" on the channel "hogi"): the wiki
+  answered `Zodiac` - a venue with 4 mixes - and the suggestion ignored it, which is what the
+  report asked about. Nothing was wrong with the lookup: `Zodiac` was a chunk, it was asked,
+  and the answer was in hand. What went wrong is that the title never reached a branch that
+  reads a place. The channel's own name stood INSIDE the title ("hogi" in "Hogi Wirjono"), so
+  4b fired - the branch that makes the channel the artist and everything left over the ENTITY -
+  and an entity is ONE name, so the whole live group went in as one and the page was about to
+  be filed under a brand-new `Anton & Wirjono All Night Long @ ZODIAC`. 4b now carries the same
+  `"@"` guard 4a has had all along, and for the same reason written there: behind an `"@"` the
+  title is not the name of something the channel made, it is the place they played at, and the
+  artist is already standing in front of it. The general path then reads the group, and
+  `mdbTitle_result` respells the place off the lookup (`ZODIAC` -> `Zodiac`) exactly as it does
+  for a group any venue branch composed.
+  **The lesson generalises past this one branch**: a category answer is worth nothing on its
+  own - it is read by the branch that takes the title, so a branch returning EARLY silently
+  discards every answer the lookup collected. A rule that can return a whole title as one name
+  belongs behind the guards that say the title is something else.
+  **The same report is why a live marker may STACK** (`mdbTitleLiveAtWords`): "All Night Long
+  DJ Set at" is two markers in a row and only the one touching the connector was consumed, so
+  the other stayed glued to the artist - and went into the lookup with it. `Hogi Wirjono All
+  Night Long` was asked about, `Hogi Wirjono` never was. The joiner rule reads a RUN of markers
+  now; each one still has to BE a marker, so no name is swallowed.
 - **A name that is nothing but a counting word is no candidate** - `mdbTitleStaticNamePatterns`
   ("Episode 72", "Part 2", "Pt.3", the bare words too) holds the names every mix carries, so
   MixesDB files nothing under them and the wiki could only answer empty. Patterns rather than

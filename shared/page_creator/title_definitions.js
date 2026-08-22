@@ -1046,9 +1046,28 @@ var mdbTitleVenueConnectors = [
  * "|" by the time the joiners run) or by an asterisk, which is how an uploader writes an aside.
  * A name whose last word merely happens to be one of these words keeps it: nothing in "Boiler
  * Room Live" says the word is an annotation rather than part of the name.
+ *
+ * "All Night Long" is one of these words
+ *
+ * It says HOW LONG the set went, and a set that goes all night went on somewhere - it is what
+ * a club or an event books, never what a feed publishes. So it says the same thing "Live" and
+ * "DJ Set" say, and it is written nowhere on MixesDB either: there is no group for how long
+ * somebody played.
+ *
+ *     "Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC"  (channel "hogi")
+ *     WRONG: 2026 - Anton & Wirjono All Night Long @ ZODIAC
+ *     RIGHT: 2026 - Anton & Wirjono @ Zodiac
+ *
+ * Markers STACK, which is why that title needs it: the uploader wrote two of them in a row
+ * ("All Night Long DJ Set at"), and only the one touching the connector was ever consumed - so
+ * the other stayed glued to the artist and went into the lookup with it ("Hogi Wirjono All
+ * Night Long" was asked about, "Hogi Wirjono" never). The joiner rule reads a RUN of markers in
+ * front of the connector for this, in any order and with the uploader's separators between
+ * them.
  */
 var mdbTitleLiveAtWords = [
     "recorded live",
+    "all night long",
     "live set",
     "live mix",
     "dj set",

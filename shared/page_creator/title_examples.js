@@ -1642,5 +1642,33 @@ var mdbTitleExamples = [
         expectEntity: "Rhythm Prism Radio 053",
         expectAsked: [ "AKA AKA", "WHATS POPPIN", "Rhythm Prism Radio" ],
         expect: "2025-03-06 - AKA AKA - Rhythm Prism Radio 053"
+    },
+    {
+        // Reported: came out as "2026 - hogi - Anton & Wirjono All Night Long @ ZODIAC" - with
+        // "Zodiac" answered as a venue with 4 mixes and ignored, which is what the report asked
+        // about. Two rules out of it:
+        // - a title that already carries an "@" never reaches 4b. The channel name stood inside
+        //   the title ("hogi" in "Hogi Wirjono"), so that branch took the channel as the artist
+        //   and everything else as the ENTITY - and an entity is a name, so the place group went
+        //   in whole, the venue answer was never read and the page was about to be filed under
+        //   "Anton & Wirjono All Night Long @ ZODIAC". 4a has the same guard for the same
+        //   reason: behind an "@" the title is not the name of something the channel made.
+        // - "All Night Long" is a live marker, and markers STACK ("All Night Long DJ Set at").
+        //   Only the one touching the connector was consumed, so the other stayed in the artist
+        //   group and in the lookup with it: "Hogi Wirjono All Night Long" was asked about and
+        //   "Hogi Wirjono" never.
+        url: "https://soundcloud.com/hogi/anton-hogi-wirjono-all-night",
+        title: "Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC",
+        channel: "hogi",
+        date: "2026-08-22",
+        known: {
+            "Anton":  { type: "artist", mixes: 3 },
+            "Zodiac": { type: "venue", mixes: 4 }
+        },
+        expectChunks: [ "Anton & Hogi Wirjono", "ZODIAC" ],
+        expectArtists: [ "Anton", "Wirjono" ],
+        expectEntity: "Zodiac",
+        expectAsked: [ "hogi", "Anton & Hogi Wirjono", "Anton", "Hogi Wirjono", "Zodiac" ],
+        expect: "2026 - Anton & Wirjono @ Zodiac"
     }
 ];
