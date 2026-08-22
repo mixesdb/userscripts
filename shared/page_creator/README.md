@@ -467,8 +467,8 @@ everything a report about a wrong title needs, written as Markdown in four block
 - **## Created** – the player's URL, the title, channel name and date the site handed over, the
   title that came out of them, the score, and the artist and entity categories the page would be
   filed under
-- **## Lookups** – every name MixesDB was asked about, under `artists:` and `entities:`, each with
-  what came back (`AKA AKA -> artist, 230 mixes, 95%`) or with `no category of this name`. It is
+- **## Lookups** – every name MixesDB was asked about, under `Artists:` and `Entities:`, each with
+  what came back (`* "AKA AKA" -> artist, 230 mixes, 95%`) or with `no category of this name`. It is
   the half of a case nobody can reconstruct afterwards: it says what the wiki knew at the moment
   the title was built
 - **## Mistakes / learnings** – empty, for what went wrong in your own words

@@ -5412,7 +5412,7 @@ function mdbPageCreator_modalClose() {
  *   ## Created                  the values the site handed over and what the suggestion made of
  *                               them - URL, title, channel, date, title, score, categories
  *   ## Lookups                  what MixesDB was asked and what came back, split into the
- *                               "artists:" and "entities:" the panel's section 3 shows
+ *                               "Artists:" and "Entities:" the panel's section 3 shows
  *   ## Mistakes / learnings     free text: what went wrong, in the reporter's own words
  *   ## Expected                 the title, the alternative title and the categories it SHOULD
  *                               have produced
@@ -5578,10 +5578,10 @@ function mdbPageCreator_reportText( title ) {
     lines.push( "" );
     lines.push( "## Lookups" );
     lines.push( "" );
-    lines.push( "artists:" );
+    lines.push( "Artists:" );
     lines = lines.concat( mdbPageCreator_reportLookups( "artist" ) );
     lines.push( "" );
-    lines.push( "entities:" );
+    lines.push( "Entities:" );
     lines = lines.concat( mdbPageCreator_reportLookups( "entity" ) );
 
     // Free text, not a "-> " line: what went wrong is a sentence or three about the step that
@@ -5600,7 +5600,7 @@ function mdbPageCreator_reportText( title ) {
     // rooftop of that club). Empty on most reports, and empty is fine: it says there is one
     // right answer. Kept next to "Expected title" because the two are read together - the
     // expected one is what the build has to produce, this one is what it may also offer.
-    lines.push( "* Alternative title: " );
+    lines.push( "* Expected alternative title: " );
     lines.push( "* Expected artist category: " );
     lines.push( "* Expected entity category: " );
 
@@ -5608,7 +5608,7 @@ function mdbPageCreator_reportText( title ) {
 }
 
 // mdbPageCreator_reportLookups
-// The "artists:" / "entities:" block: every name the wiki was asked about in that role, with
+// The "Artists:" / "Entities:" block: every name the wiki was asked about in that role, with
 // what came back. Filed into the two roles by mdbPageCreator_lookupRoleColumns(), which is what
 // the reasoning panel's section 3 sorts its two columns by - a report that grouped them
 // differently would not match the panel the reporter is looking at while writing it.
@@ -5628,7 +5628,9 @@ function mdbPageCreator_reportLookups( role ) {
 
         if( !mdbPageCreator_lookupRoleColumns( entry, matches )[ role ] ) continue;
 
-        lines.push( "* " + entry.name + " -> " + mdbPageCreator_reportAnswer(
+        // the asked name in quotes: it can carry the comma, the arrow and the "%" the answer
+        // behind it is built from, and only the quotes say where the name ends
+        lines.push( "* \"" + entry.name + "\" -> " + mdbPageCreator_reportAnswer(
             entry, matches, mdbPageCreator_lookupOverruledBy( trace, entry.key ) ) );
     }
 

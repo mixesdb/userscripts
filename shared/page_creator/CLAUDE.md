@@ -1112,9 +1112,10 @@ where it is pasted, and on Discord the headings render:
 
 - **`## Created`** - the page URL, the player title, the channel name **as the site's API gives
   it**, the upload date, the suggested title, the score and the categories, one `* ` bullet each
-- **`## Lookups`** - the reasoning panel's section 3 as text: every asked name under `artists:`
-  or `entities:` (filed by `mdbPageCreator_lookupRoleColumns()`, which the panel's two columns
-  read too), with everything the wiki said about it - `* AKA AKA -> artist, 230 mixes, 95%`,
+- **`## Lookups`** - the reasoning panel's section 3 as text: every asked name under `Artists:`
+  or `Entities:` (filed by `mdbPageCreator_lookupRoleColumns()`, which the panel's two columns
+  read too), in quotes - a name carries the comma and the arrow the answer is built from - with
+  everything the wiki said about it: `* "AKA AKA" -> artist, 230 mixes, 95%`,
   several answers joined with ` | `, the wiki's own spelling in front where it differs from the
   name asked, and otherwise the same status wording the panel shows (`no category of this name`,
   `looking it up …`, `lookup failed`, `not asked - over the 10-name request limit`). A case is
