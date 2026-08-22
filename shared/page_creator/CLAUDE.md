@@ -699,6 +699,13 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   case-insensitively by contract, and `hör`/`Hör`/`HÖR` all find it once they are asked in the
   form the wiki stores. The composed form sits in `mdbTitle_spaced()`, the one rewrite the
   title and the channel name pass through on every entry point, so no path can skip it.
+  **And an accented letter is FOLDED to its base letter in `mdbTitle_normalizeCompare`**, not
+  dropped: the strip keeps `a-z0-9` alone, so the composed `HÖR` compared as `hr` - which is
+  Croatia's code on `mdbTitleCountries`. `mdbTitle_isCountry` said yes, `mdbTitle_placeGroupNames`
+  threw the name out of every place group, and `2026-05-09 - Scuba @ HÖR, Berlin` - the wiki's
+  OWN page title - read back as a title filed under nothing. Folding is also what a reader means
+  by "the same name", and how the description of that mix writes it ("Played some records at
+  HOR"). A letter with no decomposition (`Ø`) is dropped as before.
 - **All matches per name are kept**, because one name is legitimately several things:
   `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
   a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never
@@ -724,6 +731,30 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   its own "why" sentence, since no branch picked it and the pick's sentence is about the other
   name. A sibling page's own second entity is skipped in the style vote for the same reason the
   first one is (`mdbPageCreator_recentPageTextFindings`).
+- **A category's OWN PAGES say whether its name is a place, where the type cannot**
+  (2026-08-22, second report on "4AM Records - Milan Hermess | HÖR") - `mdbTitle_placeShape()`
+  reads the `recent` titles the mdbnames answer already carries, like `mdbTitle_seriesIdPrefix`
+  does for an episode-id scheme, and answers `{ city }` where they write the name behind the
+  `@`. `Category:HÖR` is filed under `Category:Radio` and so is `Category:NTS Radio`: the first
+  is a Berlin studio whose pages are all live sets (`2026-05-09 - Scuba @ HÖR, Berlin`), the
+  second a station whose pages are written as the show (`2026-04-03 - Ruf Dug - NTS Radio`).
+  The word "radio" cannot tell them apart, the pages can, and they are the wiki's own titles
+  rather than an inference about them - so this costs no confidence, exactly like the id
+  scheme. `mdbTitle_takeVenueTitle` asks it LAST, behind the venue and the event rounds, so a
+  name the wiki really types as a place is never decided by its pages, and the type it did
+  answer is carried out as `byPages` - the panel may not tell its reader "venue" about a name
+  the wiki calls a radio. Two pages at least and a MAJORITY of them, so one live-filed guest
+  set does not turn a show into a place. **The CITY comes from the same evidence** and only
+  where the title itself writes none: `@ HÖR` stands on no MixesDB page. Read off what stands
+  right behind the name in each group and only where `mdbTitleCities` backs the word - a group
+  closes with its town, so a name behind the place that is no city is another place
+  (`@ 15 Years aufnahme + wiedergabe, HÖR, Berlin`). Never behind an EVENT, whose group carries
+  a country and not a town.
+  The same report is why that branch no longer drops a bit silently: it writes ONE artist, the
+  place and its city, so a title naming a fourth thing (`4AM Records`, the label whose night it
+  was) lost it without a word. `mdbTitle_placeBitDropped` costs 3 points and comes back as a
+  `placeTail` chip - the same kind, because the rewrite IS the same: the words go in front of
+  the place, which is where MixesDB writes the night a set was played at.
 - **A place group is split by ONE function, and the "," is not its only separator**
   (2026-08-22, reported on "Karotte @ AYLI X OURS Frankfurt 07-08-2026"):
   `mdbTitle_placeGroupParts` returns the group's names in title order, each with the separator

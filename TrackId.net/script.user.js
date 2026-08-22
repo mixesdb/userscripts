@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.7
+// @version      2026.08.22.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_77
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_78
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -2022,6 +2022,40 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.22.8
+ * The wiki's answer about a place is READ now, and a category's OWN PAGES are what say it is
+ * one (title_builder.js v_78). Second half of the HÖR report: with the name found at last,
+ * "HÖR - radio, 665 mixes" stood in the panel and changed nothing. The channel's own name
+ * stands in that title, so the branch that makes the channel the ARTIST glued everything else
+ * into one entity - and an entity is one name, so "4AM Records HÖR" went to the wiki as a whole,
+ * could only answer empty, and the page was about to be filed under Category:Promo Mix while
+ * Category:HÖR sat there with 665 mix pages.
+ * What makes a name a place is its own pages now, not its type: MixesDB files HÖR under
+ * Category:Radio and NTS Radio under Category:Radio too, but HÖR's pages are all live sets
+ * ("2026-05-09 - Scuba @ HÖR, Berlin") while NTS's are written as the show the set was
+ * broadcast on ("2026-04-03 - Ruf Dug - NTS Radio"). The word "radio" cannot tell the two
+ * apart, the pages can, and they ride along in the lookup answer already (mdbTitle_placeShape,
+ * the same evidence a series' episode-id scheme is read off). Two pages at least and a majority
+ * of them, asked LAST - behind the venue and the event rounds, so a name the wiki really types
+ * as a place is never decided by its pages - and the type it did answer is what the panel says,
+ * never "venue" about a radio.
+ * The CITY comes off the same pages wherever the title writes none: "@ HÖR" stands on no
+ * MixesDB page, every one of them writes "@ HÖR, Berlin". And the bit the group has no slot for
+ * no longer disappears in silence - a set played somewhere is written as who played it, where
+ * and in which town, and "4AM Records", the label whose night this was, fits none of the three.
+ * It costs 3 points and comes back as a "Switch title" chip that writes it in front of the
+ * place, the way MixesDB writes a party held at a venue ("@ 15 Years aufnahme + wiedergabe,
+ * HÖR, Berlin").
+ * Found on the way: "HÖR" read as a COUNTRY. mdbTitle_normalizeCompare keeps letters and digits
+ * alone, so the "ö" was dropped rather than folded and the name compared as "hr" - which is
+ * Croatia's code on mdbTitleCountries. Every place group threw the name out, and the wiki's own
+ * "2026-05-09 - Scuba @ HÖR, Berlin" read back as a title filed under nothing at all. An
+ * accented letter folds to its base letter now ("ö" -> "o"), which is also how that mix's own
+ * description writes the station ("Played some records at HOR").
+ *     WRONG: 2026-08-05 - Milan Hermess - 4AM Records HÖR (Promo Mix)
+ *     RIGHT: 2026-08-05 - Milan Hermess @ HÖR, Berlin
+ * 155 examples, all pass.
  *
  * 2026.08.22.7
  * A name the site writes DECOMPOSED is one name again (title_builder.js v_77). From the
