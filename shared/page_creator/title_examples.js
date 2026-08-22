@@ -1675,5 +1675,30 @@ var mdbTitleExamples = [
         expectEntity: "Zodiac",
         expectAsked: [ "hogi", "Anton & Hogi Wirjono", "Anton", "Hogi Wirjono", "Zodiac" ],
         expect: "2026 - Anton & Hogi Wirjono @ Zodiac"
+    },
+    {
+        // Reported: came out as "@ Sisyphos, Berlin, Dampfer" - the bracket became a chunk of
+        // its own, the "@" fold joined it into the place group with a comma, and the group
+        // then named a place behind its own town. A MixesDB place group CLOSES with the city,
+        // so "Dampfer" - the club's boat floor - is not a place of its own but an aside about
+        // where inside Sisyphos the set was played, and the recent pages of that venue carry
+        // no such name. The reading is offered back as a "placeTail" chip, which writes it in
+        // front of the group ("@ Dampfer, Sisyphos, Berlin") the way a party at a venue is
+        // written - only the uploader knows whether the floor is worth naming.
+        url: "https://soundcloud.com/blakestrange/blake-strange-sisyphos-berlin",
+        title: "Blake Strange @ Sisyphos, Berlin [Dampfer] \u2022 01.08.26",
+        channel: "Blake Strange",
+        date: "2026-08-21",
+        known: {
+            "Blake Strange": { type: "artist", mixes: 1 },
+            "Sisyphos":      { type: "venue", mixes: 90 }
+        },
+        expectArtists: [ "Blake Strange" ],
+        expectEntity: "Sisyphos",
+        // the city is out of the offered list before the wiki is asked, and the dropped floor
+        // is out of the TITLE - so the venue is the only name this group offers
+        expectEntities: [ "Sisyphos" ],
+        expectAlternatives: [ "placeTail" ],
+        expect: "2026-08-01 - Blake Strange @ Sisyphos, Berlin"
     }
 ];

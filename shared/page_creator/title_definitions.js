@@ -2282,6 +2282,29 @@ var mdbTitleCountries = [
  * answer, so this may be short and may grow one report at a time: a missing city costs a
  * lookup slot, not a wrong title.
  *
+ * Nothing stands BEHIND the city
+ *
+ * The city is where a place group ENDS. MixesDB writes it from the specific outwards -
+ * "@ Event, Venue, City" - and the town is the widest name it carries, so a part hung onto the
+ * end is not a place at all. It is the aside an uploader adds about where inside the venue
+ * they played (mdbTitle_dropAfterCity in title_builder.js):
+ *
+ *     "Blake Strange @ Sisyphos, Berlin [Dampfer] - 01.08.26"  (channel "Blake Strange")
+ *     WRONG: 2026-08-01 - Blake Strange @ Sisyphos, Berlin, Dampfer
+ *     RIGHT: 2026-08-01 - Blake Strange @ Sisyphos, Berlin
+ *
+ * "Dampfer" is the boat floor of that club, and the pages MixesDB has of Sisyphos do not name
+ * it. The words go, and the reading is OFFERED back as a "Switch title" chip that writes them
+ * in FRONT of the place - "@ Dampfer, Sisyphos, Berlin", the way a party held at a venue is
+ * written ("@ Utopia, Ritter Butzke, Berlin") - because a floor, a stage or the night's own
+ * name IS worth naming on some pages, and only the uploader knows whether this is one of them.
+ * Same deal as the room word one rule below: the page files under the venue in either reading.
+ *
+ * A COUNTRY is the exception, because it is the one name wider than the town: "@ Watergate,
+ * Berlin, Germany" keeps widening to its end and is left alone. And something has to stand in
+ * FRONT of the city - a group OPENING with one ("@ Berlin, Watergate") is an uploader writing
+ * it backwards, not a tail, and cutting there would throw away the only name in the title.
+ *
  * And it is not read by the location rules the countries feed - not by mdbTitle_isLocationChunk
  * and not by the lone-chunk rule of mdbTitle_locationChunkFlags, however alike the two look.
  * Those DROP what they match, and the counting they drop by ("two chunks left over") cannot
@@ -2313,9 +2336,10 @@ var mdbTitleCountries = [
  * category. The country codes may be everyday words because a code is only ever read as the
  * LAST part of a place list; a city name has no such guard.
  *
- * The panel offers the list behind the "?" of the one step this list decides - the comma in
- * front of a glued city. Nothing else it does is a cleanup step: the city stands in the title
- * whichever way the question is answered, only its comma and its category hang on the list.
+ * The panel offers the list behind the "?" of the two steps this list decides - the comma in
+ * front of a glued city, and the cut behind the city. Nothing else it does is a cleanup step:
+ * the city stands in the title whichever way the question is answered, only its comma, what
+ * follows it and its category hang on the list.
  */
 var mdbTitleCities = [
     "Aachen",
@@ -2747,7 +2771,7 @@ var mdbTitleDefinitionDocs = {
         data: mdbTitleCountries
     },
     mdbTitleCities: {
-        what: "City names, for the one part of a place group that names nothing to file a page under. The city stays in the title and never becomes a category - and where an uploader glued it onto the place in front of it (\"@ AYLI X OURS Frankfurt\"), it gets the comma MixesDB writes it with. Cities whose name is an everyday word are deliberately missing; a missing one costs a lookup, not a wrong title.",
+        what: "City names, for the one part of a place group that names nothing to file a page under. The city stays in the title and never becomes a category - and where an uploader glued it onto the place in front of it (\"@ AYLI X OURS Frankfurt\"), it gets the comma MixesDB writes it with. It also CLOSES the group: a part standing behind the city names something inside the place already named (\"@ Sisyphos, Berlin, Dampfer\") and comes off the title, a country excepted. Cities whose name is an everyday word are deliberately missing; a missing one costs a lookup, not a wrong title.",
         data: mdbTitleCities
     }
 };

@@ -2908,6 +2908,29 @@ function mdbPageCreator_altToggle( title, fact ) {
         return null;
     }
 
+    // The part the build cut off the END of the place group ("@ Sisyphos, Berlin, Dampfer" ->
+    // "@ Sisyphos, Berlin"). Toggled on the PLACE the fact names, and it writes the words back
+    // in FRONT of it - a group closes with its town, so the only spot MixesDB has for a floor,
+    // a stage or the night's own name is ahead of the venue ("@ Dampfer, Sisyphos, Berlin").
+    // The filing does not move with it: the page is filed under the group's first place, and
+    // mdbPageCreator_entityCategoriesFor asks the wiki about the added name like any other.
+    if( fact.kind === "placeTail" && fact.text && fact.place ) {
+        var tailRe = new RegExp( "(@\\s*)" + mdbTitle_escapeRe( fact.text ) + "\\s*,\\s*(" +
+                                 mdbTitle_escapeRe( fact.place ) + ")", "i" );
+
+        if( tailRe.test( title ) ) {
+            return { title: title.replace( tailRe, "$1$2" ), adding: false };
+        }
+
+        tailRe = new RegExp( "(@\\s*)(" + mdbTitle_escapeRe( fact.place ) + ")(?![\\w])", "i" );
+
+        if( tailRe.test( title ) ) {
+            return { title: title.replace( tailRe, "$1" + fact.text + ", $2" ), adding: true };
+        }
+
+        return null;
+    }
+
     // The credit the build took off the act's name ("Kode9" <-> "Kode9 For Maharishi").
     // Toggled on the ACT the fact names, not on a fixed slot: the name stands in the artist
     // group, which can carry an "@" and a place behind it. Unlike the room word the FILING

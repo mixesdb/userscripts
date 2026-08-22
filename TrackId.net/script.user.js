@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.5
+// @version      2026.08.22.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,10 +13,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_51
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_75
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_52
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_76
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_110
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -2022,6 +2022,25 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.22.6
+ * A place group ends at its city, and anything an uploader hangs behind it comes off the title
+ * (title_definitions.js v_52, title_builder.js v_76, page_creator.js v_111). From the
+ * "Blake Strange @ Sisyphos, Berlin [Dampfer]" report: the bracket became a chunk of its own,
+ * the "@" fold joined it into the place group with a comma, and the suggestion offered
+ * "@ Sisyphos, Berlin, Dampfer" - a place standing behind its own town, which MixesDB never
+ * writes. A group is written from the specific outwards and CLOSES with the city, so a part
+ * behind it is no place at all: it is the floor, the stage or the night the uploader played on,
+ * and the pages the wiki has of such a venue do not carry it. A country is the one exception,
+ * being wider than the town ("@ Watergate, Berlin, Germany"), and a group that OPENS with a
+ * city is left alone - that is an uploader writing it backwards, not a tail.
+ * The words are not lost: a new "Switch title" chip writes them back in FRONT of the place,
+ * where MixesDB does write a party held at a venue ("@ Utopia, Ritter Butzke, Berlin"), so
+ * "@ Dampfer, Sisyphos, Berlin" is one click away and the page files under Sisyphos either way.
+ * The cut costs 3 points and says which words left and where they would go, since only the
+ * uploader knows whether the floor is worth naming.
+ *     WRONG: 2026-08-01 - Blake Strange @ Sisyphos, Berlin, Dampfer
+ *     RIGHT: 2026-08-01 - Blake Strange @ Sisyphos, Berlin
  *
  * 2026.08.22.5
  * A title that already carries an "@" is a set played SOMEWHERE, and the branch that reads the
