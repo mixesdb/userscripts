@@ -1918,8 +1918,14 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * at"), and only the one touching the connector was ever consumed - so the other stayed glued
  * to the artist and went into the category lookup with it: "Hogi Wirjono All Night Long" was
  * asked about, "Hogi Wirjono" never was.
+ * And the answer to that question is now read: the channel name is not cut out of a LONGER name
+ * MixesDB knows as an artist (title_builder.js v_75). Category:Hogi Wirjono holds mixes, so the
+ * "hogi" standing inside it belongs to that name - cutting it out invented an "Anton & Wirjono"
+ * who never played anywhere. Only the wiki's answer keeps the word: with no category of the
+ * longer name the cut stands, which is what a channel writing its name in front of a guest
+ * needs. A name strung with an "&" is asked about both ways for this, the parts and the whole.
  *     WRONG: 2026 - hogi - Anton & Wirjono All Night Long @ ZODIAC
- *     RIGHT: 2026 - Anton & Wirjono @ Zodiac
+ *     RIGHT: 2026 - Anton & Hogi Wirjono @ Zodiac
  *
  * 2026.08.22.4
  * The "Report" box is Markdown now, in four headed blocks (page_creator.js v_110): "## Created"

@@ -1056,14 +1056,15 @@ var mdbTitleVenueConnectors = [
  *
  *     "Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC"  (channel "hogi")
  *     WRONG: 2026 - Anton & Wirjono All Night Long @ ZODIAC
- *     RIGHT: 2026 - Anton & Wirjono @ Zodiac
+ *     RIGHT: 2026 - Anton & Hogi Wirjono @ Zodiac
  *
  * Markers STACK, which is why that title needs it: the uploader wrote two of them in a row
  * ("All Night Long DJ Set at"), and only the one touching the connector was ever consumed - so
  * the other stayed glued to the artist and went into the lookup with it ("Hogi Wirjono All
  * Night Long" was asked about, "Hogi Wirjono" never). The joiner rule reads a RUN of markers in
  * front of the connector for this, in any order and with the uploader's separators between
- * them.
+ * them. Asking mattered: Category:Hogi Wirjono holds mixes, and that answer is what keeps the
+ * channel name "hogi" inside the artist's name instead of being cut out of it.
  */
 var mdbTitleLiveAtWords = [
     "recorded live",

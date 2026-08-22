@@ -210,7 +210,16 @@ so the channel is not put in front as the artist with the rest of the title behi
 name. `Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC` on the channel `hogi` used to come
 out as `2026 - hogi - Anton & Wirjono All Night Long @ ZODIAC`, filed under a category of that
 whole length, while MixesDB's answer about `Zodiac` – a venue with 4 mixes – sat unread. It now
-reads `2026 - Anton & Wirjono @ Zodiac`, filed under `Anton`, `Wirjono` and `Zodiac`.
+reads `2026 - Anton & Hogi Wirjono @ Zodiac`, filed under `Anton`, `Hogi Wirjono` and `Zodiac`.
+
+The channel name is also **not cut out of a longer name MixesDB knows**. A channel writing its
+own name into its own title is the usual case and the word goes, but `Category:Hogi Wirjono`
+holds mixes, so the `hogi` inside it belongs to that artist's name – cutting it out invented an
+`Anton & Wirjono` who never played anywhere. Only the wiki can tell the two apart, so only its
+answer keeps the word: with no category of the longer name the cut stands, which is what a
+channel putting its name in front of a guest needs. Names strung with an `&` are asked about
+both ways for this, the parts and the whole – `Anton`, `Hogi Wirjono` and
+`Anton & Hogi Wirjono` – since a duo can have a category of its own while a line-up never does.
 
 Behind the `@` the group is read as the list of places it is, whichever way the uploader
 punctuated it. A **city glued to the end of a place** gets the comma MixesDB writes it with, so

@@ -966,10 +966,77 @@ function mdbTitle_showSuffixWords() {
     ];
 }
 
+// mdbTitle_channelInsideKnownName
+// Whether the channel name found at index/length stands INSIDE a longer name MixesDB knows as
+// an artist - "hogi" inside "Hogi Wirjono", a category with mixes of its own. Then the word is
+// part of somebody's NAME and not the channel putting its own name into its own title, and
+// cutting it out invents an artist ("Anton & Wirjono") who never played anywhere.
+//
+// The wiki is the only thing that can say this, which is why it is asked rather than guessed
+// at: an uploader really does write their channel name in front of a guest ("Hogi - Wirjono"),
+// and there the cut is right. Without an answer nothing changes - the cut is the default and a
+// name the wiki has never heard of gives no reason to keep it.
+//
+// Read in two steps, the same two the parse reads everywhere else: the BIT the match stands in
+// (mdbTitle_bitSplitRe), then the member of that bit's line-up (mdbTitle_splitArtists), so
+// "Anton & Hogi Wirjono" asks about "Hogi Wirjono" and not about the whole group.
+function mdbTitle_channelInsideKnownName( text, index, length, known, show ) {
+    if( !known ) return false;
+
+    // the separator is captured, so parts reads [ bit, sep, bit, sep, ... ] and the offsets
+    // still add up to the text handed in - the same split mdbTitle_reduceRecordingNotes uses
+    var parts = String( text ).split( new RegExp( "((?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+)" ) ),
+        at = 0,
+        bit = "",
+        i;
+
+    for( i = 0; i < parts.length; i++ ) {
+        if( index >= at && index + length <= at + parts[i].length ) { bit = parts[i]; break; }
+        at += parts[i].length;
+    }
+
+    if( !bit ) return false;
+
+    // The "@" is the other boundary: in FRONT of it the bit lists artists, behind it places -
+    // two different questions, and gluing them makes a name nobody wrote ("Hogi Wirjono @
+    // ZODIAC" is no category and can only ever answer empty).
+    var atPos = bit.indexOf( "@" ),
+        local = index - at,
+        names,
+        roles;
+
+    if( atPos === -1 || local < atPos ) {
+        names = mdbTitle_splitArtists( atPos === -1 ? bit : bit.slice( 0, atPos ) );
+        roles = [ "artist" ];
+    } else {
+        names = mdbTitle_placeGroupParts( bit.slice( atPos + 1 ) );
+        roles = [ "venue", "event" ];
+    }
+
+    var showCmp = mdbTitle_normalizeCompare( show ),
+        wordRe = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSpaces( show ) + "(?![\\w])", "i" ),
+        n;
+
+    for( n = 0; n < names.length; n++ ) {
+        if( mdbTitle_normalizeCompare( names[n] ) === showCmp ) continue;
+        if( !wordRe.test( names[n] ) ) continue;
+
+        if( mdbTitle_knownMatch( known, names[n], roles ) ) {
+            logVar( "mdbTitle_takeShowOutOfTitle: the channel name is part of a name MixesDB knows",
+                    show + " inside " + names[n] );
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // mdbTitle_takeShowOutOfTitle
 // Removes one occurrence of the show name from the title, so an episode number behind it can
 // be found on its own. Returns the shortened text and the (possibly extended) show name.
-function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
+// known is optional: with the wiki's answers in hand the name is not cut out of a LONGER name
+// the wiki knows as an artist (mdbTitle_channelInsideKnownName).
+function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
     // index is where the name stood in the text HANDED IN, which is what lets a caller ask
     // which bit of the title it was standing in - see 4c in buildMixesdbTitle
     var result = { text: text, show: show, taken: false, extended: false, episode: null, index: -1 };
@@ -1013,6 +1080,9 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend ) {
     var lead = m[1] ? m[1].length : 0,
         index = m.index + lead,
         length = m[0].length - lead;
+
+    // "hogi" inside "Hogi Wirjono" is a name, not the channel signing its own title
+    if( mdbTitle_channelInsideKnownName( text, index, length, known, show ) ) return result;
 
     // How the TITLE spells the channel name. A channel name in ALL CAPS is shouted the same
     // way a title is, so it says nothing about the spelling: the title wins there.
@@ -5432,7 +5502,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         mdbTitle_channelUsed = username;
         // the all-caps rule, asked once here so the exit spells the channel the way the
         // branches do - the take itself is read-only and its text is thrown away
-        mdbTitle_channelShown = mdbTitle_takeShowOutOfTitle( rest, username, false ).show;
+        mdbTitle_channelShown = mdbTitle_takeShowOutOfTitle( rest, username, false, known ).show;
 
         // The title spelling the channel name exactly the way the channel does is the real
         // spelling, and Normal Case must not touch it. After 1b, so a channel name in brackets
@@ -5983,7 +6053,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // 4) take the show name out of the title before looking for an episode, so
         // "HATE Podcast 496 - Fadi Mohem" leaves "496 - Fadi Mohem" and not "HATE - ..."
         var restWithShow = rest, // kept for the "title was nothing but the show" fallback below
-            taken = mdbTitle_takeShowOutOfTitle( rest, show, !isMappedChannel ),
+            taken = mdbTitle_takeShowOutOfTitle( rest, show, !isMappedChannel, known ),
             promoMix = false;
 
         // 4a) MixesDB knows the CHANNEL as an artist, and the title never names them: then the
@@ -6254,7 +6324,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         show = taken.show;
 
         if( username && mdbTitle_normalizeCompare( username ) !== mdbTitle_normalizeCompare( show ) ) {
-            rest = mdbTitle_takeShowOutOfTitle( rest, username, false ).text;
+            rest = mdbTitle_takeShowOutOfTitle( rest, username, false, known ).text;
         }
 
         // 5) episode. The entity is settled whenever its name was found in the title or the
