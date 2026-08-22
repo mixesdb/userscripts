@@ -170,9 +170,21 @@ function mdbTitle_nfc( s ) {
 }
 
 // mdbTitle_normalizeCompare
-// Strips everything but letters/digits, so "DJ MARIA." and "dj maria" compare equal
+// Strips everything but letters/digits, so "DJ MARIA." and "dj maria" compare equal.
+// An accented letter is FOLDED to its base letter first, because the strip below can only keep
+// a-z0-9 and would otherwise drop it altogether: "HÖR" compared as "hr", which is the country
+// code of Croatia on mdbTitleCountries - so a Berlin radio station with 665 mix pages read as a
+// country, was thrown out of every place group and filed the page under nothing. "ö" -> "o" is
+// also what a reader means by "the same name", and it is how the description of that very mix
+// writes it ("Played some records at HOR"). A letter with no base form ("Ø") is dropped as
+// before - it has no decomposition to fold to.
 function mdbTitle_normalizeCompare( s ) {
-    return mdbTitle_nfc( s ).toLowerCase().replace( /[^a-z0-9]/g, "" );
+    var text = mdbTitle_nfc( s );
+
+    // NFD splits "ö" into "o" + the combining diaeresis, and the mark is what comes off
+    if( text.normalize ) text = text.normalize( "NFD" ).replace( /[\u0300-\u036f]/g, "" );
+
+    return text.toLowerCase().replace( /[^a-z0-9]/g, "" );
 }
 
 // mdbTitle_matchCase
@@ -3747,11 +3759,98 @@ function mdbTitle_joinedArtistBit( bit ) {
 // name this rule cannot vouch for is better dropped than glued to the place - the same call
 // mdbTitle_takeEventTitle makes, which keeps a country and nothing else. isEvent carries that
 // difference to the caller.
+// mdbTitle_placeShape
+// How a category's OWN mix pages write its name: { city } where they write it behind the " @ "
+// as a place, null where they do not. Read off the `recent` titles the mdbnames answer already
+// carries, so it costs no request of its own - the same evidence mdbTitle_seriesIdPrefix reads
+// a series' episode-id scheme off.
+//
+// It exists because the TYPE cannot answer this. Category:HÖR is filed under Category:Radio,
+// and so is Category:NTS Radio - the first is a Berlin studio whose 665 pages are all live sets
+// ("2026-05-09 - Scuba @ HÖR, Berlin"), the second a station whose pages are written as the
+// show the set was broadcast on ("2026-04-03 - Ruf Dug - NTS Radio"). Nothing in the word
+// "radio" tells the two apart. The pages do, and they are the wiki's own titles rather than an
+// inference about them.
+//
+// The pages have to AGREE: two of them at least, and a majority - a station whose pages are
+// written as a show does not become a place because one guest set was filed live. The CITY is
+// read the same way, off what stands right behind the name in the group, and only where
+// mdbTitleCities backs the word: a place group closes with its city, so a name behind the venue
+// that is no city is another place ("@ 15 Years aufnahme + wiedergabe, HÖR, Berlin"), never one.
+function mdbTitle_placeShape( match ) {
+    var titles = ( match && match.recent ) || [],
+        nameKey = mdbTitle_normalizeCompare( ( match && match.title ) || "" ),
+        counts = {},
+        // the city as the PAGES spell it, keyed by its comparison form - like the id scheme,
+        // the wiki's own spelling is the one a new title gets
+        spellings = {},
+        placePages = 0,
+        top = "",
+        i, j, bits, at, names, idx, behind, key;
+
+    if( !nameKey || titles.length < 2 ) return null;
+
+    for( i = 0; i < titles.length; i++ ) {
+        bits = String( titles[i] ).split( mdbTitle_bitSplitRe() );
+        at = String( bits[1] || "" ).split( /\s+@\s+/ );
+
+        // no " @ " in that page's artist group: it does not write this name as a place. The
+        // artist's OWN category answers here too and answers no - "2026-05-09 - Scuba @ HÖR,
+        // Berlin" is a page of Category:Scuba as much as of Category:HÖR, and "Scuba" stands in
+        // front of the "@" on it. That is why no type has to be excluded up front.
+        if( at.length < 2 ) continue;
+
+        names = at[1].split( /\s*,\s*/ );
+        idx = -1;
+
+        for( j = 0; j < names.length; j++ ) {
+            if( mdbTitle_normalizeCompare( names[j] ) === nameKey ) { idx = j; break; }
+        }
+
+        if( idx === -1 ) continue;
+
+        placePages++;
+
+        behind = mdbTitle_trimSeparators( names[ idx + 1 ] || "" );
+
+        if( !behind || !mdbTitle_isCity( behind ) ) continue;
+
+        key = mdbTitle_normalizeCompare( behind );
+        counts[key] = ( counts[key] || 0 ) + 1;
+        if( !spellings[key] ) spellings[key] = behind;
+
+        if( !top || counts[key] > counts[top] ) top = key;
+    }
+
+    if( placePages < 2 || placePages * 2 <= titles.length ) return null;
+
+    return { city: ( top && counts[top] >= 2 ) ? spellings[top] : "" };
+}
+
+// mdbTitle_pagesPlaceMatch
+// The wiki answer for a name whose own pages write it as a place (mdbTitle_placeShape), or null.
+// Every match of the name is tried: a name the wiki knows as two things is a place if either of
+// them is written as one.
+function mdbTitle_pagesPlaceMatch( known, name ) {
+    var matches = mdbTitle_knownMatches( known, name ),
+        i;
+
+    for( i = 0; i < matches.length; i++ ) {
+        if( mdbTitle_placeShape( matches[i] ) ) return matches[i];
+    }
+
+    return null;
+}
+
 function mdbTitle_takeVenueTitle( text, known ) {
     var bits = text.split( mdbTitle_bitSplitRe() ),
         cleaned = [],
         venueIndex = -1,
         isEvent = false,
+        // the wiki's answer for the name in the place slot, and - where the pages and not the
+        // type decided - the type it really answered with
+        venueMatch = null,
+        byPages = "",
         i;
 
     if( bits.length < 2 ) return null;
@@ -3761,19 +3860,32 @@ function mdbTitle_takeVenueTitle( text, known ) {
     }
 
     // asked for the venue type specifically, not the best match: "fabric" is a venue AND an
-    // artist, and standing in a title next to another name it is the place
+    // artist, and standing in a title next to another name it is the place. The match itself is
+    // kept - the city its own pages agree on is read off it further down.
     for( i = 0; i < cleaned.length; i++ ) {
-        if( cleaned[i] && mdbTitle_knownMatch( known, cleaned[i], [ "venue" ] ) ) { venueIndex = i; break; }
+        venueMatch = cleaned[i] ? mdbTitle_knownMatch( known, cleaned[i], [ "venue" ] ) : null;
+
+        if( venueMatch ) { venueIndex = i; break; }
     }
 
     // the event round is its own pass, so a venue anywhere in the title still wins over an
     // event standing further left - a venue is where the "@" points either way, and the venue
     // reading is the older and the narrower of the two
     for( i = 0; venueIndex === -1 && i < cleaned.length; i++ ) {
-        if( cleaned[i] && mdbTitle_knownMatch( known, cleaned[i], [ "event" ] ) ) {
-            venueIndex = i;
-            isEvent = true;
-        }
+        venueMatch = cleaned[i] ? mdbTitle_knownMatch( known, cleaned[i], [ "event" ] ) : null;
+
+        if( venueMatch ) { venueIndex = i; isEvent = true; }
+    }
+
+    // ... and last, a name the wiki files under NEITHER type whose own mix pages write it
+    // behind the "@" all the same: HÖR is a Category:Radio and all 665 of its pages are live
+    // sets at its Berlin studio (mdbTitle_placeShape). Last of the three, so a name the wiki
+    // really types as a place is never decided by its pages, and the type it DID answer is kept
+    // - the panel may not tell its reader "venue" about a name the wiki calls a radio.
+    for( i = 0; venueIndex === -1 && i < cleaned.length; i++ ) {
+        venueMatch = cleaned[i] ? mdbTitle_pagesPlaceMatch( known, cleaned[i] ) : null;
+
+        if( venueMatch ) { venueIndex = i; byPages = String( venueMatch.type || "" ) || "category"; }
     }
 
     if( venueIndex === -1 ) return null;
@@ -3827,18 +3939,44 @@ function mdbTitle_takeVenueTitle( text, known ) {
 
     if( !artist ) return null;
 
+    // Every bit this branch has no slot for: it writes one artist, the place and its city, so a
+    // title naming a fourth thing would lose it without a word. Cities and countries are not
+    // among them - those are the group's own tail and are written or dropped by the rules
+    // below, not by the uploader's spare words.
+    var unused = [];
+
+    for( i = 0; i < cleaned.length; i++ ) {
+        if( i === venueIndex || i === artistIndex || i === venueIndex + 1 || !cleaned[i] ) continue;
+        if( mdbTitle_isCity( cleaned[i] ) || mdbTitle_isCountry( cleaned[i] ) ) continue;
+
+        unused.push( cleaned[i] );
+    }
+
     // ... and never the bit that already names the artist - "Ritter Butzke | Tonino" must not
     // glue Tonino behind the venue as its city on top of playing there
-    var behind = ( venueIndex + 1 !== artistIndex && cleaned[ venueIndex + 1 ] ) || "";
+    var behind = ( venueIndex + 1 !== artistIndex && cleaned[ venueIndex + 1 ] ) || "",
+        // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue.
+        // Behind an EVENT only a country is kept, see above
+        city = ( isEvent && !mdbTitle_isCountry( behind ) ) ? "" : behind,
+        // ... and where the title writes none, the city the category's own pages agree on:
+        // "@ H\u00d6R" stands on no MixesDB page, all 665 of them write "@ H\u00d6R, Berlin". The wiki's
+        // own titles again, so this is no guess about this upload - it is how the place is
+        // written. Never behind an event, whose group carries a country and not a town.
+        cityFromPages = ( !city && !isEvent ) ? ( mdbTitle_placeShape( venueMatch ) || {} ).city : "";
+
+    if( cityFromPages ) city = cityFromPages;
 
     return {
         artist: artist,
         artistKnown: artistKnown,
         // in the wiki's own spelling - it is the wiki that says this is a venue at all
         venue: mdbTitle_canonicalName( known, cleaned[venueIndex], [ isEvent ? "event" : "venue" ] ),
-        // "@ Ritter Butzke, Berlin" - Help:Add_a_new_mix_page puts the city behind the venue.
-        // Behind an EVENT only a country is kept, see above
-        city: ( isEvent && !mdbTitle_isCountry( behind ) ) ? "" : behind,
+        city: city,
+        cityFromPages: !!cityFromPages,
+        // the bits the group has no room for, first one first - the chip is offered for one
+        unused: unused,
+        // the type the wiki answered where its PAGES and not that type made the name a place
+        byPages: byPages,
         isEvent: isEvent
     };
 }
@@ -4466,6 +4604,17 @@ var mdbTitle_atEpisodeRead = false;
 // as the place group's own country ("@ Melodic Therapy 217, Mexico"). A place LIST is not kept:
 // it is a byline in any reading, never a place group MixesDB writes.
 var mdbTitle_locationDropped = "";
+
+// mdbTitle_placeBitDropped
+// The bit of the title the venue branch (3g) had no slot for - { text, place }, null on every
+// other title. That branch writes ONE artist, the place and its city, so a title naming a
+// fourth thing loses it: "4AM Records - Milan Hermess | HÖR" is a label's night at a radio
+// station, and only the label has nowhere to go. MixesDB does write such a name, in FRONT of
+// the place the way a party at a venue is written ("@ 15 Years aufnahme + wiedergabe, HÖR,
+// Berlin"), so the reading is worth OFFERING - the alternatives hand it to the hints bar's
+// "Switch title" chip as a "placeTail" fact, which is the same offer from the other end and
+// toggles with the same rewrite. Set once per suggestion, in the branch itself.
+var mdbTitle_placeBitDropped = null;
 
 // mdbTitle_slotPartRead
 // The slot the 3g2 branch read into a place group: { slot, event }, null on every other title.
@@ -5406,6 +5555,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_nameCreditDropped = null;
     mdbTitle_atEpisodeRead = false;
     mdbTitle_locationDropped = "";
+    mdbTitle_placeBitDropped = null;
     mdbTitle_slotPartRead = null;
     mdbTitle_monthOnlyName = "";
     mdbTitle_monthOnlyStamp = "";
@@ -5937,6 +6087,37 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             logVar( "buildMixesdbTitle: " + venueKind + " known to MixesDB", venueTitle.venue );
 
+            // the two readings the wiki's own pages decided get a step of their own, so the
+            // panel says which evidence made a place out of the name and where a city the title
+            // never wrote came from
+            if( venueTitle.byPages ) {
+                logVar( "buildMixesdbTitle: the category's own pages write it as a place", venueTitle.venue );
+                mdbTitle_traceStep( "Read as a set played at a place",
+                    "MixesDB files \"" + venueTitle.venue + "\" as a " + venueTitle.byPages +
+                    ", and its own mix pages write it behind the \" @ \"" );
+            }
+
+            if( venueTitle.cityFromPages ) {
+                mdbTitle_traceStep( "City taken from the category's own pages",
+                    venueTitle.venue + " -> " + venueTitle.venue + ", " + venueTitle.city );
+            }
+
+            // A bit this branch has no slot for leaves the title, and says so: it is the
+            // uploader's own word, and MixesDB writes such a name in front of the place where
+            // it is worth naming. The chip that offers it back is built from this
+            // (mdbTitle_placeBitDropped) - one bit, the first, since the group takes one name.
+            if( venueTitle.unused.length ) {
+                mdbTitle_placeBitDropped = { text: venueTitle.unused[0], place: venueTitle.venue };
+
+                mdbTitle_traceStep( "Bit dropped - the place group has no slot for it",
+                    venueTitle.unused.join( " | " ) );
+
+                conf.drop( 3, "\"" + venueTitle.unused[0] + "\" left the title - a set played somewhere is" +
+                              " written as who played it, where and in which town, and the name fits none of" +
+                              " those. Where it names the night, the \"Switch title\" chip writes it in front" +
+                              " of \"" + venueTitle.venue + "\"" );
+            }
+
             var venueGroup = venueTitle.artist + " @ " + venueTitle.venue +
                              ( venueTitle.city ? ", " + venueTitle.city : "" );
 
@@ -5960,9 +6141,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 // The wiki is what decides this one, so the sentence names it - and it names
                 // the TYPE it answered with: an event answer is what overrules the "-" the
                 // uploader typed, and a reader checking that must not be told "venue".
-                entity: "MixesDB knows \"" + venueTitle.venue + "\" as " + ( venueTitle.isEvent ? "an event" : "a venue" ) +
-                        ", so the title reads as a set PLAYED there - " +
-                        "it becomes the place behind the \" @ \", and the channel is not used as a show on top of that"
+                entity: venueTitle.byPages
+                    ? "MixesDB files \"" + venueTitle.venue + "\" as a " + venueTitle.byPages +
+                      ", and its own mix pages write it behind the \" @ \" - so the title reads as a set " +
+                      "PLAYED there, and the channel is not used as a show on top of that"
+                    : "MixesDB knows \"" + venueTitle.venue + "\" as " + ( venueTitle.isEvent ? "an event" : "a venue" ) +
+                      ", so the title reads as a set PLAYED there - " +
+                      "it becomes the place behind the \" @ \", and the channel is not used as a show on top of that"
             } );
         }
 
@@ -7967,6 +8152,24 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
                         " closes with its town. It names something inside \"" + mdbTitle_placeTailDropped.place +
                         "\" - a floor, a stage, the night's own name - and where that is worth naming, the" +
                         " title carries it in front of the place."
+            } );
+        }
+
+        // The bit the venue branch had no slot for - offered from the other end than the tail
+        // above and toggled by the same rewrite, so it is the same kind of fact: the words go
+        // in FRONT of the place ("@ 4AM Records, HÖR, Berlin"), which is where MixesDB writes
+        // the night a set was played at. The filing does not move with it either - the page is
+        // filed under the group's first place, and mdbPageCreator_entityCategoriesFor asks the
+        // wiki about the added name like any other.
+        if( mdbTitle_placeBitDropped ) {
+            alternatives.push( {
+                kind: "placeTail",
+                text: mdbTitle_placeBitDropped.text,
+                place: mdbTitle_placeBitDropped.place,
+                reason: "\"" + mdbTitle_placeBitDropped.text + "\" names neither who played, nor the place," +
+                        " nor its town, so the title has no slot for it. Where it names the NIGHT - a label's" +
+                        " showcase, a party, a residency - MixesDB writes it in front of the place, and the" +
+                        " page files under \"" + mdbTitle_placeBitDropped.place + "\" either way."
             } );
         }
 

@@ -221,6 +221,20 @@ channel putting its name in front of a guest needs. Names strung with an `&` are
 both ways for this, the parts and the whole – `Anton`, `Hogi Wirjono` and
 `Anton & Hogi Wirjono` – since a duo can have a category of its own while a line-up never does.
 
+**How a category's own pages are written** is what makes a name a place where its type cannot
+say so. MixesDB files `HÖR` under `Radio`, and `NTS Radio` too – but the Berlin studio's newest
+pages are all live sets (`2026-05-09 - Scuba @ HÖR, Berlin`) while NTS's are written as the show
+the set was broadcast on (`2026-04-03 - Ruf Dug - NTS Radio`). Nothing in the word *radio* tells
+the two apart, so the pages are asked instead: where a category's own mix pages write its name
+behind the `@`, the title reads as a set played there. `4AM Records - Milan Hermess | HÖR` on the
+channel *Milan Hermess* used to be filed as a Promo Mix under `4AM Records HÖR`, a category
+nobody wrote, while `Category:HÖR` and its 665 mixes sat unread; it now becomes
+`2026-08-05 - Milan Hermess @ HÖR, Berlin`. The **city** comes off the same pages: `@ HÖR`
+stands on no MixesDB page and every one of them writes the town behind it, so a title naming no
+city gets the one the category itself agrees on. Both readings need that agreement – two pages at
+least, and a majority of them – so a station whose pages are written as a show does not become a
+place because one guest set was filed live.
+
 Behind the `@` the group is read as the list of places it is, whichever way the uploader
 punctuated it. A **city glued to the end of a place** gets the comma MixesDB writes it with, so
 the name in front of it ends where the city starts: `Karotte @ AYLI X OURS Frankfurt` becomes
@@ -499,6 +513,13 @@ says why the build decided the other way. Offered today:
   (`… @ Dampfer, Sisyphos, Berlin`), the way the wiki writes a party held at a venue –
   `2021 - Kernel Existence @ Utopia, Ritter Butzke, Berlin`. The page files under the first
   place either way.
+
+- **The name with no slot in the group** – a set played somewhere is written as who played it,
+  where and in which town, so a title naming a fourth thing has nowhere to put it: in
+  `4AM Records - Milan Hermess | HÖR` that is the label whose night it was. The words leave the
+  title and the chip writes them back in front of the place (`… @ 4AM Records, HÖR, Berlin`),
+  the way MixesDB writes a party held at a venue – `2026-02-14 - The Hacker @ 15 Years aufnahme
+  + wiedergabe, HÖR, Berlin`. The page files under the place either way.
 
 - **The slot of the night** – the title named the closing or the opening set at an event, and
   the group was written slot first, event last (`… @ Obstgarten Closing, Rote Dichte`). The chip

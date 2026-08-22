@@ -1711,19 +1711,44 @@ var mdbTitleExamples = [
         // gets re-cased; and the wiki, which stores every title composed, answers under a
         // spelling the asker never looks up. Every bit of outside text is composed now
         // (mdbTitle_nfc), so both halves are one name again.
-        // What this case guards is the NAME, not the shape of the title around it: the entity
-        // is still the two chunks glued together.
+        // Reported once more with the name found: the answer was there and nothing read it. The
+        // channel's own name stands in the title, so the branch that makes the channel the
+        // ARTIST glued everything else into one entity - and an entity is one name, so
+        // "4AM Records H\u00d6R" went in as a whole and the two answers behind it were never asked
+        // anything. H\u00d6R is a Category:Radio, which says nothing about how its pages are written;
+        // the pages themselves do, and all ten of them are live sets at the Berlin studio. The
+        // `recent` titles below are what the case turns on (mdbTitle_placeShape): they make the
+        // name a PLACE, they carry the city the title never wrote, and "4AM Records" - the label
+        // whose night this was - has no slot left in the group, so it leaves the title and comes
+        // back as the "placeTail" chip that writes it in front of the place.
         url: "https://soundcloud.com/milanhermess/milanhermess-4amrecords-hor-aug2026",
         title: "4AM Records - Milan Hermess | HO\u0308R - August 5, 2026",
         channel: "Milan Hermess",
         date: "2026-08-22",
         known: {
             "Milan Hermess": { type: "artist", mixes: 2 },
-            "H\u00d6R":          { type: "radio", mixes: 665 }
+            "H\u00d6R": {
+                type: "radio",
+                mixes: 665,
+                recent: [
+                    "2026-05-09 - Scuba @ H\u00d6R, Berlin",
+                    "2026-04-27 - Dona Volkova @ H\u00d6R, Berlin",
+                    "2026-04-09 - Diana May @ H\u00d6R, Berlin",
+                    "2026-02-26 - SLV @ H\u00d6R, Berlin",
+                    "2026-02-26 - Alex.Do b2b Hanna Baertig @ H\u00d6R, Berlin",
+                    "2026-02-14 - The Hacker @ 15 Years aufnahme + wiedergabe, H\u00d6R, Berlin",
+                    "2026-02-14 - She's Hearing Voices @ 15 Years aufnahme + wiedergabe, H\u00d6R, Berlin",
+                    "2026-02-14 - La Fete Triste @ 15 Years aufnahme + wiedergabe, H\u00d6R, Berlin",
+                    "2026-02-14 - Flirren (Live PA) @ 15 Years aufnahme + wiedergabe, H\u00d6R, Berlin",
+                    "2026-01-08 - Diana May @ H\u00d6R, Berlin"
+                ]
+            }
         },
         expectChunks: [ "4AM Records", "Milan Hermess", "H\u00d6R" ],
         expectAsked: [ "H\u00d6R" ],
         expectArtists: [ "Milan Hermess" ],
-        expect: "2026-08-05 - Milan Hermess - 4AM Records H\u00d6R (Promo Mix)"
+        expectEntity: "H\u00d6R",
+        expectAlternatives: [ "placeTail" ],
+        expect: "2026-08-05 - Milan Hermess @ H\u00d6R, Berlin"
     }
 ];
