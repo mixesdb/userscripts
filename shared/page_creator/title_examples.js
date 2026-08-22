@@ -1657,18 +1657,23 @@ var mdbTitleExamples = [
         //   Only the one touching the connector was consumed, so the other stayed in the artist
         //   group and in the lookup with it: "Hogi Wirjono All Night Long" was asked about and
         //   "Hogi Wirjono" never.
+        // - and once it WAS asked, the answer had to be read: Category:Hogi Wirjono holds mixes,
+        //   so the channel name "hogi" standing inside it is part of that NAME and not the
+        //   uploader signing their own title. Cutting it out left an "Anton & Wirjono" nobody
+        //   ever played as.
         url: "https://soundcloud.com/hogi/anton-hogi-wirjono-all-night",
         title: "Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC",
         channel: "hogi",
         date: "2026-08-22",
         known: {
-            "Anton":  { type: "artist", mixes: 3 },
-            "Zodiac": { type: "venue", mixes: 4 }
+            "Anton":        { type: "artist", mixes: 3 },
+            "Hogi Wirjono": { type: "artist", mixes: 2 },
+            "Zodiac":       { type: "venue", mixes: 4 }
         },
         expectChunks: [ "Anton & Hogi Wirjono", "ZODIAC" ],
-        expectArtists: [ "Anton", "Wirjono" ],
+        expectArtists: [ "Anton", "Hogi Wirjono" ],
         expectEntity: "Zodiac",
         expectAsked: [ "hogi", "Anton & Hogi Wirjono", "Anton", "Hogi Wirjono", "Zodiac" ],
-        expect: "2026 - Anton & Wirjono @ Zodiac"
+        expect: "2026 - Anton & Hogi Wirjono @ Zodiac"
     }
 ];

@@ -592,6 +592,22 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   the other stayed glued to the artist - and went into the lookup with it. `Hogi Wirjono All
   Night Long` was asked about, `Hogi Wirjono` never was. The joiner rule reads a RUN of markers
   now; each one still has to BE a marker, so no name is swallowed.
+- **The channel name is not cut out of a longer name the wiki knows**
+  (`mdbTitle_channelInsideKnownName`, 2026-08-22, same report): `Category:Hogi Wirjono` holds
+  mixes, so the "hogi" standing inside it is part of that NAME, not the uploader signing their
+  own title - and cutting it out left an `Anton & Wirjono` who never played anywhere, filed
+  under a category nobody has. This is the OTHER half of asking the name: the marker fix put
+  `Hogi Wirjono` into the request, and without this the answer would have come back and changed
+  nothing. Read the way the parse reads a title everywhere else - the BIT the match stands in,
+  then, on the side of the `"@"` it stands on, the member of that bit's line-up
+  (`mdbTitle_splitArtists`) or the part of the place group (`mdbTitle_placeGroupParts`), asked
+  in the role its side gives it. The cut stays the DEFAULT: an uploader really does write their
+  channel name in front of a guest, and only an answer about the longer name overrules that -
+  a name the wiki has never heard of gives no reason to keep it.
+  **The lookup owes the parse both readings of a joined name**, which is what makes the answer
+  reachable at all: an `&` in a candidate asks about the parts AND the whole (`Anton`,
+  `Hogi Wirjono`, `Anton & Hogi Wirjono`) - the group-member split above - since a duo can be a
+  category of its own while a line-up never is.
 - **A name that is nothing but a counting word is no candidate** - `mdbTitleStaticNamePatterns`
   ("Episode 72", "Part 2", "Pt.3", the bare words too) holds the names every mix carries, so
   MixesDB files nothing under them and the wiki could only answer empty. Patterns rather than
