@@ -933,6 +933,30 @@ function mdbTitle_cut( text, index, length ) {
     return text.slice( 0, index ) + " " + text.slice( index + length );
 }
 
+// mdbTitle_episodeWordKept
+// How many characters at the FRONT of an episode match belong to the show rather than to its
+// number: the keyword's length where the wiki knows the name that ends on it, 0 otherwise.
+// A branch that cuts the whole match adds this to the cut's index and takes it off its length.
+//
+// The keyword normally goes with the number it introduced - "pres. Spannung Radio Show #069"
+// leaves the show "Spannung Radio", because the word stood there to announce the number. But
+// the wiki KNOWING the longer name settles what the word is doing there, and it outranks every
+// reading of the shape: "Rhythm Prism Radio" is a podcast with 123 mixes, so its "Radio" is
+// part of the name and "Rhythm Prism" is a category MixesDB does not have. A word that only
+// COUNTS is never part of a name whatever the wiki says about it ("... Episode 72"), the same
+// call the numbered-pair branch makes.
+// See "The channel presenting a series" in title_definitions.js.
+function mdbTitle_episodeWordKept( text, episode, known ) {
+    if( !episode || !episode.word || mdbTitle_isCounterWord( episode.word ) ) return 0;
+
+    // the name the show would be left with if the word stayed - asked exactly as it stands,
+    // and with no Normal Case on the way (mdbTitle_cleanArtist re-cases, which is a side
+    // effect and not a question)
+    var withWord = mdbTitle_trimSeparators( String( text ).slice( 0, episode.index + episode.word.length ) );
+
+    return ( withWord && mdbTitle_knownEntityType( known, withWord ) ) ? episode.word.length : 0;
+}
+
 // mdbTitle_showSuffixWords
 // The curated list lives in title_definitions.js, so the words can be extended without
 // reading the parser. The fallback keeps the parser working on its own.
@@ -2677,7 +2701,8 @@ var mdbTitle_categoryCache = {},
     // Reset with the log - the same name can play a different role on the next page.
     mdbTitle_candidateRoles = {},
     // WHERE each candidate came from: normalized name -> { origin, chunk }. origin is
-    // "channel" | "channel name" | "curated show" | "chunk" | "number kept" | "title field",
+    // "channel" | "channel name" | "channel maker" | "channel show" | "curated show" |
+    // "chunk" | "number kept" | "title field",
     // chunk holds the chunk a name was reduced from when it was one.
     //
     // The panel's section 3 prints it, because the names asked are NOT the chunks shown: the
@@ -3148,9 +3173,22 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
     // the role is what the parse EXPECTS, not a verdict.
     take( spacedUser, "entity", "channel" );
 
+    // A channel CREDITING its maker names two, and its "by" says which role each of them is a
+    // candidate for: what stands in front of the word was made, who stands behind it made it.
+    // Both are asked - on the report this rule came from the maker was an artist with 230
+    // mixes and the show a podcast with 123, while the one name that WAS asked, the channel's
+    // own, could only ever answer empty. Instead of the "/" list below, never next to it: the
+    // halves the two splits make are not the same names.
+    var channelBy = mdbTitle_channelByParts( spacedUser, mdbTitle_spaced( playerTitle ) );
+
+    if( channelBy ) {
+        take( channelBy[0], "artist", "channel maker" );
+        take( channelBy[1], "entity", "channel show" );
+    }
+
     // A channel naming several names is asked about each of them: which one gets used is
     // decided off the title, and the wiki's answer is worth having for whichever it is.
-    for( i = 0; channelNames.length > 1 && i < channelNames.length; i++ ) {
+    for( i = 0; !channelBy && channelNames.length > 1 && i < channelNames.length; i++ ) {
         take( channelNames[i], "entity", "channel name" );
     }
 
@@ -4624,11 +4662,76 @@ function mdbTitle_namesTheChannel( text, name ) {
     return new RegExp( "(^|[^\\w])" + mdbTitle_escapeRe( name ) + "(?![\\w])", "i" ).test( text );
 }
 
+// mdbTitle_startsWithNonName
+// Whether a name opens on a LOWERCASE little word no name opens on - "the Sea". The case is
+// the whole test: "The Martinez Brothers" is a name, "the Sea" is the rest of a phrase. Inside
+// a text shouted throughout, caps say nothing and the word counts in any case, which is what
+// the second parameter carries (mdbTitle_byMarkerFlags decided it). See
+// mdbTitleNonNameLeadWords in title_definitions.js.
+function mdbTitle_startsWithNonName( name, shouted ) {
+    var list = ( typeof mdbTitleNonNameLeadWords !== "undefined" && mdbTitleNonNameLeadWords ) ? mdbTitleNonNameLeadWords : [],
+        lead = /^([A-Za-z\u00C0-\u024F]+)\b/.exec( String( name || "" ) ),
+        word,
+        i;
+
+    if( !list.length || !lead ) return false;
+
+    word = lead[1];
+
+    // a capital opens a name, not a phrase - unless everything around it is capitals too
+    if( !shouted && word !== word.toLowerCase() ) return false;
+
+    for( i = 0; i < list.length; i++ ) {
+        if( list[i] === word.toLowerCase() ) return true;
+    }
+
+    return false;
+}
+
+// mdbTitle_channelByParts
+// A channel name crediting its maker: "WHATS POPPIN by AKA AKA" -> [ "AKA AKA", "WHATS POPPIN" ]
+// - the MAKER first, since that is the name the account puts its mixes out under and these two
+// are not the equal names a "/" lists. null where the channel credits nobody, or where one of
+// the four fences says the "by" is the ordinary English preposition. The TITLE is what the
+// second of them reads: a title spelling the channel name out in full is a second source
+// saying it IS one name. See "A channel name crediting its MAKER" in title_definitions.js.
+function mdbTitle_channelByParts( username, text ) {
+    var name = mdbTitle_trimSeparators( username );
+
+    if( !name ) return null;
+
+    // the case fence of the title's own "by" rule, unchanged - "Stand By Me" carries a word
+    // of the name, "WHATS POPPIN BY AKA AKA" shouts the preposition along with everything else
+    var flags = mdbTitle_byMarkerFlags( name ),
+        m = new RegExp( "^(.+?)\\s+by\\s+(.+)$", flags ).exec( name );
+
+    if( !m ) return null;
+
+    var show = mdbTitle_trimSeparators( m[1] ),
+        maker = mdbTitle_trimSeparators( m[2] );
+
+    if( !show || !maker ) return null;
+
+    // the title writing the whole channel name out ("Death by Audio")
+    if( text && mdbTitle_namesTheChannel( text, name ) ) return null;
+
+    // one name written twice ("Side by Side")
+    if( mdbTitle_normalizeCompare( show ) === mdbTitle_normalizeCompare( maker ) ) return null;
+
+    // ... and a maker that reads as a name at all - no bare number, no series, no phrase
+    if( !mdbTitle_guestIsName( maker ) || mdbTitle_startsWithNonName( maker, flags === "i" ) ) return null;
+
+    return [ maker, show ];
+}
+
 // mdbTitle_pickChannelName
 // Which of a channel's names to use: the one the title names, else the first - an account
 // leads with the name it puts mixes out under.
 function mdbTitle_pickChannelName( text, username ) {
-    var names = mdbTitle_channelNames( username ),
+    // The maker credit is read FIRST and instead of the "/" list: its two halves are not the
+    // equal names a slash lists, and the maker is the one that leads.
+    var byParts = mdbTitle_channelByParts( username, text ),
+        names = byParts || mdbTitle_channelNames( username ),
         i;
 
     if( names.length < 2 ) return username;
@@ -5922,8 +6025,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             if( presSeries ) {
                 var presEpisode = mdbTitle_findEpisode( presSeries[1], true ),
+                    // the keyword goes with the number unless the wiki knows the name carrying
+                    // it - see mdbTitle_episodeWordKept
+                    presKept = mdbTitle_episodeWordKept( presSeries[1], presEpisode, known ),
                     presEntity = presEpisode &&
-                        mdbTitle_cleanArtist( mdbTitle_cut( presSeries[1], presEpisode.index, presEpisode.length ) );
+                        mdbTitle_cleanArtist( mdbTitle_cut( presSeries[1],
+                                                            presEpisode.index + presKept,
+                                                            presEpisode.length - presKept ) );
 
                 if( presEntity ) {
                     logVar( "buildMixesdbTitle: the channel presents a numbered series", presEntity + " " + presEpisode.text );
@@ -5932,7 +6040,8 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                                             { text: presEpisode.text, kind: presEpisode.kind },
                                             false, extraArtists, conf, {
                         artist: "the channel's own name stands in the title, in front of \"presents\"",
-                        entity: "what the channel presents is numbered (" + presEpisode.text + "), and only a series is presented episode by episode"
+                        entity: "what the channel presents is numbered (" + presEpisode.text + "), and only a series is presented episode by episode" +
+                                ( presKept ? " - and \"" + presEpisode.word + "\" stays in front of the number, being part of a name MixesDB knows" : "" )
                     } );
                 }
 

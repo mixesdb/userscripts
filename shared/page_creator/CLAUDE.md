@@ -535,6 +535,40 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   ordinary rules and keeps its lookup, and so does a channel mapped to "" - "no show" still
   leaves the name standing as the likely artist. The generic words ("DJ Mix") stay
   candidates too.
+- **A channel name CREDITING its maker is two names, and its "by" says which is which**
+  (2026-08-22, reported on "AKA AKA pres. Rhythm Prism Radio #053" on the channel "WHATS
+  POPPIN by AKA AKA") - `mdbTitle_channelByParts`, read by `mdbTitle_pickChannelName` in the
+  parse and by `mdbTitle_categoryCandidates` for the lookup. Glued, that name is one MixesDB
+  files nothing under, and the damage is not the wasted request: the channel then stands
+  NOWHERE in the title, so every rule that looks for it there is off - here 4a2, which reads a
+  "pres." behind the channel name as the separator it is, so the whole title went into the
+  entity slot with the channel in front of it and one artist standing in both groups. Split,
+  "AKA AKA" opens the title and the show comes out on its own. Same word, same direction and
+  the same case fence as the title's own "by" rule (`mdbTitle_byMarkerFlags`): what stands in
+  FRONT was made, who stands behind made it. So these are NOT the equal names a "/" lists -
+  the maker LEADS (the account's own name, which is what the title-names-neither fallback
+  picks) and the two are asked in the roles their sides give them, the maker as an artist and
+  the show as an entity. Instead of the "/" split, never next to it.
+  **The four fences are the rule**, since a lowercase "by" is an ordinary preposition and a
+  channel name carries no separator to tell them apart: the case fence ("Stand By Me"), the
+  whole channel name STANDING in the title (`mdbTitle_namesTheChannel` - the title and the
+  account spelling it alike are two sources saying it is one name, which is how a channel
+  really called "Death by Audio" keeps it), the two halves being one name written twice
+  ("Side by Side"), and a maker that reads as a name at all - no bare number, no series
+  (`mdbTitle_guestIsName`) and no LOWERCASE little word no name opens on
+  (`mdbTitleNonNameLeadWords`, "Live by the Sea"; lowercase only, or "The Martinez Brothers"
+  would go with it).
+- **The episode KEYWORD stays in the show name where the wiki knows the name carrying it**
+  (2026-08-22, same report) - `mdbTitle_episodeWordKept`, read by 4a2. "Radio Show #069" comes
+  out as "Radio 069" because the word stood there to announce the number, and that default is
+  a report of its own ("Lilly Palmer pres. Spannung Radio Show #069"). But
+  Category:Rhythm Prism Radio holds 123 mixes, which settles what its "Radio" is doing there:
+  the cut left a "Rhythm Prism" MixesDB does not have while the answer naming the real one was
+  already in hand. The wiki only ever OVERRULES the default - with nothing known the drop
+  stands - and a word that merely counts (`mdbTitleCounterWords`) is never part of a name
+  whatever the wiki says. The numbered-pair branch (4c) makes the same call on the same words
+  with the opposite default, the word STAYING unless it only counts, because there the show
+  name is the numbered bit itself ("Drumcomplexed Radio Show 311") and no word introduced it.
 - **A name that is nothing but a counting word is no candidate** - `mdbTitleStaticNamePatterns`
   ("Episode 72", "Part 2", "Pt.3", the bare words too) holds the names every mix carries, so
   MixesDB files nothing under them and the wiki could only answer empty. Patterns rather than
@@ -1121,12 +1155,13 @@ where it is pasted, and on Discord the headings render:
   `looking it up …`, `lookup failed`, `not asked - over the 10-name request limit`). A case is
   wrong for one of two reasons - the wiki had nothing, or it had the name and the parse picked
   another - and only this block tells them apart afterwards
-- **`## Mistakes / learnings`** - free text, not a bullet: naming the step that went wrong takes
-  a sentence or three
-- **`## Expected`** - the reporter's "Expected title", "Alternative title" and "Expected …
-  category" lines
+- **`## Mistakes / learnings`** - two empty `* ` bullets. Two, because a wrong title is rarely
+  wrong for one reason - a case usually names the step that misread the title AND the rule that
+  should have caught it, and a second bullet standing there is what gets the second one written
+- **`## Expected`** - the reporter's "Expected title", "Expected alternative title" and
+  "Expected … category" lines
 
-"Alternative title" (since 2026-08-19) is a SECOND title that would also be right - the reading
+"Expected alternative title" (since 2026-08-19) is a SECOND title that would also be right - the reading
 the row should have offered as a "Switch title" chip, or one only the reporter can know
 ("Elsewhere Loft" is that club's rooftop). It is the one line that is empty on purpose most of
 the time, and an empty one says there is a single right answer, so it is no reason to ask back. That is exactly the input a case

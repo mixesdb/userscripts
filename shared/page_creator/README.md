@@ -121,6 +121,26 @@ the acronym **spelling the channel name's initials** is the fallback: `DSS` on t
 resemblance rather than evidence, so it costs confidence and says so. Either way a show really
 called by the letters keeps them, and without MixesDB's answers nothing is expanded at all.
 
+A channel name **crediting the person behind the show** – `WHATS POPPIN by AKA AKA` – is two
+names and can never be used as one. MixesDB files nothing under the whole of it, and the wasted
+question is the smaller half of the damage: the channel then stands nowhere in its own titles,
+so every rule that looks for it there is off. `AKA AKA pres. Rhythm Prism Radio #053` came out
+as `2025-03-06 - WHATS POPPIN by AKA AKA - AKA AKA pres. Rhythm Prism Radio 053` – the same
+artist in both halves, neither of them a category. Read apart, the `by` also says which side is
+which: what stands in front of it was made, who stands behind it made it. So `AKA AKA` is the
+artist, standing right at the front of that title, `WHATS POPPIN` is the show, both are looked
+up, and the title becomes `2025-03-06 - AKA AKA - Rhythm Prism Radio 053`. Only a lowercase
+`by` counts – `Stand By Me` carries the word inside a name – and a channel that writes its full
+name into its own titles keeps it whole, which is how a `Death by Audio` stays one name.
+
+A **`pres.` behind the channel name** introduces what the channel presents: numbered, that is
+the channel's own show, so the channel is who played and the series is the show. The keyword
+carrying the number normally leaves with it, since it stood there to announce the number –
+`Lilly Palmer pres. Spannung Radio Show #069` becomes
+`2026-08-14 - Lilly Palmer - Spannung Radio 069`. MixesDB knowing the longer name overrules
+that: `Rhythm Prism Radio` is a podcast with 123 mixes there, so its `Radio` belongs to the
+name and stays in it.
+
 The series' own recent pages then settle the format – but only where those pages can say
 anything about **this** mix. Two things stop them, and then nothing at all is read: the title
 **numbers** its entity while MixesDB knows that name as a venue or an event (a series numbers
@@ -471,9 +491,11 @@ everything a report about a wrong title needs, written as Markdown in four block
   what came back (`* "AKA AKA" -> artist, 230 mixes, 95%`) or with `no category of this name`. It is
   the half of a case nobody can reconstruct afterwards: it says what the wiki knew at the moment
   the title was built
-- **## Mistakes / learnings** – empty, for what went wrong in your own words
+- **## Mistakes / learnings** – two empty bullets, for what went wrong in your own words. Two,
+  because a wrong title rarely has one reason: usually the step that misread it *and* the rule
+  that should have caught it. One of them may stay empty
 - **## Expected** – the title, the alternative title and the categories it should have been.
-  **Alternative title** is the one line that may stay empty on purpose: fill it in when a
+  **Expected alternative title** is the one line that may stay empty on purpose: fill it in when a
   *second* title would also be right – the reading the row should have offered as a
   **Switch title** chip, or the one only you can know
 

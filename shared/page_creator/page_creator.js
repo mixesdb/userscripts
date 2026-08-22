@@ -5413,7 +5413,8 @@ function mdbPageCreator_modalClose() {
  *                               them - URL, title, channel, date, title, score, categories
  *   ## Lookups                  what MixesDB was asked and what came back, split into the
  *                               "Artists:" and "Entities:" the panel's section 3 shows
- *   ## Mistakes / learnings     free text: what went wrong, in the reporter's own words
+ *   ## Mistakes / learnings     two empty bullets: what went wrong, in the reporter's own
+ *                               words - a case usually has two reasons, not one
  *   ## Expected                 the title, the alternative title and the categories it SHOULD
  *                               have produced
  *
@@ -5584,12 +5585,15 @@ function mdbPageCreator_reportText( title ) {
     lines.push( "Entities:" );
     lines = lines.concat( mdbPageCreator_reportLookups( "entity" ) );
 
-    // Free text, not a "-> " line: what went wrong is a sentence or three about the step that
-    // did it (the panel above numbers them), and a bullet asked for one line.
+    // Two empty bullets rather than blank lines: a wrong title is rarely wrong for one reason -
+    // the panel above numbers the steps, and a case usually names the one that misread the
+    // title AND the rule that should have caught it. The second bullet standing there is what
+    // gets it written; an empty block asked for one paragraph and got one sentence.
     lines.push( "" );
     lines.push( "## Mistakes / learnings" );
     lines.push( "" );
-    lines.push( "" );
+    lines.push( "* " );
+    lines.push( "* " );
 
     lines.push( "" );
     lines.push( "## Expected" );
