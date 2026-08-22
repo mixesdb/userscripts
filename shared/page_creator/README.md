@@ -196,6 +196,22 @@ edition a thousand years ahead is read as the year it means – 3000Grad's `Fest
 that stays is `Live PA`: said by the title – or by the description of a live recording – it is
 written as `(Live PA)` behind the artist's name, while the artist category stays the bare name.
 
+Uploaders write **several played-how markers in a row**, and all of them go: `All Night Long DJ
+Set at ZODIAC` says twice over that this was played somewhere, so the whole run becomes the `@`.
+`All Night Long` is one of these markers – a set that goes all night is what a club books, not
+what a feed publishes, and MixesDB writes how long somebody played nowhere. It matters beyond
+the title, because a marker left standing travels into the name in front of it: MixesDB was
+asked about `Hogi Wirjono All Night Long`, a category that cannot exist, and never about
+`Hogi Wirjono`.
+
+The **channel's own name standing inside such a title** no longer takes it over either. Where a
+title carries an `@`, it names the place the set was played at, not something the channel made –
+so the channel is not put in front as the artist with the rest of the title behind it as one
+name. `Anton & Hogi Wirjono All Night Long DJ Set at ZODIAC` on the channel `hogi` used to come
+out as `2026 - hogi - Anton & Wirjono All Night Long @ ZODIAC`, filed under a category of that
+whole length, while MixesDB's answer about `Zodiac` – a venue with 4 mixes – sat unread. It now
+reads `2026 - Anton & Wirjono @ Zodiac`, filed under `Anton`, `Wirjono` and `Zodiac`.
+
 Behind the `@` the group is read as the list of places it is, whichever way the uploader
 punctuated it. A **city glued to the end of a place** gets the comma MixesDB writes it with, so
 the name in front of it ends where the city starts: `Karotte @ AYLI X OURS Frankfurt` becomes

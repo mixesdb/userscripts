@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.4
+// @version      2026.08.22.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,8 +12,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_50
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_74
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_51
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_75
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_110
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
@@ -1903,6 +1903,23 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.22.5
+ * A title that already carries an "@" is a set played SOMEWHERE, and the branch that reads the
+ * channel name out of a title now leaves it alone (title_builder.js v_75). From the "Anton &
+ * Hogi Wirjono All Night Long DJ Set at ZODIAC" report on the channel "hogi": MixesDB answered
+ * "Zodiac" as a venue with 4 mixes, and the suggestion ignored it. The channel's own name stood
+ * inside the title ("hogi" in "Hogi Wirjono"), which sent the title into the branch that makes
+ * the channel the artist and everything else the ENTITY - and an entity is one name, so the
+ * whole place group went in as one and nothing ever read the venue answer. The page was about
+ * to be filed under a brand-new "Anton & Wirjono All Night Long @ ZODIAC".
+ * "All Night Long" is a live marker now, and markers STACK (title_definitions.js v_51,
+ * title_builder.js v_75). The same title wrote two of them in a row ("All Night Long DJ Set
+ * at"), and only the one touching the connector was ever consumed - so the other stayed glued
+ * to the artist and went into the category lookup with it: "Hogi Wirjono All Night Long" was
+ * asked about, "Hogi Wirjono" never was.
+ *     WRONG: 2026 - hogi - Anton & Wirjono All Night Long @ ZODIAC
+ *     RIGHT: 2026 - Anton & Wirjono @ Zodiac
  *
  * 2026.08.22.4
  * The "Report" box is Markdown now, in four headed blocks (page_creator.js v_110): "## Created"

@@ -1552,10 +1552,17 @@ function mdbTitle_applyJoiners( text ) {
             venueWords = venue.length ? mdbTitle_wordListAlternation( venue ) : "",
             connectors = ( venueWords ? "(?:\\s+|(?:\\s*" + sep + "\\s*)+)(?:" + venueWords + ")\\s+|" : "" ) +
                          "\\s*(?:" + sep + "\\s*)*@\\s*",
+            markerWord = "\\b(?:" + mdbTitle_liveWordAlternation( live ) + ")\\b",
+            // Markers STACK: "All Night Long DJ Set at ZODIAC" writes two of them in a row, and
+            // consuming only the one touching the connector leaves the other glued to the name
+            // in front ("Anton & Wirjono All Night Long @ ..."), where it also goes into the
+            // category lookup as part of the artist. So a RUN of markers is read, with the
+            // uploader's own separators allowed between them - each one still has to BE a
+            // marker, so nothing that is a name is swallowed.
             liveRe = new RegExp(
-                "(^|[^\\s" + mdbTitle_sepInner + "])\\s*" + sep + "*\\s*\\b(?:" +
-                mdbTitle_liveWordAlternation( live ) +
-                ")\\b(?:" + connectors + ")", "i" );
+                "(^|[^\\s" + mdbTitle_sepInner + "])\\s*" + sep + "*\\s*" +
+                "(?:" + markerWord + "\\s*" + sep + "*\\s*)*" + markerWord +
+                "(?:" + connectors + ")", "i" );
 
         text = text.replace( liveRe, function( all, before ) {
             // the "@" it produces may already have been in the title ("Live @ Docks"), and then
@@ -6089,6 +6096,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // series, so the channel is its name and not the artist. "LIMB #9 – Yuka" is episode 9
         // of LIMB by Yuka, not a mix by LIMB called "#9 – Yuka".
         if( taken.taken && !taken.extended && !taken.episode && !guestArtist && !isMappedChannel &&
+            rest.indexOf( "@" ) === -1 &&
             !mdbTitle_findEpisode( taken.text, true ) &&
             !/^\s*(?:presents?|pres\.?|w\/|with|feat\.?|ft\.?)\b/i.test( taken.text ) ) {
 
