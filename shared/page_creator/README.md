@@ -462,19 +462,27 @@ a duplicate.
 ### "Report" box
 
 **Report** under the confidence score opens a text box under the row, already filled with
-everything a report about a wrong title needs: the player's URL, the title, channel name and date
-the site handed over, the title that came out of them, the score, and the artist and entity
-categories the page would be filed under. Underneath are the empty lines only you can fill in – what went wrong and
-what the title and its categories should have been. **Alternative title** is the one line that
-may stay empty on purpose: fill it in when a *second* title would also be right – the reading
-the row should have offered as a **Switch title** chip, or the one only you can know.
+everything a report about a wrong title needs, written as Markdown in four blocks:
 
-Copy the box, correct it and post it on Discord. It is always as tall as its text and grows as
-you type. Editing the title field above refills it, but anything typed into the box itself is
-never overwritten.
+- **## Created** – the player's URL, the title, channel name and date the site handed over, the
+  title that came out of them, the score, and the artist and entity categories the page would be
+  filed under
+- **## Lookups** – every name MixesDB was asked about, under `artists:` and `entities:`, each with
+  what came back (`AKA AKA -> artist, 230 mixes, 95%`) or with `no category of this name`. It is
+  the half of a case nobody can reconstruct afterwards: it says what the wiki knew at the moment
+  the title was built
+- **## Mistakes / learnings** – empty, for what went wrong in your own words
+- **## Expected** – the title, the alternative title and the categories it should have been.
+  **Alternative title** is the one line that may stay empty on purpose: fill it in when a
+  *second* title would also be right – the reading the row should have offered as a
+  **Switch title** chip, or the one only you can know
 
-Above the box, a **reasoning panel** shows how the suggestion was built, so the "Mistake /
-learning" line can name the step that went wrong. Its eight sections are numbered in the order
+Copy the box, correct it and post it on Discord, where the headings render as headings. It is
+always as tall as its text and grows as you type. Editing the title field above refills it, and so
+does a lookup answering late, but anything typed into the box itself is never overwritten.
+
+Above the box, a **reasoning panel** shows how the suggestion was built, so the
+**Mistakes / learnings** block can name the step that went wrong. Its eight sections are numbered in the order
 the build really ran: the title is parsed once before MixesDB is asked anything, once more
 with its answers, and then measured against the entity's own recent pages – sections **2**,
 **4** and **5** are the stages that shape the title, and their shared orange accent (the copy

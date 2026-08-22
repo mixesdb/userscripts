@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.1
+// @version      2026.08.22.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_74
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_107
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_108
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1903,6 +1903,21 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.22.2
+ * The "Report" box is Markdown now, in four headed blocks (page_creator.js v_108): "## Created"
+ * with the values the site handed over and what the suggestion made of them, "## Lookups",
+ * "## Mistakes / learnings" for free text, and "## Expected" for the answers only the reporter
+ * has. Pasted on Discord the headings render as headings, and a case file can quote one block
+ * at a time instead of a run of arrow lines.
+ * "## Lookups" is new material, not a re-wording: it lists every name MixesDB was asked about
+ * under "artists:" and "entities:" - the two columns of the reasoning panel's section 3, now
+ * sorted by one shared function - each with what came back ("AKA AKA -> artist, 230 mixes,
+ * 95%") or with "no category of this name". That is the half of a case nobody can reconstruct
+ * afterwards: the categories say what the page was filed under, these lines say what the wiki
+ * knew at the time, which is what tells "the wiki had nothing" from "the wiki had it and the
+ * parse picked the other name" apart. The box now also refills when a lookup answers late,
+ * so an open box is never left quoting "looking it up …".
  *
  * 2026.08.21.16
  * A numbered volume the uploader put out themselves is now filed under Category:Promo Mix
