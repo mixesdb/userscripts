@@ -1212,11 +1212,12 @@ var mdbTitleRecordingNoteFillers = [
  * - written "By" inside a bit that is not, it is a word of the NAME ("Stand By Me"), and
  *   nothing follows it
  *
- * Read in four places: mdbTitle_cleanArtist drops it off the front of what is left over
- * ("... podcast by Neryn" leaves " by Neryn"), rule 5b of buildMixesdbTitle takes it as the
- * separator between an episode number and the artist behind it, rule 6a takes it as the
- * MAKER CREDIT the wiki has confirmed (see below), and rule 5c takes it as the
- * SEPARATOR ITSELF where the uploader typed none:
+ * Read in six places: mdbTitle_cleanArtist drops it off the front of what is left over
+ * ("... podcast by Neryn" leaves " by Neryn") and off the END where a cut took the name it
+ * pointed at with it, mdbTitle_takeShowOutOfTitle refuses to BE that cut, rule 5b of
+ * buildMixesdbTitle takes it as the separator between an episode number and the artist behind
+ * it, rule 6a takes it as the MAKER CREDIT the wiki has confirmed (see below), and rule 5c
+ * takes it as the SEPARATOR ITSELF where the uploader typed none:
  *
  *     "Guestroom 779 by Sascha Sibler"  (channel "PRIVATEPLACES Mixtapes")
  *     WRONG: 2022-06-15 - Guestroom 779 by Sascha Sibler - PRIVATEPLACES Mixtapes
@@ -1256,6 +1257,34 @@ var mdbTitleRecordingNoteFillers = [
  * that let it act - the channel earned nothing from the title and is no known series either,
  * no "@" is left in it, the wiki knows nothing about the written bit as a whole, and what
  * stands in front of the "by" is not a name it knows ONLY as an artist.
+ *
+ * ... and none of that is reachable while another rule has already CUT the credit apart
+ * (2026-08-23):
+ *
+ *     "Rhythm Prism by AKA AKA Episode #117"  (channel "WHATS POPPIN by AKA AKA")
+ *     WRONG: 2026-06-16 - Rhythm Prism by - AKA AKA 117
+ *     ->     2026-06-16 - AKA AKA - Rhythm Prism 117
+ *
+ * The channel credits "AKA AKA" as its maker (see below), so that is the channel name every
+ * rule looks for in the title - and it stands there, right behind the title's own "by". Cut out
+ * as "the channel name standing in the title", it left "Rhythm Prism by": a group ending on the
+ * connector that was introducing somebody, an artist category that cannot exist, and no credit
+ * left for 6a to read. mdbTitle_takeShowOutOfTitle therefore holds the name where a maker's "by"
+ * points at it, exactly as it already holds one a joiner follows ("Tonino & Lanka") - the name
+ * being there says WHO PLAYED, it does not make the title a repeat of the channel name.
+ *
+ * Refusing the cut is not the same as never finding the name, and one branch turns on the
+ * difference: 4a reads "the channel is a known artist and the title never names them" and would
+ * have put the whole title in as what they made. mdbTitle_takeShowOutOfTitle hands the fact over
+ * as byCredit for it.
+ *
+ * The number saying the front of the "by" is a series may also stand BEHIND the maker, which is
+ * where mdbTitle_seriesScore cannot see it - it reads the front alone. "AKA AKA Episode #117" is
+ * nobody's name: a number counting episodes counts the editions of what stands in front of the
+ * word, so the chunk split reads it as the second source the score is missing
+ * (mdbTitle_makerTailEpisode, marked numbers only and only ENDING the side). Without it the
+ * title was one chunk, and the wiki was asked about "Rhythm Prism by AKA AKA Episode" - one of
+ * the ten slots spent on a name it cannot hold.
  */
 var mdbTitleGuestMarkers = [
     "guest mix",
@@ -1505,6 +1534,16 @@ var mdbTitleGuestConnectors = [
  *
  * A channel in mdbTitleUsernameConversions is never split, exactly as above - that name is
  * curated, and whatever stands in it stands there on purpose.
+ *
+ * Once split, the maker is a name that turns up in the titles as well - and there it is the
+ * ARTIST, never the show, whatever the account is called:
+ *
+ *     "Rhythm Prism by AKA AKA Episode #117"  ->  2026-06-16 - AKA AKA - Rhythm Prism 117
+ *
+ * The title credits the same person the channel name does, so the rules that look for the
+ * channel IN the title find them - and reading that as "the title names its show" puts the
+ * maker into the entity slot and whatever is left of the credit into the artist. See the
+ * paragraph on the cut in ""by" says a NAME follows" above for the guard.
  */
 var mdbTitleNonNameLeadWords = [
     "the", "a", "an", "my", "our", "your", "his", "her", "their", "its",

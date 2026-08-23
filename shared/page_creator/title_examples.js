@@ -1775,5 +1775,41 @@ var mdbTitleExamples = [
         expectArtists: [ "Ena b." ],
         expectEntity: "Unrushed 112",
         expect: "2026-07-13 - Ena b. - Unrushed 112"
+    },
+    {
+        // Reported: came out as "2026-06-16 - Rhythm Prism by - AKA AKA 117" - a group closing on
+        // a dangling connector, filed under an artist category that cannot exist. The same
+        // channel as the "pres." case above, with the title writing "by" where that one wrote
+        // "pres." - and this time the credit named the maker the CHANNEL is called after. Three
+        // rules out of the report:
+        // - the channel name is not cut out of the title where a maker's "by" points AT it
+        //   (mdbTitle_takeShowOutOfTitle). "AKA AKA" was taken for the show and cut out of the
+        //   middle of the credit, which left "Rhythm Prism by" for the artist and destroyed the
+        //   one separator the uploader wrote. Left standing, the credit is whole and 6a reads it.
+        // - found is not the same as taken: 4a rests on the title never naming the channel, and
+        //   with the cut refused it would have read the whole title as what they made
+        //   ("AKA AKA - Rhythm Prism by AKA AKA Episode 117"). Hence takeShowOutOfTitle's
+        //   byCredit flag.
+        // - the number ending the maker's side is what says the front of the "by" is a numbered
+        //   series (mdbTitle_makerTailEpisode) - the score cannot see it, the digits being on the
+        //   other side of the word. Without the split this was ONE chunk, so the wiki was asked
+        //   about "Rhythm Prism by AKA AKA Episode" and "AKA AKA Episode", two names it cannot
+        //   hold, while the panel showed one chip for a title the parse reads as two units.
+        // The show is "Rhythm Prism" and not the "Rhythm Prism Radio" of the 053 case because
+        // this title does not write the word: nothing is dropped here, there was never a "Radio"
+        // to keep (mdbTitle_episodeWordKept), and the lookup can only answer about what is asked.
+        url: "https://soundcloud.com/aka-aka/aka-aka-pres-rhythm-prism-radio-117",
+        title: "Rhythm Prism by AKA AKA Episode #117",
+        channel: "WHATS POPPIN by AKA AKA",
+        date: "2026-06-16",
+        known: {
+            "AKA AKA": { type: "artist", mixes: 230 }
+        },
+        expectChunks: [ "Rhythm Prism", "AKA AKA Episode #117" ],
+        expectAsked: [ "AKA AKA", "Rhythm Prism" ],
+        expectNotAsked: [ "Rhythm Prism by AKA AKA Episode", "AKA AKA Episode" ],
+        expectArtists: [ "AKA AKA" ],
+        expectEntity: "Rhythm Prism 117",
+        expect: "2026-06-16 - AKA AKA - Rhythm Prism 117"
     }
 ];
