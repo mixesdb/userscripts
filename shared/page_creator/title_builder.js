@@ -1080,8 +1080,11 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
     // which bit of the title it was standing in - see 4c in buildMixesdbTitle
     var result = { text: text, show: show, taken: false, extended: false, episode: null, index: -1,
                    // the name STOOD in the title and was deliberately left there - see the
-                   // maker-credit guard below, the one case of found-but-not-taken
-                   byCredit: false };
+                   // maker-credit guards below, the two cases of found-but-not-taken
+                   byCredit: false,
+                   // ... and of those two, the one where the name is what was MADE ("Show by
+                   // Artist") rather than who made it ("Show by Channel")
+                   madeCredit: false };
 
     if( !show ) return result;
 
@@ -1185,6 +1188,38 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
         // whole title for what they made; here the title names them in the one place where it
         // also says what their role is, so that premise is gone and the branch has to see it.
         result.byCredit = true;
+        result.index = index;
+        return result;
+    }
+
+    // ... and a maker's "by" right BEHIND the name, with the EPISODE NUMBER on the far side of
+    // it, is the same credit read from the other end: the name is what was MADE and the person
+    // behind the word made it, and the number counts that person's editions of it.
+    //   "Rhythm Prism by AKA AKA Episode #085"  (channel "WHATS POPPIN by AKA AKA", whose
+    //   curated series entry grows the words into "Rhythm Prism Radio" - the show MixesDB
+    //   really files these under, see mdbTitleChannelSeriesConversions)
+    //   WRONG: 2025-10-10 - By - Rhythm Prism Radio 085
+    //   RIGHT: 2025-10-10 - AKA AKA - Rhythm Prism Radio 085
+    // Cutting the show out of the front of the credit leaves exactly the dangling connector the
+    // guard above prevents on the other side, and this time the number's keyword comes with it
+    // ("by AKA AKA Episode #085"): the "by" opens the remainder and becomes the artist, the
+    // "Episode" glues itself to the real one. Left standing, the credit is whole and 6a reads it.
+    // The number ENDING the maker's side is the whole fence, and it is the same reading the
+    // chunk split makes of this title (mdbTitle_makerTailEpisode, called there for the same
+    // reason) - so what the panel shows as two units is what the parse reads as two units.
+    // Without it the guard would swallow every ordinary guest credit, where the cut is right and
+    // better: "Phono music club podcast by Neryn" grows the channel's own spelling into the show
+    // as it cuts it ("PHONO Music Club Podcast"), and the leading "by" left over is what
+    // mdbTitle_cleanArtist takes off.
+    if( new RegExp( "^\\s+by\\s+\\S", mdbTitle_byMarkerFlags( text ) ).test( text.slice( index + length ) ) &&
+        mdbTitle_makerTailEpisode( text.slice( index + length ).replace( new RegExp( "^\\s+by\\s+", mdbTitle_byMarkerFlags( text ) ), "" ) ) ) {
+        logVar( "mdbTitle_takeShowOutOfTitle: a maker's \"by\" stands behind the show name, so the credit stays whole", show );
+
+        // Found, not cut - the same distinction byCredit makes above, and read by the same
+        // branches: the title NAMES this show, so nothing may go on to treat the whole title
+        // as the name of what was made.
+        result.byCredit = true;
+        result.madeCredit = true;
         result.index = index;
         return result;
     }
@@ -4662,6 +4697,19 @@ var mdbTitle_placeTailDropped = null;
 // there - the first pass runs without the wiki's answers and never reduces.
 var mdbTitle_nameCreditDropped = null;
 
+// mdbTitle_curatedNameGrown
+// The words a curated channel rule replaced with the show MixesDB really files under -
+// { words, name }, null on every other title. "Rhythm Prism by AKA AKA Episode #085" writes
+// "Rhythm Prism"; the channel's entry says these episodes are "Rhythm Prism Radio", and THAT
+// is a category the wiki has - so the existing category wins the suggestion, because it is
+// what the page files under and what the recent sibling pages shape the episode number after.
+// The title's own words are the reading that lost, and losing it silently is what this
+// prevents: mdbTitle_result hands it to the hints bar's "Switch title" chip. Set once per
+// suggestion, in the conversion itself, and only where the rule really REWROTE something -
+// a title already carrying the curated name in full ("AKA AKA pres. Rhythm Prism Radio #053")
+// spelled that name itself, so there is no second reading to offer.
+var mdbTitle_curatedNameGrown = null;
+
 // mdbTitle_atEpisodeRead
 // Whether the title wrote an "@" in front of a "#"-numbered episode and the series reading won
 // it (mdbTitle_atEpisodeSeparator), false on every other title. Two things read it, and both
@@ -4885,6 +4933,12 @@ function mdbTitle_cleanArtist( s ) {
     // Same case fence, and the leading whitespace is what keeps it off a name whose last word
     // merely ends in those two letters ("Bobby").
     s = s.replace( new RegExp( "\\s+by$", mdbTitle_byMarkerFlags( s ) ), "" );
+
+    // "AKA AKA pres." - the same net for the other connector, left behind when the cut took
+    // the series it introduced ("AKA AKA pres. Rhythm Prism Radio #053", the show cut out as
+    // the channel's curated one). No case fence needed: unlike "by", no name carries
+    // "presents"/"pres." as an ordinary word.
+    s = s.replace( /\s+(?:presents?|pres\.?)$/i, "" );
 
     s = mdbTitle_trimSeparators( s );
 
@@ -5218,7 +5272,10 @@ function mdbTitle_channelSeriesConversion( text, username ) {
                 } ),
                 entity: entry.entity,
                 words: entry.words,
-                found: found
+                found: found,
+                // the key that matched, so the caller's trace step names the channel the
+                // rule is written for and not whatever name it happened to ask with
+                channel: key
             };
         }
     }
@@ -5686,6 +5743,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_placeWordDropped = null;
     mdbTitle_placeTailDropped = null;
     mdbTitle_nameCreditDropped = null;
+    mdbTitle_curatedNameGrown = null;
     mdbTitle_atEpisodeRead = false;
     mdbTitle_locationDropped = "";
     mdbTitle_placeBitDropped = null;
@@ -5700,6 +5758,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         if( !rest ) return nothing;
 
         username = mdbTitle_spaced( username ).replace( /\s+/g, " " ).trim();
+        // The channel name as the SITE gives it, kept because the reduction further down
+        // ("the channel lists several names, using ...") overwrites username with ONE of its
+        // names. The curated maps are keyed on the full name, and mdbTitle_categoryCandidates
+        // reads them off the full name too - so anything looking a channel up in a map has to
+        // ask with this one, or the two disagree about the very same channel.
+        var channelRaw = username;
         // read for the label credits and the Live PA phrase, and composed for the same reason
         // the two above are - see mdbTitle_titleChunks
         description = mdbTitle_nfc( description );
@@ -5906,7 +5970,16 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // a generic series and lose whose it is. The words grow into the curated name inside
         // the title, so every rule below finds the full name where the half one stood, and the
         // channel counts as mapped to it. See mdbTitleChannelSeriesConversions.
-        var seriesConversion = mdbTitle_channelSeriesConversion( rest, username );
+        // Asked with the FULL channel name first (channelRaw): a channel crediting its maker
+        // is reduced to that maker above ("WHATS POPPIN by AKA AKA" -> "AKA AKA"), and an
+        // entry keyed on the full name - which is how the map is documented and how
+        // mdbTitle_categoryCandidates reads it - was never found again. That was one report's
+        // whole bug: the wiki HAD been asked about the curated show, the answer was in the
+        // panel, and the title still came out with the uncurated words in it.
+        // The reduced name is tried after it, so an entry keyed on one of several names a
+        // channel lists keeps working - the same two shots mdbTitleUsernameConversions gets.
+        var seriesConversion = mdbTitle_channelSeriesConversion( rest, channelRaw ) ||
+                               ( username !== channelRaw ? mdbTitle_channelSeriesConversion( rest, username ) : null );
 
         if( seriesConversion ) {
             logVar( "buildMixesdbTitle: curated channel rule, title words name the show",
@@ -5916,13 +5989,26 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // the title and not looked up. A reporter who reads "these words name the show"
             // alone looks for the rule in the title and does not find it.
             mdbTitle_traceStep( "Curated channel rule: title words name the show",
-                "\"" + seriesConversion.found + "\" on the channel " + username + " -> " + seriesConversion.entity,
-                { from: username, to: seriesConversion.entity, words: seriesConversion.found },
+                "\"" + seriesConversion.found + "\" on the channel " + seriesConversion.channel + " -> " + seriesConversion.entity,
+                { from: seriesConversion.channel, to: seriesConversion.entity, words: seriesConversion.found },
                 [ "mdbTitleChannelSeriesConversions" ] );
             rest = seriesConversion.text;
             show = seriesConversion.entity;
             isMappedChannel = true;
             mdbTitle_traceCleaned( rest );
+
+            // The words the title itself wrote were a reading of their own, and this rule
+            // decided against them - kept here so the "Switch title" chip can offer them back
+            // (mdbTitle_curatedNameGrown). Only where the rule really rewrote the title: a
+            // title spelling the curated name in full matched it as the LONGER of the entry's
+            // two candidates, so the words found and the show are the same name and nothing
+            // was decided against.
+            // The curated KEY goes into the fact, not the words as the title happened to shout
+            // them ("DJ MIX"): a key is hand-written in the spelling a MixesDB title carries,
+            // and the chip writes it straight into the title field.
+            if( mdbTitle_normalizeCompare( seriesConversion.found ) !== mdbTitle_normalizeCompare( seriesConversion.entity ) ) {
+                mdbTitle_curatedNameGrown = { words: seriesConversion.words, name: seriesConversion.entity };
+            }
         }
 
         // 2b) An "@" whose whole tail is a DATE is no joiner - "Ingo Sanger @ August 2026" is
@@ -6695,7 +6781,20 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         rest = taken.text;
         show = taken.show;
 
-        if( username && mdbTitle_normalizeCompare( username ) !== mdbTitle_normalizeCompare( show ) ) {
+        // ... and the channel's own name goes with it, a channel signing its own title saying
+        // nothing about who played. Unless the title gives that name a ROLE: a "pres." right
+        // behind it makes the channel the PRESENTER, which is the artist, and cutting it leaves
+        // the connector dangling and the artist slot empty.
+        //   "AKA AKA pres. Rhythm Prism Radio #053"  (channel "WHATS POPPIN by AKA AKA", whose
+        //   curated series entry names the show, so show and channel differ and this cut runs)
+        //   WRONG: 2025-03-06 - Pres. - Rhythm Prism Radio 053
+        //   RIGHT: 2025-03-06 - AKA AKA - Rhythm Prism Radio 053
+        // Tested here rather than inside mdbTitle_takeShowOutOfTitle, where the same shape means
+        // the opposite: there the name being cut is the SHOW and 4a2 owns what "pres." introduces.
+        var channelPresents = username && new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSpaces( username ) +
+                                                     "\\s+(?:presents?|pres\\.?)(?![\\w])", "i" ).test( rest );
+
+        if( username && !channelPresents && mdbTitle_normalizeCompare( username ) !== mdbTitle_normalizeCompare( show ) ) {
             rest = mdbTitle_takeShowOutOfTitle( rest, username, false, known ).text;
         }
 
@@ -7031,9 +7130,20 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // - and what stands in FRONT of the "by" is not a name the wiki knows ONLY as an
         //   artist: the role answers are never used and argued against in one breath, and
         //   that one would put an artist into the entity slot.
-        var titleBy = ( known && artist && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
+        // - unless the show STANDS in the title as what the "by" says was made
+        //   (mdbTitle_takeShowOutOfTitle's made-credit guard, which is why it was not cut):
+        //   "Rhythm Prism by AKA AKA Episode #085" on "WHATS POPPIN by AKA AKA", where the
+        //   channel's curated series entry has already grown the words into "Rhythm Prism
+        //   Radio" - the show MixesDB really files these under. Both fences above are the
+        //   rule's own DROP asking to be justified, and here nothing is dropped: the show
+        //   goes into the entity slot the credit gives it, curated name and all. Refusing
+        //   the branch instead left the whole credit standing as the artist
+        //   ("2025-10-10 - Rhythm Prism Radio by AKA AKA"), with the curated name asked of
+        //   the wiki, answered as a podcast with 123 mixes, and then thrown away.
+        var showIsMade = !!taken.madeCredit,
+            titleBy = ( known && artist && !taken.taken && !showFromEpisodeRule &&
                         rest.indexOf( "@" ) === -1 &&
-                        !mdbTitle_knownEntityType( known, show ) &&
+                        ( showIsMade || ( !isMappedChannel && !mdbTitle_knownEntityType( known, show ) ) ) &&
                         !mdbTitle_knownAs( known, artist ) )
                     ? mdbTitle_titleByParts( rest )
                     : null,
@@ -7053,7 +7163,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 // and repeated at a title that CREDITS the account's own maker ("Rhythm Prism by
                 // AKA AKA" on "WHATS POPPIN by AKA AKA") they would have said the opposite of
                 // what is on screen. A pick sentence may only say what actually decided.
-                byMakerIsChannel = mdbTitle_normalizeCompare( byMakerName ) === mdbTitle_normalizeCompare( show ),
+                // The channel's own name, not the show read off it: on a channel whose curated
+                // rule named the show ("WHATS POPPIN by AKA AKA" -> "Rhythm Prism Radio") the
+                // two are different names, and it is the account's that the maker is compared to.
+                byMakerIsChannel = mdbTitle_normalizeCompare( byMakerName ) === mdbTitle_normalizeCompare( show ) ||
+                                   mdbTitle_normalizeCompare( byMakerName ) === mdbTitle_normalizeCompare( username ),
                 // ... and whether what they made is a SHOW at all. 5c makes the same call on
                 // the same question: a name nothing says is a series is the mix's own name,
                 // which makes it a self-released mix and puts the page in Category:Promo Mix.
@@ -7086,9 +7200,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                           ? "the same name the channel account is called after, so what the credit settles is their ROLE: they played it, they are not the show"
                           : "which is a stronger answer than the channel name, that the wiki does not know and the title does not write" ),
                 entity: "\"by\" says that what stands in front of it is what was made, so the title names its own show - " +
-                        ( byMakerIsChannel
-                          ? "the channel name was not needed for it, the credit having spent that name on the artist"
-                          : "the channel was not needed and was dropped" )
+                        ( showIsMade
+                          ? "spelled by the curated channel rule of section 2, the words the title carries naming this show only together with the channel"
+                          : byMakerIsChannel
+                            ? "the channel name was not needed for it, the credit having spent that name on the artist"
+                            : "the channel was not needed and was dropped" )
             } );
         }
 
@@ -8344,6 +8460,28 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
             alternatives.push( {
                 kind: "promoMix",
                 reason: "\"" + entity + "\" reads as a series of the artist's own, so \"(Promo Mix)\" was not stacked onto that guess - with the marker the page files under Category:Promo Mix instead of under the name."
+            } );
+        }
+
+        // The words a curated channel rule replaced with the name MixesDB has
+        // (mdbTitle_curatedNameGrown). The existing category wins the suggestion - the page has
+        // to file under it, and the recent pages IN it are what the episode number's spelling is
+        // learned from - but the title's own words were a candidate of their own, and a closer
+        // one, so the reading is offered rather than thrown away.
+        // The filing MOVES with this chip, like the name-credit one: a page's entity category is
+        // read off the title. Only offered where the wiki really answered for the curated name:
+        // the sentence calls it the category MixesDB has, and an unanswered lookup cannot say
+        // that - which also keeps the chip off the first pass, where nothing has been asked yet.
+        if( mdbTitle_curatedNameGrown &&
+            mdbTitle_knownEntityType( mdbTitle_knownNow, mdbTitle_curatedNameGrown.name ) ) {
+            alternatives.push( {
+                kind: "entityName",
+                text: mdbTitle_curatedNameGrown.words,
+                name: mdbTitle_curatedNameGrown.name,
+                reason: "The title names the show \"" + mdbTitle_curatedNameGrown.words + "\", and MixesDB files this channel's" +
+                        " episodes under \"" + mdbTitle_curatedNameGrown.name + "\" - a category it HAS, so that name was written" +
+                        " and the page files under it. Where this episode really belongs under the title's own words, this is" +
+                        " the title."
             } );
         }
 
