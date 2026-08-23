@@ -2455,6 +2455,47 @@ function mdbTitle_gluedSeparators( text ) {
     return mdbTitle_tidySeparators( text );
 }
 
+// mdbTitle_plusToJoiner
+// "Anja Schneider + Ellen Allien @ Watergate" -> "Anja Schneider, Ellen Allien @ Watergate":
+// a "+" between two names is the uploader writing what MixesDB writes as a ",".
+//
+// NOT a character on mdbTitle_sepInner, where every other separator lives, and that is the
+// whole point twice over:
+//   - a "+" is part of a NAME at least as often as it is a boundary ("B+", "AGF+DELAY", "+/-"),
+//     and the class is read in a dozen places, some of which let a separator stand with no
+//     space next to it - with the character in there, "B+ live at Fabric" came out as
+//     "B @ Fabric". Here it needs whitespace on BOTH sides, the same rule
+//     mdbTitleLabelSeparators has always used for the "+" inside a label bracket, so a glued
+//     one is never even seen.
+//   - what the "+" separates are two NAMES, not two parts of the title. Written as a "|" the
+//     two halves became two title groups, and the assembler - which may hand a group holding a
+//     separator to mdbTitle_flattenSeparators - then wrote "Anja Schneider Ellen Allien". The
+//     "," is the joiner MixesDB uses for artists who played one after another
+//     (mdbTitleExtraArtistJoiner) and the one a place group already strings its places with, so
+//     it is right on either side of an "@" - which is where the report's "+" stood.
+//
+// The one "+" between spaces that joins nothing is the one between two NUMBERS: "Vol. 1 + 2"
+// and "Part 3 + 4" are one recording written as one name, and a "," there would file a mix
+// under an artist called "2".
+//
+// Runs with the chunk rewrites (1b0) so that everything below - the groups, the lookup
+// candidates, the categories - sees the names the way MixesDB writes them.
+function mdbTitle_plusToJoiner( text ) {
+    text = String( text || "" );
+
+    if( text.indexOf( "+" ) === -1 ) return text;
+
+    // the digits are CAPTURED rather than only looked at, so "1 + 2" comes back untouched
+    // while "Vol. 1 + Foo" still joins - the digit belongs to whichever side keeps it
+    var out = text.replace( /(\d?)\s+\+\s+(\d?)/g, function( all, digitBefore, digitAfter ) {
+        if( digitBefore && digitAfter ) return all;
+
+        return digitBefore + ", " + digitAfter;
+    } );
+
+    return out === text ? text : out.replace( /\s+/g, " " ).trim();
+}
+
 // mdbTitle_dashWrapsToSeparators
 // "3000Grad Festival -Rummelplatz-" -> "3000Grad Festival | Rummelplatz": a part the uploader
 // WRAPPED in dashes is a chunk of its own, which is the same thing a bracket says - festivals
@@ -5969,13 +6010,14 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
 
     text = locationBrackets.text;
 
-    // the same three chunk rewrites the parse runs (1b0, 1b and 1b2): a glued separator run, a
-    // bracket and a dash wrap are each a chunk boundary of their own. The joke-year mirror
-    // (1b3) goes with them: the digits of "3000Grad Festival 3026" leave the title, so they
-    // belong to no chunk and to no lookup candidate - the same reason the date is mirrored
-    // further down.
+    // the same rewrites the parse runs (1b0, 1b and 1b2): a glued separator run, a bracket and
+    // a dash wrap are each a chunk boundary of their own, and a "+" between two names is the
+    // "," MixesDB joins two artists with. The joke-year mirror (1b3) goes with them: the digits
+    // of "3000Grad Festival 3026" leave the title, so they belong to no chunk and to no lookup
+    // candidate - the same reason the date is mirrored further down.
     var unbracketed = mdbTitle_takeJokeYear( mdbTitle_dashWrapsToSeparators(
-            mdbTitle_bracketsToSeparators( mdbTitle_gluedSeparators( text ), mdbTitle_spaced( username ) ) ) ).text,
+            mdbTitle_bracketsToSeparators(
+                mdbTitle_plusToJoiner( mdbTitle_gluedSeparators( text ) ), mdbTitle_spaced( username ) ) ) ).text,
         // The units are the units the PARSE works with, so the joiners run first: a live
         // marker is gone ("live@3000Grad Festival" holds no chunk "live"), an "at" in front
         // of a place is the " @ " it will be read as. Also what the parse's 3h guard needs:
@@ -6236,16 +6278,26 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             rest = locationBrackets.text;
         }
 
-        // 1b0) a separator run the uploader glued to its neighbour - "Hidden Heights ::Sami J".
-        // Before 1b, so the doubled run is a boundary whether or not the title also happens to
-        // carry a bracket (1b's exit cleans one up on its way past, which is what made the two
-        // titles read differently).
+        // 1b0) the punctuation an uploader separates with without writing a separator: a run
+        // glued to its neighbour ("Hidden Heights ::Sami J"), which becomes a chunk boundary,
+        // and a "+" between two names ("Anja Schneider + Ellen Allien"), which becomes the ","
+        // MixesDB joins two artists with. Before 1b, so the boundary is there whether or not
+        // the title also happens to carry a bracket - 1b's exit cleans a doubled run up on its
+        // way past, which is what made those two titles read differently.
         var unglued = mdbTitle_gluedSeparators( rest );
 
         if( unglued !== rest ) {
             logVar( "buildMixesdbTitle: glued separator read as a separator", rest + " -> " + unglued );
             mdbTitle_traceStep( "Glued separator read as a separator", rest + " -> " + unglued );
             rest = unglued;
+        }
+
+        var unplussed = mdbTitle_plusToJoiner( rest );
+
+        if( unplussed !== rest ) {
+            logVar( "buildMixesdbTitle: \"+\" read as a separator", rest + " -> " + unplussed );
+            mdbTitle_traceStep( "\"+\" read as a separator", rest + " -> " + unplussed );
+            rest = unplussed;
         }
 
         // 1b) brackets are a chunk of their own, exactly like a "|" - written out as one here,

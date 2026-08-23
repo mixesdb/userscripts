@@ -1953,9 +1953,10 @@ var mdbTitleExamples = [
         channel: "SLo Motion",
         date: "2026-08-23",
         description: "A 5 hr live recording of SLo Motion @ Hidden Heights, Gateshead . Special guest Sami J joined residents Doog & Rich. Enjoy the journey.",
-        expectChunks: [ "SLo Motion", "Hidden Heights", "Sami J + Doog & Rich" ],
+        expectChunks: [ "SLo Motion", "Hidden Heights", "Sami J, Doog & Rich" ],
         expectArtists: [ "SLo Motion" ],
         expectEntity: "Hidden Heights",
-        expect: "2026 - SLo Motion @ Hidden Heights, Sami J + Doog & Rich"
+        expectEntities: [ "Hidden Heights", "Sami J", "Doog & Rich" ],
+        expect: "2026 - SLo Motion @ Hidden Heights, Sami J, Doog & Rich"
     }
 ];
