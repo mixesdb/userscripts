@@ -133,6 +133,18 @@ up, and the title becomes `2025-03-06 - AKA AKA - Rhythm Prism Radio 053`. Only 
 `by` counts – `Stand By Me` carries the word inside a name – and a channel that writes its full
 name into its own titles keeps it whole, which is how a `Death by Audio` stays one name.
 
+The **title's own `by`** says the same thing, and MixesDB's answer is what lets it be read where
+the words alone cannot. `112 - unrushed by ena b.` on the channel *u n r u s h* came out as
+`2026-07-13 - u n r u s h - 112 Unrushed By Ena b.` – a numbered mix naming nobody, so the
+channel was taken as who played and the rest went in as one show name, neither of them a
+category. Both halves had been looked up all along: `Unrushed` is a podcast with 111 mixes and
+`Ena b.` an artist with 2, while the channel name is one MixesDB has never heard of and the
+title does not even write. A name the wiki knows as an **artist** is who played, and that
+outweighs a channel name nothing backs, so the title becomes
+`2026-07-13 - Ena b. - Unrushed 112` – in the wiki's spelling, `Ena b.` and not `Ena B.`.
+Without an answer behind the word nothing is split: `Live by the Sea` and `Side by Side` are
+names, and `Summer Vibes by Someone` is only read this way where MixesDB knows `Someone`.
+
 A **`pres.` behind the channel name** introduces what the channel presents: numbered, that is
 the channel's own show, so the channel is who played and the series is the show. The keyword
 carrying the number normally leaves with it, since it stood there to announce the number –

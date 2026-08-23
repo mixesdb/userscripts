@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.22.8
+// @version      2026.08.23.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_52
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_78
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_53
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_79
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -2022,6 +2022,30 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.23.1
+ * A name MixesDB knows in the TITLE now beats a channel name nothing backs (title_builder.js
+ * v_79, title_definitions.js v_53). From the "112 - unrushed by ena b." report on the channel
+ * "u n r u s h": both answers were in hand and both were ignored - "Unrushed" a podcast with
+ * 111 mixes, "Ena b." an artist with 2 - while the name that ended up in the title was the
+ * channel's, which the wiki has never heard of and the title does not even write. Nothing was
+ * wrong with the lookup; what went wrong is which branch took the title. The last of the
+ * branches that return a whole title as ONE name reads it as a numbered series naming NOBODY
+ * and puts the channel in front of the lot - and "names nobody" is exactly the claim the
+ * lookup can disprove. So a new rule stands in front of it: where the title's own "by" has a
+ * name MixesDB files as an ARTIST behind it, the title does name somebody, and that name wins.
+ * The wiki is the second source the old "by" rule says is missing. That one asks the WORDS -
+ * the bit in front of the word has to carry a number or a series word, since "Side by Side"
+ * and "Live by the Sea" are names - and "unrushed" carries neither, so the split never
+ * happened. An answer about the name behind the word settles it the way the numbered-name and
+ * the acronym rules are settled: nothing in the words can decide, only the wiki can. Both
+ * halves are asked about by design now, next to the chunk like every other reduction, instead
+ * of being reached by accident. The answer settles the spelling too, and where what was made
+ * is no known show and nothing numbers it, the mix is the artist's own and the page goes into
+ * Category:Promo Mix ("SET BY DJ MARIA." -> "DJ MARIA. - SET (Promo Mix)").
+ *     WRONG: 2026-07-13 - u n r u s h - 112 Unrushed By Ena b.
+ *     RIGHT: 2026-07-13 - Ena b. - Unrushed 112
+ * 156 examples, all pass.
  *
  * 2026.08.22.8
  * The wiki's answer about a place is READ now, and a category's OWN PAGES are what say it is
