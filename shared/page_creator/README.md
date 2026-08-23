@@ -375,7 +375,10 @@ chip at all is asked too, which is where a show hides on a mix filed as a promo:
 `Promo Mix` is a category, so the wiki was told no about "NTS" and nobody looked further – while
 `NTS Radio` has been there all along. Only names the title really carries, and only ones the
 wiki was really asked about and really denied: a name that merely opens one of the chips above
-(`HATE` under a green `HATE Podcast`) is left alone, since that filing is already settled.
+(`HATE` under a green `HATE Podcast`) is left alone, since that filing is already settled. So is a
+bare number: where the title counts its edition (`Trommel 251`), what MixesDB has that starts with
+`251` is another series' episode and nothing else, so that name is not asked the looser way at all
+- the reasoning panel and the report say so in its place.
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
@@ -556,7 +559,7 @@ a duplicate.
 ### "Report" box
 
 **Report** under the confidence score opens a text box under the row, already filled with
-everything a report about a wrong title needs, written as Markdown in four blocks:
+everything a report about a wrong title needs, written as Markdown in five blocks:
 
 - **## Created** – the player's URL, the title, channel name and date the site handed over, the
   title that came out of them, the score, and the artist and entity categories the page would be
@@ -565,6 +568,13 @@ everything a report about a wrong title needs, written as Markdown in four block
   what came back (`* "AKA AKA" -> artist, 230 mixes, 95%`) or with `no category of this name`. It is
   the half of a case nobody can reconstruct afterwards: it says what the wiki knew at the moment
   the title was built
+- **## Similar lookups** – the looser round behind the names that came back empty up there: the
+  categories whose names merely *start* like one of them, listed under the name they were found
+  for, each with its type, its mix count, the same % the reasoning panel scores it with and
+  whether the bar's "Similar:" row showed it or dropped it and why. It says whether MixesDB
+  really has nothing under a name or has it spelled longer (`103` → `103 Club`), which is
+  usually where the right title comes from. A name with nothing behind it says so: `no category
+  starts like this name either`
 - **## Mistakes / learnings** – two empty bullets, for what went wrong in your own words. Two,
   because a wrong title rarely has one reason: usually the step that misread it *and* the rule
   that should have caught it. One of them may stay empty

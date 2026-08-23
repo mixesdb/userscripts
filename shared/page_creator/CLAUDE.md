@@ -1151,6 +1151,17 @@ each of which a case walked into while building:
   inside "toshikiohtants" there and every short name would find itself somewhere. The wiki's
   prefix mode matches at word granularity too (row_enrichment.md §1), so both ends agree about
   where a name begins.
+- **A bare NUMBER the title counts its edition with stays out** (`mdbPageCreator_isEditionNumber`,
+  2026-08-23): "251" behind "Trommel 251" is the episode number the build already decided on, and
+  it reaches this round the ordinary way - a bare-number chunk is a lookup candidate like any
+  other, the wiki says no about it, and the title writes it. Asking what MixesDB has that STARTS
+  with "251" can only answer with other series' episodes, which is why only the LOOSER round
+  refuses it: the exact round's answer is about this very name and stays worth having. The digits
+  are read off the ENTITY slot (`mdbPageCreator_editionNumbers`), where a MixesDB title writes its
+  episode number - the two shapes `mdbPageCreator_entityIsNumbered` knows, a separator plus digits
+  ("Trommel 251") and the bracketed ID ("RA Podcast (RA.1051)") - so a slot that is nothing BUT
+  digits counts no edition and its name is asked as usual. "084" and "84" are one edition, the
+  padding being how the series writes its number.
 - **A name that OPENS one the bar carries stays out** (`mdbPageCreator_nameStartsName`): "HATE"
   next to a green "HATE Podcast" chip would ask a looser question about a filing the bar has
   already settled, and the family around a name the wiki KNOWS is a whole addition of its own
@@ -1164,6 +1175,13 @@ each of which a case walked into while building:
 `mdbPageCreator_similarCategoriesHint` walks that same list rather than the bar's entries a
 second time - half of those names are on no chip - which is what keeps the row and the request
 from ever disagreeing about what was asked. A name with nothing cached simply renders nothing.
+
+A name the round REFUSES to ask about does not vanish with it: `mdbPageCreator_prefixMissingNames`
+takes an optional `skipped` array, `mdbPageCreator_prefixDecisions` hands one in and appends what
+came back as records with `status: "skipped"` and the sentence saying why, and section 8 and the
+report box print that sentence where they print a status. The row itself never sees them - it
+renders shown answers and these have none - and the request never carried them. A denied name
+leaving the round without a word is precisely what that section exists to prevent.
 
 ## The "Switch title" line (hints bar, since 2026-08-19)
 
@@ -1255,7 +1273,7 @@ renders them. Settled, so it does not get re-litigated:
 ## Title suggestion reports
 
 Reports come out of the **"Report" box** under the score (`mdbPageCreator_reportText()` in
-`page_creator.js`). Since 2026-08-22 it is **Markdown in four headed blocks** - the box is read
+`page_creator.js`). Since 2026-08-22 it is **Markdown in headed blocks** - the box is read
 where it is pasted, and on Discord the headings render:
 
 - **`## Created`** - the page URL, the player title, the channel name **as the site's API gives
@@ -1269,6 +1287,18 @@ where it is pasted, and on Discord the headings render:
   `looking it up …`, `lookup failed`, `not asked - over the 10-name request limit`). A case is
   wrong for one of two reasons - the wiki had nothing, or it had the name and the parse picked
   another - and only this block tells them apart afterwards
+- **`## Similar lookups`** (since 2026-08-23) - the reasoning panel's section 8 as text:
+  the prefix round behind the names the block above answered empty about, read off
+  `mdbPageCreator_prefixDecisions()` - the SAME walk the bar's "Similar:" row and section 8
+  render from, so the box can never claim a chip the reporter did not see. Two levels: the asked
+  name in quotes with a bare `->`, and under it one `** ` line per answer -
+  `** 103 Club, venue, 2 mixes, 40%, shown on the "Similar:" row`, or `..., not shown - ` and the
+  walk's own reason (the 3-per-name cap, the mix minimum, already a chip on the bar, already
+  shown under an earlier name). A name with no answer carries the status behind the arrow in
+  section 8's wording, `no category starts like this name either` above all. It is the block that
+  separates "the wiki has nothing" from "the wiki has it spelled longer", which is where an
+  expected title usually comes from - and it is hints only, so it stands OUTSIDE `## Lookups`:
+  those lines built the title, these were only offered next to it
 - **`## Mistakes / learnings`** - two empty `* ` bullets. Two, because a wrong title is rarely
   wrong for one reason - a case usually names the step that misread the title AND the rule that
   should have caught it, and a second bullet standing there is what gets the second one written
@@ -1280,6 +1310,11 @@ the row should have offered as a "Switch title" chip, or one only the reporter c
 ("Elsewhere Loft" is that club's rooftop). It is the one line that is empty on purpose most of
 the time, and an empty one says there is a single right answer, so it is no reason to ask back. That is exactly the input a case
 needs - do not ask back for any of it when the box was used.
+
+The two late-answering rounds refill the box (`mdbPageCreator_fillReport()`, a no-op on a closed
+box and on one the reporter has written in): the exact lookup for `## Lookups`, and the prefix
+round's own settle path - success AND failure - for `## Similar lookups`. A block quoting a
+request's status must never outlive the request.
 
 Every line left for the reporter keeps **one blank behind its colon** - that is where the cursor
 goes, and a line ending in ":" makes the writer type the space first. Keep it when the block

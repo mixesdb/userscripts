@@ -1932,6 +1932,59 @@ function mdbPageCreator_nameStartsName( name, other ) {
     return true;
 }
 
+// mdbPageCreator_editionNumbers
+// The digits the FINISHED title counts this edition with - "251" out of "Trommel 251", "5" out
+// of "Undercurrent 5", "1051" out of "RA Podcast (RA.1051)". Read off the ENTITY slot, the one
+// place a MixesDB title writes an episode number - the same two shapes
+// mdbPageCreator_entityIsNumbered asks that slot about - and off the finished title rather than
+// off what the parse had in mind, like every other reading in here: an edited title numbers its
+// edition itself.
+function mdbPageCreator_editionNumbers( title ) {
+    var read = mdbTitle_titleCategories( title ),
+        names = ( read.entities && read.entities.length ) ? read.entities : ( read.entity ? [ read.entity ] : [] ),
+        out = [],
+        i, name, m;
+
+    for( i = 0; i < names.length; i++ ) {
+        name = String( names[i] || "" ).trim();
+
+        // the digits behind a separator ("Trommel 251", "Trommel.251"), or the bracketed
+        // episode ID at the end ("RA Podcast (RA.1051)"). A slot that is nothing BUT digits
+        // matches neither: nothing there is being counted, the number IS the name.
+        m = name.match( /[\s.](\d{1,5})$/ ) || name.match( /\(\D*(\d{1,5})\)$/ );
+
+        if( m && out.indexOf( m[1] ) === -1 ) out.push( m[1] );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_isEditionNumber
+// Is this name nothing but the number the title already counts this edition with? Such a name
+// is never asked for SIMILAR categories: the prefix round would ask what MixesDB has that
+// starts with "251", and every answer to that is another series' episode - two numbers starting
+// alike is no name resemblance at all. The exact round asks it and is right to (a bare-number
+// chunk is a candidate like any other, and that answer is about this very name); only the
+// looser question has nothing to find.
+//
+// The digits test comes first, so the title is parsed only for the rare name that is one.
+function mdbPageCreator_isEditionNumber( title, name ) {
+    var text = String( name || "" ).trim(),
+        numbers, i;
+
+    if( !/^\d{1,5}$/.test( text ) ) return false;
+
+    numbers = mdbPageCreator_editionNumbers( title );
+
+    for( i = 0; i < numbers.length; i++ ) {
+        // "084" and "84" count the same edition: the padding is how the series writes its
+        // number (mdbTitle_findEpisode keeps it exactly as the title has it), not another one
+        if( parseInt( numbers[i], 10 ) === parseInt( text, 10 ) ) return true;
+    }
+
+    return false;
+}
+
 // mdbPageCreator_prefixMissingNames
 // The names of this title the exact lookup answered EMPTY about, in the order the request
 // should ask them. Two rounds, and the row renders off this same list, so the two can never
@@ -1947,14 +2000,26 @@ function mdbPageCreator_nameStartsName( name, other ) {
 //    (dropped over the 10-name limit) or whose request died is not one the wiki denied, and a
 //    chip saying "MixesDB has no category ..." about it would be a lie.
 //
+//    ... and a name that is nothing but the number the title counts this edition with stays
+//    out of BOTH rounds: "251" behind "Trommel 251" is the episode number the build already
+//    decided on, and what MixesDB has that STARTS with it can only be another series' episode
+//    (mdbPageCreator_isEditionNumber).
+//
 //    ... and a name that OPENS one the bar already carries stays out: "HATE" next to a chip
 //    reading "HATE Podcast" would only ask a looser question about a filing the bar has
 //    already settled, and the family around a name the wiki KNOWS is a whole addition of its
 //    own that is not built (row_enrichment.md §1, the Dekmantel case). Where the longer name
 //    is red it is being asked in this very request, and every answer the shorter one could
 //    add would sit under the same three-chip cap.
-function mdbPageCreator_prefixMissingNames( title ) {
+//
+// skipped, where a caller hands one over, collects what was refused as { name, why }: the
+// panel's section 8 prints those names too, since a denied name leaving the round without a
+// word is what that section exists to prevent. The request path passes nothing and simply
+// never asks them.
+function mdbPageCreator_prefixMissingNames( title, skipped ) {
     var entries = mdbPageCreator_categoryEntries( title ),
+        // the one sentence the panel gets about a refused name, wherever it was refused
+        editionWhy = "not asked - it is the number the title counts this edition with, and a category whose name merely starts with it is another series' episode",
         log = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
         cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
         out = [],
@@ -1972,6 +2037,12 @@ function mdbPageCreator_prefixMissingNames( title ) {
         if( !key || seen[key] ) continue;
 
         seen[key] = true;
+
+        if( mdbPageCreator_isEditionNumber( title, entry.name ) ) {
+            if( skipped ) skipped.push( { name: entry.name, why: editionWhy } );
+            continue;
+        }
+
         out.push( entry.name );
     }
 
@@ -1993,6 +2064,12 @@ function mdbPageCreator_prefixMissingNames( title ) {
         if( opensBarName ) continue;
 
         seen[key] = true;
+
+        if( mdbPageCreator_isEditionNumber( title, log[i].name ) ) {
+            if( skipped ) skipped.push( { name: log[i].name, why: editionWhy } );
+            continue;
+        }
+
         out.push( log[i].name );
     }
 
@@ -2078,6 +2155,10 @@ function mdbPageCreator_prefixEnsure( title ) {
             var row = $("#mdb-pageCreator");
 
             mdbPageCreator_renderHints( row );
+            // the report's "Similar lookups" block quotes these answers, so it follows them
+            // too - without this an open box keeps saying "looking for similar names …" for a
+            // request that has long since answered (no-op on a closed box and on a written-in one)
+            mdbPageCreator_fillReport( row );
             mdbPageCreator_renderReasoning( row );
         },
         error: function( xhr, status ) {
@@ -2087,6 +2168,12 @@ function mdbPageCreator_prefixEnsure( title ) {
             for( var i = 0; i < wanted.length; i++ ) {
                 mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( wanted[i] ) ].status = "failed";
             }
+
+            // the failure is a line in the box as much as in the panel - same two surfaces
+            var row = $("#mdb-pageCreator");
+
+            mdbPageCreator_fillReport( row );
+            mdbPageCreator_renderReasoning( row );
         }
     });
 }
@@ -2103,10 +2190,12 @@ function mdbPageCreator_prefixEnsure( title ) {
 // bar's entries a second time: half of those names are on no chip (the promo case in the
 // section comment above), and a walk reading a different list than the request could only ever
 // judge less than was asked for. A name with nothing cached - the request has not settled, or
-// it fell off the 10-name limit - carries its status and no decisions.
+// it fell off the 10-name limit - carries its status and no decisions, and one the round
+// REFUSED to ask (status "skipped") carries its reason instead.
 function mdbPageCreator_prefixDecisions( title ) {
     var entries = mdbPageCreator_categoryEntries( title ),
-        names = mdbPageCreator_prefixMissingNames( title ),
+        skipped = [],
+        names = mdbPageCreator_prefixMissingNames( title, skipped ),
         taken = {},
         out = [],
         i, j, name, cached, rec, match, shown, matchKey, mixes, why;
@@ -2161,6 +2250,13 @@ function mdbPageCreator_prefixDecisions( title ) {
 
             rec.decisions.push( { index: j, mixes: mixes, shown: !why, why: why } );
         }
+    }
+
+    // ... and the names the round refused to ask about at all, behind the asked ones: they
+    // carry no answers and no verdicts, only the reason. The row never sees them - it renders
+    // shown decisions and these have none - and the request never carried them either.
+    for( i = 0; i < skipped.length; i++ ) {
+        out.push( { name: skipped[i].name, status: "skipped", why: skipped[i].why, matches: [], decisions: [] } );
     }
 
     return out;
@@ -5430,12 +5526,15 @@ function mdbPageCreator_modalClose() {
  * The report box
  *
  * "Report" behind the score opens a textarea under the row, holding the case as it is written
- * when a wrong title is reported - as Markdown, in four headed blocks:
+ * when a wrong title is reported - as Markdown, in five headed blocks:
  *
  *   ## Created                  the values the site handed over and what the suggestion made of
  *                               them - URL, title, channel, date, title, score, categories
  *   ## Lookups                  what MixesDB was asked and what came back, split into the
  *                               "Artists:" and "Entities:" the panel's section 3 shows
+ *   ## Similar lookups          the looser round behind the names that answered empty up there -
+ *                               the panel's section 8 as text, every answer under the name it
+ *                               was found for, with the "Similar:" row's verdict
  *   ## Mistakes / learnings     two empty bullets: what went wrong, in the reporter's own
  *                               words - a case usually has two reasons, not one
  *   ## Expected                 the title, the alternative title and the categories it SHOULD
@@ -5608,6 +5707,18 @@ function mdbPageCreator_reportText( title ) {
     lines.push( "Entities:" );
     lines = lines.concat( mdbPageCreator_reportLookups( "entity" ) );
 
+    // The looser round behind the names the block above came back EMPTY about - the panel's
+    // section 8 as text. It answers what "no category of this name" leaves open: the wiki can
+    // still hold that name inside a longer one ("103" -> "103 Club"), which is the difference
+    // between "MixesDB does not know this" and "MixesDB knows it, spelled otherwise" - and the
+    // second one is where an expected title usually comes from. Nothing here changed the
+    // suggestion, so it stands as its own block rather than inside "Lookups": those lines are
+    // what the title was built on, these are what was merely offered next to it.
+    lines.push( "" );
+    lines.push( "## Similar lookups" );
+    lines.push( "" );
+    lines = lines.concat( mdbPageCreator_reportSimilar( title ) );
+
     // Two empty bullets rather than blank lines: a wrong title is rarely wrong for one reason -
     // the panel above numbers the steps, and a case usually names the one that misread the
     // title AND the rule that should have caught it. The second bullet standing there is what
@@ -5714,6 +5825,73 @@ function mdbPageCreator_reportAnswer( entry, matches, overruledBy ) {
     }
 
     return parts.join( " | " );
+}
+
+// mdbPageCreator_reportSimilar
+// The "Similar lookups" block: the prefix round behind every name the exact lookup denied,
+// written as the panel's section 8 shows it - the asked name, and under it one line per answer
+// with the verdict the bar's "Similar:" row gave it.
+//
+// Read off mdbPageCreator_prefixDecisions(), the same walk the row and section 8 render from,
+// so a report can never claim a chip was shown that the reporter did not see. Two levels
+// because the answers belong TO the asked name: a flat list would lose which name "103 Club"
+// was found for, and that pairing is the whole point of the block.
+//
+// The asked name is quoted like the "Lookups" block's - a name can carry the comma and the
+// arrow its line is built from - while the category the wiki answered with is not: it opens
+// its line, where nothing can be read into it.
+function mdbPageCreator_reportSimilar( title ) {
+    var decisions = mdbPageCreator_prefixDecisions( title ),
+        lines = [],
+        i, j, rec, d, match, bits;
+
+    // in the panel's own words, so the two say the same thing about a title with nothing denied
+    if( !decisions.length ) return [ "* no denied names - nothing to look for similar categories to" ];
+
+    for( i = 0; i < decisions.length; i++ ) {
+        rec = decisions[i];
+
+        // No answer at all: the request's status stands behind the arrow, in section 8's
+        // wording. "no category starts like this name either" is the one that matters - it
+        // says the wiki has nothing under the name in any spelling, which is what makes a
+        // report about it a rule case rather than a lookup case.
+        if( !rec.decisions.length ) {
+            lines.push( "* \"" + rec.name + "\" -> " + (
+                  rec.status === "pending" ? "looking for similar names …"
+                : rec.status === "failed"  ? "the request failed - not retried, the row is only a hint"
+                : rec.status === "skipped" ? rec.why
+                : rec.status === "unasked" ? "not asked yet - over the 10-name request limit"
+                : "no category starts like this name either" ) );
+            continue;
+        }
+
+        // the arrow with nothing behind it: the answers are the lines under it
+        lines.push( "* \"" + rec.name + "\" ->" );
+
+        for( j = 0; j < rec.decisions.length; j++ ) {
+            d = rec.decisions[j];
+            match = rec.matches[ d.index ];
+            bits = [ String( match.title || "?" ), String( match.type || "?" ) ];
+
+            bits.push( d.mixes + ( d.mixes === 1 ? " mix" : " mixes" ) );
+
+            // section 3's score, as the panel badges it here too - a prefix answer is charged
+            // for the asked name being only the START of the category's, which is why these
+            // percentages read low next to the "Lookups" block's
+            if( typeof mdbTitle_matchConfidence === "function" ) {
+                bits.push( mdbTitle_matchConfidence( rec.name, rec.matches, d.index, false ).percent + "%" );
+            }
+
+            // and what the row did with it, in the walk's own sentence: a dropped answer says
+            // which threshold dropped it, which is half of what a report about a missing hint
+            // is about
+            bits.push( d.shown ? "shown on the \"Similar:\" row" : "not shown - " + d.why );
+
+            lines.push( "** " + bits.join( ", " ) );
+        }
+    }
+
+    return lines;
 }
 
 // mdbPageCreator_reportDay
@@ -7061,6 +7239,7 @@ function mdbPageCreator_reasoningSimilar( title ) {
         if( !rec.decisions.length ) {
             if( rec.status === "pending" )      result.append( mdbPageCreator_reasoningNote( "looking for similar names …", "info" ) );
             else if( rec.status === "failed" )  result.append( mdbPageCreator_reasoningNote( "the request failed - not retried, the row is only a hint", "bad" ) );
+            else if( rec.status === "skipped" ) result.append( mdbPageCreator_reasoningNote( rec.why, "muted" ) );
             else if( rec.status === "unasked" ) result.append( mdbPageCreator_reasoningNote( "not asked yet - over the 10-name request limit", "muted" ) );
             else                                result.append( mdbPageCreator_reasoningNote( "no category starts like this name either", "muted" ) );
         }
