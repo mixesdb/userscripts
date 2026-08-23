@@ -4704,10 +4704,13 @@ var mdbTitle_nameCreditDropped = null;
 // is a category the wiki has - so the existing category wins the suggestion, because it is
 // what the page files under and what the recent sibling pages shape the episode number after.
 // The title's own words are the reading that lost, and losing it silently is what this
-// prevents: mdbTitle_result hands it to the hints bar's "Switch title" chip. Set once per
-// suggestion, in the conversion itself, and only where the rule really REWROTE something -
-// a title already carrying the curated name in full ("AKA AKA pres. Rhythm Prism Radio #053")
-// spelled that name itself, so there is no second reading to offer.
+// prevents: mdbTitle_result hands it to the hints bar's "Switch title" chip.
+// Set once per suggestion, at the BUILD's conversion step and nowhere else - the candidate
+// list runs the same conversion (mdbTitle_categoryCandidates) to know what to ask the wiki
+// about, and a signal about the SUGGESTION belongs to the build alone, exactly like
+// mdbTitle_atEpisodeRead. And only where the rule really REWROTE something: a title already
+// carrying the curated name in full ("AKA AKA pres. Rhythm Prism Radio #053") spelled that
+// name itself, so there is no second reading to offer.
 var mdbTitle_curatedNameGrown = null;
 
 // mdbTitle_atEpisodeRead

@@ -524,8 +524,18 @@ says why the build decided the other way. Offered today:
   maharishi`) and those words came off, because MixesDB has no category under the whole name
   while it knows the act. The chip offers the written name back (`… - Kode9 - …` becomes
   `… - Kode9 For Maharishi - …`), for the titles where the words really are part of the name.
-  This is the one chip that moves the **filing** with it: a page's artist category is read off
-  the title, so it decides whether the page joins the act's category or gets one of its own.
+  Like the `(Promo Mix)` chip this one moves the **filing** with it: a page's artist category is
+  read off the title, so it decides whether the page joins the act's category or gets one of its
+  own.
+
+- **The show's full name over the title's own words** – the channel has a rule saying which show
+  its episodes belong to, and the title writes only half of that name: `Rhythm Prism by AKA AKA
+  Episode #085` is an episode of `Rhythm Prism Radio`, which is the category MixesDB really has.
+  The suggestion gets the existing category – it is what the page files under, and its pages are
+  what the episode number's spelling is copied from – and the chip offers the title's own words
+  back (`… - Rhythm Prism 085`), since they were the reading closest to what the uploader wrote.
+  This chip moves the **filing** too: the page's entity category is read off the title, so it
+  decides whether the episode joins the show's category or opens one under the title's words.
 
 - **The month as the name** – the title dated itself with a month and named nothing else, so
   it was written the way MixesDB writes a monthly mix (`… - August Promo Mix`). The chip offers
