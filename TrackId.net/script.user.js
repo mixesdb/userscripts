@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.12
+// @version      2026.08.23.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_87
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_117
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -2023,8 +2023,8 @@ function on_submitrequest() {
 /*
  * Changelog
  *
- * 2026.08.23.12
- * Two ways an uploader separates without typing a separator (title_builder.js v_87).
+ * 2026.08.23.13
+ * Two ways an uploader separates without typing a separator (title_builder.js v_88).
  * Reported on "SLo Motion @ Hidden Heights ::Sami J + Doog & Rich", channel "SLo Motion":
  *     WRONG: 2026 - SLo Motion @ Hidden Heights ::Sami J + Doog & Rich
  *     RIGHT: 2026 - SLo Motion @ Hidden Heights, Sami J, Doog & Rich
@@ -2042,18 +2042,23 @@ function on_submitrequest() {
  * share already cleaned a doubled run up on its way past: the same title got the fix when it
  * happened to carry a bracket and did not when it did not.
  *
- * And a " + " between two names is written as the "," MixesDB joins two artists with. The "+"
- * is deliberately NOT a character on the separator class: it is part of a name at least as
- * often as it is a boundary ("B+", "AGF+DELAY", "+/-"), and some of the dozen places reading
- * that class let a separator stand with no space next to it - with the character in there,
- * "B+ live at Fabric" came out as "B @ Fabric". So it needs whitespace on both sides, which is
- * the rule a label bracket has used for its "+" all along. A "," and not a "|" because what a
- * "+" separates are two NAMES, not two parts of the title: as a "|" the halves became two
- * groups and the assembler flattened them into "Anja Schneider Ellen Allien". The "," is right
- * on either side of an "@" - it joins artists who played one after another and strings the
- * places of a place group, which is where the reported "+" stood. A "+" between two NUMBERS
- * joins nothing and stays: "Vol. 1 + 2" is one recording, and a "," there files a mix under an
- * artist called "2".
+ * And a " + " between two names separates them. The "+" is deliberately NOT a character on the
+ * separator class: it is part of a name at least as often as it is a boundary ("B+",
+ * "AGF+DELAY", "+/-"), and some of the dozen places reading that class let a separator stand
+ * with no space next to it - with the character in there, "B+ live at Fabric" came out as
+ * "B @ Fabric". So it needs whitespace on both sides, which is the rule a label bracket has
+ * used for its "+" all along.
+ * The TITLE gets a "," and the CHUNKS get a boundary - the same split in two answers, the way
+ * mdbTitle_splitEventComma already cuts a chunk the suggested title keeps whole. In the title,
+ * what a "+" separates are two NAMES and not two parts of the title: written as a separator the
+ * halves became two title groups and the assembler flattened them into "Anja Schneider Ellen
+ * Allien", while the "," is the joiner MixesDB uses for artists who played one after another
+ * and the one a place group already strings its places with - right on either side of an "@",
+ * which is where the reported "+" stood. In the chunks the two names have to be two units, or
+ * the wiki is asked about "Sami J, Doog & Rich" - a name nobody can be filed under - on top of
+ * the two real ones, and the panel shows them as one chip.
+ * A "+" between two NUMBERS separates nothing and stays: "Vol. 1 + 2" is one recording, and a
+ * "," there files a mix under an artist called "2".
  * 163 examples, all pass.
  *
  * 2026.08.23.11
