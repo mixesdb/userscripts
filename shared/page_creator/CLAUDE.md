@@ -1256,6 +1256,37 @@ renders them. Settled, so it does not get re-litigated:
   `mdbTitle_placeGroupNames` skips a country, so both readings put the page under the same
   name. The decision is charged (5) and says so in the reasons, and the date is a gig's in
   either reading - `mdbTitle_atEpisodeRead` is what the date step reads for that.
+- **A candidate decided against in favour of an EXISTING category is offered back**
+  (2026-08-23, the rule out of the third Rhythm Prism report). Where two names are in the
+  running for the entity - one a category MixesDB HAS, the other standing closer to what the
+  title actually wrote - the existing category wins the suggestion: it is what the page files
+  under, and its recent pages are what the number's spelling is then learned from
+  (`mdbPageCreator_applyRecentToSuggestion`). The closer reading is not thrown away for it. It
+  becomes a chip, so the two are one click apart instead of one of them being invisible.
+  The curated channel rule is the first case of it: a `mdbTitleChannelSeriesConversions` entry
+  grows the words a title carries into the show the channel's episodes really file under
+  ("Rhythm Prism by AKA AKA Episode #085" -> `Rhythm Prism Radio`), and the words the title
+  wrote become kind `entityName`. `mdbTitle_curatedNameGrown` carries the fact, set in the
+  conversion itself. Mechanics worth keeping:
+  - **toggled on the NAME, not on a slot** - the entity group carries the episode number and
+    can carry a "(Promo Mix)" behind it, so the name is the only fixed point in it
+  - **the LONGER of the two names is searched first**, whichever it is: the curated show can
+    hold the title's words ("Rhythm Prism Radio" holds "Rhythm Prism") and the words can hold
+    the show ("Juno Daily - In The Mix" holds "Juno Daily"), and the shorter one always matches
+    inside the longer. Searched with `mdbTitle_escapeReLooseSeparators`, the way the curated
+    rule matches its own keys - the same name is written with a dash, an en dash, a colon or
+    nothing at all
+  - **the fact is only set where the rule really REWROTE the title.** A title spelling the
+    curated name in full ("AKA AKA pres. Rhythm Prism Radio #053") matched it as its entry's
+    LONGER candidate, so nothing was decided against and there is no second reading
+  - **and the chip is only offered where the wiki ANSWERED for the curated name.** The chip's
+    sentence calls it the category MixesDB has, which an unasked name cannot claim - which is
+    also what keeps the chip off the first pass, where nothing has been asked yet
+  - **the filing moves with it**, like the name credit's: a page's entity category is read off
+    the title, so the switch is what puts the page under the title's own words
+  - the curated words go into the fact as the map's KEY, not as the title shouted them
+    ("DJ MIX"): a key is hand-written in the spelling a MixesDB title carries, and the chip
+    writes it straight into the field
 - **A chip may never propose a DIFFERENT PAGE, only a different title for this one.** That is
   the line every candidate reading is measured against, and it is what rules out the dropped
   chunks of 1c - "Part 2" above all (dropped again 2026-08-19, second round: it had been built

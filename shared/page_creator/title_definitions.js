@@ -401,6 +401,10 @@ var mdbTitleUsernameConversions = {
  *   in full and halved needs two of them ("Juno Daily - In The Mix" AND "In The Mix"). They
  *   are searched TOGETHER, longest name first, so the order they are written in does not
  *   matter and the more specific of two overlapping names always wins
+ * - and the words a title really wrote are NOT lost when an entry rewrites them: the show
+ *   MixesDB has wins the suggestion, and the key is offered next to it as a "Switch title"
+ *   chip (kind "entityName", mdbTitle_curatedNameGrown). Which is why a key is worth writing
+ *   in the spelling a MixesDB title would carry - the chip writes it into the title field
  */
 var mdbTitleChannelSeriesConversions = {
     "Dance TV": { "DJ Mix": "Dance TV DJ Mix" }, // https://soundcloud.com/dancetelevision/mister-joshooa-detroit-usa
