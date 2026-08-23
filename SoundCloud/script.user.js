@@ -1905,22 +1905,36 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * Changelog
  *
  * 2026.08.23.13
- * A separator run glued to its neighbour splits the title again (title_builder.js v_87).
- * Reported on "SLo Motion @ Hidden Heights ::Sami J + Doog & Rich", channel "SLo Motion": the
- * "::" carried no space behind it, and the split every rule below works on wants whitespace on
- * BOTH sides of a separator - so the tail rode along inside the venue name, was looked up as one
- * name and filed the page under it.
+ * Two ways an uploader separates without typing a separator (title_builder.js v_87).
+ * Reported on "SLo Motion @ Hidden Heights ::Sami J + Doog & Rich", channel "SLo Motion":
  *     WRONG: 2026 - SLo Motion @ Hidden Heights ::Sami J + Doog & Rich
- *     RIGHT: 2026 - SLo Motion @ Hidden Heights, Sami J + Doog & Rich
- * The entity category is Category:Hidden Heights now, where it was the whole glued string
- * before - a category nobody can ever have.
+ *     RIGHT: 2026 - SLo Motion @ Hidden Heights, Sami J, Doog & Rich
+ * The entity category was that whole glued string - a category nobody can ever have - and is
+ * Category:Hidden Heights now, with Sami J and Doog & Rich offered next to it.
+ *
+ * A GLUED separator run splits the title again. The "::" carried no space behind it, and the
+ * split every rule below works on wants whitespace on BOTH sides of a separator - so the tail
+ * rode along inside the venue name, was looked up as one name and filed the page under it.
  * What makes the exception safe is the DOUBLING: nothing writes two of the SAME separator
  * character in a row inside a name, so "::", "//", "||" and "--" are a boundary wherever they
- * stand, spaces or not. A single glued separator is left alone - that one is genuinely a time
- * ("20:00"), a date ("13/03/2025") or a name ("Jay-Z") as often as it is a boundary. The step
- * runs next to the bracket and the dash-wrap rewrites and BEFORE both of them, because the exit
- * those two share already cleaned a doubled run up on its way past: the same title got the fix
- * when it happened to carry a bracket and did not when it did not.
+ * stand, spaces or not. A single glued separator is left alone - that one is a time ("20:00"),
+ * a date ("13/03/2025") or a name ("Jay-Z") as often as it is a boundary. The step runs next to
+ * the bracket and the dash-wrap rewrites and BEFORE both of them, because the exit those two
+ * share already cleaned a doubled run up on its way past: the same title got the fix when it
+ * happened to carry a bracket and did not when it did not.
+ *
+ * And a " + " between two names is written as the "," MixesDB joins two artists with. The "+"
+ * is deliberately NOT a character on the separator class: it is part of a name at least as
+ * often as it is a boundary ("B+", "AGF+DELAY", "+/-"), and some of the dozen places reading
+ * that class let a separator stand with no space next to it - with the character in there,
+ * "B+ live at Fabric" came out as "B @ Fabric". So it needs whitespace on both sides, which is
+ * the rule a label bracket has used for its "+" all along. A "," and not a "|" because what a
+ * "+" separates are two NAMES, not two parts of the title: as a "|" the halves became two
+ * groups and the assembler flattened them into "Anja Schneider Ellen Allien". The "," is right
+ * on either side of an "@" - it joins artists who played one after another and strings the
+ * places of a place group, which is where the reported "+" stood. A "+" between two NUMBERS
+ * joins nothing and stays: "Vol. 1 + 2" is one recording, and a "," there files a mix under an
+ * artist called "2".
  * 163 examples, all pass.
  *
  * 2026.08.23.12
