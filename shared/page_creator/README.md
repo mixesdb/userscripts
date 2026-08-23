@@ -400,6 +400,15 @@ hardly any mixes are left out. Which answers were left out, and why each one was
 screen too – section 8 of the reasoning panel lists every answer the request brought back
 with its verdict.
 
+Where exactly **one** such category comes back for the name in the title's **entity** slot, it
+does not stay a hint: it is written into the suggestion (`… - Dirtybird Radio 540` becomes
+`… - Dirtybird Radio Show 540`), because a category that exists is what the page can file under
+and its pages are what the episode number's spelling is copied from. The name the title wrote is
+not lost – it is offered back as a **Switch title** chip, one click away. With two or three
+answers nothing is written, since the row cannot tell which series is meant; each of them is
+offered as a **Switch title** chip instead. Artist names are never written this way: a category
+whose name merely starts like a person's is usually a different person.
+
 The red chips are not the only names asked. A name the **title** writes that never became a
 chip at all is asked too, which is where a show hides on a mix filed as a promo: in
 `NTS - Sacred Pools - Toshiki Ohta - August 2026` nothing but the year, the artist and
@@ -557,6 +566,13 @@ says why the build decided the other way. Offered today:
   back (`… - Rhythm Prism 085`), since they were the reading closest to what the uploader wrote.
   This chip moves the **filing** too: the page's entity category is read off the title, so it
   decides whether the episode joins the show's category or opens one under the title's words.
+
+- **The name MixesDB has instead of the one written** – the title's show name is no category,
+  and the looser round found one whose name starts with it (`Dirtybird Radio` →
+  `Dirtybird Radio Show`, a show with 9 mixes). Where it was the only answer it is already in
+  the title, and the chip offers the name as the uploader wrote it back; where several came
+  back the title is untouched and each of them is a chip. The **filing** moves with this chip:
+  the page's entity category is read off the title.
 
 - **The month as the name** – the title dated itself with a month and named nothing else, so
   it was written the way MixesDB writes a monthly mix (`… - August Promo Mix`). The chip offers

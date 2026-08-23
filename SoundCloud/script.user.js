@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.8
+// @version      2026.08.23.10
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_55
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_83
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_56
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_84
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_115
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_116
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1903,6 +1903,42 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.23.10
+ * A similar category is written into the title, and the name MixesDB denied is offered back
+ * (page_creator.js v_116). Reported on "Dirtybird Radio 540 - Mitch Dodge", channel "DIRTYBIRD":
+ * the exact lookup answered empty about "Dirtybird Radio", the prefix round found
+ * "Dirtybird Radio Show" - a show with 9 mixes - and that answer reached the bar's "Similar:"
+ * row and nothing else, so the suggestion kept a name MixesDB does not have while the name it
+ * has sat on a yellow chip next to it.
+ *     WRONG: 2026-08-07 - Mitch Dodge - Dirtybird Radio 540
+ *     RIGHT: 2026-08-07 - Mitch Dodge - Dirtybird Radio Show 540
+ * Where the round finds exactly ONE such category for the title's ENTITY, it now goes into the
+ * suggestion, and the entity's recent pages are read for the episode format right after, as for
+ * any other entity - a category that exists is what the page files under and what its number's
+ * spelling comes from. The name the title wrote is not thrown away: it becomes the "Switch
+ * title" chip, one click back. With two or three answers nothing is written - the row cannot
+ * tell which series is meant - and every one of them is offered as a chip instead, which is the
+ * floor this never goes under. Artists are left out: a category whose name merely starts like a
+ * person's is usually a different person.
+ * The title builder is untouched by it - prefix answers still never enter its cache. What
+ * changes is a finished title, in the row, and the promoted name then goes through the ordinary
+ * exact lookup like any name typed into the field.
+ *
+ * 2026.08.23.9
+ * A series word left standing alone is dropped with the channel name it belonged to
+ * (title_builder.js v_84, title_definitions.js v_56). Reported on "Nocturna #038 // Max Hefele
+ * [Melodic Deep Series]", channel "Melodic Deep": the uploader signed the last chunk with the
+ * channel name plus the word saying what the channel is. Cutting the channel out of a chunk it
+ * signed is right - a channel signing its own title says nothing about who played - but what it
+ * left behind was a chunk reading "Series", which then glued itself onto the artist.
+ *     WRONG: 2026-08-07 - Max Hefele Series - Nocturna 038
+ *     RIGHT: 2026-08-07 - Max Hefele - Nocturna 038
+ * "Series" is no artist and no show: a word off mdbTitleShowSuffixWords names a show only
+ * together with a name, so once that name is gone there is nothing left of it and the chunk goes
+ * too. A NUMBER behind the word is the other case and stays - there the chunk counts an episode
+ * that still has to be named with the channel ("Podcast #323").
+ * 160 examples, all pass.
  *
  * 2026.08.23.8
  * The channel's URL is asked about where no NAME reaches the series (page_creator.js v_115,
