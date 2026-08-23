@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.11
+// @version      2026.08.23.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_86
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_87
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_117
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
@@ -2022,6 +2022,25 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.23.12
+ * A separator run glued to its neighbour splits the title again (title_builder.js v_87).
+ * Reported on "SLo Motion @ Hidden Heights ::Sami J + Doog & Rich", channel "SLo Motion": the
+ * "::" carried no space behind it, and the split every rule below works on wants whitespace on
+ * BOTH sides of a separator - so the tail rode along inside the venue name, was looked up as one
+ * name and filed the page under it.
+ *     WRONG: 2026 - SLo Motion @ Hidden Heights ::Sami J + Doog & Rich
+ *     RIGHT: 2026 - SLo Motion @ Hidden Heights, Sami J + Doog & Rich
+ * The entity category is Category:Hidden Heights now, where it was the whole glued string
+ * before - a category nobody can ever have.
+ * What makes the exception safe is the DOUBLING: nothing writes two of the SAME separator
+ * character in a row inside a name, so "::", "//", "||" and "--" are a boundary wherever they
+ * stand, spaces or not. A single glued separator is left alone - that one is genuinely a time
+ * ("20:00"), a date ("13/03/2025") or a name ("Jay-Z") as often as it is a boundary. The step
+ * runs next to the bracket and the dash-wrap rewrites and BEFORE both of them, because the exit
+ * those two share already cleaned a doubled run up on its way past: the same title got the fix
+ * when it happened to carry a bracket and did not when it did not.
+ * 163 examples, all pass.
  *
  * 2026.08.23.11
  * A name is asked in its other spellings once MixesDB denies it (title_builder.js v_86,

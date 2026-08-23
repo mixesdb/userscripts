@@ -1946,5 +1946,16 @@ var mdbTitleExamples = [
         expectArtists: [ "Paco Wegman" ],
         expectEntity: "EGAFTER.189",
         expect: "2026-08-21 - Paco Wegman - EGAFTER.189"
+    },
+    {
+        url: "https://soundcloud.com/deathbeforedisco_ne63/slomotionsamij",
+        title: "SLo Motion @ Hidden Heights ::Sami J + Doog & Rich",
+        channel: "SLo Motion",
+        date: "2026-08-23",
+        description: "A 5 hr live recording of SLo Motion @ Hidden Heights, Gateshead . Special guest Sami J joined residents Doog & Rich. Enjoy the journey.",
+        expectChunks: [ "SLo Motion", "Hidden Heights", "Sami J + Doog & Rich" ],
+        expectArtists: [ "SLo Motion" ],
+        expectEntity: "Hidden Heights",
+        expect: "2026 - SLo Motion @ Hidden Heights, Sami J + Doog & Rich"
     }
 ];
