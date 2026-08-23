@@ -2420,6 +2420,41 @@ function mdbTitle_tidySeparators( text ) {
     return out.replace( /\s+/g, " " ).trim();
 }
 
+// mdbTitle_gluedSeparators
+// "SLo Motion @ Hidden Heights ::Sami J + Doog & Rich" -> "SLo Motion @ Hidden Heights | Sami J
+// + Doog & Rich": a separator run the uploader wrote WITHOUT the spaces around it. The split
+// every rule below uses wants whitespace on BOTH sides of a separator (a single ":" is the one
+// exception, and it still needs the space behind it), for the good reason that a lone "-", "/"
+// or ":" also lives inside a name, a time and a date ("Jay-Z", "1/2 Faultierdisko", "20:00",
+// "13/03/2025"). So " ::Sami J + Doog & Rich" was no boundary at all: the whole tail rode along
+// inside the venue name, was looked up as one name and filed the page under one.
+//
+// What makes the exception safe is the DOUBLING: nothing writes two of the SAME separator
+// character in a row inside a name, so "::", "//", "||", "--" is a boundary wherever it stands,
+// spaces or not. A single glued separator stays untouched - that one is genuinely ambiguous.
+//
+// Next to mdbTitle_bracketsToSeparators and mdbTitle_dashWrapsToSeparators and for their
+// reason: what comes out is an ordinary chunk, so every rule below splits the title without
+// having to know that a separator can be glued to its neighbour. It runs FIRST of the three
+// (1b0), because mdbTitle_tidySeparators - which the other two call at their exit - already
+// cleans a doubled run up on its way past: before this, the same title got the fix when it
+// happened to carry a bracket and did not when it did not.
+function mdbTitle_gluedSeparators( text ) {
+    text = String( text || "" );
+
+    var sep = "[" + mdbTitle_sepInner + "]",
+        // a character that is neither whitespace nor a separator, i.e. the start of a name
+        nonSep = "[^\\s" + mdbTitle_sepInner + "]",
+        // a doubled run TOUCHING such a character on either side - that is the missing space
+        glued = new RegExp( nonSep + "(" + sep + ")\\1+|(" + sep + ")\\2+" + nonSep );
+
+    if( !glued.test( text ) ) return text;
+
+    // The doubled run is already what mdbTitle_tidySeparators turns into a " | ", along with
+    // one at either end of the title, so there is nothing to rewrite by hand here.
+    return mdbTitle_tidySeparators( text );
+}
+
 // mdbTitle_dashWrapsToSeparators
 // "3000Grad Festival -Rummelplatz-" -> "3000Grad Festival | Rummelplatz": a part the uploader
 // WRAPPED in dashes is a chunk of its own, which is the same thing a bracket says - festivals
@@ -5934,12 +5969,13 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
 
     text = locationBrackets.text;
 
-    // the same two chunk rewrites the parse runs (1b and 1b2): a bracket and a dash wrap are
-    // each a chunk of their own. The joke-year mirror (1b3) goes with them: the digits of
-    // "3000Grad Festival 3026" leave the title, so they belong to no chunk and to no lookup
-    // candidate - the same reason the date is mirrored further down.
+    // the same three chunk rewrites the parse runs (1b0, 1b and 1b2): a glued separator run, a
+    // bracket and a dash wrap are each a chunk boundary of their own. The joke-year mirror
+    // (1b3) goes with them: the digits of "3000Grad Festival 3026" leave the title, so they
+    // belong to no chunk and to no lookup candidate - the same reason the date is mirrored
+    // further down.
     var unbracketed = mdbTitle_takeJokeYear( mdbTitle_dashWrapsToSeparators(
-            mdbTitle_bracketsToSeparators( text, mdbTitle_spaced( username ) ) ) ).text,
+            mdbTitle_bracketsToSeparators( mdbTitle_gluedSeparators( text ), mdbTitle_spaced( username ) ) ) ).text,
         // The units are the units the PARSE works with, so the joiners run first: a live
         // marker is gone ("live@3000Grad Festival" holds no chunk "live"), an "at" in front
         // of a place is the " @ " it will be read as. Also what the parse's 3h guard needs:
@@ -6198,6 +6234,18 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             logVar( "buildMixesdbTitle: location bracket dropped", locationBrackets.dropped.join( " | " ) );
             // no trace step, same reason as the label credit above
             rest = locationBrackets.text;
+        }
+
+        // 1b0) a separator run the uploader glued to its neighbour - "Hidden Heights ::Sami J".
+        // Before 1b, so the doubled run is a boundary whether or not the title also happens to
+        // carry a bracket (1b's exit cleans one up on its way past, which is what made the two
+        // titles read differently).
+        var unglued = mdbTitle_gluedSeparators( rest );
+
+        if( unglued !== rest ) {
+            logVar( "buildMixesdbTitle: glued separator read as a separator", rest + " -> " + unglued );
+            mdbTitle_traceStep( "Glued separator read as a separator", rest + " -> " + unglued );
+            rest = unglued;
         }
 
         // 1b) brackets are a chunk of their own, exactly like a "|" - written out as one here,
