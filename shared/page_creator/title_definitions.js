@@ -403,7 +403,8 @@ var mdbTitleChannelSeriesConversions = {
         "Juno Daily – In The Mix": "Juno Daily", // https://soundcloud.com/junodailyonline/juno-daily-in-the-mix-space
         "In The Mix": "Juno Daily"               // https://soundcloud.com/junodailyonline/in-the-mix-ben-diggins
     },
-    "Playhaus": { "Playhaus": "Playhaus Podcast" } // https://soundcloud.com/playhausww/playhaus-001-guliver
+    "Playhaus": { "Playhaus": "Playhaus Podcast" }, // https://soundcloud.com/playhausww/playhaus-001-guliver
+    "WHATS POPPIN by AKA AKA": { "Rhythm Prism": "Rhythm Prism Radio" } // https://soundcloud.com/aka-aka/rhythm-prism-by-aka-aka-episode-085
 };
 
 
