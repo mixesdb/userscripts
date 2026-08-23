@@ -339,6 +339,43 @@ function mdbPageCreator_add( options ) {
         mdbPageCreator_prefixEnsure( mdbPageCreator_title );
 
         mdbPageCreator_render();
+
+        // The last question, and the only one that asks about no name: which MixesDB category
+        // page LINKS this channel's URL (mdbPageCreator_channelCatEnsure). Fired after
+        // everything above and with a tail of its own - it is one more request, and a channel
+        // whose name the wiki knows never gets that far anyway.
+        mdbPageCreator_channelCatEnsure( second.title, function( changed ) {
+            if( !changed || !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            var input = $("#mdb-pageCreator-title");
+
+            // an answer arriving after the editor has typed is a suggestion about a title that
+            // no longer exists - the same fence the recent-pages refinement stands behind
+            if( input.length && input.data( "mdb-edited" ) ) {
+                log( "mdbPageCreator_add: the channel URL knew better, but the title was edited - not rewritten." );
+                return;
+            }
+
+            // The whole parse once more, from the player title: the channel is mapped to the
+            // show now (mdbTitle_channelUrlShows), which is a thing step 2 reads - patching the
+            // finished title would have to redo everything that follows from it.
+            var third = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache, description );
+
+            if( third.title !== second.title ) {
+                logVar( "mdbPageCreator_add: the channel's URL knew better", second.title + "  ->  " + third.title );
+            }
+
+            // section 4 of the panel is "what the lookups changed", and this IS one of them
+            mdbPageCreator_titlePostLookup = third.title;
+
+            mdbPageCreator_setTitle( third, o.durationMs );
+
+            // the new entity has its own sibling pages - the third title stage runs again for it
+            mdbPageCreator_applyRecentToSuggestion();
+            mdbPageCreator_prefixEnsure( mdbPageCreator_title );
+
+            mdbPageCreator_render();
+        });
     });
 }
 
@@ -3192,6 +3229,418 @@ function mdbPageCreator_applyAlternative( fact ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * The channel's URL - the lookup that asks about no NAME at all
+ *
+ * Every lookup above asks the wiki about names: the exact round (mdbTitle_lookupCategories),
+ * the prefix round behind the names it denied (mdbPageCreator_prefixEnsure). Both are blind to
+ * the channel whose name on the site is not the name on MixesDB - and there is nothing to spell
+ * right in between:
+ *
+ *     SoundCloud channel  "EG en Español"      soundcloud.com/egesp
+ *     MixesDB category    "Electronic Groove en Español Podcast"   (podcast, 90 mixes)
+ *
+ * The exact round answers empty, the prefix round answers empty ("EG en Español" starts no
+ * category), and the 90 pages of the series sit there filed under a name no rule could reach.
+ *
+ * The wiki holds the connection all the same, as a LINK: a series' category page carries the
+ * channel's URL in its text ("https://soundcloud.com/egesp" is the whole body of
+ * Category:Electronic Groove en Español Podcast). So the last question worth asking is not
+ * about a name at all - it is "which category page links this channel?", and MediaWiki answers
+ * it with one request: list=exturlusage, namespace 14, the API behind Special:LinkSearch.
+ *
+ * What the answer is worth - and what it is not:
+ *
+ * - It is evidence about the CHANNEL and about nothing else. A category linking this channel
+ *   is the wiki saying whose category it is; it does not say that THIS upload is an episode of
+ *   it. So the finding hardens the channel name and stops there: it becomes the runtime twin
+ *   of an mdbTitleUsernameConversions entry (mdbTitle_channelUrlShows in title_builder.js),
+ *   the same "this channel's uploads are filed under that show" a maintainer would write by
+ *   hand - never a name written into the title from somewhere else.
+ * - And it is only written where THIS title backs it (mdbPageCreator_channelCatSupport): the
+ *   title writing the name, a denied candidate opening it, the id its pages number their
+ *   episodes with standing in the title. Without support the finding is reported and changes
+ *   nothing - a channel can host a series and still upload a festival set.
+ *
+ * Two requests when it fires, and only when the names left something open: one exturlusage,
+ * and the ordinary name lookup for what came back - the category has to arrive with its type,
+ * its mix count and its recent pages like every other answer, and a category MixesDB gives no
+ * type is not applied at all (a typeless category is not an artist and not a series).
+ *
+ * Cached per CHANNEL, not per page: the answer is about the channel, and the reader walking
+ * ten tracks of the same one costs one request. The support test is re-run per title, since
+ * that half is a question about the upload.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// What the channel-URL round found, keyed by the channel URL's needle (host + path, see
+// mdbPageCreator_channelUrlNeedle): { status: "pending"|"done"|"failed", needle,
+// cats: [ { title, url } ] (namespace 14, prefix bleed filtered out) }. Never reset - see the
+// section comment; what did NOT happen for the current title is mdbPageCreator_channelCatSkip.
+var mdbPageCreator_channelCatCache = {},
+    // How many linking category pages are fetched. A channel is linked from one category, two
+    // where an artist has both an artist and a show category (Deep Space Helsinki has); ten is
+    // room for the odd case and still a list a reader can look at.
+    mdbPageCreator_channelCatLimit = 10,
+    // Why the round did not fire for THIS title, or "" - the panel says so rather than leaving
+    // its block empty, since "not asked" and "asked, nothing found" are different answers.
+    mdbPageCreator_channelCatSkip = "";
+
+// mdbPageCreator_channelUrlNeedle
+// The channel URL reduced to what NAMES the channel: "https://www.soundcloud.com/egesp/" ->
+// "soundcloud.com/egesp". Scheme, "www."/"m.", a query, a fragment and a trailing slash all
+// come off - they are how a URL is written, not which channel it points at.
+// "" where there is nothing to compare: no channel URL handed over, or a URL without a path -
+// a bare host would match every category whose pages embed anything from that site.
+function mdbPageCreator_channelUrlNeedle( url ) {
+    var needle = String( url || mdbPageCreator_channelUrl || "" ).toLowerCase()
+            .replace( /^https?:\/\//, "" )
+            .replace( /^(?:www|m)\./, "" )
+            .replace( /[?#].*$/, "" )
+            .replace( /\/+$/, "" );
+
+    return needle.indexOf( "/" ) === -1 ? "" : needle;
+}
+
+// mdbPageCreator_channelUrlIsChannel
+// Is this URL the channel itself (or a page of it), rather than one that merely STARTS like it?
+// The fence around the API's answer: LinkSearch matches the path as a prefix, so a query for
+// "soundcloud.com/deep-space" answers with deep-space-helsinki and deep-space-series alike.
+// A URL part has to end where the needle does - "/", "?" or "#", or the string.
+function mdbPageCreator_channelUrlIsChannel( url, needle ) {
+    var got = String( url || "" ).toLowerCase()
+            .replace( /^https?:\/\//, "" )
+            .replace( /^(?:www|m)\./, "" )
+            .replace( /\/+$/, "" );
+
+    if( !needle || !got ) return false;
+    if( got === needle ) return true;
+
+    return got.indexOf( needle ) === 0 && "/?#".indexOf( got.charAt( needle.length ) ) !== -1;
+}
+
+// mdbPageCreator_channelCatWanted
+// Whether this title still has a question the channel's URL could answer: a category the wiki
+// KNOWS in the artist slot and one in the entity slot leave none - the mix has a name for who
+// played and a name for what it is part of, both of them the wiki's own.
+//
+// Deliberately not "nothing was found at all": the common miss is the half one. "EGE.090 Adonis
+// Rivera" resolves the artist perfectly and leaves the series to the raw channel name, which is
+// exactly the case this round exists for.
+function mdbPageCreator_channelCatWanted( title ) {
+    var entries = mdbPageCreator_categoryEntries( title ),
+        artist = false,
+        entity = false,
+        i;
+
+    for( i = 0; i < entries.length; i++ ) {
+        if( entries[i].role !== "artist" && entries[i].role !== "entity" ) continue;
+        if( mdbPageCreator_usedCategoryState( entries[i] ).verdict !== "known" ) continue;
+
+        if( entries[i].role === "artist" ) artist = true;
+        else entity = true;
+    }
+
+    return !( artist && entity );
+}
+
+// mdbPageCreator_titleEpisodeIds
+// The episode-id letters a text writes: "EGE" out of "EGE.090", "DSS" out of "DSS 140",
+// "RA" out of "RA.971". Caps and at least two letters, and a number has to follow them - that
+// shape is an id and nothing else, which is what keeps an ordinary word of a SHOUTED title
+// from reading as one.
+function mdbPageCreator_titleEpisodeIds( text ) {
+    var re = /\b([A-Z]{2,})[\s.#-]*\d{1,5}\b/g,
+        out = [],
+        found;
+
+    while( ( found = re.exec( String( text || "" ) ) ) !== null ) {
+        if( out.indexOf( found[1] ) === -1 ) out.push( found[1] );
+    }
+
+    return out;
+}
+
+// mdbPageCreator_channelCatSupport
+// What in THIS upload backs the found category - the comparison the finding is written on the
+// strength of, one sentence per signal, empty where nothing backs it. The category page
+// linking the channel says whose category it is; these say that this upload belongs in it.
+//
+// Compared against both titles, the player's and the suggestion's: the suggestion carries the
+// channel name and the cleaned words, the player title carries what the uploader really wrote
+// (the id "EGE.090" survives in both, a "Free Download" tag only in one).
+//
+// The signals, strongest first:
+// 1. the title WRITES the category name - nothing to infer at all
+// 2. the category's own pages number their episodes with an id this title carries
+//    (mdbTitle_seriesIdPrefix off the recent titles the name lookup brought along)
+// 3. that id spells the category's initials - the same evidence one step weaker, for a series
+//    whose MixesDB pages do not write the id (a category filled from another platform)
+// 4. the channel name opens the category name, or the other way round ("HATE" / "HATE Podcast")
+// 5. a name the wiki DENIED opens it - the denied candidate and the category are the same
+//    series under two spellings ("Deep Space" / "Deep Space Series")
+function mdbPageCreator_channelCatSupport( catTitle, match, title ) {
+    var player = mdbPageCreator_sourceTitle || "",
+        channel = mdbPageCreator_sourceChannel || "",
+        cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        log = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        ids = mdbPageCreator_titleEpisodeIds( player ).concat( mdbPageCreator_titleEpisodeIds( title ) ),
+        out = [],
+        i;
+
+    // 1) the title writes it
+    if( mdbPageCreator_titleWritesName( player, catTitle ) || mdbPageCreator_titleWritesName( title, catTitle ) ) {
+        out.push( "the title writes \"" + catTitle + "\"" );
+    }
+
+    // 2) its pages number their episodes with an id this title carries
+    var scheme = ( typeof mdbTitle_seriesIdPrefix === "function" ) ? mdbTitle_seriesIdPrefix( match ) : "";
+
+    for( i = 0; scheme && i < ids.length; i++ ) {
+        if( ids[i].toUpperCase() === scheme.toUpperCase() ) {
+            out.push( "its pages number their episodes \"" + scheme + " <n>\", the id this title carries" );
+            break;
+        }
+    }
+
+    // 3) ... or the id spells its initials. A PREFIX counts, the way it does for the channel's
+    // own initials (mdbTitle_isChannelInitials): "EGE" for "Electronic Groove en Español
+    // Podcast" drops the "Podcast" the series does not abbreviate.
+    var initials = ( typeof mdbTitle_initialsOf === "function" ) ? mdbTitle_initialsOf( catTitle ) : "";
+
+    for( i = 0; initials.length > 1 && i < ids.length; i++ ) {
+        if( ids[i].length > 1 && initials.indexOf( ids[i].toUpperCase() ) === 0 ) {
+            out.push( "\"" + ids[i] + "\" in the title spells the category's initials (" + initials + ")" );
+            break;
+        }
+    }
+
+    // 4) the channel name and the category name open each other
+    if( channel && ( mdbPageCreator_nameStartsName( channel, catTitle ) || mdbPageCreator_nameStartsName( catTitle, channel ) ) ) {
+        out.push( "the channel name \"" + channel + "\" and the category name open each other" );
+    }
+
+    // 5) a name the wiki denied is the same series spelled otherwise
+    for( i = 0; i < log.length; i++ ) {
+        if( log[i].pending || log[i].failed || log[i].skipped ) continue;
+        if( mdbTitle_knownMatch( cache, log[i].name, null ) ) continue;
+        if( !mdbPageCreator_nameStartsName( log[i].name, catTitle ) ) continue;
+
+        out.push( "\"" + log[i].name + "\", which MixesDB has no category of, opens it" );
+        break;
+    }
+
+    return out;
+}
+
+// mdbPageCreator_channelCatFinding
+// The round's verdict for THIS title: { cat, match, support, show } or null. cat is the
+// category whose page links the channel, match the wiki's answer about it (type, mix count,
+// recent pages), support the sentences that back it and show the name the parse is handed -
+// "" for an ARTIST category, which says the channel is a person, not a series.
+//
+// Of several linking categories the best BACKED one wins, and only when it is backed better
+// than the rest: a channel with an artist AND a show category (Deep Space Helsinki has both)
+// is exactly where the title has to pick, and where it says nothing about either, nothing
+// picks - `ambiguous` marks that and the apply stops at it. A mix count is no argument here:
+// which of a channel's two categories THIS upload belongs in is not decided by which of them
+// is fuller. It only orders two answers the title backs equally, so the panel names one.
+// A category MixesDB answers nothing about is never picked - see the section comment.
+function mdbPageCreator_channelCatFinding( entry, title ) {
+    var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
+        entityTypes = ( typeof mdbTitle_entityTypes !== "undefined" && mdbTitle_entityTypes ) ? mdbTitle_entityTypes : [],
+        typed = [],
+        i;
+
+    if( !entry || entry.status !== "done" ) return null;
+
+    for( i = 0; i < entry.cats.length; i++ ) {
+        var cat = entry.cats[i],
+            match = mdbTitle_knownMatch( cache, cat.title, null );
+
+        if( !match || !match.type ) continue;
+
+        typed.push( {
+            cat: cat,
+            match: match,
+            support: mdbPageCreator_channelCatSupport( cat.title, match, title ),
+            // "" says the channel is a PERSON, not a series - no show name is grown from an
+            // artist category, whatever backs it
+            show: entityTypes.indexOf( String( match.type ) ) === -1 ? "" : ( match.title || cat.title )
+        } );
+    }
+
+    if( !typed.length ) return null;
+
+    typed.sort( function( a, b ) {
+        return ( b.support.length - a.support.length ) || ( ( b.match.mixes || 0 ) - ( a.match.mixes || 0 ) );
+    } );
+
+    typed[0].ambiguous = typed.length > 1 && typed[1].support.length === typed[0].support.length;
+    typed[0].others = typed.slice( 1 );
+
+    return typed[0];
+}
+
+// mdbPageCreator_channelCatApply
+// Writes the finding where the parse reads it (mdbTitle_channelUrlShows) and says whether the
+// suggestion has to be built again. Only a SUPPORTED finding of a series type is written: an
+// artist category names no show, and an unsupported one is a fact about the channel that this
+// upload gives no reason to act on.
+function mdbPageCreator_channelCatApply( entry, title ) {
+    var found = mdbPageCreator_channelCatFinding( entry, title ),
+        key = ( typeof mdbTitle_normalizeCompare === "function" ) ? mdbTitle_normalizeCompare( mdbPageCreator_sourceChannel ) : "";
+
+    if( !found ) return false;
+
+    // the panel's chips: the name came out of a URL, not out of the title - without a role and
+    // an origin it reads as invented, like every other asked name (mdbPageCreator_reasoningOrigin)
+    if( typeof mdbTitle_noteCandidateSource === "function" ) {
+        mdbTitle_noteCandidateSource( found.cat.title, "channel URL" );
+    }
+    if( typeof mdbTitle_noteCandidateRole === "function" ) {
+        mdbTitle_noteCandidateRole( found.cat.title, found.show ? "entity" : "artist" );
+    }
+
+    if( !found.show || !found.support.length || found.ambiguous || !key ) return false;
+    if( typeof mdbTitle_channelUrlShows === "undefined" ) return false;
+
+    var was = mdbTitle_channelUrlShows[key];
+
+    mdbTitle_channelUrlShows[key] = {
+        show: found.show,
+        type: found.match.type,
+        mixes: found.match.mixes,
+        url: entry.needle,
+        catTitle: found.cat.title
+    };
+
+    logVar( "mdbPageCreator_channelCatApply: " + mdbPageCreator_sourceChannel + " ->", found.show +
+            " (" + found.match.type + ", linked from " + entry.needle + ")" );
+
+    // nothing to rebuild when the map already said this - the second track of the same channel
+    return !was || was.show !== found.show;
+}
+
+// mdbPageCreator_channelCatEnsure
+// Fires the round for this title where it has anything to answer, and calls back with whether
+// the suggestion has to be built again. Always calls back, synchronously where nothing is
+// asked - a dead request means the parse carries on with what the names said, which is what it
+// did before this existed.
+//
+// Called from the suggestion's lookup callback only, and after its own tail: this is one more
+// request and nothing else may wait for it. Not from the edit path either - a typed title is
+// the editor's reading, and the channel has not changed with it.
+function mdbPageCreator_channelCatEnsure( title, done ) {
+    var finish = function( changed ) { if( done ) done( !!changed ); },
+        needle = mdbPageCreator_channelUrlNeedle();
+
+    mdbPageCreator_channelCatSkip = "";
+
+    if( !needle ) {
+        mdbPageCreator_channelCatSkip = "not asked - this site hands no channel URL over";
+        return finish( false );
+    }
+
+    // no suggestion to harden: the track is under the 20 min minimum, or nothing could be read
+    // off its title at all
+    if( !title ) {
+        mdbPageCreator_channelCatSkip = "not asked - there is no suggested title to back a finding";
+        return finish( false );
+    }
+
+    if( !mdbPageCreator_channelCatWanted( title ) ) {
+        mdbPageCreator_channelCatSkip = "not asked - the wiki answered for both slots, so the URL has nothing left to add";
+        return finish( false );
+    }
+
+    var entry = mdbPageCreator_channelCatCache[needle];
+
+    // A channel this tab already asked about: the ANSWER stands, the support does not - it is
+    // a question about the upload, and the next track of the same channel asks it anew.
+    if( entry ) {
+        return finish( entry.status === "done" ? mdbPageCreator_channelCatApply( entry, title ) : false );
+    }
+
+    entry = mdbPageCreator_channelCatCache[needle] = { status: "pending", needle: needle, cats: [] };
+
+    var apiData = {
+            action: "query",
+            format: "json",
+            formatversion: 2,
+            origin: "*",
+            list: "exturlusage",
+            // the leading "*." takes the subdomains with it and the bare host too, which is how
+            // Special:LinkSearch reads a target; without it a page writing "m.soundcloud.com/..."
+            // is invisible
+            euquery: "*." + needle,
+            eunamespace: 14, // Category
+            eulimit: mdbPageCreator_channelCatLimit,
+            euprop: "title|url"
+        },
+        apiCall = mdbPageCreator_noteApiCall( "channelCat", "",
+                      "which MixesDB category pages link this mix's channel (" + needle + ") - " +
+                      "the question no name could answer",
+                      apiData );
+
+    logVar( "mdbPageCreator_channelCatEnsure: asking which category links", needle );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: apiData,
+        success: function( data ) {
+            apiCall.status = "done";
+
+            var rows = ( data && data.query && data.query.exturlusage ) || [],
+                names = [],
+                seen = {},
+                i, name, key;
+
+            for( i = 0; i < rows.length; i++ ) {
+                // the prefix bleed: "soundcloud.com/deep-space" answers with deep-space-helsinki
+                if( !mdbPageCreator_channelUrlIsChannel( rows[i].url, needle ) ) continue;
+
+                name = String( rows[i].title || "" ).replace( /^Category:/, "" ).trim();
+                key = mdbTitle_normalizeCompare( name );
+
+                if( !name || !key || seen[key] ) continue;
+
+                seen[key] = true;
+                entry.cats.push( { title: name, url: String( rows[i].url || "" ) } );
+                names.push( name );
+            }
+
+            entry.status = "done";
+
+            logVar( "mdbPageCreator_channelCatEnsure: " + needle + " is linked from",
+                    names.length ? names.join( " | " ) : "(no category page)" );
+
+            if( !names.length ) {
+                mdbPageCreator_renderReasoning( $("#mdb-pageCreator") );
+                return finish( false );
+            }
+
+            // What those categories ARE: the ordinary name lookup, so the found name arrives
+            // with its type, its mix count and its recent pages like every other answer - and
+            // lands in the same cache, where the chips and the entity slot read it.
+            mdbTitle_lookupCategories( names, function() {
+                finish( mdbPageCreator_channelCatApply( entry, title ) );
+            });
+        },
+        error: function( xhr, status ) {
+            apiCall.status = "failed";
+            entry.status = "failed";
+            log( "mdbPageCreator_channelCatEnsure FAILED (" + status + ") for " + needle +
+                 " - carrying on with what the names said." );
+            mdbPageCreator_renderReasoning( $("#mdb-pageCreator") );
+            finish( false );
+        }
+    });
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Recent sibling analysis
  *
  * Roadmap step 4 (design and measurements in page_text_learning.md): once the title resolves
@@ -3496,14 +3945,12 @@ function mdbPageCreator_recentProvenOwn( info, read ) {
 function mdbPageCreator_channelLinkFinding( entry ) {
     if( !mdbPageCreator_channelUrl || !entry || entry.status !== "done" || !entry.pages.length ) return null;
 
-    // scheme, "www."/"m." and a trailing slash off, so what is compared is the part that
-    // names the channel: "soundcloud.com/deep-space-series"
-    var needle = String( mdbPageCreator_channelUrl ).toLowerCase()
-            .replace( /^https?:\/\//, "" )
-            .replace( /^(?:www|m)\./, "" )
-            .replace( /\/+$/, "" );
+    // reduced to the part that NAMES the channel - "soundcloud.com/deep-space-series" - by the
+    // same function the channel-URL round asks the wiki with, so the two can never disagree
+    // about which URL this channel is
+    var needle = mdbPageCreator_channelUrlNeedle();
 
-    if( needle.indexOf( "/" ) === -1 ) return null;
+    if( !needle ) return null;
 
     // The needle has to sit at URL boundaries in the text: preceded by the scheme's slash (or
     // a "www." the sibling wrote), and ended where a URL part ends - so a track URL of the
@@ -5741,6 +6188,13 @@ function mdbPageCreator_reportText( title ) {
     lines.push( "Entities:" );
     lines = lines.concat( mdbPageCreator_reportLookups( "entity" ) );
 
+    // The round that asks about no name: which category page links the channel's URL. In the
+    // report because it is the one answer a reporter cannot reconstruct from the title at all -
+    // it says whether the wiki knows this channel under a name nobody could have guessed.
+    lines.push( "" );
+    lines.push( "Channel URL:" );
+    lines = lines.concat( mdbPageCreator_reportChannelCat( title ) );
+
     // The looser round behind the names the block above came back EMPTY about - the panel's
     // section 8 as text. It answers what "no category of this name" leaves open: the wiki can
     // still hold that name inside a longer one ("103" -> "103 Club"), which is the difference
@@ -5859,6 +6313,36 @@ function mdbPageCreator_reportAnswer( entry, matches, overruledBy ) {
     }
 
     return parts.join( " | " );
+}
+
+// mdbPageCreator_reportChannelCat
+// The channel-URL round as report lines - the panel's block in section 3 in text, so a
+// reporter pasting the report hands over the same answer they are looking at.
+function mdbPageCreator_reportChannelCat( title ) {
+    var needle = mdbPageCreator_channelUrlNeedle(),
+        entry = needle ? mdbPageCreator_channelCatCache[needle] : null;
+
+    if( !needle ) return [ "* (this site hands no channel URL over)" ];
+    if( !entry ) return [ "* " + needle + " -> " + ( mdbPageCreator_channelCatSkip || "not asked" ) ];
+    if( entry.status === "pending" ) return [ "* " + needle + " -> still asking" ];
+    if( entry.status === "failed" ) return [ "* " + needle + " -> the request failed" ];
+    if( !entry.cats.length ) return [ "* " + needle + " -> no MixesDB category page links it" ];
+
+    var found = mdbPageCreator_channelCatFinding( entry, title ),
+        lines = [],
+        i;
+
+    for( i = 0; i < entry.cats.length; i++ ) {
+        lines.push( "* " + needle + " is linked from Category:" + entry.cats[i].title );
+    }
+
+    if( !found ) lines.push( "* not used: MixesDB files no type under that name" );
+    else if( !found.show ) lines.push( "* not used as a show: \"" + found.cat.title + "\" is an artist category" );
+    else if( !found.support.length ) lines.push( "* not used: nothing in this title backs \"" + found.cat.title + "\"" );
+    else if( found.ambiguous ) lines.push( "* not used: this title backs several of them equally" );
+    else lines.push( "* used: the channel's uploads are filed under \"" + found.cat.title + "\" - backed by " + found.support.join( ", and " ) );
+
+    return lines;
 }
 
 // mdbPageCreator_reportSimilar
@@ -6355,6 +6839,9 @@ function mdbPageCreator_reasoningOrigin( name, source ) {
             break;
         case "channel name":
             text = "one of the names the channel carries";
+            break;
+        case "channel URL":
+            text = "found by URL, not by name: this category's page links the channel this mix was uploaded on";
             break;
         case "curated show":
             text = "the show this channel is curated to in title_definitions.js";
@@ -6883,6 +7370,86 @@ function mdbPageCreator_reasoningRecentRead( info ) {
     return line;
 }
 
+// mdbPageCreator_reasoningChannelCat
+// Section 3's last block: what the channel's URL answered - the round that asks about no name
+// (mdbPageCreator_channelCatEnsure). One line saying which category page links the channel,
+// what MixesDB files it as, and what in THIS title backs it, or the sentence saying why the
+// round did not fire. An empty jQuery set on a site that hands no channel URL over at all -
+// there the round is not a step that was skipped, it is a step that does not exist.
+function mdbPageCreator_reasoningChannelCat( title ) {
+    var needle = mdbPageCreator_channelUrlNeedle(),
+        entry = needle ? mdbPageCreator_channelCatCache[needle] : null,
+        row = $("<div>").addClass( "mdb-pageCreator-reasoning-aside" ).append(
+            $("<span>").text( "Channel URL:" )
+        );
+
+    if( !needle ) return $();
+
+    row.append( $("<span>").addClass( "mdb-pageCreator-chip mdb-pageCreator-chip-channel" ).text( needle ) );
+
+    // asked about nothing: the names had already answered for both slots
+    if( !entry ) {
+        return row.append( mdbPageCreator_reasoningNote(
+            mdbPageCreator_channelCatSkip || "not asked", "muted" ) );
+    }
+
+    if( entry.status === "pending" ) {
+        return row.append( mdbPageCreator_reasoningNote( "asking which category page links it …", "muted" ) );
+    }
+
+    if( entry.status === "failed" ) {
+        return row.append( mdbPageCreator_reasoningNote( "the request failed - the parse carried on with what the names said", "warn" ) );
+    }
+
+    if( !entry.cats.length ) {
+        return row.append( mdbPageCreator_reasoningNote( "no MixesDB category page links it", "muted" ) );
+    }
+
+    var found = mdbPageCreator_channelCatFinding( entry, title ),
+        list = $("<div>").addClass( "mdb-pageCreator-reasoning-chips" ),
+        i;
+
+    // every linking category, the picked one first in the sentence below
+    for( i = 0; i < entry.cats.length; i++ ) {
+        list.append(
+            $("<a>")
+                .addClass( "mdb-pageCreator-chip mdb-pageCreator-known" )
+                .attr( "href", mdbPageCreator_categoryUrl( entry.cats[i].title ) )
+                .attr( "target", "_blank" )
+                .attr( "title", "Open [[Category:" + entry.cats[i].title + "]] on MixesDB" )
+                .text( entry.cats[i].title )
+        );
+    }
+
+    row.append( list );
+
+    if( !found ) {
+        return row.append( mdbPageCreator_reasoningNote(
+            "MixesDB files no type under that name, so nothing was read off it - a category that is neither an artist nor a series says nothing about this upload", "muted" ) );
+    }
+
+    var what = found.match.type + ( typeof found.match.mixes === "number" ? ", " + found.match.mixes + " mixes" : "" );
+
+    if( !found.show ) {
+        return row.append( mdbPageCreator_reasoningNote(
+            "\"" + found.cat.title + "\" (" + what + ") - an artist category, so the channel is a person and no show name was grown from it", "muted" ) );
+    }
+
+    if( !found.support.length ) {
+        return row.append( mdbPageCreator_reasoningNote(
+            "\"" + found.cat.title + "\" (" + what + ") - but nothing in this title backs it, so the suggestion was left alone: a channel can host a series and still upload something else", "muted" ) );
+    }
+
+    if( found.ambiguous ) {
+        return row.append( mdbPageCreator_reasoningNote(
+            "several of them are backed by this title just as well as \"" + found.cat.title + "\" (" + what + ") is - which of the channel's categories THIS upload belongs in, only the title can say, and it does not", "muted" ) );
+    }
+
+    return row.append( mdbPageCreator_reasoningNote(
+        "the channel's uploads are filed under \"" + found.cat.title + "\" (" + what + ") - backed by " +
+        found.support.join( ", and " ), "good" ) );
+}
+
 // mdbPageCreator_reasoningApiCalls
 // The "API call" rows of a section: one per api.php request whose answer that section is read
 // off, each opening the exact URL the script asked (mdbTitle_apiCallLog). Reported numbers are
@@ -7323,7 +7890,13 @@ function mdbPageCreator_reasoningReady() {
     if( $("#mdb-skeleton").length ) return false;
 
     var lookupLog = ( typeof mdbTitle_lookupLog !== "undefined" && mdbTitle_lookupLog ) ? mdbTitle_lookupLog : [],
+        // the channel-URL round is a request of its own and answers into section 3 as well -
+        // a panel rendered while it is in flight shows a title the next second replaces
+        needle = mdbPageCreator_channelUrlNeedle(),
+        channelCat = needle ? mdbPageCreator_channelCatCache[needle] : null,
         i;
+
+    if( channelCat && channelCat.status === "pending" ) return false;
 
     for( i = 0; i < lookupLog.length; i++ ) {
         if( lookupLog[i].pending ) return false;
@@ -7538,7 +8111,11 @@ function mdbPageCreator_renderReasoning( wrapper, force ) {
     // answers: the mix counts and types this whole section prints are the wiki's, so the row
     // that lets the reader read them in the raw belongs where they are shown. The prefix
     // request is NOT here: nothing in this section reads its answers - section 8 does.
+    // The round that asks about no name at all, and only where the names left something open
+    s3.append( mdbPageCreator_reasoningChannelCat( title ) );
+
     s3.append( mdbPageCreator_reasoningApiCalls( "mdbnames" ) );
+    s3.append( mdbPageCreator_reasoningApiCalls( "channelCat" ) );
     s3.append( mdbPageCreator_reasoningApiCalls( "hintRecent" ) );
 
     panel.append( s3 );
@@ -7796,6 +8373,9 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_reportOpen = false;
     mdbPageCreator_hintsLogged = "";
     mdbPageCreator_hintCatsLogged = "";
+    // the channel-URL round's ANSWERS stay (mdbPageCreator_channelCatCache, keyed by channel);
+    // only why it did not fire is about the mix being left
+    mdbPageCreator_channelCatSkip = "";
     // the prefix CACHE stays, like the category cache - an answer about a name does not
     // change from page to page; only the log quieter is per page
     mdbPageCreator_similarLogged = "";

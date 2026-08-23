@@ -163,6 +163,27 @@ carrying the number normally leaves with it, since it stood there to announce th
 that: `Rhythm Prism Radio` is a podcast with 123 mixes there, so its `Radio` belongs to the
 name and stays in it.
 
+Where **no name reaches the series at all**, the channel's own URL still can. The SoundCloud
+channel *EG en Español* is `Electronic Groove en Español Podcast` on MixesDB – 90 pages under a
+name neither the title nor the channel name spells – and what ties the two together is a link:
+the category page carries `soundcloud.com/egesp` in its text. So when the wiki has answered for
+at most one of the two slots – who played, what the mix is part of – one last question is asked,
+and it is not about a name: which category page links this channel's URL. `EGE.090 Adonis
+Rivera` becomes `2019-09-24 - Adonis Rivera - Electronic Groove en Español Podcast (EGE.090)`,
+filed exactly where the other 90 episodes are.
+
+That answer is about the **channel** and about nothing else, so it is only used where **this**
+title backs it: the title writing the category name, the category's own pages numbering their
+episodes with the id the title carries (`EGE.090` next to their `… (EGE.089)`), that id spelling
+the category's initials, the channel name and the category name opening each other, or a name
+the wiki denied opening it. Without one of those the finding is shown in the reasoning panel and
+in the **Report** box and changes nothing – a channel can host a series and still upload a
+festival set. Two categories linking the same channel (an artist's own and their show's) that
+this title backs equally leave it alone as well: which of them an upload belongs in only the
+title can say. And a category found this way that MixesDB files as an **artist** never grows a
+show name – it says the channel is a person, not a series. Only sites that hand the channel's
+URL over ask at all, which today means SoundCloud.
+
 The series' own recent pages then settle the format – but only where those pages can say
 anything about **this** mix. Two things stop them, and then nothing at all is read: the title
 **numbers** its entity while MixesDB knows that name as a venue or an event (a series numbers
@@ -588,6 +609,10 @@ everything a report about a wrong title needs, written as Markdown in five block
   what came back (`* "AKA AKA" -> artist, 230 mixes, 95%`) or with `no category of this name`. It is
   the half of a case nobody can reconstruct afterwards: it says what the wiki knew at the moment
   the title was built
+  Under them, `Channel URL:` – the round that asks about no name at all: which MixesDB category
+  pages link the channel's URL, and whether one of them was used, with what backed it (`* used:
+  the channel's uploads are filed under "Electronic Groove en Español Podcast" - backed by …`).
+  It says whether the wiki knows this channel under a name nobody could have guessed
 - **## Similar lookups** – the looser round behind the names that came back empty up there: the
   categories whose names merely *start* like one of them, listed under the name they were found
   for (whose own line says how many came back: `* "Rhythm Prism" -> 1 result:`), each with its
@@ -686,6 +711,14 @@ ends up used.
   name ended up a category of the new page, red when it did not. Every name the wiki confirms – here and in section 6 –
   is a link to that category page on MixesDB, opening in a new tab so the player page stays
   where it is
+
+  The section ends with a `Channel URL:` line wherever the site hands the channel's URL over:
+  the round that asks about no name at all. It names the URL, the category pages that link it
+  (each a link to the category) and what became of the finding – the sentence saying what in
+  this title backs it, or why it was left alone: nothing backs it, several categories back it
+  equally, or the category is an artist's. Where the round never fired it says so too, which on
+  most titles reads `not asked - the wiki answered for both slots, so the URL has nothing left
+  to add`
 
   Behind every answer stands a **percentage**: how strongly that answer backs the name it was
   asked for, in the colours of the score above. Hover it for what lowered it. `HATE Podcast`
@@ -992,6 +1025,10 @@ placeholder only holds the space below it.
   nobody else (`Melodic Therapy 217 - Berlin`) is still read as who played, the same way a
   lone country is. The title offers no other name there, and a suggestion naming nobody would
   be worse than one naming the wrong somebody – the row is editable for exactly this.
+- The channel-URL round can only harden what the wiki files as a **series**. A channel whose
+  category is the uploader's own **artist** category is reported and nothing more – a name the
+  wiki spells differently from the channel (`djmarianyc` → `DJ MARIA.`) is not written into the
+  title from it, since the round says whose channel it is, not who played this set.
 - Only tracklists written as a run of neighbouring lines are detected. A tracklist scattered
   through a description is left alone on purpose: a wrong tracklist on a new page is worse than
   none.

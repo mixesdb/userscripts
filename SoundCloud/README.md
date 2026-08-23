@@ -19,7 +19,10 @@ highlighted.
 
 The suggested page title and the **Create** link – see [Page creator](../shared/page_creator/).
 SoundCloud is its reference implementation: title, uploader, dates, duration, player URL,
-artwork URL and description all come off the SoundCloud API.
+artwork URL, description and the uploader's own channel URL all come off the SoundCloud API.
+That channel URL is what lets the page creator ask MixesDB which category page *links* this
+channel – the one lookup that needs no name, and the only way to reach a series the wiki files
+under a name neither the title nor the channel spells.
 
 The link that fills the created page's **Notes** section is looked for in the track's
 description and in its **Buy / Free download** field, whichever names the episode's own page.

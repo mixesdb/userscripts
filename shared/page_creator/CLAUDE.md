@@ -1190,6 +1190,66 @@ bullet in it hands the reader a name to wonder about and no answer to weigh, and
 already on screen in the panel. Where that leaves the block empty it says so in one line rather
 than standing under its heading with nothing.
 
+## The channel-URL round (since 2026-08-23)
+
+The lookup that asks about no NAME at all. Reported on the SoundCloud channel `EG en Español`,
+which MixesDB has been filing as `Electronic Groove en Español Podcast` for 90 pages: the exact
+round answers empty, the prefix round answers empty (`EG en Español` starts no category), and
+no rule can spell one name into the other. The wiki holds the pair all the same, as a LINK -
+`https://soundcloud.com/egesp` is the whole body of that category page - so the last question is
+"which category page links this channel?", which `list=exturlusage` over namespace 14 (the API
+behind `Special:LinkSearch`) answers in one request.
+
+`mdbPageCreator_channelCatEnsure`, fired from `mdbPageCreator_add`'s lookup callback AFTER its
+own tail (the recent fetch, the prefix round, the render) and from nowhere else. Settled, so it
+does not get re-litigated:
+
+- **It hardens the CHANNEL, nothing else.** A category linking the channel says whose category
+  it is; it does not say this upload is an episode of it. So the finding is written as the
+  runtime twin of an `mdbTitleUsernameConversions` entry - `mdbTitle_channelUrlShows` in
+  title_builder.js, read in step 2 of `buildMixesdbTitle` right after the curated map and only
+  where that one was silent (a hand-written entry outranks a lookup, an entry mapped to `""`
+  included). Nothing is ever written into the title from the answer directly, and the category
+  cache is NOT seeded under the channel's name: an answer filed under a name that is not the
+  category's would paint chips for a category the page does not file under.
+- **Only where THIS title backs it** (`mdbPageCreator_channelCatSupport`, five signals: the
+  title writing the name, the category's pages numbering their episodes with the id the title
+  carries (`mdbTitle_seriesIdPrefix` off the `recent` list the name lookup brought), that id
+  spelling the category's initials, the channel and category names opening each other, a denied
+  candidate opening it). Unbacked, the finding is reported and changes nothing - a channel can
+  host a series and still upload a festival set. The support is re-run per TITLE while the
+  answer is cached per CHANNEL: the second track of the same channel asks the title question
+  again, not the wiki.
+- **Two more fences.** Several linking categories that this title backs EQUALLY leave it alone
+  (`ambiguous` - a channel with an artist category and a show category is exactly where only the
+  title can pick), and a category MixesDB gives no TYPE is never applied (typeless means neither
+  artist nor series). An ARTIST category carries `show: ""`: it says the channel is a person, so
+  no show name grows from it - correcting the artist's SPELLING from it is not done and is a
+  README limitation.
+- **The gate is the half-miss, not the total one** (`mdbPageCreator_channelCatWanted`): the
+  round fires unless the wiki answered for BOTH slots, artist and entity. `EGE.090 Adonis
+  Rivera` resolves the artist perfectly and leaves the series to the raw channel name, which is
+  the case it exists for.
+- **Prefix bleed is filtered here, not in the query** (`mdbPageCreator_channelUrlIsChannel`):
+  LinkSearch matches the path as a prefix, so `soundcloud.com/deep-space` answers with
+  deep-space-helsinki as well. The needle (`mdbPageCreator_channelUrlNeedle`, shared with
+  `mdbPageCreator_channelLinkFinding` so the two never disagree about which URL this channel is)
+  has to end where a URL part ends. The query itself is `*.<needle>`, which takes the bare host
+  and its subdomains the way Special:LinkSearch reads a target.
+- **Two requests, and the second is the ordinary one**: what came back is asked about through
+  `mdbTitle_lookupCategories`, so the found category arrives with its type, its mix count and its
+  recent pages like every other answer and lands in the same cache - the entity chip, the recent
+  fetch and section 3's chip all read it. Its chip carries the origin `channel URL`.
+- **Surfaces**: the panel's section 3 closes with the `Channel URL:` block
+  (`mdbPageCreator_reasoningChannelCat`) plus the `channelCat` API-call link, and the report box
+  has `Channel URL:` lines under "Lookups" (`mdbPageCreator_reportChannelCat`). Both say why
+  nothing was written where nothing was: not asked, nothing links it, unbacked, ambiguous,
+  artist, typeless.
+- **A title the editor has typed in is never rewritten** by the late answer, the same fence the
+  recent-pages refinement stands behind. The rebuild is a full `buildMixesdbTitle` from the
+  player title, never a patch of the finished one: step 2 reads the mapping, and everything
+  after it follows from there.
+
 ## The "Switch title" line (hints bar, since 2026-08-19)
 
 The readings the build DECIDED AGAINST, offered under "Used categories" as one full title per

@@ -531,3 +531,37 @@ Berlin still means none of the three.
 **Until then** the client behaves exactly as it does today for such a name: an empty answer
 leaves the abbreviation standing in the title. Everything else the report asked for - the comma
 in front of a glued city, the two categories an " x " joins - works without this change.
+
+## 13. Note: the channel-URL question needs nothing from you (built 2026-08-23)
+
+Nothing to do here - written down so it is not asked for twice.
+
+A channel whose name on the site is not the name on MixesDB cannot be reached by any name
+request. The SoundCloud channel `EG en Español` is `Category:Electronic Groove en Español
+Podcast` on the wiki (90 pages): `action=mdbnames` answers `[]`, `match=prefix` answers `[]`
+because `EG en Español` starts no category, and the two spellings share no word order anything
+could bridge.
+
+The wiki holds the pair as a LINK - `https://soundcloud.com/egesp` is the whole body of that
+category page - and core MediaWiki answers for links perfectly well:
+
+```
+action=query&list=exturlusage&euquery=*.soundcloud.com/egesp&eunamespace=14
+              &eulimit=10&euprop=title|url&format=json&formatversion=2&origin=*
+```
+
+```json
+{ "query": { "exturlusage": [
+    { "ns": 14, "title": "Category:Electronic Groove en Español Podcast",
+      "url": "https://soundcloud.com/egesp" } ] } }
+```
+
+`origin=*` works, `formatversion=2` works, both protocols answer. Two things the client handles
+on its own and neither is worth a change: LinkSearch matches the path as a PREFIX (a query for
+`soundcloud.com/deep-space` answers with `deep-space-helsinki` too), so every row is re-checked
+against a URL boundary before it counts, and the categories that survive are asked about through
+`action=mdbnames` as usual, since the answer has to carry a type, a mix count and `recent` like
+every other one.
+
+Load: one extra request per CHANNEL (cached for the tab), and only where the name lookups left
+the artist or the entity slot open. See "The channel-URL round" in `CLAUDE.md`.
