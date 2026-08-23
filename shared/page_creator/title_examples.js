@@ -1909,5 +1909,42 @@ var mdbTitleExamples = [
         expectArtists: [ "Max Hefele" ],
         expectEntity: "Nocturna 038",
         expect: "2026-08-07 - Max Hefele - Nocturna 038"
+    },
+    {
+        // Two joiners in one artist group: the "," we write for the guests behind a "with"
+        // (mdbTitleExtraArtistJoiner) next to the "&" the uploader wrote between two of them.
+        // The title then claimed that Lucient and Moy Santana played together while Sungate
+        // played before or after them - which nothing in it says. See mdbTitle_oneArtistJoiner.
+        url: "https://soundcloud.com/openlabradio/observatory-143-sungate-with",
+        title: "Observatory 143 – Sungate [with Lucient & Moy Santana]",
+        channel: "OpenLab Radio",
+        date: "2026-08-21",
+        known: {
+            "OpenLab Radio": { type: "radio", mixes: 25 },
+            "Observatory":   { type: "show", mixes: 10 },
+            "Moy Santana":   { type: "artist", mixes: 9 }
+        },
+        expectArtists: [ "Sungate", "Lucient", "Moy Santana" ],
+        expectEntity: "Observatory 143",
+        expect: "2026-08-21 - Sungate, Lucient, Moy Santana - Observatory 143"
+    },
+    {
+        // The wiki spells the show without the space the title writes: MixesDB has
+        // Category:EGAFTER (110 mixes), the title says "EG AFTER". The lookup asked exactly
+        // that and was told "no category of this name", so the page was about to open a second,
+        // empty category next to the one holding the whole series. The name is asked in its
+        // other spellings now - see mdbTitle_spellingVariants. The round itself runs over the
+        // network and is not what this case can guard; what it guards is the title the answer
+        // produces, the wiki's spelling included.
+        url: "https://soundcloud.com/egpodcast/eg-after-189-paco-wegman",
+        title: "EG AFTER.189 Paco Wegman",
+        channel: "EG",
+        date: "2026-08-21",
+        known: {
+            "EGAFTER": { type: "podcast", mixes: 110 }
+        },
+        expectArtists: [ "Paco Wegman" ],
+        expectEntity: "EGAFTER.189",
+        expect: "2026-08-21 - Paco Wegman - EGAFTER.189"
     }
 ];

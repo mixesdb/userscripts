@@ -3877,12 +3877,210 @@ function mdbTitle_lookupCategories( names, callback ) {
             }
 
             mdbTitle_lookupLogSettle( wanted, false );
-            callback( mdbTitle_categoryCache );
+
+            // A name the wiki denied may be one the wiki simply spells differently ("EG AFTER"
+            // vs Category:EGAFTER) - asked once more BEFORE the parser hears the answer, so the
+            // second parse sees the category instead of a hole. Nothing to ask calls straight
+            // back, so the ordinary title costs no second request (mdbTitle_lookupVariants).
+            mdbTitle_lookupVariants( wanted, callback );
         },
         error: function( xhr, status ) {
             apiCall.status = "failed";
             log( "mdbTitle_lookupCategories FAILED (" + status + ") - carrying on with the title alone." );
             mdbTitle_lookupLogSettle( wanted, true );
+            callback( mdbTitle_categoryCache );
+        }
+    });
+}
+
+// The other spellings of a name that get asked when the wiki denied the one the title writes -
+// see mdbTitle_spellingVariants. At most this many per name: they all share one request with
+// every other denied name of the title, and the first guess is worth more than the third.
+var mdbTitle_maxSpellingVariants = 3;
+
+// mdbTitle_spellingVariants
+// The OTHER spellings of one name - the ones mdbTitle_normalizeCompare already calls the SAME
+// name while the wiki's search does not. Reported on "EG AFTER.189 Paco Wegman": the chunk
+// "EG AFTER" was asked and answered "no category of this name", while Category:EGAFTER sits
+// right there with the very channel linked from it. mdbnames matches a name character for
+// character (case aside), so wherever the uploader spaces a brand the wiki glues - or the other
+// way round - the exact round asks about a string that cannot exist.
+//
+// Only spaces and the separators MOVE here, nothing is added or dropped: every variant
+// normalizes to the same key as the name it came from (mdbTitle_normalizeCompare keeps letters
+// and digits and nothing else), so an answer to a variant IS an answer about the asked name,
+// and mdbTitle_canonicalName respells the title to the wiki's version of it. Nothing here
+// guesses at a LONGER or shorter name - that is the row's prefix round
+// (mdbPageCreator_prefixEnsure), which is hints only and never the builder's.
+function mdbTitle_spellingVariants( name ) {
+    var text = String( name || "" ).replace( /\s+/g, " " ).trim(),
+        out = [],
+        push = function( variant ) {
+            variant = String( variant || "" ).replace( /\s+/g, " " ).trim();
+
+            if( variant && variant !== text && out.indexOf( variant ) === -1 ) out.push( variant );
+        };
+
+    if( !text ) return out;
+
+    // The wiki glues what the title separates: "EG AFTER" -> "EGAFTER", "R.E.M." -> "REM".
+    // First, because it is the spelling this round was built for. Two or three segments at
+    // most - a brand written in one word is short, while "Live At Fabric London" glued is a
+    // string nobody ever typed, and every variant costs a slot of the one request.
+    if( text.split( /[\s.\-_\/]+/ ).filter( Boolean ).length <= 3 ) push( text.replace( /[\s.\-_\/]+/g, "" ) );
+
+    // The wiki spells the separators themselves differently: "R.E.M." -> "R E M",
+    // "Deep-Space Series" -> "Deep Space Series" / "DeepSpace Series". Apostrophes stay out of
+    // it - they sit INSIDE a word ("Don't"), so moving one would split the word, not the name.
+    if( /[.\-_\/]/.test( text ) ) {
+        push( text.replace( /[.\-_\/]+/g, " " ) );
+        push( text.replace( /[.\-_\/]+/g, "" ) );
+    }
+
+    // The wiki spaces what the title glues - but only where the name says its own word
+    // boundaries: "EGAfter" -> "EG After". "EGAFTER" says nothing about where its words end,
+    // and a guess there would ask about a name nobody wrote.
+    if( !/\s/.test( text ) && /[a-z][A-Z]/.test( text ) ) push( text.replace( /([a-z])([A-Z])/g, "$1 $2" ) );
+
+    return out.slice( 0, mdbTitle_maxSpellingVariants );
+}
+
+// mdbTitle_lookupVariants
+// The second exact round: every name the request before it came back EMPTY about, asked once
+// more in its other spellings, all of them in ONE request. Always calls back - a dead or empty
+// answer only means the parser carries on with what the title alone says, exactly like the
+// round it follows.
+//
+// The answers need no cache of their own, unlike the row's prefix round: a variant normalizes
+// to the very key the denied name reads (mdbTitle_normalizeCompare), so "EGAFTER" lands where
+// "EG AFTER" looks it up - which is the whole point of asking. This is no loosening of the
+// exact-match discipline either: the builder ALREADY holds these two spellings to be one name
+// everywhere it compares them, and this only makes the server agree.
+//
+// Still exact mode (no match=prefix): what comes back is the same name, not a longer one.
+function mdbTitle_lookupVariants( names, callback ) {
+    logFunc( "mdbTitle_lookupVariants" );
+
+    var denied = [],
+        wanted = [],
+        // the denied names whose variants really went out - they go back to "pending" until
+        // this request has answered, so a report box opened in between does not say
+        // "no category of this name" about a name that is being asked right now
+        pending = [],
+        asked = {},
+        deepest = 0,
+        i, rank, key, variants, entry;
+
+    for( i = 0; i < names.length; i++ ) {
+        key = mdbTitle_normalizeCompare( names[i] );
+
+        // only what the wiki DENIED: a name with an answer is settled, and one whose request
+        // died was never really asked (the cache holds "" for both, but the round before only
+        // hands over what it asked about, and a dead request never gets here)
+        if( !key || mdbTitle_categoryCache[key] ) continue;
+
+        variants = mdbTitle_spellingVariants( names[i] );
+
+        if( !variants.length ) continue;
+
+        denied.push( { name: names[i], variants: variants } );
+
+        if( variants.length > deepest ) deepest = variants.length;
+    }
+
+    // Rank-major: every name's FIRST other spelling, then every name's second. The module takes
+    // 10 names per request like the round before, and a name-major list would spend the whole
+    // request on the first names' third-best guess while the last name is not asked at all.
+    for( rank = 0; rank < deepest && wanted.length < 10; rank++ ) {
+        for( i = 0; i < denied.length && wanted.length < 10; i++ ) {
+            var variant = denied[i].variants[rank];
+
+            if( !variant || asked[variant] ) continue;
+
+            asked[variant] = true;
+            wanted.push( variant );
+
+            // recorded under the DENIED name's log entry, not one of its own: the two spellings
+            // are one name to mdbTitle_lookupLogEntry (same key) and one chip to the panel.
+            // The panel and the report print it, so a name that was asked twice never looks
+            // like a name that was asked once and given up on.
+            entry = mdbTitle_lookupLogEntry( denied[i].name );
+
+            if( entry ) {
+                if( !entry.variants ) entry.variants = [];
+                if( entry.variants.indexOf( variant ) === -1 ) entry.variants.push( variant );
+
+                entry.pending = true;
+
+                if( pending.indexOf( denied[i].name ) === -1 ) pending.push( denied[i].name );
+            }
+        }
+    }
+
+    if( !wanted.length ) {
+        callback( mdbTitle_categoryCache );
+        return;
+    }
+
+    logVar( "mdbTitle_lookupVariants: asking about", wanted.join( " | " ) );
+
+    var apiData = {
+            action: "mdbnames",
+            format: "json",
+            formatversion: 2,
+            origin: "*",
+            names: wanted.join( "|" ),
+            // like the round before: a category found here becomes the page's entity, and its
+            // recent pages are where the episode number's spelling is read off
+            recentlimit: 10
+        },
+        apiCall = mdbTitle_noteApiCall( "mdbnames", "",
+                      "the other spelling" + ( wanted.length === 1 ? "" : "s" ) + " of " +
+                      ( pending.length === 1 ? "a name" : "names" ) + " MixesDB has no category of (" +
+                      pending.join( ", " ) + "): " + wanted.join( " | " ),
+                      apiData );
+
+    $.ajax({
+        url: mdbTitle_categoryApiUrl,
+        type: "get",
+        dataType: "json",
+        data: apiData,
+        success: function( data ) {
+            apiCall.status = "done";
+
+            var entries = ( data && data.mdbnames ) || [],
+                i;
+
+            for( i = 0; i < entries.length; i++ ) {
+                var name = String( entries[i].name || "" ),
+                    matches = entries[i].matches || [],
+                    key = name ? mdbTitle_normalizeCompare( name ) : "";
+
+                if( !key || !matches.length ) continue;
+
+                // never over an answer that key already has: the denied spelling seeded it with
+                // "" and two variants of one name share it, so a second one answering empty must
+                // not undo what the first one found
+                if( mdbTitle_categoryCache[key] ) continue;
+
+                mdbTitle_categoryCache[key] = { matches: matches };
+
+                logVar( "mdbTitle_lookupVariants: " + name,
+                        matches.map( function( m ) {
+                            return "\"" + m.title + "\" " + m.type + " (" + m.mixes + ")";
+                        } ).join( ", " ) );
+            }
+
+            mdbTitle_lookupLogSettle( pending, false );
+            callback( mdbTitle_categoryCache );
+        },
+        error: function( xhr, status ) {
+            apiCall.status = "failed";
+            log( "mdbTitle_lookupVariants FAILED (" + status + ") - carrying on with what the first round answered." );
+            // NOT marked failed: the name itself was asked and answered, and only the second
+            // spelling of it died. "lookup failed" on the chip would deny an answer the panel
+            // has right there.
+            mdbTitle_lookupLogSettle( pending, false );
             callback( mdbTitle_categoryCache );
         }
     });
@@ -5068,6 +5266,45 @@ function mdbTitle_normalizeJoiners( s ) {
     );
 }
 
+// Set by mdbTitle_oneArtistJoiner when it had to rewrite an "&" the title wrote. Read once per
+// suggestion in mdbTitle_result: the uploader typed the joiner that says "together" and the
+// title now says "after another", which is a guess and has to be said out loud.
+var mdbTitle_joinerUnified = false;
+
+// mdbTitle_oneArtistJoiner
+// One joiner per artist group: a group that holds a "," never also holds an " & ".
+//
+//     "Observatory 143 - Sungate [with Lucient & Moy Santana]"
+//     ->  "Sungate, Lucient & Moy Santana"   what the join made of it
+//     ->  "Sungate, Lucient, Moy Santana"    what MixesDB writes
+//
+// The two joiners MEAN different things - Help:Add_a_new_mix_page reserves " & " for artists who
+// played TOGETHER and "," for one after another - so a group using both claims to know which of
+// its names played together and which did not. It never does: the "," is OURS
+// (mdbTitleExtraArtistJoiner, the assumption behind every "w/"), the "&" is the uploader's, and
+// stringing the two lists into one group is what invented the claim. Where they meet the
+// assumption wins, because "," is the joiner that says nothing.
+//
+// Only the "&", and only with whitespace on both sides: "b2b", "vs" and "pres." are words the
+// uploader wrote ABOUT the recording rather than a separator we picked for them, so they stay
+// whatever else stands in the group, and an "R&S" is a name.
+//
+// In front of the "@" only. Behind it stands a place group, whose "," strings PLACES
+// ("@ Ritter Butzke, Berlin") and says nothing about who played - a line-up is not mixing
+// joiners just because the venue it played at carries its city.
+function mdbTitle_oneArtistJoiner( artist ) {
+    var s = String( artist || "" ),
+        at = s.indexOf( "@" ),
+        front = at === -1 ? s : s.slice( 0, at ),
+        tail = at === -1 ? "" : s.slice( at );
+
+    if( front.indexOf( "," ) === -1 || !/\s&\s/.test( front ) ) return s;
+
+    mdbTitle_joinerUnified = true;
+
+    return front.replace( /\s+&\s+/g, ", " ) + tail;
+}
+
 // mdbTitle_tidy
 // The MixesDB spelling conventions that hold for every group of a title, whichever branch built
 // it - see "The spelling every group is held to" in title_definitions.js for the list and for
@@ -5836,6 +6073,7 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         nothing = { title: "", confidence: 0, reasons: [] };
 
     mdbTitle_reCased = false;
+    mdbTitle_joinerUnified = false;
     mdbTitle_channelSpelling = "";
     // filled in once the channel's name is settled below - a channel may name several, and
     // the initials of the one actually used are the ones an acronym is checked against
@@ -8105,6 +8343,12 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
     // wikiSafe first (what a wiki title may hold at all), then tidy (how MixesDB spells it),
     // then the joiners, which stand between NAMES and so only apply to the artist group
     artist = mdbTitle_normalizeJoiners( mdbTitle_tidy( mdbTitle_wikiSafe( mdbTitle_joinArtists( artist, extraArtists ) ) ) );
+
+    // and last the one-joiner rule, which needs the group finished: the "," of a "w/" join and
+    // the "," mdbTitle_normalizeJoiners writes for a "presents" both land here, and either of
+    // them next to an "&" the title already carried is what it settles
+    artist = mdbTitle_oneArtistJoiner( artist );
+
     entity = mdbTitle_tidy( mdbTitle_wikiSafe( entity ) );
 
     // Last word on spelling: a name the wiki knows is written the way the wiki writes it -
@@ -8548,9 +8792,14 @@ function mdbTitle_result( date, artist, entity, episode, promoMix, extraArtists,
         }
 
         // charged here rather than where the names were found, because only a join that really
-        // happened had to guess the joiner
+        // happened had to guess the joiner. One guess, one charge: where the join ALSO had to
+        // unify the joiners (mdbTitle_oneArtistJoiner), the same sentence says so instead of a
+        // second drop - it is the one assumption being applied twice, not two of them.
         if( artist && extraArtists && extraArtists.length ) {
-            conf.drop( 5, "the artists behind \"w/\" were joined with \",\" (played after another) - use \" & \" if they played together" );
+            conf.drop( 5, "the artists behind \"w/\" were joined with \",\" (played after another) - use \" & \" if they played together" +
+                          ( mdbTitle_joinerUnified ? ", and the \" & \" the title wrote between them became a \",\" as well, since one artist group never mixes the two" : "" ) );
+        } else if( mdbTitle_joinerUnified ) {
+            conf.drop( 5, "the artist group wrote both \",\" and \" & \" - one group carries one joiner, so every \" & \" in it became a \",\" (played after another)" );
         }
 
         if( mdbTitle_reCased ) {

@@ -43,7 +43,13 @@ found is written in the wiki's own spelling (`trommel` becomes `Trommel`,
 `asa 808` becomes `ASA 808`, and a shouted `DJ MARIA.` stays `DJ MARIA.` instead of being
 tamed to "DJ Maria.", because the category holding her mixes is spelled that way) – which
 follows a spelling-correcting redirect too, so `Ri0D.` is written `RiOD.`, the category that
-really holds the mixes. An artist name of **several words** the wiki answers nothing about is
+really holds the mixes. A name MixesDB has no category of is asked once more in its **other
+spellings**, where the difference is nothing but where the spaces and the dots sit:
+`EG AFTER.189 Paco Wegman` becomes `2026-08-21 - Paco Wegman - EGAFTER.189`, because the show
+with those 110 mixes is filed as `EGAFTER` and the title writes it with a space. Both directions
+and the dots as well (`Deep-Space Series` also asks about `Deep Space Series`), and the wiki's
+spelling is the one that goes into the title – without it the page would open a second, empty
+category next to the one holding the whole series. An artist name of **several words** the wiki answers nothing about is
 asked about shortened as well, a word at a time from the right – `KODE9 For Maharishi` also
 asks about `KODE9 For` and about `KODE9` – because such a name usually carries a name MixesDB
 does know at its front. Those are the last questions a lookup has room for, and an answer to
@@ -98,6 +104,18 @@ words come back as a **Switch title** chip, since a name can be built around the
 the same little words connect places, and in the show slot the shortening would find somebody
 else's series, this title's own `Hyperdub 2014-2019 Drive-By` being `Hyperdub`, the Rinse FM
 show with 48 episodes, which the promo is no episode of.
+
+**Guests behind a `w/`** – or a `with`, or a `w.` – are further artists and join the artist
+group instead of becoming a group of their own: `Rinse France Show - Slowciety w/ Asa 808`
+becomes `2019-03-07 - Slowciety, Asa 808 - Rinse France Show`. The comma is a guess and says so
+in the confidence reasons – MixesDB reserves ` & ` for artists who played together, and a `w/`
+says nothing about that – and one artist group is written with one joiner or the other, never
+with both. So `Observatory 143 – Sungate [with Lucient & Moy Santana]` comes out as
+`2026-08-21 - Sungate, Lucient, Moy Santana - Observatory 143`: a title mixing the two would
+claim that Lucient and Moy Santana played together while Sungate played before or after them,
+which nothing in it says. An `&` the uploader wrote with no comma next to it is kept, so
+`Yoyaku Instore Sessions with TONTON & TATA` stays `Tonton & Tata`, and every name of such a
+group is filed as its own artist category either way.
 
 A show the title calls nothing but a **generic word** – `Podcast`, `Mix`, `Sessions` – is
 named by the channel it was uploaded to: the `Podcast #323` above becomes

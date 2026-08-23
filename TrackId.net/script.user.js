@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.9
+// @version      2026.08.23.11
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,10 +13,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_56
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_84
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_86
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_116
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_117
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -2022,6 +2022,46 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.23.11
+ * A name is asked in its other spellings once MixesDB denies it (title_builder.js v_86,
+ * page_creator.js v_117). Reported on "EG AFTER.189 Paco Wegman", channel "EG": MixesDB files
+ * that show as Category:EGAFTER and keeps 110 mixes in it, the title writes the name with a
+ * space, and the lookup asked exactly that and was told "no category of this name" - so the page
+ * was about to open a second, empty category next to the one holding the whole series.
+ *     WRONG: 2026-08-21 - Paco Wegman - EG AFTER.189
+ *     RIGHT: 2026-08-21 - Paco Wegman - EGAFTER.189
+ * mdbnames matches a name character for character (case aside), while the parser has always held
+ * "EG AFTER" and "EGAFTER" to be ONE name - everything it compares runs through
+ * mdbTitle_normalizeCompare, which keeps letters and digits and nothing else. So where the first
+ * round comes back empty, one more exact request goes out with the other spellings of those
+ * names, all of them at once: the glued form, the separators written as spaces and written away
+ * ("R.E.M." -> "REM" / "R E M"), and a glued name split where its own case says the words end
+ * ("EGAfter" -> "EG After"). Three spellings per name at most, and the glued one only for names
+ * of two or three words - "Live At Fabric London" glued is a string nobody ever typed.
+ * Nothing is guessed at: every spelling asked IS the same name, so the answer lands under the
+ * very key the denied name reads, and the title is respelled to the wiki's version of it. A
+ * LONGER name stays the row's business alone (the "Similar:" row), which never touches the
+ * builder's cache. Where the second round finds nothing either, the reasoning panel's section 3
+ * and the report box's "Lookups" lines say "also asked as ...", so a name asked twice never
+ * reads like one given up on.
+ * 162 examples, all pass.
+ *
+ * 2026.08.23.10
+ * One artist group carries one joiner (title_builder.js v_85, title_definitions.js v_57).
+ * Reported on "Observatory 143 – Sungate [with Lucient & Moy Santana]", channel "OpenLab Radio":
+ * the guests behind the "with" were joined onto Sungate with the "," we assume for a "w/", and
+ * the "&" the uploader had written between the two of them stayed where it was.
+ *     WRONG: 2026-08-21 - Sungate, Lucient & Moy Santana - Observatory 143
+ *     RIGHT: 2026-08-21 - Sungate, Lucient, Moy Santana - Observatory 143
+ * The two joiners mean different things - MixesDB reserves " & " for artists who played
+ * together and "," for one after another - so a group holding both claims to know that Lucient
+ * and Moy Santana played together while Sungate played before or after them, which nothing in
+ * the title says. The "," is ours and the "&" the uploader's, and where the two meet the one
+ * that says nothing wins: every " & " in such a group becomes a ",". An "&" standing alone is
+ * untouched ("Tonton & Tata"), and so are "b2b", "vs" and "pres." wherever they stand - those
+ * are words about the recording, not a separator we picked. In front of the "@" only: the ","
+ * of a place group strings venues and cities, not artists.
  *
  * 2026.08.23.9
  * A similar category is written into the title, and the name MixesDB denied is offered back
