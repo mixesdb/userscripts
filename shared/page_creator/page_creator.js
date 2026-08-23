@@ -5835,11 +5835,19 @@ function mdbPageCreator_reportAnswer( entry, matches, overruledBy ) {
 // Read off mdbPageCreator_prefixDecisions(), the same walk the row and section 8 render from,
 // so a report can never claim a chip was shown that the reporter did not see. Two levels
 // because the answers belong TO the asked name: a flat list would lose which name "103 Club"
-// was found for, and that pairing is the whole point of the block.
+// was found for, and that pairing is the whole point of the block. The name's own line carries
+// the COUNT of them ("-> 1 result:"), so the two kinds of first-level line - the ones with
+// answers under them and the ones whose answer is the line itself - read as two kinds.
 //
 // The asked name is quoted like the "Lookups" block's - a name can carry the comma and the
 // arrow its line is built from - while the category the wiki answered with is not: it opens
 // its line, where nothing can be read into it.
+//
+// A name that was never ASKED is no line here at all (2026-08-23), unlike in the panel: a
+// report is what MixesDB was asked the looser way and what came back, and a "not asked" bullet
+// gives the reader a name to wonder about and no answer to weigh. Both kinds go - the ones the
+// round refuses (a bare edition number) and the ones that fell off the 10-name limit. The
+// reasoning panel is where the reason belongs, and it still prints it.
 function mdbPageCreator_reportSimilar( title ) {
     var decisions = mdbPageCreator_prefixDecisions( title ),
         lines = [],
@@ -5851,6 +5859,9 @@ function mdbPageCreator_reportSimilar( title ) {
     for( i = 0; i < decisions.length; i++ ) {
         rec = decisions[i];
 
+        // never asked, so nothing to report about it - see the block comment above
+        if( rec.status === "skipped" || rec.status === "unasked" ) continue;
+
         // No answer at all: the request's status stands behind the arrow, in section 8's
         // wording. "no category starts like this name either" is the one that matters - it
         // says the wiki has nothing under the name in any spelling, which is what makes a
@@ -5859,14 +5870,16 @@ function mdbPageCreator_reportSimilar( title ) {
             lines.push( "* \"" + rec.name + "\" -> " + (
                   rec.status === "pending" ? "looking for similar names …"
                 : rec.status === "failed"  ? "the request failed - not retried, the row is only a hint"
-                : rec.status === "skipped" ? rec.why
-                : rec.status === "unasked" ? "not asked yet - over the 10-name request limit"
                 : "no category starts like this name either" ) );
             continue;
         }
 
-        // the arrow with nothing behind it: the answers are the lines under it
-        lines.push( "* \"" + rec.name + "\" ->" );
+        // How many answers came back, the arrow's whole content: the lines under it are those
+        // answers, and an arrow with nothing behind it read like a name that got none - the one
+        // thing the block right below it says about a name that really got none. The count is
+        // every answer, shown and dropped alike, which is exactly what is listed underneath.
+        lines.push( "* \"" + rec.name + "\" -> " + rec.decisions.length +
+                    ( rec.decisions.length === 1 ? " result:" : " results:" ) );
 
         for( j = 0; j < rec.decisions.length; j++ ) {
             d = rec.decisions[j];
@@ -5890,6 +5903,10 @@ function mdbPageCreator_reportSimilar( title ) {
             lines.push( "** " + bits.join( ", " ) );
         }
     }
+
+    // every denied name of this page was one the round does not ask - the block still says a
+    // word, or the heading would stand over nothing and read like a bug
+    if( !lines.length ) return [ "* no name of this page was asked the looser way" ];
 
     return lines;
 }

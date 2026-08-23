@@ -1178,10 +1178,17 @@ from ever disagreeing about what was asked. A name with nothing cached simply re
 
 A name the round REFUSES to ask about does not vanish with it: `mdbPageCreator_prefixMissingNames`
 takes an optional `skipped` array, `mdbPageCreator_prefixDecisions` hands one in and appends what
-came back as records with `status: "skipped"` and the sentence saying why, and section 8 and the
-report box print that sentence where they print a status. The row itself never sees them - it
-renders shown answers and these have none - and the request never carried them. A denied name
-leaving the round without a word is precisely what that section exists to prevent.
+came back as records with `status: "skipped"` and the sentence saying why, and section 8 prints
+that sentence where it prints a status. The row itself never sees them - it renders shown answers
+and these have none - and the request never carried them. A denied name leaving the round without
+a word is precisely what that section exists to prevent.
+
+The REPORT box is the one surface that does not list them (2026-08-23): `mdbPageCreator_reportSimilar`
+drops every record that was never asked - `status: "skipped"` and the `"unasked"` ones that fell
+off the 10-name limit alike. A report is what MixesDB was asked and what came back; a "not asked"
+bullet in it hands the reader a name to wonder about and no answer to weigh, and the reason is
+already on screen in the panel. Where that leaves the block empty it says so in one line rather
+than standing under its heading with nothing.
 
 ## The "Switch title" line (hints bar, since 2026-08-19)
 
