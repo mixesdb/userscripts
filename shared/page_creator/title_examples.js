@@ -1894,5 +1894,20 @@ var mdbTitleExamples = [
         expectArtists: [ "Adonis Rivera" ],
         expectEntity: "Electronic Groove en Español Podcast (EGE.090)",
         expect: "2019-09-24 - Adonis Rivera - Electronic Groove en Español Podcast (EGE.090)"
+    },
+    {
+        // The uploader signs the last chunk with the channel name and the word saying what the
+        // channel is: "[Melodic Deep Series]". Cutting the channel out of a chunk it signed is
+        // right, but it left the bare word "Series" standing as a chunk of its own, and that
+        // word then glued itself onto the artist - "Max Hefele Series", a person MixesDB has no
+        // category of. See mdbTitle_dropCutLeftoverBit.
+        url: "https://soundcloud.com/melodicdeep/nocturna-max-hefele",
+        title: "Nocturna #038 // Max Hefele [Melodic Deep Series]",
+        channel: "Melodic Deep",
+        date: "2026-08-07",
+        channelUrlShow: "Melodic Deep In Depth Podcast",
+        expectArtists: [ "Max Hefele" ],
+        expectEntity: "Nocturna 038",
+        expect: "2026-08-07 - Max Hefele - Nocturna 038"
     }
 ];

@@ -1643,6 +1643,20 @@ var mdbTitleNonNameLeadWords = [
  * The one thing never taken that way is a YEAR: "Some Show | 2026" numbers no episode, and an
  * invented episode number is worse than a missing one. A year GLUED to the word still is one
  * ("Vol. 2026"), because there the uploader wrote the two as one thing.
+ *
+ * A word off this list that is left standing ALONE is dropped, not kept. It names a show only
+ * together with a name, so once that name is gone there is nothing left of it:
+ *
+ *     "Nocturna #038 // Max Hefele [Melodic Deep Series]"  (channel "Melodic Deep")
+ *     WRONG: 2026-08-07 - Max Hefele Series - Nocturna 038
+ *     RIGHT: 2026-08-07 - Max Hefele - Nocturna 038
+ *
+ * The uploader signed the last chunk with the channel name plus the word saying what the channel
+ * is, and cutting the channel out of a chunk it signed is right - a channel signing its own title
+ * says nothing about who played. What it leaves behind is a chunk reading "Series", which is no
+ * artist and no show: it glued itself onto the artist and made a name MixesDB has no category of.
+ * See mdbTitle_dropCutLeftoverBit. A NUMBER behind the word is the other case and stays - there
+ * the chunk counts an episode that still has to be named with the channel ("Podcast #323").
  */
 var mdbTitleShowSuffixWords = [
     "podcast", "radio", "radioshow", "show", "mixshow", "mix", "mixtape", "mixseries",

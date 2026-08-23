@@ -1092,12 +1092,17 @@ fetch, never from a render) - and what MixesDB has that starts like it renders a
 directly under "Used categories" (`mdbPageCreator_similarCategoriesHint`). Settled, so it does
 not get re-litigated:
 
-- **Hints only, by decision** (2026-08-20; "when i later often end up on examples 'why didn't
-  we use that related cat' i'll get back on the earlier route"): the answers live in
+- **Hints only for the BUILDER, always** (2026-08-20): the answers live in
   `mdbPageCreator_prefixCache` and never reach `mdbTitle_categoryCache` - with prefix matches
   in there the builder would read "Dekmantel" as a podcast and the exact-match discipline
   would be undone from the server side (row_enrichment.md: "The row uses prefix mode. The
-  title builder NEVER does"). Nothing about the suggestion or the filing changes.
+  title builder NEVER does"). That half stands and is not up for discussion.
+  What DID change is the row's own use of them - see "Writing the similar category into the
+  title" below. The route back was named when the rule was written ("when i later often end up
+  on examples 'why didn't we use that related cat' i'll get back on the earlier route") and it
+  was taken on 2026-08-23. The discipline survives it because the promotion happens on the
+  FINISHED title in `page_creator.js`, never in a build: the promoted name then goes through
+  the ordinary EXACT lookup like any name typed into the field.
 - **Yellow, and no score of any kind ON THE BAR**: not green (the page does not get them), not
   red (nobody denied them), and the chips carry no percentage - the used-cat chips' number is a
   REAL fit score, and one here would dress the name resemblance up as one. The note behind
@@ -1189,6 +1194,56 @@ off the 10-name limit alike. A report is what MixesDB was asked and what came ba
 bullet in it hands the reader a name to wonder about and no answer to weigh, and the reason is
 already on screen in the panel. Where that leaves the block empty it says so in one line rather
 than standing under its heading with nothing.
+
+### Writing the similar category into the title (2026-08-23, the route back)
+
+Reported on `Dirtybird Radio 540 - Mitch Dodge`, channel `DIRTYBIRD`: the exact round answered
+empty for "Dirtybird Radio", the prefix round found `Dirtybird Radio Show` (a show with 9
+mixes) - and the suggestion still carried a name MixesDB does not have while the name it does
+have sat on a yellow chip. That is the "why didn't we use that related cat" case the hints-only
+rule named its own exit for, so the exit was taken.
+
+The rule, in the maintainer's words: *the red cat should be used for an alternative title and
+the similar category used as title - and in such cases always at least make an alternative
+title with the similar cat.* Which is the same rule the curated channel names got the same day
+(see the "Switch title" section): an existing category wins the suggestion, the closer reading
+survives as a chip. Two functions carry it, both in `page_creator.js`:
+
+- `mdbPageCreator_similarEntityFacts( title )` - the offers, as `entityName` facts in the exact
+  shape `mdbTitle_result` emits, so the bar, `mdbPageCreator_altToggle` and the chip treat them
+  like any other reading decided against. **Derived on every render, never stored**: they answer
+  about the name the FIELD carries, and `mdbPageCreator_setTitle` - which the channel-URL round
+  calls a second time - replaces the stored `mdbPageCreator_alternatives` wholesale.
+- `mdbPageCreator_applySimilarEntity()` - the promotion, called from the prefix round's settle
+  path (never from a render, like every other late answer), with
+  `mdbPageCreator_applyRecentToSuggestion()` right behind it: the promoted name is a category
+  that HAS pages, and their titles are where the episode number's spelling comes from. That is
+  half the reason the existing category is worth writing at all.
+
+Settled:
+
+- **Entities only, never artists.** A category whose name merely starts like a person's is
+  usually another person ("Ben" -> "Ben Klock"); a series written in full is the same series.
+  A promo title asks nothing here either, and needs no fence for it: its entity entry is the
+  "Promo Mix" bucket, which IS a category, so it never reaches the prefix round.
+- **Exactly ONE offer gets written.** With two or three the row cannot tell which series this
+  is, and picking the first would be a guess dressed as an answer. The chips already put every
+  one of them one click away - which is the floor this never goes under: **the similar category
+  is always reachable as an alternative title, written or not.**
+- **The promotion is remembered** (`mdbPageCreator_similarPromoted`), because the walk that
+  found it cannot find it twice: once the promoted name stands in the title, that name is a
+  category, so it is no longer one of the denied names the round asks about - and the chip
+  offering the way back would vanish with the answer it was built from. Same reason the builder
+  keeps `mdbTitle_placeWordDropped` and friends. Reset per page, next to
+  `mdbPageCreator_alternatives`.
+- **The builder is untouched.** The prefix answers still never enter `mdbTitle_categoryCache`
+  and no build ever reads one. What changes is a finished TITLE, in the row - and the promoted
+  name then goes through the ordinary exact lookup, because writing the field fires the same
+  `change` path a typed correction takes (`mdbPageCreator_queueCategoryUpdate`). So the chip
+  that was yellow turns green off a real answer, not off the prefix one.
+- **A full render, not just the bar**, where something was promoted: only `mdbPageCreator_render`
+  writes a new suggestion into the field, and the bar alone would leave the old title standing
+  over new chips.
 
 ## The channel-URL round (since 2026-08-23)
 

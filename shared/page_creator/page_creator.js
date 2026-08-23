@@ -181,6 +181,13 @@ var mdbPageCreator_title = "",
     mdbPageCreator_alternatives = [],
     // ... and the last logged set of offered titles, quieted like mdbPageCreator_hintsLogged
     mdbPageCreator_altsLogged = "",
+    // The similar category the prefix round wrote INTO the suggestion - { text, name }, null
+    // on every other title: text is the name the title wrote and the wiki denied, name the
+    // category whose own name starts with it (mdbPageCreator_applySimilarEntity). Kept because
+    // the walk that FOUND it cannot find it a second time: once the promoted name stands in the
+    // title, that name is a category, so it is no longer one of the denied names the prefix
+    // round asks about and the chip offering the way back would vanish with it.
+    mdbPageCreator_similarPromoted = null,
     // the debounce behind the title-edit category refresh - the hints bar's "Used categories"
     // line and the reasoning panel's section 6. See mdbPageCreator_queueCategoryUpdate()
     mdbPageCreator_categoryTimer = null,
@@ -2191,7 +2198,30 @@ function mdbPageCreator_prefixEnsure( title ) {
             // looked up again rather than closed over, like every other late answer
             var row = $("#mdb-pageCreator");
 
-            mdbPageCreator_renderHints( row );
+            // The answers are in, so the one thing they can decide is decided before anything
+            // renders: a lone similar category goes into the suggestion and the denied name
+            // becomes the chip back (mdbPageCreator_applySimilarEntity). The recent-pages stage
+            // follows it, because the promoted name is a category with pages and their titles
+            // are what the episode number's spelling comes from - the same order the lookup
+            // callback uses for the build's own entity.
+            var before = mdbPageCreator_title;
+
+            mdbPageCreator_applySimilarEntity();
+
+            if( mdbPageCreator_title !== before ) {
+                // The promoted name is a category that HAS pages, and their titles are where
+                // the episode number's spelling comes from - half the reason the existing
+                // category is worth writing. Same order the lookup callback uses for the
+                // build's own entity.
+                mdbPageCreator_applyRecentToSuggestion();
+                // ... and a new SUGGESTION only reaches the field through the full render; the
+                // bar alone would leave the old title standing over the new chips
+                mdbPageCreator_render();
+            } else {
+                // nothing decided - the cheap path this round has always taken
+                mdbPageCreator_renderHints( row );
+            }
+
             // the report's "Similar lookups" block quotes these answers, so it follows them
             // too - without this an open box keeps saying "looking for similar names …" for a
             // request that has long since answered (no-op on a closed box and on a written-in one)
@@ -2297,6 +2327,141 @@ function mdbPageCreator_prefixDecisions( title ) {
     }
 
     return out;
+}
+
+// mdbPageCreator_similarEntityFacts
+// The "Switch title" facts the PREFIX round produces: the entity name the title writes and the
+// wiki denied, next to a category whose own name starts with it. One fact per offer, in the
+// shape mdbTitle_result's alternatives have ({ kind: "entityName", text, name }), so the bar,
+// the toggle and the chip treat them like any other reading the build decided against.
+//
+// Why this exists: the exact round answered "no category of this name" for "Dirtybird Radio",
+// the prefix round found "Dirtybird Radio Show" (a show with 9 mixes) - and that answer used to
+// reach the "Similar:" row and nothing else. The name MixesDB HAS has to be one click from the
+// title, and where it is written into the title the name that was denied has to be one click
+// back: a category that exists is what a page can file under, and a name that does not is not
+// suddenly right for being what the uploader typed.
+//
+// Two sources, and only one of them can answer at a time:
+// - a promotion that already happened (mdbPageCreator_similarPromoted). The walk below cannot
+//   find it again - the promoted name IS a category, so it is no longer one of the denied names
+//   the prefix round asks about - and the chip has to survive that, in both directions
+// - otherwise the round's own SHOWN answers, the very chips the "Similar:" row renders
+//   (mdbPageCreator_prefixDecisions, the one walk both surfaces read), filed under the title's
+//   ENTITY entries. Artists are left out on purpose: a category whose name merely starts like a
+//   person's is usually another person ("Ben" -> "Ben Klock"), while a series written in full is
+//   the same series. A promo title asks nothing here either - its entity entry is the
+//   "Promo Mix" bucket, which is a category, so it never reaches the prefix round at all
+function mdbPageCreator_similarEntityFacts( title ) {
+    if( !title ) return [];
+
+    if( mdbPageCreator_similarPromoted ) {
+        return [ mdbPageCreator_similarEntityFact( mdbPageCreator_similarPromoted.text,
+                                                   mdbPageCreator_similarPromoted.name,
+                                                   mdbPageCreator_similarPromoted.about ) ];
+    }
+
+    var entries = mdbPageCreator_categoryEntries( title ),
+        entities = {},
+        decisions,
+        facts = [],
+        i, j, rec, match;
+
+    for( i = 0; i < entries.length; i++ ) {
+        if( entries[i].role === "entity" && entries[i].name ) {
+            entities[ mdbTitle_normalizeCompare( entries[i].name ) ] = entries[i].name;
+        }
+    }
+
+    decisions = mdbPageCreator_prefixDecisions( title );
+
+    for( i = 0; i < decisions.length; i++ ) {
+        rec = decisions[i];
+
+        if( !entities[ mdbTitle_normalizeCompare( rec.name ) ] ) continue;
+
+        for( j = 0; j < rec.decisions.length; j++ ) {
+            if( !rec.decisions[j].shown ) continue;
+
+            match = rec.matches[ rec.decisions[j].index ];
+
+            if( !match || !match.title ) continue;
+
+            // the same note the "Similar:" row writes behind its chip, off the same walk - the
+            // two surfaces say one thing about one answer
+            facts.push( mdbPageCreator_similarEntityFact( rec.name, match.title,
+                String( match.type || "category" ) + ", " + rec.decisions[j].mixes +
+                " mix" + ( rec.decisions[j].mixes === 1 ? "" : "es" ) ) );
+        }
+    }
+
+    return facts;
+}
+
+// mdbPageCreator_similarEntityFact
+// One such fact, with the sentence that has to read right in BOTH directions - the chip is a
+// toggle, and which of the two names is in the title decides which way it points.
+// about is the "show, 9 mixes" the "Similar:" row writes behind its chip, carried rather than
+// re-derived: once the name is promoted, the answer it came from is no longer in the round's
+// reach (see mdbPageCreator_similarEntityFacts), and the sentence must not quietly lose the
+// two facts that make the offer weigh anything.
+function mdbPageCreator_similarEntityFact( written, category, about ) {
+    return {
+        kind: "entityName",
+        text: written,
+        name: category,
+        about: about,
+        reason: "MixesDB has no category \"" + written + "\", and \"" + category + "\" is one whose name starts with it" +
+                ( about ? " (" + about + ")" : "" ) + ". A category that exists is what the page can file under, so it is" +
+                " the one worth the title. Where this really is a series of its own, the title keeps the name as written" +
+                " and the page opens a category under it."
+    };
+}
+
+// mdbPageCreator_applySimilarEntity
+// The prefix round's settle path, the mirror of mdbPageCreator_applyRecentToSuggestion: where
+// the round found exactly ONE similar category for the title's entity, that name goes into the
+// SUGGESTION and the name the wiki denied becomes the chip offering the way back.
+//
+// Only the suggestion, never an edited field - the same fence every late answer stands behind.
+// And only where there is exactly one offer: with two or three the row cannot tell which series
+// this is, picking the first would be a guess dressed as an answer, and the chips already put
+// every one of them one click away. That is the floor this step never goes under - the similar
+// category is ALWAYS reachable as an alternative title, whether or not it was written.
+//
+// Callers render, and call mdbPageCreator_applyRecentToSuggestion() after it: the promoted name
+// is a category that HAS pages, and their titles are what the episode number's spelling is
+// learned from - which is the whole reason the existing category is worth writing.
+function mdbPageCreator_applySimilarEntity() {
+    if( !mdbPageCreator_title || mdbPageCreator_similarPromoted ) return;
+
+    var facts = mdbPageCreator_similarEntityFacts( mdbPageCreator_title );
+
+    if( facts.length !== 1 ) {
+        if( facts.length ) {
+            logVar( "mdbPageCreator_applySimilarEntity: " + facts.length + " similar categories for \"" + facts[0].text + "\"",
+                    "none written into the title - all of them offered as \"Switch title\" chips" );
+        }
+        return;
+    }
+
+    var input = $("#mdb-pageCreator-title"),
+        toggled = mdbPageCreator_altToggle( mdbPageCreator_title, facts[0] );
+
+    // the toggle writes the name the title does NOT carry; a title already carrying the
+    // category has nothing to promote
+    if( !toggled || !toggled.adding || toggled.title === mdbPageCreator_title ) return;
+
+    if( input.length && input.data( "mdb-edited" ) ) {
+        log( "mdbPageCreator_applySimilarEntity: MixesDB has \"" + facts[0].name + "\", but the title was edited - not rewritten." );
+        return;
+    }
+
+    logVar( "mdbPageCreator_applySimilarEntity: MixesDB has a category starting with this name",
+            mdbPageCreator_title + "  ->  " + toggled.title );
+
+    mdbPageCreator_similarPromoted = { text: facts[0].text, name: facts[0].name, about: facts[0].about };
+    mdbPageCreator_title = toggled.title;
 }
 
 // mdbPageCreator_similarCategoriesHint
@@ -2916,7 +3081,13 @@ function mdbPageCreator_searchUrl( name ) {
 // because every chip is a TOGGLE derived from the current field text, the same slot then
 // offers the way back - replaced in place, nothing re-orders under the click.
 function mdbPageCreator_switchTitleHint( title ) {
-    if( !title || !mdbPageCreator_alternatives.length ) return null;
+    // ... plus the readings the PREFIX round decided (mdbPageCreator_similarEntityFacts).
+    // Derived on every render rather than stored with the build's own: they answer about the
+    // name the FIELD currently carries, and mdbPageCreator_setTitle - which the channel-URL
+    // round calls a second time - replaces the stored list wholesale.
+    var facts = mdbPageCreator_alternatives.concat( mdbPageCreator_similarEntityFacts( title ) );
+
+    if( !title || !facts.length ) return null;
 
     var chips = $("<span>").addClass( "mdb-pageCreator-hint-items" ),
         hint = $("<span>")
@@ -2928,13 +3099,18 @@ function mdbPageCreator_switchTitleHint( title ) {
         offered = [],
         i;
 
-    for( i = 0; i < mdbPageCreator_alternatives.length; i++ ) {
-        var fact = mdbPageCreator_alternatives[i],
+    for( i = 0; i < facts.length; i++ ) {
+        var fact = facts[i],
             toggled = mdbPageCreator_altToggle( title, fact );
 
         // a toggle that changes nothing (or has nothing to work on) offers no reading -
         // e.g. the reader edited the very marker out of recognition
         if( !toggled || !toggled.title || toggled.title === title ) continue;
+
+        // ... and two facts that arrive at the same title offer it once: the promoted similar
+        // category is a fact of its own AND, until the promotion is clicked away, findable by
+        // the round's own walk
+        if( offered.indexOf( toggled.title ) !== -1 ) continue;
 
         chips.append( mdbPageCreator_titleAltChip( fact, toggled ) );
         offered.push( toggled.title );
@@ -8381,6 +8557,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_similarLogged = "";
     mdbPageCreator_alternatives = [];
     mdbPageCreator_altsLogged = "";
+    mdbPageCreator_similarPromoted = null;
     mdbPageCreator_openDefinitions = {};
     mdbPageCreator_openUsedCatRecent = {};
 

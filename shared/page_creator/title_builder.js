@@ -3661,6 +3661,72 @@ function mdbTitle_isBareSeriesName( name ) {
     return mdbTitle_isSeriesWordToken( text.replace( /[\s.#:-]*\d{1,5}$/, "" ) );
 }
 
+// mdbTitle_dropCutLeftoverBit
+// Drops the chunk a cut name left behind when what is left of it is nothing but a generic
+// series word.
+//   "Nocturna #038 // Max Hefele [Melodic Deep Series]"  (channel "Melodic Deep")
+//   WRONG: 2026-08-07 - Max Hefele Series - Nocturna 038
+//   RIGHT: 2026-08-07 - Max Hefele - Nocturna 038
+// The uploader signed the title with the channel name plus the word that says what the channel
+// is ("<channel> Series", "<channel> Podcast"). Cutting the channel out of that chunk - which
+// is right, a channel signing its own title says nothing about who played - leaves the word
+// standing alone, and a lone "Series" is no artist, no show and no name at all: it only ever
+// meant something together with the name that just left (mdbTitle_isBareSeriesName). Left in,
+// it becomes a chunk of its own and glues itself onto whatever group takes that chunk next,
+// which is how the artist above turned into a person MixesDB has no category of.
+// A NUMBER behind the word is the other case and stays: there the chunk counts an episode the
+// parse still has to find and name with the channel ("Podcast #323", see 5a2).
+function mdbTitle_dropCutLeftoverBit( text, index ) {
+    text = String( text || "" );
+
+    if( index < 0 ) return text;
+
+    // the separator is captured, so parts reads [ chunk, sep, chunk, sep, chunk, ... ] - the
+    // same shape mdbTitle_dropBits works in, and for the same reason: each chunk carries the
+    // separator that stood in FRONT of it, so dropping one drops that separator with it and
+    // never leaves a dangling " | " behind
+    var parts = text.split( new RegExp( "((?:\\s+[" + mdbTitle_sepInner + "]+|:)\\s+)" ) ),
+        kept = [],
+        offset = 0,
+        dropped = false,
+        out = "",
+        i;
+
+    // one chunk is the whole title - there is nothing to drop it in favour of
+    if( parts.length < 3 ) return text;
+
+    for( i = 0; i < parts.length; i += 2 ) {
+        // The chunk REACHES back over the separator run in front of it, so the offset the name
+        // stood at still falls into it: the cut leaves a space where the name was
+        // (mdbTitle_cut), and that space is swallowed by the separator run, which moves the
+        // chunk's own start behind the offset. Everything from the end of the previous chunk
+        // onwards belonged to this one.
+        var start = offset,
+            end = offset + parts[i].length,
+            // trimmed, not cleaned: whether the chunk is a bare series word is a question, and
+            // cleanArtist would answer it by re-casing the title on the way
+            bit = mdbTitle_trimSeparators( parts[i] );
+
+        offset = end + ( i + 1 < parts.length ? parts[i + 1].length : 0 );
+
+        if( !dropped && index >= start - ( i ? parts[i - 1].length : 0 ) && index <= end && bit &&
+            !/\d/.test( bit ) && mdbTitle_isBareSeriesName( bit ) ) {
+            dropped = true;
+            continue;
+        }
+
+        kept.push( { sep: i ? parts[i - 1] : "", text: parts[i] } );
+    }
+
+    if( !dropped || !kept.length ) return text;
+
+    for( i = 0; i < kept.length; i++ ) {
+        out += ( i ? kept[i].sep : "" ) + kept[i].text;
+    }
+
+    return out;
+}
+
 // mdbTitle_lookupCategories
 // Asks the wiki's action=mdbnames module what these names are, all in ONE request, then calls
 // back with the cache. Always calls back - a failed or blocked request just means the parser
@@ -6867,7 +6933,22 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                                                      "\\s+(?:presents?|pres\\.?)(?![\\w])", "i" ).test( rest );
 
         if( username && !channelPresents && mdbTitle_normalizeCompare( username ) !== mdbTitle_normalizeCompare( show ) ) {
-            rest = mdbTitle_takeShowOutOfTitle( rest, username, false, known ).text;
+            var channelCut = mdbTitle_takeShowOutOfTitle( rest, username, false, known ),
+                // ... and when the chunk it was signed in held nothing but the channel name and
+                // the word saying what the channel is ("[Melodic Deep Series]"), that word goes
+                // with it - see mdbTitle_dropCutLeftoverBit
+                withoutLeftover = channelCut.taken
+                                  ? mdbTitle_dropCutLeftoverBit( channelCut.text, channelCut.index )
+                                  : channelCut.text;
+
+            if( channelCut.taken && withoutLeftover !== channelCut.text ) {
+                logVar( "buildMixesdbTitle: the channel signed itself with a series word, dropping what is left of that chunk",
+                        channelCut.text + " -> " + withoutLeftover );
+                mdbTitle_traceStep( "Series word dropped with the channel name it belonged to",
+                    channelCut.text + " -> " + withoutLeftover, null, [ "mdbTitleShowSuffixWords" ] );
+            }
+
+            rest = withoutLeftover;
         }
 
         // 5) episode. The entity is settled whenever its name was found in the title or the
