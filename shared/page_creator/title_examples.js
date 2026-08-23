@@ -1867,5 +1867,32 @@ var mdbTitleExamples = [
         expectEntity: "Rhythm Prism Radio 085",
         expectAlternatives: [ "entityName" ],
         expect: "2025-10-10 - AKA AKA - Rhythm Prism Radio 085"
+    },
+    {
+        // The case the channel-URL round was built for: NO name in this title or on this
+        // channel reaches the category the wiki has been filing these episodes under for 90
+        // pages. The channel is "EG en Español" on SoundCloud and "Electronic Groove en
+        // Español Podcast" on MixesDB - the exact lookup answers empty, and the prefix round
+        // does too, since "EG en Español" starts no category. What connects the two is the
+        // channel's URL standing in the category page's text (soundcloud.com/egesp), which
+        // list=exturlusage answers for in one request (mdbPageCreator_channelCatEnsure).
+        //
+        // channelUrlShow below is that answer. It is applied like a curated
+        // mdbTitleUsernameConversions entry, and only because this title backs it twice over:
+        // the category's own pages number their episodes "EGE <n>", and "EGE" spells its
+        // initials. Without the finding the suggestion reads the channel as the artist and
+        // everything else as the name - "2019-09-24 - EG en Español - EGE.090 Adonis Rivera".
+        url: "https://soundcloud.com/egesp/ege090-adonis-rivera",
+        title: "EGE.090 Adonis Rivera",
+        channel: "EG en Español",
+        date: "2019-09-24",
+        channelUrlShow: "Electronic Groove en Español Podcast",
+        known: {
+            "Adonis Rivera": { type: "artist", mixes: 5 },
+            "Electronic Groove en Español Podcast": { type: "podcast", mixes: 90 }
+        },
+        expectArtists: [ "Adonis Rivera" ],
+        expectEntity: "Electronic Groove en Español Podcast (EGE.090)",
+        expect: "2019-09-24 - Adonis Rivera - Electronic Groove en Español Podcast (EGE.090)"
     }
 ];

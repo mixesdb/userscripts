@@ -24,8 +24,8 @@ const source = [ "title_definitions.js", "title_builder.js", "title_examples.js"
     .map( file => Deno.readTextFileSync( dir + file ) )
     .join( "\n" );
 
-const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitle_categoryCandidates, mdbTitleExamples ] =
-    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitle_categoryCandidates, mdbTitleExamples ]" );
+const [ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitle_categoryCandidates, mdbTitle_channelUrlShows, mdbTitleExamples ] =
+    ( 0, eval )( stubs + "\n" + source + "\n;[ buildMixesdbTitle, mdbTitle_normalizeCompare, mdbTitle_titleCategories, mdbTitle_titleChunks, mdbTitle_categoryCandidates, mdbTitle_channelUrlShows, mdbTitleExamples ]" );
 
 let failed = 0;
 
@@ -48,6 +48,23 @@ for( const example of mdbTitleExamples ) {
                 : ( value.matches
                     ? value
                     : { matches: [ { title: name, mixes: 1, exactCase: true, ...value } ] } );
+    }
+
+    // A case's "channelUrlShow" stands in for the channel-URL round, which runs over the
+    // network in the browser too: the page creator asks which MixesDB category page links the
+    // channel (mdbPageCreator_channelCatEnsure in page_creator.js, not loaded here) and writes
+    // the answer into mdbTitle_channelUrlShows, where the parse reads it like a curated
+    // mdbTitleUsernameConversions entry. Cleared before every case, so one case's channel
+    // cannot answer for the next one's.
+    for( const key in mdbTitle_channelUrlShows ) delete mdbTitle_channelUrlShows[key];
+
+    if( example.channelUrlShow ) {
+        mdbTitle_channelUrlShows[ mdbTitle_normalizeCompare( example.channel ) ] = {
+            show: example.channelUrlShow,
+            type: "podcast",
+            url: "",
+            catTitle: example.channelUrlShow
+        };
     }
 
     // createdAt, releaseDate - the same two the track page passes in. description is optional

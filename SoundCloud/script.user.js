@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.7
+// @version      2026.08.23.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,9 +13,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_127
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_55
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_82
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_83
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_114
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_115
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1903,6 +1903,27 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.23.8
+ * The channel's URL is asked about where no NAME reaches the series (page_creator.js v_115,
+ * title_builder.js v_83). Reported on the SoundCloud channel "EG en Español", which MixesDB has
+ * been filing as "Electronic Groove en Español Podcast" for 90 pages: the exact lookup answers
+ * empty, the prefix round answers empty - "EG en Español" starts no category - and neither name
+ * can be spelled into the other. The wiki holds the connection all the same, as a LINK: the
+ * category page carries "https://soundcloud.com/egesp" in its text. So where the name lookups
+ * left one of the two slots open, one more request goes out - list=exturlusage over namespace
+ * 14, the API behind Special:LinkSearch - asking which category page links this channel, and
+ * what comes back is read like a curated channel entry.
+ * It hardens the CHANNEL and nothing else, so it is only written where this title backs it: the
+ * title writing the category name, the category's own pages numbering their episodes with the
+ * id the title carries, that id spelling the category's initials, the channel name and the
+ * category name opening each other, or a name the wiki denied opening it. Unbacked, backed
+ * equally for two of the channel's categories, or an artist category: reported in the reasoning
+ * panel's section 3 and in the report box's new "Channel URL:" lines, and nothing is written.
+ *     WRONG: 2019-09-24 - EG en Español - EGE.090 Adonis Rivera
+ *     RIGHT: 2019-09-24 - Adonis Rivera - Electronic Groove en Español Podcast (EGE.090)
+ * 159 examples, all pass.
+ * Only sites handing a channelUrl over ask at all, which today means this one.
  *
  * 2026.08.23.6
  * A curated channel rule is read with the channel name the SITE gives (title_builder.js v_81,

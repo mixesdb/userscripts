@@ -5203,6 +5203,45 @@ function mdbTitle_showFromUsername( username ) {
     return key ? mdbTitleUsernameConversions[key] : username;
 }
 
+/*
+ * What the channel's own URL says - the learned side of mdbTitleUsernameConversions
+ *
+ * mdbTitleUsernameConversions is a hand-written list: somebody saw a channel, saw which show
+ * MixesDB files its uploads under, and wrote the pair down. The wiki holds that same pair
+ * already, and not as a name at all - a series' category page carries the channel's URL in
+ * its text ("https://soundcloud.com/egesp" stands in Category:Electronic Groove en Español
+ * Podcast), so the URL is a key nobody has to spell right.
+ *
+ * That is the one lookup left when every NAME came back empty: the channel is called
+ * "EG en Español" on SoundCloud, MixesDB files it as "Electronic Groove en Español Podcast",
+ * and no name lookup can bridge the two - not the exact one (no such category), not the
+ * prefix one ("EG en Español" starts nothing). The URL does, exactly.
+ *
+ * The page creator does the asking (mdbPageCreator_channelCatEnsure in page_creator.js, one
+ * list=exturlusage request against namespace 14 - the API behind Special:LinkSearch) and
+ * writes the answer in here, so this file stays free of requests and the parse reads one map
+ * whoever filled it. Only a finding the title itself BACKS is written - see the support test
+ * over there: the URL says whose category it is, and the title has to say that this upload is
+ * an episode of it.
+ *
+ * Keyed on the channel name as the site gives it, normalized like every other name. Kept
+ * across navigations like mdbTitle_categoryCache: what a channel is on MixesDB does not
+ * change while the reader walks its tracks.
+ */
+var mdbTitle_channelUrlShows = {};
+
+// mdbTitle_channelUrlShow
+// What the channel's URL answered about this channel name: { show, type, mixes, url } or null.
+// "show" is the wiki's own category title; an entry whose category is an ARTIST carries "" -
+// the channel is a person, not a series, and the title must not grow a show name.
+function mdbTitle_channelUrlShow( username ) {
+    var key = mdbTitle_normalizeCompare( username );
+
+    if( !key || !Object.prototype.hasOwnProperty.call( mdbTitle_channelUrlShows, key ) ) return null;
+
+    return mdbTitle_channelUrlShows[key];
+}
+
 // mdbTitle_channelSeriesConversion
 // mdbTitleChannelSeriesConversions (title_definitions.js): the channel and a word in the title
 // name the show TOGETHER. Returns { text, entity, words } with the words grown into the curated
@@ -5966,6 +6005,36 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 username + " -> " + ( show || "(no show)" ),
                 show ? { from: username, to: show } : null,
                 [ "mdbTitleUsernameConversions" ] );
+        }
+
+        // 2-) ... and where no hand-written entry says anything, the channel's URL may:
+        // MixesDB has a category whose page text links it (mdbTitle_channelUrlShows, filled by
+        // mdbPageCreator_channelCatEnsure). Read AFTER the curated map and only where that one
+        // was silent - a hand-written entry is somebody's decision about this very channel and
+        // outranks a lookup, an entry mapped to "" ("not a show") included.
+        // Asked with the FULL channel name first and with the reduced one after it, the same
+        // two shots the curated rules get: a channel crediting its maker ("WHATS POPPIN by
+        // AKA AKA" -> "AKA AKA") is reduced before this line, and the URL answer was filed
+        // under the name the SITE gives.
+        if( !isMappedChannel ) {
+            var urlShow = mdbTitle_channelUrlShow( channelRaw ) ||
+                          ( username !== channelRaw ? mdbTitle_channelUrlShow( username ) : null );
+
+            if( urlShow && urlShow.show ) {
+                show = urlShow.show;
+                isMappedChannel = true;
+                logVar( "buildMixesdbTitle: the channel's URL stands on a MixesDB category page",
+                        urlShow.url + " -> " + urlShow.show );
+                // Named after the EVIDENCE, not after the effect: this is the one mapping the
+                // reader cannot look up anywhere - it was found while the page was open, and
+                // the URL is what a reporter has to be able to check.
+                // No "?" list behind this step: it worked off no hand-written list at all.
+                // What it DID work off - the URL, the category, and what in this title backs
+                // it - is the panel's own block in section 3.
+                mdbTitle_traceStep( "MixesDB links this channel from a category page",
+                    urlShow.url + " -> " + urlShow.show,
+                    { from: username, to: urlShow.show } );
+            }
         }
 
         // 2a) the channel and a word in the title name the show TOGETHER: "DJ MIX #679" on the
