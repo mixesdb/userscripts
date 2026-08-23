@@ -735,6 +735,27 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   OWN page title - read back as a title filed under nothing. Folding is also what a reader means
   by "the same name", and how the description of that mix writes it ("Played some records at
   HOR"). A letter with no decomposition (`Ø`) is dropped as before.
+- **A denied name is asked again in its other SPELLINGS** (2026-08-23, reported on
+  `EG AFTER.189 Paco Wegman`, channel `EG`) - `mdbTitle_lookupVariants()`, fired from
+  `mdbTitle_lookupCategories`'s own success handler for every name that came back empty, one
+  request for all of them, exact mode, and the callback waits for it. MixesDB files that show
+  as `Category:EGAFTER` with 110 mixes in it, the title writes it with a space, and the module
+  matches character for character (case aside), so the exact round asked a string that cannot
+  exist and the page was about to open a second, empty category next to the series. What is
+  asked are the spellings `mdbTitle_normalizeCompare` ALREADY calls the same name - the glued
+  form (`EG AFTER` -> `EGAFTER`, two or three segments at most: `Live At Fabric London` glued
+  is a string nobody typed), the separators written as spaces and written away (`R.E.M.` ->
+  `R E M` / `REM`) and a glued name split where its own case says the words end (`EGAfter` ->
+  `EG After`); `mdbTitle_spellingVariants`, capped at `mdbTitle_maxSpellingVariants` per name
+  and sent rank-major, so a full request does not spend itself on the first name's third guess.
+  **No cache of its own and no new trust**: a variant normalizes to the very key the denied
+  name reads, so the answer lands where the reader looks and `mdbTitle_canonicalName` respells
+  the title to the wiki's version of it - this only makes the SERVER agree with the comparison
+  the builder already runs everywhere. Nothing empty is ever written over an answer that key
+  already has. A LONGER or shorter name stays the row's prefix round alone (hints only, never
+  the builder's cache); this round asks the SAME name. The panel's section 3 and the report's
+  `## Lookups` lines say `also asked as "..."` where the second round found nothing either, so
+  a name asked twice never reads like one given up on.
 - **All matches per name are kept**, because one name is legitimately several things:
   `fabric` the venue and `Fabric` the artist. Readers ask by type (`mdbTitle_knownMatch`);
   a name the wiki knows as podcast/show/radio (`mdbTitle_knownEntityType`) is never

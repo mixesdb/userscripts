@@ -6458,7 +6458,11 @@ function mdbPageCreator_reportAnswer( entry, matches, overruledBy ) {
         var match = matches[m],
             bits = [];
 
-        if( match.title && mdbTitle_normalizeCompare( match.title ) !== entry.key ) bits.push( match.title );
+        // Compared lower-cased rather than normalized: a name the wiki merely CASES differently
+        // ("aka aka" -> "AKA AKA") would only repeat the line's own opening, but one it SPACES
+        // differently ("EG AFTER" -> "EGAFTER") is the answer of the spelling-variant round
+        // (mdbTitle_lookupVariants) - and that spelling is the whole reason the answer exists.
+        if( match.title && match.title.toLowerCase() !== String( entry.name || "" ).toLowerCase() ) bits.push( match.title );
 
         bits.push( String( match.type || "?" ) );
 
@@ -6480,6 +6484,12 @@ function mdbPageCreator_reportAnswer( entry, matches, overruledBy ) {
                   : entry.skipped ? "not asked - over the 10-name request limit"
                   : entry.failed  ? "lookup failed"
                   : "no category of this name" );
+
+        // ... and in the same breath the other spellings that were asked after the "no"
+        // (mdbTitle_lookupVariants), so a report never suggests trying what has been tried
+        if( !entry.pending && !entry.skipped && entry.variants && entry.variants.length ) {
+            parts.push( "also asked as \"" + entry.variants.join( "\" / \"" ) + "\"" );
+        }
     }
 
     // A curated channel mapping outranks whatever the wiki knows under the bare words. Without
@@ -6958,6 +6968,13 @@ function mdbPageCreator_reasoningLookupRow( column, entry, matches, isCat, overr
             // the normal outcome for most title bits, so muted rather than a warning -
             // section 5 is where an unknown name matters
             result.append( mdbPageCreator_reasoningNote( "no category of this name", "muted" ) );
+
+            // ... and the other spellings asked after that "no" (mdbTitle_lookupVariants):
+            // without this the panel shows one question where two were asked
+            if( entry.variants && entry.variants.length ) {
+                result.append( mdbPageCreator_reasoningNote(
+                    "also asked as \"" + entry.variants.join( "\" / \"" ) + "\"", "muted" ) );
+            }
         }
     }
 

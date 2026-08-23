@@ -830,6 +830,19 @@ var mdbTitleExtraArtistConnectors = [
  * for artists who played TOGETHER (b2b) - "w/" says nothing about that, and playing after one
  * another is the normal case, so "," is what we assume. The suggestion says so in its
  * confidence reasons, since only the recording itself can settle it.
+ *
+ * And one artist group carries ONE joiner. Where this "," meets an "&" the uploader wrote
+ * between two of the names it strings together, the "&" becomes a "," as well:
+ *
+ *     "Observatory 143 - Sungate [with Lucient & Moy Santana]"
+ *     ->  "Sungate, Lucient, Moy Santana", never "Sungate, Lucient & Moy Santana"
+ *
+ * because a group using both says that Lucient and Moy Santana played together while Sungate
+ * played before or after them - a claim nothing in the title makes. This "," is an assumption,
+ * the "&" is the uploader's, and the assumption is the one that says nothing, so it wins. An
+ * "&" standing alone in a group is left exactly where it is ("Tonton & Tata"), and so are
+ * "b2b", "vs" and "pres.", which are words the uploader wrote about the recording rather than
+ * a separator picked for them. See mdbTitle_oneArtistJoiner() in title_builder.js.
  */
 var mdbTitleExtraArtistJoiner = ", ";
 
