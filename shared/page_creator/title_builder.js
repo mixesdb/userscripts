@@ -2459,38 +2459,44 @@ function mdbTitle_gluedSeparators( text ) {
 // "Anja Schneider + Ellen Allien @ Watergate" -> "Anja Schneider, Ellen Allien @ Watergate":
 // a "+" between two names is the uploader writing what MixesDB writes as a ",".
 //
-// NOT a character on mdbTitle_sepInner, where every other separator lives, and that is the
-// whole point twice over:
-//   - a "+" is part of a NAME at least as often as it is a boundary ("B+", "AGF+DELAY", "+/-"),
-//     and the class is read in a dozen places, some of which let a separator stand with no
-//     space next to it - with the character in there, "B+ live at Fabric" came out as
-//     "B @ Fabric". Here it needs whitespace on BOTH sides, the same rule
-//     mdbTitleLabelSeparators has always used for the "+" inside a label bracket, so a glued
-//     one is never even seen.
-//   - what the "+" separates are two NAMES, not two parts of the title. Written as a "|" the
-//     two halves became two title groups, and the assembler - which may hand a group holding a
-//     separator to mdbTitle_flattenSeparators - then wrote "Anja Schneider Ellen Allien". The
-//     "," is the joiner MixesDB uses for artists who played one after another
-//     (mdbTitleExtraArtistJoiner) and the one a place group already strings its places with, so
-//     it is right on either side of an "@" - which is where the report's "+" stood.
+// NOT a character on mdbTitle_sepInner, where every other separator lives: a "+" is part of a
+// NAME at least as often as it is a boundary ("B+", "AGF+DELAY", "+/-"), and the class is read
+// in a dozen places, some of which let a separator stand with no space next to it - with the
+// character in there, "B+ live at Fabric" came out as "B @ Fabric". Here it needs whitespace on
+// BOTH sides, the same rule mdbTitleLabelSeparators has always used for the "+" inside a label
+// bracket, so a glued one is never even seen.
 //
 // The one "+" between spaces that joins nothing is the one between two NUMBERS: "Vol. 1 + 2"
 // and "Part 3 + 4" are one recording written as one name, and a "," there would file a mix
 // under an artist called "2".
 //
-// Runs with the chunk rewrites (1b0) so that everything below - the groups, the lookup
-// candidates, the categories - sees the names the way MixesDB writes them.
-function mdbTitle_plusToJoiner( text ) {
+// asBoundary is what the CHUNK split (mdbTitle_titleChunks) passes, and the two answers differ
+// on purpose - the same way mdbTitle_splitEventComma cuts a chunk the suggested title keeps
+// whole:
+//   - the PARSE gets the ",". What a "+" separates are two NAMES, not two parts of the title,
+//     and written as a "|" they became two title groups - which the assembler may hand to
+//     mdbTitle_flattenSeparators, so "Anja Schneider + Ellen Allien" came out as "Anja
+//     Schneider Ellen Allien". The "," is the joiner MixesDB uses for artists who played one
+//     after another (mdbTitleExtraArtistJoiner) and the one a place group already strings its
+//     places with, so it is right on either side of an "@".
+//   - the CHUNKS get the "|". Two names are two units, two chips in the panel and two names the
+//     wiki is asked about: with the "," the chunk stayed "Sami J, Doog & Rich" and MixesDB was
+//     asked about a name nobody can be filed under, on top of the two real ones. A comma only
+//     splits a chunk BEHIND an "@" (mdbTitle_placeGroupParts), and in front of one it must keep
+//     joining - that is how an artist list is written ("ANA, Johnny D, DJ Koze").
+function mdbTitle_plusToJoiner( text, asBoundary ) {
     text = String( text || "" );
 
     if( text.indexOf( "+" ) === -1 ) return text;
 
+    var write = asBoundary ? " | " : ", ";
+
     // the digits are CAPTURED rather than only looked at, so "1 + 2" comes back untouched
-    // while "Vol. 1 + Foo" still joins - the digit belongs to whichever side keeps it
+    // while "Vol. 1 + Foo" still splits - the digit belongs to whichever side keeps it
     var out = text.replace( /(\d?)\s+\+\s+(\d?)/g, function( all, digitBefore, digitAfter ) {
         if( digitBefore && digitAfter ) return all;
 
-        return digitBefore + ", " + digitAfter;
+        return digitBefore + write + digitAfter;
     } );
 
     return out === text ? text : out.replace( /\s+/g, " " ).trim();
@@ -6011,13 +6017,15 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
     text = locationBrackets.text;
 
     // the same rewrites the parse runs (1b0, 1b and 1b2): a glued separator run, a bracket and
-    // a dash wrap are each a chunk boundary of their own, and a "+" between two names is the
-    // "," MixesDB joins two artists with. The joke-year mirror (1b3) goes with them: the digits
-    // of "3000Grad Festival 3026" leave the title, so they belong to no chunk and to no lookup
-    // candidate - the same reason the date is mirrored further down.
+    // a dash wrap are each a chunk boundary of their own. The "+" between two names is asked
+    // for as a BOUNDARY here where the parse writes it as the "," MixesDB joins artists with -
+    // two names are two units and two names to ask the wiki about, whatever the title writes
+    // between them (see mdbTitle_plusToJoiner). The joke-year mirror (1b3) goes with them: the
+    // digits of "3000Grad Festival 3026" leave the title, so they belong to no chunk and to no
+    // lookup candidate - the same reason the date is mirrored further down.
     var unbracketed = mdbTitle_takeJokeYear( mdbTitle_dashWrapsToSeparators(
             mdbTitle_bracketsToSeparators(
-                mdbTitle_plusToJoiner( mdbTitle_gluedSeparators( text ) ), mdbTitle_spaced( username ) ) ) ).text,
+                mdbTitle_plusToJoiner( mdbTitle_gluedSeparators( text ), true ), mdbTitle_spaced( username ) ) ) ).text,
         // The units are the units the PARSE works with, so the joiners run first: a live
         // marker is gone ("live@3000Grad Festival" holds no chunk "live"), an "at" in front
         // of a place is the " @ " it will be read as. Also what the parse's 3h guard needs:
