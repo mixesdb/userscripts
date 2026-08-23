@@ -133,6 +133,16 @@ up, and the title becomes `2025-03-06 - AKA AKA - Rhythm Prism Radio 053`. Only 
 `by` counts – `Stand By Me` carries the word inside a name – and a channel that writes its full
 name into its own titles keeps it whole, which is how a `Death by Audio` stays one name.
 
+Where such a channel has a **curated show rule**, the rule is read under the channel's full
+name, the way the site writes it – the one name the maps are written for. `Rhythm Prism by AKA
+AKA Episode #085` on that same channel becomes `2025-10-10 - AKA AKA - Rhythm Prism Radio 085`:
+`Rhythm Prism` is what MixesDB files as `Rhythm Prism Radio`, a podcast with 123 mixes, and the
+rule says so for this channel. The credit stays whole while that happens – the episode number
+sits behind the maker (`by AKA AKA Episode #085`), so the show is left standing in the title
+rather than cut out of the front of the credit – and the `by` then says which side is which,
+exactly as it does in the channel name. A `pres.` on the same channel reads the same way round:
+`AKA AKA pres. Rhythm Prism Radio #053` keeps the presenter as the artist.
+
 The **title's own `by`** says the same thing, and MixesDB's answer is what lets it be read where
 the words alone cannot. `112 - unrushed by ena b.` on the channel *u n r u s h* came out as
 `2026-07-13 - u n r u s h - 112 Unrushed By Ena b.` – a numbered mix naming nobody, so the

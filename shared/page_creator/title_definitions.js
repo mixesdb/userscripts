@@ -380,6 +380,11 @@ var mdbTitleUsernameConversions = {
  *
  * Notes:
  * - the channel lookup is case-insensitive, so a casing slip in a key still works
+ * - and it is made with the channel name as the SITE gives it, whatever name the parse works
+ *   with further on: a channel crediting its maker is reduced to that maker before most rules
+ *   read it ("WHATS POPPIN by AKA AKA" -> "AKA AKA"), and an entry keyed on the full name -
+ *   which is how these keys are written - would never be found again. Write the key the way
+ *   the site writes the channel, not the way a title spells one of its names
  * - the words are matched in any case and with their inner spaces optional ("DJ MIX",
  *   "DJMix"), always as whole words - the same looseness a mapped channel name gets
  * - and, on top of that, the dash or colon BETWEEN the words is free: write the key the way

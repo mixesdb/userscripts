@@ -1630,6 +1630,11 @@ var mdbTitleExamples = [
         //   "Rhythm Prism Radio" as a podcast with 123 mixes (mdbTitle_episodeWordKept). Cut
         //   with its number - the default, and right where nothing is known ("Spannung Radio
         //   Show #069" above) - it left "Rhythm Prism", which is no category.
+        // Since the channel got its curated series entry (mdbTitleChannelSeriesConversions, for
+        // the #085 case below) the answer is the same one by a shorter road: the show is named
+        // by the rule, so 4a2 is not asked and the show is cut out of the title as a curated
+        // one. What keeps the presenter standing is that the leftover channel cut leaves a name
+        // a "pres." follows alone - it is the artist, not the channel signing its own title.
         url: "https://soundcloud.com/aka-aka/aka-aka-pres-rhythm-prism-radio-053",
         title: "AKA AKA pres. Rhythm Prism Radio #053",
         channel: "WHATS POPPIN by AKA AKA",
@@ -1641,6 +1646,11 @@ var mdbTitleExamples = [
         expectArtists: [ "AKA AKA" ],
         expectEntity: "Rhythm Prism Radio 053",
         expectAsked: [ "AKA AKA", "WHATS POPPIN", "Rhythm Prism Radio" ],
+        // no "entityName" chip: this title SPELLS the curated show, so the rule matched the
+        // name itself as the longer of its entry's two candidates and rewrote nothing. There is
+        // no second reading to offer - the other two cases below, where the title writes only
+        // "Rhythm Prism", get the chip.
+        expectNoAlternatives: [ "entityName" ],
         expect: "2025-03-06 - AKA AKA - Rhythm Prism Radio 053"
     },
     {
@@ -1795,21 +1805,67 @@ var mdbTitleExamples = [
         //   other side of the word. Without the split this was ONE chunk, so the wiki was asked
         //   about "Rhythm Prism by AKA AKA Episode" and "AKA AKA Episode", two names it cannot
         //   hold, while the panel showed one chip for a title the parse reads as two units.
-        // The show is "Rhythm Prism" and not the "Rhythm Prism Radio" of the 053 case because
-        // this title does not write the word: nothing is dropped here, there was never a "Radio"
-        // to keep (mdbTitle_episodeWordKept), and the lookup can only answer about what is asked.
+        // The show came out as "Rhythm Prism" at the time, and not as the "Rhythm Prism Radio"
+        // of the 053 case, because this title does not write the word: nothing was dropped here,
+        // there was never a "Radio" to keep (mdbTitle_episodeWordKept), and the lookup can only
+        // answer about what is asked. The curated entry the #085 case below brought is what
+        // answers it now - see there.
         url: "https://soundcloud.com/aka-aka/aka-aka-pres-rhythm-prism-radio-117",
         title: "Rhythm Prism by AKA AKA Episode #117",
         channel: "WHATS POPPIN by AKA AKA",
         date: "2026-06-16",
         known: {
-            "AKA AKA": { type: "artist", mixes: 230 }
+            "AKA AKA": { type: "artist", mixes: 230 },
+            "Rhythm Prism Radio": { type: "podcast", mixes: 123 }
         },
         expectChunks: [ "Rhythm Prism", "AKA AKA Episode #117" ],
-        expectAsked: [ "AKA AKA", "Rhythm Prism" ],
+        expectAsked: [ "AKA AKA", "Rhythm Prism Radio" ],
         expectNotAsked: [ "Rhythm Prism by AKA AKA Episode", "AKA AKA Episode" ],
         expectArtists: [ "AKA AKA" ],
-        expectEntity: "Rhythm Prism 117",
-        expect: "2026-06-16 - AKA AKA - Rhythm Prism 117"
+        expectEntity: "Rhythm Prism Radio 117",
+        expectAlternatives: [ "entityName" ],
+        expect: "2026-06-16 - AKA AKA - Rhythm Prism Radio 117"
+    },
+    {
+        // Reported: came out as "2025-10-10 - AKA AKA - Rhythm Prism 085" - the third report on
+        // this channel and the same complaint as the first: an entity MixesDB HAS was answered
+        // for and a name it does not have was written instead. The channel had by then been given
+        // its curated entry
+        //
+        //     "WHATS POPPIN by AKA AKA": { "Rhythm Prism": "Rhythm Prism Radio" }
+        //
+        // and the panel proved the lookup had followed it: "Rhythm Prism Radio" was asked and
+        // came back as a podcast with 123 mixes. The suggestion still carried the uncurated
+        // words. Three rules out of the report:
+        // - the curated maps are keyed on the channel name as the SITE gives it, so they have to
+        //   be read with that name. buildMixesdbTitle reduces a channel crediting its maker to
+        //   the maker alone ("WHATS POPPIN by AKA AKA" -> "AKA AKA") long before the series
+        //   rule runs, and under that name the entry does not exist - while
+        //   mdbTitle_categoryCandidates, which never reduces, had found it. The two disagreed
+        //   about the very same channel, which is why the answer was in the panel and not in the
+        //   title (buildMixesdbTitle's channelRaw).
+        // - the curated show is not cut out of the title where a maker's "by" points at the
+        //   number counting ITS episodes: "Rhythm Prism Radio by AKA AKA Episode #085" cut
+        //   leaves "by AKA AKA Episode #085", where the connector becomes the artist and the
+        //   number's keyword sticks to the real one (mdbTitle_takeShowOutOfTitle's made-credit
+        //   guard, the mirror of the #117 case's). Left standing, 6a reads the credit.
+        // - and 6a takes that credit even though the channel is mapped and the wiki files the
+        //   show as a podcast. Both fences are there because the rule DROPS the channel; here it
+        //   drops nothing - the show stands in the title as what the "by" says was made, and
+        //   goes into the entity slot the credit gives it, curated name and all.
+        url: "https://soundcloud.com/aka-aka/rhythm-prism-by-aka-aka-episode-085",
+        title: "Rhythm Prism by AKA AKA Episode #085",
+        channel: "WHATS POPPIN by AKA AKA",
+        date: "2025-10-10",
+        known: {
+            "AKA AKA": { type: "artist", mixes: 230 },
+            "Rhythm Prism Radio": { type: "podcast", mixes: 123 }
+        },
+        expectChunks: [ "Rhythm Prism", "AKA AKA Episode #085" ],
+        expectAsked: [ "AKA AKA", "Rhythm Prism Radio" ],
+        expectArtists: [ "AKA AKA" ],
+        expectEntity: "Rhythm Prism Radio 085",
+        expectAlternatives: [ "entityName" ],
+        expect: "2025-10-10 - AKA AKA - Rhythm Prism Radio 085"
     }
 ];

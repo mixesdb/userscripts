@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.5
+// @version      2026.08.23.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,8 +12,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_54
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_80
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_55
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_81
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_113
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
@@ -1903,6 +1903,32 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.23.6
+ * A curated channel rule is read with the channel name the SITE gives (title_builder.js v_81,
+ * title_definitions.js v_55). Third report on the channel "WHATS POPPIN by AKA AKA", and this
+ * one had its own answer on screen: the channel had been given its series entry - on this
+ * channel a title carrying "Rhythm Prism" is an episode of "Rhythm Prism Radio" - the lookup
+ * had followed it, "Rhythm Prism Radio, podcast, 123 mixes" stood in the panel, and the
+ * suggestion still wrote the uncurated "Rhythm Prism 085". Three rules out of it.
+ * The curated maps are keyed on the channel name as the site gives it, so they have to be read
+ * with that name: a channel crediting its maker is reduced to the maker alone ("WHATS POPPIN by
+ * AKA AKA" -> "AKA AKA") long before the series rule runs, and under that name the entry does
+ * not exist - while the lookup candidates, which never reduce, had found it. The two disagreed
+ * about the very same channel, which is why the answer was in the panel and not in the title.
+ * Then the curated show is not cut out of the title where a maker's "by" points at the number
+ * counting ITS episodes: cut, "Rhythm Prism Radio by AKA AKA Episode #085" leaves the connector
+ * standing as the artist and the number's keyword glued to the real one. Left whole, the credit
+ * is read by the "by" rule - which now takes it even on a mapped channel and even where the
+ * wiki files the show as a podcast, both fences being there because that rule DROPS the
+ * channel, and here it drops nothing.
+ * The presenter shape on the same channel needed one more: the channel's own name is no longer
+ * cut out of what is left over when a "pres." follows it, since there it is the artist and not
+ * the channel signing its own title, and a connector some cut left dangling now comes off the
+ * end of a name the way a dangling "by" already did.
+ *     WRONG: 2025-10-10 - AKA AKA - Rhythm Prism 085
+ *     RIGHT: 2025-10-10 - AKA AKA - Rhythm Prism Radio 085
+ * 158 examples, all pass.
  *
  * 2026.08.23.4
  * The "Similar:" row stops asking about a bare NUMBER (page_creator.js v_113). Where the title

@@ -3049,6 +3049,40 @@ function mdbPageCreator_altToggle( title, fact ) {
         return null;
     }
 
+    // The show name a curated channel rule wrote over the title's own words ("Rhythm Prism
+    // Radio 085" <-> "Rhythm Prism 085"). The build writes the name MixesDB HAS, because that is
+    // the category the page files under; the chip offers the words the title really carried,
+    // which were the closer candidate. Toggled on the NAME the fact carries, wherever it stands -
+    // the entity slot can carry an episode number and a "(Promo Mix)" behind it, and the name
+    // itself is the only fixed point. The filing moves with it, like the name-credit chip's:
+    // mdbPageCreator_entityCategoryFor reads the entity out of the title.
+    // The LONGER of the two names is tried first, whichever it is: the curated show can contain
+    // the title's words ("Rhythm Prism Radio" holds "Rhythm Prism") and the words can contain the
+    // show ("Juno Daily - In The Mix" holds "Juno Daily"), so testing the shorter one first would
+    // match inside the longer and write the name twice.
+    // Matched the way the curated rule matches its own keys (mdbTitle_escapeReLooseSeparators):
+    // the same name is written with a dash, an en dash, a colon or nothing at all, and a chip
+    // that only finds the punctuation the key happens to carry would offer nothing at all.
+    if( fact.kind === "entityName" && fact.text && fact.name ) {
+        var swaps = fact.name.length >= fact.text.length
+                ? [ { from: fact.name, to: fact.text, adding: false },
+                    { from: fact.text, to: fact.name, adding: true } ]
+                : [ { from: fact.text, to: fact.name, adding: true },
+                    { from: fact.name, to: fact.text, adding: false } ],
+            swapRe,
+            sw;
+
+        for( sw = 0; sw < swaps.length; sw++ ) {
+            swapRe = new RegExp( "(^|[^\\w])" + mdbTitle_escapeReLooseSeparators( swaps[sw].from ) + "(?![\\w])", "i" );
+
+            if( swapRe.test( title ) ) {
+                return { title: title.replace( swapRe, "$1" + swaps[sw].to ), adding: swaps[sw].adding };
+            }
+        }
+
+        return null;
+    }
+
     // The month stamp the monthly naming replaced ("August Promo Mix" <-> "August 2026 (Promo
     // Mix)"). Toggled on the entity slot the fact names, at the END of the title, which is
     // where the entity stands on a title that has one. The filing does not move - both
