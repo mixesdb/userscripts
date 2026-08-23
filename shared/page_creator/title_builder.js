@@ -1078,7 +1078,10 @@ function mdbTitle_channelInsideKnownName( text, index, length, known, show ) {
 function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
     // index is where the name stood in the text HANDED IN, which is what lets a caller ask
     // which bit of the title it was standing in - see 4c in buildMixesdbTitle
-    var result = { text: text, show: show, taken: false, extended: false, episode: null, index: -1 };
+    var result = { text: text, show: show, taken: false, extended: false, episode: null, index: -1,
+                   // the name STOOD in the title and was deliberately left there - see the
+                   // maker-credit guard below, the one case of found-but-not-taken
+                   byCredit: false };
 
     if( !show ) return result;
 
@@ -1155,6 +1158,34 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
     // CONFIRMS the group, it does not overwrite it.
     if( /^\s*(?:&|,|\bb2b\b|\band\b)/i.test( text.slice( index + length ) ) ) {
         logVar( "mdbTitle_takeShowOutOfTitle: a joiner follows the channel name, so it is an artist", show );
+        return result;
+    }
+
+    // A maker's "by" right in FRONT of the name is the mirror of that joiner: the word says the
+    // name behind it is who MADE what stands before it, so the name is the ARTIST and not a show
+    // the title happens to repeat.
+    //   "Rhythm Prism by AKA AKA Episode #117"  (channel "WHATS POPPIN by AKA AKA")
+    //   WRONG: 2026-06-16 - Rhythm Prism by - AKA AKA 117
+    //   RIGHT: 2026-06-16 - AKA AKA - Rhythm Prism 117
+    // The channel credits the same maker the title does, so its name stands in the title twice
+    // over - and cutting it out of the credit destroys the one separator the uploader wrote and
+    // leaves the connector dangling. "Rhythm Prism by" then went into the artist group AND into
+    // the lookup, which is exactly the nonsense "& Lanka" is above, read from the other side.
+    // Left standing, the credit is whole and 6a reads it: what is in front of the "by" was made,
+    // who is behind it made it.
+    // Same case fence as every other reading of the word (the ""by" says a NAME follows" block
+    // in title_definitions.js), so the "By" of "Stand By Me" still lets the cut through, and
+    // something has to stand in FRONT of the "by" - a title OPENING on it credits nobody, and
+    // mdbTitle_cleanArtist is what drops that one.
+    if( new RegExp( "\\S.*\\s+by\\s*$", mdbTitle_byMarkerFlags( text ) ).test( text.slice( 0, index ) ) ) {
+        logVar( "mdbTitle_takeShowOutOfTitle: a maker's \"by\" stands in front of the channel name, so it is the artist", show );
+
+        // Not cut, but FOUND - and the two are not the same thing. "taken" is read as "the
+        // title names the channel" by 4a, which then takes the channel for the artist and the
+        // whole title for what they made; here the title names them in the one place where it
+        // also says what their role is, so that premise is gone and the branch has to see it.
+        result.byCredit = true;
+        result.index = index;
         return result;
     }
 
@@ -1355,6 +1386,28 @@ function mdbTitle_seriesScore( part ) {
     if( /\d(?![0-9A-Za-z])/.test( counted ) ) score += 1;
 
     return score;
+}
+
+// mdbTitle_makerTailEpisode
+// Whether what stands BEHIND a maker's "by" ENDS in an episode number - "AKA AKA Episode #117"
+// behind "Rhythm Prism by ...". Nobody is called that: a number counting episodes can only be
+// counting the editions of what stands in FRONT of the word, so finding one there says the
+// front is a numbered series exactly as loudly as a number standing IN it would. That is what
+// mdbTitle_seriesScore cannot see - it reads the front alone, and here the digits are on the
+// other side of the "by".
+//
+// Two fences, both narrow on purpose, because the split this opens overrides the score:
+// - the number has to be MARKED as one, by a keyword or a "#" (the same pair 5b asks for). An
+//   unmarked one is part of a name far more often than not ("Asa 808 by Slowciety").
+// - and it has to END the side. Standing inside it, it is a name's own digits with more name
+//   behind them, and nothing says the front is numbered at all.
+function mdbTitle_makerTailEpisode( maker ) {
+    var text = String( maker || "" ),
+        found = mdbTitle_findEpisode( text );
+
+    if( !found || !( found.word || found.marked ) ) return false;
+
+    return !mdbTitle_trimSeparators( text.slice( found.index + found.length ) );
 }
 
 // mdbTitle_splitNameChain
@@ -3178,9 +3231,16 @@ function mdbTitle_canonicalArtists( known, group ) {
 // Festival 2026" as "Landjuweel Festival". From the RIGHT only - with 57,000+ artist categories
 // nearly every common word is one, so shortening a name from the left invents matches ("MOLTO
 // IN THE MIX" must not find the show "In The Mix").
+//
+// The marker between the WORD and its digits belongs to the strip as well - the same run of
+// characters that may stand in FRONT of the word may stand behind it, and an uploader writing
+// "Episode #117" wrote one thing. With the run only in front, the "#" broke the alternation and
+// the strip fell back to taking the digits alone: "AKA AKA Episode #117" was asked about as
+// "AKA AKA Episode", a name the wiki cannot hold, spending one of the ten slots on an answer
+// that can only come back empty (reported 2026-08-23).
 function mdbTitle_stripTrailingNumber( name ) {
     return String( name || "" )
-        .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?\s*\d{1,4}\s*$/i, "" )
+        .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?[\s.#-]*\d{1,4}\s*$/i, "" )
         .trim();
 }
 
@@ -4817,6 +4877,15 @@ function mdbTitle_cleanArtist( s ) {
     // see the "by" block in title_definitions.js
     s = s.replace( new RegExp( "^by\\s+", mdbTitle_byMarkerFlags( s ) ), "" );
 
+    // ... and off the END, where a cut took the name the "by" was pointing at with it. No group
+    // of a MixesDB title may close on the connector that introduced somebody, and no name asked
+    // of the wiki may either - "Rhythm Prism by" is a category that cannot exist, so the answer
+    // is empty however well MixesDB knows the show (reported 2026-08-23). The guard above stops
+    // the cut that made this one; this is the net under every other cut that can.
+    // Same case fence, and the leading whitespace is what keeps it off a name whose last word
+    // merely ends in those two letters ("Bobby").
+    s = s.replace( new RegExp( "\\s+by$", mdbTitle_byMarkerFlags( s ) ), "" );
+
     s = mdbTitle_trimSeparators( s );
 
     // Normal Case for a bit that was shouted in caps or typed all lowercase, the channel's own
@@ -5275,7 +5344,14 @@ function mdbTitle_traceChunks( text ) {
 
                 byMatch = new RegExp( "^(.+?)\\s+by\\s+(.+)$", mdbTitle_byMarkerFlags( part ) ).exec( part );
 
-                if( byMatch && mdbTitle_seriesScore( byMatch[1] ) > 0 ) {
+                // The front looking like a series is the usual reading; the number ENDING the
+                // maker's side says the same thing from behind the word, which is the only place
+                // some uploaders put it: "Rhythm Prism by AKA AKA Episode #117" (reported
+                // 2026-08-23) was one chunk, so the wiki was asked about "Rhythm Prism by AKA AKA
+                // Episode" - a name that cannot exist - and the panel showed a title the parse
+                // reads as two units as a single chip.
+                if( byMatch && ( mdbTitle_seriesScore( byMatch[1] ) > 0 ||
+                                 mdbTitle_makerTailEpisode( byMatch[2] ) ) ) {
                     units.push( mdbTitle_trimSeparators( byMatch[1] ), mdbTitle_trimSeparators( byMatch[2] ) );
                 } else {
                     units.push( part );
@@ -6360,7 +6436,11 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // it is the place they played at, and the artist is already standing in front of it.
         // "DJ Set @ What Happens Label Night 2026" on the channel "Alex Esser" would otherwise
         // come out as "Alex Esser - Alex Esser @ What Happens Label Night 2026".
-        if( !taken.taken && rest.indexOf( "@" ) === -1 && mdbTitle_knownAs( known, username ) === "artist" ) {
+        // "Never names them" is the whole premise, so byCredit is asked next to taken: a name
+        // left standing behind a maker's "by" IS the title naming them, and reading the rest as
+        // what they made would put that very name into the entity a second time
+        // ("AKA AKA - Rhythm Prism by AKA AKA Episode 117"). 6a owns that title.
+        if( !taken.taken && !taken.byCredit && rest.indexOf( "@" ) === -1 && mdbTitle_knownAs( known, username ) === "artist" ) {
             var ownEntity = mdbTitle_cleanArtist( rest );
 
             if( ownEntity ) {
@@ -6967,6 +7047,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             // in the wiki's own spelling, like every name an answer backs - "ena b." is
             // Category:Ena b. and not the "Ena B." the re-caser would write
             var byMakerName = mdbTitle_canonicalName( known, titleBy.maker, [ "artist" ] ),
+                // Whether the maker and the channel are the SAME name, which is what the two
+                // sentences below turn on. They were written for the "u n r u s h" case, where
+                // the channel is a name the wiki has never heard of and the title never writes -
+                // and repeated at a title that CREDITS the account's own maker ("Rhythm Prism by
+                // AKA AKA" on "WHATS POPPIN by AKA AKA") they would have said the opposite of
+                // what is on screen. A pick sentence may only say what actually decided.
+                byMakerIsChannel = mdbTitle_normalizeCompare( byMakerName ) === mdbTitle_normalizeCompare( show ),
                 // ... and whether what they made is a SHOW at all. 5c makes the same call on
                 // the same question: a name nothing says is a series is the mix's own name,
                 // which makes it a self-released mix and puts the page in Category:Promo Mix.
@@ -6983,8 +7070,10 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                 artist + " -> " + byMakerName + " - " + byMadeName +
                 " - MixesDB knows \"" + byMakerName + "\" as an artist" +
                 ( byMakerMatch.mixes ? " (" + byMakerMatch.mixes + " mixes)" : "" ) +
-                ", so the title does name somebody and the channel \"" + show +
-                "\" - which the wiki does not know and the title does not write - was not needed",
+                ( byMakerIsChannel
+                  ? ", and the channel is named after them too - so the name goes into the artist slot the credit gives it, not into the show slot the channel name would have taken"
+                  : ", so the title does name somebody and the channel \"" + show +
+                    "\" - which the wiki does not know and the title does not write - was not needed" ),
                 null, [ "mdbTitleNonNameLeadWords" ] );
 
             if( byPromo ) {
@@ -6993,9 +7082,13 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
             return mdbTitle_result( date, byMakerName, byMadeName, episode, byPromo, extraArtists, conf, {
                 artist: "the title's \"by\" says who made it, and MixesDB knows the name behind it as an artist - " +
-                        "which is a stronger answer than the channel name, that the wiki does not know and the title does not write",
+                        ( byMakerIsChannel
+                          ? "the same name the channel account is called after, so what the credit settles is their ROLE: they played it, they are not the show"
+                          : "which is a stronger answer than the channel name, that the wiki does not know and the title does not write" ),
                 entity: "\"by\" says that what stands in front of it is what was made, so the title names its own show - " +
-                        "the channel was not needed and was dropped"
+                        ( byMakerIsChannel
+                          ? "the channel name was not needed for it, the credit having spent that name on the artist"
+                          : "the channel was not needed and was dropped" )
             } );
         }
 
