@@ -2027,8 +2027,10 @@ function on_submitrequest() {
  * The "Similar:" row stops asking about a bare NUMBER (page_creator.js v_113). Where the title
  * counts its edition - "Trommel 251" - the number itself sat among the names MixesDB had been
  * told no about, and asking what the wiki has that STARTS with "251" can only bring back other
- * series' episodes. It is left out of that request now; the report box and the panel's section 8
- * still name it, with the reason, instead of listing another show's episodes under it.
+ * series' episodes. It is left out of that request now, and the panel's section 8 names it with
+ * that reason. The report box lists no name that was never asked at all any more - neither this
+ * one nor one that fell off the request's ten-name limit: a report is what the wiki was asked and
+ * what came back, and a "not asked" bullet in it is a name to wonder about with no answer to it.
  *
  * 2026.08.23.3
  * The report box grew a fifth block, "## Similar lookups" (page_creator.js v_112): under every

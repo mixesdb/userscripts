@@ -378,7 +378,7 @@ wiki was really asked about and really denied: a name that merely opens one of t
 (`HATE` under a green `HATE Podcast`) is left alone, since that filing is already settled. So is a
 bare number: where the title counts its edition (`Trommel 251`), what MixesDB has that starts with
 `251` is another series' episode and nothing else, so that name is not asked the looser way at all
-- the reasoning panel and the report say so in its place.
+- the reasoning panel says so in its place.
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
 and the recent mix pages – open the page in a modal right here instead of a tab: the look they
@@ -570,11 +570,14 @@ everything a report about a wrong title needs, written as Markdown in five block
   the title was built
 - **## Similar lookups** – the looser round behind the names that came back empty up there: the
   categories whose names merely *start* like one of them, listed under the name they were found
-  for, each with its type, its mix count, the same % the reasoning panel scores it with and
+  for (whose own line says how many came back: `* "Rhythm Prism" -> 1 result:`), each with its
+  type, its mix count, the same % the reasoning panel scores it with and
   whether the bar's "Similar:" row showed it or dropped it and why. It says whether MixesDB
   really has nothing under a name or has it spelled longer (`103` → `103 Club`), which is
   usually where the right title comes from. A name with nothing behind it says so: `no category
-  starts like this name either`
+  starts like this name either`. Only names that really were asked stand here - one this round
+  never asks (a bare edition number, or one that fell off the request's ten-name limit) is left
+  out, and the reasoning panel is where its reason stands
 - **## Mistakes / learnings** – two empty bullets, for what went wrong in your own words. Two,
   because a wrong title rarely has one reason: usually the step that misread it *and* the rule
   that should have caught it. One of them may stay empty
