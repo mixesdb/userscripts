@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.2
+// @version      2026.08.23.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_54
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_80
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_111
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_113
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -1903,6 +1903,24 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.23.4
+ * The "Similar:" row stops asking about a bare NUMBER (page_creator.js v_113). Where the title
+ * counts its edition - "Trommel 251" - the number itself sat among the names MixesDB had been
+ * told no about, and asking what the wiki has that STARTS with "251" can only bring back other
+ * series' episodes. It is left out of that request now; the report box and the panel's section 8
+ * still name it, with the reason, instead of listing another show's episodes under it.
+ *
+ * 2026.08.23.3
+ * The report box grew a fifth block, "## Similar lookups" (page_creator.js v_112): under every
+ * name MixesDB answered nothing about in "## Lookups", the categories whose names merely START
+ * like it - each with its type, its mix count, the same % the panel scores it with, and whether
+ * the bar's "Similar:" row showed it or dropped it and why. It is the reasoning panel's section 8
+ * written out, and it answers what "no category of this name" alone never could: whether the wiki
+ * really has nothing, or has the name spelled longer ("103" -> "103 Club, venue, 2 mixes"), which
+ * is usually where an expected title comes from. A name with nothing behind it says so in the
+ * panel's words ("no category starts like this name either"). The box now also refills when that
+ * looser round answers late, so an open box is never left quoting "looking for similar names …".
  *
  * 2026.08.23.1
  * A name MixesDB knows in the TITLE now beats a channel name nothing backs (title_builder.js
