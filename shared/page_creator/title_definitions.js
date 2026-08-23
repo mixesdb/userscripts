@@ -1212,9 +1212,10 @@ var mdbTitleRecordingNoteFillers = [
  * - written "By" inside a bit that is not, it is a word of the NAME ("Stand By Me"), and
  *   nothing follows it
  *
- * Read in three places: mdbTitle_cleanArtist drops it off the front of what is left over
+ * Read in four places: mdbTitle_cleanArtist drops it off the front of what is left over
  * ("... podcast by Neryn" leaves " by Neryn"), rule 5b of buildMixesdbTitle takes it as the
- * separator between an episode number and the artist behind it, and rule 5c takes it as the
+ * separator between an episode number and the artist behind it, rule 6a takes it as the
+ * MAKER CREDIT the wiki has confirmed (see below), and rule 5c takes it as the
  * SEPARATOR ITSELF where the uploader typed none:
  *
  *     "Guestroom 779 by Sascha Sibler"  (channel "PRIVATEPLACES Mixtapes")
@@ -1233,6 +1234,28 @@ var mdbTitleRecordingNoteFillers = [
  * (mdbTitleShowSuffixWords). With no separator in the title, nothing else is left to tell the
  * preposition from the ordinary English word: "Side by Side" and "Live by the Sea" are names,
  * and splitting one of those invents an artist out of half a phrase.
+ *
+ * ... unless the WIKI says so, which is rule 6a (2026-08-23):
+ *
+ *     "112 - unrushed by ena b."  (channel "u n r u s h")
+ *     WRONG: 2026-07-13 - u n r u s h - 112 Unrushed By Ena b.
+ *     ->     2026-07-13 - Ena b. - Unrushed 112
+ *
+ * "unrushed" carries neither a number nor a series word, so the word test above holds the
+ * "by" for the preposition and the title falls through to 6b, which reads it as a series
+ * naming NOBODY and puts the channel name in front of the lot. But the lookup had answered
+ * about both halves long before: "Ena b." is an artist with 2 mixes, "Unrushed" a podcast
+ * with 111, while the channel name is one MixesDB has never heard of and the title does not
+ * even write. A name the wiki FILES as an artist is who played, and that is the second source
+ * the paragraph above says is missing - so 6a splits where the words could not, and 6b never
+ * gets to claim the title names nobody. The answer settles the spelling too ("Ena b.", not
+ * the "Ena B." the re-caser writes).
+ *
+ * mdbTitle_titleByParts holds the reading and the three fences it shares with the channel's
+ * credit (the case, one name written twice, a maker that reads as a name); 6a holds the four
+ * that let it act - the channel earned nothing from the title and is no known series either,
+ * no "@" is left in it, the wiki knows nothing about the written bit as a whole, and what
+ * stands in front of the "by" is not a name it knows ONLY as an artist.
  */
 var mdbTitleGuestMarkers = [
     "guest mix",

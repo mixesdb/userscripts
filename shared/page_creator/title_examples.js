@@ -1750,5 +1750,30 @@ var mdbTitleExamples = [
         expectEntity: "H\u00d6R",
         expectAlternatives: [ "placeTail" ],
         expect: "2026-08-05 - Milan Hermess @ H\u00d6R, Berlin"
+    },
+    {
+        // Reported: both answers were in hand and both were ignored. "Unrushed" is a podcast
+        // with 111 mixes and "Ena b." an artist with 2, both asked, while the channel name -
+        // which the title never writes and MixesDB has never heard of - was the one name that
+        // ended up in the title. Read off the words alone this is 6b's title: a number, a name
+        // and nobody named, so the whole thing went in as ONE entity behind the channel
+        // ("2026-07-13 - u n r u s h - 112 Unrushed By Ena b."), two brand-new empty categories.
+        // 5c's "by" rule could not settle it either - it asks the WORDS, and "unrushed" carries
+        // neither a number nor a series word - so 6a asks the wiki instead: a name MixesDB
+        // files as an ARTIST is who played, and that outweighs a channel name nothing backs.
+        // The spelling comes from the answer too, which is why the artist is "Ena b." and not
+        // the "Ena B." the re-caser wrote into the entity.
+        url: "https://soundcloud.com/unrushme/enab",
+        title: "112 - unrushed by ena b.",
+        channel: "u n r u s h",
+        date: "2026-07-13",
+        known: {
+            "Unrushed": { type: "podcast", mixes: 111 },
+            "Ena b.": { type: "artist", mixes: 2 }
+        },
+        expectAsked: [ "Unrushed", "Ena b." ],
+        expectArtists: [ "Ena b." ],
+        expectEntity: "Unrushed 112",
+        expect: "2026-07-13 - Ena b. - Unrushed 112"
     }
 ];

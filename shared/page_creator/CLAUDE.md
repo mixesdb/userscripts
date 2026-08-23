@@ -608,6 +608,35 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   reachable at all: an `&` in a candidate asks about the parts AND the whole (`Anton`,
   `Hogi Wirjono`, `Anton & Hogi Wirjono`) - the group-member split above - since a duo can be a
   category of its own while a line-up never is.
+- **A confirmed name in the TITLE beats a channel name nothing confirms** (2026-08-23, reported
+  on "112 - unrushed by ena b." on the channel "u n r u s h"): the answers were in hand and both
+  were ignored - `Unrushed` a podcast with 111 mixes, `Ena b.` an artist with 2 - while the name
+  that ended up in the title was the channel's, which MixesDB has never heard of and the title
+  does not even write. It came out `2026-07-13 - u n r u s h - 112 Unrushed By Ena b.`: two
+  brand-new empty categories. Nothing was wrong with the lookup again; what went wrong is which
+  branch took the title. 6b - "the title is a numbered series and names NOBODY, so the channel
+  is who played" - is the last of the branches that return the whole title as one name, and its
+  premise is exactly the thing the lookup can falsify. So the new **6a** stands in front of it:
+  where the title's own `by` has a name MixesDB files as an **artist** behind it, the title does
+  name somebody, and that name outweighs a channel name no answer backs.
+  **The wiki is the second source 5c's `by` rule says is missing.** That rule asks the WORDS -
+  the bit in front of the `by` has to carry a number or a series word, since "Side by Side" and
+  "Live by the Sea" are names - and `unrushed` carries neither, so the split never happened.
+  An answer about the name behind the word settles it the same way the numbered-name and
+  acronym rules are settled: nothing in the words can decide, only the wiki can.
+  `mdbTitle_titleByParts` holds the reading and the three fences it shares with
+  `mdbTitle_channelByParts` (the case fence, one name written twice, a maker that reads as a
+  name); 6a holds the four that let it act - the channel earned nothing from the title
+  (not mapped, not standing in it, no `<Show> <Word> <Number>` reading) and is no known series
+  either, no `@` is left in the title, the wiki knows nothing about the written bit as a whole
+  (a category is never split, the guard `mdbTitle_reduceNameCredit` holds), and what stands in
+  FRONT of the `by` is not a name the wiki knows ONLY as an artist. The answer settles the
+  SPELLING too - `Ena b.`, not the `Ena B.` the re-caser had written into the entity.
+  Both halves are candidates now as well (origins `title show` / `title maker`, next to the
+  chunk like every other reduction), so the answer 6a reads is asked for by design rather than
+  reached by accident through `mdbTitle_splitNameChain`. Read off the chunk AS WRITTEN: the
+  re-caser turns "unrushed by ena b." into "Unrushed By Ena b.", and that capital `B` is
+  precisely what the case fence reads as a word of a name.
 - **A name that is nothing but a counting word is no candidate** - `mdbTitleStaticNamePatterns`
   ("Episode 72", "Part 2", "Pt.3", the bare words too) holds the names every mix carries, so
   MixesDB files nothing under them and the wiki could only answer empty. Patterns rather than

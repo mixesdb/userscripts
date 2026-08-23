@@ -3449,6 +3449,20 @@ function mdbTitle_categoryCandidates( playerTitle, username, description, refDat
                 take( credit.base, "artist", "credit base", bits[i] );
             }
 
+            // ... and the two names a maker's "by" strings together, in the roles their sides
+            // give them, exactly as the channel's own credit above is read: "unrushed by
+            // ena b." is no category and never will be, while "Unrushed" is a podcast with
+            // 111 mixes and "Ena b." an artist with 2. Read off the chunk AS WRITTEN and not
+            // off the re-cased "bit" - the case is the whole fence that tells the preposition
+            // from the "By" of a name. The chunk stays the first question like every other
+            // reduction; these are asked next to it, and rule 6a is what reads the answer.
+            var titleBy = inPlace ? null : mdbTitle_titleByParts( bits[i] );
+
+            if( titleBy ) {
+                take( mdbTitle_cleanArtist( titleBy.made ), "entity", "title show", bits[i] );
+                take( mdbTitle_cleanArtist( titleBy.maker ), "artist", "title maker", bits[i] );
+            }
+
             // ... and the shortened forms of a long artist name, collected here and asked
             // LAST of all (below the loop): they are the speculative names of the request,
             // the ones worth having only when nothing else answers. See mdbTitle_nameHeads.
@@ -4989,6 +5003,49 @@ function mdbTitle_channelByParts( username, text ) {
     if( !mdbTitle_guestIsName( maker ) || mdbTitle_startsWithNonName( maker, flags === "i" ) ) return null;
 
     return [ maker, show ];
+}
+
+// mdbTitle_titleByParts
+// The TITLE's own maker credit: "unrushed by ena b." -> { made: "unrushed", maker: "ena b." }.
+// Same word, same direction and the same case fence as the channel's credit
+// (mdbTitle_channelByParts): what stands in FRONT of the word was made, who stands behind it
+// made it. null where the bit carries no such "by", or where a fence says the word is the
+// ordinary English preposition.
+//
+// The bit has to arrive as the title WROTE it. mdbTitle_cleanArtist puts a lowercase title
+// into Normal Case ("unrushed by ena b." -> "Unrushed By Ena b."), and that capital "B" is
+// precisely what the case fence reads as a word of a name - so a caller handing over a
+// cleaned bit gets null for every title of the kind this exists for.
+//
+// Reading only. Whether the split may be ACTED on is the caller's question, and the callers
+// answer it differently: 5c asks the WORDS (the bit in front has to look like a series,
+// mdbTitle_seriesScore), 6a asks the WIKI (the maker has to be a name MixesDB files as an
+// artist). See the ""by" says a NAME follows" block in title_definitions.js.
+function mdbTitle_titleByParts( bit ) {
+    var text = mdbTitle_trimSeparators( bit );
+
+    if( !text ) return null;
+
+    // the case fence, and non-greedy so the FIRST "by" splits - what stands in front of it is
+    // the only part no credit has been hung off yet, the same call mdbTitle_nameCreditBase makes
+    var flags = mdbTitle_byMarkerFlags( text ),
+        m = new RegExp( "^(.+?)\\s+by\\s+(.+)$", flags ).exec( text );
+
+    if( !m ) return null;
+
+    var made = mdbTitle_trimSeparators( m[1] ),
+        maker = mdbTitle_trimSeparators( m[2] );
+
+    if( !made || !maker ) return null;
+
+    // one name written twice ("Side by Side")
+    if( mdbTitle_normalizeCompare( made ) === mdbTitle_normalizeCompare( maker ) ) return null;
+
+    // ... and a maker that reads as a name at all - no bare number, no series
+    // (mdbTitle_guestIsName), and no lowercase little word no name opens on ("Live by the Sea")
+    if( !mdbTitle_guestIsName( maker ) || mdbTitle_startsWithNonName( maker, flags === "i" ) ) return null;
+
+    return { made: made, maker: maker };
 }
 
 // mdbTitle_pickChannelName
@@ -6861,6 +6918,86 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
         logVar( "artist", artist );
         if( !artist ) return nothing;
+
+        // 6a) The title says who MADE it and the WIKI backs the name:
+        //   "112 - unrushed by ena b."  (channel "u n r u s h", reported 2026-08-23)
+        //   WRONG: 2026-07-13 - u n r u s h - 112 Unrushed By Ena b.
+        //   RIGHT: 2026-07-13 - Ena b. - Unrushed 112
+        // Read off the words alone this is 6b's title - a number, a name and nobody named -
+        // so the whole thing went in as ONE entity with the channel name in front of it, a
+        // name the title never writes and MixesDB has never heard of. Two brand-new empty
+        // categories, which is the one thing a category line may never be.
+        //
+        // The answers were in hand the whole time: "Ena b." is an artist with 2 mixes and
+        // "Unrushed" a podcast with 111, both asked, both thrown away. A name MixesDB FILES
+        // as an artist is who played, and it outweighs a channel name the wiki does not know
+        // and the title does not write - the channel is the fallback for a title that names
+        // NOBODY, and a confirmed name is the title naming somebody. 5c's word test could not
+        // settle this one ("Unrushed" carries no number and no series word, so the
+        // mdbTitle_seriesScore fence held the "by" for the ordinary preposition), and the
+        // wiki is the second source that block says is missing - the same call the numbered
+        // name and the acronym rules make, where nothing in the words can decide and only an
+        // answer can. Standing HERE it also takes 6b's premise away before it is asked.
+        //
+        // The fences are the neighbouring rules':
+        // - the channel earned nothing from the title - not mapped, not standing in it, no
+        //   "<Show> <Word> <Number>" reading (5c's three, since this overrides the channel the
+        //   same way), and the wiki does not know it as a series either: this rule DROPS the
+        //   channel, and a name MixesDB files as a podcast is no vague guess to drop
+        // - no "@" left in the title: behind it a name is a place, and the place branches own
+        //   that title (the guard 4b was given for the same reason)
+        // - the wiki knows NOTHING about the written bit - a category is never split, the
+        //   same guard mdbTitle_reduceNameCredit holds
+        // - and what stands in FRONT of the "by" is not a name the wiki knows ONLY as an
+        //   artist: the role answers are never used and argued against in one breath, and
+        //   that one would put an artist into the entity slot.
+        var titleBy = ( known && artist && !isMappedChannel && !taken.taken && !showFromEpisodeRule &&
+                        rest.indexOf( "@" ) === -1 &&
+                        !mdbTitle_knownEntityType( known, show ) &&
+                        !mdbTitle_knownAs( known, artist ) )
+                    ? mdbTitle_titleByParts( rest )
+                    : null,
+            byMakerMatch = titleBy ? mdbTitle_knownMatch( known, titleBy.maker, [ "artist" ] ) : null,
+            byMadeName = titleBy ? mdbTitle_cleanArtist( titleBy.made ) : "";
+
+        if( byMakerMatch && byMadeName &&
+            !( mdbTitle_knownMatch( known, byMadeName, [ "artist" ] ) &&
+               !mdbTitle_knownEntityType( known, byMadeName ) ) ) {
+
+            // in the wiki's own spelling, like every name an answer backs - "ena b." is
+            // Category:Ena b. and not the "Ena B." the re-caser would write
+            var byMakerName = mdbTitle_canonicalName( known, titleBy.maker, [ "artist" ] ),
+                // ... and whether what they made is a SHOW at all. 5c makes the same call on
+                // the same question: a name nothing says is a series is the mix's own name,
+                // which makes it a self-released mix and puts the page in Category:Promo Mix.
+                // Unlike 6b this is no guess stacked on a guess - the artist here was read off
+                // the title and confirmed by the wiki, not inferred from the channel.
+                byPromo = !episode &&
+                          mdbTitle_seriesScore( byMadeName ) === 0 &&
+                          !/promo\s*mix/i.test( byMadeName ) &&
+                          !mdbTitle_knownEntityType( known, byMadeName );
+
+            logVar( "buildMixesdbTitle: the title's \"by\" names an artist the wiki knows, the channel was dropped",
+                    byMakerName + " | " + byMadeName );
+            mdbTitle_traceStep( "The title's \"by\" names who made it",
+                artist + " -> " + byMakerName + " - " + byMadeName +
+                " - MixesDB knows \"" + byMakerName + "\" as an artist" +
+                ( byMakerMatch.mixes ? " (" + byMakerMatch.mixes + " mixes)" : "" ) +
+                ", so the title does name somebody and the channel \"" + show +
+                "\" - which the wiki does not know and the title does not write - was not needed",
+                null, [ "mdbTitleNonNameLeadWords" ] );
+
+            if( byPromo ) {
+                conf.drop( 10, "\"(Promo Mix)\" is assumed - what the \"by\" says was made is not a known show, venue or event" );
+            }
+
+            return mdbTitle_result( date, byMakerName, byMadeName, episode, byPromo, extraArtists, conf, {
+                artist: "the title's \"by\" says who made it, and MixesDB knows the name behind it as an artist - " +
+                        "which is a stronger answer than the channel name, that the wiki does not know and the title does not write",
+                entity: "\"by\" says that what stands in front of it is what was made, so the title names its own show - " +
+                        "the channel was not needed and was dropped"
+            } );
+        }
 
         // 6b) The title is a numbered SERIES and names nobody at all: "Mixing-Diaries 041" on
         // the channel "LX-F", "From Paris With Hope Vol.14" on "ZÆINO". A series numbers its
