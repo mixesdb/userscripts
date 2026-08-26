@@ -361,6 +361,31 @@ function tlImporter_cueFormat( tl_arr ) {
     return null;
 }
 
+// tlImporter_widenedCueFormat
+// The dur fix (NTS Japanese Techno report): "the original's cue format wins" gets one
+// exception. A bare XX format only reaches 99 minutes, and a candidate cue detected beyond
+// that ([106]) WILL be merged in – so when either side knows a cue that does not fit the
+// format's digit count, the target format widens (XX -> XXX) to fit the largest known cue.
+// Colon formats carry any length as they are and are left alone.
+function tlImporter_widenedCueFormat( format, original_arr, candidate_arr ) {
+    if( !format || format.hasColon ) { return format; }
+
+    var maxMinutes = 0;
+
+    original_arr.concat( candidate_arr ).forEach(function( item ){
+        if( item.type !== "track" ) return;
+
+        var sec = tlImporter_cueToSec( item.cue );
+        if( sec !== null ) { maxMinutes = Math.max( maxMinutes, Math.round( sec / 60 ) ); }
+    });
+
+    var digitsNeeded = String( maxMinutes ).length;
+
+    return digitsNeeded > format.cueDigits
+        ? { hasColon: false, cueDigits: digitsNeeded }
+        : format;
+}
+
 // tlImporter_padStart
 function tlImporter_padStart( str, len ) {
     str = String( str );
@@ -415,7 +440,14 @@ function tlImporter_normalizeCues( tl_arr, targetFormat, options ) {
     if( !targetFormat ) { return tl_arr; }
     tl_arr.forEach(function( item ){
         if( item.type === "track" && item.cue ) {
-            item.cue = tlImporter_cueToFormat( item.cue, targetFormat, options );
+            // Bare formats re-shape unknown placeholders too ("??" -> "???" after the dur fix
+            // widened the format). Colon unknowns keep their own handling in tlImporter_merge
+            // (last known hour prefix), so they stay untouched here.
+            if( !targetFormat.hasColon && /^\?+$/.test( String(item.cue) ) ) {
+                item.cue = tlImporter_unknownCue( targetFormat );
+            } else {
+                item.cue = tlImporter_cueToFormat( item.cue, targetFormat, options );
+            }
         }
     });
     return tl_arr;
@@ -461,6 +493,8 @@ function tlImporter_sameCue( a, b ) {
 
     a = String(a); b = String(b);
     if( a === b ) return true;
+    // "??" vs "???" is pure re-formatting (the dur fix widened the format), not a change
+    if( /^\?+$/.test(a) && /^\?+$/.test(b) ) return true;
     if( /^\d+$/.test(a) && /^\d+$/.test(b) ) return parseInt(a, 10) === parseInt(b, 10);
     if( a.indexOf(':') > -1 && b.indexOf(':') > -1 ) return tlImporter_durToSec(a) === tlImporter_durToSec(b);
 
@@ -912,6 +946,16 @@ function tlImporter_merge( originalText, candidateText ) {
     // Normalize candidate cues to the original cue format before merging.
     var originalCueFormat = tlImporter_cueFormat( original_arr ),
         originalFirstCuePrefix = "0";
+
+    // The dur fix is applied BEFORE merging: when the format widened (XX -> XXX, see
+    // tlImporter_widenedCueFormat), the ORIGINAL's cues move to it right away ([08] -> [008],
+    // [??] -> [???]) – placeholders, cue comparisons and inserted cues then all agree on one
+    // width instead of the merge mixing [08] rows with a [106] one.
+    var widenedCueFormat = tlImporter_widenedCueFormat( originalCueFormat, original_arr, candidate_arr );
+    if( widenedCueFormat !== originalCueFormat ) {
+        originalCueFormat = widenedCueFormat;
+        tlImporter_normalizeCues( original_arr, originalCueFormat );
+    }
 
     if( originalCueFormat && originalCueFormat.hasColon ) {
         var firstColonCueItem = original_arr.filter(function( item ){

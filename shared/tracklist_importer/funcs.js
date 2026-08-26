@@ -821,14 +821,16 @@ function tlImporter_placeDiffBlock( wrap ) {
  * edited on this form.
  *
  * Below the editor's own action row (#tlEditor-formActions) the block adds what the Merged
- * column had under its box: the Live updates switch and the Apply button. Deliberately NOT
- * the tracklist state icons - the real ones under the edit box are on this very page, and a
- * second row of them would say the same thing twice.
+ * column had under its box: the Live updates switch and the Apply button. No tracklist state
+ * icons - the Merged box shows none either (toolkit_tlStateButtons() skips mixesdb.com
+ * entirely): the real ones under the edit box are on this very page, and a second row of
+ * them would say the same thing twice.
  *
  * The arrow points up while the block is down; clicking it moves everything back - the text
- * returns to the Merged box exactly as it stands, so toggling never loses an edit. The choice
- * is remembered per browser like the widen toggle: preferring the full editor is the same
- * answer on the next mix page too.
+ * returns to the Merged box exactly as it stands, so toggling never loses an edit. Down is
+ * the DEFAULT: a browser that never clicked the arrow gets the full editor as soon as its
+ * section arrives. A click is remembered per browser like the widen toggle - either answer,
+ * staying up included, is the same answer on the next mix page too.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -851,11 +853,17 @@ function tlImporter_downIcon( down ) {
 }
 
 // tlImporter_readDown
+// No stored value means down - the full editor is the default. Only a clicked toggle writes
+// the key (tlImporter_writeDown), so "0" is a real choice - the reader moved the block back
+// up once - and keeps winning over the default.
 function tlImporter_readDown() {
     try {
-        return localStorage.getItem( tlImporter_downKey ) === "1";
+        var stored = localStorage.getItem( tlImporter_downKey );
+
+        return stored === null ? true : stored === "1";
     } catch( e ) {
-        return false;
+        // storage blocked: nothing can be remembered, so the default (down) applies
+        return true;
     }
 }
 
@@ -988,10 +996,9 @@ $(document).on( "input.mdbTlImporterDown", "#tlEditor-textarea", function() {
 
 // tlImporter_addDownActions
 // The row below the editor's #tlEditor-formActions: the Apply button and the Live updates
-// switch - what the Merged column has under its box, minus the tracklist state icons. Those
-// are deliberately not repeated: the real ones under the edit box are on this very page, and
-// toolkit_tlStateButtons() skips feedback boxes outside the review block on mixesdb.com
-// anyway.
+// switch - what the Merged column has under its box. No tracklist state icons here either:
+// the real ones under the edit box are on this very page, and toolkit_tlStateButtons() skips
+// every feedback box on mixesdb.com anyway, the review block's included.
 function tlImporter_addDownActions( ed ) {
     if( $( "#mdb-tlImporter-downActions" ).length ) return;
 

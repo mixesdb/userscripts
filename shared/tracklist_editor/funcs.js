@@ -554,8 +554,9 @@ function tlBoxShowApiCount() {
         // mixesdb.com's own editor section renders a feedback box under the same id, and
         // that one is the SITE's: our chips in it read as a site feature and say nothing the
         // page does not say elsewhere - the Tracklist Importer's down state carries its own
-        // Live updates switch beside its Apply button. Same scoped exception as
-        // toolkit_tlStateButtons() makes on mixesdb.com.
+        // Live updates switch beside its Apply button. toolkit_tlStateButtons() goes one
+        // further and skips mixesdb.com entirely - the real state icons under the edit box
+        // are on the same page.
         if( feedbackBox.closest( "#editToolsBar-TLeditor" ).length ) return;
 
         var chipRow = tlBoxChipRow( feedbackBox ),

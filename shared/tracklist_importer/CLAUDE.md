@@ -50,8 +50,9 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
 - **The review block sits between MediaWiki's diff and the edit form** (`#editform`), never
   below the box: the reading order is the wiki's own diff first, then our three columns, then
   the form. Its Merged column is a REAL Tracklist Editor box (`.tlEditor` class +
-  `#mixesdb-TLbox`), so live updates, feedback chips and the deliberately-scoped mixesdb.com
-  exception in `toolkit_tlStateButtons()` all come from the shared code instead of copies.
+  `#mixesdb-TLbox`), so live updates and the feedback chips all come from the shared code
+  instead of copies. No tracklist state icons in its chip row: `toolkit_tlStateButtons()`
+  skips mixesdb.com entirely - the real ones under the edit box are on the same page.
 - **The Merged wrapper is `class="tlEditor"` only, NEVER `id="tlEditor"`.** mixesdb.com's own
   editor module (`ext.mixesdb.editor`) renders its own `#tlEditor` inside the edit form and
   addresses it as `$('#tlEditor')` – first id in document order wins, and the review block
@@ -71,6 +72,11 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   the merge itself for this – it is pure JS, so that costs nothing but a few ms.
 - **Save is locked until "Show changes" ran.** The auto-click is the convenience; the lock is
   the safety – a merge must not be savable unseen.
+- **The original's cue format wins, but it may WIDEN – the dur fix.** A bare `[XX]` format
+  cannot say 106 minutes; when either side knows a cue beyond the format's digit count, the
+  target format grows (`XX` -> `XXX`) BEFORE the merge and every cue moves with it, `[??]` ->
+  `[???]` included (`tlImporter_widenedCueFormat`, NTS Japanese Techno report). Colon formats
+  are left alone – they carry any length as they are.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
 - **Chaptered originals (`;Name` rows) are skipped** on both sides – no link, no merge.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
@@ -84,12 +90,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   fieldset with legend "Diff" – `min-width: 0` in the CSS is what lets its columns shrink. The text travels BOTH ways together with `mdbTlboxKnown`, so
   toggling never loses an edit and never triggers a spurious blur update. Below
   `#tlEditor-formActions` sit a second Apply button (`#mdb-tlImporter-apply-down`, same
-  delegated handler, reading the site box) and a standalone Live updates switch – deliberately
-  no tl state icons, the real ones under the edit box are on the same page, and
-  `toolkit_tlStateButtons()` skips boxes outside the review block on mixesdb.com anyway. The
-  choice is remembered per browser (`mdb-tlImporter-down`) and applied only once the site's
+  delegated handler, reading the site box) and a standalone Live updates switch – no tl state
+  icons, here or in the Merged box: the real ones under the edit box are on the same page,
+  and `toolkit_tlStateButtons()` skips every feedback box on mixesdb.com anyway. **Down
+  is the default**: `tlImporter_readDown` answers true while `mdb-tlImporter-down` is unset,
+  and only a clicked toggle writes the key – so "0" is a real choice (the reader moved the
+  block back up once) and keeps winning. The state is applied only once the site's
   editor section exists – it is rendered by a ResourceLoader module, so the toggle waits for
-  `#tlEditor-textarea` via waitForKeyElements.
+  `#tlEditor-textarea` via waitForKeyElements; without that section the block simply stays up.
   Two of its lessons are load-bearing: docked, the block sits INSIDE `form#editform`, and
   mixesdb.com's own `form button` !important rules hit the corner toggles (they squeezed the
   flex-item svg to 0px width) – every visual property of the toggles carries `!important` in
