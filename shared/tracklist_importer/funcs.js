@@ -464,44 +464,22 @@ function tlImporter_flattenFeedbackList( scope ) {
  *
  * The column widths of the review block
  *
- * Three equal thirds are a starting point, not an answer: which of the columns needs the
- * room depends on the merge in front of the reader. A long original with short candidate
- * lines wants a wide Original, hand-salvaging in the Merged box wants that one wide.
+ * Three equal thirds are a starting point, not an answer: which of the columns needs the room
+ * depends on the merge in front of the reader. A long original with short candidate lines wants
+ * a wide Original, hand-salvaging in the Merged box wants that one wide.
  *
  * So the two gaps between the columns are grab bars: drag to move the border between the two
- * columns next to it, double-click to give all three the same width again. The result is kept
- * per browser, since the block is built fresh on every edit form and re-dragging it every time
- * would defeat the point.
+ * columns next to it, double-click to give all three the same width again.
+ *
+ * Deliberately NOT remembered: every merge is its own case, and a block that opens with the
+ * widths of the page before it starts by lying about this one. The reset is the page load.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var tlImporter_colSizesKey = "mdb-tlImporter-colSizes",
-    tlImporter_colSizesDefault = [ 1, 1, 1 ],
+var tlImporter_colSizesDefault = [ 1, 1, 1 ],
     // no column may be dragged narrower than this, in px - below it the box shows single
     // words per line and the handle can no longer be grabbed back out
     tlImporter_colMinPx = 120;
-
-// tlImporter_readColSizes
-// The stored three-number ratio, or the equal thirds. A browser with storage blocked must not
-// take the block down with it, hence the try/catch - same as the live-update switch.
-function tlImporter_readColSizes() {
-    try {
-        var stored = JSON.parse( localStorage.getItem( tlImporter_colSizesKey ) || "null" );
-
-        if( stored && stored.length === 3 && stored.every(function( n ) { return typeof n === "number" && isFinite( n ) && n > 0; }) ) {
-            return stored;
-        }
-    } catch( e ) {}
-
-    return tlImporter_colSizesDefault.slice();
-}
-
-// tlImporter_writeColSizes
-function tlImporter_writeColSizes( sizes ) {
-    try {
-        localStorage.setItem( tlImporter_colSizesKey, JSON.stringify( sizes ) );
-    } catch( e ) {}
-}
 
 // tlImporter_applyColSizes
 // The three ratios as the grid's own template, the two handle columns fixed between them. The
@@ -512,16 +490,59 @@ function tlImporter_applyColSizes( cols, sizes ) {
         "minmax(0, " + sizes[0] + "fr) auto minmax(0, " + sizes[1] + "fr) auto minmax(0, " + sizes[2] + "fr)" );
 }
 
+/*
+ * tlImporter_alignResizers
+ *
+ * The rail drawn on a grab bar covers the BOXES it sits between, nothing else. The bar itself
+ * spans the whole column - it has to, or the drag would only work next to the text - but a line
+ * running past the headings at the top and past the feedback box and Apply button at the bottom
+ * draws a border through the block where there is none.
+ *
+ * Measured rather than stated: the two heading lines are one line each until a skin's font says
+ * otherwise, and the boxes' height is the merge's row count. The numbers go to the CSS as
+ * custom properties on each bar, so the rail stays one ::before with no extra elements.
+ *
+ * Re-run whenever the geometry can have changed: after the block is on the page, after a drag
+ * (a narrower column wraps its lines and grows), after the widen toggle and on a window resize.
+ */
+function tlImporter_alignResizers( cols ) {
+    if( !cols || !cols.length ) return;
+
+    var raf = window.requestAnimationFrame || function( fn ) { return setTimeout( fn, 16 ); };
+
+    // next frame, never straight away: called from a render the browser has not laid out yet,
+    // getBoundingClientRect() answers about the layout BEFORE it - once seen as a rail running
+    // down the whole page, measured while the stylesheet was still on its way
+    raf(function() {
+        var node = cols.get( 0 ),
+            box = cols.find( ".mdb-tlImporter-col" ).first().find( "pre.mdb-tlImporter-pre" ).first();
+
+        if( !node || !box.length || !$.contains( document.documentElement, node ) ) return;
+
+        var colsRect = node.getBoundingClientRect(),
+            rect = box.get( 0 ).getBoundingClientRect(),
+            top = Math.round( rect.top - colsRect.top ),
+            height = Math.round( rect.height );
+
+        // a measurement that cannot be true is dropped rather than drawn: the rail lives inside
+        // the block, so it starts at or after the block's top and ends at or before its bottom
+        if( height <= 0 || top < 0 || top + height > Math.round( colsRect.height ) + 1 ) return;
+
+        cols.children( ".mdb-tlImporter-col-resizer" ).css({
+            "--mdb-rail-top": top + "px",
+            "--mdb-rail-height": height + "px"
+        });
+    });
+}
+
 // tlImporter_addColResizers
 // The two grab bars, and the dragging behind them. Sizes are read off the LIVE pixel widths at
-// mousedown rather than from the stored ratio: the reader may have resized the window since,
-// and the ratio says nothing about how wide a third of it is now.
+// mousedown: the reader may have resized the window since the block was built, and a ratio says
+// nothing about how wide a third of it is now.
 function tlImporter_addColResizers( cols ) {
     var columns = cols.children( ".mdb-tlImporter-col" );
 
     if( columns.length !== 3 ) return;
-
-    tlImporter_applyColSizes( cols, tlImporter_readColSizes() );
 
     columns.eq( 0 ).add( columns.eq( 1 ) ).each(function( i ) {
         var handle = $( '<div class="mdb-tlImporter-col-resizer mdb-element" role="separator" aria-orientation="vertical"></div>' )
@@ -574,12 +595,8 @@ function tlImporter_addColResizers( cols ) {
             $( document ).off( "mousemove", onMove ).off( "mouseup", onUp );
             $( "body" ).removeClass( "mdb-tlImporter-resizing" );
 
-            var sizes = cols.children( ".mdb-tlImporter-col" ).map(function() { return $(this).outerWidth(); }).get();
-
-            if( sizes.length === 3 ) {
-                tlImporter_writeColSizes( sizes );
-                log( "tlImporter: column widths stored (" + sizes.join( " / " ) + " px)." );
-            }
+            // narrower columns wrap more lines and grow taller - the rails follow the boxes
+            tlImporter_alignResizers( cols );
         }
 
         $( document ).on( "mousemove", onMove ).on( "mouseup", onUp );
@@ -588,7 +605,7 @@ function tlImporter_addColResizers( cols ) {
     // back to three equal columns - the way out of any drag that went wrong
     cols.on( "dblclick", ".mdb-tlImporter-col-resizer", function() {
         tlImporter_applyColSizes( cols, tlImporter_colSizesDefault );
-        tlImporter_writeColSizes( tlImporter_colSizesDefault );
+        tlImporter_alignResizers( cols );
         log( "tlImporter: column widths reset to equal thirds." );
     });
 }
@@ -603,8 +620,9 @@ function tlImporter_addColResizers( cols ) {
  * column - to the LEFT only: it grows over whatever the skin has parked there (sidebar,
  * tools) and keeps its right edge exactly where the content column ends. The room is on the
  * left, so that is the only side that moves; a block reaching past the article's right edge as
- * well would only make the page look broken. Click again to give the width back. Like the
- * column widths, the choice is kept per browser.
+ * well would only make the page look broken. Click again to give the width back. Unlike the
+ * column widths, this one IS kept per browser: it says how wide the reader's window is, which
+ * is the same answer on the next mix page - the widths say something about one merge only.
  *
  * A negative left margin plus a stated width rather than "position: fixed": the block stays
  * where it is in the reading order, the edit form below it does not jump up under it, and
@@ -660,6 +678,8 @@ function tlImporter_applyWide( wrap, wide ) {
 
     wrap.css({ marginLeft: "", width: "" }).toggleClass( "mdb-tlImporter-wide", !!wide );
 
+    var cols = wrap.find( ".mdb-tlImporter-cols" ).first();
+
     var button = wrap.find( ".mdb-tlImporter-wide-toggle" ).first();
 
     button
@@ -668,7 +688,10 @@ function tlImporter_applyWide( wrap, wide ) {
             ? "Back into the page's content column."
             : "Stretch this block to the left, over the sidebar." );
 
-    if( !wide ) return;
+    if( !wide ) {
+        tlImporter_alignResizers( cols );
+        return;
+    }
 
     var rect = wrap.get( 0 ).getBoundingClientRect(),
         // how much room there is between the block and the window's left edge - all of it is
@@ -681,6 +704,9 @@ function tlImporter_applyWide( wrap, wide ) {
         marginLeft: -gain + "px",
         width: ( rect.width + gain ) + "px"
     });
+
+    // wider columns hold more per line, so the boxes shrink - the rails follow them
+    tlImporter_alignResizers( cols );
 }
 
 // tlImporter_addWideToggle
@@ -703,8 +729,6 @@ function tlImporter_addWideToggle( wrap ) {
     var resizeTimer;
 
     $( window ).on( "resize.mdbTlImporterWide", function() {
-        if( !wrap.hasClass( "mdb-tlImporter-wide" ) ) return;
-
         clearTimeout( resizeTimer );
         resizeTimer = setTimeout(function() {
             // gone with an SPA-style cleanup or a reload: nothing left to re-measure
@@ -713,9 +737,54 @@ function tlImporter_addWideToggle( wrap ) {
                 return;
             }
 
-            tlImporter_applyWide( wrap, true );
+            // a stretched block is measured against the new window; either way the boxes have
+            // a new height now and the grab bars' rails have to match it again
+            if( wrap.hasClass( "mdb-tlImporter-wide" ) ) tlImporter_applyWide( wrap, true );
+            else tlImporter_alignResizers( wrap.find( ".mdb-tlImporter-cols" ).first() );
         }, 150 );
     });
+}
+
+
+/*
+ * tlImporter_watchApplyButton
+ *
+ * The Apply button follows the Merged box: enabled while the box says something else than the
+ * page already got, disabled while the two are the same.
+ *
+ * The baseline is the text the block was built with - the merge result the importer wrote into
+ * the wiki edit box before the diff was shown. Comparing against it rather than counting
+ * keystrokes means a reader who types something and takes it back finds the button asleep
+ * again, and it covers the Tracklist Editor's own re-formatting as well: that is a change to
+ * the box like any other, and it IS worth applying.
+ *
+ * "input" is the event that covers all of it - typing, paste, undo, and the programmatic
+ * value changes tracklist_editor/funcs.js triggers after a format.
+ */
+function tlImporter_watchApplyButton( textarea, button, baseline ) {
+    function refresh() {
+        // trimmed on both sides: a trailing newline the box picked up somewhere is not an edit
+        // worth waking the button for, and what Apply writes to the page is trimmed as well
+        var changed = $.trim( textarea.val() || "" ) !== $.trim( baseline || "" );
+
+        button
+            .prop( "disabled", !changed )
+            .toggleClass( "mdb-tlImporter-locked", !changed )
+            .attr( "title", changed
+                ? "Replace the page's tracklist with this box's text, as it stands, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed."
+                : "Nothing to apply: the box holds exactly what the merge already wrote into the page.\nEdit the box - or let the Tracklist Editor format it - and the button wakes up." );
+    }
+
+    // the baseline moves with a successful apply: what was just written to the page is the new
+    // "same as the page", so the button sleeps again until the next edit
+    button.on( "mdbApplied", function( event, appliedText ) {
+        baseline = appliedText;
+        refresh();
+    });
+
+    textarea.on( "input.mdbTlImporterApply", refresh );
+
+    refresh();
 }
 
 
@@ -765,11 +834,18 @@ function tlImporter_renderDiffView( data ) {
 
     // the OOUI classes dress the button like the wiki's own Save/Preview/Diff buttons - their
     // styles are on the edit page anyway, and a foreign-looking button next to them reads as
-    // not belonging to the form
-    applyWrap.append(
-        $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' )
-            .attr( "title", "Replace the page's tracklist with this box's text, as it stands, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed." )
-    );
+    // not belonging to the form.
+    //
+    // Dead on arrival, on purpose: what the box holds at this moment is what the importer
+    // already wrote into the page, so applying it would replace the tracklist with itself -
+    // an edit that changes nothing, another TLE call, and a button that looks like a step of
+    // the workflow when it is not. It wakes up as soon as the text differs from what was
+    // applied - by hand or through the Tracklist Editor's own formatting - and goes back to
+    // sleep if the reader undoes their change.
+    var applyButton = $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
+
+    applyWrap.append( applyButton );
+    tlImporter_watchApplyButton( textarea, applyButton, data.mergedTl || "" );
 
     cols.append(
         col( "Merged", "The result as applied to the page. Edit final fixes here, then Apply." )
@@ -860,6 +936,9 @@ function tlImporter_renderDiffView( data ) {
     textarea.attr( "rows", maxRows );
     wrap.find( "pre.mdb-tlImporter-pre" ).css( "min-height", ( maxRows * 1.5 ) + "em" );
 
+    // the boxes have their final height only now - the grab bars' rails are drawn to match it
+    tlImporter_alignResizers( cols );
+
     log( "tlImporter: review block rendered (" + ( data.originalItems ? data.originalItems.length : 0 ) + " original rows, "
         + data.items.length + " candidate rows, " + maxRows + " shared rows, TLE status: " + ( data.status || "(none)" ) + ")." );
 }
@@ -918,6 +997,10 @@ $(document).on( "click", "#mdb-tlImporter-apply", function() {
     // a short confirmation on the button itself - the change landed in the box below the fold
     button.text( "Applied" );
     setTimeout(function() { button.text( "Apply" ); }, 1500 );
+
+    // the box now holds what the page holds - the button has nothing left to do until the
+    // next edit (see tlImporter_watchApplyButton)
+    button.trigger( "mdbApplied", [ text ] );
 
     log( "tlImporter: applied the Merged box (TLE status: " + ( status || "(none)" ) + ")." );
 });

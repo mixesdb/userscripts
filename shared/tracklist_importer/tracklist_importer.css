@@ -102,11 +102,16 @@
     cursor: col-resize;
 }
 
+/* the rail covers the BOXES between the columns and nothing else: the two custom properties
+ * are measured onto each bar by tlImporter_alignResizers(), and the fallbacks (the whole
+ * column) apply for the moment before that runs. Drawn past the boxes it would be a line
+ * through the headings above and the feedback box and Apply button below - a border where the
+ * block has none. */
 #mdb-tlImporter-diff .mdb-tlImporter-col-resizer::before {
     content: "";
     position: absolute;
-    top: 0;
-    bottom: 0;
+    top: var(--mdb-rail-top, 0);
+    height: var(--mdb-rail-height, 100%);
     left: 50%;
     width: 4px;
     margin-left: -2px;
