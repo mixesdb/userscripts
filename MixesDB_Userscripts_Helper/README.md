@@ -1,20 +1,13 @@
 # MixesDB Userscripts Helper
 
 Changes MixesDB itself so the other userscripts can hand things over to it – a page text, a
-title, an artwork URL – and adds the links that lead from a mix page out to TrackId.net and
-Apple Podcasts.
+title, an artwork URL – and adds the search links that lead from a mix page out to Apple
+Podcasts.
 
 - **Runs on:** mixesdb.com
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js)
-- **Shared features:** [TrackId.net submit links](../shared/README.md#trackidnet-submit-links)
 
 ## Features
-
-### TrackId.net links on mix pages
-
-Under every player on a mix page: **Exists on TrackId.net** with a link, or a **Submit** link
-that opens TrackId.net's form with the player URL and the page title already filled in. The same
-icon is added to mix page titles and to the results on `MixesDB:Explorer/Mixes`.
 
 ### Apple Podcasts search icons
 
@@ -67,7 +60,9 @@ edit box and Save.
 
 ## Known limitations
 
-- The settings live at the top of the script (Apple Music country code, whether TrackId.net links
-  and Apple Podcasts icons are added). They have to be set again after an update.
+- The settings live at the top of the script (Apple Music country code, whether Apple Podcasts
+  icons are added). They have to be set again after an update.
+- The links under the players that lead out to TrackId.net used to be this script's. They are the
+  [TrackId.net script](../TrackId.net/)'s now – install that one to get them back.
 - This script is what makes the other scripts' **Create** links work. Without it, such a link
   still opens the right edit form, but empty.

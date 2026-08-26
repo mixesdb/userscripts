@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.1
+// @version      2026.08.26.2
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -28,7 +28,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 19,
+var cacheVersion = 20,
     scriptName = "MixesDB_Userscripts_Helper";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -61,15 +61,6 @@ const appleMusic_linksOpenInBrowser = 1; // default: 0
 // Your Apple Music counry code, e.g. "de"
 // All country codes: https://www.hiresedition.com/apple-music-country-codes.html
 const appleMusic_countryCode_switch = "de"; // default: ""
-
-/*
- * TrackId.net settings
- */
-// Submit player URLs to the TID request form
-// * On Explorer mix results add an icon to the title bar
-// * On mix pages add TID links to every player ("Exists" or "Submit")
-// Set 0 to disable
-const trackIdnet_addLinks = 1; // default: 1
 
 /*
  * Apple Podcasts settings
@@ -116,12 +107,11 @@ function getApplePodcastsSearchLink( className, keywords ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Mix page title icons and Explorer title icons fpr
- ** TrackId.net request submission
+ * Mix page title icons and Explorer title icons for
  ** Apple Podcasts search
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-logFunc( "Quicker Submit Request" );
+logFunc( "Apple Podcasts search icons" );
 
 d.ready(function(){ // needed for mw.config
 
@@ -130,104 +120,6 @@ d.ready(function(){ // needed for mw.config
         wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
         wgTitle = mw.config.get("wgTitle"),
         wgPageName = mw.config.get("wgPageName");
-
-    /*
-     * On mix pages and MixesDB:Explorer/Mixes
-     * Also allow on page edit (preview)
-     */
-    if( trackIdnet_addLinks
-        && ( wgNamespaceNumber==0 && wgTitle!="Main Page" )
-        || ( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" )
-      ) {
-        log( "Criteria for mix page matched." );
-
-        /*
-         * TrackId.net submit link under each player
-         */
-        $(".playerWrapper[data-playersite]").each(function(){
-            var playerWrapper = $(this),
-                playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
-                playerUrl = playerWrapper.attr("data-playerurl"),
-                playerSite = makeCssSafe( playerWrapper.attr("data-playersite") ),
-                keywords = "";
-
-            logVar( "playerSite", playerSite );
-            logVar( "playerUrl", playerUrl );
-
-            // Remove URL paramteres from e.g. SoundCloud and Mixcloud
-            if( playerSite != "YouTube" ) {
-                playerUrl = removeParametersFromUrl( playerWrapper.attr("data-playerurl") );
-            } else {
-                playerUrl = playerUrl.replace( "www.youtu.be", "youtu.be" );
-            }
-
-            if( playerSite == "hearthis-at" ) {
-                playerUrl = playerUrl.replace( "hearthis.audio", "hearthis.at" );
-            }
-
-            // if mix page
-            if( wgNamespaceNumber==0 && wgTitle!="Main Page" ) {
-                keywords = getKeywordsFromTitle( $("h1#firstHeading") )
-            }
-
-            // if Explorer/Mixes
-            if( wgNamespaceNumber==4 && wgPageName=="MixesDB:Explorer/Mixes" ) {
-                var explorerResult = playerWrapper.closest(".explorerResult"),
-                    explorerResult_title = $(".playerLink", explorerResult).attr("title");
-                keywords = normalizeTitleForSearch( explorerResult_title );
-            }
-
-            if( playerTidCompatible == "true" ) {
-
-                // check usage
-                var apiQueryUrl_check = apiUrl_mw;
-                apiQueryUrl_check += "?action=mixesdbtrackid";
-                apiQueryUrl_check += "&format=json";
-                apiQueryUrl_check += "&url=" + playerUrl;
-
-                logVar( "apiQueryUrl_check", apiQueryUrl_check );
-
-                $.ajax({
-                    url: apiQueryUrl_check,
-                    type: 'get', /* GET on checking */
-                    dataType: 'json',
-                    async: true,
-                    success: function(data) {
-                        // avoid undefined error
-                        if( ( data.error && data.error.code == "notfound" )  ) {
-                            // no result
-                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
-                            playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
-                        } else {
-                            var tidLink = "",
-                                trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
-                                lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
-
-                            logVar( "trackidurl", trackidurl );
-                            logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
-
-                            if( trackidurl ) {
-                                tidLink += '<a href="'+trackidurl+'"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
-
-                                if( lastCheckedAgainstMixesDB ) {
-                                    tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
-                                    tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
-                                } else {
-                                    tidLink += ' (not integrated yet)';
-                                }
-                            }
-
-                            if( tidLink != "" ) {
-                                playerWrapper.append( '<div class="tidLink '+playerSite+' grey">'+tidLink+'</div>' );
-                            }
-                        }
-                    }
-                }); // END ajax
-            } else {
-                log( "NOT playerTidCompatible: " + playerUrl );
-            }
-        });
-    }
 
     /*
      * On mix pages and Category pages
