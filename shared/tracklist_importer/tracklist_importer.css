@@ -22,10 +22,10 @@
 }
 
 /* the review block between MediaWiki's diff and the wiki edit box (mixesdb.com).
- * position/box-sizing are for the full-width toggle: the button is positioned into the top
- * right corner OVER the block's own padding, so it costs no line and no column width, and the
- * width tlImporter_applyWide() states has to include padding and border, or the stretched
- * block reaches past the window edge. */
+ * position/box-sizing are for the widen toggle: the button is positioned into the top left
+ * corner, the side the block grows to, OVER the block's own padding - so it costs no line and
+ * no column width - and the width tlImporter_applyWide() states has to include padding and
+ * border, or the stretched block reaches past the window edge. */
 #mdb-tlImporter-diff {
     position: relative;
     box-sizing: border-box;
@@ -37,19 +37,20 @@
     font-size: 12px;
 }
 
-/* stretched over the full window width (tlImporter_applyWide): the margin and width are inline
+/* stretched to the left window edge (tlImporter_applyWide): the margin and width are inline
  * styles from the measuring, this only lifts the block over whatever it now covers - MediaWiki's
  * sidebar is a positioned element and would otherwise paint on top of it. */
 #mdb-tlImporter-diff.mdb-tlImporter-wide {
     z-index: 5;
 }
 
-/* the toggle in the top right corner. Absolute, so it floats over the block's padding instead
- * of taking a line above the columns - the heading row starts at the very top either way. */
+/* the toggle in the top left corner - the side the block grows to, so the button stands where
+ * the movement happens. Absolute, so it floats over the block's own edge instead of taking a
+ * line above the columns: the heading row starts at the very top either way. */
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle {
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: -11px;
+    left: 5px;
     z-index: 2;
     width: 22px;
     height: 22px;
@@ -90,10 +91,10 @@
 }
 
 /* the grab bar between two columns: the whole 14px column is the hit area and can be grabbed
- * anywhere down the block (align-self, against the container's "start"), but it has to LOOK
- * like a handle, not like a gap - so a rail runs the full height (::before) and a grooved grip
- * sits in the middle of it (::after). Without the grip the space between the columns reads as
- * air nobody would think of dragging. */
+ * anywhere down the block (align-self, against the container's "start"). What is SEEN of it is
+ * one light rail, no more - it is the space between two columns first and a control second,
+ * and a grip drawn into every one of them turns the block into a set of tools. The pointer
+ * over it (col-resize) and the darker rail on hover are what say it can be dragged. */
 #mdb-tlImporter-diff .mdb-tlImporter-col-resizer {
     position: relative;
     width: 14px;
@@ -107,38 +108,14 @@
     top: 0;
     bottom: 0;
     left: 50%;
-    width: 2px;
-    margin-left: -1px;
-    background-color: #dcdcdc;
-}
-
-/* the grip: a pill with three grooves, the shape every resizer on every desktop wears */
-#mdb-tlImporter-diff .mdb-tlImporter-col-resizer::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 34px;
-    margin: -17px 0 0 -5px;
-    box-sizing: border-box;
-    border: 1px solid #bdbdbd;
-    border-radius: 4px;
-    background-color: #f2f2f2;
-    /* the grooves: three 1px lines, 5px apart, centred in the pill */
-    background-image: linear-gradient(#b0b0b0 1px, transparent 1px);
-    background-size: 4px 5px;
-    background-position: center;
-    background-repeat: repeat-y;
+    width: 4px;
+    margin-left: -2px;
+    border-radius: 2px;
+    background-color: #eee;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-col-resizer:hover::before {
-    background-color: #b8b8b8;
-}
-
-#mdb-tlImporter-diff .mdb-tlImporter-col-resizer:hover::after {
-    border-color: #8c8c8c;
-    background-color: #fff;
+    background-color: #ddd;
 }
 
 /* while a bar is being dragged the pointer is the resize one everywhere, and nothing on the
@@ -160,13 +137,6 @@ body.mdb-tlImporter-resizing {
     color: #666;
     margin-bottom: 6px;
     text-align: center;
-}
-
-/* the last column's two lines end where the full-width toggle begins - centred text runs the
- * whole column width, and the cut with the ellipsis would otherwise happen underneath it */
-#mdb-tlImporter-diff .mdb-tlImporter-col:last-child .mdb-tlImporter-col-head,
-#mdb-tlImporter-diff .mdb-tlImporter-col:last-child .mdb-tlImporter-col-help {
-    padding-right: 24px;
 }
 
 /* head and help text stay on ONE line and get cut with an ellipsis instead of wrapping: each
