@@ -478,7 +478,9 @@ function toolkit_tlStateButtons() {
     boxes.each(function() {
         var box = $(this),
             state = toolkit_tlStatusFromFeedback( box ),
-            row = box.children( ".mdb-tlEditor-tlState" ).first();
+            // find(), not children(): the chips live in the box's chip row wrapper
+            // (tlBoxChipRow in tracklist_editor/funcs.js), one level deeper than the box
+            row = box.find( ".mdb-tlEditor-tlState" ).first();
 
         if( !row.length ) {
             // "floatR", although tracklistEditor_copy.css floats this row as well: that is
@@ -504,9 +506,16 @@ function toolkit_tlStateButtons() {
             // right, so the earlier one in the box is the one further right. A row of their
             // own under the message cost a whole line of box for two icons - and the box is
             // ONE line tall whenever the answer is ("The tracklist seems valid and complete.").
-            var rows = box.find( "#tlEditor-feedback-rows" ).first();
+            var rows = box.find( "#tlEditor-feedback-rows" ).first(),
+                // the wrapper all of them float in. Guarded: this file and
+                // tracklist_editor/funcs.js both arrive through @require, but a page may load
+                // the toolkit without the tracklist editor - then the box itself is the host,
+                // exactly as before the wrapper existed.
+                host = typeof tlBoxChipRow === "function" ? tlBoxChipRow( box ) : $();
 
-            if( rows.length ) rows.before( row ); else box.prepend( row );
+            if( !host.length ) host = box;
+
+            if( rows.length ) rows.before( row ); else host.prepend( row );
         }
 
         row.children( ".mdb-tlEditor-tlState-button" ).each(function() {

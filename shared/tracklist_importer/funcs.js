@@ -460,6 +460,257 @@ function tlImporter_flattenFeedbackList( scope ) {
     list.replaceWith( rows );
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The column widths of the review block
+ *
+ * Three equal thirds are a starting point, not an answer: which of the columns needs the
+ * room depends on the merge in front of the reader. A long original with short candidate
+ * lines wants a wide Original, hand-salvaging in the Merged box wants that one wide.
+ *
+ * So the two gaps between the columns are grab bars: drag to move the border between the two
+ * columns next to it, double-click to give all three the same width again. The result is kept
+ * per browser, since the block is built fresh on every edit form and re-dragging it every time
+ * would defeat the point.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var tlImporter_colSizesKey = "mdb-tlImporter-colSizes",
+    tlImporter_colSizesDefault = [ 1, 1, 1 ],
+    // no column may be dragged narrower than this, in px - below it the box shows single
+    // words per line and the handle can no longer be grabbed back out
+    tlImporter_colMinPx = 120;
+
+// tlImporter_readColSizes
+// The stored three-number ratio, or the equal thirds. A browser with storage blocked must not
+// take the block down with it, hence the try/catch - same as the live-update switch.
+function tlImporter_readColSizes() {
+    try {
+        var stored = JSON.parse( localStorage.getItem( tlImporter_colSizesKey ) || "null" );
+
+        if( stored && stored.length === 3 && stored.every(function( n ) { return typeof n === "number" && isFinite( n ) && n > 0; }) ) {
+            return stored;
+        }
+    } catch( e ) {}
+
+    return tlImporter_colSizesDefault.slice();
+}
+
+// tlImporter_writeColSizes
+function tlImporter_writeColSizes( sizes ) {
+    try {
+        localStorage.setItem( tlImporter_colSizesKey, JSON.stringify( sizes ) );
+    } catch( e ) {}
+}
+
+// tlImporter_applyColSizes
+// The three ratios as the grid's own template, the two handle columns fixed between them. The
+// fr unit is proportional, so feeding it pixel numbers straight from the drag lands the
+// columns on exactly those pixels.
+function tlImporter_applyColSizes( cols, sizes ) {
+    cols.css( "grid-template-columns",
+        "minmax(0, " + sizes[0] + "fr) auto minmax(0, " + sizes[1] + "fr) auto minmax(0, " + sizes[2] + "fr)" );
+}
+
+// tlImporter_addColResizers
+// The two grab bars, and the dragging behind them. Sizes are read off the LIVE pixel widths at
+// mousedown rather than from the stored ratio: the reader may have resized the window since,
+// and the ratio says nothing about how wide a third of it is now.
+function tlImporter_addColResizers( cols ) {
+    var columns = cols.children( ".mdb-tlImporter-col" );
+
+    if( columns.length !== 3 ) return;
+
+    tlImporter_applyColSizes( cols, tlImporter_readColSizes() );
+
+    columns.eq( 0 ).add( columns.eq( 1 ) ).each(function( i ) {
+        var handle = $( '<div class="mdb-tlImporter-col-resizer mdb-element" role="separator" aria-orientation="vertical"></div>' )
+            .attr( "title", "Drag to change the width of the two columns next to it.\nDouble-click for three equal columns again." )
+            .attr( "data-mdb-resizer", i );
+
+        $(this).after( handle );
+    });
+
+    cols.on( "mousedown", ".mdb-tlImporter-col-resizer", function( event ) {
+        var index = parseInt( $(this).attr( "data-mdb-resizer" ), 10 ),
+            live = cols.children( ".mdb-tlImporter-col" ),
+            startX = event.pageX,
+            // the widths as they are on screen right now, in px - the two the handle sits
+            // between are the ones that move, the third one keeps what it has
+            widths = live.map(function() { return $(this).outerWidth(); }).get();
+
+        // the browser's own text selection would otherwise select its way across the columns
+        // while the pointer is down
+        event.preventDefault();
+        $( "body" ).addClass( "mdb-tlImporter-resizing" );
+
+        function onMove( moveEvent ) {
+            var delta = moveEvent.pageX - startX,
+                a = widths[ index ] + delta,
+                b = widths[ index + 1 ] - delta;
+
+            // clamped as a pair: what one column may not give up, the other may not take
+            if( a < tlImporter_colMinPx ) {
+                b -= tlImporter_colMinPx - a;
+                a = tlImporter_colMinPx;
+            }
+
+            if( b < tlImporter_colMinPx ) {
+                a -= tlImporter_colMinPx - b;
+                b = tlImporter_colMinPx;
+            }
+
+            if( a < tlImporter_colMinPx || b < tlImporter_colMinPx ) return; // no room left at all
+
+            var sizes = widths.slice();
+
+            sizes[ index ] = a;
+            sizes[ index + 1 ] = b;
+
+            tlImporter_applyColSizes( cols, sizes );
+        }
+
+        function onUp() {
+            $( document ).off( "mousemove", onMove ).off( "mouseup", onUp );
+            $( "body" ).removeClass( "mdb-tlImporter-resizing" );
+
+            var sizes = cols.children( ".mdb-tlImporter-col" ).map(function() { return $(this).outerWidth(); }).get();
+
+            if( sizes.length === 3 ) {
+                tlImporter_writeColSizes( sizes );
+                log( "tlImporter: column widths stored (" + sizes.join( " / " ) + " px)." );
+            }
+        }
+
+        $( document ).on( "mousemove", onMove ).on( "mouseup", onUp );
+    });
+
+    // back to three equal columns - the way out of any drag that went wrong
+    cols.on( "dblclick", ".mdb-tlImporter-col-resizer", function() {
+        tlImporter_applyColSizes( cols, tlImporter_colSizesDefault );
+        tlImporter_writeColSizes( tlImporter_colSizesDefault );
+        log( "tlImporter: column widths reset to equal thirds." );
+    });
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Full width for the review block
+ *
+ * MediaWiki's content column is the width of an article, and three tracklists side by side
+ * are not an article. The button in the block's top left corner takes the block out of that
+ * column: it keeps its place in the page flow but reaches to both edges of the window, over
+ * whatever the skin has parked left of the content (sidebar, tools). Click again to give it
+ * back. Like the column widths, the choice is kept per browser.
+ *
+ * A negative left margin plus a stated width rather than "position: fixed": the block stays
+ * where it is in the reading order, the edit form below it does not jump up under it, and
+ * nothing has to be measured again while scrolling.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var tlImporter_wideKey = "mdb-tlImporter-wide",
+    // the air left between the block and the window edges when it is wide
+    tlImporter_widePad = 8;
+
+// tlImporter_wideIcon
+// Two arrows: pointing outward while the block is in its column (click to stretch), inward
+// while it is stretched (click to give the width back). Drawn here rather than asked for by
+// class name - Font Awesome is on MixesDB, but these two shapes are not in it as one glyph.
+function tlImporter_wideIcon( wide ) {
+    var arrows = wide
+        ? '<path d="M2 3 L6.5 8 L2 13" /><path d="M14 3 L9.5 8 L14 13" />'
+        : '<path d="M6.5 3 L2 8 L6.5 13" /><path d="M9.5 3 L14 8 L9.5 13" />';
+
+    return '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" '
+        + 'stroke-linecap="round" stroke-linejoin="round">' + arrows + '</svg>';
+}
+
+// tlImporter_readWide
+function tlImporter_readWide() {
+    try {
+        return localStorage.getItem( tlImporter_wideKey ) === "1";
+    } catch( e ) {
+        return false;
+    }
+}
+
+// tlImporter_writeWide
+function tlImporter_writeWide( wide ) {
+    try {
+        localStorage.setItem( tlImporter_wideKey, wide ? "1" : "0" );
+    } catch( e ) {}
+}
+
+// tlImporter_applyWide
+// Measured, not calculated: how far the block's left edge stands from the window edge is the
+// skin's business and changes with the window, the sidebar and the user's preferences. The
+// inline styles are cleared first so the measuring sees the block in its column - reading the
+// offset of an already-stretched block would move it further left on every call.
+function tlImporter_applyWide( wrap, wide ) {
+    wrap = $(wrap).first();
+
+    if( !wrap.length ) return;
+
+    wrap.css({ marginLeft: "", width: "" }).toggleClass( "mdb-tlImporter-wide", !!wide );
+
+    var button = wrap.find( ".mdb-tlImporter-wide-toggle" ).first();
+
+    button
+        .html( tlImporter_wideIcon( wide ) )
+        .attr( "title", wide
+            ? "Back into the page's content column."
+            : "Stretch this block over the full window width, across the sidebar." );
+
+    if( !wide ) return;
+
+    var left = wrap.get( 0 ).getBoundingClientRect().left,
+        // clientWidth, not innerWidth: the scrollbar is not room the block may use
+        pageWidth = document.documentElement.clientWidth;
+
+    wrap.css({
+        marginLeft: -( left - tlImporter_widePad ) + "px",
+        width: ( pageWidth - 2 * tlImporter_widePad ) + "px"
+    });
+}
+
+// tlImporter_addWideToggle
+// The button, its click and the one thing that can invalidate the measuring afterwards: a
+// resized window. Re-measured on a timer, so a drag of the window edge does not run this on
+// every pixel.
+function tlImporter_addWideToggle( wrap ) {
+    var button = $( '<button type="button" class="mdb-tlImporter-wide-toggle mdb-element hand"></button>' );
+
+    wrap.prepend( button );
+
+    button.on( "click", function() {
+        var wide = !wrap.hasClass( "mdb-tlImporter-wide" );
+
+        tlImporter_applyWide( wrap, wide );
+        tlImporter_writeWide( wide );
+        log( "tlImporter: review block " + ( wide ? "stretched to the window width." : "back in the content column." ) );
+    });
+
+    var resizeTimer;
+
+    $( window ).on( "resize.mdbTlImporterWide", function() {
+        if( !wrap.hasClass( "mdb-tlImporter-wide" ) ) return;
+
+        clearTimeout( resizeTimer );
+        resizeTimer = setTimeout(function() {
+            // gone with an SPA-style cleanup or a reload: nothing left to re-measure
+            if( !$.contains( document.documentElement, wrap.get( 0 ) ) ) {
+                $( window ).off( "resize.mdbTlImporterWide" );
+                return;
+            }
+
+            tlImporter_applyWide( wrap, true );
+        }, 150 );
+    });
+}
+
+
 // tlImporter_renderDiffView
 // The review block: three columns above the wiki edit box (and below MediaWiki's own diff,
 // which sits above the form on action=submit) -
@@ -528,6 +779,13 @@ function tlImporter_renderDiffView( data ) {
             }) )
     );
 
+    // the two grab bars between the columns, plus the widths the reader last dragged
+    tlImporter_addColResizers( cols );
+
+    // the full-width toggle in the top left corner, before the columns so it is the block's
+    // first element - it is positioned into the corner, but keyboard order should match
+    tlImporter_addWideToggle( wrap );
+
     wrap.append( cols );
 
     // above the wiki edit box, below MediaWiki's diff. The diff container can sit outside or
@@ -550,6 +808,10 @@ function tlImporter_renderDiffView( data ) {
 
         anchor.before( wrap );
     }
+
+    // only now, with the block on the page, can its distance to the window's left edge be
+    // measured - the stored choice is applied from here, not at build time
+    tlImporter_applyWide( wrap, tlImporter_readWide() );
 
     // the TLE call counter the block carried over (see tlImporter_storeDiff) is restored
     // BEFORE the chips render - the feedback on screen was paid for on the edit page, and "0

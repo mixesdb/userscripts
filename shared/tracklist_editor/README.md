@@ -38,6 +38,12 @@ click somewhere in the box – the tracklist is checked and formatted, and the f
 the text as it stands. Numbering typed in front of a track disappears as you go, dashes are
 written the way MixesDB writes them, and the cursor stays where you were typing.
 
+A text row – a line carrying MixesDB's italics, like `# [0:38] ''Artist - ?''` – is left alone
+while the cursor is in it. Taking those `''` off by hand takes more than one keystroke, and the
+formatter would put them straight back between two of them, so no check runs at all while you are
+in such a line. The feedback and the formatting follow as soon as you click somewhere else, press
+Enter or leave the box.
+
 The feedback box itself only changes when the answer changes, so a pause that confirms what is
 already on screen is completely silent.
 

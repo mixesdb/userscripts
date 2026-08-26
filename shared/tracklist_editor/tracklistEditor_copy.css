@@ -166,6 +166,26 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
     display: block;
     clear: both;
 }
+
+/*
+ * The chip row (tlBoxChipRow in funcs.js): ONE wrapper around all of them - the state icons,
+ * "N rows", the API call counter, the Live updates switch.
+ *
+ * They floated one by one before, straight into the box, and every stylesheet that wanted the
+ * verdict UNDERNEATH them had to clear each of them separately - which held until the next
+ * render inserted a float the rule did not know about. Now they float TOGETHER: this wrapper
+ * is the only float, so one rule (see the mixesdb.com block further down) decides whether the
+ * verdict reads beside the chips or below them.
+ *
+ * The wrapper floats itself, so nothing changes on the wide boxes of the player sites - and
+ * "flow-root" because a float that contains floats measures zero high without a formatting
+ * context of its own, which would drop the whole row out of the box's height.
+ */
+.mdb-tlEditor-chipRow {
+    float: right;
+    display: flow-root;
+    max-width: 100%;
+}
 #tlEditor-feedback ul {
     margin-top: 0;
     margin-bottom: 0;
@@ -465,9 +485,21 @@ textarea.mono {
 
 
 /*
- * Site specific rules
+ * mixesdb.com
+ *
+ * The boxes on this domain are narrow - the Tracklist Importer's Merged column is a third of
+ * the page - and a verdict squeezed into the strip left of four chips breaks into two or three
+ * lines while the row next to it stays one. So the chip row takes a line of its own here and
+ * the verdict starts under it, with .5rem of air.
+ *
+ * float: none is all it takes: the chips inside the wrapper keep floating right, so their
+ * order and their look are the ones every other site shows.
  */
-body.mixesdb-com #mdb-tlImporter-diff .mdb-tlImporter-feedback-rows {
-    margin-top: inherit;
-    padding-top: .5rem;
+body.mixesdb-com #tlEditor-feedback .mdb-tlEditor-chipRow {
+    float: none;
+}
+
+body.mixesdb-com #tlEditor-feedback .mdb-tlEditor-chipRow ~ #tlEditor-feedback-text,
+body.mixesdb-com #tlEditor-feedback .mdb-tlEditor-chipRow ~ #tlEditor-feedback-topInfo {
+    margin-top: .5rem;
 }
