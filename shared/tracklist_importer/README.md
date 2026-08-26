@@ -70,8 +70,8 @@ After a merge, a three-column block sits between MediaWiki's diff and the wiki t
   Merged box if they are worth it; parts the page simply already had stay plain.
 
 The bars between the columns can be dragged to give one of them more room – double-click a bar
-for three equal columns again. The button in the block's top right corner stretches the whole
-block over the full window width, across the sidebar, and back. Both choices are remembered per
+for three equal columns again. The button in the block's top left corner stretches the block
+to the left over the sidebar and back; its right edge stays where the content column ends. Both choices are remembered per
 browser. On a narrow window the three columns stack on top of each other instead, in the same
 order.
 

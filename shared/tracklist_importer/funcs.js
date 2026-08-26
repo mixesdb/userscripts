@@ -599,10 +599,12 @@ function tlImporter_addColResizers( cols ) {
  * Full width for the review block
  *
  * MediaWiki's content column is the width of an article, and three tracklists side by side
- * are not an article. The button in the block's top right corner takes the block out of that
- * column: it keeps its place in the page flow but reaches to both edges of the window, over
- * whatever the skin has parked left of the content (sidebar, tools). Click again to give it
- * back. Like the column widths, the choice is kept per browser.
+ * are not an article. The button in the block's top left corner takes the block out of that
+ * column - to the LEFT only: it grows over whatever the skin has parked there (sidebar,
+ * tools) and keeps its right edge exactly where the content column ends. The room is on the
+ * left, so that is the only side that moves; a block reaching past the article's right edge as
+ * well would only make the page look broken. Click again to give the width back. Like the
+ * column widths, the choice is kept per browser.
  *
  * A negative left margin plus a stated width rather than "position: fixed": the block stays
  * where it is in the reading order, the edit form below it does not jump up under it, and
@@ -664,17 +666,20 @@ function tlImporter_applyWide( wrap, wide ) {
         .html( tlImporter_wideIcon( wide ) )
         .attr( "title", wide
             ? "Back into the page's content column."
-            : "Stretch this block over the full window width, across the sidebar." );
+            : "Stretch this block to the left, over the sidebar." );
 
     if( !wide ) return;
 
-    var left = wrap.get( 0 ).getBoundingClientRect().left,
-        // clientWidth, not innerWidth: the scrollbar is not room the block may use
-        pageWidth = document.documentElement.clientWidth;
+    var rect = wrap.get( 0 ).getBoundingClientRect(),
+        // how much room there is between the block and the window's left edge - all of it is
+        // taken, minus the bit of air, and the right edge is left alone
+        gain = rect.left - tlImporter_widePad;
+
+    if( gain <= 0 ) return; // nothing to win: the block already starts at the window edge
 
     wrap.css({
-        marginLeft: -( left - tlImporter_widePad ) + "px",
-        width: ( pageWidth - 2 * tlImporter_widePad ) + "px"
+        marginLeft: -gain + "px",
+        width: ( rect.width + gain ) + "px"
     });
 }
 
@@ -692,7 +697,7 @@ function tlImporter_addWideToggle( wrap ) {
 
         tlImporter_applyWide( wrap, wide );
         tlImporter_writeWide( wide );
-        log( "tlImporter: review block " + ( wide ? "stretched to the window width." : "back in the content column." ) );
+        log( "tlImporter: review block " + ( wide ? "stretched to the left window edge." : "back in the content column." ) );
     });
 
     var resizeTimer;
@@ -785,9 +790,9 @@ function tlImporter_renderDiffView( data ) {
     // the two grab bars between the columns, plus the widths the reader last dragged
     tlImporter_addColResizers( cols );
 
-    // the full-width toggle. First element of the block, so tabbing reaches it before the
-    // columns - the CSS lifts it out of the flow into the top right corner, over the block's
-    // own padding, where it costs neither a line nor a column's width
+    // the widen toggle. First element of the block, so tabbing reaches it before the columns -
+    // the CSS lifts it out of the flow into the top left corner, over the block's own padding,
+    // where it costs neither a line nor a column's width
     tlImporter_addWideToggle( wrap );
 
     wrap.append( cols );
