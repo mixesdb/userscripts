@@ -34,7 +34,8 @@ The mix page's existing tracklist is the **original**, the found one the **candi
 original is treated as more correct; the candidate only enriches it:
 
 - cue times and labels are added to tracks both lists carry
-- `?` unknown tracks are filled with the candidate's identification
+- `?` unknown tracks are filled with the candidate's identification – keeping the original's
+  own, usually more precise cue time
 - undiscovered tracks are inserted between existing consecutive tracks
 - tracks are added in `...` gaps
 

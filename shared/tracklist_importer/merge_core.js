@@ -26,6 +26,12 @@
 // Threshold for fuzzy matching when merging track titles (same value the merger used)
 var tlImporter_similarityThreshold = 0.8;
 
+// How far two cues may lie apart and still mean the same moment (seconds). Candidate cues are
+// often minute-rounded ([014] = 14 min) while the original keeps real times (00:13:20), so
+// exact comparison would call every rounded cue "different". Used when filling "?" slots, when
+// dropping duplicate unknown candidates, and for the diff view's "cue was used" flag.
+var tlImporter_cueToleranceSec = 120;
+
 // tlImporter_log
 // log() lives in global.js, which the deno runner does not load – so every log goes through
 // this guard instead of assuming the browser environment.
@@ -309,22 +315,44 @@ function tlImporter_textFromArr( tl_arr ) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 // tlImporter_durToSec
-// "3:18" -> 198 (port of durToSec_MS in global.js)
+// "3:18" -> 198, "1:02:30" -> 3750 (port of durToSec_MS in global.js, extended to HH:MM:SS)
 function tlImporter_durToSec( dur ) {
     var a = String( dur ).trim().split(':');
+
+    if( a.length === 3 ) {
+        return (+a[0]) * 3600 + (+a[1]) * 60 + (+a[2]);
+    }
+
     return (+a[0]) * 60 + (+a[1]);
 }
 
+// tlImporter_cueToSec
+// A numeric cue as total seconds, for ORDER and DISTANCE comparisons: a bare cue is minutes
+// ([014] = 14 min, MixesDB style), colon cues go through tlImporter_durToSec. null for
+// anything non-numeric ("??", "0:??") – callers must not compare those.
+function tlImporter_cueToSec( cue ) {
+    if( !cue || !/^\d+(:\d+){0,2}$/.test( String(cue) ) ) { return null; }
+
+    cue = String( cue );
+    return cue.indexOf(':') > -1 ? tlImporter_durToSec( cue ) : parseInt( cue, 10 ) * 60;
+}
+
 // tlImporter_cueFormat
-// Detect cue format from the first numeric cue in a tracklist array.
+// Detect cue format from the first numeric cue in a tracklist array. parts is 2 for MM:SS /
+// H:MM cues and 3 for HH:MM:SS.
 function tlImporter_cueFormat( tl_arr ) {
     for( var i = 0; i < tl_arr.length; i++ ) {
         var cue = tl_arr[i].cue;
-        if( !cue || !/^\d+(:\d+)?$/.test(cue) ) { continue; }
+        if( !cue || !/^\d+(:\d+){0,2}$/.test(cue) ) { continue; }
 
         if( cue.indexOf(':') > -1 ) {
             var parts = cue.split(':');
-            return { hasColon: true, minDigits: parts[0].length, secDigits: parts[1].length };
+
+            if( parts.length === 3 ) {
+                return { hasColon: true, parts: 3, hourDigits: parts[0].length, minDigits: parts[1].length, secDigits: parts[2].length };
+            }
+
+            return { hasColon: true, parts: 2, minDigits: parts[0].length, secDigits: parts[1].length };
         }
 
         return { hasColon: false, cueDigits: cue.length };
@@ -342,10 +370,22 @@ function tlImporter_padStart( str, len ) {
 // tlImporter_cueToFormat
 // Convert one cue string to the target cue format.
 function tlImporter_cueToFormat( cue, format, options ) {
-    if( !cue || !format || !/^\d+(:\d+)?$/.test(cue) ) { return cue; }
+    if( !cue || !format || !/^\d+(:\d+){0,2}$/.test(cue) ) { return cue; }
     options = options || {};
 
     if( format.hasColon ) {
+        // HH:MM:SS target: unambiguous, so a bare cue is plain minutes ([014] -> 00:14:00)
+        // and the bareAsSecondComponent special case below never applies.
+        if( format.parts === 3 ) {
+            var sec = tlImporter_cueToSec( cue ),
+                h = Math.floor( sec / 3600 ),
+                m = Math.floor( sec / 60 ) % 60,
+                s = sec % 60;
+            return tlImporter_padStart( h, format.hourDigits ) + ":" +
+                   tlImporter_padStart( m, format.minDigits ) + ":" +
+                   tlImporter_padStart( s, format.secDigits );
+        }
+
         // Special case: original uses H:MM (e.g. "0:06"), candidate uses bare MM (e.g. "06").
         // Keep the original prefix ("0") and map the candidate number to the second component
         // ("0:06"), not "6:00".
@@ -361,8 +401,9 @@ function tlImporter_cueToFormat( cue, format, options ) {
         return tlImporter_padStart( mins, format.minDigits ) + ":" + tlImporter_padStart( secs, format.secDigits );
     }
 
+    // Bare target cues are minutes, so colon cues are rounded to the nearest minute.
     var minsOnly = cue.indexOf(':') > -1
-        ? parseInt(cue.split(':')[0], 10) * 60 + parseInt(cue.split(':')[1], 10)
+        ? Math.round( tlImporter_durToSec( cue ) / 60 )
         : parseInt(cue, 10);
     return tlImporter_padStart( minsOnly, format.cueDigits );
 }
@@ -383,6 +424,12 @@ function tlImporter_normalizeCues( tl_arr, targetFormat, options ) {
 // An explicit unknown cue placeholder in the active cue style ("??" / "?:??").
 function tlImporter_unknownCue( format ) {
     if( format && format.hasColon ) {
+        if( format.parts === 3 ) {
+            return new Array( format.hourDigits + 1 ).join("?") + ":" +
+                   new Array( format.minDigits + 1 ).join("?") + ":" +
+                   new Array( format.secDigits + 1 ).join("?");
+        }
+
         return new Array( format.minDigits + 1 ).join("?") + ":" + new Array( format.secDigits + 1 ).join("?");
     }
 
@@ -417,6 +464,18 @@ function tlImporter_sameCue( a, b ) {
     if( a.indexOf(':') > -1 && b.indexOf(':') > -1 ) return tlImporter_durToSec(a) === tlImporter_durToSec(b);
 
     return false;
+}
+
+// tlImporter_cueClose
+// Same as tlImporter_sameCue, but a minute-rounded cue near the accepted one also counts:
+// there is nothing in "00:14:00" worth salvaging next to "00:13:20".
+function tlImporter_cueClose( a, b ) {
+    if( tlImporter_sameCue( a, b ) ) return true;
+
+    var aSec = tlImporter_cueToSec( a ),
+        bSec = tlImporter_cueToSec( b );
+
+    return aSec !== null && bSec !== null && Math.abs( aSec - bSec ) <= tlImporter_cueToleranceSec;
 }
 
 
@@ -539,7 +598,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         if (origItem) {
             cand._ti_matchedOrig = origItem;
 
-            if (origItem.trackText === "?") {
+            if (origItem.trackText === "?" && candidateName !== "?") {
                 origItem.trackText = candidateName;
                 state.changes++;
             }
@@ -580,8 +639,10 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
     });
 
     // Between the two matched neighbours of a candidate index, find the original's first
-    // unconsumed "?" placeholder.
-    function findUnknownSlotForCandidateIndex( candidateIndex ) {
+    // unconsumed "?" placeholder. candCueSec limits the pick to slots whose cue lies within
+    // the cue tolerance – a candidate detected at 01:18 must not claim a "?" at 01:10 just
+    // because that slot comes first in the segment.
+    function findUnknownSlotForCandidateIndex( candidateIndex, candCueSec ) {
         var prevAnchor = null,
             nextAnchor = null;
 
@@ -607,7 +668,11 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         for (var k = startIndex; k < endIndex; k++) {
             var item = original_arr[k];
             if (item.type === "track" && item.trackText === "?" && !item._mergeConsumedUnknown) {
-                return item;
+                var slotSec = tlImporter_cueToSec( item.cue );
+                if (candCueSec === null || slotSec === null || Math.abs( slotSec - candCueSec ) <= tlImporter_cueToleranceSec) {
+                    return item;
+                }
+                // cue contradicts the candidate's – keep looking further down the segment
             }
         }
 
@@ -619,9 +684,11 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             var unmatchedItem = unmatchedByIndex[index];
 
             if (unmatchedItem) {
-                var slot = findUnknownSlotForCandidateIndex(index);
+                var slot = findUnknownSlotForCandidateIndex(index, tlImporter_cueToSec( cand.cue ));
                 if (slot) {
-                    if (cand.cue) { slot.cue = cand.cue; state.changes++; }
+                    // The original wins: a real original cue stays, the candidate only fills a
+                    // missing or unknown one (same rule as for matched tracks above).
+                    if (cand.cue && (!slot.cue || String(slot.cue).indexOf('?') > -1)) { slot.cue = cand.cue; state.changes++; }
                     if (cand.dur && !slot.dur) slot.dur = cand.dur;
                     if (cand.trackText !== "?") { slot.trackText = cand.trackText; state.changes++; }
                     if (cand.label && !slot.label) { slot.label = cand.label; state.changes++; }
@@ -630,7 +697,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                     cand._ti_matchedOrig = slot;
                 }
             } else if (cand.type === "gap") {
-                var gapSlot = findUnknownSlotForCandidateIndex(index);
+                var gapSlot = findUnknownSlotForCandidateIndex(index, null);
                 if (gapSlot) {
                     gapSlot._mergeConsumedUnknown = true;
                 }
@@ -645,12 +712,18 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
         var cand = u.cand,
             index = u.index,
-            cueNum = parseInt(cand.cue);
+            cueSec = tlImporter_cueToSec(cand.cue);
 
         if (
             u.isUnknown && (
                 !originalHasGaps ||
-                original_arr.some(function( item ){ return item.type === "track" && parseInt(item.cue) === cueNum; })
+                // an unknown whose cue lies within tolerance of an original track adds nothing
+                // ([00:18:00] ? next to [00:18:00] andhim - Overnight)
+                (cueSec !== null && original_arr.some(function( item ){
+                    if (item.type !== "track") return false;
+                    var itemSec = tlImporter_cueToSec(item.cue);
+                    return itemSec !== null && Math.abs(itemSec - cueSec) <= tlImporter_cueToleranceSec;
+                }))
             )
         ) {
             return; // skip unknowns when original has no gaps or duplicate unknown at same cue
@@ -658,9 +731,12 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
         var insertIndex = -1;
         for (var k = 0; k < original_arr.length; k++) {
-            if (original_arr[k].type === "track" && parseInt(original_arr[k].cue) > cueNum) {
-                insertIndex = k;
-                break;
+            if (original_arr[k].type === "track" && cueSec !== null) {
+                var origSec = tlImporter_cueToSec(original_arr[k].cue);
+                if (origSec !== null && origSec > cueSec) {
+                    insertIndex = k;
+                    break;
+                }
             }
         }
         if (insertIndex === -1) insertIndex = original_arr.length;
@@ -714,7 +790,7 @@ function tlImporter_candidateUse( cand ) {
 
     if (orig) {
         return {
-            cue: !cand.cue || tlImporter_sameCue( orig.cue, cand.cue ),
+            cue: !cand.cue || tlImporter_cueClose( orig.cue, cand.cue ),
             text: true,
             label: !cand.label || String( orig.label || "" ).toLowerCase() === String( cand.label ).toLowerCase()
         };

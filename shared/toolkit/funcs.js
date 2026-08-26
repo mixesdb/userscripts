@@ -547,6 +547,11 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
     output += '</a>';
     output += '<span id="mdbTrackidCheck-wrapper" style="display: none;">';
 
+    // INSIDE the wrapper, so the divider between HIST and the checkbox shows and hides with
+    // the checkbox - a divider as a sibling would dangle behind HIST wherever the checkbox
+    // never appears (every site but TrackId.net)
+    output += '<span class="mdb-toolkit-actionDivider"></span>';
+
     output += make_mdbTrackidCheck_input( tidPlayerUrl, mdbPageId, "detail page" );
 
     output += '</span>';

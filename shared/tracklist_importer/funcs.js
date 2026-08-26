@@ -178,7 +178,9 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                 .data( "mdb-mixpageurl", "https://www.mixesdb.com/w/?curid=" + pageId )
                 .text( "Report" );
 
-            editLink.before( importLink, reportLink );
+            // the divider (styled in global.css) groups our two links apart from EDIT/HIST -
+            // its twin between HIST and the integrated checkbox comes with the toolkit markup
+            editLink.before( importLink, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
             log( "tlImporter: added " + ( mode == "merge" ? "Merge" : "Insert" ) + " link for page " + pageId );
         });

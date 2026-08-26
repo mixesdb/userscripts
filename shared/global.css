@@ -500,13 +500,34 @@ a.mdb-copy-text-button:focus,
             background-color: rgba(100,100,100,0.5);
             opacity: .62;
         }
-        
+
         & a + a {
             margin-left: 5px
         }
-        
+
         & a:hover {
             opacity: 1;
+        }
+
+        /* the thin vertical rules grouping the action links:
+           [Insert/Merge Report] | [EDIT HIST] | [integrated checkbox]
+           8px on BOTH sides of each divider - the pills' own 5px gap only applies between
+           adjacent <a>s, so the divider carries its spacing itself */
+        & .mdb-toolkit-actionDivider {
+            display: inline-block;
+            width: 1px;
+            height: 13px;
+            margin: 0 8px;
+            vertical-align: middle;
+            background-color: #888;
+            opacity: .62;
+        }
+
+        /* the divider owns the gap toward the checkbox now - without this the HIST pill's
+           10px margin (see the mdbTrackidCheck section below) would add onto the divider's
+           8px and the two dividers would not be spaced the same */
+        & a.mdb-mixesdbLink.history {
+            margin-right: 0;
         }
     }
 }
@@ -754,6 +775,12 @@ a.mdb-copy-text-button:focus,
 
 #mdbTrackidCheck-wrapper * {
     display: inline !important;
+}
+
+/* higher specificity than the * rule above, which would force the divider inline - and an
+   inline element cannot hold its 1px width */
+#mdbTrackidCheck-wrapper .mdb-toolkit-actionDivider {
+    display: inline-block !important;
 }
 
 #mdbTrackidCheck-wrapper {
