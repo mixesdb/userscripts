@@ -115,7 +115,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   synchronous DOM work shifted the button between mousedown and mouseup, and the CLICK never
   fired. Acting on the press ends that, and undercuts the blur too: `tlImporter_applyNow`
   refreshes `mdbTlboxKnown` before the browser blurs the box, so the blur finds text == known
-  and stays quiet - the box keeps looking exactly as the editor's button left it.
+  and stays quiet - the box keeps looking exactly as the editor's button left it. The press's
+  own default is prevented and the active element blurred after the apply, so an apply leaves
+  NO focus anywhere (the browser's default had landed it on the editor's find field); a DOWN
+  apply then scrolls up to `#wpTextbox1`, where the result just landed - the Merged column's
+  button deliberately does not, a reader salvaging candidate parts stays where they are. And
+  `tlBoxShowApiCount` (tracklist_editor) skips feedback boxes inside `#editToolsBar-TLeditor`:
+  that box is the SITE's, our chips in it read as a site feature, and the down state already
+  carries the one Live updates switch beside its Apply button.
   A press that lands while the site's own `waitingForApi` class is on the box is not applied
   and not swallowed either: it WAITS. "Cap, then Apply" is one gesture, its Apply falls into
   the round-trip window as often as not, and a refused click there reads as a dead button –
