@@ -5,7 +5,7 @@ which TID tracklists have already been integrated into MixesDB.
 
 - **Runs on:** trackid.net, plus mixesdb.com/w/* for the edit-form part
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js)
-- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [Tracklist Importer](../shared/tracklist_importer/)
 
 ## Features
 
@@ -75,6 +75,15 @@ the entity's pages carry a further style; without any style at all the page keep
 rows to fill in by hand.
 
 Other players (Mixcloud, YouTube, hearthis.at) do not get the row yet.
+
+### Insert or merge the tracklist into MixesDB
+
+When the toolkit found the mix page and the tracklist box is filled, an **Insert** (the page
+has no tracklist yet) or **Merge** (it has one) link appears in front of the toolkit's EDIT
+link, with a **Report** link behind it – see
+[Tracklist Importer](../shared/tracklist_importer/) (beta). It opens the mix page's edit form
+with the tracklist already inserted or merged and MediaWiki's own diff on screen; nothing is
+saved for you.
 
 ### Mark as integrated
 
