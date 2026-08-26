@@ -462,16 +462,15 @@ function toolkit_tlStateIcon( state ) {
 // the box from the API's HTML and would otherwise take the row off the page with it) and when
 // a box first appears, which is what lights the right icon on load.
 function toolkit_tlStateButtons() {
-    var boxes = $("#tlEditor-feedback");
-
     // MixesDB has the real ones under its edit box: a second row for the same category on the
     // same page would be one row too many, and the EDIT links this one drives are not there.
     // That covers the Tracklist Importer's review block too - its Merged box used to be the
     // one exception, but the verdict text in its feedback already says what the icon would,
-    // and the real icons under the edit box follow once its Apply button ran.
+    // and the real icons under the edit box follow once its Apply button ran. Before the
+    // lookup: on this domain there is nothing here to do at all.
     if( typeof domain !== "undefined" && domain == "mixesdb.com" ) return;
 
-    boxes.each(function() {
+    $("#tlEditor-feedback").each(function() {
         var box = $(this),
             state = toolkit_tlStatusFromFeedback( box ),
             // find(), not children(): the chips live in the box's chip row wrapper
