@@ -75,6 +75,107 @@ var tlImporterExamples_merge = [
         expect: "[00] Hieroglyphic Being - The Fourth Dimension [Mathematics]",
         changed: true,
         unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-26 (andhim for Chetana, trackid.net): an HH:MM:SS original met a
+        // bare-minutes candidate and the cue helpers knew neither three-part cues nor how to
+        // order them, so inserted tracks kept their [018]-style cues and landed in the wrong
+        // places. Guards: candidate cues take the original's HH:MM:SS format; an unknown
+        // whose cue is covered by an original track (018 vs 00:18:00) is dropped instead of
+        // inserted; a "?" slot keeps its own more precise cue when filled (00:13:20, not
+        // 00:14:00); a slot is only filled when the cues roughly agree, so Nu Genea (078)
+        // fills [01:17:00] and not the segment's first "?" at [01:10:10].
+        name: "HH:MM:SS original with minute-rounded candidate",
+        original: "# [00:00:00] Addam (Be) & Crisologo & Massuma - Wagathoni\n" +
+                  "# [00:05:10] andhim Feat. Zaho De Sagazan - Mon Corps [SUPERFRIENDS]\n" +
+                  "# [00:08:50] Nico Stojan & Tooker - Perla [SONARA]\n" +
+                  "# [00:13:20] ?\n" +
+                  "# [00:18:00] andhim - Overnight [SUPERFRIENDS]\n" +
+                  "# [00:22:20] A$AP Rocky - Sundress (Chris Luno Remix) [A$AP]\n" +
+                  "# [00:25:50] DJ Tomer & Ricardo - Train Ride\n" +
+                  "# [00:30:35] Oliver Koletzki - Der Mückenschwarm (andhim 20yrs SVT Remix) [STIL VOR TALENT]\n" +
+                  "# [00:35:00] ?\n" +
+                  "# [00:40:20] Aaaron & Deckert - Your Love\n" +
+                  "# [00:43:30] Yamil - Don't Play With Me [MONABERRY]\n" +
+                  "# [00:47:30] ?\n" +
+                  "# [00:51:30] Dropgun & Lost Capital & Kate Moon Feat. Yo Trane - Only One [FUTURE HOUSE MUSIC]\n" +
+                  "# [00:55:50] Gabss & Vintage Culture - Lost [AFFAIRS]\n" +
+                  "# [01:01:00] Darco - Baziman [DESCENDING ORDER]\n" +
+                  "# [01:04:10] ?\n" +
+                  "# [01:05:30] Augusto Yepes - Indian Flair [ABRACADABRA]\n" +
+                  "# [01:10:10] ?\n" +
+                  "# [01:12:50] ?\n" +
+                  "# [01:17:00] ?\n" +
+                  "# [01:21:30] AIKON - Welcome To The Future [UNTAMED]\n" +
+                  "# [01:25:10] DJ Chus & Amine K (Moroko Loko) & Riponne - The Real Dancers (Yulia Niko Remix) [IZIL]\n" +
+                  "# [01:29:00] andhim - Boy Boy Boy [BLACK BUTTER]\n" +
+                  "# [01:33:00] Notre Dame - Candy Cloud [PARANORMAL]\n" +
+                  "# [01:38:00] andhim - You're Not Alone [HIGHER GROUND (MAD DECENT)]\n" +
+                  "# [01:42:20] WhoMadeWho & Tripolism - Flying Away With You (andhim Remix) [CERCLE]",
+        candidate: "[000] ADDAM & Crisologo & Massuma - Wagathoni [Klub]\n" +
+                   "[006] andhim - Mon Corps\n" +
+                   "[009] Nico Stojan - Perla [SONARA]\n" +
+                   "[014] andhim - Acido [Magnifik]\n" +
+                   "[018] ?\n" +
+                   "...\n" +
+                   "[023] A$AP Rocky - Sundress\n" +
+                   "...\n" +
+                   "[028] DJ Tomer - Train Ride [Mahaba]\n" +
+                   "[031] Oliver Koletzki - Der Mückenschwarm (andhim 20yrs SVT Remix)\n" +
+                   "[035] ?\n" +
+                   "...\n" +
+                   "[041] Aaaron & Deckert - Your Love [TAU]\n" +
+                   "[044] Yamil - Don't Play With Me [Monaberry]\n" +
+                   "[048] Samm - Heart Spin [Magnifik]\n" +
+                   "[052] Dropgun & Lost Capital & Kate Moon & Yo Trane - Only One [Future House Music]\n" +
+                   "[057] DJ THIAGO ARMANDO SC - LOSTZINH MINIMAL\n" +
+                   "[061] Darco - Baziman [Descending Order]\n" +
+                   "[066] ?\n" +
+                   "...\n" +
+                   "[071] Dave Ruthwell & SGX - Dark Beat (Extended Mix) [Club Bad]\n" +
+                   "[073] Augusto Yepes - Indian Flair [ABRACADABRA]\n" +
+                   "[078] Nu Genea - Tienaté [NG Licensed To Carosello]\n" +
+                   "[082] AIKON - Welcome To The Future [UNTAMED]\n" +
+                   "[086] DJ Chus - Real Dancer (Yulia Niko Extended Remix) [Izil]\n" +
+                   "[089] andhim - Boy Boy Boy\n" +
+                   "[094] Notre Dame - Candy Cloud [Paranormal]\n" +
+                   "[099] andhim - You're Not Alone\n" +
+                   "[103] WhoMadeWho & Tripolism - Flying Away With You [Cercle]\n" +
+                   "[106] ?",
+        expect: "[00:00:00] Addam (Be) & Crisologo & Massuma - Wagathoni [Klub]\n" +
+                "[00:05:10] andhim Feat. Zaho De Sagazan - Mon Corps [SUPERFRIENDS]\n" +
+                "[00:08:50] Nico Stojan & Tooker - Perla [SONARA]\n" +
+                "[00:13:20] andhim - Acido [Magnifik]\n" +
+                "[00:18:00] andhim - Overnight [SUPERFRIENDS]\n" +
+                "[00:22:20] A$AP Rocky - Sundress (Chris Luno Remix) [A$AP]\n" +
+                "[00:25:50] DJ Tomer & Ricardo - Train Ride [Mahaba]\n" +
+                "[00:30:35] Oliver Koletzki - Der Mückenschwarm (andhim 20yrs SVT Remix) [STIL VOR TALENT]\n" +
+                "[00:35:00] ?\n" +
+                "[00:40:20] Aaaron & Deckert - Your Love [TAU]\n" +
+                "[00:43:30] Yamil - Don't Play With Me [MONABERRY]\n" +
+                "[00:47:30] Samm - Heart Spin [Magnifik]\n" +
+                "[00:51:30] Dropgun & Lost Capital & Kate Moon Feat. Yo Trane - Only One [FUTURE HOUSE MUSIC]\n" +
+                "[00:55:50] Gabss & Vintage Culture - Lost [AFFAIRS]\n" +
+                "[00:57:00] DJ THIAGO ARMANDO SC - LOSTZINH MINIMAL\n" +
+                "[01:01:00] Darco - Baziman [DESCENDING ORDER]\n" +
+                "[01:04:10] ?\n" +
+                "[01:05:30] Augusto Yepes - Indian Flair [ABRACADABRA]\n" +
+                "[01:10:10] ?\n" +
+                "...\n" +
+                "[01:11:00] Dave Ruthwell & SGX - Dark Beat (Extended Mix) [Club Bad]\n" +
+                "[01:12:50] ?\n" +
+                "[01:17:00] Nu Genea - Tienaté [NG Licensed To Carosello]\n" +
+                "[01:21:30] AIKON - Welcome To The Future [UNTAMED]\n" +
+                "[01:25:10] DJ Chus & Amine K (Moroko Loko) & Riponne - The Real Dancers (Yulia Niko Remix) [IZIL]\n" +
+                "[01:29:00] andhim - Boy Boy Boy [BLACK BUTTER]\n" +
+                "[01:33:00] Notre Dame - Candy Cloud [PARANORMAL]\n" +
+                "[01:38:00] andhim - You're Not Alone [HIGHER GROUND (MAD DECENT)]\n" +
+                "[01:42:20] WhoMadeWho & Tripolism - Flying Away With You (andhim Remix) [CERCLE]\n" +
+                "[01:46:00] ?",
+        changed: true,
+        // line 5: the dropped duplicate unknown; line 9: DJ Tomer's cue is 130s off the
+        // original's (beyond tolerance); line 22: Augusto's cue disagrees by 7.5 minutes.
+        unused: { cues: [5, 9, 22], texts: [], labels: [] }
     }
 ];
 

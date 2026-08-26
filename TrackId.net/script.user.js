@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.1
+// @version      2026.08.26.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,9 +12,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_128
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_2
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 176,
+var cacheVersion = 177,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2024,6 +2024,23 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.3
+ * Tracklist Importer merge fix (merge_core.js v2, from the andhim for Chetana report): the cue
+ * helpers now understand three-part HH:MM:SS cues, so a bare-minutes candidate ([014]) is
+ * converted to the original's format and inserted tracks are ordered by real seconds instead
+ * of parseInt("00:30:35") = 0. A candidate "?" whose cue an original track already covers
+ * (within 2 min) is dropped instead of inserted, a filled "?" slot keeps the original's more
+ * precise cue, and a slot is only filled when the two cues roughly agree.
+ *
+ * 2026.08.26.2
+ * Thin vertical dividers group the toolkit's action links: [Insert/Merge Report] | [EDIT HIST]
+ * | [integrated checkbox]. One divider comes from the Tracklist Importer behind its Report
+ * link, the other sits INSIDE #mdbTrackidCheck-wrapper (toolkit/funcs.js v128), so it shows
+ * and hides with the checkbox. Both are spaced 8px on each side: the HIST pill's 10px
+ * margin-right toward the checkbox is zeroed inside the action links wrapper (global.css), and
+ * the wrapper's "display: inline !important" catch-all is overridden for the divider, which
+ * needs inline-block to hold its 1px width.
  *
  * 2026.08.26.1
  * New shared feature Tracklist Importer (shared/tracklist_importer/, beta) - the successor of
