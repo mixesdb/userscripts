@@ -156,3 +156,32 @@
     opacity: .4;
     cursor: not-allowed;
 }
+
+
+/* narrow windows: three columns side by side leave each of them too thin to read a track line
+ * in, so below 900px they stack - Original, then Merged, then Candidate, the same reading order
+ * top to bottom that they have left to right. Stacked, each column has the full width and no
+ * neighbour to line up with, so the head and help line may wrap again instead of being cut. */
+@media screen and (max-width: 900px) {
+    #mdb-tlImporter-diff .mdb-tlImporter-cols {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #mdb-tlImporter-diff .mdb-tlImporter-col + .mdb-tlImporter-col {
+        margin-top: 4px;
+    }
+
+    #mdb-tlImporter-diff .mdb-tlImporter-col-head,
+    #mdb-tlImporter-diff .mdb-tlImporter-col-help {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    /* the shared min-height tlImporter_renderDiffView() puts on the pres lines the three boxes
+     * up NEXT to each other - stacked there is nothing to line up with, and a short list would
+     * only end in empty box. !important because that min-height is an inline style. */
+    #mdb-tlImporter-diff pre.mdb-tlImporter-pre {
+        min-height: 0 !important;
+    }
+}
