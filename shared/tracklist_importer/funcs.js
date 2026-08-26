@@ -746,6 +746,38 @@ function tlImporter_addWideToggle( wrap ) {
 }
 
 
+// tlImporter_alignToggles
+// Center the two corner toggles on the fieldset's border line - the line the legend sits on.
+// The stylesheet's top: -22px is right for the anchor Chromium gives absolutely positioned
+// children of a fieldset (the content box, BELOW the legend), but that anchor is not
+// interoperable - engines have used the border box too - so the value is checked against the
+// legend's real center, which IS the border line by construction, and nudged by the measured
+// difference. Idempotent: a second run measures an offset of ~0 and changes nothing, which is
+// why the down toggle (added later, when the site's editor section arrives) can simply call
+// it again. Skipped while the button is not absolutely positioned yet: the CSS arrives
+// through loadRawCss() and measuring a still-in-flow button would turn the nudge into noise.
+function tlImporter_alignToggles( wrap ) {
+    var legend = wrap.children( "legend" ).get( 0 );
+
+    if( !legend ) return;
+
+    var box = legend.getBoundingClientRect(),
+        lineY = box.top + box.height / 2;
+
+    wrap.children( ".mdb-tlImporter-wide-toggle, .mdb-tlImporter-down-toggle" ).each(function() {
+        if( window.getComputedStyle( this ).position !== "absolute" ) return;
+
+        var b = this.getBoundingClientRect(),
+            off = lineY - ( b.top + b.height / 2 );
+
+        // below one pixel is rendering noise; a real anchor difference is several
+        if( Math.abs( off ) > 1 ) {
+            $( this ).css( "top", ( parseFloat( $( this ).css( "top" ) ) || 0 ) + off + "px" );
+        }
+    });
+}
+
+
 // tlImporter_placeDiffBlock
 // The block's home position: above the wiki edit box, below MediaWiki's diff. The diff
 // container can sit outside or inside form#editform depending on the MediaWiki version and
@@ -1109,6 +1141,10 @@ function tlImporter_addDownToggle( wrap ) {
 
     if( wide.length ) wide.after( button ); else wrap.prepend( button );
 
+    // the button arrives long after tlImporter_renderDiffView aligned the widen toggle, so it
+    // brings its own centering - a no-op for any toggle already on the line
+    tlImporter_alignToggles( wrap );
+
     button.on( "click", function() {
         var down = !wrap.hasClass( "mdb-tlImporter-down" );
 
@@ -1277,7 +1313,7 @@ function tlImporter_renderDiffView( data ) {
 
     // prepended AFTER the toggle so it stays the fieldset's first child - the legend is what
     // names the block on its border, like the site's own "Tracklist editor" fieldset
-    wrap.prepend( "<legend>Diff</legend>" );
+    wrap.prepend( "<legend><strong>Diff</strong></legend>" );
 
     wrap.append( cols );
 
@@ -1286,6 +1322,9 @@ function tlImporter_renderDiffView( data ) {
     // only now, with the block on the page, can its distance to the window's left edge be
     // measured - the stored choice is applied from here, not at build time
     tlImporter_applyWide( wrap, tlImporter_readWide() );
+
+    // and only now can the corner toggles be centered on the border line - see the function
+    tlImporter_alignToggles( wrap );
 
     // the TLE call counter the block carried over (see tlImporter_storeDiff) is restored
     // BEFORE the chips render - the feedback on screen was paid for on the edit page, and "0
