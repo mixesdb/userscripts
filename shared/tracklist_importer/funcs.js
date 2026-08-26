@@ -1504,6 +1504,12 @@ $(document).on( "mousedown", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down"
     // left button only - a right-click opens the context menu and must not apply
     if( e.which !== 1 ) return;
 
+    // and no focus change out of the press either: the browser's default here is what
+    // focuses SOMETHING - the button, or the editor's find field - and an apply should
+    // leave the focus alone entirely. tlImporter_applyNow blurs the active element at the
+    // end, so after an apply nothing is focused at all.
+    e.preventDefault();
+
     var button = $( this );
 
     // the click of this same gesture arrives after the mouseup - it must not apply again.
@@ -1588,6 +1594,28 @@ function tlImporter_applyNow( button, tl ) {
     tlImporter_applyBaseline = text;
     $( "#mdb-tlImporter-apply" ).trigger( "mdbApplied", [ text ] );
     tlImporter_refreshDownApply();
+
+    // Nothing stays focused after an apply - not the box the editor's answer focused, not
+    // whatever the browser picked. Quiet by construction: mdbTlboxKnown was refreshed above,
+    // so blurring the box here cannot start a blur update.
+    if( document.activeElement && document.activeElement !== document.body
+        && document.activeElement.blur ) {
+        document.activeElement.blur();
+    }
+
+    // The down button sits a whole editor below the wiki textbox the apply just wrote into -
+    // bring the result on screen. The Merged column's button already stands beside it, and a
+    // reader salvaging candidate parts up there must not be yanked away on every apply.
+    if( button.attr( "id" ) === "mdb-tlImporter-apply-down" ) {
+        var tbNode = textbox.get( 0 );
+
+        if( tbNode && tbNode.getBoundingClientRect ) {
+            window.scrollTo({
+                top: tbNode.getBoundingClientRect().top + window.pageYOffset - 60,
+                behavior: "smooth"
+            });
+        }
+    }
 
     log( "tlImporter: applied the Merged box (TLE status: " + ( status || "(none)" ) + ")." );
 }

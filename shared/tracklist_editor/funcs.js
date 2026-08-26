@@ -549,8 +549,16 @@ function tlBoxShowApiCount() {
         on = tlBoxAutoUpdate();
 
     $("#tlEditor-feedback").each(function() {
-        var feedbackBox = $(this),
-            chipRow = tlBoxChipRow( feedbackBox ),
+        var feedbackBox = $(this);
+
+        // mixesdb.com's own editor section renders a feedback box under the same id, and
+        // that one is the SITE's: our chips in it read as a site feature and say nothing the
+        // page does not say elsewhere - the Tracklist Importer's down state carries its own
+        // Live updates switch beside its Apply button. Same scoped exception as
+        // toolkit_tlStateButtons() makes on mixesdb.com.
+        if( feedbackBox.closest( "#editToolsBar-TLeditor" ).length ) return;
+
+        var chipRow = tlBoxChipRow( feedbackBox ),
             rows = chipRow.find( "#tlEditor-feedback-rows" ),
             countChip = feedbackBox.find( ".mdb-tlEditor-apiCalls" ),
             autoChip = feedbackBox.find( ".mdb-tlEditor-liveUpdates" );
