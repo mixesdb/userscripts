@@ -324,11 +324,15 @@ var tlImporterExamples_merge = [
                 "[???] Takkyu Ishino - In Yer Memory\n" +
                 "[???] Shin - Plus Tokyo\n" +
                 "[???] Ringo aka Susumu Yokota - Tsukushi\n" +
-                "[106] ――――― - IN YER MEMORY",
+                "[106] ――――― - IN YER MEMORY\n" +
+                "[111] ?\n" +
+                "...",
         changed: true,
-        // the "?" candidates (lines 2, 7, 10, 13, 25) are dropped – a gap-less original takes
-        // no unknown rows, so their cues stay unplaced
-        unused: { cues: [2, 7, 10, 13, 25], texts: [], labels: [] }
+        // the "?" candidates INSIDE the list (lines 2, 7, 10, 13) are dropped – a gap-less
+        // original takes no unknown rows, so their cues stay unplaced. The trailing "?"
+        // (line 25) is kept with its gap: it lands behind the original's last row, where it is
+        // the only sign that the 2:00:17 stream runs on past it.
+        unused: { cues: [2, 7, 10, 13], texts: [], labels: [] }
     }
 ];
 

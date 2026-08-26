@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.2
+// @version      2026.08.27.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_6
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
@@ -2171,6 +2171,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.3
+ * Tracklist Importer merge, the tail unknowns (merge_core.js v6, second NTS Japanese Techno
+ * report): a gap-less original takes no "?" rows from the candidate - inside the list they
+ * only repeat what it already covers. Behind its last row they do not. The candidate's
+ * trailing run of "?" rows ([111] ? on a 2:00:17 stream) is the only sign that the stream
+ * runs on past the tracklist, so it is appended now, together with the "..." the candidate
+ * carries behind it. Unknowns anywhere else in a gap-less list are dropped as before, and one
+ * whose cue lands within tolerance of an original track still adds nothing.
  *
  * 2026.08.27.2
  * Tracklist Importer merge, the dur fix (merge_core.js v5, from the NTS Japanese Techno

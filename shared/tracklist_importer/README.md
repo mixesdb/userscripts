@@ -41,6 +41,9 @@ original is treated as more correct; the candidate only enriches it:
   own, usually more precise cue time
 - undiscovered tracks are inserted between existing consecutive tracks
 - tracks are added in `...` gaps
+- an unknown the candidate found *behind* the last track of the tracklist is appended, even
+  when the tracklist has no gaps at all – it is the one hint that the mix runs on past where
+  the page ends
 
 Titles are matched fuzzily, so spelling differences between the two sources do not produce
 duplicates, and the candidate's cues are converted to the cue format the original already uses.

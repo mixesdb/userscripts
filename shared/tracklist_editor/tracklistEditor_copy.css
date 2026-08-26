@@ -492,9 +492,11 @@ textarea.mono {
  * mixesdb.com
  *
  * The boxes on this domain are narrow - the Tracklist Importer's Merged column is a third of
- * the page - and a verdict squeezed into the strip left of four chips breaks into two or three
+ * the page - and a verdict squeezed into the strip left of the chips breaks into two or three
  * lines while the row next to it stays one. So the chip row takes a line of its own here and
- * the verdict starts under it, with .5rem of air.
+ * the verdict starts under it, with .5rem of air. Three chips here rather than the player
+ * sites' four: toolkit_tlStateButtons() draws no state icons on mixesdb.com, the real ones
+ * being under the edit box on the same page.
  *
  * float: none is all it takes: the chips inside the wrapper keep floating right, so their
  * order and their look are the ones every other site shows.

@@ -745,6 +745,16 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         });
     }
 
+    // Where the candidate's trailing run of unknowns begins: scanning back from the end, gaps
+    // are stepped over, "?" rows are taken in and the first REAL track stops the scan. Those
+    // rows sit behind everything the candidate was able to name - see the tail rule below.
+    var tailUnknownFrom = candidate_arr.length;
+    for (var t = candidate_arr.length - 1; t >= 0; t--) {
+        if (candidate_arr[t].type === "gap") continue;
+        if (candidate_arr[t].type !== "track" || candidate_arr[t].trackText !== "?") break;
+        tailUnknownFrom = t;
+    }
+
     // Insert unmatched tracks (including gaps around them) when no original unknown
     // placeholder was available in the same matched candidate segment.
     unmatched.forEach(function( u ) {
@@ -753,21 +763,6 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         var cand = u.cand,
             index = u.index,
             cueSec = tlImporter_cueToSec(cand.cue);
-
-        if (
-            u.isUnknown && (
-                !originalHasGaps ||
-                // an unknown whose cue lies within tolerance of an original track adds nothing
-                // ([00:18:00] ? next to [00:18:00] andhim - Overnight)
-                (cueSec !== null && original_arr.some(function( item ){
-                    if (item.type !== "track") return false;
-                    var itemSec = tlImporter_cueToSec(item.cue);
-                    return itemSec !== null && Math.abs(itemSec - cueSec) <= tlImporter_cueToleranceSec;
-                }))
-            )
-        ) {
-            return; // skip unknowns when original has no gaps or duplicate unknown at same cue
-        }
 
         var insertIndex = -1;
         for (var k = 0; k < original_arr.length; k++) {
@@ -780,6 +775,26 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             }
         }
         if (insertIndex === -1) insertIndex = original_arr.length;
+
+        // An unknown out of the candidate's trailing run that lands BEHIND the original's last
+        // row is news even on a gap-less original: the list read as complete and the player
+        // still had something after it ([111] ? on a 2:00:17 stream, NTS Japanese Techno
+        // report). INSIDE the list a gap-less original keeps taking no unknowns - there it
+        // only repeats what the original already covers.
+        var isTailUnknown = u.isUnknown && index >= tailUnknownFrom && insertIndex === original_arr.length;
+
+        if (u.isUnknown) {
+            // an unknown whose cue lies within tolerance of an original track adds nothing
+            // ([00:18:00] ? next to [00:18:00] andhim - Overnight)
+            var duplicatesOriginalCue = cueSec !== null && original_arr.some(function( item ){
+                if (item.type !== "track") return false;
+                var itemSec = tlImporter_cueToSec(item.cue);
+                return itemSec !== null && Math.abs(itemSec - cueSec) <= tlImporter_cueToleranceSec;
+            });
+
+            if (duplicatesOriginalCue) return;
+            if (!originalHasGaps && !isTailUnknown) return;
+        }
 
         var hasPrevGap = index > 0 && candidate_arr[index - 1].type === "gap",
             hasNextGap = index < candidate_arr.length - 1 && candidate_arr[index + 1].type === "gap";
@@ -799,7 +814,10 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         state.changes++;
         original_arr.splice(insertIndex, 0, cand);
 
-        if (originalHasGaps && hasNextGap &&
+        // The candidate's gap behind an appended tail unknown comes along for the same reason
+        // the unknown does: it is the "and there is more after this" the gap-less original
+        // cannot say by itself.
+        if ((originalHasGaps || isTailUnknown) && hasNextGap &&
             (insertIndex + 1 >= original_arr.length || original_arr[insertIndex + 1].type !== "gap")) {
             original_arr.splice(insertIndex + 1, 0, { type: "gap" });
         }

@@ -77,6 +77,16 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   target format grows (`XX` -> `XXX`) BEFORE the merge and every cue moves with it, `[??]` ->
   `[???]` included (`tlImporter_widenedCueFormat`, NTS Japanese Techno report). Colon formats
   are left alone – they carry any length as they are.
+- **A gap-less original takes no unknowns – except at the very end.** `?` rows of the candidate
+  are only placed where the original admits a gap; in a gap-less list they repeat what it
+  already covers. The candidate's TRAILING run of `?` rows is the exception: it sits behind the
+  original's last row, where nothing covers it, and is the only sign that the stream runs on
+  past the tracklist (`[111] ?` on a 2:00:17 player, second NTS Japanese Techno report). It is
+  appended together with the `...` the candidate carries behind it – gap-less or not. The tail
+  test is two-part on purpose: the row must come out of that trailing run AND land at the end
+  of the merged list, because a `[??]`-heavy original has no parseable cues to sort against and
+  every mid-list unknown would otherwise read as "at the end" too. An unknown whose cue lands
+  within tolerance of an original track is still dropped, tail or not.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
 - **Chaptered originals (`;Name` rows) are skipped** on both sides – no link, no merge.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
