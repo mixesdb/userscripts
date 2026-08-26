@@ -27,8 +27,13 @@
  * no column width - and the width tlImporter_applyWide() states has to include padding and
  * border, or the stretched block reaches past the window edge. */
 #mdb-tlImporter-diff {
+    background-color: #f4f9fa !important;
     position: relative;
     box-sizing: border-box;
+    /* the block is a FIELDSET with a "Diff" legend now, like the form's own sections.
+     * min-width: 0 undoes the fieldset default (min-content), or the three columns could
+     * never shrink and the block would push the page wide instead of wrapping its lines. */
+    min-width: 0;
     margin: 10px 0;
     padding: 8px 10px;
     border: 1px solid #ccc;
@@ -55,11 +60,14 @@
  * both toggles into ordinary grey buttons with no icon. In the block's home position outside
  * the form those rules never matched, which is why the widen toggle looked right for months.
  * The svg gets flex: 0 0 auto for the same fight: a flex item may be squeezed below its width
- * by a padded-up container, and the icon IS the button. */
+ * by a padded-up container, and the icon IS the button.
+ *
+ * top is INSIDE the block now, not -11px over its border: the border carries the legend, and
+ * buttons straddling the edge overlapped whatever the page stacks above the block. */
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle,
 #mdb-tlImporter-diff .mdb-tlImporter-down-toggle {
     position: absolute;
-    top: -11px;
+    top: 10px;
     z-index: 2;
     width: 22px !important;
     min-width: 0 !important;
@@ -306,6 +314,18 @@ body.mdb-tlImporter-resizing {
 #mdb-tlImporter-downActions .mdb-tlEditor-liveUpdates {
     float: none;
     margin: 0;
+}
+
+/* down-only page rules, scoped by the body class tlImporter_applyDown toggles: air between
+ * MediaWiki's diff and the form the block now leads - and no close button on the editor's
+ * feedback box. The chips row owns that corner (the X had fallen under it), and closing a
+ * box the next live update re-renders anyway says nothing. */
+body.mdb-tlImporter-down #editform {
+    margin-top: 1em;
+}
+
+body.mdb-tlImporter-down #editToolsBar-TLeditor #tlEditor-feedback-close {
+    display: none;
 }
 
 
