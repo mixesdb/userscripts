@@ -107,7 +107,16 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   `tlImporter_refreshDownApply()` is still driven by a delegated input handler plus a poll
   rather than a listener on the node, for the same rebuild reason, but both now only decide
   empty or not.
-  A click that lands while the site's own `waitingForApi` class is on the box is not applied
+  **The Apply buttons act on MOUSEDOWN** (`tlImporter_applyPress`, with a click handler kept
+  for keyboard activation and a time-bound press flag so one mouse gesture cannot apply
+  twice). A real first press after Cap used to do nothing: the site editor's answer leaves
+  its box focused (`.select().focus()`) holding text our machinery has not seen, so the
+  press's blur fired `tlBoxBlurUpdate` - chip render, white-out, an extra API call - whose
+  synchronous DOM work shifted the button between mousedown and mouseup, and the CLICK never
+  fired. Acting on the press ends that, and undercuts the blur too: `tlImporter_applyNow`
+  refreshes `mdbTlboxKnown` before the browser blurs the box, so the blur finds text == known
+  and stays quiet - the box keeps looking exactly as the editor's button left it.
+  A press that lands while the site's own `waitingForApi` class is on the box is not applied
   and not swallowed either: it WAITS. "Cap, then Apply" is one gesture, its Apply falls into
   the round-trip window as often as not, and a refused click there reads as a dead button –
   that was the second reported shape. The button says "One moment", the box is watched until

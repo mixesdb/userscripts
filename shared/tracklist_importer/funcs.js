@@ -1425,29 +1425,27 @@ function tlImporter_clickBox( id ) {
         : $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first();
 }
 
-// The Apply button in the Merged column - and its twin below #tlEditor-formActions while the
-// block is down (tlImporter_addDownActions): the box's current text replaces the page's
-// tracklist VERBATIM - what the reader sees in the box is what lands in the wiki edit box.
-// The one synchronous TLE call is only asked for its verdict: the "Tracklist:" category and
-// the icons follow it, the text does not. The box is marked known and its update sequence
-// bumped, so the blur update the click itself triggered (focus leaves the box on mousedown)
+// tlImporter_applyPress
+// One press on an Apply button - the Merged column's, or its twin below #tlEditor-formActions
+// while the block is down (tlImporter_addDownActions): the box's current text replaces the
+// page's tracklist VERBATIM - what the reader sees in the box is what lands in the wiki edit
+// box. The one synchronous TLE call is only asked for its verdict: the "Tracklist:" category
+// and the icons follow it, the text does not. The box is marked known and its update sequence
+// bumped, so the blur update the press itself triggered (focus leaves the box on mousedown)
 // cannot reformat the box afterwards either.
 //
-// A click can land while the site's OWN editor is mid-request: teApi() marks the box
+// A press can land while the site's OWN editor is mid-request: teApi() marks the box
 // "waitingForApi" while one of its buttons is out asking, and writes the answer into the box
-// when it comes home - up to a second and a half later. "Cap, then Apply" is one gesture, and
-// its Apply falls into that window as often as not. The text on screen during it is the one
-// about to be replaced, so it must not be applied - but the click must not be swallowed
-// either: refusing it made the button look dead ("Apply does nothing"), and nobody clicks a
-// second time on a button that just ate the first. So the click WAITS - the button says
-// "One moment", the box is watched until the class comes off, and the settled text is applied
-// then, exactly as if the click had come after the answer. Bounded: the site clears the class
-// in a done handler with no fail behind it, so a failed request leaves it standing for ever -
-// after ~8s the wait gives up and applies the text as it stands, that being the settled text
-// in every way that request is still able to matter.
-$(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function() {
-    var button = $(this),
-        id = this.id,
+// when it comes home - up to a second and a half later. The text on screen during it is the
+// one about to be replaced, so it must not be applied - and the press must not be swallowed
+// either: the button says "One moment", the box is watched until the class comes off, and the
+// settled text is applied then, exactly as if the press had come after the answer. Bounded:
+// the site clears the class in a done handler with no fail behind it, so a failed request
+// leaves it standing for ever - after ~8s the wait gives up and applies the text as it
+// stands, that being the settled text in every way that request is still able to matter.
+function tlImporter_applyPress( buttonEl ) {
+    var button = $( buttonEl ),
+        id = buttonEl.id,
         tl = tlImporter_clickBox( id );
 
     if( !tl.length ) {
@@ -1455,7 +1453,7 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
         return;
     }
 
-    // one wait per button - a second click while the first is still waiting must not stack
+    // one wait per button - a second press while the first is still waiting must not stack
     if( button.data( "mdbTlImporterWaiting" ) ) return;
 
     if( tl.hasClass( "waitingForApi" ) ) {
@@ -1486,6 +1484,48 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
     }
 
     tlImporter_applyNow( button, tl );
+}
+
+// The Apply buttons act on MOUSEDOWN, and that is the fix for a first press that "did
+// nothing", reported after Cap in the down state. The real gesture is mousedown -> blur of
+// the previously focused element -> mouseup -> click, and click only fires when down and up
+// land on the same spot. After one of the site editor's own API buttons the box sits there
+// focused (its answer ends in .select().focus()) with text our machinery has not seen - so
+// the mousedown's blur fires tlBoxBlurUpdate: an API call is counted, chips render into the
+// feedback box, the white-out goes on, and that synchronous work can move everything under
+// the box, the Apply button included, between mousedown and mouseup. The click then never
+// fires: the first press only ran the blur round trip (the "animation"), the second press -
+// box no longer focused, nothing shifts - worked. Acting on the press ends the dependence on
+// where the mouseup lands. And it undercuts the blur entirely: the handler runs BEFORE the
+// browser blurs the box, and tlImporter_applyNow refreshes mdbTlboxKnown, so the blur that
+// follows finds text == known and stays quiet - no stray API call, no white-out, the box
+// keeps looking exactly as the editor's button left it.
+$(document).on( "mousedown", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function( e ) {
+    // left button only - a right-click opens the context menu and must not apply
+    if( e.which !== 1 ) return;
+
+    var button = $( this );
+
+    // the click of this same gesture arrives after the mouseup - it must not apply again.
+    // Time-bound rather than cleared on click: a press that is dragged off the button before
+    // release produces no click at all, and the flag must not then eat a later keyboard one.
+    button.data( "mdbTlImporterPressed", true );
+    setTimeout(function() { button.removeData( "mdbTlImporterPressed" ); }, 600 );
+
+    tlImporter_applyPress( this );
+});
+
+// Keyboard activation (Enter, Space) fires click with no mousedown in front of it - the
+// press flag above is what keeps a mouse gesture from applying twice through this handler.
+$(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function() {
+    var button = $( this );
+
+    if( button.data( "mdbTlImporterPressed" ) ) {
+        button.removeData( "mdbTlImporterPressed" );
+        return;
+    }
+
+    tlImporter_applyPress( this );
 });
 
 // tlImporter_applyNow
