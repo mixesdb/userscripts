@@ -1,0 +1,63 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Tracklist Importer (beta)
+ *
+ * Loaded lazily by funcs.js (tlImporter_loadCss) on both sides: the player site showing the
+ * Insert/Merge/Report links, and the MixesDB edit form showing the candidate diff view.
+ * The links themselves need no rules of their own - they sit inside the toolkit's
+ * .mdb-mixesdbLink-actionLinks-wrapper, whose global.css rules style every <a> in it.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* the Report box under the toolkit (player site) */
+#mdb-tlImporter-report-box {
+    display: block;
+    width: 100%;
+    margin: 8px 0 0;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    font-family: monospace, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* the candidate diff view under the wiki edit box (mixesdb.com) */
+#mdb-tlImporter-diff {
+    margin: 10px 0;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: #fafafa;
+    font-size: 12px;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-diff-head {
+    margin-bottom: 6px;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-diff-legend {
+    color: #666;
+}
+
+#mdb-tlImporter-diff pre.mdb-tlImporter-diff-pre {
+    margin: 0;
+    padding: 0;
+    font-family: monospace, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    background: none;
+    border: none;
+}
+
+/* candidate text the merge did NOT use - never on blanks or "..." gaps */
+.mdb-tlImporter-unused {
+    background-color: #ffd6d6;
+    border-radius: 2px;
+}
+
+/* Save/Preview while "Show changes" has not been used yet */
+.mdb-tlImporter-locked {
+    opacity: .4;
+    cursor: not-allowed;
+}

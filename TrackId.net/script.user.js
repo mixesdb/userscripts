@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.23.13
+// @version      2026.08.26.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,6 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_127
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -35,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 175,
+var cacheVersion = 176,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2022,6 +2024,20 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.1
+ * New shared feature Tracklist Importer (shared/tracklist_importer/, beta) - the successor of
+ * the stalled Tracklist Merger userscript. When the toolkit found the mix page and the
+ * tracklist box is filled, the mix page's wikitext is fetched and an "Insert" (page has no
+ * tracklist yet) or "Merge" (page has one) link appears in front of the toolkit's EDIT link,
+ * with a "Report" link behind it that opens a paste-ready Discord report (original +
+ * candidate + raw merge result). The link opens the mix page's edit form with the tracklist
+ * inserted/merged, the "Tracklist:" category and the indicator icons updated, Save/Preview
+ * locked and "Show changes" clicked for the user; after a merge the candidate is shown below
+ * the edit box with everything the merge did NOT use highlighted, surviving "Show changes"/
+ * "Show preview". The candidate travels in the URL hash, so its length cannot break the
+ * request. Chaptered originals (";Name" rows) are skipped. Merge logic ported from the
+ * Tracklist Merger into shared/tracklist_importer/merge_core.js, with a deno example runner.
  *
  * 2026.08.23.13
  * Two ways an uploader separates without typing a separator (title_builder.js v_88).

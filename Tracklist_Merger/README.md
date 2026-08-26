@@ -1,5 +1,11 @@
 # Tracklist Merger (Beta)
 
+> **Development stalled.** This userscript is being replaced by the shared
+> [Tracklist Importer](../shared/tracklist_importer/), which merges (or inserts) the found
+> tracklist directly on the mix page's edit form – no separate merger page, no copy-pasting.
+> The Tracklist Merger still works but gets no further fixes, and will be removed once the
+> importer has left its beta phase.
+
 Merges a second tracklist into an existing one – a TrackId.net tracklist into the tracklist a
 MixesDB page already has – and shows what would change.
 

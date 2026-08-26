@@ -7,7 +7,8 @@ everywhere – a script's own README says what it does on that site.
 - **Runs on:** every site a userscript with the feature is installed for
 - **Install:** nothing to install – these come with the site scripts
 - **Shared features:** the bigger ones have their own page – [Toolkit](toolkit/),
-  [Tracklist box](tracklist_editor/), [Page creator](page_creator/)
+  [Tracklist box](tracklist_editor/), [Page creator](page_creator/),
+  [Tracklist Importer](tracklist_importer/)
 
 The features below have no page of their own: they are single helpers out of `global.js` rather
 than a feature with its own files.
