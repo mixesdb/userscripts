@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.25
+// @version      2026.08.26.26
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_20
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -2171,6 +2171,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.26
+ * Tracklist Importer, down state: the first Apply after one of the editor's own buttons
+ * (Cap) finally works with a real mouse (tracklist_importer funcs.js v20). The editor's
+ * answer leaves its box focused with text our machinery had not seen, so the press's blur
+ * fired the box's own blur update - the white-out and an extra API call - and its DOM work
+ * moved the button between mousedown and mouseup, so the browser never fired the click at
+ * all: the first press only played the animation, the second one applied. Apply now acts on
+ * the press itself, before the blur can run, and marks the text as known - so pressing
+ * Apply no longer triggers any blur round trip either: no white-out, no stray API call, the
+ * box keeps looking exactly as Cap left it. Keyboard activation still works; one mouse
+ * gesture can never apply twice.
  *
  * 2026.08.26.25
  * Tracklist Importer, down state: an Apply clicked while the site's Tracklist Editor was
