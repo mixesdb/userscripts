@@ -78,6 +78,15 @@ stretches the block to the left over the sidebar and back – its right edge sta
 content column ends, and that choice IS remembered per browser. On a narrow window the three
 columns stack on top of each other instead, in the same order.
 
+The arrow button in the block's top **right** corner moves the whole block down, directly above
+the page's own full Tracklist Editor section: the Merged text goes into that editor, the empty
+Merged column disappears, and Original and Candidate stay side by side above it – so final
+fixes happen in the editor you know, with its menu, find/replace and undo. Below the editor's
+own buttons the block adds the same **Apply** button and the Live updates switch (no tracklist
+state icons down there – the real ones under the edit box are on the same page). The arrow
+flips to point up and moves everything back, the text travelling along both ways, so toggling
+never loses an edit. Like the widen choice, this one is remembered per browser.
+
 Blanks and `...` gaps are never highlighted. The block stays while you preview or compare, so
 fixes can be applied at any point before saving – but not when the compare comes back empty: a
 merge that changed nothing after all drops the block instead of repeating what the edit box

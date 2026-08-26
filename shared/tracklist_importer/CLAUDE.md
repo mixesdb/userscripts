@@ -73,3 +73,15 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   the safety – a merge must not be savable unseen.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
 - **Chaptered originals (`;Name` rows) are skipped** on both sides – no link, no merge.
+- **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
+  top right corner (`tlImporter_applyDown`) moves the block above `#editToolsBar-TLeditor` and
+  the Merged text into the site's own `#tlEditor-textarea`; the emptied Merged column is hidden
+  by CSS and keeps all its wiring. The text travels BOTH ways together with `mdbTlboxKnown`, so
+  toggling never loses an edit and never triggers a spurious blur update. Below
+  `#tlEditor-formActions` sit a second Apply button (`#mdb-tlImporter-apply-down`, same
+  delegated handler, reading the site box) and a standalone Live updates switch – deliberately
+  no tl state icons, the real ones under the edit box are on the same page, and
+  `toolkit_tlStateButtons()` skips boxes outside the review block on mixesdb.com anyway. The
+  choice is remembered per browser (`mdb-tlImporter-down`) and applied only once the site's
+  editor section exists – it is rendered by a ResourceLoader module, so the toggle waits for
+  `#tlEditor-textarea` via waitForKeyElements.

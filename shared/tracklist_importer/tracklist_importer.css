@@ -44,13 +44,14 @@
     z-index: 5;
 }
 
-/* the toggle in the top left corner - the side the block grows to, so the button stands where
- * the movement happens. Absolute, so it floats over the block's own edge instead of taking a
- * line above the columns: the heading row starts at the very top either way. */
-#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle {
+/* the two corner toggles: widen in the top left - the side that block grows to, so the button
+ * stands where the movement happens - and the down arrow in the top right, the upper right
+ * corner of the Candidate column. Absolute, so they float over the block's own edge instead of
+ * taking a line above the columns: the heading row starts at the very top either way. */
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle,
+#mdb-tlImporter-diff .mdb-tlImporter-down-toggle {
     position: absolute;
     top: -11px;
-    left: 5px;
     z-index: 2;
     width: 22px;
     height: 22px;
@@ -65,13 +66,23 @@
     line-height: 1;
 }
 
-#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle:hover {
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle {
+    left: 5px;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-down-toggle {
+    right: 5px;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle:hover,
+#mdb-tlImporter-diff .mdb-tlImporter-down-toggle:hover {
     color: #111;
     border-color: #ccc;
     background-color: #fff;
 }
 
-#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle svg {
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle svg,
+#mdb-tlImporter-diff .mdb-tlImporter-down-toggle svg {
     width: 14px;
     height: 14px;
     display: block;
@@ -250,6 +261,38 @@ body.mdb-tlImporter-resizing {
     cursor: not-allowed;
 }
 
+/* the block moved down above the site's own Tracklist Editor (tlImporter_applyDown): the
+ * Merged column gave its text to #tlEditor-textarea and is hidden - and so are BOTH grab
+ * bars, since a bar next to a hidden column would drag against a width of zero. Two equal
+ * columns remain; the bars' 14px stays as the gap between them. !important because the
+ * dragged widths are an inline style on this element, and they name three columns. */
+#mdb-tlImporter-diff.mdb-tlImporter-down .mdb-tlImporter-col-merged,
+#mdb-tlImporter-diff.mdb-tlImporter-down .mdb-tlImporter-col-resizer {
+    display: none;
+}
+
+#mdb-tlImporter-diff.mdb-tlImporter-down .mdb-tlImporter-cols {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-column-gap: 14px;
+    column-gap: 14px;
+}
+
+/* the row below #tlEditor-formActions while the block is down: the Apply button and the Live
+ * updates switch - what the Merged column has under its box, minus the state icons (the real
+ * ones under the edit box are on this very page). The chip's own rules bring the margins of
+ * a feedback box's corner along; in a flex row they only push it out of line. */
+#mdb-tlImporter-downActions {
+    display: flex;
+    align-items: center;
+    gap: .8em;
+    margin: 8px 0;
+}
+
+#mdb-tlImporter-downActions .mdb-tlEditor-liveUpdates {
+    float: none;
+    margin: 0;
+}
+
 
 /* narrow windows: three columns side by side leave each of them too thin to read a track line
  * in, so below 900px they stack - Original, then Merged, then Candidate, the same reading order
@@ -257,8 +300,10 @@ body.mdb-tlImporter-resizing {
  * neighbour to line up with, so the head and help line may wrap again instead of being cut. */
 @media screen and (max-width: 900px) {
     /* !important: the dragged widths are an inline style on this element, and stacked there
-     * is only one column to be wide */
-    #mdb-tlImporter-diff .mdb-tlImporter-cols {
+     * is only one column to be wide. The down-state selector repeats so its own two-column
+     * rule (more specific, also !important) loses here too and the block stacks either way. */
+    #mdb-tlImporter-diff .mdb-tlImporter-cols,
+    #mdb-tlImporter-diff.mdb-tlImporter-down .mdb-tlImporter-cols {
         grid-template-columns: minmax(0, 1fr) !important;
         grid-row-gap: 10px;
         row-gap: 10px;
