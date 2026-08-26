@@ -399,10 +399,11 @@ function tlImporter_clearStoredDiff() {
 }
 
 // tlImporter_renderPre
-// One review column's <pre>: rows built from serialized items, the parts whose flag under
-// flagKey is true wrapped in the given highlight span. Blanks were dropped by the parser and
-// "..." gaps never carry text, so neither is ever highlighted.
-function tlImporter_renderPre( items, flagKey, highlightClass ) {
+// One review column's <pre>: rows built from serialized items, each part (cue / text / label)
+// asked past partClass( item, part ), which answers a highlight class or "" for plain text.
+// Blanks were dropped by the parser and "..." gaps never carry text, so neither is ever
+// highlighted.
+function tlImporter_renderPre( items, partClass ) {
     var pre = $( '<pre class="mdb-tlImporter-pre"></pre>' );
 
     ( items || [] ).forEach(function( item, i ) {
@@ -413,13 +414,11 @@ function tlImporter_renderPre( items, flagKey, highlightClass ) {
             return;
         }
 
-        var flags = item[ flagKey ] || {};
-
-        function part( text, highlighted, trailingSpace ) {
+        function part( text, className, trailingSpace ) {
             if( !text ) return;
 
-            if( highlighted ) {
-                pre.append( $( "<span></span>" ).addClass( highlightClass ).text( text ) );
+            if( className ) {
+                pre.append( $( "<span></span>" ).addClass( className ).text( text ) );
             } else {
                 pre.append( document.createTextNode( text ) );
             }
@@ -427,12 +426,38 @@ function tlImporter_renderPre( items, flagKey, highlightClass ) {
             if( trailingSpace ) pre.append( document.createTextNode( " " ) );
         }
 
-        part( item.cue ? "[" + item.cue + "]" : "", flags.cue === true, true );
-        part( item.text, flags.text === true, !!item.label );
-        part( item.label ? "[" + item.label + "]" : "", flags.label === true, false );
+        part( item.cue ? "[" + item.cue + "]" : "", partClass( item, "cue" ), true );
+        part( item.text, partClass( item, "text" ), !!item.label );
+        part( item.label ? "[" + item.label + "]" : "", partClass( item, "label" ), false );
     });
 
     return pre;
+}
+
+// tlImporter_flattenFeedbackList
+// MixesDB's own affiliate/search decorator (ext.mixesdb.global) treats EVERY <li> under
+// #mw-content-text as a potential track row on ns-0 edit/submit pages - the TLE feedback's
+// <ul id="tlEditor-feedback-topInfo"> inside our review block included. It then rewrites the
+// row via .html().replace(/<br>[^+]/,''), a regex that eats the "<" of whatever tag follows
+// the <br> (the reported smashed "code>#"), and appends its fa-search wrapper. So inside the
+// block the list is flattened to plain divs the moment it appears: nothing matches "ul li"
+// any more and the site engine has nothing to grab. The li classes ride along on the rows.
+function tlImporter_flattenFeedbackList( scope ) {
+    var list = $( scope ).find( "ul#tlEditor-feedback-topInfo" ).first();
+
+    if( !list.length ) return;
+
+    var rows = $( '<div id="tlEditor-feedback-topInfo" class="mdb-element mdb-tlImporter-feedback-rows"></div>' );
+
+    list.children( "li" ).each(function() {
+        rows.append(
+            $( '<div class="mdb-tlImporter-feedback-row"></div>' )
+                .addClass( this.className )
+                .append( $( this ).contents() )
+        );
+    });
+
+    list.replaceWith( rows );
 }
 
 // tlImporter_renderDiffView
@@ -448,15 +473,7 @@ function tlImporter_renderDiffView( data ) {
     if( $( "#mdb-tlImporter-diff" ).length ) return;
 
     var wrap = $( '<div id="mdb-tlImporter-diff" class="mdb-element"></div>' ),
-        head = $( '<div class="mdb-tlImporter-diff-head"></div>' ),
         cols = $( '<div class="mdb-tlImporter-cols"></div>' );
-
-    head.append( $( "<strong></strong>" ).text( "Tracklist Importer" ) );
-    head.append( $( '<span class="mdb-tlImporter-diff-legend"></span>' ).text(
-        data.unchanged
-            ? " – the merge took nothing from the candidate, the page text was left unchanged."
-            : " – review what the merge did; fix final details in the Merged box, then Apply."
-    ) );
 
     function col( name, helpText ) {
         var column = $( '<div class="mdb-tlImporter-col"></div>' );
@@ -470,7 +487,9 @@ function tlImporter_renderDiffView( data ) {
     // Original
     cols.append(
         col( "Original", "The tracklist the page had before the merge. Highlighted parts were changed." )
-            .append( tlImporter_renderPre( data.originalItems, "changed", "mdb-tlImporter-changed" ) )
+            .append( tlImporter_renderPre( data.originalItems, function( item, p ) {
+                return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
+            }) )
     );
 
     // Merged: the shared Tracklist Editor box (same ids as on the player sites, nothing on the
@@ -495,13 +514,18 @@ function tlImporter_renderDiffView( data ) {
             .append( tlWrapper, applyWrap )
     );
 
-    // Candidate
+    // Candidate: green what the merge took over, orange what it could not place - gaps and
+    // "?" blanks never carry a salvage flag (see tlImporter_candidateUse), so they stay plain
     cols.append(
-        col( "Candidate", "The tracklist the player site found. Highlighted parts were used by the merge." )
-            .append( tlImporter_renderPre( data.items, "used", "mdb-tlImporter-used" ) )
+        col( "Candidate", "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
+            .append( tlImporter_renderPre( data.items, function( item, p ) {
+                if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
+                if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
+                return "";
+            }) )
     );
 
-    wrap.append( head, cols );
+    wrap.append( cols );
 
     // above the wiki edit box, below MediaWiki's diff. The diff container can sit outside or
     // inside form#editform depending on the MediaWiki version and the "preview on top"
@@ -531,9 +555,23 @@ function tlImporter_renderDiffView( data ) {
         tlApiCalls = data.apiCalls;
     }
 
+    // The feedback box re-renders itself on live updates, blur formats and the Live updates
+    // toggle - paths that live in tracklist_editor/funcs.js with no hook for us - so the
+    // list flattening (see tlImporter_flattenFeedbackList) watches the wrapper instead of
+    // being called from every render site. Microtask timing wins the race by construction:
+    // the observer fires before the site's decorator (timeouts, ajax callbacks) can run.
+    if( window.MutationObserver ) {
+        new MutationObserver(function() {
+            tlImporter_flattenFeedbackList( tlWrapper );
+        }).observe( tlWrapper.get( 0 ), { childList: true, subtree: true } );
+    }
+
     // the box wiring: size to the text, bind the live updates, print the stored TLE feedback
     // with its chips - and never steal the focus on a page the reader came to for the diff
     fixTLbox( data.feedback && data.feedback.text ? data.feedback : null, tlWrapper.get( 0 ), false );
+
+    // once directly, without waiting for the observer's microtask
+    tlImporter_flattenFeedbackList( tlWrapper );
 
     // One shared height for the three columns: the tallest list's ROW COUNT decides - logical
     // rows only, soft line wrapping deliberately ignored. The textarea gets it as its rows
