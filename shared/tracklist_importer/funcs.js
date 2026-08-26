@@ -364,6 +364,11 @@ function tlImporter_storeDiff( data ) {
         data.articleId = tlImporter_articleId();
         data.t = Date.now();
 
+        // the TLE call counter travels with the block: the chip says "calls made on this
+        // page", but the answer on screen was paid for on the edit page - a POST later, "0 API
+        // calls" next to visible feedback would be a lie
+        data.apiCalls = typeof tlApiCalls !== "undefined" ? tlApiCalls : 0;
+
         sessionStorage.setItem( tlImporter_storageKey, JSON.stringify( data ) );
     } catch( e ) {
         log( "tlImporter: could not store the review block (" + e.message + ") - it will not survive Show changes." );
@@ -477,9 +482,12 @@ function tlImporter_renderDiffView( data ) {
     textarea.val( data.mergedTl || "" );
     tlWrapper.append( textarea );
 
+    // the OOUI classes dress the button like the wiki's own Save/Preview/Diff buttons - their
+    // styles are on the edit page anyway, and a foreign-looking button next to them reads as
+    // not belonging to the form
     applyWrap.append(
-        $( '<button id="mdb-tlImporter-apply" class="hand" type="button">Apply</button>' )
-            .attr( "title", "Put this box's tracklist into the wiki edit box and update the \"Tracklist:\" category and its icons.\nThe box is checked by the Tracklist Editor on the way." )
+        $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' )
+            .attr( "title", "Replace the page's tracklist with this box's text, as it stands, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed." )
     );
 
     cols.append(
@@ -516,19 +524,40 @@ function tlImporter_renderDiffView( data ) {
         anchor.before( wrap );
     }
 
+    // the TLE call counter the block carried over (see tlImporter_storeDiff) is restored
+    // BEFORE the chips render - the feedback on screen was paid for on the edit page, and "0
+    // API calls" next to it would be a lie. Never lowered: this page may have asked already.
+    if( typeof tlApiCalls !== "undefined" && ( data.apiCalls || 0 ) > tlApiCalls ) {
+        tlApiCalls = data.apiCalls;
+    }
+
     // the box wiring: size to the text, bind the live updates, print the stored TLE feedback
     // with its chips - and never steal the focus on a page the reader came to for the diff
     fixTLbox( data.feedback && data.feedback.text ? data.feedback : null, tlWrapper.get( 0 ), false );
 
+    // One shared height for the three columns: the tallest list's ROW COUNT decides - logical
+    // rows only, soft line wrapping deliberately ignored. The textarea gets it as its rows
+    // attribute (after fixTLbox() sized it to its own text), the pres as a min-height in
+    // line-height units (1.5em per row, matching their CSS), so the three boxes line up.
+    var maxRows = Math.max(
+        data.originalItems ? data.originalItems.length : 0,
+        data.items.length,
+        String( textarea.val() || "" ).split( "\n" ).length
+    );
+
+    textarea.attr( "rows", maxRows );
+    wrap.find( "pre.mdb-tlImporter-pre" ).css( "min-height", ( maxRows * 1.5 ) + "em" );
+
     log( "tlImporter: review block rendered (" + ( data.originalItems ? data.originalItems.length : 0 ) + " original rows, "
-        + data.items.length + " candidate rows, TLE status: " + ( data.status || "(none)" ) + ")." );
+        + data.items.length + " candidate rows, " + maxRows + " shared rows, TLE status: " + ( data.status || "(none)" ) + ")." );
 }
 
-// The Apply button in the Merged column: the box's current text becomes the page's tracklist.
-// One synchronous TLE call formats it and hands over the verdict, so box, page text, category
-// and icons cannot disagree - and writing the answer back into the box bumps the box's update
-// sequence, so a blur update still in flight (the click itself blurs the box) is dropped
-// instead of overwriting this.
+// The Apply button in the Merged column: the box's current text replaces the page's
+// tracklist VERBATIM - what the reader sees in the box is what lands in the wiki edit box.
+// The one synchronous TLE call is only asked for its verdict: the "Tracklist:" category and
+// the icons follow it, the text does not. The box is marked known and its update sequence
+// bumped, so the blur update the click itself triggered (focus leaves the box on mousedown)
+// cannot reformat the box afterwards either.
 $(document).on( "click", "#mdb-tlImporter-apply", function() {
     var button = $(this),
         tl = $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first(),
@@ -541,12 +570,17 @@ $(document).on( "click", "#mdb-tlImporter-apply", function() {
     }
 
     var res = apiTracklist( text, "standard" ),
-        finalTl = res.text || text,
         status = res.feedback && res.feedback.status ? res.feedback.status : "";
 
-    if( res.text ) tlBoxApplyResult( tl, res );
+    tl.data( "mdbTlboxSeq", ( tl.data( "mdbTlboxSeq" ) || 0 ) + 1 );
+    tl.removeClass( "mdb-tlBox-updating" );
+    tl.data( "mdbTlboxKnown", tl.val() );
 
-    var newPage = tlImporter_setTracklist( textbox.val(), tlImporter_tracklistWikitext( finalTl ) );
+    // the fresh verdict goes on screen (colour, message, chips) - tlBoxRenderFeedback never
+    // touches the text
+    if( res.feedback && res.feedback.text ) tlBoxRenderFeedback( tl, res.feedback );
+
+    var newPage = tlImporter_setTracklist( textbox.val(), tlImporter_tracklistWikitext( text ) );
 
     if( newPage === null ) {
         log( "tlImporter: could not place the tracklist into the page text - the page has no == Tracklist == section." );
@@ -563,7 +597,7 @@ $(document).on( "click", "#mdb-tlImporter-apply", function() {
     var stored = tlImporter_readStoredDiff();
 
     if( stored ) {
-        stored.mergedTl = finalTl;
+        stored.mergedTl = text;
         stored.status = status;
         if( res.feedback ) stored.feedback = res.feedback;
         tlImporter_storeDiff( stored );

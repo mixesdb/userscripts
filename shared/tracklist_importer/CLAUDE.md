@@ -45,9 +45,10 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   same ids as on the player sites – nothing on the wiki edit page carries them), so live
   updates, feedback chips and the deliberately-scoped mixesdb.com exception in
   `toolkit_tlStateButtons()` all come from the shared code instead of copies.
-- **Apply asks the TLE once, synchronously,** and writes box, page text, category and icons
-  from that one answer – so none of them can drift apart, and the seq bump in
-  `tlBoxApplyResult()` drops the blur update the click itself triggered.
+- **Apply inserts the box text VERBATIM** – what the reader sees is what lands in the wiki
+  edit box. The one synchronous TLE call only supplies the verdict (category + icons) and the
+  re-rendered feedback; it never rewrites the text. The seq bump on the box drops the blur
+  update the click itself triggered, so nothing reformats the box behind the apply either.
 - **A merge that would change nothing gets no link.** `changed` is read off the merged TEXT,
   not off the write counter in `state.changes`: writing a value the original already carried
   counted as a change and produced a link into a `(No difference)` diff. The link builder runs
