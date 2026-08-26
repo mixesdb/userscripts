@@ -37,7 +37,7 @@
     margin: 10px 0;
     padding: 8px 10px;
     border: 1px solid #ccc;
-    border-radius: 3px;
+    border-radius: .6rem;
     background-color: #fafafa;
     font-size: 12px;
 }
@@ -47,6 +47,17 @@
  * sidebar is a positioned element and would otherwise paint on top of it. */
 #mdb-tlImporter-diff.mdb-tlImporter-wide {
     z-index: 5;
+}
+
+/* the legend: bold "Diff" standing on the border line. Pushed right so the widen toggle keeps
+ * the top left corner - the side the block grows to - and legend plus icons read as one
+ * labelled edge. line-height matches the toggles' 22px and the vertical padding is zeroed
+ * (the monobook skin gives legends padding: .5em), so the legend's box and the buttons are
+ * the same 22px, centered on the same line - the toggles' top: -22px counts on that. */
+#mdb-tlImporter-diff legend {
+    margin-left: 26px;
+    padding: 0 4px;
+    line-height: 22px;
 }
 
 /* the two corner toggles: widen in the top left - the side that block grows to, so the button
@@ -62,12 +73,14 @@
  * The svg gets flex: 0 0 auto for the same fight: a flex item may be squeezed below its width
  * by a padded-up container, and the icon IS the button.
  *
- * top is INSIDE the block now, not -11px over its border: the border carries the legend, and
- * buttons straddling the edge overlapped whatever the page stacks above the block. */
+ * top straddles the border line, the same line the legend sits on - legend and icons read as
+ * one labelled edge. The abs containing block of a fieldset starts BELOW the legend, so the
+ * line is 11px (half the legend's pinned 22px line-height) above top: 0, and centering the
+ * 22px button on it takes another 11px: -22px. */
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle,
 #mdb-tlImporter-diff .mdb-tlImporter-down-toggle {
     position: absolute;
-    top: 10px;
+    top: -22px;
     z-index: 2;
     width: 22px !important;
     min-width: 0 !important;
