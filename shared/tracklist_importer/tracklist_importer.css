@@ -55,7 +55,7 @@
  * (the monobook skin gives legends padding: .5em), so the legend's box and the buttons are
  * the same 22px, centered on the same line - the toggles' top: -22px counts on that. */
 #mdb-tlImporter-diff legend {
-    margin-left: 26px;
+    margin-left: 20px;
     padding: 0 4px;
     line-height: 22px;
 }
@@ -102,11 +102,11 @@
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle {
-    left: 5px;
+    left: 12px;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-down-toggle {
-    right: 5px;
+    right: 12px;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle:hover,

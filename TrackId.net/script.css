@@ -232,3 +232,45 @@ table.mdb-tid-table {
 #mdb-replacedSearch .replaced-search-input {
 	width: calc( 100% - 75px - .5rem ); /* .5rem = .mdb-element.input padding */
 }
+
+/*
+ * TrackId.net links under the players on mixesdb.com
+ *
+ * Moved here with the block that writes them (out of MixesDB_Userscripts_Helper/script.css).
+ * body.mixesdb-com scopes them: this file is loaded on trackid.net too, where .playerWrapper
+ * does not exist but a rule with no site in it is a trap for the day it does.
+ */
+body.mixesdb-com .playerWrapper .tidLink {
+    text-align: right;
+
+    /* the icon carries .fixedWidth in the markup: MediaWiki:Common.css blows every element
+       inside a .playerWrapper up to width:100% and .fixedWidth is the exclusion it honours,
+       so only the sizing left over from that is ours */
+    & .tidSubmit-icon {
+        height: 14px;
+        vertical-align: middle;
+        margin-top: -2px;
+    }
+
+    & .mdb-checked-icon {
+        height: 12px;
+        width: auto !important;
+        padding-left: 3px;
+        padding-right: 4px;
+        margin-top: -3px !important;
+    }
+}
+
+body.mixesdb-com.ns-0 .playerWrapper .tidLink {
+    padding-top: 5px;
+    height: 10px;
+    margin-top: -10px;
+    margin-bottom: -5px;
+}
+
+body.mixesdb-com.rootpage-MixesDB_Explorer {
+    & .playerWrapper .tidLink {
+        margin-top: -4px;
+        margin-bottom: 3px;
+    }
+}

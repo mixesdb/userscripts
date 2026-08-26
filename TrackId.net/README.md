@@ -3,7 +3,7 @@
 Turns a TrackId.net audiostream into a copy-paste ready MixesDB tracklist, and keeps track of
 which TID tracklists have already been integrated into MixesDB.
 
-- **Runs on:** trackid.net, plus mixesdb.com/w/* for the edit-form part
+- **Runs on:** trackid.net, plus mixesdb.com/w/* for the links under the players and the edit-form part
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js)
 - **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [Tracklist Importer](../shared/tracklist_importer/)
 
@@ -108,6 +108,19 @@ for you; when the audiostream already exists, its tracklist opens directly. A `k
 parameter replaces the site search with a prefilled one. Links carrying these parameters are what
 the other userscripts' **Submit to TrackId.net** links produce.
 
+### Links under the players on MixesDB
+
+Under every player on a MixesDB mix page, and under the players in the results on
+`MixesDB:Explorer/Mixes`: **Exists on TrackId.net** with a link to that audiostream – followed by
+the check mark and how long ago its tracklist was carried over, or a note that it has not been –
+or **Submit to TrackId.net**, which opens the [submit form](#submit-form) with the player URL and
+the page title already filled in.
+
+Only players TrackId.net can take are given a link. This was part of the
+[MixesDB Userscripts Helper](../MixesDB_Userscripts_Helper/) until 2026-08-26; it moved here
+because the links are about TrackId.net, and it is this script a contributor installs for it.
+Switch them off with `trackIdnet_addLinks = 0` at the top of the script.
+
 ### On MixesDB
 
 When an edit form is opened from a TID link that reported a complete or incomplete tracklist, the
@@ -120,3 +133,4 @@ preselected. An existing `Tracklist: complete` is never downgraded.
   untouched – report it on Discord and it becomes another rule.
 - Removing likely-false `?` tracks is a heuristic; use the toggle to check what was dropped.
 - Style suggestions come from TrackId.net's own styles and are only as good as those.
+- `trackIdnet_addLinks` lives at the top of the script and has to be set again after an update.

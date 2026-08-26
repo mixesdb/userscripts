@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.21
+// @version      2026.08.26.22
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 193,
+var cacheVersion = 194,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -58,6 +58,15 @@ window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta
 // this off, the pieces pop in one by one; the time until everything has loaded is logged
 // the same way in both modes.
 window.mdbSkeleton_enabled = true;
+
+
+/*
+ * TrackId.net links under the players on MixesDB mix pages and on MixesDB:Explorer/Mixes
+ * "Exists on TrackId.net" with a link, or "Submit to TrackId.net" with the player URL and
+ * the page title already filled in.
+ * Set 0 to disable
+ */
+const trackIdnet_addLinks = 1; // default: 1
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -230,6 +239,144 @@ if( visitDomain == "trackid.net" ) {
     // where every navigation is a real page load anyway.
     d.ready(function(){
         onUrlChange( runTrackIdPage, { runNow: true } );
+    });
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * TrackId.net links under every player on mixesdb.com
+ *
+ * Moved here out of the MixesDB Userscripts Helper: the link leads OUT to TrackId.net and
+ * says whether this player is known there, which is this script's subject, not the Helper's -
+ * the Helper is what teaches MixesDB to accept whatever the other scripts hand over. Nobody
+ * who does not work with TrackId.net has a use for the links, and now they arrive with the
+ * script that is installed for it.
+ *
+ * Runs on mix pages (ns 0) and on MixesDB:Explorer/Mixes; the mix page half also fires on the
+ * edit form's preview, where the players are rendered the same way.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+if( visitDomain == "mixesdb.com" ) {
+    d.ready(function(){ // needed for mw.config
+        logFunc( "tidLinks on mixesdb.com" );
+
+        if( !trackIdnet_addLinks ) {
+            log( "trackIdnet_addLinks is off." );
+            return;
+        }
+
+        // @include is http*mixesdb.com/w/* and therefore looser than a MediaWiki page - say so
+        // instead of throwing on the first mw.config.get()
+        if( typeof mw == "undefined" ) {
+            log( "No mw.config on this page." );
+            return;
+        }
+
+        // Prepare variables to check if we're on a mix page etc.
+        var wgNamespaceNumber = mw.config.get("wgNamespaceNumber"),
+            wgTitle = mw.config.get("wgTitle"),
+            wgPageName = mw.config.get("wgPageName"),
+            isMixPage = ( wgNamespaceNumber == 0 && wgTitle != "Main Page" ),
+            isExplorerMixes = ( wgNamespaceNumber == 4 && wgPageName == "MixesDB:Explorer/Mixes" );
+
+        // Two named flags rather than the one long condition this arrived as: there the setting
+        // was ANDed with the mix page half alone, so && binding tighter than || left the
+        // Explorer half running with the links switched off.
+        if( !isMixPage && !isExplorerMixes ) {
+            log( "Neither a mix page nor MixesDB:Explorer/Mixes." );
+            return;
+        }
+
+        log( "Criteria for mix page matched." );
+
+        /*
+         * TrackId.net submit link under each player
+         */
+        $(".playerWrapper[data-playersite]").each(function(){
+            var playerWrapper = $(this),
+                playerTidCompatible = playerWrapper.attr("data-tidcompatibleplayersite"),
+                playerUrl = playerWrapper.attr("data-playerurl"),
+                playerSite = makeCssSafe( playerWrapper.attr("data-playersite") ),
+                keywords = "";
+
+            logVar( "playerSite", playerSite );
+            logVar( "playerUrl", playerUrl );
+
+            // Remove URL paramteres from e.g. SoundCloud and Mixcloud
+            if( playerSite != "YouTube" ) {
+                playerUrl = removeParametersFromUrl( playerWrapper.attr("data-playerurl") );
+            } else {
+                playerUrl = playerUrl.replace( "www.youtu.be", "youtu.be" );
+            }
+
+            if( playerSite == "hearthis-at" ) {
+                playerUrl = playerUrl.replace( "hearthis.audio", "hearthis.at" );
+            }
+
+            // if mix page
+            if( isMixPage ) {
+                keywords = normalizeTitleForSearch( $("h1#firstHeading").text() );
+            }
+
+            // if Explorer/Mixes
+            if( isExplorerMixes ) {
+                var explorerResult = playerWrapper.closest(".explorerResult"),
+                    explorerResult_title = $(".playerLink", explorerResult).attr("title");
+                keywords = normalizeTitleForSearch( explorerResult_title );
+            }
+
+            if( playerTidCompatible == "true" ) {
+
+                // check usage
+                var apiQueryUrl_check = apiUrl_mw;
+                apiQueryUrl_check += "?action=mixesdbtrackid";
+                apiQueryUrl_check += "&format=json";
+                apiQueryUrl_check += "&url=" + playerUrl;
+
+                logVar( "apiQueryUrl_check", apiQueryUrl_check );
+
+                $.ajax({
+                    url: apiQueryUrl_check,
+                    type: 'get', /* GET on checking */
+                    dataType: 'json',
+                    async: true,
+                    success: function(data) {
+                        // avoid undefined error
+                        if( ( data.error && data.error.code == "notfound" )  ) {
+                            // no result
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
+                            playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
+                        } else {
+                            var tidLink = "",
+                                trackidurl = data.mixesdbtrackid?.[0]?.trackidurl || null,
+                                lastCheckedAgainstMixesDB = data.mixesdbtrackid?.[0]?.mixesdbpages?.[0]?.lastCheckedAgainstMixesDB || null;
+
+                            logVar( "trackidurl", trackidurl );
+                            logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
+
+                            if( trackidurl ) {
+                                tidLink += '<a href="'+trackidurl+'"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
+
+                                if( lastCheckedAgainstMixesDB ) {
+                                    tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
+                                    tidLink += ' ' + toolkit_tidLastCheckedText( lastCheckedAgainstMixesDB );
+                                } else {
+                                    tidLink += ' (not integrated yet)';
+                                }
+                            }
+
+                            if( tidLink != "" ) {
+                                playerWrapper.append( '<div class="tidLink '+playerSite+' grey">'+tidLink+'</div>' );
+                            }
+                        }
+                    }
+                }); // END ajax
+            } else {
+                log( "NOT playerTidCompatible: " + playerUrl );
+            }
+        });
     });
 }
 
@@ -2024,6 +2171,19 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.22
+ * The TrackId.net links under the players on mixesdb.com moved here out of the MixesDB
+ * Userscripts Helper (script.css v194, MUH 2026.08.26.2): "Exists on TrackId.net" with its
+ * integrated marker, or "Submit to TrackId.net" with player URL and page title filled in, on
+ * mix pages and on MixesDB:Explorer/Mixes. The link leads OUT to TrackId.net and is this
+ * script's subject; the Helper is what teaches MixesDB to accept what the other scripts hand
+ * over, and nobody who does not work with TrackId.net has a use for the links. Nothing on
+ * screen changes - the script already ran on mixesdb.com/w/* for the edit-form part, and the
+ * setting to switch them off (trackIdnet_addLinks) travelled with them.
+ * One thing does change: that setting now reaches BOTH halves. It was ANDed with the mix page
+ * half of one long condition, and && binding tighter than || left the Explorer half adding
+ * links with the setting on 0.
  *
  * 2026.08.26.21
  * Tracklist Importer review block: legend and icons on one line (tracklist_importer funcs.js
