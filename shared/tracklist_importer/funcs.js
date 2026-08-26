@@ -746,6 +746,298 @@ function tlImporter_addWideToggle( wrap ) {
 }
 
 
+// tlImporter_placeDiffBlock
+// The block's home position: above the wiki edit box, below MediaWiki's diff. The diff
+// container can sit outside or inside form#editform depending on the MediaWiki version and
+// the "preview on top" preference, so the block goes right AFTER the diff wherever the diff
+// stands above the box - and right before the form (or the box itself) on pages without one.
+// Its own function because the down toggle below moves the block away and has to be able to
+// put it back exactly where the render would have.
+function tlImporter_placeDiffBlock( wrap ) {
+    var textbox = $( "#wpTextbox1" ).first(),
+        diffBox = $( "#wikiDiff" ).first();
+
+    if( !diffBox.length ) diffBox = $( "table.diff" ).first();
+
+    if( diffBox.length && textbox.length &&
+        ( diffBox[0].compareDocumentPosition( textbox[0] ) & Node.DOCUMENT_POSITION_FOLLOWING ) ) {
+        diffBox.after( wrap );
+        return true;
+    }
+
+    var anchor = $( "#editform" ).first();
+
+    if( !anchor.length ) anchor = textbox;
+    if( !anchor.length ) return false;
+
+    anchor.before( wrap );
+    return true;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Down to the page's own Tracklist Editor
+ *
+ * The Merged column is a small Tracklist Editor box, and for real hand work the page has a
+ * better one: the site's own full editor section further down the form, with its menu, its
+ * find/replace and its undo. The arrow button in the block's top right corner - the twin of
+ * the widen toggle in the left one - moves the whole block DOWN, directly above that section
+ * (#editToolsBar-TLeditor): the Merged box's text goes into the real #tlEditor-textarea, the
+ * now-empty Merged column is hidden, and Original and Candidate stay side by side above the
+ * editor - so the merge is read up there and edited down here, the way tracklists were always
+ * edited on this form.
+ *
+ * Below the editor's own action row (#tlEditor-formActions) the block adds what the Merged
+ * column had under its box: the Live updates switch and the Apply button. Deliberately NOT
+ * the tracklist state icons - the real ones under the edit box are on this very page, and a
+ * second row of them would say the same thing twice.
+ *
+ * The arrow points up while the block is down; clicking it moves everything back - the text
+ * returns to the Merged box exactly as it stands, so toggling never loses an edit. The choice
+ * is remembered per browser like the widen toggle: preferring the full editor is the same
+ * answer on the next mix page too.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var tlImporter_downKey = "mdb-tlImporter-down",
+    tlImporter_downObserver = null;
+
+// tlImporter_downIcon
+// Two chevrons pointing down while the block is up (click to move it down to the site's
+// editor), up while it is down (click to bring it back). Drawn like tlImporter_wideIcon, and
+// the width/height attributes are there for the same reason - see that function.
+function tlImporter_downIcon( down ) {
+    var arrows = down
+        ? '<path d="M3 8 L8 3.5 L13 8" /><path d="M3 12.5 L8 8 L13 12.5" />'
+        : '<path d="M3 3.5 L8 8 L13 3.5" /><path d="M3 8 L8 12.5 L13 8" />';
+
+    return '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" '
+        + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + arrows + '</svg>';
+}
+
+// tlImporter_readDown
+function tlImporter_readDown() {
+    try {
+        return localStorage.getItem( tlImporter_downKey ) === "1";
+    } catch( e ) {
+        return false;
+    }
+}
+
+// tlImporter_writeDown
+function tlImporter_writeDown( down ) {
+    try {
+        localStorage.setItem( tlImporter_downKey, down ? "1" : "0" );
+    } catch( e ) {}
+}
+
+// tlImporter_siteEditor
+// The three pieces of the site's own Tracklist Editor section the down state hangs on to.
+// All or nothing: they are rendered by mixesdb.com's editor module, so any of them can be
+// missing while that module is still loading - or for good, when it changed.
+function tlImporter_siteEditor() {
+    var bar = $( "#editToolsBar-TLeditor" ).first(),
+        box = $( "#tlEditor-textarea" ).first(),
+        actions = $( "#tlEditor-formActions" ).first();
+
+    if( !bar.length || !box.length || !actions.length ) return null;
+
+    return { bar: bar, box: box, actions: actions };
+}
+
+// tlImporter_downLiveChip
+// The same Live updates switch the feedback boxes carry (tlBoxShowApiCount in
+// tracklist_editor/funcs.js), standing alone in the row below #tlEditor-formActions. Same
+// classes, so the chip CSS dresses it; same click behaviour, so the one stored choice flips
+// every switch on the page together.
+function tlImporter_downLiveChip() {
+    return $( "<div>" )
+        .addClass( "mdb-tlEditor-liveUpdates mdb-element hand" )
+        .append(
+            $( "<span>" ).addClass( "mdb-tlEditor-liveUpdates-label" ).text( "Live updates" ),
+            $( "<span>" ).addClass( "mdb-tlEditor-switch" ).append(
+                $( "<span>" ).addClass( "mdb-tlEditor-switch-knob" )
+            )
+        )
+        .on( "click", function() {
+            var nowOn = !tlBoxAutoUpdate();
+
+            tlBoxSetAutoUpdate( nowOn );
+
+            // the switches inside the feedback boxes follow the stored choice
+            tlBoxShowApiCount();
+
+            // the same catch-up the feedback-box switch does: re-render the shown answers
+            // ("No changes were made." belongs to one state and not the other), and check
+            // what is already typed when the click switched ON - it asked for an answer
+            $( "textarea[data-mdb-tlbox-live]" ).each(function() {
+                var box = $( this ),
+                    shown = box.nextAll( "#tlEditor-feedback" ).first().data( "mdbFeedbackHtml" );
+
+                if( shown ) tlBoxSetFeedbackHtml( box, String( shown ).replace( /^(live|static):/, "" ) );
+
+                if( nowOn ) tlBoxTypeUpdate( box );
+            });
+        });
+}
+
+// tlImporter_syncDownLive
+// The standalone switch is not inside a feedback box, so tlBoxShowApiCount() never refreshes
+// it - this does, from the same stored choice. The document-level click below catches the
+// switches in the feedback boxes flipping that choice, so the two can never show different
+// states. Runs AFTER the clicked switch's own handler by construction: the handler is bound
+// on the element, this one on the document the click bubbles up to.
+function tlImporter_syncDownLive() {
+    var on = tlBoxAutoUpdate();
+
+    $( "#mdb-tlImporter-downActions .mdb-tlEditor-liveUpdates" )
+        .toggleClass( "mdb-tlEditor-liveUpdates-on", on )
+        .attr( "title", on
+            ? "Live updates are ON: after a typing pause the tracklist is checked, the feedback follows it and every line except the one being typed on is formatted.\nClick to switch off."
+            : "Live updates are OFF: the box is only checked and formatted when you leave it.\nClick to switch on." );
+}
+
+$(document).on( "click", ".mdb-tlEditor-liveUpdates", function() {
+    tlImporter_syncDownLive();
+});
+
+// tlImporter_addDownActions
+// The row below the editor's #tlEditor-formActions: the Apply button and the Live updates
+// switch - what the Merged column has under its box, minus the tracklist state icons. Those
+// are deliberately not repeated: the real ones under the edit box are on this very page, and
+// toolkit_tlStateButtons() skips feedback boxes outside the review block on mixesdb.com
+// anyway.
+function tlImporter_addDownActions( ed ) {
+    if( $( "#mdb-tlImporter-downActions" ).length ) return;
+
+    var row = $( '<div id="mdb-tlImporter-downActions" class="mdb-element"></div>' ),
+        applyButton = $( '<button id="mdb-tlImporter-apply-down" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
+
+    row.append( applyButton, tlImporter_downLiveChip() );
+    ed.actions.after( row );
+
+    // same wake/sleep rule as the Merged column's button, against the same baseline - what
+    // was last applied to the page (both buttons follow later applies via mdbApplied)
+    tlImporter_watchApplyButton( ed.box, applyButton, tlImporter_applyBaseline );
+
+    tlImporter_syncDownLive();
+}
+
+// tlImporter_applyDown
+// The move itself, in either direction. The text always travels with the block - down it
+// goes from the Merged box into the site's editor, up it comes back exactly as it stands, so
+// toggling never loses an edit. mdbTlboxKnown travels along, so the blur update stays as
+// quiet or as eager as it was in the box the text came from.
+function tlImporter_applyDown( wrap, down ) {
+    wrap = $( wrap ).first();
+
+    var ed = tlImporter_siteEditor();
+
+    if( !wrap.length || !ed ) return;
+
+    var midBox = wrap.find( "textarea.mixesdb-TLbox" ).first(),
+        button = wrap.find( ".mdb-tlImporter-down-toggle" ).first();
+
+    if( !midBox.length ) return;
+
+    button
+        .html( tlImporter_downIcon( down ) )
+        .attr( "title", down
+            ? "Move the review back up above the edit box, with the Merged column between Original and Candidate."
+            : "Move the review down to the page's own Tracklist Editor: the Merged text goes into the editor itself, Original and Candidate stay side by side above it." );
+
+    if( down ) {
+        var text = midBox.val() || "";
+
+        // the block above the editor's toolbar; the CSS hides the Merged column and both
+        // grab bars behind the class
+        wrap.addClass( "mdb-tlImporter-down" );
+        ed.bar.before( wrap );
+
+        // the text into the real editor. The known state travels first, so an unedited text
+        // is not re-asked on the first blur; the live machinery is bound before the value
+        // lands, so the native input event below already reaches it (rows, debounce) - and
+        // reaches the site's own module, whose box this is.
+        ed.box.data( "mdbTlboxKnown", midBox.data( "mdbTlboxKnown" ) );
+        tlBoxBindLive( ed.box );
+        ed.box.val( text );
+        ed.box.get( 0 ).dispatchEvent( new Event( "input", { bubbles: true } ) );
+
+        midBox.val( "" );
+
+        tlImporter_addDownActions( ed );
+
+        // the li-smashing decorator (see tlImporter_flattenFeedbackList) does not care whose
+        // feedback box it wrecks - watch the editor's textarea wrapper while our live and
+        // apply renders can put one there
+        if( window.MutationObserver && !tlImporter_downObserver ) {
+            var host = ed.box.parent().get( 0 );
+
+            if( host ) {
+                tlImporter_downObserver = new MutationObserver(function() {
+                    tlImporter_flattenFeedbackList( ed.box.parent() );
+                });
+                tlImporter_downObserver.observe( host, { childList: true, subtree: true } );
+            }
+        }
+    } else {
+        var backText = ed.box.val() || "";
+
+        if( tlImporter_downObserver ) {
+            tlImporter_downObserver.disconnect();
+            tlImporter_downObserver = null;
+        }
+
+        $( "#mdb-tlImporter-downActions" ).remove();
+
+        // only OUR watcher comes off the site's box - the live binding stays, and stays
+        // quiet: the box keeps its text and its known state, so nothing fires until the
+        // reader really edits down there again
+        ed.box.off( ".mdbTlImporterApply" );
+
+        // the text back into the Merged box, the known state with it; the input trigger
+        // re-sizes the box and wakes its Apply watcher
+        midBox.data( "mdbTlboxKnown", ed.box.data( "mdbTlboxKnown" ) );
+        midBox.val( backText );
+        midBox.trigger( "input" );
+
+        wrap.removeClass( "mdb-tlImporter-down" );
+        tlImporter_placeDiffBlock( wrap );
+    }
+
+    // the block stands somewhere new either way: the stretch is measured from the position,
+    // so it is taken again (applyWide re-measures from scratch), and the rails follow
+    tlImporter_applyWide( wrap, wrap.hasClass( "mdb-tlImporter-wide" ) );
+
+    log( "tlImporter: review block moved " + ( down ? "down to the site's Tracklist Editor." : "back up above the edit box." ) );
+}
+
+// tlImporter_addDownToggle
+// The arrow button in the top right corner of the block - the upper right of the Candidate
+// column - mirroring the widen toggle in the left one. Only added once the site's own editor
+// section is on the page: without a #editToolsBar-TLeditor there is nowhere to move to.
+function tlImporter_addDownToggle( wrap ) {
+    if( wrap.find( ".mdb-tlImporter-down-toggle" ).length ) return;
+
+    var button = $( '<button type="button" class="mdb-tlImporter-down-toggle mdb-element hand"></button>' )
+        .html( tlImporter_downIcon( false ) )
+        .attr( "title", "Move the review down to the page's own Tracklist Editor: the Merged text goes into the editor itself, Original and Candidate stay side by side above it." );
+
+    // after the widen toggle, so tabbing walks the two corners left to right
+    var wide = wrap.children( ".mdb-tlImporter-wide-toggle" ).first();
+
+    if( wide.length ) wide.after( button ); else wrap.prepend( button );
+
+    button.on( "click", function() {
+        var down = !wrap.hasClass( "mdb-tlImporter-down" );
+
+        tlImporter_applyDown( wrap, down );
+        tlImporter_writeDown( down );
+    });
+}
+
+
 /*
  * tlImporter_watchApplyButton
  *
@@ -761,6 +1053,12 @@ function tlImporter_addWideToggle( wrap ) {
  * "input" is the event that covers all of it - typing, paste, undo, and the programmatic
  * value changes tracklist_editor/funcs.js triggers after a format.
  */
+
+// what was last applied to the page - the baseline a NEWLY built Apply button starts against
+// (the down toggle builds its button long after the render). The buttons already on the page
+// follow later applies through the mdbApplied event instead.
+var tlImporter_applyBaseline = "";
+
 function tlImporter_watchApplyButton( textarea, button, baseline ) {
     function refresh() {
         // trimmed on both sides: a trailing newline the box picked up somewhere is not an edit
@@ -851,10 +1149,13 @@ function tlImporter_renderDiffView( data ) {
     var applyButton = $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
 
     applyWrap.append( applyButton );
-    tlImporter_watchApplyButton( textarea, applyButton, data.mergedTl || "" );
+    tlImporter_applyBaseline = data.mergedTl || "";
+    tlImporter_watchApplyButton( textarea, applyButton, tlImporter_applyBaseline );
 
     cols.append(
         col( "Merged", "The result as applied to the page. Edit final fixes here, then Apply." )
+            // named so the down state (tlImporter_applyDown) can hide exactly this column
+            .addClass( "mdb-tlImporter-col-merged" )
             .append( tlWrapper, applyWrap )
     );
 
@@ -879,26 +1180,7 @@ function tlImporter_renderDiffView( data ) {
 
     wrap.append( cols );
 
-    // above the wiki edit box, below MediaWiki's diff. The diff container can sit outside or
-    // inside form#editform depending on the MediaWiki version and the "preview on top"
-    // preference, so the block goes right AFTER the diff wherever the diff stands above the
-    // box - and right before the form (or the box itself) on pages without one.
-    var textbox = $( "#wpTextbox1" ).first(),
-        diffBox = $( "#wikiDiff" ).first();
-
-    if( !diffBox.length ) diffBox = $( "table.diff" ).first();
-
-    if( diffBox.length && textbox.length &&
-        ( diffBox[0].compareDocumentPosition( textbox[0] ) & Node.DOCUMENT_POSITION_FOLLOWING ) ) {
-        diffBox.after( wrap );
-    } else {
-        var anchor = $( "#editform" ).first();
-
-        if( !anchor.length ) anchor = textbox;
-        if( !anchor.length ) return;
-
-        anchor.before( wrap );
-    }
+    if( !tlImporter_placeDiffBlock( wrap ) ) return;
 
     // only now, with the block on the page, can its distance to the window's left edge be
     // measured - the stored choice is applied from here, not at build time
@@ -947,17 +1229,46 @@ function tlImporter_renderDiffView( data ) {
 
     log( "tlImporter: review block rendered (" + ( data.originalItems ? data.originalItems.length : 0 ) + " original rows, "
         + data.items.length + " candidate rows, " + maxRows + " shared rows, TLE status: " + ( data.status || "(none)" ) + ")." );
+
+    // The down toggle waits for the site's own Tracklist Editor section: mixesdb.com renders
+    // it through a ResourceLoader module, so it is usually not on the page yet while this
+    // block is built. No section, no button - there is nowhere to move to without one. The
+    // remembered choice is applied only here, for the same reason: it needs the target.
+    function tlImporter_downToggleWhenReady() {
+        if( !tlImporter_siteEditor() ) return true; // the rest of the section is still coming
+
+        var block = $( "#mdb-tlImporter-diff" ).first();
+
+        if( !block.length ) return;
+
+        tlImporter_addDownToggle( block );
+
+        if( tlImporter_readDown() && !block.hasClass( "mdb-tlImporter-down" ) ) {
+            tlImporter_applyDown( block, true );
+        }
+    }
+
+    if( typeof waitForKeyElements === "function" ) {
+        waitForKeyElements( "#tlEditor-textarea", tlImporter_downToggleWhenReady );
+    } else {
+        tlImporter_downToggleWhenReady();
+    }
 }
 
-// The Apply button in the Merged column: the box's current text replaces the page's
+// The Apply button in the Merged column - and its twin below #tlEditor-formActions while the
+// block is down (tlImporter_addDownActions): the box's current text replaces the page's
 // tracklist VERBATIM - what the reader sees in the box is what lands in the wiki edit box.
 // The one synchronous TLE call is only asked for its verdict: the "Tracklist:" category and
 // the icons follow it, the text does not. The box is marked known and its update sequence
 // bumped, so the blur update the click itself triggered (focus leaves the box on mousedown)
 // cannot reformat the box afterwards either.
-$(document).on( "click", "#mdb-tlImporter-apply", function() {
+$(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function() {
     var button = $(this),
-        tl = $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first(),
+        // the down button reads the site's editor box the text moved into - the Merged box
+        // is empty and hidden while the block is down
+        tl = this.id === "mdb-tlImporter-apply-down"
+            ? $( "#tlEditor-textarea" ).first()
+            : $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first(),
         textbox = $( "#wpTextbox1" ).first(),
         text = $.trim( tl.val() || "" );
 
@@ -1004,9 +1315,11 @@ $(document).on( "click", "#mdb-tlImporter-apply", function() {
     button.text( "Applied" );
     setTimeout(function() { button.text( "Apply" ); }, 1500 );
 
-    // the box now holds what the page holds - the button has nothing left to do until the
-    // next edit (see tlImporter_watchApplyButton)
-    button.trigger( "mdbApplied", [ text ] );
+    // the box now holds what the page holds - BOTH buttons (whichever exist right now) have
+    // nothing left to do until the next edit (see tlImporter_watchApplyButton), and a button
+    // built later starts against this text too
+    tlImporter_applyBaseline = text;
+    $( "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down" ).trigger( "mdbApplied", [ text ] );
 
     log( "tlImporter: applied the Merged box (TLE status: " + ( status || "(none)" ) + ")." );
 });

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.17
+// @version      2026.08.26.18
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_13
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 189,
+var cacheVersion = 190,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2024,6 +2024,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.18
+ * Tracklist Importer review block: new down toggle (tracklist_importer funcs.js v14, CSS).
+ * An arrow button in the block's top right corner - the twin of the widen toggle - moves the
+ * block down, directly above the site's own full Tracklist Editor section
+ * (#editToolsBar-TLeditor): the Merged box's text goes into the real #tlEditor-textarea, the
+ * empty Merged column is hidden and Original and Candidate stay side by side above the
+ * editor, so final fixes happen in the editor with all its tools. Below its
+ * #tlEditor-formActions the block adds the Apply button and the Live updates switch (no
+ * tracklist state icons down there - the real ones under the edit box are on the same page).
+ * The arrow flips to point up and moves everything back, the text travelling along both ways
+ * so toggling never loses an edit. Remembered per browser like the widen toggle.
  *
  * 2026.08.26.8
  * Tracklist Importer review block, round four (tracklist_importer funcs.js v7, CSS). The
