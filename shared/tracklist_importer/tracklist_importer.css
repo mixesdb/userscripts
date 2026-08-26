@@ -216,7 +216,7 @@ body.mdb-tlImporter-resizing {
 /* no space of the box's own under the column - the spacing toward the Apply button below is
  * the apply wrap's margin alone. The actual offender is the feedback box's 14px bottom margin
  * (tracklistEditor_copy.css); the wrapper rule is the guard should a skin ever pad it */
-#mdb-tlImporter-diff #tlEditor {
+#mdb-tlImporter-diff .tlEditor {
     padding-bottom: 0;
     margin-bottom: 0;
 }
