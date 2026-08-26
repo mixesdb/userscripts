@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.18
+// @version      2026.08.26.19
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 190,
+var cacheVersion = 191,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2024,6 +2024,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.19
+ * Tracklist Importer down state, fixes (tracklist_importer funcs.js v15, CSS). The corner
+ * toggles rendered as plain grey buttons with no icon while the block was down: docked, the
+ * block sits inside form#editform and mixesdb.com's own "form button" !important rules hit
+ * the two <button>s - bold, 1em side padding, borders - which squeezed the flex-item svg to
+ * 0px width. Every visual property of the toggles (and the svg's size + flex basis) now
+ * carries !important of its own. And the down Apply button only woke on real typing: the
+ * editor's own tools set #tlEditor-textarea's value programmatically, which fires no input
+ * event - the button is now refreshed by a delegated input handler (survives the module
+ * rebuilding its textarea) plus a half-second poll while the row is on the page, so ANY
+ * value change wakes or sleeps it.
  *
  * 2026.08.26.18
  * Tracklist Importer review block: new down toggle (tracklist_importer funcs.js v14, CSS).

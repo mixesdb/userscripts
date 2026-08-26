@@ -801,7 +801,9 @@ function tlImporter_placeDiffBlock( wrap ) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 var tlImporter_downKey = "mdb-tlImporter-down",
-    tlImporter_downObserver = null;
+    tlImporter_downObserver = null,
+    tlImporter_downPollTimer = null,
+    tlImporter_downPollMs = 500;
 
 // tlImporter_downIcon
 // Two chevrons pointing down while the block is up (click to move it down to the site's
@@ -902,6 +904,36 @@ $(document).on( "click", ".mdb-tlEditor-liveUpdates", function() {
     tlImporter_syncDownLive();
 });
 
+// tlImporter_refreshDownApply
+// The down Apply button's wake/sleep, decided fresh from the page on every call: enabled
+// while #tlEditor-textarea says something else than what was last applied to the page
+// (tlImporter_applyBaseline). The textarea is looked up by id every time and never kept -
+// that box belongs to the site's editor module, which may rebuild it, and a kept reference
+// would watch a dead node.
+function tlImporter_refreshDownApply() {
+    var button = $( "#mdb-tlImporter-apply-down" );
+
+    if( !button.length ) return;
+
+    var ta = document.getElementById( "tlEditor-textarea" ),
+        changed = !!ta && $.trim( ta.value || "" ) !== $.trim( tlImporter_applyBaseline || "" );
+
+    button
+        .prop( "disabled", !changed )
+        .toggleClass( "mdb-tlImporter-locked", !changed )
+        .attr( "title", changed
+            ? "Replace the page's tracklist with the editor's text, as it stands, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed."
+            : "Nothing to apply: the editor holds exactly what is already written into the page.\nEdit the box and the button wakes up." );
+}
+
+// Typing is the fast path: delegated on the document, so it still fires when the site's
+// editor module replaces its textarea. The poll in tlImporter_addDownActions is the half no
+// event can cover - the editor's own tools (menu buttons, undo, find/replace) set the value
+// programmatically, and a programmatic write fires no input event.
+$(document).on( "input.mdbTlImporterDown", "#tlEditor-textarea", function() {
+    tlImporter_refreshDownApply();
+});
+
 // tlImporter_addDownActions
 // The row below the editor's #tlEditor-formActions: the Apply button and the Live updates
 // switch - what the Merged column has under its box, minus the tracklist state icons. Those
@@ -917,9 +949,22 @@ function tlImporter_addDownActions( ed ) {
     row.append( applyButton, tlImporter_downLiveChip() );
     ed.actions.after( row );
 
-    // same wake/sleep rule as the Merged column's button, against the same baseline - what
-    // was last applied to the page (both buttons follow later applies via mdbApplied)
-    tlImporter_watchApplyButton( ed.box, applyButton, tlImporter_applyBaseline );
+    tlImporter_refreshDownApply();
+
+    // the poll behind the delegated input handler above - every value change wakes or sleeps
+    // the button within half a second, however it was made. Cleared on the way up
+    // (tlImporter_applyDown), and clears itself should the row leave the page another way.
+    if( tlImporter_downPollTimer ) clearInterval( tlImporter_downPollTimer );
+
+    tlImporter_downPollTimer = setInterval(function() {
+        if( !$.contains( document.documentElement, row.get( 0 ) ) ) {
+            clearInterval( tlImporter_downPollTimer );
+            tlImporter_downPollTimer = null;
+            return;
+        }
+
+        tlImporter_refreshDownApply();
+    }, tlImporter_downPollMs );
 
     tlImporter_syncDownLive();
 }
@@ -989,12 +1034,15 @@ function tlImporter_applyDown( wrap, down ) {
             tlImporter_downObserver = null;
         }
 
-        $( "#mdb-tlImporter-downActions" ).remove();
+        if( tlImporter_downPollTimer ) {
+            clearInterval( tlImporter_downPollTimer );
+            tlImporter_downPollTimer = null;
+        }
 
-        // only OUR watcher comes off the site's box - the live binding stays, and stays
-        // quiet: the box keeps its text and its known state, so nothing fires until the
-        // reader really edits down there again
-        ed.box.off( ".mdbTlImporterApply" );
+        // the row goes, its button and switch with it; the live binding on the site's box
+        // stays, and stays quiet: the box keeps its text and its known state, so nothing
+        // fires until the reader really edits down there again
+        $( "#mdb-tlImporter-downActions" ).remove();
 
         // the text back into the Merged box, the known state with it; the input trigger
         // re-sizes the box and wakes its Apply watcher
@@ -1315,11 +1363,12 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
     button.text( "Applied" );
     setTimeout(function() { button.text( "Apply" ); }, 1500 );
 
-    // the box now holds what the page holds - BOTH buttons (whichever exist right now) have
-    // nothing left to do until the next edit (see tlImporter_watchApplyButton), and a button
-    // built later starts against this text too
+    // the box now holds what the page holds - both buttons have nothing left to do until the
+    // next edit. The Merged button follows through mdbApplied (tlImporter_watchApplyButton),
+    // the down button reads the moved baseline directly (tlImporter_refreshDownApply).
     tlImporter_applyBaseline = text;
-    $( "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down" ).trigger( "mdbApplied", [ text ] );
+    $( "#mdb-tlImporter-apply" ).trigger( "mdbApplied", [ text ] );
+    tlImporter_refreshDownApply();
 
     log( "tlImporter: applied the Merged box (TLE status: " + ( status || "(none)" ) + ")." );
 });

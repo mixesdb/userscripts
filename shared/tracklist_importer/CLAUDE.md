@@ -85,3 +85,10 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   choice is remembered per browser (`mdb-tlImporter-down`) and applied only once the site's
   editor section exists – it is rendered by a ResourceLoader module, so the toggle waits for
   `#tlEditor-textarea` via waitForKeyElements.
+  Two of its lessons are load-bearing: docked, the block sits INSIDE `form#editform`, and
+  mixesdb.com's own `form button` !important rules hit the corner toggles (they squeezed the
+  flex-item svg to 0px width) – every visual property of the toggles carries `!important` in
+  the CSS for exactly that, do not "clean" them away. And the down Apply button is refreshed
+  by `tlImporter_refreshDownApply()` – a document-delegated input handler plus a poll – never
+  by a listener bound to the textarea node: the site's editor tools set the value
+  programmatically (no input event), and the module may rebuild the node.

@@ -47,22 +47,36 @@
 /* the two corner toggles: widen in the top left - the side that block grows to, so the button
  * stands where the movement happens - and the down arrow in the top right, the upper right
  * corner of the Candidate column. Absolute, so they float over the block's own edge instead of
- * taking a line above the columns: the heading row starts at the very top either way. */
+ * taking a line above the columns: the heading row starts at the very top either way.
+ *
+ * The !important on every visual property is not decoration: while the block is DOWN it sits
+ * inside form#editform, and mixesdb.com dresses "form button" with its own !important rules
+ * (bold, 1em side padding, borders) - which squeezed the flex-item svg to 0px width and turned
+ * both toggles into ordinary grey buttons with no icon. In the block's home position outside
+ * the form those rules never matched, which is why the widen toggle looked right for months.
+ * The svg gets flex: 0 0 auto for the same fight: a flex item may be squeezed below its width
+ * by a padded-up container, and the icon IS the button. */
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle,
 #mdb-tlImporter-diff .mdb-tlImporter-down-toggle {
     position: absolute;
     top: -11px;
     z-index: 2;
-    width: 22px;
-    height: 22px;
-    padding: 2px;
+    width: 22px !important;
+    min-width: 0 !important;
+    height: 22px !important;
+    min-height: 0 !important;
+    padding: 2px !important;
+    margin: 0 !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #888;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: .2em;
+    color: #888 !important;
+    background: none !important;
+    border: 1px solid transparent !important;
+    border-radius: .2em !important;
+    box-shadow: none !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
     line-height: 1;
 }
 
@@ -76,15 +90,16 @@
 
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle:hover,
 #mdb-tlImporter-diff .mdb-tlImporter-down-toggle:hover {
-    color: #111;
-    border-color: #ccc;
-    background-color: #fff;
+    color: #111 !important;
+    border-color: #ccc !important;
+    background-color: #fff !important;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-wide-toggle svg,
 #mdb-tlImporter-diff .mdb-tlImporter-down-toggle svg {
-    width: 14px;
-    height: 14px;
+    width: 14px !important;
+    height: 14px !important;
+    flex: 0 0 auto !important;
     display: block;
 }
 
