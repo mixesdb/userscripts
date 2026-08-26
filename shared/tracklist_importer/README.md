@@ -44,6 +44,10 @@ original is treated as more correct; the candidate only enriches it:
 
 Titles are matched fuzzily, so spelling differences between the two sources do not produce
 duplicates, and the candidate's cues are converted to the cue format the original already uses.
+One exception: when the mix turns out to run past what the original's cue format can say – a
+track was detected at `[106]` but the page counts minutes in two digits – the whole list
+switches to the wider format (`[08]` becomes `[008]`, `[??]` becomes `[???]`) instead of mixing
+both widths.
 
 ### On the edit form
 
@@ -60,8 +64,9 @@ After a merge, a three-column block sits between MediaWiki's diff and the wiki t
 - **Original** – the tracklist the page had, with the parts the merge changed highlighted
 - **Merged** – the result as applied, in the same editable [Tracklist box](../tracklist_editor/)
   the player sites show: it grows with the text, checks itself against the Tracklist Editor
-  (with the Live updates switch, the API call counter, the row count and the tracklist state
-  icons under it), so final fixes can be made right there. The **Apply** button below writes
+  (with the Live updates switch, the API call counter and the row count under it – no
+  tracklist state icons, the real ones under the edit box are on the same page), so final
+  fixes can be made right there. The **Apply** button below writes
   the box back into the page: the tracklist section, the `Tracklist:` category and the
   indicator icons under the edit box, all in one click. It is greyed out until the box actually
   says something else than what the merge already put into the page – on arrival there is
@@ -78,21 +83,22 @@ stretches the block to the left over the sidebar and back – its right edge sta
 content column ends, and that choice IS remembered per browser. On a narrow window the three
 columns stack on top of each other instead, in the same order.
 
-The block is a fieldset named **Diff**, like the form's own sections. The arrow button in its
-top right corner moves it down to the page's own full Tracklist Editor: block and editor
+The block is a fieldset named **Diff**, like the form's own sections. By default it moves down
+to the page's own full Tracklist Editor as soon as that section has loaded: block and editor
 section stand directly below the wiki's Save/Preview buttons, the Merged text goes into that
 editor, the empty Merged column disappears, and Original and Candidate stay side by side above
 it – so final fixes happen in the editor you know, with its menu, find/replace and undo. Below
 the editor's own buttons the block adds an **Apply** button and the Live updates switch (no
-tracklist state icons down there – the real ones under the edit box are on the same page).
+tracklist state icons here either, for the same reason as in the Merged column).
 That Apply always writes what stands in the editor at the moment you click it, so anything the
 editor's own buttons just did to the text goes into the page with it; it is only greyed out
 while the box is empty. Clicked while the Tracklist Editor is still answering one of those
 buttons it says **One moment**, waits for the answer, and then applies the settled text by
 itself – one click is enough, however fast it followed the button.
-The arrow flips to point up and moves everything back, the text travelling along both ways, so
-toggling never loses an edit – and the page scrolls along to wherever the block just went.
-Like the widen choice, this one is remembered per browser.
+The arrow button in the block's top right corner moves everything back up above the edit box,
+and down again – the text travelling along both ways, so toggling never loses an edit, and the
+page scrolls along to wherever the block just went. Like the widen choice, your last click is
+remembered per browser: moved up once, the block stays up on the next mix page too.
 
 Blanks and `...` gaps are never highlighted. The block stays while you preview or compare, so
 fixes can be applied at any point before saving – but not when the compare comes back empty: a

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.27
+// @version      2026.08.27.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_21
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -2171,6 +2171,16 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.2
+ * Tracklist Importer merge, the dur fix (merge_core.js v5, from the NTS Japanese Techno
+ * report): "the original's cue format wins" gets one exception. A bare [XX] format only
+ * reaches 99 minutes, and a candidate detected beyond that ([106]) WILL be merged in - so
+ * when either side knows a cue that does not fit the format's digit count, the format widens
+ * (XX -> XXX) BEFORE merging and every cue moves with it, [08] -> [008] and [??] -> [???]
+ * included, instead of the merged list mixing both widths. Colon formats are left alone.
+ * A widened "??" next to "???" reads as the same unknown, so the review block does not
+ * highlight the pure re-formatting as a change.
  *
  * 2026.08.26.27
  * Tracklist Importer, down state, after the mousedown fix (tracklist_importer funcs.js v21,

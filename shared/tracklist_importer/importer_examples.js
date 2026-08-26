@@ -210,6 +210,125 @@ var tlImporterExamples_merge = [
                 "...",
         changed: false,
         unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-27 (NTS Guide To 90s-00s Japanese Techno, trackid.net): the dur
+        // fix. The original's XX cue format met a candidate detected at [106] – beyond what
+        // two digits can say – and the merged list mixed [08] rows with a [106] one. Guard:
+        // when cues beyond the format's digit count are known on either side, the target
+        // format widens (XX -> XXX) BEFORE merging, and every cue moves with it, [??] -> [???]
+        // included. The duplicate insertions (Hiroshi Watanabe next to Hiroshi W., FLR - PART 8
+        // next to FLR - Easy Filter Part 8, ――――― - IN YER MEMORY next to Takkyu Ishino's) are
+        // the fuzzy threshold's current reading, NOT part of the guard – a later matching
+        // improvement may change those lines.
+        name: "bare cue format widens for cues beyond 99",
+        original: "# [00] Captain Funk - O.Y.M.\n" +
+                  "# [00] Big Foot - Bisket Afro\n" +
+                  "# [08] Hitoshi Ohishi - Heelflip\n" +
+                  "# [??] Hiroshi W. - Lost City\n" +
+                  "# [??] Yoshinori Sunahara - MFRFM (Bounce 2 Mix)\n" +
+                  "# [??] Hiroki Esashika - Kazane\n" +
+                  "# [??] DJ Tasaka - Loopa Trooper\n" +
+                  "# [??] Kagami - Tokyo Disco Music All Night Long\n" +
+                  "# [??] Moa - Malicia Mpedia\n" +
+                  "# [??] Takkyu Ishino - Feeling\n" +
+                  "# [??] Co-Fusion - Tokyo Funky Beat!\n" +
+                  "# [??] Zank - Dow\n" +
+                  "# [??] Ryukyudisko - Super Spin Spam\n" +
+                  "# [??] The Anazaworld - Horse Direct\n" +
+                  "# [??] ''DJ Shufflemaster - Untitled''\n" +
+                  "# [??] Co-Fusion - Cycle\n" +
+                  "# [??] Fumiya Tanaka - Micro One\n" +
+                  "# [??] Q'Hey - Login\n" +
+                  "# [??] ''Subvoice - Untitled''\n" +
+                  "# [??] Takaaki Itoh - Serenity Through Pain\n" +
+                  "# [??] Go Hiyama - C\n" +
+                  "# [??] Kazu Kimura - Night Walk\n" +
+                  "# [??] Akira Ishihara - Yamaga 7 O'Clock\n" +
+                  "# [??] Brothers In Raw (Tobynation & Mijk Van Dijk) - Ach-So! (Ebizoo Remix)\n" +
+                  "# [??] ''Chester Beatty - Untitled (Turia B1)''\n" +
+                  "# [??] Kagami - Tiger Track\n" +
+                  "# [??] FLR - Easy Filter Part 8\n" +
+                  "# [??] Dr. Shingo - Galaxy Girls\n" +
+                  "# [??] Chizawa - Panther\n" +
+                  "# [??] Nagai Eri - Howlin' Yumi\n" +
+                  "# [??] Jin Hiyama - Exorista Japonica\n" +
+                  "# [??] Ryoh Mitomi - Haru-Kaze\n" +
+                  "# [??] 7th Gate - After The Silence\n" +
+                  "# [??] Ken Ishii - Extra\n" +
+                  "# [??] Takkyu Ishino - In Yer Memory\n" +
+                  "# [??] Shin - Plus Tokyo\n" +
+                  "# [??] Ringo aka Susumu Yokota - Tsukushi",
+        candidate: "[000] Captain Funk - O.Y.M. [Sublime/Musicmine]\n" +
+                   "[004] ?\n" +
+                   "...\n" +
+                   "[009] Hiroshi Watanabe - Lost City [King Street Sounds]\n" +
+                   "...\n" +
+                   "[026] Takkyu Ishino - Feeling\n" +
+                   "[029] ?\n" +
+                   "...\n" +
+                   "[033] RYUKYUDISKO - Super Spin Spam\n" +
+                   "[036] ?\n" +
+                   "...\n" +
+                   "[042] Co-Fusion - Cycle [Musicmine]\n" +
+                   "[046] ?\n" +
+                   "...\n" +
+                   "[061] Kazu Kimura - Night Walk [CLR]\n" +
+                   "...\n" +
+                   "[073] FLR - PART 8 [70Drums]\n" +
+                   "[076] Dr. Shingo - Galaxy Girls [Konsequent]\n" +
+                   "[082] Chizawa Q - Panther\n" +
+                   "[087] Nagai Eri - Howlin' Yumi [ACV]\n" +
+                   "...\n" +
+                   "[094] 7th Gate - After The Silence [Rotation]\n" +
+                   "[099] Ken Ishii - Extra\n" +
+                   "[106] ――――― - IN YER MEMORY\n" +
+                   "[111] ?\n" +
+                   "...",
+        expect: "[000] Captain Funk - O.Y.M. [Sublime/Musicmine]\n" +
+                "[000] Big Foot - Bisket Afro\n" +
+                "[008] Hitoshi Ohishi - Heelflip\n" +
+                "[???] Hiroshi W. - Lost City\n" +
+                "[???] Yoshinori Sunahara - MFRFM (Bounce 2 Mix)\n" +
+                "[???] Hiroki Esashika - Kazane\n" +
+                "[???] DJ Tasaka - Loopa Trooper\n" +
+                "[???] Kagami - Tokyo Disco Music All Night Long\n" +
+                "[???] Moa - Malicia Mpedia\n" +
+                "[009] Hiroshi Watanabe - Lost City [King Street Sounds]\n" +
+                "[026] Takkyu Ishino - Feeling\n" +
+                "[???] Co-Fusion - Tokyo Funky Beat!\n" +
+                "[???] Zank - Dow\n" +
+                "[033] Ryukyudisko - Super Spin Spam\n" +
+                "[???] The Anazaworld - Horse Direct\n" +
+                "[???] DJ Shufflemaster - Untitled\n" +
+                "[042] Co-Fusion - Cycle [Musicmine]\n" +
+                "[???] Fumiya Tanaka - Micro One\n" +
+                "[???] Q'Hey - Login\n" +
+                "[???] Subvoice - Untitled\n" +
+                "[???] Takaaki Itoh - Serenity Through Pain\n" +
+                "[???] Go Hiyama - C\n" +
+                "[061] Kazu Kimura - Night Walk [CLR]\n" +
+                "[???] Akira Ishihara - Yamaga 7 O'Clock\n" +
+                "[???] Brothers In Raw (Tobynation & Mijk Van Dijk) - Ach-So! (Ebizoo Remix)\n" +
+                "[???] Chester Beatty - Untitled (Turia B1)\n" +
+                "[???] Kagami - Tiger Track\n" +
+                "[???] FLR - Easy Filter Part 8\n" +
+                "[073] FLR - PART 8 [70Drums]\n" +
+                "[076] Dr. Shingo - Galaxy Girls [Konsequent]\n" +
+                "[082] Chizawa - Panther\n" +
+                "[087] Nagai Eri - Howlin' Yumi [ACV]\n" +
+                "[???] Jin Hiyama - Exorista Japonica\n" +
+                "[???] Ryoh Mitomi - Haru-Kaze\n" +
+                "[094] 7th Gate - After The Silence [Rotation]\n" +
+                "[099] Ken Ishii - Extra\n" +
+                "[???] Takkyu Ishino - In Yer Memory\n" +
+                "[???] Shin - Plus Tokyo\n" +
+                "[???] Ringo aka Susumu Yokota - Tsukushi\n" +
+                "[106] ――――― - IN YER MEMORY",
+        changed: true,
+        // the "?" candidates (lines 2, 7, 10, 13, 25) are dropped – a gap-less original takes
+        // no unknown rows, so their cues stay unplaced
+        unused: { cues: [2, 7, 10, 13, 25], texts: [], labels: [] }
     }
 ];
 
