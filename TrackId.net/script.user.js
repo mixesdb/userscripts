@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.7
+// @version      2026.08.26.8
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_129
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_6
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_7
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 180,
+var cacheVersion = 181,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2024,6 +2024,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.8
+ * Tracklist Importer review block, round four (tracklist_importer funcs.js v7, CSS). The
+ * reported smashed "code>#" in the feedback box: MixesDB's own ext.mixesdb.global treats
+ * every <li> under #mw-content-text on ns-0 edit/submit pages as a potential track row,
+ * rewrites it with .html().replace(/<br>[^+]/,'') - eating the "<" of the tag behind the
+ * <br> - and appends its fa-search magnifier. The block now flattens the API's
+ * ul#tlEditor-feedback-topInfo into plain divs (re-applied via MutationObserver on every
+ * feedback re-render), so nothing matches "ul li" and the site engine leaves the box alone;
+ * the flattened rows also clear the chips with .5rem air and lose the list indent. The
+ * Candidate column highlights both readings now: green = taken by the merge, orange = could
+ * not be placed (gaps and "?" blanks stay plain). The block head line is gone.
  *
  * 2026.08.26.7
  * Tracklist Importer review block, round three (tracklist_importer funcs.js v6, CSS): Apply

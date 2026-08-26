@@ -31,14 +31,6 @@
     font-size: 12px;
 }
 
-#mdb-tlImporter-diff .mdb-tlImporter-diff-head {
-    margin-bottom: 6px;
-}
-
-#mdb-tlImporter-diff .mdb-tlImporter-diff-legend {
-    color: #666;
-}
-
 /* the three columns: minmax(0, ...) so a long unbroken track line wraps inside its column
  * instead of blowing the grid apart */
 #mdb-tlImporter-diff .mdb-tlImporter-cols {
@@ -93,10 +85,22 @@
     display: none;
 }
 
-/* the verdict list starts BELOW the right-floated chips (Live updates, API calls, rows, state
- * icons) instead of being squeezed into the space next to them */
-#mdb-tlImporter-diff #tlEditor-feedback ul {
+/* the verdict rows start BELOW the right-floated chips (Live updates, API calls, rows, state
+ * icons) instead of being squeezed into the space next to them, with air toward the chips and
+ * without the list indent. The ul selector covers the moment before the flatten
+ * (tlImporter_flattenFeedbackList) replaces the API's list with the div rows. */
+#mdb-tlImporter-diff #tlEditor-feedback ul,
+#mdb-tlImporter-diff .mdb-tlImporter-feedback-rows {
     clear: both;
+    margin-top: .5rem;
+    margin-left: 0;
+    padding-left: 0;
+    padding-inline-start: 0;
+    list-style: none;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-feedback-row + .mdb-tlImporter-feedback-row {
+    margin-top: .5em;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-apply-wrap {
@@ -129,11 +133,9 @@
     border-radius: 2px;
 }
 
-/* candidate text the merge did NOT use - the pre-review-block highlight. Kept although the
- * renderer no longer emits it: funcs.js arrives through @require and this file through
- * loadRawCss(), so the two can be a cache generation apart. */
+/* candidate text the merge could NOT place - never on blanks or "..." gaps */
 .mdb-tlImporter-unused {
-    background-color: #ffd6d6;
+    background-color: #ffe1a8;
     border-radius: 2px;
 }
 

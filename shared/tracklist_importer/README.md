@@ -64,9 +64,10 @@ After a merge, a three-column block sits between MediaWiki's diff and the wiki t
   icons under it), so final fixes can be made right there. The **Apply** button below writes
   the box back into the page: the tracklist section, the `Tracklist:` category and the
   indicator icons under the edit box, all in one click.
-- **Candidate** – the tracklist the player site found, with the parts the merge took over
-  highlighted. Un-highlighted parts were not needed or found no place – salvage them by hand
-  into the Merged box if they are worth it.
+- **Candidate** – the tracklist the player site found: green marks the parts the merge took
+  over, orange the parts it could not place – a label the page already had differently, a cue
+  that was not taken, a track that found no spot. Salvage the orange parts by hand into the
+  Merged box if they are worth it; parts the page simply already had stay plain.
 
 Blanks and `...` gaps are never highlighted. The block stays while you preview or compare, so
 fixes can be applied at any point before saving – but not when the compare comes back empty: a

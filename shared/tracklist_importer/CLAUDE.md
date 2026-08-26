@@ -35,10 +35,18 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
 - **The live page decides Insert vs Merge**, not the link's label: the page can change between
   the link being built and clicked. The label is only what the fetch at link-build time said.
 - **The original wins.** The candidate never overwrites an original cue, title or label – it
-  only fills what is missing. What it could not place stays un-highlighted in the review
-  block's Candidate column (highlights mark what the merge TOOK, mirrored by the Original
-  column highlighting what the merge changed) instead of being forced in – hand-salvage goes
-  through the Merged box and its Apply button.
+  only fills what is missing. The Candidate column shows both readings: green (`used`) marks
+  what the merge wrote into the result, orange (`use` = false) what it could not place; parts
+  the original already carried stay plain. Hand-salvage goes through the Merged box and its
+  Apply button.
+- **No `<li>` may survive inside the review block's feedback box.** MixesDB's own
+  `ext.mixesdb.global` treats every `<li>` under `#mw-content-text` on ns-0 edit/submit pages
+  as a potential track row, rewrites it via `.html().replace(/<br>[^+]/,'')` – a regex that
+  eats the `<` of whatever tag follows a `<br>` (the reported smashed `code>#`) – and appends
+  its fa-search wrapper. `tlImporter_flattenFeedbackList()` therefore turns the API's
+  `ul#tlEditor-feedback-topInfo` into plain divs, re-applied through a MutationObserver
+  because live updates and blur formats re-render the box from tracklist_editor/funcs.js,
+  which has no hook for us.
 - **The review block sits between MediaWiki's diff and the edit form** (`#editform`), never
   below the box: the reading order is the wiki's own diff first, then our three columns, then
   the form. Its Merged column is a REAL Tracklist Editor box (`#tlEditor`/`#mixesdb-TLbox`,
