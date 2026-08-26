@@ -63,17 +63,20 @@ After a merge, a three-column block sits between MediaWiki's diff and the wiki t
   (with the Live updates switch, the API call counter, the row count and the tracklist state
   icons under it), so final fixes can be made right there. The **Apply** button below writes
   the box back into the page: the tracklist section, the `Tracklist:` category and the
-  indicator icons under the edit box, all in one click.
+  indicator icons under the edit box, all in one click. It is greyed out until the box actually
+  says something else than what the merge already put into the page – on arrival there is
+  nothing to apply, and after applying it goes quiet again.
 - **Candidate** – the tracklist the player site found: green marks the parts the merge took
   over, orange the parts it could not place – a label the page already had differently, a cue
   that was not taken, a track that found no spot. Salvage the orange parts by hand into the
   Merged box if they are worth it; parts the page simply already had stay plain.
 
 The bars between the columns can be dragged to give one of them more room – double-click a bar
-for three equal columns again. The button in the block's top left corner stretches the block
-to the left over the sidebar and back; its right edge stays where the content column ends. Both choices are remembered per
-browser. On a narrow window the three columns stack on top of each other instead, in the same
-order.
+for three equal columns again. Every block starts with three equal columns: the widths belong to
+the merge in front of you, not to the one before it. The button in the block's top left corner
+stretches the block to the left over the sidebar and back – its right edge stays where the
+content column ends, and that choice IS remembered per browser. On a narrow window the three
+columns stack on top of each other instead, in the same order.
 
 Blanks and `...` gaps are never highlighted. The block stays while you preview or compare, so
 fixes can be applied at any point before saving – but not when the compare comes back empty: a
