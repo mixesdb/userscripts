@@ -74,9 +74,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
 - **Chaptered originals (`;Name` rows) are skipped** on both sides – no link, no merge.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
-  top right corner (`tlImporter_applyDown`) moves the block above `#editToolsBar-TLeditor` and
-  the Merged text into the site's own `#tlEditor-textarea`; the emptied Merged column is hidden
-  by CSS and keeps all its wiring. The text travels BOTH ways together with `mdbTlboxKnown`, so
+  top right corner (`tlImporter_applyDown`) moves the block AND `#editToolsBar-TLeditor` (the
+  wrapper of the site's whole editor fieldset) to directly after `.editOptions` – below the
+  wiki's Save/Preview row, jumping the toolbar rows and the TrackId box between – and the
+  Merged text into the site's own `#tlEditor-textarea`; the emptied Merged column is hidden
+  by CSS and keeps all its wiring. A hidden `#mdb-tlImporter-tleHome` marker restores the
+  editor's home spot on the way up, and `body.mdb-tlImporter-down` scopes the down-only page
+  rules (`#editform` margin, the hidden feedback close button). The block itself is a
+  fieldset with legend "Diff" – `min-width: 0` in the CSS is what lets its columns shrink. The text travels BOTH ways together with `mdbTlboxKnown`, so
   toggling never loses an edit and never triggers a spurious blur update. Below
   `#tlEditor-formActions` sit a second Apply button (`#mdb-tlImporter-apply-down`, same
   delegated handler, reading the site box) and a standalone Live updates switch – deliberately

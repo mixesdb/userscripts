@@ -995,10 +995,33 @@ function tlImporter_applyDown( wrap, down ) {
     if( down ) {
         var text = midBox.val() || "";
 
-        // the block above the editor's toolbar; the CSS hides the Merged column and both
-        // grab bars behind the class
+        // the CSS hides the Merged column and both grab bars behind the class; the body
+        // class scopes the down-only page rules (#editform's air, the feedback close)
         wrap.addClass( "mdb-tlImporter-down" );
-        ed.bar.before( wrap );
+        $( "body" ).addClass( "mdb-tlImporter-down" );
+
+        // Directly below the wiki's own Save/Preview row: the block first, the whole editor
+        // section (ed.bar wraps the site's fieldset) moved up right after it - both jump
+        // over the toolbar rows and the TrackId box that normally stand between the buttons
+        // and the editor. A hidden marker keeps the editor's home spot, so the way up is an
+        // exact restore. .editButtons is the last child of .editOptions, so "after
+        // .editOptions" IS directly below the buttons.
+        var buttons = $( ".editButtons" ).first(),
+            anchor = buttons.closest( ".editOptions" );
+
+        if( !anchor.length ) anchor = buttons;
+
+        if( anchor.length ) {
+            if( !$( "#mdb-tlImporter-tleHome" ).length ) {
+                ed.bar.before( $( '<span id="mdb-tlImporter-tleHome" class="mdb-element" style="display:none"></span>' ) );
+            }
+
+            anchor.after( wrap );
+            wrap.after( ed.bar );
+        } else {
+            // no buttons row to stand under - above the editor is still the right place
+            ed.bar.before( wrap );
+        }
 
         // the text into the real editor. The known state travels first, so an unedited text
         // is not re-asked on the first blur; the live machinery is bound before the value
@@ -1050,7 +1073,16 @@ function tlImporter_applyDown( wrap, down ) {
         midBox.val( backText );
         midBox.trigger( "input" );
 
+        // the editor section back to its home spot, marked on the way down
+        var home = $( "#mdb-tlImporter-tleHome" );
+
+        if( home.length ) {
+            home.after( ed.bar );
+            home.remove();
+        }
+
         wrap.removeClass( "mdb-tlImporter-down" );
+        $( "body" ).removeClass( "mdb-tlImporter-down" );
         tlImporter_placeDiffBlock( wrap );
     }
 
@@ -1082,6 +1114,19 @@ function tlImporter_addDownToggle( wrap ) {
 
         tlImporter_applyDown( wrap, down );
         tlImporter_writeDown( down );
+
+        // follow the block to where it just went - the toggle is a jump across most of the
+        // page, and staying behind leaves the reader looking at the hole it left. Only here,
+        // on the click: the remembered state applied at render time must not steal the
+        // scroll position from the diff the page opened on.
+        var node = wrap.get( 0 );
+
+        if( node ) {
+            window.scrollTo({
+                top: node.getBoundingClientRect().top + window.pageYOffset - 60,
+                behavior: "smooth"
+            });
+        }
     });
 }
 
@@ -1146,7 +1191,11 @@ function tlImporter_renderDiffView( data ) {
     if( !data || !data.items || !data.items.length ) return;
     if( $( "#mdb-tlImporter-diff" ).length ) return;
 
-    var wrap = $( '<div id="mdb-tlImporter-diff" class="mdb-element"></div>' ),
+    // a FIELDSET, not a div: the edit form is a column of fieldsets (the site's own
+    // "Tracklist editor" among them), and the block reads as one of them, with its name on
+    // the border. min-width: 0 in the CSS undoes the fieldset's min-content quirk, or the
+    // three columns could not shrink.
+    var wrap = $( '<fieldset id="mdb-tlImporter-diff" class="mdb-element"></fieldset>' ),
         cols = $( '<div class="mdb-tlImporter-cols"></div>' );
 
     function col( name, helpText ) {
@@ -1221,10 +1270,14 @@ function tlImporter_renderDiffView( data ) {
     // the two grab bars between the columns, plus the widths the reader last dragged
     tlImporter_addColResizers( cols );
 
-    // the widen toggle. First element of the block, so tabbing reaches it before the columns -
-    // the CSS lifts it out of the flow into the top left corner, over the block's own padding,
-    // where it costs neither a line nor a column's width
+    // the widen toggle. First element after the legend, so tabbing reaches it before the
+    // columns - the CSS lifts it out of the flow into the top left corner, over the block's
+    // own padding, where it costs neither a line nor a column's width
     tlImporter_addWideToggle( wrap );
+
+    // prepended AFTER the toggle so it stays the fieldset's first child - the legend is what
+    // names the block on its border, like the site's own "Tracklist editor" fieldset
+    wrap.prepend( "<legend>Diff</legend>" );
 
     wrap.append( cols );
 

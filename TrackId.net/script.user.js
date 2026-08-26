@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.19
+// @version      2026.08.26.20
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 191,
+var cacheVersion = 192,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2024,6 +2024,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.20
+ * Tracklist Importer review block, layout round (tracklist_importer funcs.js v16, CSS). The
+ * block is a FIELDSET now, legend "Diff", reading as one of the edit form's own sections.
+ * Down state: block and the site's whole editor section (#editToolsBar-TLeditor) move to
+ * directly below the wiki's Save/Preview row (.editButtons), jumping the toolbar rows and
+ * the TrackId box between; a hidden marker restores the editor's home spot on the way up,
+ * and #editform gets 1em of air above while down (body.mdb-tlImporter-down scopes it). The
+ * feedback box's own close button is hidden while down - the chips row owns that corner and
+ * the X had fallen under it. The corner toggles moved inside the block (top 10px, on the
+ * heading row's line) instead of straddling the border, where they overlapped whatever
+ * stood above. Toggling scrolls to the block's new position.
  *
  * 2026.08.26.19
  * Tracklist Importer down state, fixes (tracklist_importer funcs.js v15, CSS). The corner
