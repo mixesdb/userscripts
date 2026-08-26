@@ -599,7 +599,7 @@ function tlImporter_addColResizers( cols ) {
  * Full width for the review block
  *
  * MediaWiki's content column is the width of an article, and three tracklists side by side
- * are not an article. The button in the block's top left corner takes the block out of that
+ * are not an article. The button in the block's top right corner takes the block out of that
  * column: it keeps its place in the page flow but reaches to both edges of the window, over
  * whatever the skin has parked left of the content (sidebar, tools). Click again to give it
  * back. Like the column widths, the choice is kept per browser.
@@ -623,8 +623,11 @@ function tlImporter_wideIcon( wide ) {
         ? '<path d="M2 3 L6.5 8 L2 13" /><path d="M14 3 L9.5 8 L14 13" />'
         : '<path d="M6.5 3 L2 8 L6.5 13" /><path d="M9.5 3 L14 8 L9.5 13" />';
 
-    return '<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" '
-        + 'stroke-linecap="round" stroke-linejoin="round">' + arrows + '</svg>';
+    // width/height as ATTRIBUTES, not left to the CSS: this file arrives through @require and
+    // the stylesheet through loadRawCss(), so the two can be a cache generation apart - and an
+    // <svg> with nothing but a viewBox collapses to nothing, which is an empty button
+    return '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" '
+        + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + arrows + '</svg>';
 }
 
 // tlImporter_readWide
@@ -782,8 +785,9 @@ function tlImporter_renderDiffView( data ) {
     // the two grab bars between the columns, plus the widths the reader last dragged
     tlImporter_addColResizers( cols );
 
-    // the full-width toggle in the top left corner, before the columns so it is the block's
-    // first element - it is positioned into the corner, but keyboard order should match
+    // the full-width toggle. First element of the block, so tabbing reaches it before the
+    // columns - the CSS lifts it out of the flow into the top right corner, over the block's
+    // own padding, where it costs neither a line nor a column's width
     tlImporter_addWideToggle( wrap );
 
     wrap.append( cols );
