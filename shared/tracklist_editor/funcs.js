@@ -142,6 +142,10 @@ function tlBoxCssCacheParam() {
  *   and the printed feedback - but NEVER touches the text and NEVER refreshes mdbTlboxKnown.
  *   The caret is in the box (a rewrite would move it), and mdbTlboxKnown is what tells the
  *   blur update the text still needs formatting.
+ * - while the caret sits in a TEXT ROW - a line carrying the wiki italics, "''Artist - ?''" -
+ *   the live check is skipped entirely (tlBoxCaretOnTextRow), because taking those marks off by
+ *   hand runs through states the formatter would put straight back. The blur pass still formats
+ *   the line; it just no longer happens between two keystrokes.
  * - when an EDITED box loses focus, the text goes through the Tracklist Editor API once more:
  *   the box greys out (mdb-tlBox-updating, styled in tracklistEditor_copy.css), and the answer
  *   replaces the text and re-colours the feedback - exactly as if the tracklist had arrived
@@ -465,6 +469,53 @@ function tlBoxTopInfoList( target ) {
 }
 
 /*
+ * tlBoxChipRow
+ *
+ * ONE wrapper around everything that sits in the top right corner of a feedback box: the
+ * toolkit's tracklist state icons, the API's "N rows", our API call counter and the Live
+ * updates switch.
+ *
+ * They used to float individually, straight into the box. That works as long as the box is
+ * wide enough for the verdict to fit beside them - and falls apart everywhere else: a verdict
+ * next to four floats is squeezed into a two-line column, and any attempt to push it under
+ * them had to clear every single float, in every stylesheet that cared, forever. Wrapping them
+ * makes the row ONE element: it still floats (so the wide boxes on the player sites read
+ * exactly as before, verdict beside the chips), but a single rule can now turn it into a line
+ * of its own - see tracklistEditor_copy.css, which does that for mixesdb.com.
+ *
+ * The API's "N rows" chip comes with the answer's HTML and is moved in here; the other three
+ * are inserted relative to it, so they follow by themselves.
+ *
+ * Rebuilt per render: tlBoxSetFeedbackHtml() replaces the whole box content, so the wrapper is
+ * gone with it and this runs again from tlBoxShowApiCount().
+ */
+function tlBoxChipRow( box ) {
+    box = $(box).first();
+
+    if( !box.length ) return $();
+
+    var row = box.children( ".mdb-tlEditor-chipRow" ).first();
+
+    if( row.length ) return row;
+
+    row = $("<div>").addClass( "mdb-tlEditor-chipRow mdb-element" );
+
+    // first in the box, so the floats inside it stay in the box's top right corner and the
+    // verdict that follows can never end up ABOVE them
+    box.prepend( row );
+
+    // the API's own chip, into the wrapper the others hang off. find(), not children(): the
+    // answer's markup is the API's, and a future one may well wrap that chip in something -
+    // the row it belongs in is here either way.
+    var rows = box.find( "#tlEditor-feedback-rows" ).first();
+
+    if( rows.length ) row.append( rows );
+
+    return row;
+}
+
+
+/*
  * The API call counter
  *
  * Every Tracklist Editor request this page has made, printed as a chip in the feedback box
@@ -499,7 +550,8 @@ function tlBoxShowApiCount() {
 
     $("#tlEditor-feedback").each(function() {
         var feedbackBox = $(this),
-            rows = feedbackBox.find( "#tlEditor-feedback-rows" ),
+            chipRow = tlBoxChipRow( feedbackBox ),
+            rows = chipRow.find( "#tlEditor-feedback-rows" ),
             countChip = feedbackBox.find( ".mdb-tlEditor-apiCalls" ),
             autoChip = feedbackBox.find( ".mdb-tlEditor-liveUpdates" );
 
@@ -508,7 +560,9 @@ function tlBoxShowApiCount() {
                 .addClass( "mdb-tlEditor-apiCalls mdb-element floatR" )
                 .attr( "title", "Tracklist Editor API calls made on this page.\nThe box always asks when it loses focus after an edit and on \"Create\" - and never twice about the same text." );
 
-            if( rows.length ) rows.after( countChip ); else feedbackBox.prepend( countChip );
+            // after the API's chip, which puts it visually in FRONT of it - they float right
+            // inside the wrapper, so the later element sits further left
+            if( rows.length ) rows.after( countChip ); else chipRow.append( countChip );
         }
 
         countChip.text( count );
@@ -635,6 +689,23 @@ function tlBoxTypeUpdate( tl ) {
     // on the page answers this very text, nothing to ask
     if( sent === tl.data( "mdbTlboxKnown" ) || sent === tl.data( "mdbTlboxTypeAsked" ) ) return;
 
+    // The caret sits in a text row - a line carrying the wiki italics ('' ... ''), e.g.
+    // "# [0:38] ''Artist - ?''". Taking those marks off by hand takes more than one keystroke,
+    // and every state in between is exactly what the formatter puts back: ask mid-edit and the
+    // '' the reader just deleted are typed back in under their caret, which is the bug this
+    // guard closes. So no live check at all while the caret is in such a line - the request is
+    // not just discarded, it is never sent (one less API call per typing pause, and the counter
+    // chip stays honest). Feedback and formatting catch up the moment the caret leaves the line:
+    // a click elsewhere and Enter both run tlBoxTypeUpdateNow(), and blur formats the whole box.
+    // mdbTlboxTypeAsked is deliberately NOT set here, so that later ask still happens.
+    var caretEl = tl.get( 0 );
+
+    if( caretEl && typeof caretEl.selectionStart === "number"
+        && tlBoxCaretOnTextRow( sent, caretEl.selectionStart ) ) {
+        log( "tlBoxTypeUpdate: caret is in a text row ('' ... '') - no live check while it is being edited." );
+        return;
+    }
+
     tl.data( "mdbTlboxTypeAsked", sent );
 
     apiTracklistAsync( sent, "standard", "", function( res ) {
@@ -746,6 +817,19 @@ function tlBoxApplyWhileTyping( tl, sent, res ) {
         return true;
     }
 
+    // The formatter's ONLY change to the caret's own line is the wiki italics ('' ... '') - the
+    // very marks the reader is putting on or taking off by hand right now. Writing that back
+    // types them straight in under the caret. The rest of the box waits for the next pause (or
+    // the blur pass), same as the empty-line case above.
+    // The request guard in tlBoxTypeUpdate() already stops most of these. This one catches the
+    // two it cannot: an answer that was already in flight when the caret moved into the line,
+    // and the moment BOTH marks are gone - the line no longer looks like a text row, so the
+    // request goes out, and only the answer reveals that the formatter wants the '' back.
+    if( tlBoxItalicsOnlyLineChange( sent, res.text, el.selectionStart ) ) {
+        log( "tlBoxApplyWhileTyping: the caret's line differs from the API only in '' - left as typed." );
+        return false;
+    }
+
     var start = el.selectionStart,
         end = el.selectionEnd,
         oldLines = sent.split( "\n" ),
@@ -782,6 +866,50 @@ function tlBoxCaretLine( text, offset ) {
         end = text.indexOf( "\n", offset );
 
     return text.slice( start, end === -1 ? text.length : end );
+}
+
+// tlBoxCaretOnTextRow
+// Is the caret's line a text row - a line carrying the wiki italics? A HALF-removed pair counts
+// too (that is the whole point: "# [0:38] Artist - ?''" is what "remove the first ''" leaves
+// behind), which is why this looks for the marks anywhere in the line rather than for a matched
+// pair around it.
+function tlBoxCaretOnTextRow( text, offset ) {
+    return tlBoxCaretLine( text, offset ).indexOf( "''" ) !== -1;
+}
+
+// tlBoxLineIndexAt
+// Which line an offset sits on - the line's INDEX, where tlBoxCaretLine() gives its text.
+function tlBoxLineIndexAt( text, offset ) {
+    return text.slice( 0, offset ).split( "\n" ).length - 1;
+}
+
+/*
+ * tlBoxItalicsOnlyLineChange
+ *
+ * Does the API's answer differ from what was typed, on the caret's line, in nothing but the wiki
+ * italics? Strip every '' from both versions of that one line and compare: equal means the
+ * formatter added or removed marks and left the words alone - a fight over markup the reader is
+ * editing by hand, not a correction they asked for.
+ *
+ * Only lines the formatter left in place can be compared this way, so a changed line count says
+ * no straight away - that is a merge or a dropped row, where line indexes no longer line up and
+ * the normal whole-text path has to run anyway.
+ */
+function tlBoxItalicsOnlyLineChange( oldText, newText, offset ) {
+    var oldLines = oldText.split( "\n" ),
+        newLines = newText.split( "\n" );
+
+    if( oldLines.length !== newLines.length ) return false;
+
+    var i = tlBoxLineIndexAt( oldText, offset ),
+        oldLine = oldLines[ i ] || "",
+        newLine = newLines[ i ] || "";
+
+    // the caret's line came back untouched - whatever else changed is somewhere else and may be
+    // written as usual
+    if( oldLine === newLine ) return false;
+
+    return oldLine.replace( /''/g, "" ) === newLine.replace( /''/g, "" );
 }
 
 // tlBoxLineWiseOffset

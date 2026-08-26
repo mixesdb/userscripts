@@ -21,24 +21,105 @@
     line-height: 1.4;
 }
 
-/* the review block between MediaWiki's diff and the wiki edit box (mixesdb.com) */
+/* the review block between MediaWiki's diff and the wiki edit box (mixesdb.com).
+ * position/box-sizing are for the full-width toggle: the button is positioned into the top
+ * left corner, and the width tlImporter_applyWide() states has to include padding and border,
+ * or the stretched block reaches past the window edge. The left padding is the corner the
+ * button sits in - without it the button would stand on the "Original" heading. */
 #mdb-tlImporter-diff {
+    position: relative;
+    box-sizing: border-box;
     margin: 10px 0;
-    padding: 8px 10px;
+    padding: 8px 10px 8px 30px;
     border: 1px solid #ccc;
     border-radius: 3px;
     background-color: #fafafa;
     font-size: 12px;
 }
 
-/* the three columns: minmax(0, ...) so a long unbroken track line wraps inside its column
- * instead of blowing the grid apart */
+/* stretched over the full window width (tlImporter_applyWide): the margin and width are inline
+ * styles from the measuring, this only lifts the block over whatever it now covers - MediaWiki's
+ * sidebar is a positioned element and would otherwise paint on top of it. */
+#mdb-tlImporter-diff.mdb-tlImporter-wide {
+    z-index: 5;
+}
+
+/* the toggle in the top left corner: quiet grey, the block's own colours, and only as loud as
+ * the column grab bars - it is a view control, not part of the merge */
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle {
+    position: absolute;
+    top: 6px;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: .2em;
+    line-height: 1;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle:hover {
+    color: #111;
+    border-color: #ccc;
+    background-color: #fff;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-wide-toggle svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+/* the three columns, with a grab bar between each pair (tlImporter_addColResizers) - so five
+ * grid items, not three. minmax(0, ...) so a long unbroken track line wraps inside its column
+ * instead of blowing the grid apart, and no gap: the bars ARE the space between the columns,
+ * and a gap on top of them would double it. The template here is only what the block looks
+ * like before the JS applies the stored widths - the fr numbers it writes are the same shape. */
 #mdb-tlImporter-diff .mdb-tlImporter-cols {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-gap: 12px;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-gap: 0;
+    gap: 0;
     align-items: start;
+}
+
+/* the grab bar: as tall as the tallest column (align-self, against the container's "start"),
+ * so it can be grabbed anywhere down the block, with a thin line drawn in its middle - the
+ * full 14px are the hit area, the 3px are what is seen. */
+#mdb-tlImporter-diff .mdb-tlImporter-col-resizer {
+    position: relative;
+    width: 14px;
+    align-self: stretch;
+    cursor: col-resize;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-col-resizer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background-color: #e0e0e0;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-col-resizer:hover::before {
+    background-color: #bbb;
+}
+
+/* while a bar is being dragged the pointer is the resize one everywhere, and nothing on the
+ * page is selectable - a drag across three text columns would otherwise select all of them */
+body.mdb-tlImporter-resizing {
+    cursor: col-resize;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-col-head {
@@ -97,13 +178,14 @@
     display: none;
 }
 
-/* the verdict rows start BELOW the right-floated chips (Live updates, API calls, rows, state
- * icons) instead of being squeezed into the space next to them, with air toward the chips and
- * without the list indent. The ul selector covers the moment before the flatten
- * (tlImporter_flattenFeedbackList) replaces the API's list with the div rows. */
+/* the verdict rows, without the list indent. Getting them BELOW the chips is no longer their
+ * own business: the chips sit in one wrapper now (tlBoxChipRow), which tracklistEditor_copy.css
+ * turns into a line of its own on mixesdb.com - the clearfix per element that used to stand
+ * here only ever worked until the next render added a float it did not name. The ul selector
+ * covers the moment before the flatten (tlImporter_flattenFeedbackList) replaces the API's
+ * list with the div rows. */
 #mdb-tlImporter-diff #tlEditor-feedback ul,
 #mdb-tlImporter-diff .mdb-tlImporter-feedback-rows {
-    clear: both;
     margin-top: .5rem;
     margin-left: 0;
     padding-left: 0;
@@ -163,12 +245,17 @@
  * top to bottom that they have left to right. Stacked, each column has the full width and no
  * neighbour to line up with, so the head and help line may wrap again instead of being cut. */
 @media screen and (max-width: 900px) {
+    /* !important: the dragged widths are an inline style on this element, and stacked there
+     * is only one column to be wide */
     #mdb-tlImporter-diff .mdb-tlImporter-cols {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-row-gap: 10px;
+        row-gap: 10px;
     }
 
-    #mdb-tlImporter-diff .mdb-tlImporter-col + .mdb-tlImporter-col {
-        margin-top: 4px;
+    /* nothing to drag when the columns are above each other */
+    #mdb-tlImporter-diff .mdb-tlImporter-col-resizer {
+        display: none;
     }
 
     #mdb-tlImporter-diff .mdb-tlImporter-col-head,

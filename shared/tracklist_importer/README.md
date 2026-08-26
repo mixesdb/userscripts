@@ -69,6 +69,12 @@ After a merge, a three-column block sits between MediaWiki's diff and the wiki t
   that was not taken, a track that found no spot. Salvage the orange parts by hand into the
   Merged box if they are worth it; parts the page simply already had stay plain.
 
+The bars between the columns can be dragged to give one of them more room – double-click a bar
+for three equal columns again. The button in the block's top left corner stretches the whole
+block over the full window width, across the sidebar, and back. Both choices are remembered per
+browser. On a narrow window the three columns stack on top of each other instead, in the same
+order.
+
 Blanks and `...` gaps are never highlighted. The block stays while you preview or compare, so
 fixes can be applied at any point before saving – but not when the compare comes back empty: a
 merge that changed nothing after all drops the block instead of repeating what the edit box
