@@ -823,9 +823,15 @@ function tlImporter_renderDiffView( data ) {
             }) )
     );
 
-    // Merged: the shared Tracklist Editor box (same ids as on the player sites, nothing on the
-    // wiki edit page carries them), so fixTLbox() brings the feedback box and its chips along
-    var tlWrapper = $( '<div id="tlEditor" class="tlEditor"></div>' ),
+    // Merged: the shared Tracklist Editor box - CLASS only, never id="tlEditor". The id is
+    // free on the player sites, but mixesdb.com's own editor module (ext.mixesdb.editor)
+    // renders its own #tlEditor inside the edit form and addresses it as $('#tlEditor') -
+    // which jQuery resolves to the FIRST such id in the document. This block sits ABOVE the
+    // form, so a duplicate id here caught the site's feedback classes and the site's own
+    // feedback box stayed white. The shared TLE code never needs the id when a target is
+    // passed: fixTLbox() and every closest() match ".tlEditor" too (Player_Checker and
+    // radioeins already ride on the class alone), so the box loses nothing.
+    var tlWrapper = $( '<div class="tlEditor"></div>' ),
         textarea = $( '<textarea id="mixesdb-TLbox" class="mixesdb-TLbox mono" spellcheck="false"></textarea>' ),
         applyWrap = $( '<div class="mdb-tlImporter-apply-wrap"></div>' );
 

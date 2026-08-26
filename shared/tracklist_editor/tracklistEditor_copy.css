@@ -95,7 +95,11 @@
 #tlEditor-textarea {
     width: 100%;
 }
-#tlEditor textarea {
+/* ".tlEditor" as well: the Tracklist Importer's Merged box (and Player_Checker, radioeins)
+ * carries the class WITHOUT the id - on mixesdb.com the id belongs to the site's own editor
+ * module, and a second #tlEditor there hijacked its $('#tlEditor') lookups */
+#tlEditor textarea,
+.tlEditor textarea {
     background-color: #fcfcfc;
 }
 #tlEditor-textarea,

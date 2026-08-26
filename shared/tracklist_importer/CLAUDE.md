@@ -49,10 +49,18 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   which has no hook for us.
 - **The review block sits between MediaWiki's diff and the edit form** (`#editform`), never
   below the box: the reading order is the wiki's own diff first, then our three columns, then
-  the form. Its Merged column is a REAL Tracklist Editor box (`#tlEditor`/`#mixesdb-TLbox`,
-  same ids as on the player sites – nothing on the wiki edit page carries them), so live
-  updates, feedback chips and the deliberately-scoped mixesdb.com exception in
-  `toolkit_tlStateButtons()` all come from the shared code instead of copies.
+  the form. Its Merged column is a REAL Tracklist Editor box (`.tlEditor` class +
+  `#mixesdb-TLbox`), so live updates, feedback chips and the deliberately-scoped mixesdb.com
+  exception in `toolkit_tlStateButtons()` all come from the shared code instead of copies.
+- **The Merged wrapper is `class="tlEditor"` only, NEVER `id="tlEditor"`.** mixesdb.com's own
+  editor module (`ext.mixesdb.editor`) renders its own `#tlEditor` inside the edit form and
+  addresses it as `$('#tlEditor')` – first id in document order wins, and the review block
+  sits above the form. A duplicate id here caught the site's feedback colour classes
+  (`tlEditor-feedback-hint` etc.), so the site's own feedback box stayed white. All shared
+  TLE code matches `.tlEditor` when a target is passed. Still open on the SITE's side: the
+  module's `$('#tlEditor-feedback').remove()` and `fadeOutFeedback()` also grab the first
+  match in the document, which is OUR feedback box whenever the review block shows one –
+  scoping those lookups into the site editor's own container is a site fix, not ours.
 - **Apply inserts the box text VERBATIM** – what the reader sees is what lands in the wiki
   edit box. The one synchronous TLE call only supplies the verdict (category + icons) and the
   re-rendered feedback; it never rewrites the text. The seq bump on the box drops the blur
