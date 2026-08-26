@@ -93,7 +93,22 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   Two of its lessons are load-bearing: docked, the block sits INSIDE `form#editform`, and
   mixesdb.com's own `form button` !important rules hit the corner toggles (they squeezed the
   flex-item svg to 0px width) – every visual property of the toggles carries `!important` in
-  the CSS for exactly that, do not "clean" them away. And the down Apply button is refreshed
-  by `tlImporter_refreshDownApply()` – a document-delegated input handler plus a poll – never
-  by a listener bound to the textarea node: the site's editor tools set the value
-  programmatically (no input event), and the module may rebuild the node.
+  the CSS for exactly that, do not "clean" them away.
+- **The down Apply button asks nothing about the CONTENT of the box.** It sleeps on an empty
+  box and on nothing else, and the text it writes is read out of `#tlEditor-textarea` at CLICK
+  time (`tlImporter_downBox()`, the one lookup down there – fresh every call, since the
+  module may rebuild its textarea). The Merged column's button sleeps against the last applied
+  text (`tlImporter_watchApplyButton`) and that is right for a box we own; down here it was
+  wrong, and both reported symptoms came out of it. The site's editor tools write the value
+  with no input event, and its menu and dropdown only when their own API answer comes home, so
+  a wake state read from a snapshot is always behind what is on screen: the button was still
+  asleep when it was clicked – doing NOTHING – or awake from an earlier edit and applying the
+  text that stood there before the tool ran, which is the unchanged merge.
+  `tlImporter_refreshDownApply()` is still driven by a delegated input handler plus a poll
+  rather than a listener on the node, for the same rebuild reason, but both now only decide
+  empty or not.
+  The one thing that stops a click is the site's own `waitingForApi` class: its answer is
+  about to overwrite the box, so the button says "One moment" instead of writing the version
+  that is on its way out. Tested per click and never remembered – `ext.mixesdb.editor` clears
+  that class in a `done` handler with no `fail` behind it, so a failed request leaves it
+  standing, and anything gated on it for good would be asleep for good.

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.22
+// @version      2026.08.26.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_130
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_18
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 194,
+var cacheVersion = 195,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2171,6 +2171,20 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.23
+ * Tracklist Importer, down state: the Apply button under the site's own Tracklist Editor
+ * applies what stands in that editor at the moment it is clicked (tracklist_importer
+ * funcs.js v18). It used to sleep or wake by comparing the box against the text last
+ * applied, refreshed by a delegated input handler and a half-second poll - and the site's
+ * own editor tools fire no input event at all, its menu and dropdown writing their result
+ * only when the API answer comes home. So the state was always a little behind the screen,
+ * in both directions: the button was still asleep when it was clicked and did nothing, or it
+ * was awake from an earlier edit and applied the text that stood there before the tool ran -
+ * the unchanged merge. It now sleeps on an empty box and on nothing else, reads the editor
+ * fresh at click time, and answers a click made while the Tracklist Editor is still working
+ * on one of its own buttons with "One moment" rather than writing the version that is on its
+ * way out.
  *
  * 2026.08.26.22
  * The TrackId.net links under the players on mixesdb.com moved here out of the MixesDB
