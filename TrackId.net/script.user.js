@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.3
+// @version      2026.08.26.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,9 +12,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_114
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_128
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_2
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_129
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 177,
+var cacheVersion = 178,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2025,6 +2025,18 @@ function on_submitrequest() {
 /*
  * Changelog
  *
+ * 2026.08.26.5
+ * Tracklist Importer: the candidate view below the edit box became a three-column review block
+ * ABOVE it, right under MediaWiki's own diff (tracklist_importer funcs.js/merge_core.js v4,
+ * toolkit/funcs.js v129). Original shows the page's tracklist with the parts the merge changed
+ * highlighted, Candidate shows the found tracklist with the parts the merge took highlighted
+ * (flipped from the old "NOT used" reading), and between them Merged holds the applied result
+ * in a real Tracklist Editor box - editable, with live updates, the API feedback with its
+ * chips and TL state icons (toolkit's mixesdb.com guard now lets them into this one block) -
+ * plus an Apply button that runs the box through the TLE once and writes tracklist, category
+ * and indicator icons into the edit form in one go. The block survives "Show changes"/"Show
+ * preview" like the old view did and is dropped on an empty compare.
+ *
  * 2026.08.26.3
  * Tracklist Importer merge fix (merge_core.js v2, from the andhim for Chetana report): the cue
  * helpers now understand three-part HH:MM:SS cues, so a bare-minutes candidate ([014]) is
@@ -2032,6 +2044,16 @@ function on_submitrequest() {
  * of parseInt("00:30:35") = 0. A candidate "?" whose cue an original track already covers
  * (within 2 min) is dropped instead of inserted, a filled "?" slot keeps the original's more
  * precise cue, and a slot is only filled when the two cues roughly agree.
+ *
+ * 2026.08.26.4
+ * Tracklist Importer: a candidate that adds nothing to the mix page gets no Merge link any
+ * more (reported on "2026-08-22 - Flug - HATE Podcast 501", whose page already held exactly
+ * the found tracklist: the link showed up and the edit form opened on "(No difference)").
+ * The merge's "changed" flag is read off the merged TEXT now instead of off its write counter
+ * - re-writing a "?" row or a label the original already had counted as a change while the
+ * text stayed identical - and the link builder runs the merge before offering the link.
+ * As a fallback the candidate view below the edit box is dropped when MediaWiki's own compare
+ * came back empty, so nothing repeats the edit box when there is nothing to salvage.
  *
  * 2026.08.26.2
  * Thin vertical dividers group the toolkit's action links: [Insert/Merge Report] | [EDIT HIST]

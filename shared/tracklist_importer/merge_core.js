@@ -17,9 +17,10 @@
  * what lets the deno runner (importer_examples_test.js) exercise it outside a browser, the way
  * page_creator's title_builder.js is tested. Keep it that way: the DOM half lives in funcs.js.
  *
- * Every candidate item records what the merge USED of it (tlImporter_candidateUse), so the
- * diff view under the wiki edit box can highlight exactly the candidate text that was NOT
- * taken over – see tlImporter_diffItems().
+ * Every candidate item records what the merge did with it and every original row what the
+ * merge changed of it, so the review block on the wiki edit form can highlight exactly the
+ * candidate text the merge took over and the original text it rewrote – see
+ * tlImporter_diffItems() and tlImporter_originalItems().
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -486,9 +487,11 @@ function tlImporter_cueClose( a, b ) {
  * `state` is a shared counter object: state.changes counts every write into the original, so
  * the caller can tell an enriching merge from one where the candidate added nothing at all.
  *
- * Usage tracking, for the diff view: every candidate item leaves with private flags
- * (_ti_matchedOrig, _ti_inserted, _ti_cueUsed) that tlImporter_candidateUse() reads AFTER the
- * merge, when the original items have their final cue/label values.
+ * Usage tracking, for the review block: every candidate item leaves with private flags -
+ * _ti_matchedOrig, _ti_inserted, _ti_cueUsed for the salvage reading (tlImporter_candidateUse),
+ * _ti_usedCue / _ti_usedText / _ti_usedLabel set at each actual write for the "what did the
+ * merge take" reading (tlImporter_candidateUsed). Both are read AFTER the merge, when the
+ * original items have their final cue/label values.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -600,16 +603,19 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
             if (origItem.trackText === "?" && candidateName !== "?") {
                 origItem.trackText = candidateName;
+                cand._ti_usedText = true;
                 state.changes++;
             }
 
             if (cand.cue && (!origItem.cue || String(origItem.cue).indexOf('?') > -1)) {
                 origItem.cue = cand.cue;
+                cand._ti_usedCue = true;
                 state.changes++;
             }
             if (cand.dur && !origItem.dur) origItem.dur = cand.dur;
             if (candidateLabel && !origItem.label) {
                 origItem.label = candidateLabel;
+                cand._ti_usedLabel = true;
                 state.changes++;
             }
             origItem._mergeMatchedCandidateIndex = i;
@@ -688,10 +694,10 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                 if (slot) {
                     // The original wins: a real original cue stays, the candidate only fills a
                     // missing or unknown one (same rule as for matched tracks above).
-                    if (cand.cue && (!slot.cue || String(slot.cue).indexOf('?') > -1)) { slot.cue = cand.cue; state.changes++; }
+                    if (cand.cue && (!slot.cue || String(slot.cue).indexOf('?') > -1)) { slot.cue = cand.cue; cand._ti_usedCue = true; state.changes++; }
                     if (cand.dur && !slot.dur) slot.dur = cand.dur;
-                    if (cand.trackText !== "?") { slot.trackText = cand.trackText; state.changes++; }
-                    if (cand.label && !slot.label) { slot.label = cand.label; state.changes++; }
+                    if (cand.trackText !== "?") { slot.trackText = cand.trackText; cand._ti_usedText = true; state.changes++; }
+                    if (cand.label && !slot.label) { slot.label = cand.label; cand._ti_usedLabel = true; state.changes++; }
                     slot._mergeConsumedUnknown = true;
                     unmatchedItem.filledUnknownSlot = true;
                     cand._ti_matchedOrig = slot;
@@ -804,9 +810,33 @@ function tlImporter_candidateUse( cand ) {
     };
 }
 
+// tlImporter_candidateUsed
+// The stricter sibling of tlImporter_candidateUse, for the review block's Candidate column:
+// true only where the candidate part actually WROTE something into the merged result (filled a
+// "?" text, a missing cue, an absent label, or arrived as a whole inserted track). A part the
+// original already carried is not "used" - the merge did not need it.
+function tlImporter_candidateUsed( cand ) {
+    if (cand.type !== "track") {
+        return { cue: false, text: false, label: false };
+    }
+
+    if (cand._ti_inserted) {
+        return { cue: !!cand.cue, text: true, label: !!cand.label };
+    }
+
+    return {
+        cue: !!( cand._ti_usedCue || cand._ti_cueUsed ),
+        text: !!cand._ti_usedText,
+        label: !!cand._ti_usedLabel
+    };
+}
+
 // tlImporter_diffItems
 // The candidate as serializable rows for the diff view (and for sessionStorage, so the view
-// survives "Show changes" / "Show preview").
+// survives "Show changes" / "Show preview"). Each track carries BOTH readings of the merge:
+// `use` (false = the merge could not place this part - the salvage reading the examples test
+// against) and `used` (true = the merge wrote this part into the result - what the review
+// block highlights).
 function tlImporter_diffItems( candidate_arr ) {
     return candidate_arr.map(function( cand ) {
         if (cand.type === "gap") return { type: "gap" };
@@ -816,9 +846,48 @@ function tlImporter_diffItems( candidate_arr ) {
             cue: cand.cue || "",
             text: cand.trackText || "",
             label: cand.label || "",
-            use: tlImporter_candidateUse( cand )
+            use: tlImporter_candidateUse( cand ),
+            used: tlImporter_candidateUsed( cand )
         };
     });
+}
+
+// tlImporter_originalItems
+// The ORIGINAL rows as serializable items for the review block's Original column, read off the
+// merged array AFTER the merge: original items are mutated in place and never removed, so the
+// ones carrying a pre-merge snapshot (_ti_before, taken in tlImporter_merge) ARE the original
+// in original order. `changed` flags every part whose value the merge (or the cue formatting
+// around it) rewrote - that is what the column highlights.
+function tlImporter_originalItems( merged_arr ) {
+    var items = [];
+
+    merged_arr.forEach(function( item ) {
+        if (item.type === "gap") {
+            // inserted gaps have no snapshot - they belong to the candidate, not the original
+            if (item._ti_origGap) items.push({ type: "gap" });
+            return;
+        }
+
+        if (item.type !== "track" || !item._ti_before) return;
+
+        var before = item._ti_before;
+
+        items.push({
+            type: "track",
+            cue: before.cue || "",
+            text: before.text || "",
+            label: before.label || "",
+            changed: {
+                // loose cue compare, so pure re-formatting (leading zeros, colon forms) does
+                // not read as a change
+                cue: !tlImporter_sameCue( before.cue || "", String( item.cue || "" ) ),
+                text: ( before.text || "" ) !== ( item.trackText || "" ),
+                label: ( before.label || "" ) !== ( item.label || "" )
+            }
+        });
+    });
+
+    return items;
 }
 
 // tlImporter_merge
@@ -827,6 +896,18 @@ function tlImporter_diffItems( candidate_arr ) {
 function tlImporter_merge( originalText, candidateText ) {
     var original_arr = tlImporter_parse( originalText ),
         candidate_arr = tlImporter_parse( candidateText );
+
+    // Pre-merge snapshot of every original row, BEFORE any cue normalization touches them:
+    // the merge mutates original items in place, and the review block's Original column has to
+    // show what the page held, with the parts the merge rewrote flagged - see
+    // tlImporter_originalItems().
+    original_arr.forEach(function( item ) {
+        if (item.type === "gap") {
+            item._ti_origGap = true;
+        } else if (item.type === "track") {
+            item._ti_before = { cue: item.cue || "", text: item.trackText || "", label: item.label || "" };
+        }
+    });
 
     // Normalize candidate cues to the original cue format before merging.
     var originalCueFormat = tlImporter_cueFormat( original_arr ),
@@ -884,10 +965,22 @@ function tlImporter_merge( originalText, candidateText ) {
         });
     }
 
+    // "changed" answers the only question the callers really ask - would the page text
+    // differ? state.changes alone cannot: it counts every WRITE into the original, and a write
+    // that lands the same value (a candidate label the original already carried, a cue re-set
+    // to what it was) left the flag true while the text stayed identical - which opened the
+    // edit form on a "(No difference)" diff. Both sides go through the same serializer here,
+    // so <list> tags, "#" numbering and cue formatting cannot fake a difference either.
+    // The counter stays part of the test: it only ever turns a true into false, never the
+    // other way round, so the "the original wins" cases keep leaving the page alone.
+    var mergedText = tlImporter_textFromArr( merged_arr ),
+        originalText_serialized = tlImporter_textFromArr( tlImporter_parse( originalText ) );
+
     return {
-        mergedText: tlImporter_textFromArr( merged_arr ),
-        changed: state.changes > 0,
-        diffItems: tlImporter_diffItems( candidate_arr )
+        mergedText: mergedText,
+        changed: state.changes > 0 && mergedText !== originalText_serialized,
+        diffItems: tlImporter_diffItems( candidate_arr ),
+        originalItems: tlImporter_originalItems( merged_arr )
     };
 }
 
