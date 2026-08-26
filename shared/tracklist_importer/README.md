@@ -83,8 +83,12 @@ top right corner moves it down to the page's own full Tracklist Editor: block an
 section stand directly below the wiki's Save/Preview buttons, the Merged text goes into that
 editor, the empty Merged column disappears, and Original and Candidate stay side by side above
 it – so final fixes happen in the editor you know, with its menu, find/replace and undo. Below
-the editor's own buttons the block adds the same **Apply** button and the Live updates switch
-(no tracklist state icons down there – the real ones under the edit box are on the same page).
+the editor's own buttons the block adds an **Apply** button and the Live updates switch (no
+tracklist state icons down there – the real ones under the edit box are on the same page).
+That Apply always writes what stands in the editor at the moment you click it, so anything the
+editor's own buttons just did to the text goes into the page with it; it is only greyed out
+while the box is empty. Clicked while the Tracklist Editor is still answering one of those
+buttons it says **One moment** instead – the text on screen is the one about to be replaced.
 The arrow flips to point up and moves everything back, the text travelling along both ways, so
 toggling never loses an edit – and the page scrolls along to wherever the block just went.
 Like the widen choice, this one is remembered per browser.

@@ -130,6 +130,7 @@
  * and a gap on top of them would double it. The template here is only what the block looks
  * like before the JS applies the stored widths - the fr numbers it writes are the same shape. */
 #mdb-tlImporter-diff .mdb-tlImporter-cols {
+    margin-top: -10px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
     grid-gap: 0;

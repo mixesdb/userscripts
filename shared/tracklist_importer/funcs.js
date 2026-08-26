@@ -872,7 +872,7 @@ function tlImporter_writeDown( down ) {
 // missing while that module is still loading - or for good, when it changed.
 function tlImporter_siteEditor() {
     var bar = $( "#editToolsBar-TLeditor" ).first(),
-        box = $( "#tlEditor-textarea" ).first(),
+        box = tlImporter_downBox(),
         actions = $( "#tlEditor-formActions" ).first();
 
     if( !bar.length || !box.length || !actions.length ) return null;
@@ -936,32 +936,52 @@ $(document).on( "click", ".mdb-tlEditor-liveUpdates", function() {
     tlImporter_syncDownLive();
 });
 
+// tlImporter_downBox
+// The site's own editor box, looked up fresh on every single call and never kept: it belongs
+// to mixesdb.com's editor module, which may rebuild it, and a held reference would read a
+// dead node. Everything down here goes through this one lookup, so the text a click applies
+// and the text its wake state was decided from can never be two different textareas.
+function tlImporter_downBox() {
+    return $( "#tlEditor-textarea" ).first();
+}
+
 // tlImporter_refreshDownApply
-// The down Apply button's wake/sleep, decided fresh from the page on every call: enabled
-// while #tlEditor-textarea says something else than what was last applied to the page
-// (tlImporter_applyBaseline). The textarea is looked up by id every time and never kept -
-// that box belongs to the site's editor module, which may rebuild it, and a kept reference
-// would watch a dead node.
+// The down Apply button's wake/sleep - and deliberately NOT the comparison against what was
+// last applied that the Merged column's button uses (tlImporter_watchApplyButton).
+//
+// Down here the text is changed by the site's OWN editor tools, and none of them fires an
+// input event: the menu buttons and find/replace write el.value straight out, the dropdown
+// and the format buttons only when their API answer comes home, half a second or more after
+// the click. A wake state read from a polled snapshot is therefore always a little behind
+// what is on screen, and being behind has exactly the two shapes that were reported: the
+// button is still asleep when it is clicked and does NOTHING, or it is awake from an earlier
+// edit and applies the text that stood there before the tool ran - the unchanged merge.
+//
+// So the button asks nothing about the content any more. It is awake whenever the box holds
+// text, and WHAT it applies is read out of the box at click time (see the handler below).
+// The price is that it no longer says "nothing to apply" after an apply; re-applying the same
+// text is a no-op, where a button that would not react to a click is a bug report.
 function tlImporter_refreshDownApply() {
     var button = $( "#mdb-tlImporter-apply-down" );
 
     if( !button.length ) return;
 
-    var ta = document.getElementById( "tlEditor-textarea" ),
-        changed = !!ta && $.trim( ta.value || "" ) !== $.trim( tlImporter_applyBaseline || "" );
+    var box = tlImporter_downBox(),
+        ready = !!box.length && $.trim( box.val() || "" ) !== "";
 
     button
-        .prop( "disabled", !changed )
-        .toggleClass( "mdb-tlImporter-locked", !changed )
-        .attr( "title", changed
-            ? "Replace the page's tracklist with the editor's text, as it stands, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed."
-            : "Nothing to apply: the editor holds exactly what is already written into the page.\nEdit the box and the button wakes up." );
+        .prop( "disabled", !ready )
+        .toggleClass( "mdb-tlImporter-locked", !ready )
+        .attr( "title", ready
+            ? "Replace the page's tracklist with the editor's text as it stands right now, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed."
+            : "Nothing to apply: the editor's box is empty." );
 }
 
 // Typing is the fast path: delegated on the document, so it still fires when the site's
 // editor module replaces its textarea. The poll in tlImporter_addDownActions is the half no
 // event can cover - the editor's own tools (menu buttons, undo, find/replace) set the value
-// programmatically, and a programmatic write fires no input event.
+// programmatically, and a programmatic write fires no input event. Both only decide empty or
+// not now, so neither of them can be the reason a click does nothing.
 $(document).on( "input.mdbTlImporterDown", "#tlEditor-textarea", function() {
     tlImporter_refreshDownApply();
 });
@@ -1183,9 +1203,10 @@ function tlImporter_addDownToggle( wrap ) {
  * value changes tracklist_editor/funcs.js triggers after a format.
  */
 
-// what was last applied to the page - the baseline a NEWLY built Apply button starts against
-// (the down toggle builds its button long after the render). The buttons already on the page
-// follow later applies through the mdbApplied event instead.
+// what was last applied to the page - the baseline the MERGED column's Apply button sleeps
+// against, and the one a newly built one starts from. Later applies reach a button already on
+// the page through the mdbApplied event. The DOWN button deliberately does not consult it at
+// all - see tlImporter_refreshDownApply.
 var tlImporter_applyBaseline = "";
 
 function tlImporter_watchApplyButton( textarea, button, baseline ) {
@@ -1405,15 +1426,32 @@ function tlImporter_renderDiffView( data ) {
 $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function() {
     var button = $(this),
         // the down button reads the site's editor box the text moved into - the Merged box
-        // is empty and hidden while the block is down
+        // is empty and hidden while the block is down. Read HERE and nowhere earlier: what
+        // lands in the page is the text that is on screen at the moment of the click, not
+        // the one some watcher last looked at (see tlImporter_refreshDownApply).
         tl = this.id === "mdb-tlImporter-apply-down"
-            ? $( "#tlEditor-textarea" ).first()
+            ? tlImporter_downBox()
             : $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first(),
         textbox = $( "#wpTextbox1" ).first(),
         text = $.trim( tl.val() || "" );
 
     if( !tl.length || !textbox.length || !text ) {
         log( "tlImporter: nothing to apply." );
+        return;
+    }
+
+    // The site's editor is mid-request: ext.mixesdb.editor's teApi() marks the box
+    // "waitingForApi" while one of its own buttons is out asking, and writes the answer into
+    // the box when it comes home. The text on screen is then the one about to be replaced,
+    // and applying it would put exactly the stale version into the page that this button is
+    // meant to keep out of it. Said on the button rather than swallowed - a click that looks
+    // unheard is the thing being fixed here. Never a stored flag: the site removes the class
+    // in a done handler with no fail handler behind it, so a failed request leaves it
+    // standing, and anything gated on it for good would be asleep for good.
+    if( tl.hasClass( "waitingForApi" ) ) {
+        button.text( "One moment" );
+        setTimeout(function() { button.text( "Apply" ); }, 1200 );
+        log( "tlImporter: the site's editor is still waiting for its own API answer - not applying the text it is about to replace." );
         return;
     }
 
@@ -1455,9 +1493,10 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
     button.text( "Applied" );
     setTimeout(function() { button.text( "Apply" ); }, 1500 );
 
-    // the box now holds what the page holds - both buttons have nothing left to do until the
-    // next edit. The Merged button follows through mdbApplied (tlImporter_watchApplyButton),
-    // the down button reads the moved baseline directly (tlImporter_refreshDownApply).
+    // the box now holds what the page holds, so the Merged button goes back to sleep through
+    // mdbApplied (tlImporter_watchApplyButton). The down button stays awake on purpose: it
+    // sleeps on an empty box and on nothing else, and applying the same text again changes
+    // nothing - see tlImporter_refreshDownApply, which is called here for its title.
     tlImporter_applyBaseline = text;
     $( "#mdb-tlImporter-apply" ).trigger( "mdbApplied", [ text ] );
     tlImporter_refreshDownApply();
