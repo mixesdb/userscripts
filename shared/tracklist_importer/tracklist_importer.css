@@ -75,14 +75,28 @@
     border-radius: .3em;
 }
 
-/* the Merged column's Tracklist Editor box */
+/* the Merged column's Tracklist Editor box - same padding as the pres left and right of it,
+ * so the shared row count (set in tlImporter_renderDiffView) means the same visible height */
 #mdb-tlImporter-diff textarea.mixesdb-TLbox {
     display: block;
     width: 100%;
     margin: 0;
+    padding: 6px 8px;
     box-sizing: border-box;
     font-size: 12px;
     line-height: 1.5;
+}
+
+/* the API's close button has nothing to close here - the block is the edit form's own UI and
+ * goes with the page, not with a click */
+#mdb-tlImporter-diff #tlEditor-feedback-close {
+    display: none;
+}
+
+/* the verdict list starts BELOW the right-floated chips (Live updates, API calls, rows, state
+ * icons) instead of being squeezed into the space next to them */
+#mdb-tlImporter-diff #tlEditor-feedback ul {
+    clear: both;
 }
 
 #mdb-tlImporter-diff .mdb-tlImporter-apply-wrap {
@@ -90,9 +104,17 @@
     margin-top: 8px;
 }
 
-#mdb-tlImporter-diff #mdb-tlImporter-apply {
-    padding: 4px 18px;
-    font-weight: bold;
+/* no space of the box's own under the column - the spacing toward the Apply button below is
+ * the apply wrap's margin alone. The actual offender is the feedback box's 14px bottom margin
+ * (tracklistEditor_copy.css); the wrapper rule is the guard should a skin ever pad it */
+#mdb-tlImporter-diff #tlEditor {
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+#mdb-tlImporter-diff #tlEditor-feedback {
+    margin-top: .5rem;
+    margin-bottom: 0;
 }
 
 /* original text the merge changed - never on blanks or "..." gaps */

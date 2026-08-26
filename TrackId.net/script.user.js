@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.5
+// @version      2026.08.26.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_129
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_4
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_6
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -37,7 +37,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 178,
+var cacheVersion = 180,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2024,6 +2024,24 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.26.7
+ * Tracklist Importer review block, round three (tracklist_importer funcs.js v6, CSS): Apply
+ * now inserts the Merged box's text VERBATIM - the TLE is still asked once, but only for the
+ * verdict behind the category and the icons, the text itself is no longer reformatted on the
+ * way (and the blur update the click triggers is dropped, so nothing rewrites the box after).
+ * The Apply button wears the wiki's own OOUI button classes. The TLE call counter travels
+ * with the block through the form POSTs, so the chip no longer claims "0 API calls" next to
+ * feedback that was paid for on the edit page. Spacing: no bottom margin under the box
+ * wrapper or the feedback box, and the feedback box sits .5rem under the textarea.
+ *
+ * 2026.08.26.6
+ * Tracklist Importer review block polish (tracklist_importer funcs.js v5, CSS): the two pres
+ * and the Merged textarea share the height of the tallest list's row count (logical rows,
+ * soft wrapping ignored - the textarea via its rows attribute, the pres via a min-height in
+ * line-height units), the API's close button is hidden inside the block (the block is the
+ * form's own UI, nothing to close), and the feedback verdict list clears the right-floated
+ * chips instead of being squeezed next to them.
  *
  * 2026.08.26.5
  * Tracklist Importer: the candidate view below the edit box became a three-column review block
