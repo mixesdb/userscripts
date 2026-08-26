@@ -107,8 +107,11 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   `tlImporter_refreshDownApply()` is still driven by a delegated input handler plus a poll
   rather than a listener on the node, for the same rebuild reason, but both now only decide
   empty or not.
-  The one thing that stops a click is the site's own `waitingForApi` class: its answer is
-  about to overwrite the box, so the button says "One moment" instead of writing the version
-  that is on its way out. Tested per click and never remembered – `ext.mixesdb.editor` clears
-  that class in a `done` handler with no `fail` behind it, so a failed request leaves it
-  standing, and anything gated on it for good would be asleep for good.
+  A click that lands while the site's own `waitingForApi` class is on the box is not applied
+  and not swallowed either: it WAITS. "Cap, then Apply" is one gesture, its Apply falls into
+  the round-trip window as often as not, and a refused click there reads as a dead button –
+  that was the second reported shape. The button says "One moment", the box is watched until
+  the class comes off, and `tlImporter_applyNow()` then runs on the settled text, exactly as
+  if the click had come after the answer. Bounded at ~8s: `ext.mixesdb.editor` clears the
+  class in a `done` handler with no `fail` behind it, so a failed request leaves it standing
+  for ever, and the wait then applies the text as it stands rather than sleeping for good.
