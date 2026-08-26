@@ -3,7 +3,7 @@
  * Tracklist Importer (beta)
  *
  * Loaded lazily by funcs.js (tlImporter_loadCss) on both sides: the player site showing the
- * Insert/Merge/Report links, and the MixesDB edit form showing the candidate diff view.
+ * Insert/Merge/Report links, and the MixesDB edit form showing the review block.
  * The links themselves need no rules of their own - they sit inside the toolkit's
  * .mdb-mixesdbLink-actionLinks-wrapper, whose global.css rules style every <a> in it.
  *
@@ -21,7 +21,7 @@
     line-height: 1.4;
 }
 
-/* the candidate diff view under the wiki edit box (mixesdb.com) */
+/* the review block between MediaWiki's diff and the wiki edit box (mixesdb.com) */
 #mdb-tlImporter-diff {
     margin: 10px 0;
     padding: 8px 10px;
@@ -39,18 +39,77 @@
     color: #666;
 }
 
-#mdb-tlImporter-diff pre.mdb-tlImporter-diff-pre {
+/* the three columns: minmax(0, ...) so a long unbroken track line wraps inside its column
+ * instead of blowing the grid apart */
+#mdb-tlImporter-diff .mdb-tlImporter-cols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-gap: 12px;
+    gap: 12px;
+    align-items: start;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-col-head {
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-col-help {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+/* the Original and Candidate columns: bordered like the Merged textarea between them, so the
+ * three read as one row of boxes */
+#mdb-tlImporter-diff pre.mdb-tlImporter-pre {
     margin: 0;
-    padding: 0;
+    padding: 6px 8px;
     font-family: monospace, monospace;
     font-size: 12px;
     line-height: 1.5;
     white-space: pre-wrap;
-    background: none;
-    border: none;
+    word-break: break-word;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: .3em;
 }
 
-/* candidate text the merge did NOT use - never on blanks or "..." gaps */
+/* the Merged column's Tracklist Editor box */
+#mdb-tlImporter-diff textarea.mixesdb-TLbox {
+    display: block;
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-apply-wrap {
+    text-align: center;
+    margin-top: 8px;
+}
+
+#mdb-tlImporter-diff #mdb-tlImporter-apply {
+    padding: 4px 18px;
+    font-weight: bold;
+}
+
+/* original text the merge changed - never on blanks or "..." gaps */
+.mdb-tlImporter-changed {
+    background-color: #ffe1a8;
+    border-radius: 2px;
+}
+
+/* candidate text the merge took into the result */
+.mdb-tlImporter-used {
+    background-color: #cdeeb8;
+    border-radius: 2px;
+}
+
+/* candidate text the merge did NOT use - the pre-review-block highlight. Kept although the
+ * renderer no longer emits it: funcs.js arrives through @require and this file through
+ * loadRawCss(), so the two can be a cache generation apart. */
 .mdb-tlImporter-unused {
     background-color: #ffd6d6;
     border-radius: 2px;

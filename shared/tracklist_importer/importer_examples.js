@@ -176,6 +176,40 @@ var tlImporterExamples_merge = [
         // line 5: the dropped duplicate unknown; line 9: DJ Tomer's cue is 130s off the
         // original's (beyond tolerance); line 22: Augusto's cue disagrees by 7.5 minutes.
         unused: { cues: [5, 9, 22], texts: [], labels: [] }
+    },
+    {
+        // Reported: the page already carried exactly this tracklist (Flug - HATE Podcast 501),
+        // the Merge link showed up anyway and the edit form opened on "(No difference)". The
+        // re-writing of "?" rows and of labels the original already had counted as changes
+        // while the text stayed identical - so "changed" must be read off the TEXT, not off
+        // the counter.
+        name: "identical original and candidate change nothing",
+        original: "[000] Earwax - No Output (Silent Mix) [MORD]\n" +
+                  "...\n" +
+                  "[015] Nørbak - Adeus (Mathys Lenne Remix) [NRBK]\n" +
+                  "[019] ?\n" +
+                  "...\n" +
+                  "[035] Clotur - Hyperdrive [K S R]\n" +
+                  "[038] ?\n" +
+                  "...",
+        candidate: "[000] Earwax - No Output (Silent Mix) [MORD]\n" +
+                   "...\n" +
+                   "[015] Nørbak - Adeus (Mathys Lenne Remix) [NRBK]\n" +
+                   "[019] ?\n" +
+                   "...\n" +
+                   "[035] Clotur - Hyperdrive [K S R]\n" +
+                   "[038] ?\n" +
+                   "...",
+        expect: "[000] Earwax - No Output (Silent Mix) [MORD]\n" +
+                "...\n" +
+                "[015] Nørbak - Adeus (Mathys Lenne Remix) [NRBK]\n" +
+                "[019] ?\n" +
+                "...\n" +
+                "[035] Clotur - Hyperdrive [K S R]\n" +
+                "[038] ?\n" +
+                "...",
+        changed: false,
+        unused: { cues: [], texts: [], labels: [] }
     }
 ];
 

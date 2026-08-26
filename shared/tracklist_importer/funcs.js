@@ -9,7 +9,8 @@
  * On the player site (TrackId.net first):
  *   - when the toolkit says the player is used on MixesDB AND the page has a filled tracklist
  *     box, the mix page's wikitext is fetched and its "== Tracklist ==" section decides the
- *     mode: no tracklist yet -> "Insert", existing tracklist -> "Merge"
+ *     mode: no tracklist yet -> "Insert", existing tracklist -> "Merge", a tracklist the
+ *     candidate cannot add anything to -> no link at all
  *   - an Insert/Merge link goes into the toolkit's action links in front of EDIT, and a
  *     "Report" link behind it opens a paste-ready Discord report of the whole case
  *   - the link opens the mix page's edit form; the candidate travels in the URL HASH
@@ -23,8 +24,11 @@
  *   - the "Tracklist:" category and the indicator icons under the box follow the verdict
  *   - "Show changes" is clicked for the user, so the next thing on screen is MediaWiki's own
  *     diff; Save/Preview are disabled up to that click so nothing can be saved unseen
- *   - below the edit box a diff view shows the candidate with everything the merge did NOT
- *     use highlighted – kept across "Show changes"/"Show preview" via sessionStorage
+ *   - between that diff and the edit box a three-column review block shows the Original (what
+ *     the merge changed highlighted), the Merged result in an editable Tracklist Editor box
+ *     with an Apply button, and the Candidate (what the merge used highlighted) – kept across
+ *     "Show changes"/"Show preview" via sessionStorage, and dropped when that compare came
+ *     back as "(No difference)"
  *
  * Requires (load order): global.js, tracklist_editor/funcs.js (apiTracklist), merge_core.js.
  * The toolkit must be on the page for the player-site side – the links go into ITS output.
@@ -159,6 +163,15 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
             }
 
             var mode = read.hasTracks ? "merge" : "insert";
+
+            // A merge that would change nothing is not worth a link: following it would only
+            // open the edit form on MediaWiki's "(No difference)". The merge itself is the
+            // answer - pure JS, no network - and the candidate is re-read from the box here,
+            // because the page text fetch above was async.
+            if( mode == "merge" && !tlImporter_merge( read.tlText, tlImporter_candidateText() ).changed ) {
+                log( "tlImporter: the mix page tracklist already holds everything this candidate could add - no import link." );
+                return;
+            }
 
             tlImporter_loadCss();
 
@@ -338,25 +351,36 @@ function tlImporter_candidateFromHash() {
 
 // tlImporter_storeDiff
 // sessionStorage, because "Show changes" and "Show preview" POST the form: the URL that
-// carried our parameters is gone afterwards, and the diff view has to survive that.
-function tlImporter_storeDiff( diffItems, mode, unchanged ) {
+// carried our parameters is gone afterwards, and the review block has to survive that.
+// data carries everything the block renders: mode, unchanged, items (candidate rows),
+// originalItems (original rows), mergedTl (the Merged box's text), status and feedback (the
+// TLE answer for it). The version stamp keeps a payload from an older script generation from
+// reaching the new renderer.
+var tlImporter_storageVersion = 2;
+
+function tlImporter_storeDiff( data ) {
     try {
-        sessionStorage.setItem( tlImporter_storageKey, JSON.stringify({
-            articleId: tlImporter_articleId(),
-            mode: mode,
-            unchanged: !!unchanged,
-            t: Date.now(),
-            items: diffItems
-        }) );
+        data.v = tlImporter_storageVersion;
+        data.articleId = tlImporter_articleId();
+        data.t = Date.now();
+
+        sessionStorage.setItem( tlImporter_storageKey, JSON.stringify( data ) );
     } catch( e ) {
-        log( "tlImporter: could not store the diff view (" + e.message + ") - it will not survive Show changes." );
+        log( "tlImporter: could not store the review block (" + e.message + ") - it will not survive Show changes." );
     }
 }
 
 // tlImporter_readStoredDiff
 function tlImporter_readStoredDiff() {
     try {
-        return JSON.parse( sessionStorage.getItem( tlImporter_storageKey ) || "null" );
+        var stored = JSON.parse( sessionStorage.getItem( tlImporter_storageKey ) || "null" );
+
+        if( stored && stored.v !== tlImporter_storageVersion ) {
+            tlImporter_clearStoredDiff();
+            return null;
+        }
+
+        return stored;
     } catch( e ) {
         return null;
     }
@@ -369,26 +393,14 @@ function tlImporter_clearStoredDiff() {
     } catch( e ) { /* nothing to clear then */ }
 }
 
-// tlImporter_renderDiffView
-// The candidate under the edit box, with everything the merge did NOT use highlighted - and
-// nothing else: blanks were dropped by the parser and gaps never carry salvageable text, so
-// neither is ever highlighted.
-function tlImporter_renderDiffView( items, unchanged ) {
-    if( !items || !items.length ) return;
-    if( $( "#mdb-tlImporter-diff" ).length ) return;
+// tlImporter_renderPre
+// One review column's <pre>: rows built from serialized items, the parts whose flag under
+// flagKey is true wrapped in the given highlight span. Blanks were dropped by the parser and
+// "..." gaps never carry text, so neither is ever highlighted.
+function tlImporter_renderPre( items, flagKey, highlightClass ) {
+    var pre = $( '<pre class="mdb-tlImporter-pre"></pre>' );
 
-    var wrap = $( '<div id="mdb-tlImporter-diff" class="mdb-element"></div>' ),
-        head = $( '<div class="mdb-tlImporter-diff-head"></div>' ),
-        pre = $( '<pre class="mdb-tlImporter-diff-pre"></pre>' );
-
-    head.append( $( "<strong></strong>" ).text( "Tracklist Importer: the candidate tracklist" ) );
-    head.append( $( '<span class="mdb-tlImporter-diff-legend"></span>' ).text(
-        unchanged
-            ? " – the merge took nothing from it, the page text was left unchanged."
-            : " – highlighted parts were NOT used by the merge; salvage them by hand if they are worth it."
-    ) );
-
-    items.forEach(function( item, i ) {
+    ( items || [] ).forEach(function( item, i ) {
         if( i > 0 ) pre.append( document.createTextNode( "\n" ) );
 
         if( item.type !== "track" ) {
@@ -396,36 +408,173 @@ function tlImporter_renderDiffView( items, unchanged ) {
             return;
         }
 
-        var use = item.use || {};
+        var flags = item[ flagKey ] || {};
 
-        function part( text, used, trailingSpace ) {
+        function part( text, highlighted, trailingSpace ) {
             if( !text ) return;
 
-            if( used ) {
-                pre.append( document.createTextNode( text ) );
+            if( highlighted ) {
+                pre.append( $( "<span></span>" ).addClass( highlightClass ).text( text ) );
             } else {
-                pre.append( $( '<span class="mdb-tlImporter-unused"></span>' ).text( text ) );
+                pre.append( document.createTextNode( text ) );
             }
 
             if( trailingSpace ) pre.append( document.createTextNode( " " ) );
         }
 
-        part( item.cue ? "[" + item.cue + "]" : "", use.cue !== false, true );
-        part( item.text, use.text !== false, !!item.label );
-        part( item.label ? "[" + item.label + "]" : "", use.label !== false, false );
+        part( item.cue ? "[" + item.cue + "]" : "", flags.cue === true, true );
+        part( item.text, flags.text === true, !!item.label );
+        part( item.label ? "[" + item.label + "]" : "", flags.label === true, false );
     });
 
-    wrap.append( head, pre );
-
-    // below the edit box: behind the indicator row when the extension rendered one, right
-    // behind the textarea otherwise
-    var anchor = $( ".textareaBottomInfo" ).first();
-
-    if( !anchor.length ) anchor = $( "#wpTextbox1" ).first();
-    if( !anchor.length ) return;
-
-    anchor.after( wrap );
+    return pre;
 }
+
+// tlImporter_renderDiffView
+// The review block: three columns above the wiki edit box (and below MediaWiki's own diff,
+// which sits above the form on action=submit) -
+//   Original  – the page's tracklist before the merge, the parts the merge changed highlighted
+//   Merged    – the shared Tracklist Editor box holding the applied result, editable for final
+//               fixes, with the TLE feedback (live updates, API calls, rows, state icons)
+//               under it and the Apply button that writes the box back into the page text
+//   Candidate – the tracklist the player site found, the parts the merge took highlighted
+function tlImporter_renderDiffView( data ) {
+    if( !data || !data.items || !data.items.length ) return;
+    if( $( "#mdb-tlImporter-diff" ).length ) return;
+
+    var wrap = $( '<div id="mdb-tlImporter-diff" class="mdb-element"></div>' ),
+        head = $( '<div class="mdb-tlImporter-diff-head"></div>' ),
+        cols = $( '<div class="mdb-tlImporter-cols"></div>' );
+
+    head.append( $( "<strong></strong>" ).text( "Tracklist Importer" ) );
+    head.append( $( '<span class="mdb-tlImporter-diff-legend"></span>' ).text(
+        data.unchanged
+            ? " – the merge took nothing from the candidate, the page text was left unchanged."
+            : " – review what the merge did; fix final details in the Merged box, then Apply."
+    ) );
+
+    function col( name, helpText ) {
+        var column = $( '<div class="mdb-tlImporter-col"></div>' );
+
+        column.append( $( '<div class="mdb-tlImporter-col-head"></div>' ).text( name ) );
+        column.append( $( '<div class="mdb-tlImporter-col-help"></div>' ).text( helpText ) );
+
+        return column;
+    }
+
+    // Original
+    cols.append(
+        col( "Original", "The tracklist the page had before the merge. Highlighted parts were changed." )
+            .append( tlImporter_renderPre( data.originalItems, "changed", "mdb-tlImporter-changed" ) )
+    );
+
+    // Merged: the shared Tracklist Editor box (same ids as on the player sites, nothing on the
+    // wiki edit page carries them), so fixTLbox() brings the feedback box and its chips along
+    var tlWrapper = $( '<div id="tlEditor" class="tlEditor"></div>' ),
+        textarea = $( '<textarea id="mixesdb-TLbox" class="mixesdb-TLbox mono" spellcheck="false"></textarea>' ),
+        applyWrap = $( '<div class="mdb-tlImporter-apply-wrap"></div>' );
+
+    textarea.val( data.mergedTl || "" );
+    tlWrapper.append( textarea );
+
+    applyWrap.append(
+        $( '<button id="mdb-tlImporter-apply" class="hand" type="button">Apply</button>' )
+            .attr( "title", "Put this box's tracklist into the wiki edit box and update the \"Tracklist:\" category and its icons.\nThe box is checked by the Tracklist Editor on the way." )
+    );
+
+    cols.append(
+        col( "Merged", "The result as applied to the page. Edit final fixes here, then Apply." )
+            .append( tlWrapper, applyWrap )
+    );
+
+    // Candidate
+    cols.append(
+        col( "Candidate", "The tracklist the player site found. Highlighted parts were used by the merge." )
+            .append( tlImporter_renderPre( data.items, "used", "mdb-tlImporter-used" ) )
+    );
+
+    wrap.append( head, cols );
+
+    // above the wiki edit box, below MediaWiki's diff. The diff container can sit outside or
+    // inside form#editform depending on the MediaWiki version and the "preview on top"
+    // preference, so the block goes right AFTER the diff wherever the diff stands above the
+    // box - and right before the form (or the box itself) on pages without one.
+    var textbox = $( "#wpTextbox1" ).first(),
+        diffBox = $( "#wikiDiff" ).first();
+
+    if( !diffBox.length ) diffBox = $( "table.diff" ).first();
+
+    if( diffBox.length && textbox.length &&
+        ( diffBox[0].compareDocumentPosition( textbox[0] ) & Node.DOCUMENT_POSITION_FOLLOWING ) ) {
+        diffBox.after( wrap );
+    } else {
+        var anchor = $( "#editform" ).first();
+
+        if( !anchor.length ) anchor = textbox;
+        if( !anchor.length ) return;
+
+        anchor.before( wrap );
+    }
+
+    // the box wiring: size to the text, bind the live updates, print the stored TLE feedback
+    // with its chips - and never steal the focus on a page the reader came to for the diff
+    fixTLbox( data.feedback && data.feedback.text ? data.feedback : null, tlWrapper.get( 0 ), false );
+
+    log( "tlImporter: review block rendered (" + ( data.originalItems ? data.originalItems.length : 0 ) + " original rows, "
+        + data.items.length + " candidate rows, TLE status: " + ( data.status || "(none)" ) + ")." );
+}
+
+// The Apply button in the Merged column: the box's current text becomes the page's tracklist.
+// One synchronous TLE call formats it and hands over the verdict, so box, page text, category
+// and icons cannot disagree - and writing the answer back into the box bumps the box's update
+// sequence, so a blur update still in flight (the click itself blurs the box) is dropped
+// instead of overwriting this.
+$(document).on( "click", "#mdb-tlImporter-apply", function() {
+    var button = $(this),
+        tl = $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first(),
+        textbox = $( "#wpTextbox1" ).first(),
+        text = $.trim( tl.val() || "" );
+
+    if( !tl.length || !textbox.length || !text ) {
+        log( "tlImporter: nothing to apply." );
+        return;
+    }
+
+    var res = apiTracklist( text, "standard" ),
+        finalTl = res.text || text,
+        status = res.feedback && res.feedback.status ? res.feedback.status : "";
+
+    if( res.text ) tlBoxApplyResult( tl, res );
+
+    var newPage = tlImporter_setTracklist( textbox.val(), tlImporter_tracklistWikitext( finalTl ) );
+
+    if( newPage === null ) {
+        log( "tlImporter: could not place the tracklist into the page text - the page has no == Tracklist == section." );
+        return;
+    }
+
+    newPage = tlImporter_updateTlCategory( newPage, status );
+
+    textbox.val( newPage );
+    tlImporter_lightTlButtons( newPage );
+
+    // the stored block follows the applied state, so the next "Show changes" reopens it with
+    // THIS text in the box
+    var stored = tlImporter_readStoredDiff();
+
+    if( stored ) {
+        stored.mergedTl = finalTl;
+        stored.status = status;
+        if( res.feedback ) stored.feedback = res.feedback;
+        tlImporter_storeDiff( stored );
+    }
+
+    // a short confirmation on the button itself - the change landed in the box below the fold
+    button.text( "Applied" );
+    setTimeout(function() { button.text( "Apply" ); }, 1500 );
+
+    log( "tlImporter: applied the Merged box (TLE status: " + ( status || "(none)" ) + ")." );
+});
 
 // tlImporter_lightTlButtons
 // The three indicator icons under the edit box, lit from what the TEXT now says - the same
@@ -492,6 +641,8 @@ function tlImporter_runEditPage() {
     var finalTl = "",
         status = "",
         diffItems = null,
+        originalItems = null,
+        feedback = null,
         changed = true;
 
     if( mode == "insert" ) {
@@ -516,6 +667,7 @@ function tlImporter_runEditPage() {
         var mergeRes = tlImporter_merge( read.tlText, candidate );
 
         diffItems = mergeRes.diffItems;
+        originalItems = mergeRes.originalItems;
         changed = mergeRes.changed;
 
         if( changed ) {
@@ -525,6 +677,7 @@ function tlImporter_runEditPage() {
 
             finalTl = resMerge.text || mergeRes.mergedText;
             status = resMerge.feedback && resMerge.feedback.status ? resMerge.feedback.status : "";
+            feedback = resMerge.feedback || null;
         } else {
             log( "tlImporter: the merge took nothing from the candidate - the page text stays as it is." );
         }
@@ -549,12 +702,26 @@ function tlImporter_runEditPage() {
         log( "tlImporter: " + mode + " done (TLE status: " + ( status || "(none)" ) + ")." );
     }
 
-    // The diff view data survives the form POSTs behind "Show changes"/"Show preview".
-    if( diffItems ) tlImporter_storeDiff( diffItems, mode, !changed );
+    // The review block's data survives the form POSTs behind "Show changes"/"Show preview".
+    var viewData = null;
+
+    if( diffItems ) {
+        viewData = {
+            mode: mode,
+            unchanged: !changed,
+            items: diffItems,
+            originalItems: originalItems,
+            mergedTl: changed ? finalTl : read.tlText,
+            status: status,
+            feedback: feedback
+        };
+
+        tlImporter_storeDiff( viewData );
+    }
 
     if( !changed ) {
-        // Nothing to show changes OF - the view itself says so, right away.
-        tlImporter_renderDiffView( diffItems, true );
+        // Nothing to show changes OF - the block itself says so, right away.
+        tlImporter_renderDiffView( viewData );
         return;
     }
 
@@ -577,14 +744,31 @@ function tlImporter_runEditPage() {
             diffBtn[0].click();
         }, 0 );
     } else {
-        log( "tlImporter: no \"Show changes\" button found - showing the candidate view instead." );
-        tlImporter_renderDiffView( diffItems, false );
+        log( "tlImporter: no \"Show changes\" button found - showing the review block instead." );
+        tlImporter_renderDiffView( viewData );
     }
 }
 
+// tlImporter_diffIsEmpty
+// Did MediaWiki's "Show changes" come back with an unchanged page? True only when a diff was
+// actually rendered AND it holds no change - "Show preview" renders no diff at all, and there
+// the candidate view is still wanted.
+function tlImporter_diffIsEmpty() {
+    // MediaWiki wraps its own "(No difference)" message in .mw-diff-empty
+    if( $( ".mw-diff-empty" ).length ) return true;
+
+    var diff = $( "table.diff" ).first();
+
+    if( !diff.length ) return false;
+
+    // fallback for a skin that renders the diff table without that message: a diff that
+    // changes something always has an added or a deleted line in it
+    return diff.find( ".diff-addedline, .diff-deletedline" ).length === 0;
+}
+
 // tlImporter_renderStoredDiff
-// The diff view on the pages the form buttons lead to (action=submit) - and the cleanup of a
-// stored view that no longer belongs to anything.
+// The review block on the pages the form buttons lead to (action=submit) - and the cleanup of
+// a stored block that no longer belongs to anything.
 function tlImporter_renderStoredDiff() {
     var stored = tlImporter_readStoredDiff();
 
@@ -608,8 +792,17 @@ function tlImporter_renderStoredDiff() {
 
     if( !$( "#wpTextbox1" ).length ) return;
 
+    // The fallback behind the link-side check: when MediaWiki's own compare says the page text
+    // does not change, the review block has nothing left to say - it would only repeat what
+    // the edit box already holds. Clearing it also keeps it away from a "Show preview" after.
+    if( tlImporter_diffIsEmpty() ) {
+        log( "tlImporter: the compare shows no difference - dropping the review block." );
+        tlImporter_clearStoredDiff();
+        return;
+    }
+
     tlImporter_loadCss();
-    tlImporter_renderDiffView( stored.items, stored.unchanged );
+    tlImporter_renderDiffView( stored );
 }
 
 d.ready(function() {

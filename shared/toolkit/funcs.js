@@ -462,13 +462,20 @@ function toolkit_tlStateIcon( state ) {
 // the box from the API's HTML and would otherwise take the row off the page with it) and when
 // a box first appears, which is what lights the right icon on load.
 function toolkit_tlStateButtons() {
+    var boxes = $("#tlEditor-feedback");
+
     // MixesDB has the real ones under its edit box: a second row for the same category on the
     // same page would be one row too many, and the EDIT links this one drives are not there.
+    // The one exception is the Tracklist Importer's review block on the edit form - its Merged
+    // box shows the TLE verdict the same way a player site's box does, and the real icons
+    // under the edit box only follow once its Apply button ran.
     if( typeof domain !== "undefined" && domain == "mixesdb.com" ) {
-        return;
+        boxes = boxes.filter(function() {
+            return $(this).closest("#mdb-tlImporter-diff").length > 0;
+        });
     }
 
-    $("#tlEditor-feedback").each(function() {
+    boxes.each(function() {
         var box = $(this),
             state = toolkit_tlStatusFromFeedback( box ),
             row = box.children( ".mdb-tlEditor-tlState" ).first();
