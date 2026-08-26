@@ -52,6 +52,18 @@
     margin-bottom: 6px;
 }
 
+/* head and help text stay on ONE line and get cut with an ellipsis instead of wrapping: each
+ * column is its own block, so a help text that needs two lines in one column alone pushes that
+ * column's box a line further down and the three boxes no longer start at the same height.
+ * The columns are minmax(0, 1fr) above, so they may shrink far enough for the cut to happen;
+ * the full sentence stays readable as the element's title tooltip. */
+#mdb-tlImporter-diff .mdb-tlImporter-col-head,
+#mdb-tlImporter-diff .mdb-tlImporter-col-help {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* the Original and Candidate columns: bordered like the Merged textarea between them, so the
  * three read as one row of boxes */
 #mdb-tlImporter-diff pre.mdb-tlImporter-pre {

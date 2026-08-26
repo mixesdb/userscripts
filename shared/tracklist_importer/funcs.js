@@ -478,8 +478,11 @@ function tlImporter_renderDiffView( data ) {
     function col( name, helpText ) {
         var column = $( '<div class="mdb-tlImporter-col"></div>' );
 
-        column.append( $( '<div class="mdb-tlImporter-col-head"></div>' ).text( name ) );
-        column.append( $( '<div class="mdb-tlImporter-col-help"></div>' ).text( helpText ) );
+        // the head and the help line are cut with an ellipsis when the column is too narrow
+        // (see the CSS) - so both carry their own text as a title, and the tooltip gives back
+        // whatever the cut took away
+        column.append( $( '<div class="mdb-tlImporter-col-head"></div>' ).attr( "title", name ).text( name ) );
+        column.append( $( '<div class="mdb-tlImporter-col-help"></div>' ).attr( "title", helpText ).text( helpText ) );
 
         return column;
     }

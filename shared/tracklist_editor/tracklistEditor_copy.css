@@ -462,3 +462,12 @@ textarea.mono {
     width: 28px;
     height: 28px;
 }
+
+
+/*
+ * Site specific rules
+ */
+body.mixesdb-com #mdb-tlImporter-diff .mdb-tlImporter-feedback-rows {
+    margin-top: inherit;
+    padding-top: .5rem;
+}
