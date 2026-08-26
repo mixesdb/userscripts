@@ -1416,6 +1416,15 @@ function tlImporter_renderDiffView( data ) {
     }
 }
 
+// tlImporter_clickBox
+// Which textarea a click on an Apply button is about: the site's editor box for the down
+// button - looked up fresh, see tlImporter_downBox - the Merged box for the other.
+function tlImporter_clickBox( id ) {
+    return id === "mdb-tlImporter-apply-down"
+        ? tlImporter_downBox()
+        : $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first();
+}
+
 // The Apply button in the Merged column - and its twin below #tlEditor-formActions while the
 // block is down (tlImporter_addDownActions): the box's current text replaces the page's
 // tracklist VERBATIM - what the reader sees in the box is what lands in the wiki edit box.
@@ -1423,16 +1432,68 @@ function tlImporter_renderDiffView( data ) {
 // the icons follow it, the text does not. The box is marked known and its update sequence
 // bumped, so the blur update the click itself triggered (focus leaves the box on mousedown)
 // cannot reformat the box afterwards either.
+//
+// A click can land while the site's OWN editor is mid-request: teApi() marks the box
+// "waitingForApi" while one of its buttons is out asking, and writes the answer into the box
+// when it comes home - up to a second and a half later. "Cap, then Apply" is one gesture, and
+// its Apply falls into that window as often as not. The text on screen during it is the one
+// about to be replaced, so it must not be applied - but the click must not be swallowed
+// either: refusing it made the button look dead ("Apply does nothing"), and nobody clicks a
+// second time on a button that just ate the first. So the click WAITS - the button says
+// "One moment", the box is watched until the class comes off, and the settled text is applied
+// then, exactly as if the click had come after the answer. Bounded: the site clears the class
+// in a done handler with no fail behind it, so a failed request leaves it standing for ever -
+// after ~8s the wait gives up and applies the text as it stands, that being the settled text
+// in every way that request is still able to matter.
 $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function() {
     var button = $(this),
-        // the down button reads the site's editor box the text moved into - the Merged box
-        // is empty and hidden while the block is down. Read HERE and nowhere earlier: what
-        // lands in the page is the text that is on screen at the moment of the click, not
-        // the one some watcher last looked at (see tlImporter_refreshDownApply).
-        tl = this.id === "mdb-tlImporter-apply-down"
-            ? tlImporter_downBox()
-            : $( "#mdb-tlImporter-diff textarea.mixesdb-TLbox" ).first(),
-        textbox = $( "#wpTextbox1" ).first(),
+        id = this.id,
+        tl = tlImporter_clickBox( id );
+
+    if( !tl.length ) {
+        log( "tlImporter: nothing to apply." );
+        return;
+    }
+
+    // one wait per button - a second click while the first is still waiting must not stack
+    if( button.data( "mdbTlImporterWaiting" ) ) return;
+
+    if( tl.hasClass( "waitingForApi" ) ) {
+        log( "tlImporter: the site's editor is still waiting for its own API answer - applying as soon as it lands." );
+
+        button.data( "mdbTlImporterWaiting", true ).text( "One moment" );
+
+        var tries = 0,
+            timer = setInterval(function() {
+                // fresh lookup per tick - the module may rebuild its textarea
+                var box = tlImporter_clickBox( id ),
+                    settled = box.length && !box.hasClass( "waitingForApi" ),
+                    gaveUp = ++tries >= 40;
+
+                if( !settled && !gaveUp ) return;
+
+                clearInterval( timer );
+                button.removeData( "mdbTlImporterWaiting" ).text( "Apply" );
+
+                if( gaveUp && !settled ) {
+                    log( "tlImporter: the site's editor never reported its answer - applying the text as it stands." );
+                }
+
+                tlImporter_applyNow( button, box );
+            }, 200 );
+
+        return;
+    }
+
+    tlImporter_applyNow( button, tl );
+});
+
+// tlImporter_applyNow
+// The apply itself, out of the click handler so the wait above can run it when the site's
+// answer has landed. Reads the box HERE, at apply time - what lands in the page is the text
+// on screen in this moment, never the one some watcher looked at earlier.
+function tlImporter_applyNow( button, tl ) {
+    var textbox = $( "#wpTextbox1" ).first(),
         text = $.trim( tl.val() || "" );
 
     if( !tl.length || !textbox.length || !text ) {
@@ -1440,20 +1501,7 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
         return;
     }
 
-    // The site's editor is mid-request: ext.mixesdb.editor's teApi() marks the box
-    // "waitingForApi" while one of its own buttons is out asking, and writes the answer into
-    // the box when it comes home. The text on screen is then the one about to be replaced,
-    // and applying it would put exactly the stale version into the page that this button is
-    // meant to keep out of it. Said on the button rather than swallowed - a click that looks
-    // unheard is the thing being fixed here. Never a stored flag: the site removes the class
-    // in a done handler with no fail handler behind it, so a failed request leaves it
-    // standing, and anything gated on it for good would be asleep for good.
-    if( tl.hasClass( "waitingForApi" ) ) {
-        button.text( "One moment" );
-        setTimeout(function() { button.text( "Apply" ); }, 1200 );
-        log( "tlImporter: the site's editor is still waiting for its own API answer - not applying the text it is about to replace." );
-        return;
-    }
+    log( "tlImporter: applying the box as it stands - " + text.split( "\n" ).length + " lines, " + text.length + " characters." );
 
     var res = apiTracklist( text, "standard" ),
         status = res.feedback && res.feedback.status ? res.feedback.status : "";
@@ -1502,7 +1550,7 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
     tlImporter_refreshDownApply();
 
     log( "tlImporter: applied the Merged box (TLE status: " + ( status || "(none)" ) + ")." );
-});
+}
 
 // tlImporter_lightTlButtons
 // The three indicator icons under the edit box, lit from what the TEXT now says - the same

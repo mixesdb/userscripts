@@ -88,7 +88,8 @@ tracklist state icons down there – the real ones under the edit box are on the
 That Apply always writes what stands in the editor at the moment you click it, so anything the
 editor's own buttons just did to the text goes into the page with it; it is only greyed out
 while the box is empty. Clicked while the Tracklist Editor is still answering one of those
-buttons it says **One moment** instead – the text on screen is the one about to be replaced.
+buttons it says **One moment**, waits for the answer, and then applies the settled text by
+itself – one click is enough, however fast it followed the button.
 The arrow flips to point up and moves everything back, the text travelling along both ways, so
 toggling never loses an edit – and the page scrolls along to wherever the block just went.
 Like the widen choice, this one is remembered per browser.
