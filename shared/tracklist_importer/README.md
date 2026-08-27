@@ -83,10 +83,17 @@ than the player site does – `Costigane` where the site says `Brendan Costigane
 same track as long as the title matches: the page's spelling stays, the site's one stands in the
 Candidate column for you to judge. The candidate's cues are converted to the cue format the
 original already uses.
-One exception: when the mix turns out to run past what the original's cue format can say – a
+Two exceptions: when the mix turns out to run past what the original's cue format can say – a
 track was detected at `[106]` but the page counts minutes in two digits – the whole list
 switches to the wider format (`[08]` becomes `[008]`, `[??]` becomes `[???]`) instead of mixing
-both widths.
+both widths. And a page whose tracklist has no cue at all has no format to keep, so the found
+tracklist's is used for the whole list.
+
+Tracks the found tracklist does not know keep an unknown cue, and that cue says as much as the
+list allows: a track between `[095]` and `[098]` can only have played in minute 09x, so it reads
+`[09?]`. Between `[098]` and `[103]` the two neighbours agree on nothing and it stays `[???]`.
+Nothing is filled in behind the last known cue – the mix runs on from there – or where more
+unknown tracks sit between two cues than there are minutes between them.
 
 ### On the edit form
 

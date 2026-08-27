@@ -630,6 +630,76 @@ function tlImporter_ensureCues( tl_arr, format ) {
     return tl_arr;
 }
 
+// tlImporter_fillUnknownCuePrefixes
+// An unknown cue keeps every leading digit the known cues around it agree on: "[??]" sitting
+// between [095] and [098] can only be a 09x minute, so it is written "[09?]" – the same reading
+// a contributor writes by hand. Between [098] and [103] the two agree on nothing and it stays
+// "[???]" (reported: fibre podcast bman 011, trackid.net).
+//
+// The bound is the LIST's own order, which is what a tracklist claims in the first place: a row
+// printed between two cues played between them. Hence:
+//   - no known cue before the run -> minute zero is the lower bound, a bound like any other
+//   - no known cue after the run  -> nothing bounds it from above (the stream runs on past the
+//                                   last cue), so nothing may be filled in
+//   - all digits equal            -> one "?" is kept anyway: the cue is INFERRED, and a row that
+//                                    reads like a known cue claims more than the merge knows
+//   - more unknown rows than minutes between the two bounds -> nothing is filled: six rows
+//     between [008] and [009] (NTS Japanese Techno, where the page knows the tracks and almost
+//     none of the times) cannot all have played in minute 008, so the bound is not one to write
+//     into the page. One minute per row is the smallest span worth believing.
+// Bare formats only. Colon cues have their own prefix rule in tlImporter_merge().
+function tlImporter_fillUnknownCuePrefixes( tl_arr, format ) {
+    if( !format || format.hasColon || !format.cueDigits ) { return tl_arr; }
+
+    var digits = format.cueDigits,
+        rows = tl_arr.filter(function( item ){ return item.type === "track"; });
+
+    // A row's cue as a padded digit string, or null when it says no minute. Gaps ("...") are not
+    // rows and do not interrupt anything – a row behind a gap is still printed before the next cue.
+    function knownCue( item ) {
+        var cue = String( item && item.cue || "" );
+        return /^\d+$/.test( cue ) ? tlImporter_padStart( cue, digits ) : null;
+    }
+
+    for( var i = 0; i < rows.length; i++ ) {
+        if( knownCue( rows[i] ) !== null ) { continue; }
+
+        // The whole run of cue-less rows at once: they share one pair of bounds, and their
+        // NUMBER is what decides whether those bounds are believable.
+        var runStart = i;
+        while( i + 1 < rows.length && knownCue( rows[i + 1] ) === null ) { i++; }
+
+        var after = i + 1 < rows.length ? knownCue( rows[i + 1] ) : null;
+        if( after === null ) { continue; }
+
+        var before = runStart > 0 ? knownCue( rows[runStart - 1] ) : tlImporter_padStart( 0, digits );
+        if( before === null ) { continue; }
+
+        var runLength = i - runStart + 1;
+        if( parseInt( after, 10 ) - parseInt( before, 10 ) < runLength ) { continue; }
+
+        var prefix = "";
+        for( var d = 0; d < digits; d++ ) {
+            if( before.charAt(d) !== after.charAt(d) ) { break; }
+            prefix += before.charAt(d);
+        }
+
+        // An inferred cue stays visibly inferred, so never more than digits - 1 known digits.
+        if( prefix.length > digits - 1 ) { prefix = prefix.substring( 0, digits - 1 ); }
+        if( !prefix.length ) { continue; }
+
+        for( var r = runStart; r <= i; r++ ) {
+            // Only the pure placeholders – a row already carrying digits ("[09?]" from an earlier
+            // merge) keeps what it says.
+            if( /^\?+$/.test( String( rows[r].cue || "" ) ) ) {
+                rows[r].cue = prefix + new Array( digits - prefix.length + 1 ).join("?");
+            }
+        }
+    }
+
+    return tl_arr;
+}
+
 // tlImporter_sameCue
 // "Did the merged track end up with the candidate's cue?" – for the usage flags. Loose on
 // leading zeros and on colon cues, since both sides were normalized to the same format anyway.
@@ -1259,6 +1329,17 @@ function tlImporter_merge( originalText, candidateText ) {
     var originalCueFormat = tlImporter_cueFormat( original_arr ),
         originalFirstCuePrefix = "0";
 
+    // A cue-less original has no format to win with. Every cue the merged list ends up with
+    // then comes from the CANDIDATE, so the candidate's format is the one the placeholders have
+    // to match – without this the null format fell through to tlImporter_unknownCue()'s
+    // two-digit default and wrote "[??]" between three-digit candidate cues (reported: fibre
+    // podcast bman 011, trackid.net).
+    var candidateCueFormat = false;
+    if( !originalCueFormat ) {
+        originalCueFormat = tlImporter_cueFormat( candidate_arr );
+        candidateCueFormat = !!originalCueFormat;
+    }
+
     // The dur fix is applied BEFORE merging: when the format widened (XX -> XXX, see
     // tlImporter_widenedCueFormat), the ORIGINAL's cues move to it right away ([08] -> [008],
     // [??] -> [???]) – placeholders, cue comparisons and inserted cues then all agree on one
@@ -1266,6 +1347,10 @@ function tlImporter_merge( originalText, candidateText ) {
     var widenedCueFormat = tlImporter_widenedCueFormat( originalCueFormat, original_arr, candidate_arr );
     if( widenedCueFormat !== originalCueFormat ) {
         originalCueFormat = widenedCueFormat;
+        tlImporter_normalizeCues( original_arr, originalCueFormat );
+    } else if( candidateCueFormat ) {
+        // Same reason, one step earlier: a cue-less original may still carry "[??]" rows, and
+        // those move to the borrowed width too rather than staying two digits wide.
         tlImporter_normalizeCues( original_arr, originalCueFormat );
     }
 
@@ -1320,6 +1405,10 @@ function tlImporter_merge( originalText, candidateText ) {
             }
         });
     }
+
+    // Unknown cues take on every digit their known neighbours agree on ("[??]" between [095]
+    // and [098] -> "[09?]"). Last, so it sees the final order and every cue the merge wrote.
+    tlImporter_fillUnknownCuePrefixes( merged_arr, originalCueFormat );
 
     // "changed" answers the only question the callers really ask - would the page text
     // differ? state.changes alone cannot: it counts every WRITE into the original, and a write
