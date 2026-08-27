@@ -27,6 +27,13 @@ The box says one of two things:
   click treats it as a normal link to the page
 - **This player is not used on MixesDB yet** plus a **Search the title** link
 
+When the player lookup finds nothing, the mix page **texts** are searched for the player URL as
+a second step. That catches the mirror case: a page that carries the URL only written out by
+hand – as a mirror on a second `{{Player}}` line, as a URL variant, or inside a hidden comment –
+answers **This player appears on MixesDB** with the same links, instead of wrongly claiming the
+player is unused. The different wording is on purpose: the URL is written on that page but is
+not its indexed player, so give the page a quick look before adding anything.
+
 Player URLs are read out of the page's embedded players, so a SoundCloud, Mixcloud, hearthis.at
 or YouTube widget is recognised wherever it is embedded.
 

@@ -624,6 +624,76 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
     return 'https://www.mixesdb.com/w/api.php?action=mixesdb_player_search&format=json&url='+keywords;
 }
 
+/*
+ * Mirror URL case: fulltext second layer behind the player search
+ * action=mixesdb_player_search only answers for URLs the wiki has indexed as players. A URL
+ * written on a page by hand - a mirror on the second {{Player}} line, a URL variant, or a
+ * commented-out <!-- mirror --> - is invisible to it, so its empty answer is not yet "unused".
+ * CirrusSearch indexes the raw wikitext incl. HTML comments, so an insource phrase search for
+ * the URL's SLUG (the path behind the domain - protocol and "www." vary in hand-written
+ * mirrors) still finds those pages (design: shared/page_creator/row_enrichment.md §4).
+ * Shared on purpose: the toolkit's player search runs it as its second layer, Internet
+ * Archive's usage table runs it on download URL paths, and the page creator's planned
+ * Create-click sanity check can reuse it - one implementation, not three.
+ */
+
+// mixesdbInsourceKeywords
+// URL -> the slug phrase worth text-searching, or "" when the URL yields none that is
+// distinctive enough (bare domains, hearthis' short numeric ID URLs): noise hits claiming
+// "used" would be worse than no fallback at all
+function mixesdbInsourceKeywords( urlStr ) {
+    var slug = normalizePlayerUrl( removeParametersFromUrl( urlStr ) )
+        .split("#")[0]
+        .split("/")
+        .slice(1) // drop the domain: the path is the stable part across hand-written mirror variants
+        .join("/");
+
+    if( slug.length < 8 ) {
+        log( "mixesdbInsourceKeywords: slug too short for a fulltext search, skipping: \"" + slug + "\"" );
+        return "";
+    }
+
+    return slug;
+}
+
+// mixesdbInsourceSearch
+// One insource phrase search against the MixesDB API. onDone( searchResults, requestUrl ):
+// searchResults items carry title/pageid/timestamp like the player search's answers
+// (srprop=timestamp), an empty array means no page text carries the phrase, null means the
+// request failed. asyncMode=false is for the toolkit's player search flow, whose cleanup
+// timer starts right after the (synchronous) first API answer - the verdict must be in
+// before it does.
+function mixesdbInsourceSearch( phrase, onDone, asyncMode=true ) {
+    var apiParams = {
+            action: "query",
+            list: "search",
+            srprop: "timestamp",
+            srlimit: 5,
+            format: "json",
+            origin: "*",
+            srsearch: 'insource:"' + phrase.replace(/(["\\])/g, "\\$1") + '"'
+        },
+        requestUrl = "https://www.mixesdb.com/w/api.php?" + $.param( apiParams );
+
+    log( "mixesdbInsourceSearch: " + requestUrl );
+
+    $.ajax({
+        url: "https://www.mixesdb.com/w/api.php",
+        data: apiParams,
+        type: "get",
+        dataType: "json",
+        async: asyncMode,
+        success: function( data ) {
+            var searchResults = data?.query?.search;
+            onDone( Array.isArray( searchResults ) ? searchResults : [], requestUrl );
+        },
+        error: function( jqXHR, textStatus, errorThrown ) {
+            log( "mixesdbInsourceSearch FAILED (" + textStatus + ": " + errorThrown + "): " + requestUrl );
+            onDone( null, requestUrl );
+        }
+    });
+}
+
 // makeAvailableLinksListItem
 function makeAvailableLinksListItem( playerUrl, titleText="", usage="", class_solvedUrlVariants, playerOrder=0 ) {
     var playerUrl_clean = removeTrackingParameters( remove_mdbVariant_fromUrlStr( playerUrl ) ),
@@ -937,8 +1007,36 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                 var resultsArr = data["mixesdb_player_search"],
                     resultNum = resultsArr.length,
+                    usageViaTextSearch = false,
                     showPlayerUrls = false,
                     force_unclearResult = false;
+
+                /*
+                 * Second search layer: the mirror URL case
+                 * The player search endpoint misses URLs that are on a page but not indexed
+                 * as its player (hand-written mirrors, URL variants, commented-out players).
+                 * Before calling the player unused, search the mix page TEXTS for the URL's
+                 * slug. Synchronous like the first call: the cleanup timer in .done() starts
+                 * right after this handler, so an async answer would arrive on a toolkit
+                 * whose empty "used" list item the cleanup already removed.
+                 * A hit feeds the SAME resultsArr/resultNum the player search fills, so the
+                 * whole used-rendering below (usage links, body success class, the page
+                 * creator's used/unused verdict) needs no second code path.
+                 */
+                if( resultNum == 0 ) {
+                    var insourcePhrase = mixesdbInsourceKeywords( thisUrl_forApi );
+
+                    if( insourcePhrase != "" ) {
+                        mixesdbInsourceSearch( insourcePhrase, function( searchResults ) {
+                            if( searchResults && searchResults.length > 0 ) {
+                                resultsArr = searchResults;
+                                resultNum = searchResults.length;
+                                usageViaTextSearch = true;
+                                log( "getToolkit_run: player search found nothing, but the page text search found the URL slug on " + resultNum + " page(s)." );
+                            }
+                        }, false );
+                    }
+                }
 
                 if( max_toolboxIterations > 1
                    || visitDomain == "1001tracklists.com"
@@ -972,6 +1070,13 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
 
                             if( showPlayerUrls ) {
                                 output = '<span class="mdb-toolkit-usageLink-intro">This mix is on MixesDB: </span>';
+                            }
+
+                            // mirror URL case: found by the text search, not by the player
+                            // search - say so, since the URL may only be a mirror written on
+                            // the page and the link is there for the user to judge
+                            if( usageViaTextSearch ) {
+                                output = '<span class="mdb-toolkit-usageLink-intro">' + mdbTooltip( "This player appears on MixesDB", "Found by searching the mix page texts for this player URL's path. The player search API did not find it, so it is probably written on the page as a mirror URL." ) + ': </span>';
                             }
 
                             log( "Ready to output usage links" );

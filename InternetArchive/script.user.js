@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Internet Archive (by MixesDB) (BETA)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.1
+// @version      2026.08.27.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -10,7 +10,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-InternetArchive_6
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-InternetArchive_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-InternetArchive_15
 // @require      https://cdn.jsdelivr.net/npm/sorttable@1.0.2/sorttable.js
 // @include      http*archive.org/details/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archive.org
@@ -224,8 +224,6 @@ if( playsetList_wrapper.length ) {
         /*
          * MixesDB usage
          */
-        var mixesdbApiUrl = "https://www.mixesdb.com/w/api.php";
-
         function buildMixesdbSearchPath( downloadUrl ) {
             try {
                 var urlObj = new URL( downloadUrl, window.location.origin ),
@@ -237,10 +235,6 @@ if( playsetList_wrapper.length ) {
                         filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" );
 
                     return "/" + identifier + "/" + filenamePart;
-                        filenamePart = pathParts.slice( downloadIndex + 2 ).join( "/" ),
-                        encodedFilename = encodeURIComponent( filenamePart );
-
-                    return "/" + identifier + "/" + encodedFilename;
                 }
             } catch ( error ) {
                 console.error( "InternetArchive: Failed to build MixesDB search path", error );
@@ -262,37 +256,23 @@ if( playsetList_wrapper.length ) {
                 return;
             }
 
-            var mixesdbApiParams = {
-                action: "query",
-                list: "search",
-                srprop: "timestamp",
-                format: "json",
-                origin: "*",
-                srsearch: 'insource:"' + mixesdbSearchPath.replace(/(["\\])/g, "\\$1") + '"'
-            };
-
-            $.ajax({
-                dataType: "json",
-                url: mixesdbApiUrl,
-                data: mixesdbApiParams,
-                success: function( data ) {
-                    var searchResults = data?.query?.search;
-
-                    if ( Array.isArray( searchResults ) && searchResults.length ) {
-                        var firstResult = searchResults[0],
-                            pageTitle = firstResult?.title || "MixesDB",
-                            pageId = firstResult?.pageid,
-                            pageUrl = pageId ? "https://www.mixesdb.com/w/index.php?curid=" + pageId : "https://www.mixesdb.com/w/" + encodeURIComponent( pageTitle.replace( / /g, "_" ) );
-
-                        mixesdbCell.html( '<a href="' + pageUrl + '" target="_blank">' + pageTitle + '</a>' );
-                    } else {
-                        var mixesdbApiSearchUrl = mixesdbApiUrl + "?" + $.param( mixesdbApiParams );
-
-                        mixesdbCell.html( '<a href="' + mixesdbApiSearchUrl + '" target="_blank">Slug not used</a>' );
-                    }
-                },
-                error: function() {
+            // shared insource search (shared/toolkit/funcs.js) - the same request the
+            // toolkit's player search uses as its mirror-URL second layer
+            mixesdbInsourceSearch( mixesdbSearchPath, function( searchResults, requestUrl ) {
+                if ( searchResults === null ) {
                     mixesdbCell.text( "MixesDB check failed" );
+                    return;
+                }
+
+                if ( searchResults.length ) {
+                    var firstResult = searchResults[0],
+                        pageTitle = firstResult?.title || "MixesDB",
+                        pageId = firstResult?.pageid,
+                        pageUrl = pageId ? "https://www.mixesdb.com/w/index.php?curid=" + pageId : "https://www.mixesdb.com/w/" + encodeURIComponent( pageTitle.replace( / /g, "_" ) );
+
+                    mixesdbCell.html( '<a href="' + pageUrl + '" target="_blank">' + pageTitle + '</a>' );
+                } else {
+                    mixesdbCell.html( '<a href="' + requestUrl + '" target="_blank">Slug not used</a>' );
                 }
             });
         });
