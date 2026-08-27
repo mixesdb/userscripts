@@ -11,7 +11,8 @@ everywhere – a script's own README says where on that site the box shows up.
   [hearthis.at](../../hearthis.at/), [Internet Archive](../../InternetArchive/),
   [Player Checker](../../Player_Checker/), [MixesDB Userscripts Helper](../../MixesDB_Userscripts_Helper/)
 - **Install:** nothing to install – it comes with the site scripts
-- **Shared features:** [Tracklist box](../tracklist_editor/), [Page creator](../page_creator/)
+- **Shared features:** [Tracklist box](../tracklist_editor/), [Page creator](../page_creator/),
+  [MixesDB modal](../mixesdb_modal/)
 
 ## Features
 
@@ -20,7 +21,10 @@ everywhere – a script's own README says where on that site the box shows up.
 The box says one of two things:
 
 - **This player is used on MixesDB** with a link to every mix page it is on, each followed by
-  **EDIT** and **HIST** links (new tab) and how long ago that page was last edited
+  a blue **eye icon**, **EDIT** and **HIST** links (new tab) and how long ago that page was
+  last edited. The eye opens the mix page in the [MixesDB modal](../mixesdb_modal/) – a popup
+  right on the page, for a quick look that does not stop a playing player; every other kind of
+  click treats it as a normal link to the page
 - **This player is not used on MixesDB yet** plus a **Search the title** link
 
 Player URLs are read out of the page's embedded players, so a SoundCloud, Mixcloud, hearthis.at

@@ -132,10 +132,13 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   reading there. That branch writes NOTHING – not the page text, not the category, not the
   icons – locks nothing and does not click "Show changes": there is no change to show. It only
   renders the review block, with `chapters: true` in the payload:
-  `tlImporter_plainItems()` (merge_core.js) turns both parsed lists into rows with no `changed` /
-  `use` / `used` on them, so nothing is highlighted – a highlight would be a claim about a merge
-  that never ran – and the Merged box opens EMPTY as the reader's workbench, Apply asleep until
-  they write something. `tlImporter_renderStoredDiff()` keeps such a block on an EMPTY compare
+  `tlImporter_rawItems()` (merge_core.js) puts BOTH texts up VERBATIM – one row per line, no
+  cue/label split, no `changed` / `use` / `used`, so nothing is highlighted. Not
+  `tlImporter_parse()`: with no merge to flag parts of, parsing buys nothing and costs the truth
+  (it drops the `#` numbering, the `''` italics and every blank line), and the reader was
+  hand-merging against a tidied-up list neither side actually holds – reported on Friday Dance
+  Party 168. The Merged box opens EMPTY as the reader's workbench, Apply asleep until they write
+  something. `tlImporter_renderStoredDiff()` keeps such a block on an EMPTY compare
   (the normal answer on a page nothing was written to), where a merge block is dropped.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
   top right corner (`tlImporter_applyDown`) moves the block AND `#editToolsBar-TLeditor` (the

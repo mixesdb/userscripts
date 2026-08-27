@@ -8,7 +8,7 @@ everywhere – a script's own README says what it does on that site.
 - **Install:** nothing to install – these come with the site scripts
 - **Shared features:** the bigger ones have their own page – [Toolkit](toolkit/),
   [Tracklist box](tracklist_editor/), [Page creator](page_creator/),
-  [Tracklist Importer](tracklist_importer/)
+  [Tracklist Importer](tracklist_importer/), [MixesDB modal](mixesdb_modal/)
 
 The features below have no page of their own: they are single helpers out of `global.js` rather
 than a feature with its own files.

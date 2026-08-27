@@ -259,6 +259,12 @@ var mdbPageCreator_title = "",
 function mdbPageCreator_add( options ) {
     logFunc( "mdbPageCreator_add" );
 
+    // The MixesDB modal (shared/mixesdb_modal/funcs.js) loads its CSS lazily - started here,
+    // where a row is about to exist and its chips can open one, so the very first open is
+    // already styled. typeof-guarded: the row must keep working where a site script does not
+    // @require the modal file.
+    if( typeof mdbModal_ensureCss === "function" ) mdbModal_ensureCss();
+
     var o = options || {},
         playerTitle = o.title || "",
         channel = o.channel || "",
@@ -1597,7 +1603,7 @@ function mdbPageCreator_confidenceTitle() {
  * red means it has not: a new name, or the name is spelled differently there, and the red
  * name searches MixesDB (the loupe behind it says so), which is the fastest way to tell those
  * two apart. On a desktop-wide window the chips' MixesDB links open in a modal on the page
- * (mdbPageCreator_modalOpen below) rather than a tab. The year, the styles, "Promo Mix" and
+ * (mdbModal_open, shared/mixesdb_modal/funcs.js) rather than a tab. The year, the styles, "Promo Mix" and
  * the "Tracklist:" filing are grey chips without link or count - nothing about them is a
  * spelling anyone could have got wrong, but the page gets them and the line says so.
  *
@@ -2698,8 +2704,9 @@ function mdbPageCreator_usedCategory( entry, state, title ) {
                 // _blank, not the usual _top: looking a category up is a side trip taken
                 // while judging the title on THIS page, and the row has to still be here
                 // afterwards (same case as the toolkit's EDIT/HIST links). On a desktop-wide
-                // window the modal intercepts the plain left click instead - see
-                // mdbPageCreator_modalOpen - and this href is what every other click keeps.
+                // window the modal intercepts the plain left click instead - see the
+                // delegated handler above mdbPageCreator_hintLinkOnScreen - and this href is
+                // what every other click keeps.
                 .attr( "href", mdbPageCreator_categoryUrl( spelled ) )
                 .attr( "target", "_blank" )
                 .attr( "title", "MixesDB has this category - opens [[Category:" + spelled + "]]." + note )
@@ -5600,582 +5607,58 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
 
 
 /*
- * The MixesDB modal: on a desktop-wide window, a plain left click on any MixesDB link in the
- * "Used categories" chips opens the page in an overlay ON this page instead of a tab - the
- * reader is mid-judgement on a title, and "is this the right category?" or "does this page
- * already exist?" is a five-second look, not a tab worth keeping. Everything that ASKS for a
- * tab still gets one: cmd/ctrl/shift/alt and middle clicks fall through to the links' own
- * href/target (they stay real links), and so does a narrow window, where the framed page
- * would be smaller than a tab. MixesDB sends no X-Frame-Options and neither site's CSP
- * forbids the frame (verified 2026-08-18), and the header's "Open on MixesDB" link is the
- * way out where a quick look turns into real reading.
+ * The MixesDB modal moved to its own shared feature - shared/mixesdb_modal/funcs.js
+ * (mdbModal_open and friends, CSS loaded by that file) - because the toolkit's usage links
+ * open it now too, on sites that load no page creator at all. What stays here is the page
+ * creator's OWN use of it:
  *
- * Once it is open the arrow keys walk the bar: left/right frames the previous/next MixesDB
- * link that is on screen right now, so the whole line - every category, every folded-out mix
- * page - can be looked through without going back to the row for each one. The header counts
- * the steps ("3 / 12") and carries the same two arrows as buttons. The walk is a RING: one
- * step past the last link is the first one again, and one step back from the first is the
- * last (mdbPageCreator_modalStep).
+ * - the delegated click that turns a plain left click on a "Used categories" / "Similar:"
+ *   link into a modal open on a desktop-wide window
+ * - the walk provider that hands the modal the bar's links in the order the line reads -
+ *   the arrow keys walk exactly what is on screen (mdbPageCreator_hintLinkOnScreen)
  *
- * What makes a step fast is that the pages STAY: every page visited keeps its own iframe,
- * hidden behind the one on screen, and the two neighbours of the page being read load into
- * theirs while it is read (mdbPageCreator_modalFrame). A step is then a visibility swap on a
- * document that is already parsed - nothing is fetched, nothing is rendered again, and going
- * back through the walk costs nothing at all.
- *
- * This replaced <link rel="prefetch">, which measured useless here: MixesDB answers every
- * page with "Cache-Control: private, must-revalidate, max-age=0", so prefetched bytes may not
- * be reused without asking the server again - and the wait is the ASKING (~0.7-0.9s of server
- * render on an uncached wiki), not the transfer. Prefetching a page whose bytes have to be
- * revalidated buys nothing and costs MixesDB the render.
- *
- * The overlay does not necessarily belong to the document this file runs in: where the site
- * renders its pages into a same-origin frame - SoundCloud has done exactly that since the
- * ~Aug 2026 redesign - it is hung into the TOP document instead (mdbPageCreator_modalDoc).
- * position:fixed is fixed to the FRAME's viewport, so an overlay built down here dimmed and
- * blurred the framed page and stopped at its edge: the site's own menu bar stood above it
- * sharp and clickable, which read as the modal being a part of the page rather than something
- * lying on top of the window. Same reasoning as the "_top" on every link we add.
+ * Everything about the overlay itself - the frames it keeps, the arrow keys, Esc, which
+ * document it mounts in - lives over there. Every touch of the modal file is typeof-guarded:
+ * the row has to degrade to plain links where a script does not @require the modal file.
  */
-var mdbPageCreator_modalMinWidth = 1024,
-    // How many loaded MixesDB pages the open modal keeps alive at once. Enough for a page,
-    // its two neighbours and a few steps of history behind them; every one of them is a full
-    // document with its own layout, so this is the memory the feature is allowed to hold.
-    mdbPageCreator_modalFrameMax = 7,
-    // The frames the modal is holding, most recently shown FIRST: { url: ..., node: <iframe> }.
-    // A list rather than the DOM's own order, because moving an iframe in the DOM reloads it -
-    // the nodes are appended once and never touched again, and recency lives here.
-    mdbPageCreator_modalFrames = [],
-    // the URL the modal frames right now - where the arrow keys count from. Not an index:
-    // see mdbPageCreator_modalIndex.
-    mdbPageCreator_modalUrl = null,
-    // The open overlay, kept as a NODE: it may hang in another document than the one this
-    // script runs in (mdbPageCreator_modalDoc), where $("#mdb-pageCreator-modal") - which
-    // only ever searches this one - finds nothing.
-    mdbPageCreator_modalNode = null;
 
 // mdbPageCreator_hintLinkOnScreen
 // Is this bar link one the reader can see? Every link IS in the DOM - a chip's recent mix
 // pages are built with the chip and only folded away by the open class - so the question is
 // answered by STRUCTURE, not by :visible: the bar's first render happens while the row is
 // still detached, where nothing computes as visible at all. Everything the modal does - the
-// walk, the counter, the neighbours it loads ahead - comes through mdbPageCreator_modalLinks(),
-// so all of it agrees on the same set.
+// walk, the counter, the neighbours it loads ahead - comes through the provider below, so
+// all of it agrees on the same set.
 function mdbPageCreator_hintLinkOnScreen( link ) {
     var inRecent = $(link).closest( ".mdb-pageCreator-usedCat-recent" );
 
     return !inRecent.length || inRecent.closest( ".mdb-pageCreator-usedCat" ).hasClass( "mdb-pageCreator-usedCat-open" );
 }
 
+// The page creator's contribution to the modal's arrow-key walk: both category rows, in one
+// combined selector because that returns document order, which is the order the bar reads
+// (the chips left to right, and inside a chip its own name before the mix pages folded out
+// under it) - the "Similar:" chips serve the same five-second look as the used categories.
+// Pushed into the plain-array global rather than through a register function so the @require
+// order of this file and the modal file cannot matter.
+window.mdbModal_linkProviders = window.mdbModal_linkProviders || [];
+window.mdbModal_linkProviders.push( function() {
+    return $("#mdb-pageCreator-usedCats a[href], #mdb-pageCreator-similarCats a[href]").filter( function() {
+        return mdbPageCreator_hintLinkOnScreen( this );
+    }).get();
+});
+
 // Bound once, on the document, so it survives every rebuild of the bar; the width is tested
 // INSIDE the handler because the window resizes. Only links WITH an href: the "N mixes"
 // toggle is an <a> without one.
 $(document).on( "click", "#mdb-pageCreator-usedCats a[href], #mdb-pageCreator-similarCats a[href]", function( e ) {
+    if( typeof mdbModal_open !== "function" ) return;
     if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.which !== 1 ) return;
-    if( $(window).width() < mdbPageCreator_modalMinWidth ) return;
+    if( $(window).width() < mdbModal_minWidth ) return;
 
     e.preventDefault();
-    mdbPageCreator_modalOpen( this.href );
+    mdbModal_open( this.href );
 });
-
-// mdbPageCreator_modalDoc
-// The document the overlay is hung into: the TOP one wherever it can be reached, this one
-// everywhere else. A same-origin frame is the case this exists for - see the section comment.
-// Reading a property of a cross-origin top document throws, and a page of ours framed on some
-// other site is none of our business anyway: the local document is the answer there.
-function mdbPageCreator_modalDoc() {
-    if( window.top === window.self ) return document;
-
-    try {
-        if( window.top.document.body ) return window.top.document;
-    } catch( e ) {
-        logVar( "mdbPageCreator_modalDoc", "top document not reachable (" + e + ") - staying in this frame" );
-    }
-
-    return document;
-}
-
-// mdbPageCreator_modalCssText
-// The stylesheet of ours that carries the modal's rules, as text, in whichever document is
-// asked - "" where that document has none.
-// Found by what it CONTAINS rather than by a marker attribute loadRawCss() would have to put
-// on it: page_creator.css is the only stylesheet on the page that names the modal, and asking
-// for the rules themselves keeps this working with whatever cached global.js the user's
-// manager still holds.
-function mdbPageCreator_modalCssText( doc ) {
-    var css = "";
-
-    $( doc ).find( "style" ).each(function() {
-        if( this.textContent.indexOf( "#mdb-pageCreator-modal" ) > -1 ) css = this.textContent;
-    });
-
-    return css;
-}
-
-// mdbPageCreator_modalCss
-// Makes sure the modal's rules exist in the document it is about to be hung in. loadRawCss()
-// (global.js) puts every stylesheet into the document the script RUNS in, and a rule in the
-// frame's head says nothing about a node in the top one - the modal would open up there as a
-// stack of unstyled divs.
-//
-// Usually nothing to do: a site script that runs in the frame runs in the top document as
-// well (SoundCloud does) and has loaded the file there itself. The copy is for the case where
-// it has not - and it copies page_creator.css whole, which changes nothing about the site's
-// page: every rule in that file needs one of our own ids to fire.
-//
-// false where the file is nowhere to be found yet - the caller then stays in this frame,
-// which is styled either way.
-function mdbPageCreator_modalCss( doc ) {
-    var css, style;
-
-    if( doc === document ) return true;                 // where we already are
-    if( mdbPageCreator_modalCssText( doc ) ) return true;  // the site script got there first
-
-    css = mdbPageCreator_modalCssText( document );
-
-    if( !css ) return false;
-
-    // built in the TARGET document - and filled by textContent rather than innerHTML, like
-    // loadRawCss() itself, so Trusted Types has nothing to block. The id marks it as ours for
-    // the shared navigation cleanup, which may take it down again; the next open re-copies it.
-    style = doc.createElement( "style" );
-    style.id = "mdb-pageCreator-modal-css";
-    style.textContent = css;
-    doc.head.appendChild( style );
-
-    logVar( "mdbPageCreator_modalCss: page_creator.css copied into the top document, chars", css.length );
-
-    return true;
-}
-
-// mdbPageCreator_modalMount
-// Where the next overlay goes: the top document where it is reachable AND our CSS could be
-// put there, this document otherwise. Both answers are a working modal - what differs is only
-// how far the blur reaches.
-function mdbPageCreator_modalMount() {
-    var doc = mdbPageCreator_modalDoc();
-
-    if( doc !== document && !mdbPageCreator_modalCss( doc ) ) {
-        log( "mdbPageCreator_modalMount: our CSS is not on the page yet - opening in this frame instead of the top document." );
-        return document;
-    }
-
-    return doc;
-}
-
-// mdbPageCreator_modalOverlay
-// The open overlay, or nothing. Asked of the kept node and its isConnected rather than by id:
-// the overlay may be in the top document, which $("#...") cannot see - and it can go without
-// mdbPageCreator_modalClose() ever running (the shared navigation cleanup removes
-// .mdb-element / [id^="mdb"] wholesale), which "is it still on a page?" has to keep catching.
-function mdbPageCreator_modalOverlay() {
-    return $( mdbPageCreator_modalNode && mdbPageCreator_modalNode.isConnected ? mdbPageCreator_modalNode : [] );
-}
-
-// mdbPageCreator_modalOpen
-// One modal at a time - opening replaces whatever is up. The overlay is class mdb-element, so
-// the shared navigation cleanup (onUrlChange in global.js) takes it down with the row wherever
-// it hangs in this document; where it hangs in the top one, mdbPageCreator_resetForNewPage()
-// is what closes it.
-// The frame and the header's link are filled by mdbPageCreator_modalShow, which is also
-// what every arrow key runs afterwards - opening is just the first step of the walk.
-function mdbPageCreator_modalOpen( url ) {
-    logVar( "mdbPageCreator_modalOpen", url );
-
-    mdbPageCreator_modalClose();
-
-    var doc = mdbPageCreator_modalMount();
-
-    logVar( "mdbPageCreator_modalOpen mounts in", doc === document ? "this document" : "the top document" );
-
-    var overlay = $("<div>")
-        .attr( "id", "mdb-pageCreator-modal" )
-        .addClass( "mdb-element" )
-        .on( "click", function( e ) {
-            // the dark backdrop closes, the box does not - e.target tells them apart
-            if( e.target === this ) mdbPageCreator_modalClose();
-        });
-
-    overlay.append(
-        // tabindex so the box itself can hold the focus: the framed page is cross-origin, and
-        // a focused iframe eats the arrow keys before the document ever sees them
-        $("<div>").addClass( "mdb-pageCreator-modal-box" ).attr( "tabindex", "-1" ).append(
-            // no page name in the header: the framed page carries its own headline, and the
-            // arrows are the only thing up here that cannot be read off the page itself
-            $("<div>").addClass( "mdb-pageCreator-modal-head" ).append(
-                // an empty side that grows exactly like the one holding the buttons - the
-                // pair is what centres the arrows on the HEADER instead of on the space
-                // left over next to them
-                $("<span>").addClass( "mdb-pageCreator-modal-side" ),
-                mdbPageCreator_modalNav(),
-                $("<span>").addClass( "mdb-pageCreator-modal-side mdb-pageCreator-modal-side-end" ).append(
-                    $("<a>")
-                        .addClass( "mdb-pageCreator-modal-ext" )
-                        .attr( "target", "_blank" )
-                        .attr( "title", "Open this page as its own tab" )
-                        .text( "Open on MixesDB" ),
-                    $("<button>")
-                        .addClass( "mdb-pageCreator-modal-close" )
-                        .attr( "type", "button" )
-                        .attr( "title", "Close (Esc)" )
-                        .text( "×" )
-                        .on( "click", mdbPageCreator_modalClose )
-                )
-            ),
-            // the stack every visited page keeps its own frame in - one on top, the rest
-            // loaded and waiting behind it (mdbPageCreator_modalFrame)
-            $("<div>").addClass( "mdb-pageCreator-modal-frames" )
-        )
-    );
-
-    mdbPageCreator_modalNode = overlay[0];
-
-    // appending into another document adopts the node on the way in - the frames are only
-    // created once it is there, so no iframe is ever moved between documents (which reloads it)
-    $( doc.body ).append( overlay );
-
-    mdbPageCreator_modalShow( url );
-    mdbPageCreator_modalBindKeys();
-}
-
-// mdbPageCreator_modalBindKeys / mdbPageCreator_modalUnbindKeys
-// The modal's keys, bound natively on the WINDOW and in the CAPTURE phase - not with jQuery,
-// which can only bind the bubbling phase.
-//
-// Both parts are needed against the site under the overlay. SoundCloud's player listens for
-// the same two arrow keys on the document and seeks the playing track with them, so a track
-// playing under the modal jumped 15 seconds per step. A bubbling handler cannot help there,
-// whatever it calls: by the time the event has travelled down to the target and back up to
-// us, the site's own listener has already run. window + capture puts us at the very first
-// stop of the event's path, ahead of every listener the site can have registered, and
-// stopImmediatePropagation() then keeps the key ours.
-//
-// keyup and keypress are swallowed as well, without doing anything themselves: a site that
-// acts on the release rather than the press would otherwise still get its half of the key.
-function mdbPageCreator_modalBindKeys() {
-    mdbPageCreator_modalKeyWindows().forEach( function( win ) {
-        win.addEventListener( "keydown", mdbPageCreator_modalKeys, true );
-        win.addEventListener( "keyup", mdbPageCreator_modalKeys, true );
-        win.addEventListener( "keypress", mdbPageCreator_modalKeys, true );
-    });
-}
-
-function mdbPageCreator_modalUnbindKeys() {
-    mdbPageCreator_modalKeyWindows().forEach( function( win ) {
-        win.removeEventListener( "keydown", mdbPageCreator_modalKeys, true );
-        win.removeEventListener( "keyup", mdbPageCreator_modalKeys, true );
-        win.removeEventListener( "keypress", mdbPageCreator_modalKeys, true );
-    });
-}
-
-// mdbPageCreator_modalKeyWindows
-// The windows the modal's keys are listened for in: this one, plus the overlay's own where
-// that is the top document. Both are needed while the overlay hangs up there: the box takes
-// the focus on every open and every step (mdbPageCreator_modalShow), so the keys are then
-// delivered to the TOP window - but anything still focused down here (the title field, the
-// chip that was clicked) keeps sending them to this one. A key event never crosses a frame
-// boundary, so nothing is ever handled twice.
-//
-// Bound and unbound off the same list, which is why it is read from the overlay's node rather
-// than decided again: mdbPageCreator_modalClose() unbinds BEFORE it drops the node.
-function mdbPageCreator_modalKeyWindows() {
-    var doc = mdbPageCreator_modalNode ? mdbPageCreator_modalNode.ownerDocument : document,
-        other = doc.defaultView,
-        wins = [ window ];
-
-    if( other && other !== window ) wins.push( other );
-
-    return wins;
-}
-
-// mdbPageCreator_modalKeys
-// Escape closes, left/right step, and every one of those keys is taken off the page entirely
-// while the modal is up. A named function rather than a closure, so unbinding can hand the
-// listener back the same reference the binding used.
-function mdbPageCreator_modalKeys( e ) {
-    // The overlay can go without mdbPageCreator_modalClose() ever running: it is class
-    // mdb-element, and the shared navigation cleanup (onUrlChange in global.js) removes those
-    // wholesale on the next track. Closing here is what keeps a listener that swallows the
-    // arrow keys from outliving the modal it was swallowing them for - and it also drops the
-    // frames the removed overlay was holding.
-    if( !mdbPageCreator_modalOverlay().length ) {
-        mdbPageCreator_modalClose();
-        return;
-    }
-
-    if( e.key === "Escape" ) {
-        mdbPageCreator_modalSwallow( e );
-
-        if( e.type === "keydown" ) mdbPageCreator_modalClose();
-
-        return;
-    }
-
-    if( e.key !== "ArrowLeft" && e.key !== "ArrowRight" ) return;
-
-    // no modifier: cmd/alt + left is the browser's own Back on the page behind us
-    if( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ) return;
-
-    mdbPageCreator_modalSwallow( e );
-
-    // the press is the step; the release and the keypress are only kept off the site
-    if( e.type !== "keydown" ) return;
-
-    mdbPageCreator_modalStep( e.key === "ArrowRight" ? 1 : -1 );
-}
-
-// mdbPageCreator_modalSwallow
-// preventDefault() alone only answers the BROWSER - the page behind the overlay scrolling
-// sideways. The site's own listeners are stopped by the two propagation calls, and by both of
-// them: stopPropagation() ends the trip down the tree, stopImmediatePropagation() also skips
-// whatever else is registered on the window next to us.
-function mdbPageCreator_modalSwallow( e ) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-}
-
-// mdbPageCreator_modalFrame
-// The iframe holding one URL, made on first ask and kept afterwards. This is the whole reason
-// a step is instant: the page is not fetched again, not parsed again and not laid out again -
-// it is still there, one visibility swap away.
-//
-// "front" says which end of the recency list the frame goes on. The page being SHOWN goes to
-// the front; a neighbour loaded ahead goes right behind it, so the frames thrown away when
-// the list is full are the ones the reader has walked furthest from - never the page on
-// screen, and never the two it can step to next.
-//
-// The iframe is created with its src and never pointed anywhere else: assigning src to a
-// frame that already loaded something pushes an entry onto the TOP page's session history, so
-// five steps would bury the site's own Back button five clicks deep. A fresh iframe's first
-// load replaces instead of pushing.
-function mdbPageCreator_modalFrame( url, front ) {
-    var frames = mdbPageCreator_modalOverlay().find( ".mdb-pageCreator-modal-frames" ),
-        entry = mdbPageCreator_modalFrameEntry( url ),
-        at;
-
-    if( !frames.length ) return null;
-
-    if( entry ) {
-        // already loaded (or loading) - only its place in the recency list can change
-        at = mdbPageCreator_modalFrames.indexOf( entry );
-
-        mdbPageCreator_modalFrames.splice( at, 1 );
-    } else {
-        logVar( "mdbPageCreator_modalFrame builds", url );
-
-        entry = {
-            url: url,
-            node: $("<iframe>").addClass( "mdb-pageCreator-modal-frame" ).attr( "src", url )[0]
-        };
-
-        frames.append( entry.node );
-    }
-
-    mdbPageCreator_modalFrames.splice( front ? 0 : 1, 0, entry );
-
-    mdbPageCreator_modalFrameTrim();
-
-    return entry;
-}
-
-// mdbPageCreator_modalFrameEntry
-// The list entry for a URL, or nothing. Compared as strings, like everything else about the
-// walk (see mdbPageCreator_modalIndex).
-function mdbPageCreator_modalFrameEntry( url ) {
-    var i;
-
-    for( i = 0; i < mdbPageCreator_modalFrames.length; i++ ) {
-        if( mdbPageCreator_modalFrames[i].url === url ) return mdbPageCreator_modalFrames[i];
-    }
-
-    return null;
-}
-
-// mdbPageCreator_modalFrameTrim
-// Drops the least recently wanted frames once the modal holds more than it is allowed to.
-// Taken off the END of the list, which is where the pages the reader has walked away from
-// sit; removing the node is what frees the document behind it.
-function mdbPageCreator_modalFrameTrim() {
-    var gone;
-
-    while( mdbPageCreator_modalFrames.length > mdbPageCreator_modalFrameMax ) {
-        gone = mdbPageCreator_modalFrames.pop();
-
-        logVar( "mdbPageCreator_modalFrameTrim drops", gone.url );
-
-        $(gone.node).remove();
-    }
-}
-
-// mdbPageCreator_modalFrameNeighbours
-// The page before and the page after the one on screen, loading into their own hidden frames
-// while it is being read. Two pages, not twelve: a step goes to one of these two, and the
-// step after it asks for the next pair - so MixesDB is only ever rendering what the reader is
-// one key away from, instead of the whole line the moment the modal opens.
-//
-// The ring means there is always a pair, even on the first and the last link.
-function mdbPageCreator_modalFrameNeighbours() {
-    var links = mdbPageCreator_modalLinks(),
-        at = mdbPageCreator_modalIndex( links );
-
-    if( at < 0 || links.length < 2 ) return;
-
-    mdbPageCreator_modalFrame( links[ mdbPageCreator_modalWrap( at + 1, links.length ) ].href, false );
-
-    if( links.length < 3 ) return;
-
-    mdbPageCreator_modalFrame( links[ mdbPageCreator_modalWrap( at - 1, links.length ) ].href, false );
-}
-
-// mdbPageCreator_modalWrap
-// One position on the ring: -1 is the last link, length is the first again.
-function mdbPageCreator_modalWrap( at, length ) {
-    return ( ( at % length ) + length ) % length;
-}
-
-// mdbPageCreator_modalNav
-// The two arrows and the "3 / 12" between them, built once with the header and rewritten by
-// every step (mdbPageCreator_modalCount). They are also what says the keys exist at all - an
-// overlay that answers a key nobody knows about is a feature nobody finds.
-function mdbPageCreator_modalNav() {
-    function step( dir, sign, what ) {
-        return $("<button>")
-            .addClass( "mdb-pageCreator-modal-step" )
-            .attr( "type", "button" )
-            .attr( "data-mdb-dir", String( dir ) )
-            .attr( "title", "The " + what + " MixesDB link in the row (" + sign + ") - the walk goes round" )
-            .text( sign )
-            .on( "click", function() {
-                mdbPageCreator_modalStep( dir );
-            });
-    }
-
-    return $("<span>").addClass( "mdb-pageCreator-modal-nav" ).append(
-        step( -1, "←", "previous" ),
-        $("<span>").addClass( "mdb-pageCreator-modal-count" ),
-        step( 1, "→", "next" )
-    );
-}
-
-// mdbPageCreator_modalShow
-// Brings one page to the front of the modal that is already up - its "Open on MixesDB" link,
-// the counter and its frame.
-//
-// Nothing is torn down here. The frame of the page stepped away from stays loaded behind the
-// new one (mdbPageCreator_modalFrame), which is what makes a step back as immediate as a step
-// on: only the "-on" class moves.
-function mdbPageCreator_modalShow( url ) {
-    var overlay = mdbPageCreator_modalOverlay(),
-        box = overlay.find( ".mdb-pageCreator-modal-box" ),
-        entry;
-
-    if( !overlay.length ) return;
-
-    logVar( "mdbPageCreator_modalShow", url );
-
-    mdbPageCreator_modalUrl = url;
-
-    overlay.find( "a.mdb-pageCreator-modal-ext" ).attr( "href", url );
-
-    entry = mdbPageCreator_modalFrame( url, true );
-
-    overlay.find( ".mdb-pageCreator-modal-frame" ).removeClass( "mdb-pageCreator-modal-frame-on" );
-
-    if( entry ) $(entry.node).addClass( "mdb-pageCreator-modal-frame-on" );
-
-    mdbPageCreator_modalCount();
-
-    // the two pages a key is away, loading while this one is read
-    mdbPageCreator_modalFrameNeighbours();
-
-    // back onto the box after every step, and after the click that opened the modal: whatever
-    // had the focus before (the title field, the chip that was clicked) would otherwise keep
-    // answering the arrow keys
-    box.trigger( "focus" );
-}
-
-// mdbPageCreator_modalLinks
-// The links the arrows walk, in the order they are read on screen - DOM order is exactly
-// that: the chips left to right, and inside a chip its own name before the mix pages folded
-// out under it. Read fresh on every step rather than kept from the open: the row rebuilds
-// constantly (a title edit, a lookup answering, a chip toggled), and a stored list would step
-// to links that are no longer on the page.
-function mdbPageCreator_modalLinks() {
-    // both category rows: the "Similar:" chips serve the same five-second look, and a
-    // combined selector returns document order, which is the order the bar reads
-    return $("#mdb-pageCreator-usedCats a[href], #mdb-pageCreator-similarCats a[href]").filter( function() {
-        return mdbPageCreator_hintLinkOnScreen( this );
-    }).get();
-}
-
-// mdbPageCreator_modalIndex
-// Where the framed page sits in that list - found by URL, not remembered as an index, for the
-// same reason the list is not kept: a rebuild between two keys, or a chip folded open while
-// the modal is up, moves every link's position. -1 where the framed page is not in the row
-// any more (its chip was closed, the title was edited into other categories); the step then
-// does nothing rather than jumping somewhere the reader never came from.
-function mdbPageCreator_modalIndex( links ) {
-    var i;
-
-    for( i = 0; i < links.length; i++ ) {
-        if( links[i].href === mdbPageCreator_modalUrl ) return i;
-    }
-
-    return -1;
-}
-
-// mdbPageCreator_modalStep
-// One link further, on a RING: one step past the last link lands on the first (12 / 12 -> 1 /
-// 12) and one step back from the first lands on the last. A line with two dead ends made the
-// reader walk all the way back to reach a chip that was one key the other way.
-function mdbPageCreator_modalStep( dir ) {
-    var links = mdbPageCreator_modalLinks(),
-        at = mdbPageCreator_modalIndex( links );
-
-    if( at < 0 || !links.length ) return;
-
-    // links[next].href, not the attribute: the URL is what the next step looks the position
-    // up by, so it has to be the same absolute string the DOM reports.
-    mdbPageCreator_modalShow( links[ mdbPageCreator_modalWrap( at + dir, links.length ) ].href );
-}
-
-// mdbPageCreator_modalCount
-// "3 / 12" plus the two arrows' disabled look. Empty where the framed page is not in the row
-// any more - a position among links it is not one of would be a lie.
-//
-// On the ring both arrows always lead somewhere, so the greyed-out look is left for exactly
-// that case: the page on screen is not in the row any more (its chip was closed, the title
-// was edited into other categories) and there is no position to step from.
-function mdbPageCreator_modalCount() {
-    var overlay = mdbPageCreator_modalOverlay(),
-        links = mdbPageCreator_modalLinks(),
-        at = mdbPageCreator_modalIndex( links );
-
-    overlay.find( ".mdb-pageCreator-modal-count" ).text( at < 0 ? "" : ( at + 1 ) + " / " + links.length );
-
-    overlay.find( ".mdb-pageCreator-modal-step" ).toggleClass( "mdb-pageCreator-modal-step-off", at < 0 );
-}
-
-// mdbPageCreator_modalClose
-// Removal is the whole close: the overlay goes and every frame it was holding goes with it,
-// which is what frees the loaded documents. The list has to be emptied by hand though - it
-// would otherwise hand the next open a set of detached nodes it thinks are loaded pages.
-//
-// Emptying it here also covers the close nobody calls: the overlay is class mdb-element, so
-// the shared navigation cleanup (onUrlChange in global.js) can remove it on its own - but the
-// next open runs mdbPageCreator_modalClose() first, and that is this.
-//
-// That cleanup only reaches the document THIS script runs in, though, and the overlay may
-// hang in the top one (mdbPageCreator_modalDoc) - which is why the page creator's own reset
-// for a new page calls this (mdbPageCreator_resetForNewPage).
-function mdbPageCreator_modalClose() {
-    mdbPageCreator_modalUnbindKeys();
-    mdbPageCreator_modalOverlay().remove();
-    mdbPageCreator_modalNode = null;
-    mdbPageCreator_modalFrames = [];
-    mdbPageCreator_modalUrl = null;
-}
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -8539,9 +8022,10 @@ function mdbPageCreator_resetForNewPage() {
 
     // Before anything else: an open modal frames a page of the mix being LEFT. The shared
     // cleanup cannot be relied on for it - the overlay hangs in the top document wherever the
-    // site frames its pages (mdbPageCreator_modalDoc), and that cleanup only clears the
-    // document this script runs in.
-    mdbPageCreator_modalClose();
+    // site frames its pages (mdbModal_doc in shared/mixesdb_modal/funcs.js), and that cleanup
+    // only clears the document this script runs in. typeof-guarded like every other touch of
+    // the modal file.
+    if( typeof mdbModal_close === "function" ) mdbModal_close();
 
     mdbPageCreator_title = "";
     mdbPageCreator_confidencePercent = 0;

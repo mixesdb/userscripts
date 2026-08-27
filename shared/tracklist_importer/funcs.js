@@ -1426,8 +1426,9 @@ function tlImporter_watchApplyButton( textarea, button, baseline ) {
 //   Candidate – the tracklist the player site found, the parts the merge took highlighted
 //
 // data.chapters is the no-merge reading of the same block (a chaptered original): nothing was
-// merged, so nothing is highlighted, the Merged box opens EMPTY as the reader's workbench, and
-// the texts say so instead of talking about a merge that never ran.
+// merged, so both texts stand there VERBATIM (tlImporter_rawItems) with nothing highlighted,
+// the Merged box opens EMPTY as the reader's workbench, and the texts say so instead of talking
+// about a merge that never ran.
 function tlImporter_renderDiffView( data ) {
     if( !data || !data.items || !data.items.length ) return;
     if( $( "#mdb-tlImporter-diff" ).length ) return;
@@ -1456,7 +1457,7 @@ function tlImporter_renderDiffView( data ) {
     // Original
     cols.append(
         col( "Original", chapters
-            ? "The tracklist the page has, chapters included. Nothing was merged into it."
+            ? "The tracklist the page has, exactly as it stands - chapters included. Nothing was merged into it."
             : "The tracklist the page had before the merge. Highlighted parts were changed." )
             .append( tlImporter_renderPre( data.originalItems, function( item, p ) {
                 return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
@@ -1515,7 +1516,7 @@ function tlImporter_renderDiffView( data ) {
     // "?" blanks never carry a salvage flag (see tlImporter_candidateUse), so they stay plain
     cols.append(
         col( "Candidate", chapters
-            ? "The tracklist the player site found. Nothing is highlighted - no merge ran on this page."
+            ? "The tracklist the player site found, exactly as it stands. Nothing is highlighted - no merge ran on this page."
             : "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
             .append( tlImporter_renderPre( data.items, function( item, p ) {
                 if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
@@ -1897,8 +1898,12 @@ function tlImporter_runEditPage() {
             mode: mode,
             chapters: true,
             unchanged: true,
-            items: tlImporter_plainItems( tlImporter_parse( candidate ) ),
-            originalItems: tlImporter_plainItems( tlImporter_parse( read.tlText ) ),
+            // VERBATIM, both of them (tlImporter_rawItems): no merge ran, so there is nothing
+            // to flag parts of - and running the two texts through the parser would show the
+            // reader a tidied-up list ("#" numbering, '' italics and blank lines gone) that
+            // neither the page nor the player site actually holds
+            items: tlImporter_rawItems( candidate ),
+            originalItems: tlImporter_rawItems( read.tlText ),
             mergedTl: "",
             status: "",
             feedback: null

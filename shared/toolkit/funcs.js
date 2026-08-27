@@ -521,6 +521,19 @@ function toolkit_tlStateButtons() {
     });
 }
 
+// The toolkit's contribution to the MixesDB modal's arrow-key walk (mdbModal_links in
+// shared/mixesdb_modal/funcs.js): every mix page link of a filled "used" row, so an open
+// modal steps through them where a page is on MixesDB more than once. Pushed into the
+// plain-array global rather than through a register function so the @require order of the
+// two files cannot matter - and pushing with no modal file loaded is harmless, the array is
+// then never read.
+window.mdbModal_linkProviders = window.mdbModal_linkProviders || [];
+window.mdbModal_linkProviders.push( function() {
+    // only the mix page links themselves - never the eye (same href, and a walk counting
+    // both would count every page twice) and never the EDIT/HIST action links
+    return $("#mdb-toolkit .mdb-toolkit-usageLink.used a.mdb-mixesdbLink.mixPage").get();
+});
+
 // makeMixesdbLink_fromId
 function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastEditTimestamp="", from="", visitDomain="", siteHasTl="" ) {
     // normal link
@@ -528,6 +541,15 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
     var editSummary = "",
         mixesdbUrl = makeMixesdbPageUrl_fromId( mdbPageId ),
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'" target="_top">'+title+'</a>';
+
+    // The blue eye behind the mix page link: opens the page framed in the shared MixesDB
+    // modal (shared/mixesdb_modal/funcs.js) - the same five-second look the page creator's
+    // category chips answer with on a plain click, without leaving the page or the state of
+    // its players. typeof-guarded: a site script that does not @require the modal file must
+    // keep rendering its usage links, just without the eye.
+    if( typeof mdbModal_eyeLink === "function" ) {
+        output += mdbModal_eyeLink( mixesdbUrl );
+    }
 
     if( lastEditTimestamp != "" ) {
         var localDate_long = convertUTCDateToLocalDate( new Date(lastEditTimestamp) ),

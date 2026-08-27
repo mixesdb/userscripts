@@ -1,0 +1,245 @@
+/*
+ * The MixesDB modal (shared/mixesdb_modal/funcs.js): the framed MixesDB page an eye icon or
+ * a page creator chip opens on a desktop-wide window, plus the eye icon itself. Loaded by
+ * funcs.js (mdbModal_ensureCss), not by the site scripts - the "?v-<script>_<n>" cache param
+ * comes from each script's cacheVersion.
+ *
+ * The box takes the page creator panels' dark frame; the iframe itself stays white, because
+ * MixesDB is a light page and white is what it will paint anyway - a dark hole that flashes
+ * bright on load is worse. z-index at the top of the scale: the sites layer their own
+ * overlays generously, and a modal half under a player bar is unusable.
+ */
+#mdb-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 2vw;
+
+    /* Make the background blur. The rgba() tint is not optional next to it: pure blur alone
+       leaves the background too busy and hurts the contrast of the modal text. Lighter than
+       the flat 0.65 this had before the blur - the blur does half that work now. */
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);  /* Safari < 18 */
+    background-color: rgba(0, 0, 0, .35);
+
+    /* Fade in on INSERTION, not off a class: mdbModal_open() builds this overlay fresh on
+       every open and mdbModal_close() removes it again, so there is no closed resting state
+       for a transition to run from - "opacity: 0" as the default simply stayed, and the
+       modal opened invisibly (which read as the links being dead).
+       Animating backdrop-filter itself is expensive, so the whole overlay's opacity moves. */
+    animation: mdb-modal-in .25s ease-out;
+}
+
+@keyframes mdb-modal-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #mdb-modal {
+        animation: none;
+    }
+}
+
+#mdb-modal .mdb-modal-box {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* wide: a MixesDB page lays its artwork out next to the text, and the 1100px this had
+       squeezed the images down to thumbnails on a screen that had the room for them */
+    width: min(1240px, 100%);
+    /* all the height the overlay's padding leaves (92vh) - a wiki page is read scrolling,
+       and a cap that looked fine on a laptop left half of a tall screen unused */
+    height: 100%;
+    overflow: hidden;
+    background-color: #1d1d1d;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+#mdb-modal .mdb-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    color: #e0e0e0;
+    /* stated here and not left to inherit: the header would otherwise take whatever the SITE
+       sets on its body - a serif counter on one site, something else on the next - and the
+       modal is our furniture, not the page's. */
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* The two sides of the header, empty on the left and the buttons on the right. Both grow,
+   so they end up the same width and the nav between them sits on the header's real centre -
+   "flex: 1" on the nav alone would only centre it in whatever the buttons leave over. */
+#mdb-modal .mdb-modal-side {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+#mdb-modal .mdb-modal-side-end {
+    justify-content: flex-end;
+}
+
+/* The box takes the focus on every open and every step (mdbModal_show) so the arrow keys
+   reach the document instead of the framed page - but it is a panel, not a control, and a
+   focus ring around the whole modal reads as an error state. */
+#mdb-modal .mdb-modal-box:focus {
+    outline: none;
+}
+
+/*
+ * The step arrows and the "3 / 12" between them - the page's MixesDB links walked one by one
+ * (mdbModal_step). Centred in the header and the only thing in it that is about the modal
+ * rather than about the page in it, so it is also the only thing the eye has to find up
+ * there: bright enough and big enough to be read at a glance while stepping through a dozen
+ * pages. The arrows grey out only where the framed page has left the walk, so the counter
+ * does not jump sideways.
+ */
+#mdb-modal .mdb-modal-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+#mdb-modal .mdb-modal-step {
+    padding: 0 6px;
+    color: #e0e0e0;
+    /* a <button> takes the browser's form-control font unless it is told otherwise - the
+       header's font-family does NOT reach it by inheritance */
+    font-family: inherit;
+    font-size: 20px;
+    line-height: 1;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+#mdb-modal .mdb-modal-step:hover {
+    color: #fff;
+}
+
+#mdb-modal .mdb-modal-step-off,
+#mdb-modal .mdb-modal-step-off:hover {
+    color: #6a6a6a;
+    cursor: default;
+}
+
+/* tabular figures: the counter sits between the two arrows, and "9 / 12" must not shift them
+   when it becomes "10 / 12" */
+#mdb-modal .mdb-modal-count {
+    min-width: 60px;
+    color: #f0f0f0;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+/* the way out when a quick look turns into real reading - and the fallback if the frame
+   will not load. ID + class outruns the sites' <a> styling, like every link of ours. */
+#mdb-modal a.mdb-modal-ext,
+#mdb-modal a.mdb-modal-ext:visited {
+    color: #6cb2f7;
+    font-size: 12px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#mdb-modal a.mdb-modal-ext:hover {
+    color: #6cb2f7;
+    text-decoration: underline;
+}
+
+#mdb-modal .mdb-modal-close {
+    padding: 0 4px;
+    color: #8b8b8b;
+    font-family: inherit;  /* same as the step buttons: <button> does not inherit it */
+    font-size: 22px;
+    line-height: 1;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+#mdb-modal .mdb-modal-close:hover {
+    color: #e0e0e0;
+}
+
+/*
+ * The frame stack (mdbModal_frame): one iframe per page the modal has visited, all of them
+ * stacked in the same place and only the front one visible. Keeping the loaded documents is
+ * what makes a step instant - MixesDB takes the better part of a second to render a page and
+ * forbids caching it, so a page that has to be fetched again IS the wait.
+ */
+#mdb-modal .mdb-modal-frames {
+    position: relative;
+    flex: 1;
+    background-color: #fff;
+}
+
+/*
+ * visibility, not display: none. A display:none iframe has no box, so the page inside it lays
+ * itself out against a zero-width viewport and everything that reads a width on load - the
+ * skin's breakpoints, the images' sizes - decides against that. visibility keeps the box (and
+ * the layout that goes with it) and only stops the painting, so the hidden frames are laid
+ * out exactly as they will be seen.
+ */
+#mdb-modal .mdb-modal-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background-color: #fff;
+    visibility: hidden;
+}
+
+#mdb-modal .mdb-modal-frame-on {
+    visibility: visible;
+}
+
+/*
+ * The eye that opens the modal (mdbModal_eyeLink) - a small mono blue icon sitting right
+ * behind a MixesDB link, e.g. the toolkit's "used" mix page links. One blue, one shape;
+ * dimmed until hovered so it reads as furniture next to the link, not as a second word of
+ * it. The color sits on the anchor and the path fills with currentColor, so the tone is
+ * changed in ONE place - !important because the sites' own a/a:hover colors reach it
+ * otherwise.
+ */
+a.mdb-modalEye,
+a.mdb-modalEye:visited,
+a.mdb-modalEye:hover,
+/* the toolkit underlines every hovered link with !important - outrun it by specificity */
+.mdb-toolkit a.mdb-modalEye:hover {
+    display: inline-block;
+    margin-left: 6px;
+    color: #4a90d2 !important;
+    text-decoration: none !important;
+    border: 0 !important;
+    background: none !important;
+    opacity: .66;
+    cursor: pointer;
+}
+
+a.mdb-modalEye:hover,
+.mdb-toolkit a.mdb-modalEye:hover {
+    opacity: 1;
+}
+
+a.mdb-modalEye svg {
+    width: 15px;
+    height: 15px;
+    vertical-align: -2px;
+}
