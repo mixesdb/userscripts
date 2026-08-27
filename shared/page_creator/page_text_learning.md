@@ -122,6 +122,29 @@
 > B: a live recording's `{{StandardShow*}}` and its styles say as much about the series as any
 > other page's.
 
+> **Delta added 2026-08-27: signal B compares the UPLOADED file name, and stops abstaining
+> where every page has an artwork.** Two halves of one report (`Transmittal Tapes`, a
+> `soundcloud.com/nownmusic` mix). The wiki cannot keep a `:`, a `/` or a `\` in a file name -
+> MediaWiki's `$wgIllegalFileChars`, replaced with a `-` on upload - so
+> `2017-09-21 - Mohr/Sula - Transmittal Tapes 6` is filed as
+> `2017-09-21 - Mohr-Sula - Transmittal Tapes 6.jpg`. Compared against the raw title that page
+> read as "named after something else", 6 of 7 is not 90%, and the panel said "no 90% agreement
+> - no image line" although all seven pages open with their own artwork.
+> `mdbPageCreator_fileNameForTitle()` now runs the same substitution on both ends: the vote
+> compares like with like (7 of 7), and the `[[File:]]` line a new page is given names the file
+> the uploader will actually create instead of one it can never reach.
+>
+> The second half is the rule, and it is the one exception to "consensus or abstain" in this
+> file (`mdbPageCreator_imageVerdict()`): where the sample splits between `same` and `other` but
+> NOT ONE page is without an artwork, `same` wins on a plain majority. Abstaining answers that
+> split with the worst page of the three - the first page of a series that has no artwork line
+> at all, while every sibling has one, and nothing on the page hints at it later. The other
+> direction costs a red link sitting exactly where the picture belongs, which the inline
+> uploader rewrites anyway. It stays narrow: a single `none` vote hands the decision back to the
+> 90% bar (a series that sometimes goes without an artwork is what that bar is for), and `same`
+> has to be the most common answer - a venue's or an event's pages lead with `other`, and no new
+> page can predict that name.
+
 > **Signal D added 2026-08-19: the `== Notes ==` section.** Not in the plan below, and the one
 > signal whose value is the EMPTY line it writes. A series that documents each episode on its
 > own site puts that link in a Notes section above the tracklist - `Groove Podcast` 10 of 10

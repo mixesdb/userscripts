@@ -796,7 +796,9 @@ ends up used.
   common). Then, one per signal: whether the pages open
   with an artwork named after the page itself (then the page text starts with the
   `[[File:…|right|360px]]` line, in the extension the siblings use – the live recordings among
-  the siblings are left out of that count, and the line says how many), whether the file details
+  the siblings are left out of that count, and the line says how many; where the pages split
+  between the two namings the line also says that not one of them is without an artwork, which
+  is why the line is written under the usual 90%), whether the file details
   are the dur table or a `{{StandardShow…}}` template (the template is only written when this
   file's duration roughly fits its stated length – a 40-minute file on a 2h show is a hint the
   category was misread), whether the pages use a `{{Player|mode=mirrors}}` with a line per
@@ -863,7 +865,15 @@ Opens the edit form of the new page, prefilled with:
   artwork is the event's flyer, named after the event, so a couple of `… @ Venue (Series 510)`
   pages can no longer talk a podcast out of the artwork line every one of its episodes carries.
   In a venue's or an event's own category, where all the pages are such recordings, they are
-  the pages and they do decide
+  the pages and they do decide.
+  A title carrying a `:` or a `/` is named the way the upload will name it – the wiki turns
+  those into a `-`, so `2017-09-21 - Mohr/Sula - Transmittal Tapes 6` leads with
+  `[[File:2017-09-21 - Mohr-Sula - Transmittal Tapes 6.jpg…]]`, and a sibling filed that way
+  counts as named after itself instead of dropping the whole series' artwork line.
+  Where the siblings split between the two namings but **not one of them is without an
+  artwork**, the majority naming is written rather than nothing: a series whose every page has
+  a picture must not get its first page without one. One page carrying no artwork puts the 90%
+  rule back in charge
 - the **File details** table (duration and what else the site gave away) – or the series'
   `{{StandardShow…}}` template instead, where that is the house style on the recent pages and
   this file's duration roughly fits it

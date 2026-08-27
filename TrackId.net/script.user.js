@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.23
+// @version      2026.08.27.24
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -19,7 +19,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_120
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_121
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -2287,6 +2287,22 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.24
+ * Via the shared page creator (page_creator.js v_121): the lead artwork line no longer goes
+ * missing because ONE sibling's file name spells a character the wiki cannot put in a file
+ * name. MediaWiki replaces ":", "/" and "\\" with a "-" on upload, so
+ * "2017-09-21 - Mohr/Sula - Transmittal Tapes 6" is filed as "... - Mohr-Sula - ....jpg". That
+ * page read as "artwork named after something else", 6 of 7 is not 90%, and reasoning section 7
+ * said "no 90% agreement -> no image line" although all seven Transmittal Tapes pages open with
+ * their own artwork (reported 2026-08-27). Both sides use the uploaded name now - the vote and
+ * the [[File:]] line the new page is given, which for such a title used to point at a name the
+ * uploader can never create. Second change on the same vote: where the sample splits between
+ * "named after the page" and "named after something else" but NOT ONE page is without an
+ * artwork, the majority answer wins instead of the vote abstaining - a series where every page
+ * has a picture must not get its first page without one. A single page without an artwork still
+ * puts the 90% bar back in charge, and a venue's or event's pages, which lead with "named after
+ * something else", decide as before.
  *
  * 2026.08.27.23
  * Tracklist Importer merge, the unknown cues of a cue-less tracklist (merge_core.js v13): a mix
