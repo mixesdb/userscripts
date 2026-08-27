@@ -175,6 +175,26 @@ whole section there, chapters included, and **Apply** writes it into the page li
 merge. This block also stays when a compare comes back empty – on a page nothing was written
 to, that is the normal answer, and the found tracklist has to stay on screen for the hand work.
 
+### Marked as integrated after the save
+
+The Insert/Merge/Chaptered link opens the edit form in a **new tab**, so the toolkit row stays
+where it is – and from there the mix page is watched for the save. Once its tracklist carries the
+found one, the **TID tracklist is integrated** checkbox of the same row is ticked for you: an
+**Integrated** note appears in front of the link, fades to green, and the tick lands a moment
+later – the same announced tick the **Identical** verdict makes. Tick it yourself in that moment
+and nothing else happens.
+
+What it waits for is not a *changed* tracklist – somebody else's edit changes it too, and the
+tick cannot be taken back – but a tracklist that took *this* one in: what the merge would still
+write into the page has to have gone down. A save that kept only part of the found tracklist
+counts as well, because the page then holds what the reader let in. Behind a **Chaptered** link,
+where no merge runs, a tracklist that grew in the hand-merge is the answer instead.
+
+The page is asked every 10 seconds for the first two minutes and every 30 seconds after that,
+for 8 minutes in all. Leaving the player-site page or closing its tab ends the watch, and so
+does the checkbox being handled meanwhile. Only TrackId.net has that checkbox – on every other
+site there is nothing to tick and nothing is watched.
+
 ### Report link
 
 Behind the Insert/Merge link – and behind every note that replaces it – sits **Report**: it opens a paste-ready Discord
@@ -194,3 +214,6 @@ site prints one and the raw merge result, plus an empty `Mistakes / learnings` l
   **Show changes** ran.
 - The candidate travels in the link's URL fragment; the link must be followed normally
   (left/middle/ctrl-click) for it to arrive.
+- The watch that ticks the integrated checkbox after the save lives in the player-site tab:
+  close it or navigate on there and the checkbox stays for you. It also gives up after
+  8 minutes – a save that comes later is not seen.

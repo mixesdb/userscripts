@@ -185,6 +185,23 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   check request came home – an answer that may replace the input with the check mark (already
   integrated) or the whole wrapper with a sentence (player unknown to the API). Hence the poll
   for a VISIBLE input, and the give-up after ~15s that every other site runs into.
+- **The click starts a WATCH on the mix page, and the save ticks the checkbox.**
+  `tlImporter_watchMixPage()` runs in the player-site tab (the import link is `target="_blank"`,
+  so that tab stays), polls `tlImporter_fetchPageText()` for the page the link points at and
+  ticks the toolkit's "TID tracklist is integrated" box through the same
+  `tlImporter_tickIntegrated()` the "Identical" verdict uses - manual ticking after every import
+  was the annoyance it removes. The tick POSTs and cannot be taken back, so a CHANGED tracklist
+  is deliberately not the test: a foreign edit changes it too. The test is
+  `tlImporter_candidateWrites()`, the number of candidate PARTS (cue/text/label over the merge's
+  `diffItems.used`) the merge would still write into the page - measured once at click time
+  against the link's stored `mdb-original`, and again on every answer. It has to have gone DOWN;
+  0 is "all of it landed", anything lower than before is a partial merge the reader saved, and
+  that still means integrated. The chaptered link has no merge to measure, so there the
+  hand-merge is read off the tracklist's LENGTH (it has to have grown). Only rows that HAVE the
+  checkbox are watched (`input.mdbTrackidCheck` with a real `data-tidplayerurl`, i.e.
+  TrackId.net); everywhere else the poll would run for minutes with nothing to tick at the end.
+  Cadence and deadline (`tlImporter_watch*Ms`) are a compromise, not a law: 10s for two minutes,
+  then 30s, giving up after 8 - about two dozen API calls per click.
 - **Save is locked until "Show changes" ran.** The auto-click is the convenience; the lock is
   the safety – a merge must not be savable unseen.
 - **The original's cue format wins, but it may WIDEN – the dur fix.** A bare `[XX]` format
