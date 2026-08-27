@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.36
+// @version      2026.08.28.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_17
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_42
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_43
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -1379,7 +1379,7 @@ waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
 // numbers: what one unidentified track needs to be worth mentioning does not depend on how
 // long the tracks of this mix run.
 // The mid one doubles as the bar that says which two detections FOLLOW each other, i.e. which
-// pair mdbTid_medianTrackRuntimeSec may measure one track's runtime on.
+// of its two readings mdbTid_medianTrackRuntimeSec takes on a detection.
 var mdbTid_gapUnknownSec = { lead: 120, mid: 30, end: 70 };
 
 // mdbTid_gapSpanFallbackSec
@@ -1399,11 +1399,27 @@ var mdbTid_gapSpanFallbackSec = { lead: 120, mid: 180, end: 240 };
 // of unidentified audio is a whole track in a fast set and half of one in a slow one, so the
 // same hole has to read differently in the two – and the mix itself is what says which.
 //
-// Only detections that follow each other WITHOUT a hole are measured: the distance from one
-// start time to the next is then exactly one track's runtime, while across a hole it covers an
-// unknown number of them, which is the very question the "..." asks. A row whose end time lies
-// before its own start time (trackid.net prints those) makes its hole meaningless, so the pair
-// behind it is skipped as well.
+// Measured on the rows the TRACKLIST prints, exactly like the merge does over there: the
+// distance from one printed row to the next one, where no "..." can stand between them. That
+// is one of two distances per detection, and which one it is the hole behind it decides:
+//   - the next detection follows right on (hole <= mdbTid_gapUnknownSec.mid, so no "[dur] ?"
+//     row is written between them): start time to start time, exactly one track
+//   - unidentified audio follows and gets its own "[dur] ?" row, or the list ends here: the
+//     detection's OWN span, start time to end time
+// The hole itself is never a sample – how many tracks it covers is the very question the
+// "..." asks.
+//
+// Both readings are needed. Reported case (Vintage Vinyl Session 004, trackid.net -> curid
+// 758532): eight detections, seven of them followed by unidentified audio, so the start-to-
+// start reading alone had ONE sample and fell back to the fixed three minutes – which every
+// one of the 3:46 to 4:41 holes cleared, and five "..." went into a list that has none. The
+// detections' own spans put the median at 4:07, and the holes stay under one and a half times
+// that.
+//
+// The detection's span is the shorter of the two – trackid.net matches a track, not its
+// intro and outro – so it errs towards a SMALLER median, i.e. towards writing the "...".
+// That is the harmless direction: a "..." too many says "look here", one too few says the
+// tracklist is complete when it is not.
 //
 // The median, not the average: a set regularly carries one 12 minute opener or a closing
 // ambient piece, and an average would let those stretch the believable span for every hole in
@@ -1418,40 +1434,44 @@ function mdbTid_medianTrackRuntimeSec( tlWrapper ) {
         return null;
     }
 
-    var runtimes = [],
-        prevStartSec = null,
-        prevEndSec = null;
+    var rows = [],
+        runtimes = [],
+        i;
 
     $("tr", tlWrapper).each(function(){
         var startSec = durToSec( $(".startTime", this).text() ),
             endSec = durToSec( $(".endTime", this).text() );
 
-        // the header row and anything else without a start time says nothing about a distance,
-        // and it must not let the rows on either side of it count as neighbours
-        if( !isFinite( startSec ) ) {
-            prevStartSec = null;
-            prevEndSec = null;
-            return;
-        }
+        // the header row and anything else without a start time is no detection at all
+        if( !isFinite( startSec ) ) { return; }
 
-        if( prevStartSec !== null && isFinite( prevEndSec ) ) {
-            var runtime = startSec - prevStartSec, // one track, start time to start time
-                hole = startSec - prevEndSec;      // the unidentified audio between the two
-
-            // prevEndSec < prevStartSec means trackid.net printed an end time before its own
-            // start time, which makes the hole behind that row meaningless
-            if( runtime > 0 && prevEndSec >= prevStartSec && hole <= mdbTid_gapUnknownSec.mid ) {
-                runtimes.push( runtime );
-            }
-        }
-
-        prevStartSec = startSec;
-        prevEndSec = endSec;
+        // an end time before its own start time (trackid.net prints those) makes both the
+        // span and the hole behind it meaningless – the row still counts as the NEXT row's
+        // neighbour, its start time is readable
+        rows.push({
+            start: startSec,
+            end: isFinite( endSec ) && endSec >= startSec ? endSec : null
+        });
     });
+
+    for( i = 0; i < rows.length; i++ ) {
+        var row = rows[i],
+            next = rows[i + 1] || null;
+
+        if( row.end === null ) { continue; } // nothing measurable on this one
+
+        if( next && next.start - row.end <= mdbTid_gapUnknownSec.mid ) {
+            // no "[dur] ?" row between the two, so the next printed row is the next detection
+            if( next.start > row.start ) { runtimes.push( next.start - row.start ); }
+        } else {
+            // the next printed row is the "[dur] ?" row sitting on this detection's end time
+            if( row.end > row.start ) { runtimes.push( row.end - row.start ); }
+        }
+    }
 
     var median = tlImporter_medianTrackRuntimeSec( runtimes );
 
-    log( "mdbTid_medianTrackRuntimeSec: " + runtimes.length + " neighbouring detection(s), median "
+    log( "mdbTid_medianTrackRuntimeSec: " + runtimes.length + " measured distance(s), median "
          + ( median === null ? "(none)" : median + "s" ) );
 
     return median;
@@ -2415,6 +2435,33 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.2
+ * The "..." rows of the tracklist are measured on EVERY detection now, not only on the pairs
+ * that follow each other seamlessly (mdbTid_medianTrackRuntimeSec, reported on Vintage Vinyl
+ * Session 004 -> curid 758532). What one track of this mix runs was read from the distance
+ * between two detections with no unidentified audio between them - a list where almost every
+ * detection is followed by a hole has one or two such pairs, too few to build a median from,
+ * and then the fixed three minutes decided again. In the reported set that put a "..." behind
+ * every one of the five "?" rows, although its 3:46 to 4:41 holes hold one track at most. Each
+ * detection now contributes the distance to the row the tracklist PRINTS behind it: the next
+ * detection's start time where it follows right on, its own end time where a "[dur] ?" row
+ * comes in between. Same reading the Tracklist Importer takes on the merged list, which is why
+ * a merge dropped those five "..." again while the box wrote them - eight distances instead of
+ * one, median 4:07, no "..." left. Lists with fewer than three measurable distances keep the
+ * fixed spans.
+ *
+ * 2026.08.28.1
+ * Tracklist Importer Report: a new "## Cue gaps" block (tracklist_importer funcs.js v43,
+ * merge_core.js v18). It prints, for the original, the found and the merged tracklist, how many
+ * tracks and "..." each holds, the median track runtime measured over its gapless neighbour
+ * distances, and the span a "..." needs to survive - plus one line per "...", naming the two
+ * rows it sits between, its span and whether it was dropped or kept. Those numbers decide
+ * every gap the merge removes and existed only in the console until now, so a report about a
+ * "..." that went or stayed could not be checked, let alone turned into a test example. Where
+ * nothing could be measured the block says why instead of leaving the line out (an unreadable
+ * cue, too few gapless neighbours). The candidate is measured too: trackid.net builds its own
+ * "..." off the same median, so a wrong gap can be older than the merge.
  *
  * 2026.08.27.36
  * Tracklist Importer: an Insert no longer shows a review block at all (tracklist_importer

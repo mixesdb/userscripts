@@ -684,6 +684,78 @@ function tlImporter_growReport( box ) {
     box.attr( "rows", String( box.val() || "" ).split( "\n" ).length + 1 );
 }
 
+// tlImporter_gapReadingLines
+// One list's cue gap reading as Report lines: the head line with the numbers, one indented
+// line per "..." underneath. Every reason NOT to have a number is printed too - a report that
+// leaves out the median cannot be told apart from one measured on a list without gaps.
+function tlImporter_gapReadingLines( label, reading ) {
+    // How many "..." the list holds - and, where the drop step ran, how many of them it took
+    // out. Without that second number the count reads as the list BEFORE the merge decided.
+    var dropped = reading.applied ? reading.holes.filter(function( h ){ return h.drop; }).length : 0,
+        head = "* " + label + ": " + tlImporter_countText( reading.tracks, "track" ) + ", "
+               + ( reading.gaps ? reading.gaps + ' "..."' : 'no "..."' )
+               + ( dropped ? " (" + dropped + " dropped)" : "" ),
+        lines = [];
+
+    if( reading.median === null ) {
+        lines.push( head + ", no median runtime" + ( reading.stood ? " - " + reading.stood : "" ) );
+        return lines;
+    }
+
+    head += ", median track runtime " + tlImporter_minText( reading.median )
+            + " over " + tlImporter_countText( reading.samples, "gapless neighbour distance" );
+
+    // The threshold only means something where there is a hole to hold it against.
+    if( reading.holes.length ) {
+        head += ', a "..." needs more than ' + tlImporter_minText( reading.maxSpan ) + " of span";
+
+        // The merged list is measured even when the merge wrote nothing and the drop step
+        // therefore never ran - saying "dropped" there would report something that did not
+        // happen, so the head line says so once and the rows below word it as a would-be.
+        if( !reading.applied ) { head += " (measured only, no drop ran)"; }
+    }
+
+    lines.push( head );
+
+    reading.holes.forEach(function( hole ){
+        lines.push( "  * " + hole.after + " ... " + hole.before + ": "
+                    + tlImporter_minText( hole.dist ) + " - "
+                    + ( !hole.drop ? "kept" : reading.applied ? "dropped" : "short enough to drop" ) );
+    });
+
+    return lines;
+}
+
+// tlImporter_gapReportLines
+// The Report's "## Cue gaps" block: the median track runtime of all three lists and what the
+// merge made of every "...". These numbers decide whether a "..." survives the merge
+// (tlImporter_dropRedundantGaps), and until now they only existed in the console - a report
+// about a gap that stayed or went could not be checked, let alone turned into an example.
+// The candidate is measured too because the player sites build their own "..." off the same
+// median (TrackId.net's mdbTid_medianTrackRuntimeSec), so a wrong gap may well be older than
+// the merge.
+function tlImporter_gapReportLines( originalText, candidateText, res ) {
+    var lines = [ "", "## Cue gaps", "" ];
+
+    lines.push( "* Yardstick: median track runtime x " + tlImporter_gapRuntimeFactor
+                + ", measured on at least " + tlImporter_gapMinSamples + " gapless neighbour distances" );
+
+    if( originalText ) {
+        lines = lines.concat( tlImporter_gapReadingLines( "Original", tlImporter_gapReading( tlImporter_parse( originalText ) ) ) );
+    }
+
+    if( candidateText ) {
+        lines = lines.concat( tlImporter_gapReadingLines( "Candidate", tlImporter_gapReading( tlImporter_parse( candidateText ) ) ) );
+    }
+
+    // only where the merge above actually ran - the same rule the Merged block follows
+    if( res && res.gapCheck ) {
+        lines = lines.concat( tlImporter_gapReadingLines( "Merged", res.gapCheck ) );
+    }
+
+    return lines;
+}
+
 // tlImporter_reportText
 function tlImporter_reportText( link ) {
     var mode = link.data( "mdb-mode" ) || "",
@@ -729,8 +801,10 @@ function tlImporter_reportText( link ) {
 
     // only where a merge actually ran: on a chaptered or unreadable page it never did, and
     // running it here would invent a result nobody was ever shown
+    var res = null;
+
     if( mode == "merge" && original && candidate && ( !reading || reading.merged ) ) {
-        var res = tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) );
+        res = tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) );
 
         lines.push( "" );
         lines.push( "## Merged (raw, before Tracklist Editor formatting)" );
@@ -739,6 +813,8 @@ function tlImporter_reportText( link ) {
         lines.push( res.mergedText );
         lines.push( fence );
     }
+
+    lines = lines.concat( tlImporter_gapReportLines( original, candidate, res ) );
 
     lines.push( "" );
     lines.push( "## Mistakes / learnings" );
