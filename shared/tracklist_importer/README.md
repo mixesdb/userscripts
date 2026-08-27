@@ -19,14 +19,24 @@ page's current text is checked:
 
 - **no tracklist yet** – an **Insert** link appears in front of the toolkit's EDIT link
 - **a tracklist exists** – a **Merge** link appears there instead
-- **a tracklist that already holds everything the found one has** – no link, but a short note
-  in its place saying so: **Identical** when the two lists are the same list, **Nothing to add**
-  when the page holds everything the found tracklist has and more. The merge is tried before the
-  link is offered, and one that would leave the page text as it is only leads to MediaWiki's
-  "(No difference)". Hover the note for the reason – and the **Report** link stands behind it
-  just as it does behind Insert and Merge, with the verdict named in the report.
 
 Both links open the mix page's edit form in a new tab with the work already done.
+
+Where neither can be offered, a short note stands in the link's place and says why – hover it
+for the full reason. The row never just stays empty; an empty row would only look like a broken
+userscript:
+
+- **Identical** – both lists are the same list. Nothing to merge, and following a link would
+  only lead to MediaWiki's "(No difference)"
+- **Nothing to add** – the page's tracklist holds everything the found one has, and more
+- **Chaptered** – the page's tracklist is split into chapters, one per set. Merging into one of
+  them is not supported yet
+- **No Tracklist section** – the page has no `== Tracklist ==` section, so there is nothing to
+  insert into
+- **Page unreadable** – the page's text could not be fetched just now; reload to try again
+
+The **Report** link stands behind every one of them, exactly as it does behind Insert and Merge,
+and the report names the verdict – a verdict you disagree with is the very thing worth reporting.
 
 **Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you: when the
 mix page carries exactly this tracklist, it *is* integrated. It says so before it does it – the
@@ -123,8 +133,7 @@ already holds.
 
 ### Report link
 
-Behind the Insert/Merge link – and behind the **Identical** / **Nothing to add** note, where a
-wrong verdict is the very thing worth reporting – sits **Report**: it opens a paste-ready Discord
+Behind the Insert/Merge link – and behind every note that replaces it – sits **Report**: it opens a paste-ready Discord
 report holding the mix page's original tracklist, the found candidate and the raw merge result,
 plus the empty `Mistakes / learnings` and `Expected` lines only the reporter can fill – like the page
 creator's Report box.
@@ -133,7 +142,7 @@ creator's Report box.
 
 - Beta, on TrackId.net only so far.
 - Mix pages whose tracklist has chapters (`;Name` rows) are skipped – merging those needs its
-  own logic.
+  own logic. The row says **Chaptered** and offers the Report link.
 - The merge is a heuristic: fuzzy matching is a threshold, not certainty, and track insertion
   goes by cue times. Always read the diff before saving – that is why Save is locked until
   **Show changes** ran.
