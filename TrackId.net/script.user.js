@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.31
+// @version      2026.08.27.32
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1373,6 +1373,90 @@ waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
  * via table .mdb-tid-table
  */
 
+// mdbTid_gapUnknownSec
+// From how many seconds of unidentified audio a "[dur] ?" row is written – in front of the
+// first detection (lead), between two of them (mid) and behind the last one (end). Unchanged
+// numbers: what one unidentified track needs to be worth mentioning does not depend on how
+// long the tracks of this mix run.
+// The mid one doubles as the bar that says which two detections FOLLOW each other, i.e. which
+// pair mdbTid_medianTrackRuntimeSec may measure one track's runtime on.
+var mdbTid_gapUnknownSec = { lead: 120, mid: 30, end: 70 };
+
+// mdbTid_gapSpanFallbackSec
+// What a "..." needed to span before the mix's own track runtime decided it – kept as the
+// fallback for the lists mdbTid_medianTrackRuntimeSec cannot measure. Three numbers because
+// the three positions never shared one: the start of a mix is the most likely place for a
+// missing track, the tail behind the last detection the least likely one.
+var mdbTid_gapSpanFallbackSec = { lead: 120, mid: 180, end: 240 };
+
+// mdbTid_medianTrackRuntimeSec
+// How long ONE track of this mix runs, in seconds – the same reading the Tracklist Importer
+// takes on a merged tracklist (tlImporter_medianTrackRuntimeSec in
+// shared/tracklist_importer/merge_core.js), here on trackid.net's own detections.
+//
+// Why measure at all: the "..." rows below used to be decided by a fixed number of minutes (3
+// in the middle of the list, 4 behind the last track, 2 in front of the first). Three minutes
+// of unidentified audio is a whole track in a fast set and half of one in a slow one, so the
+// same hole has to read differently in the two – and the mix itself is what says which.
+//
+// Only detections that follow each other WITHOUT a hole are measured: the distance from one
+// start time to the next is then exactly one track's runtime, while across a hole it covers an
+// unknown number of them, which is the very question the "..." asks. A row whose end time lies
+// before its own start time (trackid.net prints those) makes its hole meaningless, so the pair
+// behind it is skipped as well.
+//
+// The median, not the average: a set regularly carries one 12 minute opener or a closing
+// ambient piece, and an average would let those stretch the believable span for every hole in
+// the list.
+//
+// null when fewer than tlImporter_gapMinSamples such distances exist – the median of one or two
+// is noise – or when merge_core.js did not load. The caller then falls back to the fixed
+// seconds of mdbTid_gapSpanFallbackSec.
+function mdbTid_medianTrackRuntimeSec( tlWrapper ) {
+    if( typeof tlImporter_medianTrackRuntimeSec !== "function" ) {
+        log( "mdbTid_medianTrackRuntimeSec: merge_core.js is not loaded, no median" );
+        return null;
+    }
+
+    var runtimes = [],
+        prevStartSec = null,
+        prevEndSec = null;
+
+    $("tr", tlWrapper).each(function(){
+        var startSec = durToSec( $(".startTime", this).text() ),
+            endSec = durToSec( $(".endTime", this).text() );
+
+        // the header row and anything else without a start time says nothing about a distance,
+        // and it must not let the rows on either side of it count as neighbours
+        if( !isFinite( startSec ) ) {
+            prevStartSec = null;
+            prevEndSec = null;
+            return;
+        }
+
+        if( prevStartSec !== null && isFinite( prevEndSec ) ) {
+            var runtime = startSec - prevStartSec, // one track, start time to start time
+                hole = startSec - prevEndSec;      // the unidentified audio between the two
+
+            // prevEndSec < prevStartSec means trackid.net printed an end time before its own
+            // start time, which makes the hole behind that row meaningless
+            if( runtime > 0 && prevEndSec >= prevStartSec && hole <= mdbTid_gapUnknownSec.mid ) {
+                runtimes.push( runtime );
+            }
+        }
+
+        prevStartSec = startSec;
+        prevEndSec = endSec;
+    });
+
+    var median = tlImporter_medianTrackRuntimeSec( runtimes );
+
+    log( "mdbTid_medianTrackRuntimeSec: " + runtimes.length + " neighbouring detection(s), median "
+         + ( median === null ? "(none)" : median + "s" ) );
+
+    return median;
+}
+
 // mdbTid_totalDurSec
 // The mix runtime TrackId.net prints in its header ("Duration 1:04:54"), in seconds. Read out
 // of the DOM at CALL time and never cached: trackid.net is a single-page app, and a value
@@ -1409,6 +1493,25 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         totalDur_Sec = mdbTid_totalDurSec();
     log(mixTitle);
     logVar( "totalDur", totalDur);
+
+    // What a "..." has to span to be believable, measured against THIS mix: one track's own
+    // runtime (mdbTid_medianTrackRuntimeSec) times the Tracklist Importer's factor leaves no
+    // room for a second track, so a shorter hole is one unidentified track and nothing more -
+    // that is the "[dur] ?" row, which is written on its own bar and stays untouched here.
+    // Without a median the three fixed spans these rows always carried stand in.
+    var medianRuntimeSec = mdbTid_medianTrackRuntimeSec( tlWrapper ),
+        gapSpanSec = medianRuntimeSec === null ? null : medianRuntimeSec * tlImporter_gapRuntimeFactor,
+        gapSpanLeadSec = gapSpanSec === null ? mdbTid_gapSpanFallbackSec.lead : gapSpanSec,
+        gapSpanMidSec = gapSpanSec === null ? mdbTid_gapSpanFallbackSec.mid : gapSpanSec,
+        gapSpanEndSec = gapSpanSec === null ? mdbTid_gapSpanFallbackSec.end : gapSpanSec;
+
+    if( gapSpanSec === null ) {
+        log( "gap check: no median track runtime for this list, fixed spans stand (lead "
+             + gapSpanLeadSec + "s, mid " + gapSpanMidSec + "s, end " + gapSpanEndSec + "s)" );
+    } else {
+        log( "gap check: median track runtime " + Math.round( medianRuntimeSec / 60 * 10 ) / 10
+             + " min, a \"...\" needs more than " + Math.round( gapSpanSec / 60 * 10 ) / 10 + " min of hole" );
+    }
 
     // iterate
     var tl = "",
@@ -1495,9 +1598,15 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         if (startTime !== "") {
             // first track is gap?
             if (i == 1) {
-                // start tl with gap when first dur is larger than 120(?)
-                if (startTime_Sec > 120) {
-                    tl += '[0:00:00] ?\n...\n';
+                // start tl with an unknown track when the first detection is more than two
+                // minutes in - and with a "..." behind it only where more than one track fits
+                // into that head start (gapSpanLeadSec)
+                if (startTime_Sec > mdbTid_gapUnknownSec.lead) {
+                    tl += '[0:00:00] ?\n';
+
+                    if (startTime_Sec > gapSpanLeadSec) {
+                        tl += '...\n';
+                    }
                 }
             }
             thisTrack += '[' + startTime + '] ';
@@ -1558,9 +1667,9 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
                 tl += "\n...";
 
             } else {
-                if( gapSec > 30 ) {
+                if( gapSec > mdbTid_gapUnknownSec.mid ) {
                     tl += "\n[" + endTime + "] ?";
-                    if (gapSec > 180) {
+                    if (gapSec > gapSpanMidSec) {
                         tl += "\n...";
                     }
                 }
@@ -1576,10 +1685,10 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             //log( "> lastTrack_gap: " + lastTrack_gap );
 
             // is the last track close to end or possible gap?
-            if (lastTrack_gap > 70) {
+            if (lastTrack_gap > mdbTid_gapUnknownSec.end) {
                 tl += "\n[" + endTime + "] ?";
             }
-            if (lastTrack_gap > 240) {
+            if (lastTrack_gap > gapSpanEndSec) {
                 tl += "\n...";
             }
         }
@@ -2306,6 +2415,22 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.32
+ * The "..." rows of the tracklist are decided by the mix's own track runtime instead of by a
+ * fixed number of minutes (mdbTid_medianTrackRuntimeSec). A "..." claims that MORE THAN ONE
+ * track is missing at that spot, and until now three minutes of unidentified audio in the
+ * middle of the list (four behind the last track, two in front of the first) were taken as
+ * proof of it - which is one track in a set of four minute tracks and two in a set of two
+ * minute ones. What one track of THIS mix runs is now measured on trackid.net's own
+ * detections: the median distance from one start time to the next where nothing is missing in
+ * between, times 1.5, is what a hole has to exceed. Same reading and same numbers the
+ * Tracklist Importer's merge uses (tlImporter_medianTrackRuntimeSec / _gapRuntimeFactor in
+ * merge_core.js, which this script already loads), so a hole gets the same verdict whether it
+ * comes out of the box here or survives a merge over there. The "[dur] ?" unknown rows are
+ * untouched - they say one track played unidentified, which does not depend on how long the
+ * tracks of this mix run. A list with fewer than three measurable neighbours keeps the fixed
+ * spans.
  *
  * 2026.08.27.31
  * Tracklist Importer: the Original and Candidate boxes of the review block are as tall as their

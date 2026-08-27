@@ -19,7 +19,16 @@ pages:
 - titles normalised – `Title - Some Remix` becomes `Title (Some Remix)`, remaster/`(Mixed)`
   noise removed, numeric suffixes dropped
 - labels cleaned, major labels and labels that only repeat the artist removed
-- a leading `?` gap when the first identified track starts more than two minutes in
+- a leading `?` when the first identified track starts more than two minutes in, and a `?` for
+  every stretch of unidentified audio between two tracks or behind the last one
+- a `...` behind such a `?` only where more than ONE track fits into that stretch. What one track
+  of this mix runs is measured on the mix itself – the median time from one identified track to
+  the next where nothing is missing between them – and the stretch has to span more than one and
+  a half times that, the same reading the
+  [Tracklist Importer](../shared/tracklist_importer/) uses when it merges. Three minutes of
+  unidentified audio is one track in a set of four minute tracks and two in a set of two minute
+  ones, so the same hole gets a `...` in the one and none in the other. Lists with fewer than
+  three measurable neighbours keep the fixed spans of two, three resp. four minutes
 
 Tracks whose cue is suspiciously close to the previous one are treated as false positives and
 removed; a **Toggle** button above the box shows the unfiltered version. The filtered tracklist
