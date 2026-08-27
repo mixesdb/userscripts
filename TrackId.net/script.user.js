@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.18
+// @version      2026.08.27.19
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -51,7 +51,7 @@ loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 // yet - for a used player there is nothing to create. With this on, the row is shown for used
 // players too, marked "used" and without the "Create" link (which would only start a duplicate
 // page). On window because page_creator.js is a @require and cannot see this IIFE's scope.
-window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta phase, like on SoundCloud
+window.mdbPageCreator_showForUsedPlayers = false; // Off despite the beta phase (like on SoundCloud): the big PC block gets in the way of testing the Tracklist Importer on used players
 
 // Loading skeleton on audiostream pages: the grey pulsing placeholder below the embedded
 // player (which shows straight away) until toolkit and page creator row have arrived -
