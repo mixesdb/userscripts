@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.3
+// @version      2026.08.27.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -36,7 +36,7 @@
  * had its chance to report a dead global.js - loadRawCss() lives there
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 39,
+var cacheVersion = 40,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -275,6 +275,13 @@ function getDurationSec_YT( expectedId ) {
 var youtubeDetailsAddedFor = null,
     youtubeDurationAddedFor = null;
 
+/*
+ * Whether the page creator row's side of #mdb-yt-extras is DECIDED - either the row is in or
+ * we know there will be none. The loading skeleton's extraReady() reads it (see below); it is
+ * reset to false with every fresh container, so the next video waits for its own row.
+ */
+var ytPageCreatorSettled = false;
+
 // Shortest video we still treat as a possible DJ mix. Anything below gets no toolkit.
 var toolkitMinDuration_sec = 20 * 60;
 
@@ -339,9 +346,24 @@ function addDetailPageEnhancements( wrapper ) {
     if( !$("#mdb-yt-extras").length ) {
         $wrapper.after( '<div id="mdb-yt-extras" class="mdb-element"></div>' );
 
+        // fresh container, so the row it is waiting for has not arrived yet (see extraReady)
+        ytPageCreatorSettled = false;
+
         mdbSkeleton_show({
             target: "#mdb-yt-extras",
-            rows:   [ "pageCreator", "toolkit" ]
+            rows:   [ "pageCreator", "toolkit" ],
+            /*
+             * The toolkit verdict alone is NOT enough here: the page creator row needs the
+             * video data, which is its own async lookup and lands a second or more after the
+             * verdict - so the skeleton used to reveal a toolkit-only box and the row then
+             * popped in below it, which is exactly what the skeleton exists to prevent.
+             * The flag - not $("#mdb-pageCreator").length - so a video the row is NOT built
+             * for (no usable data) reveals as soon as that is known instead of sitting out
+             * the skeleton's max wait.
+             */
+            extraReady: function() {
+                return ytPageCreatorSettled;
+            }
         });
     }
 
@@ -452,6 +474,23 @@ function getYtVideoData( ytId, done ) {
     }
 
     function poll() {
+        /*
+         * Nothing to wait for when the global is not VISIBLE to us at all. Tampermonkey runs
+         * userscripts in an isolated world under Chrome MV3 (the console lines then come from
+         * "userscript.html", not from the page), and there our window is not the page's:
+         * window.ytInitialPlayerResponse is undefined and stays undefined, however long we
+         * poll. Measured on a watch page 2026-08-27: the row appeared 20s after the toolkit
+         * because every one of the 20 polls was asking a window that can never answer, and
+         * the player API - which works in both worlds - was only asked afterwards. A STALE
+         * response (present, describes the previous video) is the real SPA case the poll is
+         * for and still gets its full wait.
+         */
+        if( typeof window.ytInitialPlayerResponse === "undefined" ) {
+            log( "getYtVideoData: ytInitialPlayerResponse is not visible from this userscript context (isolated world) - not polling for it, asking the player API right away." );
+            askPlayerApi();
+            return;
+        }
+
         var fresh = fromPlayerResponse( window.ytInitialPlayerResponse );
 
         if( fresh ) {
@@ -497,6 +536,7 @@ function addYtPageCreator( ytId, dur_sec ) {
 
         if( !data || !data.title ) {
             log( "addYtPageCreator: no usable video data - no page creator row." );
+            ytPageCreatorSettled = true; // decided: nothing more is coming, let the skeleton go
             return;
         }
 
@@ -525,6 +565,8 @@ function addYtPageCreator( ytId, dur_sec ) {
             target:       "#mdb-yt-extras",
             placement:    "prepend"
         });
+
+        ytPageCreatorSettled = true; // the row is in - the skeleton may reveal now
 
         // the tracklist an uploader wrote into the description, as an editable box below the
         // toolkit that rides along into the created page
@@ -745,6 +787,18 @@ if( typeof onUrlChange === "function" ) {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.4
+ * The page creator row now arrives seconds after the toolkit instead of ~20s, and the loading
+ * skeleton waits for it. Two fixes: getYtVideoData no longer polls window.ytInitialPlayerResponse
+ * for 10s when that global is not VISIBLE at all - Tampermonkey runs the script in an isolated
+ * world under Chrome MV3, where the page's globals never show up, so it asks the page's own
+ * player API right away and only a genuinely STALE response (the SPA case) still gets the poll.
+ * And the skeleton got an extraReady() for the row (new ytPageCreatorSettled), so it no longer
+ * reveals a toolkit-only box with the row popping in below it afterwards.
+ * The row is also sized properly on YouTube now (page_creator.css): its font sizes were stated
+ * in rem, and YouTube's root font size is 10px, which made the whole row a third smaller than
+ * the toolkit under it. Every size in the row is px now, so all three sites match.
  *
  * 2026.08.27.3
  * MixesDB page creator on watch pages (shared/page_creator/, new @requires): the suggested

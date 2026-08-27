@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.4
+// @version      2026.08.27.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -46,7 +46,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 176,
+var cacheVersion = 177,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -1906,6 +1906,12 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.27.5
+ * The page creator row states its font sizes in px instead of rem (page_creator.css): rem is
+ * the HOST page's root font size - 14px here, 16px on TrackId.net, 10px on YouTube - so the
+ * same row came out in three sizes. Nothing moves on SoundCloud (the px values are what its
+ * 14px root produced), the row just looks the same on every site now.
  *
  * 2026.08.27.4
  * The loading skeleton shows the page creator row and the toolkit as two SEPARATE grey
