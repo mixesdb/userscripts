@@ -942,6 +942,24 @@ function tlImporter_originalItems( merged_arr ) {
     return items;
 }
 
+// tlImporter_plainItems
+// A parsed tracklist as serializable rows with NO merge reading on them - no `changed`, no
+// `use`, no `used`, so tlImporter_renderPre() highlights nothing. For the cases where the two
+// columns are shown WITHOUT a merge having run: the chaptered page, where the reader does the
+// merging by hand and every highlight would be a claim the tool cannot back.
+function tlImporter_plainItems( tl_arr ) {
+    return ( tl_arr || [] ).map(function( item ) {
+        if( item.type !== "track" ) return { type: "gap" };
+
+        return {
+            type: "track",
+            cue: item.cue || "",
+            text: item.trackText || "",
+            label: item.label || ""
+        };
+    });
+}
+
 // tlImporter_sameTracklists
 // Do the two lists say the SAME thing? Read off the MERGE, never off the two texts: the
 // candidate's cue format, its spelling and the labels it carries differ from the page's by
