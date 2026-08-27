@@ -439,37 +439,15 @@ bare number: where the title counts its edition (`Trommel 251`), what MixesDB ha
 - the reasoning panel says so in its place.
 
 On a desktop-sized window the chips' MixesDB links – the category names, the red names' search
-and the recent mix pages – open the page in a modal right here instead of a tab: the look they
-serve is a five-second one. The page behind it goes dark and blurred, the whole window and the
-site's own menu bar included, so nothing beside the box competes for the eye.
-Nothing is fetched from MixesDB before a modal is actually opened. Esc, the × or a click beside the box close it; **Open on MixesDB** in its
-header opens the same page as a tab after all, and so does cmd/ctrl- or middle-clicking any of
-the links directly. On a narrow window the links open as tabs, as before.
-
-The open modal is walked with the **left and right arrow keys**: one key frames the previous or
-the next MixesDB link of the line, so a whole category and every mix page folded out under it
-can be looked through without going back to the row between two pages. It walks exactly what is
-on screen – a chip whose mix pages are not folded out is one step, not eleven – in the order the
-line reads: each category, then the pages under it. The header counts the steps (`3 / 12`) in
-its middle and carries the same two arrows as buttons. The walk goes **round**: one step past
-the last link is the first one again (`12 / 12` → `1 / 12`), and one step back from the first
-is the last, so a chip at the other end of the line is one key away and not eleven. The arrows
-only grey out where the framed page has left the row altogether – a chip folded shut, a title
-edited into other categories – since there is then no position to step from. The header names
-nothing else – which page is
-framed is the framed page's own headline to say. The line is re-read on every step, so a
-category answer that lands while the modal is open is part of the walk from the next key on.
-
-While the modal is up the arrow keys belong to it alone: a track playing under the overlay is
-no longer skipped forward and backward along with the walk, and the page behind does not scroll
-sideways either. Closing the modal hands the keys straight back to the site.
-
-**Every page stays loaded while the modal is open.** The page being read keeps its frame when
-you step off it, and the two pages a key away load into theirs while you are reading, so a
-step is a swap between documents that are already there rather than a new page load – forward
-through the walk and just as much back through it. Up to seven pages are held that way; the
-ones you have walked furthest from are dropped first, and closing the modal drops all of them.
-The first page of a walk is the only one you wait for.
+and the recent mix pages – open the page in the [MixesDB modal](../mixesdb_modal/) right here
+instead of a tab: the look they serve is a five-second one. That page says everything about the
+popup itself – how it closes, the **left/right arrow-key walk** through the line's links with
+the `3 / 12` counter, and the pages staying loaded between steps. What is the bar's own: a
+plain left click on any of its links opens the popup, cmd/ctrl- or middle-clicking them opens
+a tab as usual (and so does every click on a narrow window), and the walk steps through
+exactly what is on screen – a chip whose mix pages are not folded out is one step, not eleven,
+and a category answer that lands while the popup is open is part of the walk from the next
+key on.
 
 An artist has to be known as an *artist* to count as green; the entity counts whatever MixesDB
 files it as, since a podcast, a show, a venue and a festival can all stand in that slot.
@@ -1075,10 +1053,6 @@ placeholder only holds the space below it.
   agree on it – Boiler Room really does publish every set on YouTube and SoundCloud, but two of
   its ten newest pages carry only one of the two, so a page created there keeps the plain
   player.
-- The arrow keys in the modal stop working once you have clicked *inside* the framed MixesDB
-  page – from then on the keys belong to that page and scroll it. A click on the modal's header,
-  or one of its two arrow buttons, hands them back. Scrolling the framed page with the mouse or
-  the trackpad needs no click and leaves the keys alone.
 - The mix count behind a category – in the hints bar and in the reasoning panel – is the
   number MixesDB itself reports, and a few of those numbers are wrong on the wiki. The clearest
   case is `Amplify Series`, which answers "1 mix" while its category page lists 29. The count

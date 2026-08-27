@@ -942,21 +942,22 @@ function tlImporter_originalItems( merged_arr ) {
     return items;
 }
 
-// tlImporter_plainItems
-// A parsed tracklist as serializable rows with NO merge reading on them - no `changed`, no
-// `use`, no `used`, so tlImporter_renderPre() highlights nothing. For the cases where the two
-// columns are shown WITHOUT a merge having run: the chaptered page, where the reader does the
-// merging by hand and every highlight would be a claim the tool cannot back.
-function tlImporter_plainItems( tl_arr ) {
-    return ( tl_arr || [] ).map(function( item ) {
-        if( item.type !== "track" ) return { type: "gap" };
-
-        return {
-            type: "track",
-            cue: item.cue || "",
-            text: item.trackText || "",
-            label: item.label || ""
-        };
+// tlImporter_rawItems
+// A tracklist as serializable rows that render VERBATIM: one row per LINE, the whole line as
+// its text, no cue/label split and no merge reading on it - no `changed`, no `use`, no `used`,
+// so tlImporter_renderPre() highlights nothing.
+//
+// For the cases where the two columns are shown WITHOUT a merge having run: the chaptered page,
+// where the reader merges by hand. Going through tlImporter_parse() there buys nothing - there
+// is no merge to flag parts of - and it costs the truth: the parser drops the "#" numbering,
+// the '' wiki italics and every blank line, so the Original column showed a tidied-up list the
+// page does not contain and the hand-merge was done against a text that is not there.
+function tlImporter_rawItems( text ) {
+    // every line becomes a "track" row, blank ones included: tlImporter_renderPre() draws any
+    // other type as the "..." gap marker, which would invent a gap where the page has an empty
+    // line - and a real "..." line is its own text here anyway
+    return String( text || "" ).split( /\r?\n/ ).map(function( line ) {
+        return { type: "track", cue: "", text: line, label: "" };
     });
 }
 

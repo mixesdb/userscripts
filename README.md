@@ -31,8 +31,8 @@ Each folder holds one userscript and a README describing its features.
 | [Tracklist Merger](Tracklist_Merger/) | mixesdb.com, trackid.net | Merge two tracklists with a diff (beta, stalled – replaced by the [Tracklist Importer](shared/tracklist_importer/)) |
 
 Shared across the site scripts, in [shared/](shared/): the [toolkit](shared/toolkit/), the
-[tracklist box](shared/tracklist_editor/), the [page creator](shared/page_creator/) and the
-[tracklist importer](shared/tracklist_importer/).
+[tracklist box](shared/tracklist_editor/), the [page creator](shared/page_creator/), the
+[tracklist importer](shared/tracklist_importer/) and the [MixesDB modal](shared/mixesdb_modal/).
 
 [private/](private/) holds personal import helpers for bulk work on a single show. They are not
 part of the set contributors install.

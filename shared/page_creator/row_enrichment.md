@@ -17,11 +17,12 @@ linked. `recent` covers every type including
 `artist` and arrives in sortkey order since 2026-08-19 (both asked for after the endpoint's
 first version shipped a non-artist, cl_timestamp-sorted list - `mixesdb_api_request.md` §6);
 the per-artist `list=categorymembers` call the chip made until then is gone with it. On a desktop-wide window all these links open the
-MixesDB page in a modal on the page (`mdbPageCreator_modalOpen()`), and the left/right arrow
+MixesDB page in a modal on the page (`mdbModal_open()` - since 2026-08-27 a shared feature in
+`shared/mixesdb_modal/`, opened from the toolkit's usage links too), and the left/right arrow
 keys walk it as a ring through every link the bar shows RIGHT NOW - each visited page keeping
-its own iframe and the two neighbours loading ahead into theirs (`mdbPageCreator_modalFrame()`),
+its own iframe and the two neighbours loading ahead into theirs (`mdbModal_frame()`),
 so a step swaps documents instead of fetching one
-(`mdbPageCreator_modalStep()`, counted in the modal's header) - a closed chip's mix pages are
+(`mdbModal_step()`, counted in the modal's header) - a closed chip's mix pages are
 no step, an open one's are. The category FAMILY (`match=prefix`) below is still open, and so are the
 around-the-date window of addition 2 and everything in additions 3-4.
 

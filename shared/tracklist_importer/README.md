@@ -136,9 +136,9 @@ merge that changed nothing after all drops the block instead of repeating what t
 already holds.
 
 On a chaptered page the same block opens without a merge behind it: the fieldset is named
-**Diff – chaptered page, nothing was merged**, Original shows the page's tracklist with its
-chapter rows, Candidate the found one, and nothing is highlighted – no merge ran, so there is
-nothing to claim. The Merged box in the middle is empty on purpose: build the tracklist for the
+**Diff – chaptered page, nothing was merged**, Original shows the page's tracklist and Candidate
+the found one, both exactly as they stand – numbering, chapter rows, wiki markup and blank lines
+included – and nothing is highlighted, because no merge ran to claim anything. The Merged box in the middle is empty on purpose: build the tracklist for the
 whole section there, chapters included, and **Apply** writes it into the page like after any
 merge. This block also stays when a compare comes back empty – on a page nothing was written
 to, that is the normal answer, and the found tracklist has to stay on screen for the hand work.
