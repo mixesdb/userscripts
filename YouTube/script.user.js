@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.2
+// @version      2026.08.27.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,12 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-YouTube_28
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-YouTube_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-YouTube_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-YouTube_29
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_120
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
@@ -31,7 +36,7 @@
  * had its chance to report a dead global.js - loadRawCss() lives there
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 38,
+var cacheVersion = 39,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -122,13 +127,19 @@ var mdbRequires = [
     [ "global.js", "getPlaylistPageInfo", typeof getPlaylistPageInfo ],
     [ "global.js", "addTidPlaylistSubmitLink", typeof addTidPlaylistSubmitLink ],
     [ "mixesdb_modal/funcs.js", "mdbModal_open", typeof mdbModal_open ],
-    [ "toolkit.js", "getToolkit", typeof getToolkit ]
+    [ "tracklist_editor/funcs.js", "apiTracklist", typeof apiTracklist ],
+    [ "toolkit.js", "getToolkit", typeof getToolkit ],
+    [ "page_creator/title_definitions.js", "mdbTitleUsernameConversions", typeof mdbTitleUsernameConversions ],
+    [ "page_creator/title_builder.js", "buildMixesdbTitle", typeof buildMixesdbTitle ],
+    [ "page_creator/tracklist_detector.js", "mdbTracklist_detectInText", typeof mdbTracklist_detectInText ],
+    [ "page_creator/page_creator.js", "mdbPageCreator_add", typeof mdbPageCreator_add ]
 ];
 
 var mdbRequiresMissing = 0;
 for( var mdbR = 0; mdbR < mdbRequires.length; mdbR++ ) {
     var mdbEntry = mdbRequires[ mdbR ],
-        mdbOk = ( mdbEntry[2] === "function" );
+        // "not undefined" rather than "function": title_definitions.js exports plain data
+        mdbOk = ( mdbEntry[2] !== "undefined" );
 
     if( !mdbOk ) mdbRequiresMissing++;
     ytLog( "  [" + ( mdbOk ? "OK" : "MISSING" ) + "] " + mdbEntry[0] + " -> " + mdbEntry[1] + " (typeof: " + mdbEntry[2] + ")" );
@@ -154,6 +165,7 @@ if( !/(^|\.)youtube\.com$/.test( window.location.hostname ) && window.location.h
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 
@@ -317,10 +329,213 @@ function addDetailPageEnhancements( wrapper ) {
 
     logVar( "duration", convertHMS( dur_sec ) + " - long enough for a mix, adding the toolkit" );
 
+    /*
+     * One container we own for everything that arrives async below the video metadata: the
+     * page creator row and the toolkit. That is what lets the loading skeleton
+     * (mdbSkeleton_* in shared/page_creator/page_creator.js) cover the build-up and reveal
+     * both in one step - the row and the toolkit are its two separate grey stand-in boxes,
+     * like on TrackId.net. mdb-element: taken down again on SPA navigation.
+     */
+    if( !$("#mdb-yt-extras").length ) {
+        $wrapper.after( '<div id="mdb-yt-extras" class="mdb-element"></div>' );
+
+        mdbSkeleton_show({
+            target: "#mdb-yt-extras",
+            rows:   [ "pageCreator", "toolkit" ]
+        });
+    }
+
     // Last argument is the toolkit's Embed URL item - the copy-paste ready player URL, same
     // youtu.be URL we look the video up with, which is why it is passed twice.
-    getToolkit( playerUrl, "playerUrl", "detail page", $wrapper, "after", titleText, "link", 1, playerUrl );
+    // Appended INTO the extras wrapper (it used to go after $wrapper directly), so the
+    // skeleton covers it.
+    getToolkit( playerUrl, "playerUrl", "detail page", $("#mdb-yt-extras"), "append", titleText, "link", 1, playerUrl );
+
+    // the page creator row is gated behind that toolkit's usage verdict - (re)arm the poll
+    mdbPageCreator_watchToolkit();
+
+    // the row itself needs the video's data, which is its own (possibly async) lookup
+    addYtPageCreator( ytId, dur_sec );
+
     youtubeDetailsAddedFor = ytId;
+}
+
+/*
+ * getYtVideoData
+ * Everything the page creator needs about the CURRENT video, keyed by its id: title, channel
+ * name and URL, upload date, duration, description. Three sources, best first:
+ *
+ * 1. window.ytInitialPlayerResponse - but only when it really describes this video. YouTube
+ *    keeps it around across SPA navigations and does not always refresh it BEFORE our
+ *    handlers run (see getDurationSec_YT above) - it usually does refresh it shortly after,
+ *    though, so a stale one is POLLED for a while instead of being given up on: that path
+ *    costs no request and works logged-out, which the player API below does not.
+ * 2. The page's own player API (/youtubei/v1/player). Same origin - the watch page calls it
+ *    itself on every navigation - and it answers without any API key (only a CROSS-origin
+ *    call is refused, which is why TrackId.net cannot use it and reads TID's own API
+ *    instead). The request context is read off window.ytcfg where available, with a plain
+ *    WEB-client fallback. Not guaranteed either: a logged-out/bot-flagged session gets a
+ *    LOGIN_REQUIRED answer with no videoDetails at all (seen 2026-08-27 in a fresh
+ *    cookieless browser), which lands in the same catch as a network error.
+ * 3. The DOM - title and channel name only, no upload date and no description. The
+ *    suggestion is poor without a date, so this is a last resort and the log says so.
+ */
+function getYtVideoData( ytId, done ) {
+    var polled = 0,
+        pollMax = 20,  // 20 x 500ms = 10s of waiting for YouTube's own refresh
+        pollMs = 500;
+
+    function fromPlayerResponse( pr ) {
+        var vd = pr && pr.videoDetails,
+            mf = pr && pr.microformat && pr.microformat.playerMicroformatRenderer;
+
+        if( !vd || vd.videoId !== ytId || !vd.title ) return null;
+
+        return {
+            title:       vd.title,
+            channel:     vd.author || "",
+            // ownerProfileUrl comes as http:// - MixesDB pages link channels as https
+            channelUrl:  ( mf && mf.ownerProfileUrl )
+                             ? mf.ownerProfileUrl.replace( /^http:/, "https:" )
+                             : ( vd.channelId ? "https://www.youtube.com/channel/" + vd.channelId : "" ),
+            createdAt:   ( mf && ( mf.publishDate || mf.uploadDate ) ) || "",
+            durationSec: parseInt( vd.lengthSeconds, 10 ) || 0,
+            description: vd.shortDescription || ""
+        };
+    }
+
+    function fromDom() {
+        log( "getYtVideoData: falling back to the DOM - title and channel only, no date." );
+
+        done({
+            title:       $("#title h1, ytd-watch-metadata h1").first().text().trim(),
+            channel:     $("ytd-watch-metadata ytd-channel-name a").first().text().trim(),
+            channelUrl:  "",
+            createdAt:   "",
+            durationSec: 0,
+            description: ""
+        });
+    }
+
+    function askPlayerApi() {
+        log( "getYtVideoData: ytInitialPlayerResponse stayed stale - asking the page's own player API." );
+
+        var context = ( window.ytcfg && typeof window.ytcfg.get === "function" )
+                          ? window.ytcfg.get( "INNERTUBE_CONTEXT" )
+                          : null;
+
+        fetch( "/youtubei/v1/player?prettyPrint=false", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                context: context || { client: { clientName: "WEB", clientVersion: "2.20260801.00.00" } },
+                videoId: ytId
+            })
+        }).then( function( response ) {
+            if( !response.ok ) throw new Error( "HTTP " + response.status );
+            return response.json();
+        }).then( function( answer ) {
+            var data = fromPlayerResponse( answer );
+
+            if( !data ) {
+                throw new Error( "the answer describes " +
+                    ( answer && answer.videoDetails ? "video " + answer.videoDetails.videoId : "no video" ) +
+                    ", not " + ytId +
+                    ( answer && answer.playabilityStatus ? " (playability: " + answer.playabilityStatus.status + ")" : "" ) );
+            }
+
+            done( data );
+        }).catch( function( e ) {
+            log( "getYtVideoData: player API FAILED (" + e + ")." );
+            fromDom();
+        });
+    }
+
+    function poll() {
+        var fresh = fromPlayerResponse( window.ytInitialPlayerResponse );
+
+        if( fresh ) {
+            log( "getYtVideoData: ytInitialPlayerResponse describes this video" +
+                 ( polled ? " (after " + polled + " poll(s))" : "" ) + " - no request needed." );
+            done( fresh );
+            return;
+        }
+
+        polled++;
+
+        if( polled < pollMax ) {
+            setTimeout( poll, pollMs );
+            return;
+        }
+
+        askPlayerApi();
+    }
+
+    poll();
+}
+
+/*
+ * MixesDB page creator (shared/page_creator/)
+ * The suggested-title row above the toolkit, in the #mdb-yt-extras wrapper. Everything
+ * site-specific is read off the video data here and handed over - the creator itself never
+ * looks at a YouTube page.
+ * channelTrust "low" is the important hand-over: a YouTube channel is a broadcaster or
+ * re-uploader at least as often as it is the artist or the series, so the title builder must
+ * not fall back to its name as artist/entity without backing (the name standing in the title,
+ * a curated map entry, or MixesDB knowing it) - see mdbPageCreator_add()'s header comment.
+ * The description IS handed to the shared tracklist detection, like on SoundCloud: YouTube
+ * uploaders write their tracklist into it often enough. No loadComments - reading YouTube
+ * comments would need its own API, and the description is the reliable source here.
+ */
+function addYtPageCreator( ytId, dur_sec ) {
+    // the video lookup can be a round trip - drop the answer if the user has clicked on to
+    // the next video meanwhile (see mdbPageGeneration in global.js)
+    var pageGeneration = mdbPageGeneration;
+
+    getYtVideoData( ytId, function( data ) {
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+        if( !data || !data.title ) {
+            log( "addYtPageCreator: no usable video data - no page creator row." );
+            return;
+        }
+
+        logVar( "addYtPageCreator: title", data.title );
+        logVar( "addYtPageCreator: channel", data.channel );
+        logVar( "addYtPageCreator: createdAt", data.createdAt );
+
+        mdbPageCreator_add({
+            title:        data.title,
+            channel:      data.channel,
+            // YouTube channels are often unrelated to who played - see the comment above
+            channelTrust: "low",
+            createdAt:    data.createdAt,
+            durationMs:   ( data.durationSec || dur_sec || 0 ) * 1000,
+            // the form MixesDB embeds - same URL the toolkit looks the video up with
+            playerUrl:    "https://youtu.be/" + ytId,
+            channelUrl:   data.channelUrl,
+            // same maxresdefault the thumbnail feature links; for MixesDB's upload form
+            artworkUrl:   "https://i.ytimg.com/vi/" + ytId + "/maxresdefault.jpg",
+            // the TITLE builder reads the labels a description tracklist credits out of this
+            // ("Artist - Title [Label]") - the tracklist box is the separate call below
+            description:  data.description,
+            sourceLabel:  "YT",
+            // first thing in the extras wrapper, above the toolkit - a direct child, so the
+            // loading skeleton covers it
+            target:       "#mdb-yt-extras",
+            placement:    "prepend"
+        });
+
+        // the tracklist an uploader wrote into the description, as an editable box below the
+        // toolkit that rides along into the created page
+        if( data.description ) {
+            mdbPageCreator_addTracklist({
+                description: data.description,
+                target:      "#mdb-toolkit",
+                placement:   "after"
+            });
+        }
+    });
 }
 
 function addDurationEnhancements() {
@@ -527,3 +742,19 @@ if( typeof onUrlChange === "function" ) {
 }
 
 })();
+
+/*
+ * Changelog
+ *
+ * 2026.08.27.3
+ * MixesDB page creator on watch pages (shared/page_creator/, new @requires): the suggested
+ * page title, the "Create" link and the description's tracklist box, above/below the toolkit
+ * in the new #mdb-yt-extras wrapper - only for videos long enough for a mix, behind the same
+ * 20 min gate as the toolkit. Video data comes fresh per video id (getYtVideoData):
+ * ytInitialPlayerResponse when it matches, else the page's own /youtubei/v1/player API, else
+ * the DOM. channelTrust "low" tells the title builder not to fall back to the channel name
+ * without backing - YouTube channels are often broadcasters/re-uploaders, not who played.
+ * The wrapper's build-up is covered by the shared loading skeleton with the page creator row
+ * and the toolkit as two separate grey boxes (split skeleton, like TrackId.net) - with light
+ * greys in YouTube's light mode (page_creator.css site rules).
+ */

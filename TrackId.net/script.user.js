@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.20
+// @version      2026.08.27.21
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,9 +17,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_33
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_119
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_120
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 203,
+var cacheVersion = 204,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -1057,7 +1057,8 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
  * child of the extras wrapper like the toolkit, not a visible part of the kept player.
  * Row and toolkit are SEPARATE stand-in boxes: the "pageCreator" one only where the row
  * really comes - funcTidPageCreator only builds it on audiostream detail pages with a
- * SoundCloud player, and a grey box for a row that never arrives would reveal into a hole.
+ * SoundCloud or YouTube player, and a grey box for a row that never arrives would reveal
+ * into a hole.
  * The player URL is read off the wrapper (data-tidplayerurl), where both callers put it.
  * No height option: the values in page_creator.css are the one source of truth - an inline
  * height here would silently win over any value tuned in the CSS (the toolkit-only and the
@@ -1065,8 +1066,10 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
  */
 function tidSkeleton_show() {
     var playerUrl = $("#mdb-tid-audiostreamExtras").attr("data-tidplayerurl") || "",
+        playerDomain = getDomain_fromUrlStr( playerUrl ),
+        // the same player types funcTidPageCreator builds a row for
         rowComes = urlPath_noParams(1) == "audiostreams" && urlPath_noParams(2)
-                   && getDomain_fromUrlStr( playerUrl ) == "soundcloud.com";
+                   && ( playerDomain == "soundcloud.com" || playerDomain == "youtube.com" || playerDomain == "youtu.be" );
 
     mdbSkeleton_show({
         target: "#mdb-tid-audiostreamExtras",
@@ -1077,11 +1080,15 @@ function tidSkeleton_show() {
 
 /*
  * MixesDB page creator (shared/page_creator/)
- * The suggested-title row between the embedded player and the toolkit - SoundCloud players
- * only for now. Everything the row needs is read off the SC track API (title, username, dates,
- * duration, artwork URL), the same way the SoundCloud script does it - the TID page itself
- * only knows a normalized heading and a locale-formatted date, and the title builder deserves
- * better input than that.
+ * The suggested-title row between the embedded player and the toolkit - SoundCloud and
+ * YouTube players so far. Each player type has its own data source, because the TID page
+ * itself only knows a normalized heading and a locale-formatted date, and the title builder
+ * deserves better input than that:
+ *   - SoundCloud: the SC track API (title, username, dates, duration, artwork, description),
+ *     the same way the SoundCloud script does it
+ *   - YouTube: TID's OWN public API (funcTidPageCreator_youtube below) - it stores the
+ *     original YT title, channel name and upload date, which is everything the row needs,
+ *     and it is a same-origin request with no token
  * The "Create" link does NOT use the shared description-tracklist detection: TID's own
  * tracklist box (#tlEditor, built from the identified tracks further down this file) is the
  * better tracklist, and the tracklistBox option points the page creator at it - whatever is in
@@ -1099,9 +1106,16 @@ function funcTidPageCreator( playerUrl ) {
         return;
     }
 
-    // SoundCloud players only for now - Mixcloud/YouTube/hearthis.at need their own data source
-    if( getDomain_fromUrlStr( playerUrl ) != "soundcloud.com" ) {
-        log( "funcTidPageCreator: not a SoundCloud player - no page creator row yet." );
+    var playerDomain = getDomain_fromUrlStr( playerUrl );
+
+    if( playerDomain == "youtube.com" || playerDomain == "youtu.be" ) {
+        funcTidPageCreator_youtube( playerUrl );
+        return;
+    }
+
+    // Mixcloud/hearthis.at still need their own data source
+    if( playerDomain != "soundcloud.com" ) {
+        log( "funcTidPageCreator: not a SoundCloud or YouTube player - no page creator row yet." );
         return;
     }
 
@@ -1173,6 +1187,91 @@ function funcTidPageCreator( playerUrl ) {
                 log( "funcTidPageCreator: FAILED to resolve the SC track (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
             }
         });
+    });
+}
+
+/*
+ * funcTidPageCreator_youtube
+ * The YouTube route of the page creator row. YouTube offers no tokenless metadata API that
+ * answers cross-origin (oEmbed carries no date, the innertube endpoint refuses a foreign
+ * Origin header, and this script deliberately ships with no @grant) - but TID's OWN public
+ * API already stores what its scraper read off the video: the original title, the channel
+ * name, the upload date (createdOn - NOT addedOn, which is when the TID request was made),
+ * the duration and an artwork URL. Same origin, no token, one request.
+ * channelTrust "low": a YouTube channel is a broadcaster or re-uploader often enough that
+ * the title builder must not fall back to its name without backing - see
+ * mdbPageCreator_add()'s header comment in shared/page_creator/page_creator.js.
+ */
+function funcTidPageCreator_youtube( playerUrl ) {
+    logFunc( "funcTidPageCreator_youtube" );
+
+    // the slug is the API's key, and it is what the address bar carries
+    var slug = urlPath_noParams(2),
+        apiUrl = "https://trackid.net/api/public/audiostreams/" + slug,
+        // one round trip - drop the answer if the reader has clicked on to the next
+        // audiostream meanwhile (see mdbPageGeneration in global.js)
+        pageGeneration = mdbPageGeneration;
+
+    logVar( "funcTidPageCreator_youtube: apiUrl", apiUrl );
+
+    $.ajax({
+        dataType: "json",
+        url: apiUrl,
+        success: function( answer ) {
+            if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            var a = answer ? answer.result : null;
+
+            if( !a || !a.title ) {
+                log( "funcTidPageCreator_youtube: the TID API answered, but without a usable audiostream (title missing)." );
+                return;
+            }
+
+            // "02:01:29" (a possible fraction stripped); read digit group by digit group so
+            // a "MM:SS" answer cannot land in the hours
+            var durParts = String( a.duration || "" ).replace( /\..*$/, "" ).split( ":" ),
+                durSec = 0,
+                di;
+
+            for( di = 0; di < durParts.length; di++ ) {
+                durSec = durSec * 60 + ( parseInt( durParts[di], 10 ) || 0 );
+            }
+
+            // the video ID keys both URLs we hand over: the youtu.be form for {{Player}}
+            // (the form MixesDB embeds, same as the YouTube script passes) and the maxres
+            // thumbnail for the upload form - TID only stores the small hqdefault
+            var ytId = getYoutubeIdFromUrl( a.url || playerUrl );
+
+            logVar( "funcTidPageCreator_youtube: title", a.title );
+            logVar( "funcTidPageCreator_youtube: channel", a.channel );
+            logVar( "funcTidPageCreator_youtube: createdOn", a.createdOn );
+            logVar( "funcTidPageCreator_youtube: durSec", durSec );
+            logVar( "funcTidPageCreator_youtube: ytId", ytId );
+
+            mdbPageCreator_add({
+                title:        a.title,
+                channel:      a.channel || "",
+                // YouTube channels are often unrelated to who played - see the function comment
+                channelTrust: "low",
+                createdAt:    a.createdOn || "",
+                durationMs:   durSec ? durSec * 1000 : 0,
+                playerUrl:    ytId ? "https://youtu.be/" + ytId : playerUrl,
+                artworkUrl:   ytId ? "https://i.ytimg.com/vi/" + ytId + "/maxresdefault.jpg" : ( a.artworkUrl || "" ),
+                // the stored values are YouTube's own, so a report reads "YT title:" here
+                sourceLabel:  "YT",
+                // same placement as the SoundCloud route - a direct child of
+                // #mdb-tid-audiostreamExtras between player and toolkit, where the loading
+                // skeleton covers it
+                target:       ".mdb-player-audiostream",
+                placement:    "after",
+                // TID's own tracklist box and style suggestions, read at click time
+                tracklistBox: "#tlEditor #mixesdb-TLbox",
+                stylesBox:    "#mixesdb-TIDstyles"
+            });
+        },
+        error: function( jqXHR, textStatus, errorThrown ) {
+            log( "funcTidPageCreator_youtube: FAILED to read the TID API (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
+        }
     });
 }
 
@@ -2188,6 +2287,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.21
+ * Page creator row for YouTube players (funcTidPageCreator_youtube): the data comes from
+ * TID's own public API (/api/public/audiostreams/<slug>), which stores the original YT
+ * title, channel name and upload date (createdOn) - same origin, no token. The row passes
+ * channelTrust "low" (title_builder.js v_89, page_creator.js v_120): a YouTube channel is
+ * often a broadcaster or re-uploader, so the title builder no longer falls back to its name
+ * as artist/entity without backing (in the title, curated, or wiki-known). The loading
+ * skeleton shows the page creator stand-in box for YouTube players too (tidSkeleton_show).
  *
  * 2026.08.27.20
  * The loading skeleton below the player shows the page creator row and the toolkit as two

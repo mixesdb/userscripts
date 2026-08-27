@@ -4,8 +4,9 @@ The row next to a player holding a suggested MixesDB mix page title and a **Crea
 opens the new page's edit form already filled in. Shared by the site scripts, so it looks and
 behaves the same everywhere.
 
-- **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/) and
-  [TrackId.net](../../TrackId.net/) (audiostream pages with a SoundCloud player)
+- **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/),
+  [YouTube](../../YouTube/) (watch pages of mix-length videos) and
+  [TrackId.net](../../TrackId.net/) (audiostream pages with a SoundCloud or YouTube player)
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** [Tracklist box](../tracklist_editor/)
 
@@ -18,6 +19,14 @@ title format (`YYYY-MM-DD - Artist - Show`). The field is editable – the sugge
 point, not a decision – and follows its text as you type, widening and narrowing again, so the
 whole title stays readable without leaving an empty stretch behind it. A confidence
 score next to it says how sure the suggestion is.
+
+How much the **channel name** is worth depends on the site. On SoundCloud the account is the
+artist or the series most of the time, so where a title names nobody the channel fills the gap.
+On YouTube it is at least as often a broadcaster or a re-uploader whose name has nothing to do
+with who played, so there the channel name is only used when something backs it – it stands in
+the title, it is on the curated list, or MixesDB knows the name. An unbacked YouTube channel is
+left out of the title instead of being invented into a show; only where an episode number needs
+a name to hang on does it stay, with the doubt priced into the confidence score.
 
 MixesDB's own category names sharpen the guess: the names in the title and the channel name are
 looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venue or event is
@@ -1015,9 +1024,10 @@ few seconds.
 The page creator row and the toolkit are two separate placeholder boxes, standing where each of
 them will appear – the page really gets two things there, not one block.
 
-Where it shows: SoundCloud's redesigned track pages and TrackId.net's audiostream pages. On
-TrackId.net the embedded player itself is not covered – it shows and can play straight away; the
-placeholders only hold the space below it, and the page creator box only appears for SoundCloud
+Where it shows: SoundCloud's redesigned track pages, YouTube watch pages of mix-length videos
+(light grey in YouTube's light mode) and TrackId.net's audiostream pages. On TrackId.net the
+embedded player itself is not covered – it shows and can play straight away; the placeholders
+only hold the space below it, and the page creator box only appears for SoundCloud and YouTube
 players, the ones the row exists for.
 
 ## Known limitations

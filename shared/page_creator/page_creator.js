@@ -24,6 +24,7 @@ log( "/shared/page_creator/page_creator.js loaded" );
  *     mdbPageCreator_add({
  *         title:       "Trommel.251 - Arno",         // required - the player title
  *         channel:     "trommel",                    // channel/uploader/profile name
+ *         channelTrust: "low",                       // optional - see below
  *         createdAt:   "2026-08-06T10:00:00Z",       // upload date, any Date-parsable form
  *         releaseDate: "",                           // optional, beats createdAt when set
  *         durationMs:  4321000,                      // optional, gates the 20 min minimum
@@ -36,6 +37,16 @@ log( "/shared/page_creator/page_creator.js loaded" );
  *         target:      "#mdb-trackHeader-headline",  // where the row goes
  *         placement:   "after"                       // after|before|append|prepend
  *     });
+ *
+ * channelTrust says how much the channel NAME is worth without confirmation. On SoundCloud
+ * the account is the artist or the series most of the time, so the title builder may fall
+ * back to it where the title names nobody - that is the default. On YouTube (and the other
+ * planned players: Mixcloud, hearthis.at) the channel is at least as often a broadcaster or
+ * re-uploader whose name has nothing to do with who played, so those sites pass "low": the
+ * fallbacks then demand backing - the channel standing in the title, a curated map entry, or
+ * the wiki knowing the name - and an unbacked channel is dropped from the suggestion (or,
+ * where an episode number needs a name to hang on, kept with the doubt charged to the
+ * confidence score). See mdbTitle_channelTrusted in title_builder.js.
  *
  * sourceLabel is what the "Report" box calls the site the values were read off ("SC title:",
  * "SC date:"). It is the site's own short name as it is used when a title is reported, which
@@ -268,6 +279,10 @@ function mdbPageCreator_add( options ) {
     var o = options || {},
         playerTitle = o.title || "",
         channel = o.channel || "",
+        // "low" on sites where the channel name is often unrelated to the mix (YouTube and
+        // the other planned players) - the title builder then refuses to fall back to the
+        // channel as artist/entity without backing. Omitted = the SoundCloud default.
+        channelTrust = o.channelTrust || "",
         createdAt = o.createdAt || "",
         releaseDate = o.releaseDate || "",
         // Read by the title builder's label test, for the labels the tracklist credits
@@ -303,7 +318,7 @@ function mdbPageCreator_add( options ) {
     logVar( "mdbPageCreator_add: target", typeof mdbPageCreator_target === "string" ? mdbPageCreator_target : "(node)" );
     logVar( "mdbPageCreator_add: placement", mdbPageCreator_placement );
 
-    var first = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache, description ),
+    var first = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache, description, channelTrust ),
         // The MixesDB lookup below is a request, and on a site that navigates without loading
         // a document its answer can arrive after the reader has moved to the next mix - where
         // it would replace that mix's title with a refined guess about the previous one.
@@ -330,7 +345,7 @@ function mdbPageCreator_add( options ) {
     mdbTitle_lookupCategories( candidates, function( known ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-        var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description );
+        var second = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, known, description, channelTrust );
 
         // section 4 of the reasoning panel is this difference, so it is kept, not only logged
         mdbPageCreator_titlePostLookup = second.title;
@@ -372,7 +387,7 @@ function mdbPageCreator_add( options ) {
             // The whole parse once more, from the player title: the channel is mapped to the
             // show now (mdbTitle_channelUrlShows), which is a thing step 2 reads - patching the
             // finished title would have to redo everything that follows from it.
-            var third = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache, description );
+            var third = buildMixesdbTitle( playerTitle, channel, createdAt, releaseDate, mdbTitle_categoryCache, description, channelTrust );
 
             if( third.title !== second.title ) {
                 logVar( "mdbPageCreator_add: the channel's URL knew better", second.title + "  ->  " + third.title );
@@ -8778,6 +8793,10 @@ function mdbSkeleton_show( options ) {
     mdbSkeleton_extraReady = options.extraReady || null;
     mdbSkeleton_toolkitSkipped = false; // see mdbSkeleton_noToolkit()
 
+    // resolved once so the closing log line can NAME the stand-ins - the skeleton is on
+    // screen for a second or two, and which boxes it composed must be readable afterwards
+    var rows = options.rows || [ "toolkit" ];
+
     // Read at call time, not load time: the option lives in the site script, whose body
     // runs after this @require'd file.
     mdbSkeleton_active = window.mdbSkeleton_enabled !== false;
@@ -8787,7 +8806,7 @@ function mdbSkeleton_show( options ) {
         // (SC's floated #mdb-sc-trackHead) keeps it. While loading the siblings are
         // display:none anyway, and the reveal removes the skeleton in the same step it
         // shows them.
-        wrapper.append( mdbSkeleton_html( options.rows || [ "toolkit" ] ) ).addClass( "mdb-skeleton-loading" );
+        wrapper.append( mdbSkeleton_html( rows ) ).addClass( "mdb-skeleton-loading" );
 
         // Marked rather than matched in the CSS, so the stylesheet stays static. Same
         // synchronous step as the class above - no frame ever paints them hidden.
@@ -8817,7 +8836,7 @@ function mdbSkeleton_show( options ) {
         mdbSkeleton_reveal( "max wait of " + mdbSkeleton_maxMs + "ms reached - not everything arrived" );
     }, mdbSkeleton_maxMs );
 
-    log( "mdbSkeleton_show: " + ( mdbSkeleton_active ? "skeleton up" : "timing only" ) + " on \"" + mdbSkeleton_target + "\", waiting for the toolkit verdict" + ( mdbSkeleton_extraReady ? " + extraReady()" : "" ) + " (settle " + mdbSkeleton_settleMs + "ms, cap " + mdbSkeleton_maxMs + "ms)." );
+    log( "mdbSkeleton_show: " + ( mdbSkeleton_active ? "skeleton up" : "timing only" ) + " on \"" + mdbSkeleton_target + "\" (rows: " + rows.join( ", " ) + "), waiting for the toolkit verdict" + ( mdbSkeleton_extraReady ? " + extraReady()" : "" ) + " (settle " + mdbSkeleton_settleMs + "ms, cap " + mdbSkeleton_maxMs + "ms)." );
 }
 
 // mdbSkeleton_check

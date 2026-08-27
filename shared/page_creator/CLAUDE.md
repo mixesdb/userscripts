@@ -47,7 +47,16 @@ title_definitions.js, title_builder.js, tracklist_detector.js, page_creator.js
 
 then `loadRawCss()` `page_creator.css` next to the script's own `script.css`, and call
 `mdbPageCreator_add({ title, channel, createdAt, ..., target, placement })` when the site's data
-arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built. A site whose
+arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built.
+
+A site whose channel names are often UNRELATED to the mix's artist or entity - YouTube and the
+other planned players (Mixcloud, hearthis.at), where broadcasters and re-uploaders are common -
+passes `channelTrust: "low"`. The title builder then refuses to fall back to the channel name
+without backing (the name standing in the title, a curated map entry, or the wiki knowing it):
+an unbacked channel is dropped from the suggestion instead of being appended as the show, and
+where only an episode number keeps it, the doubt is charged to the confidence. SoundCloud-like
+profile sites, where the account IS the artist or series most of the time, pass nothing - that
+is the default. See `mdbTitle_channelTrusted` in `title_builder.js`. A site whose
 player pages carry a description adds `mdbPageCreator_addTracklist({ description, loadComments,
 target, placement })` - see the next section - and hands the same `description` to
 `mdbPageCreator_add()`, where the TITLE builder reads the labels its tracklist credits.
@@ -90,8 +99,9 @@ creator row and the toolkit read as the two separate things they are; pass `page
 where the row really comes); `keep` names direct children that stay visible while loading and
 skip the reveal fade (TID's embedded player - built on the spot, so covering it would only delay
 playback); `window.mdbSkeleton_enabled = false` (site debug settings) turns it into timing-only
-mode, which logs the same "everything loaded" line without covering anything. SoundCloud and
-TrackId.net are the two callers.
+mode, which logs the same "everything loaded" line without covering anything. SoundCloud,
+TrackId.net and YouTube are the callers - YouTube is the first light-themed one, which is why
+`page_creator.css` carries light-mode greys for it in the site specific rules.
 
 ## The tracklist
 
