@@ -335,14 +335,35 @@ function tlImporter_tickIntegrated( wrapper, note, why ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// How the mix page is asked. Fast while the reader is likely still in front of the diff, slower
-// after that - a save can also come after a long read - and given up on well before the tab is
-// forgotten. Every tick is one API call for the page's wikitext, the same one the link builder
-// makes, so the whole watch costs about two dozen of them.
-var tlImporter_watchFastMs = 10000,
-    tlImporter_watchFastForMs = 120000,
-    tlImporter_watchSlowMs = 30000,
-    tlImporter_watchMaxMs = 480000;
+// How the mix page is asked: every step says "until this many ms after the click, ask every
+// that many". Fast while the reader is likely still in front of the diff - a save right after
+// the auto-clicked "Show changes" should not sit unnoticed for half a minute - and slower the
+// longer it takes, because a save can also come after a long read. The last step's `until` is
+// the deadline: past it the watch gives up, well before the tab is forgotten. Every ask is one
+// API call for the page's wikitext, the same one the link builder makes, so a watch that runs
+// to the end costs about 40 of them.
+var tlImporter_watchSteps = [
+    { until: 60000, every: 5000 },   // minute 1
+    { until: 240000, every: 10000 }, // minutes 2-4
+    { until: 600000, every: 30000 }  // minutes 5-10
+];
+
+// tlImporter_watchMaxMinutes
+// The deadline in minutes, for the log line - read off the last step so the two cannot drift.
+function tlImporter_watchMaxMinutes() {
+    return Math.round( tlImporter_watchSteps[ tlImporter_watchSteps.length - 1 ].until / 60000 );
+}
+
+// tlImporter_watchDelayMs
+// The wait before the next ask, for a watch that has been running `elapsed` ms - 0 once the
+// last step's deadline is behind us, which is what ends the watch.
+function tlImporter_watchDelayMs( elapsed ) {
+    for( var i = 0; i < tlImporter_watchSteps.length; i++ ) {
+        if( elapsed < tlImporter_watchSteps[i].until ) return tlImporter_watchSteps[i].every;
+    }
+
+    return 0;
+}
 
 // tlImporter_candidateWrites
 // How many PARTS of the candidate the merge would write into the page - cue, text and label
@@ -434,12 +455,14 @@ function tlImporter_watchMixPage( link, wrapper, pageId, candidate ) {
     }
 
     function again() {
-        setTimeout( poll, Date.now() - started < tlImporter_watchFastForMs
-            ? tlImporter_watchFastMs : tlImporter_watchSlowMs );
+        var wait = tlImporter_watchDelayMs( Date.now() - started );
+
+        if( !wait ) return stop( "no save arrived within " + tlImporter_watchMaxMinutes() + " minutes" );
+
+        setTimeout( poll, wait );
     }
 
     function poll() {
-        if( Date.now() - started > tlImporter_watchMaxMs ) return stop( "no save arrived within " + Math.round( tlImporter_watchMaxMs / 60000 ) + " minutes" );
         if( !wrapper.closest( "body" ).length ) return stop( "the toolkit row is gone" );
         if( pageGeneration !== null && typeof mdbIsCurrentPage === "function" && !mdbIsCurrentPage( pageGeneration ) ) return stop( "the reader moved on to another page" );
 
