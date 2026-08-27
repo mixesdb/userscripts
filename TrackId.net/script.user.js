@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.12
+// @version      2026.08.27.13
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_131
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_29
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_30
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -2179,6 +2179,17 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.13
+ * Tracklist Importer goes multi-site (tracklist_importer funcs.js v22, merge_core.js v7):
+ * 1001 Tracklists carries it now too, so TWO userscripts run on mixesdb.com/w/*. The first
+ * instance claims the edit-form side through a marker attribute on <html> and the other
+ * stands down - unclaimed, both would apply the merge, click "Show changes" and answer every
+ * Apply press twice. Update both scripts together: an old instance without the claim does not
+ * know to stand down. From the 1001 wiring, two shared fixes that apply here as well: a
+ * chaptered CANDIDATE gets the Chaptered hand-merge link (TID candidates are always flat, so
+ * nothing changes on this site), and tlImporter_parse strips ''' bold whole instead of
+ * leaving a stray quote behind.
  *
  * 2026.08.27.12
  * The MixesDB modal is a shared feature now (shared/mixesdb_modal/, split out of

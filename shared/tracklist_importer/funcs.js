@@ -6,7 +6,7 @@
  * tracklist box) over to the MixesDB mix page the toolkit's player search matched. Two sides,
  * both living in this one file because the SAME userscript runs on both domains:
  *
- * On the player site (TrackId.net first):
+ * On the player site (TrackId.net and 1001 Tracklists so far):
  *   - when the toolkit says the player is used on MixesDB AND the page has a filled tracklist
  *     box, the mix page's wikitext is fetched and its "== Tracklist ==" section decides the
  *     mode: no tracklist yet -> "Insert", existing tracklist -> "Merge", a tracklist split
@@ -154,6 +154,17 @@ var tlImporter_noMergeVerdicts = {
         text: "Chaptered",
         title: "The MixesDB page's tracklist is split into chapters (one per set).\nMerging into one of them is not supported yet - this opens the edit form with the page's tracklist and this one side by side, to merge by hand.",
         report: "the mix page tracklist has chapters - a link without a merge",
+        merged: false,
+        link: true
+    },
+    // The candidate's twin: on 1001tracklists the FOUND tracklist can itself carry ";Name"
+    // chapter rows (multi-set pages), which the merge would swallow as track rows. Same
+    // hand-merge link as `chapters` - only the wording says which side the chapters are on.
+    // A page that is chaptered too reads `chapters`, the page side outranking this one.
+    chaptersCandidate: {
+        text: "Chaptered",
+        title: "This tracklist is split into chapters (one per set).\nMerging a chaptered tracklist is not supported yet - this opens the edit form with the page's tracklist and this one side by side, to merge by hand.",
+        report: "the found tracklist has chapters - a link without a merge",
         merged: false,
         link: true
     },
@@ -314,8 +325,16 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                 // it opens the edit form with the page's tracklist and the candidate side by
                 // side, so the merge can be done by hand there (tlImporter_runEditPage writes
                 // nothing into the page for it). Detected again on the edit page from the LIVE
-                // text, so the mode in the URL stays plain "merge".
-                chaptered = mode == "merge" && /^\s*;/m.test( read.tlText );
+                // text, so the mode in the URL stays plain "merge". BOTH sides are tested: on
+                // 1001tracklists the CANDIDATE can be the chaptered one (multi-set pages), and
+                // a merge would swallow its ";Name" rows as track rows. Inserting a chaptered
+                // candidate into an empty section stays a plain Insert - verbatim is exactly
+                // right there.
+                pageChapters = mode == "merge" && /^\s*;/m.test( read.tlText ),
+                candidateChapters = mode == "merge" && /^\s*;/m.test( tlImporter_candidateText() ),
+                chaptered = pageChapters || candidateChapters,
+                // the page side outranks the candidate side in the wording - see the table
+                chapterVerdict = pageChapters ? "chapters" : "chaptersCandidate";
 
             // A merge that would change nothing is not worth a link: following it would only
             // open the edit form on MediaWiki's "(No difference)". The merge itself is the
@@ -339,24 +358,24 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                 .attr( "target", "_blank" )
                 .attr( "data-mdb-importmode", mode )
                 .attr( "title", chaptered
-                    ? tlImporter_noMergeVerdicts.chapters.title
+                    ? tlImporter_noMergeVerdicts[ chapterVerdict ].title
                     : mode == "merge"
                         ? "Merge this tracklist into the tracklist the MixesDB page already has.\nOpens the edit form with the merge applied and shows the changes."
                         : "Insert this tracklist into the MixesDB page, which has none yet.\nOpens the edit form with the tracklist filled in and shows the changes." )
                 .text( chaptered
-                    ? tlImporter_noMergeVerdicts.chapters.text
+                    ? tlImporter_noMergeVerdicts[ chapterVerdict ].text
                     : mode == "merge" ? "Merge" : "Insert" );
 
             if( chaptered ) importLink.addClass( "mdb-tlImporter-link-chapters" );
 
-            var reportLink = tlImporter_makeReportLink( mode, read.tlText, pageId, chaptered ? "chapters" : "" );
+            var reportLink = tlImporter_makeReportLink( mode, read.tlText, pageId, chaptered ? chapterVerdict : "" );
 
             // the divider (styled in global.css) groups our two links apart from EDIT/HIST -
             // its twin between HIST and the integrated checkbox comes with the toolkit markup
             editLink.before( importLink, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
             log( "tlImporter: added " + ( chaptered ? "Chaptered" : mode == "merge" ? "Merge" : "Insert" ) + " link for page " + pageId
-                + ( chaptered ? " (the page tracklist has chapters - no merge, the link opens the hand-merge)" : "" ) );
+                + ( chaptered ? " (the " + ( pageChapters ? "page tracklist" : "found tracklist" ) + " has chapters - no merge, the link opens the hand-merge)" : "" ) );
         });
     });
 }
@@ -490,6 +509,13 @@ $(document).on( "click", "a.mdb-tlImporter-report", function( e ) {
  * MixesDB side: the edit form the Insert/Merge link opened
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// Whether THIS userscript instance won the claim for the mixesdb.com side - see the d.ready
+// block at the bottom. False on the player sites (each has one script, nothing to claim) and
+// in every instance that lost, whose delegated handlers must sit still: the elements they
+// serve were rendered by the winner, and two sandboxes answering one Apply press would run
+// the apply twice.
+var tlImporter_ownsEditPage = false;
 
 var tlImporter_storageKey = "mdb-tlImporter-diff",
     tlImporter_storageMaxAgeMs = 60 * 60 * 1000; // an hour-old diff belongs to another edit
@@ -1109,6 +1135,10 @@ function tlImporter_syncDownLive() {
 }
 
 $(document).on( "click", ".mdb-tlEditor-liveUpdates", function() {
+    // only the instance that claimed the page answers; on the player sites the flag is false
+    // too, and rightly - the down chip this syncs exists only on the edit form
+    if( !tlImporter_ownsEditPage ) return;
+
     tlImporter_syncDownLive();
 });
 
@@ -1159,6 +1189,9 @@ function tlImporter_refreshDownApply() {
 // programmatically, and a programmatic write fires no input event. Both only decide empty or
 // not now, so neither of them can be the reason a click does nothing.
 $(document).on( "input.mdbTlImporterDown", "#tlEditor-textarea", function() {
+    // only the instance that claimed the page answers - see tlImporter_ownsEditPage
+    if( !tlImporter_ownsEditPage ) return;
+
     tlImporter_refreshDownApply();
 });
 
@@ -1433,7 +1466,10 @@ function tlImporter_renderDiffView( data ) {
     if( !data || !data.items || !data.items.length ) return;
     if( $( "#mdb-tlImporter-diff" ).length ) return;
 
-    var chapters = !!data.chapters;
+    var chapters = !!data.chapters,
+        // which side carries the ";Name" rows - stored blocks from before chaptersFrom
+        // existed carry nothing, and those were always the page side
+        chaptersFromCandidate = chapters && data.chaptersFrom == "candidate";
 
     // a FIELDSET, not a div: the edit form is a column of fieldsets (the site's own
     // "Tracklist editor" among them), and the block reads as one of them, with its name on
@@ -1457,7 +1493,9 @@ function tlImporter_renderDiffView( data ) {
     // Original
     cols.append(
         col( "Original", chapters
-            ? "The tracklist the page has, exactly as it stands - chapters included. Nothing was merged into it."
+            ? ( chaptersFromCandidate
+                ? "The tracklist the page has, exactly as it stands. Nothing was merged into it."
+                : "The tracklist the page has, exactly as it stands - chapters included. Nothing was merged into it." )
             : "The tracklist the page had before the merge. Highlighted parts were changed." )
             .append( tlImporter_renderPre( data.originalItems, function( item, p ) {
                 return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
@@ -1481,7 +1519,8 @@ function tlImporter_renderDiffView( data ) {
     // the chaptered case arrives with an empty box on purpose - a placeholder is what tells
     // the reader that, and it disappears the moment they start writing
     if( chapters ) {
-        textarea.attr( "placeholder", "Chaptered page - nothing was merged. Build the tracklist for the whole section here (chapters included), then Apply." );
+        textarea.attr( "placeholder", ( chaptersFromCandidate ? "Chaptered tracklist" : "Chaptered page" )
+            + " - nothing was merged. Build the tracklist for the whole section here (chapters included), then Apply." );
     }
 
     tlWrapper.append( textarea );
@@ -1505,7 +1544,9 @@ function tlImporter_renderDiffView( data ) {
 
     cols.append(
         col( "Merged", chapters
-            ? "Empty: chaptered pages are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section."
+            ? ( chaptersFromCandidate
+                ? "Empty: chaptered tracklists are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section."
+                : "Empty: chaptered pages are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section." )
             : "The result as applied to the page. Edit final fixes here, then Apply." )
             // named so the down state (tlImporter_applyDown) can hide exactly this column
             .addClass( "mdb-tlImporter-col-merged" )
@@ -1516,7 +1557,9 @@ function tlImporter_renderDiffView( data ) {
     // "?" blanks never carry a salvage flag (see tlImporter_candidateUse), so they stay plain
     cols.append(
         col( "Candidate", chapters
-            ? "The tracklist the player site found, exactly as it stands. Nothing is highlighted - no merge ran on this page."
+            ? ( chaptersFromCandidate
+                ? "The tracklist the player site found, exactly as it stands - chapters included. Nothing is highlighted - no merge ran on this page."
+                : "The tracklist the player site found, exactly as it stands. Nothing is highlighted - no merge ran on this page." )
             : "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
             .append( tlImporter_renderPre( data.items, function( item, p ) {
                 if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
@@ -1536,7 +1579,9 @@ function tlImporter_renderDiffView( data ) {
     // prepended AFTER the toggle so it stays the fieldset's first child - the legend is what
     // names the block on its border, like the site's own "Tracklist editor" fieldset
     wrap.prepend( chapters
-        ? "<legend><strong>Diff</strong> – chaptered page, nothing was merged</legend>"
+        ? ( chaptersFromCandidate
+            ? "<legend><strong>Diff</strong> – chaptered tracklist, nothing was merged</legend>"
+            : "<legend><strong>Diff</strong> – chaptered page, nothing was merged</legend>" )
         : "<legend><strong>Diff</strong></legend>" );
 
     wrap.append( cols );
@@ -1704,6 +1749,9 @@ function tlImporter_applyPress( buttonEl ) {
 // follows finds text == known and stays quiet - no stray API call, no white-out, the box
 // keeps looking exactly as the editor's button left it.
 $(document).on( "mousedown", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function( e ) {
+    // only the instance that claimed the page answers - see tlImporter_ownsEditPage
+    if( !tlImporter_ownsEditPage ) return;
+
     // left button only - a right-click opens the context menu and must not apply
     if( e.which !== 1 ) return;
 
@@ -1727,6 +1775,9 @@ $(document).on( "mousedown", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down"
 // Keyboard activation (Enter, Space) fires click with no mousedown in front of it - the
 // press flag above is what keeps a mouse gesture from applying twice through this handler.
 $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", function() {
+    // only the instance that claimed the page answers - see tlImporter_ownsEditPage
+    if( !tlImporter_ownsEditPage ) return;
+
     var button = $( this );
 
     if( button.data( "mdbTlImporterPressed" ) ) {
@@ -1885,18 +1936,25 @@ function tlImporter_runEditPage() {
         log( "tlImporter: the link said \"" + linkMode + "\" but the page says \"" + mode + "\" - going with the page." );
     }
 
-    // Chaptered original (";Name" rows, one chapter per set): no merge logic for it yet, so
+    // Chapters (";Name" rows, one chapter per set) on EITHER side - the page's tracklist, or
+    // the candidate (1001tracklists' multi-set pages): no merge logic for them yet, so
     // NOTHING is written - not into the page text, not into the Merged box - and "Show
     // changes" is not clicked either, because there is no change to show. What the reader
     // does get is the reason they came for: the page's tracklist and the candidate side by
     // side, to merge by hand in the Merged box and Apply from there. Stored like every other
     // review block, so it survives the form POSTs behind the wiki's own buttons.
-    if( mode == "merge" && /^\s*;/m.test( read.tlText ) ) {
-        log( "tlImporter: the page tracklist has chapters - no merge, showing the original and the candidate for the hand-merge." );
+    var pageChapters = mode == "merge" && /^\s*;/m.test( read.tlText ),
+        candidateChapters = mode == "merge" && /^\s*;/m.test( candidate );
+
+    if( pageChapters || candidateChapters ) {
+        log( "tlImporter: the " + ( pageChapters ? "page tracklist" : "found tracklist" ) + " has chapters - no merge, showing the original and the candidate for the hand-merge." );
 
         var chapterView = {
             mode: mode,
             chapters: true,
+            // which side the ";Name" rows are on - only the wording of the review block reads
+            // it, and a stored block from before this field existed means "page"
+            chaptersFrom: pageChapters ? "page" : "candidate",
             unchanged: true,
             // VERBATIM, both of them (tlImporter_rawItems): no merge ran, so there is nothing
             // to flag parts of - and running the two texts through the parser would show the
@@ -2082,6 +2140,25 @@ function tlImporter_renderStoredDiff() {
 
 d.ready(function() {
     if( typeof domain === "undefined" || domain != "mixesdb.com" ) return;
+
+    // ONE instance only. Several userscripts carry this file onto mixesdb.com/w/* (TrackId.net
+    // and 1001 Tracklists so far), each in its own sandbox - unguarded, every one of them
+    // would apply the merge, click "Show changes" and answer every Apply press once more.
+    // The DOM is the one thing they share, so the first ready handler claims the page with a
+    // marker attribute and the rest stand down; ready handlers run one after the other on the
+    // main thread, so the synchronous check-and-set cannot race. The delegated handlers below
+    // (Apply, the down state's sync) check the same flag at event time, because they were
+    // bound long before this claim could run.
+    var claimed = document.documentElement.getAttribute( "data-mdb-tlimporter-owner" );
+
+    if( claimed ) {
+        log( "tlImporter: \"" + claimed + "\" already handles this page - standing down." );
+        return;
+    }
+
+    document.documentElement.setAttribute( "data-mdb-tlimporter-owner",
+        typeof scriptName !== "undefined" ? scriptName : "unknown script" );
+    tlImporter_ownsEditPage = true;
 
     tlImporter_runEditPage();
     tlImporter_renderStoredDiff();

@@ -240,7 +240,11 @@ function tlImporter_isSimilar( a, b, threshold ) {
 // Port of make_tlArr (tracklist_editor/funcs.js) under its own name: the merge core cannot
 // call the shared one (deno), and must not overwrite it on pages that load both.
 function tlImporter_parse( tl ) {
-    tl = String( tl || "" ).replace(/''/g, ""); // ''Hitam - ? [Unreleased]'' > Hitam - ? [Unreleased]
+    // Strip wiki quote runs whole: '' italics AND ''' bold. Pair-wise removal (/''/g) turned
+    // the bold intro rows 1001tracklists carries ("'''Live @ X:''' Artist - Title") into a
+    // mangled "'Live @ X:'" with one quote left over - and that is what would land in the
+    // page wherever a candidate part is written.
+    tl = String( tl || "" ).replace(/'{2,}/g, ""); // ''Hitam - ? [Unreleased]'' > Hitam - ? [Unreleased]
 
     var lines = tl.split('\n'),
         result = [];
