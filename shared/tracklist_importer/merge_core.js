@@ -232,6 +232,147 @@ function tlImporter_isSimilar( a, b, threshold ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Unknown rows and artist names
+ *
+ * An unknown row is not always a bare "?": a page row may know the artist and not the title
+ * ("Chloé Caillet - ?"), or the title and not the artist ("? - Untitled (B1)"), and "ID" says
+ * the same as "?". Both halves are read apart here, because the merge treats them apart – the
+ * page wins on every half it KNOWS, and only the halves it does not know may be written.
+ *
+ * The artist helpers answer the other half of the same question: is the credit over here the
+ * credit over there, written shorter? "Costigane" is "Brendan Costigane" and "Chloé Caillet"
+ * is one of "Chloé Caillet & Luke Alessi Feat. Jocelyn Brown" – whole-string similarity says
+ * no to both, because the missing first name is a fifth of the string.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// tlImporter_unknownPart
+// One half of a track text that says nothing: "?", "??", "ID", "ID2". NOT "Untitled" – that is
+// a real title a release carries (and the page's "? - Untitled (B1)" keeps it against a
+// candidate's "? - B1").
+function tlImporter_unknownPart( part ) {
+    part = String( part || "" ).trim();
+    return /^\?+$/.test( part ) || /^ID\d*$/i.test( part );
+}
+
+// tlImporter_unknownParts
+// A track text split into its two halves plus what is unknown about them.
+function tlImporter_unknownParts( text ) {
+    text = String( text || "" ).trim();
+
+    var parts = text.split(" - ");
+
+    // no " - ": either the whole row is an unknown marker, or it is a title we cannot split
+    if( parts.length < 2 ) {
+        var whole = tlImporter_unknownPart( text );
+        return { artist: whole ? "" : text, title: whole ? "" : text, artistUnknown: whole, titleUnknown: whole };
+    }
+
+    var artist = parts.shift().trim(),
+        title = parts.join(" - ").trim();
+
+    return {
+        artist: artist,
+        title: title,
+        artistUnknown: tlImporter_unknownPart( artist ),
+        titleUnknown: tlImporter_unknownPart( title )
+    };
+}
+
+// tlImporter_isUnknownText
+// The row says NOTHING at all – "?", "ID", "? - ?". These are the placeholders the gap and
+// slot machinery works with; a half-known row carries information and is never one of them.
+function tlImporter_isUnknownText( text ) {
+    var parts = tlImporter_unknownParts( text );
+    return parts.artistUnknown && parts.titleUnknown;
+}
+
+// tlImporter_takesCandidateText
+// May the candidate's text replace the original's? The original wins on every half it knows:
+// a page title stays whatever the candidate calls it. Only a row whose TITLE is unknown takes
+// the candidate's text, and a row that knows nothing at all also takes a candidate that only
+// knows the artist.
+function tlImporter_takesCandidateText( origText, candText ) {
+    var orig = tlImporter_unknownParts( origText ),
+        cand = tlImporter_unknownParts( candText );
+
+    if( !orig.titleUnknown ) { return false; } // the page has a title – it wins
+    if( !cand.titleUnknown ) { return true; }  // the candidate knows one, the page does not
+
+    // both titles unknown: an artist the page does not have is the only news left
+    return orig.artistUnknown && !cand.artistUnknown;
+}
+
+// tlImporter_artistNames
+// The artist half of a track text as single lowercased names: "Chloé Caillet & Luke Alessi
+// Feat. Jocelyn Brown" -> ["chloé caillet", "luke alessi", "jocelyn brown"]. Empty for a row
+// without a " - " separator and for an unknown artist half – there is no name to compare.
+function tlImporter_artistNames( text ) {
+    var parts = tlImporter_unknownParts( text );
+
+    if( !parts.artist || parts.artistUnknown ) { return []; }
+
+    return parts.artist
+        .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
+        .replace(/\s*,\s*/g, " & ")
+        .replace(/\s+[x×]\s+/gi, " & ")
+        .split(/\s*(?:&|\band\b)\s*/i)
+        .map(function( name ){ return name.toLowerCase().replace(/\s{2,}/g, " ").trim(); })
+        .filter(Boolean);
+}
+
+// tlImporter_sameArtistName
+// Two single names for the same artist, one of them possibly shorter: every WORD of the
+// shorter name is a word of the longer one ("costigane" in "brendan costigane"). Word-wise on
+// purpose – a plain substring test would make "sam" the same artist as "samantha".
+function tlImporter_sameArtistName( a, b ) {
+    if( a === b ) { return true; }
+
+    var aWords = a.split(/\s+/).filter(Boolean),
+        bWords = b.split(/\s+/).filter(Boolean);
+
+    if( !aWords.length || !bWords.length ) { return false; }
+
+    var shortWords = aWords.length <= bWords.length ? aWords : bWords,
+        longWords  = aWords.length <= bWords.length ? bWords : aWords;
+
+    return shortWords.every(function( word ){ return longWords.indexOf( word ) > -1; });
+}
+
+// tlImporter_artistNamesCompatible
+// The shorter credit is fully contained in the longer one: every artist it names is named
+// over there too. Never true for an empty side – "no artist known" is not "same artist".
+function tlImporter_artistNamesCompatible( a, b ) {
+    if( !a.length || !b.length ) { return false; }
+
+    var small = a.length <= b.length ? a : b,
+        big   = a.length <= b.length ? b : a;
+
+    return small.every(function( name ){
+        return big.some(function( other ){ return tlImporter_sameArtistName( name, other ); });
+    });
+}
+
+// tlImporter_artistsCompatible
+// tlImporter_artistNamesCompatible on two whole track texts.
+function tlImporter_artistsCompatible( aText, bText ) {
+    return tlImporter_artistNamesCompatible( tlImporter_artistNames( aText ), tlImporter_artistNames( bText ) );
+}
+
+// tlImporter_titleNorm
+// The title half normalized for comparison, "" when the row has no title of its own or an
+// unknown one – those are matched by cue, never by title.
+function tlImporter_titleNorm( text ) {
+    var parts = tlImporter_unknownParts( text );
+
+    if( !parts.title || parts.titleUnknown || parts.title === text ) { return ""; }
+
+    return tlImporter_normalizeForMatching( parts.title );
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Tracklist text <-> array
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -544,11 +685,19 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         fuzzyList     = [], // [{ norm, item, len, head }]
         fuzzyBuckets  = {}, // first-char -> fuzzyList entries
         fuzzyByLen    = [], // grouped by norm length
+        splitList     = [], // [{ item, artistNames, titleNorm }] – the halves, for step 2b
         similarityCache = {},
-        originalHasGaps = original_arr.some(function( item ){ return item.type === "gap" || item.trackText === "?"; });
+        originalHasGaps = original_arr.some(function( item ){ return item.type === "gap" || tlImporter_isUnknownText( item.trackText ); });
 
     original_arr.forEach(function( item ) {
         if (item.type === "track") {
+            // the halves as the page has them NOW: the merge mutates original rows in place,
+            // so a "?" filled by an earlier candidate must not be re-read as a title later
+            var titleNorm = tlImporter_titleNorm( item.trackText );
+            if (titleNorm) {
+                splitList.push({ item: item, artistNames: tlImporter_artistNames( item.trackText ), titleNorm: titleNorm });
+            }
+
             var norms = tlImporter_matchNorms( item.trackText );
             norms.forEach(function( norm ) {
                 originalMap[norm] = item;
@@ -599,7 +748,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
         var candidateName  = cand.trackText,
             candidateLabel = cand.label,
-            isUnknown      = candidateName === "?",
+            isUnknown      = tlImporter_isUnknownText( candidateName ),
             origItem = null,
             candNorms, c, e;
 
@@ -627,19 +776,65 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                     }
                 }
             }
+
+            // 2b) Fallback: artist and title compared APART. A page that writes the artist
+            // shorter than the candidate does ("Costigane" vs "Brendan Costigane") drags the
+            // whole-string similarity under the threshold - the missing first name is a fifth
+            // of the string - although the identical title says it is the same track, and the
+            // candidate was inserted a second time (reported: Chris Stussy, Essential Mix
+            // 2024-10-12). The title carries the match here, the artist only has to be
+            // COMPATIBLE: one credit contained in the other.
+            if (!origItem) {
+                var candArtistNames = tlImporter_artistNames( candidateName ),
+                    candTitleNorm   = tlImporter_titleNorm( candidateName );
+
+                if (candTitleNorm && candArtistNames.length) {
+                    for (e = 0; e < splitList.length; e++) {
+                        if (!isLikelySimilarText( splitList[e].titleNorm, candTitleNorm, tlImporter_similarityThreshold )) continue;
+                        if (!tlImporter_artistNamesCompatible( splitList[e].artistNames, candArtistNames )) continue;
+
+                        origItem = splitList[e].item;
+                        break;
+                    }
+                }
+            }
         }
 
-        // 3) Fallback: same cue + unknown trackText in the original
+        // 3) Fallback: the same cue, where one side does not know what the other does. The
+        // bare "?" row is only the obvious shape of that - an unknown carries a HALF of the
+        // name often enough ("Chloé Caillet - ?" knows the artist, "? - Untitled (B1)" the
+        // title), and those halves are exactly what the merge fills. Nothing but the cue
+        // connects the two rows here, so the halves both sides DO know must not contradict:
+        // an artist-less page row takes an artist-less candidate, a title-less one only a
+        // candidate that credits its artist. A cue minute alone is no proof of anything.
         if (!origItem && cand.cue) {
+            var candParts = tlImporter_unknownParts( candidateName );
+
             origItem = original_arr.filter(function( item ){
-                return item.type === "track" && item.trackText === "?" && item.cue === cand.cue;
+                if (item.type !== "track" || !tlImporter_sameCue( item.cue, cand.cue )) return false;
+                if (typeof item._mergeMatchedCandidateIndex === "number") return false; // taken by an earlier candidate
+
+                var origParts = tlImporter_unknownParts( item.trackText );
+
+                // the page knows nothing about this row - anything the candidate has is news
+                if (origParts.artistUnknown && origParts.titleUnknown) return true;
+
+                // no title on the page: the candidate has to credit the page's artist
+                if (origParts.titleUnknown) return tlImporter_artistsCompatible( item.trackText, candidateName );
+
+                // no artist on the page: only an equally artist-less candidate row may be it
+                if (origParts.artistUnknown) return candParts.artistUnknown;
+
+                // the page knows both halves and the candidate does not know the title - same
+                // artist test, and the candidate then only enriches cue and label
+                return candParts.titleUnknown && tlImporter_artistsCompatible( item.trackText, candidateName );
             })[0] || null;
         }
 
         if (origItem) {
             cand._ti_matchedOrig = origItem;
 
-            if (origItem.trackText === "?" && candidateName !== "?") {
+            if (tlImporter_takesCandidateText( origItem.trackText, candidateName )) {
                 origItem.trackText = candidateName;
                 cand._ti_usedText = true;
                 state.changes++;
@@ -661,7 +856,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             // A following unknown candidate carries a cue the original's next cue-less track
             // can take over.
             var nextCand = candidate_arr[i + 1];
-            if (nextCand && nextCand.type === "track" && nextCand.trackText === "?" && nextCand.cue) {
+            if (nextCand && nextCand.type === "track" && tlImporter_isUnknownText( nextCand.trackText ) && nextCand.cue) {
                 var origIndex = original_arr.indexOf(origItem);
                 for (var j = origIndex + 1; j < original_arr.length; j++) {
                     if (!original_arr[j].cue) {
@@ -711,7 +906,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
         for (var k = startIndex; k < endIndex; k++) {
             var item = original_arr[k];
-            if (item.type === "track" && item.trackText === "?" && !item._mergeConsumedUnknown) {
+            if (item.type === "track" && tlImporter_isUnknownText( item.trackText ) && !item._mergeConsumedUnknown) {
                 var slotSec = tlImporter_cueToSec( item.cue );
                 if (candCueSec === null || slotSec === null || Math.abs( slotSec - candCueSec ) <= tlImporter_cueToleranceSec) {
                     return item;
@@ -734,7 +929,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                     // missing or unknown one (same rule as for matched tracks above).
                     if (cand.cue && (!slot.cue || String(slot.cue).indexOf('?') > -1)) { slot.cue = cand.cue; cand._ti_usedCue = true; state.changes++; }
                     if (cand.dur && !slot.dur) slot.dur = cand.dur;
-                    if (cand.trackText !== "?") { slot.trackText = cand.trackText; cand._ti_usedText = true; state.changes++; }
+                    if (!tlImporter_isUnknownText( cand.trackText )) { slot.trackText = cand.trackText; cand._ti_usedText = true; state.changes++; }
                     if (cand.label && !slot.label) { slot.label = cand.label; cand._ti_usedLabel = true; state.changes++; }
                     slot._mergeConsumedUnknown = true;
                     unmatchedItem.filledUnknownSlot = true;
@@ -755,7 +950,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
     var tailUnknownFrom = candidate_arr.length;
     for (var t = candidate_arr.length - 1; t >= 0; t--) {
         if (candidate_arr[t].type === "gap") continue;
-        if (candidate_arr[t].type !== "track" || candidate_arr[t].trackText !== "?") break;
+        if (candidate_arr[t].type !== "track" || !tlImporter_isUnknownText( candidate_arr[t].trackText )) break;
         tailUnknownFrom = t;
     }
 
@@ -861,7 +1056,7 @@ function tlImporter_candidateUse( cand ) {
     // unmatched and not inserted
     return {
         cue: !cand.cue || !!cand._ti_cueUsed,
-        text: cand.trackText === "?",
+        text: tlImporter_isUnknownText( cand.trackText ),
         label: !cand.label
     };
 }

@@ -79,6 +79,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   module's `$('#tlEditor-feedback').remove()` and `fadeOutFeedback()` also grab the first
   match in the document, which is OUR feedback box whenever the review block shows one –
   scoping those lookups into the site editor's own container is a site fix, not ours.
+  In the DOWN state that wrong grab produced DOUBLE feedback under the site's textarea
+  (reported on "Standard" with no changes): our live/blur/apply renders had already put a box
+  there, the site's button press then removed the review block's HIDDEN box instead of that
+  one and appended its answer as a second box – which stayed, press after press. Fixed on our
+  side: `tlImporter_applyDown` PARKS the hidden Merged box's id
+  (`mdb-tlImporter-feedback-parked`) on the way down and restores it on the way up, so the
+  site's `getElementById` hits the box under its own textarea. The UP state's theft (a site
+  button press eats the visible Merged feedback box) remains the site-side scoping issue.
 - **Apply inserts the box text VERBATIM** – what the reader sees is what lands in the wiki
   edit box. The one synchronous TLE call only supplies the verdict (category + icons) and the
   re-rendered feedback; it never rewrites the text. The seq bump on the box drops the blur

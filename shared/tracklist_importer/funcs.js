@@ -466,7 +466,9 @@ function tlImporter_reportText( link ) {
     lines.push( "" );
     lines.push( "## Expected" );
     lines.push( "" );
-    lines.push( "* " );
+    lines.push( fence );
+    lines.push( "" );
+    lines.push( fence );
 
     return lines.join( "\n" );
 }
@@ -1260,6 +1262,20 @@ function tlImporter_applyDown( wrap, down ) {
         wrap.addClass( "mdb-tlImporter-down" );
         $( "body" ).addClass( "mdb-tlImporter-down" );
 
+        // Park the hidden Merged column's feedback box id while the block stands ABOVE the
+        // site's editor section. mixesdb.com's own module clears "the" feedback box with a
+        // bare $('#tlEditor-feedback') - getElementById, the FIRST match in the document -
+        // before appending its answer under its textarea. With our hidden box first in
+        // document order, every editor button press ("Standard", Cap, undo ...) removed OURS
+        // and left the box under the textarea standing, so the answers stacked up as doubles
+        // (reported: "Standard" with no changes showed two feedback boxes). Parked, the first
+        // match IS the box under the site's textarea, and the site's remove-then-append stays
+        // the swap it was meant to be. The box itself stays put, content and all - only the
+        // id travels, and it comes back on the way up.
+        var parked = wrap.find( "#tlEditor-feedback" ).attr( "id", "mdb-tlImporter-feedback-parked" );
+
+        if( parked.length ) log( "tlImporter: parked the Merged column's feedback box id for the down state." );
+
         // Directly below the wiki's own Save/Preview row: the block first, the whole editor
         // section (ed.bar wraps the site's fieldset) moved up right after it - both jump
         // over the toolbar rows and the TrackId box that normally stand between the buttons
@@ -1311,6 +1327,9 @@ function tlImporter_applyDown( wrap, down ) {
         }
     } else {
         var backText = ed.box.val() || "";
+
+        // the parked feedback box gets its real id back with the block - see the down branch
+        wrap.find( "#mdb-tlImporter-feedback-parked" ).attr( "id", "tlEditor-feedback" );
 
         if( tlImporter_downObserver ) {
             tlImporter_downObserver.disconnect();
