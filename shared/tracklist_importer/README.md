@@ -80,6 +80,16 @@ original is treated as more correct; the candidate only enriches it:
   when the tracklist has no gaps at all – it is the one hint that the mix runs on past where
   the page ends
 
+A found track is only inserted where the merge can actually place it. It goes in front of the
+first page track with a later cue time, and so lands at the end of whatever run of rows without
+a cue sits in front of that track. Over one or two rows that is a near miss you move by hand;
+over a whole block of them the track ends up nowhere near the minute it was detected at – and
+where that block holds rows the page could not name (`Exos - ?`), the found track may well *be*
+one of them and would be written into the page a second time. A track with more than two such
+unplaceable rows in front of it is therefore left out of the merged list and stays highlighted
+in the Candidate column, for you to place yourself. The end of the list is not that kind of
+guess: nothing follows the last row, so a track detected behind it is appended as before.
+
 Titles are matched fuzzily, so spelling differences between the two sources do not produce
 duplicates. Artist and title are compared apart as well, so an artist the page writes shorter
 than the player site does – `Costigane` where the site says `Brendan Costigane` – is still the
@@ -192,8 +202,10 @@ numbering, wiki markup and blank lines included. Nothing is highlighted: there w
 merge. Down – the default – that Inserted text goes into the page's own Tracklist Editor just as
 after a merge, which is what the block is here for: correcting the list you just inserted happens
 in the editor you know, with its menu, find/replace and undo, instead of copying the list down
-there by hand first. The grab bars go with the third column, and down, Candidate has the full
-width to itself.
+there by hand first. The grab bars go with the third column, and down the Candidate column goes
+too: it holds the same list the editor below it now holds, so there is nothing to compare it to.
+What stays above the editor is the block's named edge with the arrow button, which brings the
+Candidate back the moment you move the block up again.
 
 Behind a **Chaptered** link the same block opens without a merge behind it: the fieldset is named
 **Diff – chaptered page, nothing was merged** (or **chaptered tracklist**, when the found one
@@ -209,9 +221,11 @@ to, that is the normal answer, and the found tracklist has to stay on screen for
 The Insert/Merge/Chaptered link opens the edit form in a **new tab**, so the toolkit row stays
 where it is – and from there the mix page is watched for the save. Once its tracklist carries the
 found one, the **TID tracklist is integrated** checkbox of the same row is ticked for you: an
-**Integrated** note appears in front of the link, fades to green, and the tick lands a moment
-later – the same announced tick the **Identical** verdict makes. Tick it yourself in that moment
-and nothing else happens.
+**Integrated** note takes the link's place in front of **Report**, fades to green, and the tick
+lands a moment later – the same row and the same announced tick the **Identical** verdict makes.
+Tick it yourself in that moment and nothing else happens. The link goes because it carried the
+page's tracklist from before the save; reload the player page for a link that knows the current
+one.
 
 What it waits for is not a *changed* tracklist – somebody else's edit changes it too, and the
 tick cannot be taken back – but a tracklist that took *this* one in: what the merge would still
@@ -241,6 +255,10 @@ site prints one and the raw merge result, plus an empty `Mistakes / learnings` l
 - The merge is a heuristic: fuzzy matching is a threshold, not certainty, and track insertion
   goes by cue times. Always read the diff before saving – that is why Save is locked until
   **Show changes** ran.
+- A tracklist without cue times gives the merge almost nothing to order new tracks against, so
+  on such a page most found tracks stay in the Candidate column instead of being inserted. That
+  is deliberate – see above – but it means the merge adds little there beyond cues and labels
+  for the tracks it recognized.
 - The candidate travels in the link's URL fragment; the link must be followed normally
   (left/middle/ctrl-click) for it to arrive.
 - The watch that ticks the integrated checkbox after the save lives in the player-site tab:

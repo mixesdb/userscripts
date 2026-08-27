@@ -499,14 +499,16 @@ function tlImporter_watchMixPage( link, wrapper, pageId, candidate ) {
 
             tlImporter_loadCss();
 
-            // The note takes the place a "nothing to merge" note would have had, in front of
-            // the link that led here: the link itself stays, because a merge that landed only
-            // in part can be run again on the now current page text.
+            // The note REPLACES the link that led here, so the row ends up in the same shape
+            // a "nothing to merge" verdict gives it: [note Report] | [EDIT HIST]. The link has
+            // nothing left to offer - its stored `mdb-original` is the page text from before
+            // the save, so a second run would merge against a tracklist that no longer exists;
+            // reloading the page builds a fresh link against the current text.
             var note = $( '<span class="mdb-element mdb-tlImporter-note mdb-tlImporter-note-integrated"></span>' )
                 .attr( "title", "The MixesDB page's tracklist carries this tracklist now.\nMarked as integrated for you." )
                 .text( "Integrated" );
 
-            link.before( note );
+            link.replaceWith( note );
 
             tlImporter_tickIntegrated( wrapper, note, why );
         });
@@ -1579,6 +1581,27 @@ function tlImporter_addDownActions( ed ) {
     tlImporter_syncDownLive();
 }
 
+// tlImporter_downToggleTitle
+// What the corner arrow promises, read off the block's own state. The Insert reading has no
+// Original column, and down it loses the Candidate as well (see the CSS): the inserted list
+// IS the candidate, so with the text in the site's editor there is nothing left to compare it
+// to and the block collapses to its labelled edge. The tooltip must not promise columns that
+// stay above the editor when none do.
+function tlImporter_downToggleTitle( wrap, down ) {
+    var inserted = $( wrap ).hasClass( "mdb-tlImporter-insert" );
+
+    if( down ) {
+        return inserted
+            ? "Move the review back up above the edit box, with the inserted list next to the Candidate it came from."
+            : "Move the review back up above the edit box, with the Merged column between Original and Candidate.";
+    }
+
+    return inserted
+        ? "Move the review down to the page's own Tracklist Editor: the inserted list goes into the editor itself, and the Candidate goes with it - it is the same list."
+        : "Move the review down to the page's own Tracklist Editor: the Merged text goes into the editor itself, Original and Candidate stay side by side above it.";
+}
+
+
 // tlImporter_applyDown
 // The move itself, in either direction. The text always travels with the block - down it
 // goes from the Merged box into the site's editor, up it comes back exactly as it stands, so
@@ -1598,9 +1621,7 @@ function tlImporter_applyDown( wrap, down ) {
 
     button
         .html( tlImporter_downIcon( down ) )
-        .attr( "title", down
-            ? "Move the review back up above the edit box, with the Merged column between Original and Candidate."
-            : "Move the review down to the page's own Tracklist Editor: the Merged text goes into the editor itself, Original and Candidate stay side by side above it." );
+        .attr( "title", tlImporter_downToggleTitle( wrap, down ) );
 
     if( down ) {
         var text = midBox.val() || "";
@@ -1729,7 +1750,7 @@ function tlImporter_addDownToggle( wrap ) {
 
     var button = $( '<button type="button" class="mdb-tlImporter-down-toggle mdb-element hand"></button>' )
         .html( tlImporter_downIcon( false ) )
-        .attr( "title", "Move the review down to the page's own Tracklist Editor: the Merged text goes into the editor itself, Original and Candidate stay side by side above it." );
+        .attr( "title", tlImporter_downToggleTitle( wrap, false ) );
 
     // after the widen toggle, so tabbing walks the two corners left to right
     var wide = wrap.children( ".mdb-tlImporter-wide-toggle" ).first();
@@ -1951,8 +1972,13 @@ function tlImporter_renderDiffView( data ) {
 
     // the two grab bars between the columns, plus the widths the reader last dragged. Two
     // columns get none (tlImporter_addColResizers answers only to three): the class carries
-    // their grid and the gap the bars would have been.
-    if( inserted ) cols.addClass( "mdb-tlImporter-cols-2" );
+    // their grid and the gap the bars would have been. The class on the BLOCK is what the
+    // down state reads (CSS and tlImporter_downToggleTitle): down, an insert drops both of
+    // its columns, so the reading has to be visible from the fieldset itself.
+    if( inserted ) {
+        cols.addClass( "mdb-tlImporter-cols-2" );
+        wrap.addClass( "mdb-tlImporter-insert" );
+    }
 
     tlImporter_addColResizers( cols );
 

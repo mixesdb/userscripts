@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.32
+// @version      2026.08.27.35
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_39
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_41
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 207,
+var cacheVersion = 208,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2415,6 +2415,34 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.35
+ * Tracklist Importer merge, the rows the merge cannot place (merge_core.js v17, reported on
+ * Invite's Choice Podcast 224 Exos). A found track that matches nothing on the page is put in
+ * front of the first page row with a bigger cue - which means it lands at the END of the run of
+ * cue-less rows in front of that row. Over one or two rows that is a near miss; over a block of
+ * them it is a guess with nothing behind it. In the reported set four tracks from the mix's
+ * first half ([07], [13], [14], [24]) were dropped directly in front of the first matched row,
+ * behind the 18 rows the page lists before it - and three of them were the page's own rows
+ * under another spelling, so the merge doubled them. Such a track is no longer written into the
+ * page: it stays highlighted in the Candidate column, where the reader places it by hand.
+ * Tracks with a cue to order against, and tracks appended behind the page's last row, are
+ * unaffected.
+ *
+ * 2026.08.27.34
+ * Tracklist Importer: once the mix page carries the imported tracklist, the "Integrated" note
+ * REPLACES the Insert/Merge/Chaptered link instead of standing in front of it
+ * (tracklist_importer funcs.js v41) - the row then reads [Integrated Report] | [EDIT HIST],
+ * the same shape a "nothing to merge" verdict gives it. The link was of no use any more: it
+ * carried the page's tracklist from BEFORE the save, so a second run would have merged
+ * against a tracklist that no longer exists. Reload for a link that knows the current one.
+ *
+ * 2026.08.27.33
+ * Tracklist Importer: after an Insert, the Candidate column goes away while the review block
+ * stands down at the page's own Tracklist Editor (tracklist_importer funcs.js v40, CSS). The
+ * inserted list and the candidate are the same list, so next to an editor already holding it
+ * the column was a copy to read past. Only the block's named edge and its arrow button stay
+ * above the editor; moving the block back up brings the Candidate back.
  *
  * 2026.08.27.32
  * The "..." rows of the tracklist are decided by the mix's own track runtime instead of by a

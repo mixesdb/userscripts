@@ -119,7 +119,7 @@ to green just before the box is ticked and stays green afterwards.
 It also ticks itself after an **Insert**, **Merge** or **Chaptered** click: that link opens the
 edit form in a new tab, this page stays where it is, and the mix page is watched from here for
 the next 10 minutes. The moment its tracklist carries what was carried over, an **Integrated**
-note appears in front of the link and the box is ticked the same announced way. A tracklist that
+note takes the link's place and the box is ticked the same announced way. A tracklist that
 merely changed is not enough – somebody else's edit does that too – it has to have taken THIS
 tracklist in, whole or in part. Leave this page or close it and the watch ends with it; the
 checkbox is then yours to tick as before.
