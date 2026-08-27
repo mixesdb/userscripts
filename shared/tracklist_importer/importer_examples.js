@@ -283,16 +283,19 @@ var tlImporterExamples_merge = [
         // two digits can say – and the merged list mixed [08] rows with a [106] one. Guard:
         // when cues beyond the format's digit count are known on either side, the target
         // format widens (XX -> XXX) BEFORE merging, and every cue moves with it, [??] -> [???]
-        // included. The duplicate insertions (Hiroshi Watanabe next to Hiroshi W., FLR - PART 8
-        // next to FLR - Easy Filter Part 8, ――――― - IN YER MEMORY next to Takkyu Ishino's) are
-        // the fuzzy threshold's current reading, NOT part of the guard – a later matching
-        // improvement may change those lines.
-        // It doubles as the counter-case to the unknown-cue prefixes below: the six rows between
-        // [008] and [009] keep their bare "[???]" – one minute cannot hold six tracks, so those
-        // bounds are not ones to write into the page – while the runs with room around them do
-        // take the one digit their bounds agree on ("[0??]": before minute 100, which on a
-        // 128-minute mix says something). The three rows behind [099] have no known cue after
-        // them at all and stay "[???]".
+        // included.
+        // The two duplicate insertions this case used to carry are gone with
+        // tlImporter_insertMaxUnplacedRows (see "unplaceable candidate rows are left to the
+        // reader"): [009] Hiroshi Watanabe would have stepped over six cue-less rows to land
+        // right behind "Hiroshi W. - Lost City", [073] FLR - PART 8 over five to land behind
+        // "FLR - Easy Filter Part 8" – both of them the same track, both placed by nothing.
+        // Their parts are highlighted in the Candidate column instead. What stays is
+        // ――――― - IN YER MEMORY next to Takkyu Ishino's: it is APPENDED behind the last row,
+        // where no other slot exists, and its double is the fuzzy threshold's current reading.
+        // It doubles as the counter-case to the unknown-cue prefixes below: the runs with room
+        // around them take the one digit their bounds agree on ("[0??]": before minute 100,
+        // which on a 128-minute mix says something), while the three rows behind [099] have no
+        // known cue after them at all and stay "[???]".
         name: "bare cue format widens for cues beyond 99",
         original: "# [00] Captain Funk - O.Y.M.\n" +
                   "# [00] Big Foot - Bisket Afro\n" +
@@ -360,13 +363,12 @@ var tlImporterExamples_merge = [
         expect: "[000] Captain Funk - O.Y.M. [Sublime/Musicmine]\n" +
                 "[000] Big Foot - Bisket Afro\n" +
                 "[008] Hitoshi Ohishi - Heelflip\n" +
-                "[???] Hiroshi W. - Lost City\n" +
-                "[???] Yoshinori Sunahara - MFRFM (Bounce 2 Mix)\n" +
-                "[???] Hiroki Esashika - Kazane\n" +
-                "[???] DJ Tasaka - Loopa Trooper\n" +
-                "[???] Kagami - Tokyo Disco Music All Night Long\n" +
-                "[???] Moa - Malicia Mpedia\n" +
-                "[009] Hiroshi Watanabe - Lost City [King Street Sounds]\n" +
+                "[0??] Hiroshi W. - Lost City\n" +
+                "[0??] Yoshinori Sunahara - MFRFM (Bounce 2 Mix)\n" +
+                "[0??] Hiroki Esashika - Kazane\n" +
+                "[0??] DJ Tasaka - Loopa Trooper\n" +
+                "[0??] Kagami - Tokyo Disco Music All Night Long\n" +
+                "[0??] Moa - Malicia Mpedia\n" +
                 "[026] Takkyu Ishino - Feeling\n" +
                 "[0??] Co-Fusion - Tokyo Funky Beat!\n" +
                 "[0??] Zank - Dow\n" +
@@ -385,7 +387,6 @@ var tlImporterExamples_merge = [
                 "[0??] Chester Beatty - Untitled (Turia B1)\n" +
                 "[0??] Kagami - Tiger Track\n" +
                 "[0??] FLR - Easy Filter Part 8\n" +
-                "[073] FLR - PART 8 [70Drums]\n" +
                 "[076] Dr. Shingo - Galaxy Girls [Konsequent]\n" +
                 "[082] Chizawa - Panther\n" +
                 "[087] Nagai Eri - Howlin' Yumi [ACV]\n" +
@@ -403,8 +404,9 @@ var tlImporterExamples_merge = [
         // the "?" candidates INSIDE the list (lines 2, 7, 10, 13) are dropped – a gap-less
         // original takes no unknown rows, so their cues stay unplaced. The trailing "?"
         // (line 25) is kept with its gap: it lands behind the original's last row, where it is
-        // the only sign that the 2:00:17 stream runs on past it.
-        unused: { cues: [2, 7, 10, 13], texts: [], labels: [] }
+        // the only sign that the 2:00:17 stream runs on past it. Lines 4 and 17 are the two
+        // rows the merge could not place – everything they carry is left for the reader.
+        unused: { cues: [2, 4, 7, 10, 13, 17], texts: [4, 17], labels: [4, 17] }
     },
     {
         // Reported 2026-08-27 (Chris Stussy - Essential Mix 2024-10-12, 1001tracklists): three
@@ -646,6 +648,144 @@ var tlImporterExamples_merge = [
         expect: "[00] A - One [L1]\n...\n[03] B - Two",
         changed: true,
         unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-27 (Invite's Choice Podcast 224 Exos, trackid.net): four candidate
+        // tracks the merge could not PLACE, placed anyway. [07], [13], [14] and [24] found no
+        // match, so the insert scan looked for the first original row with a bigger cue - which
+        // is [34] Lucy, the first row the merge had matched at all - and dropped all four
+        // directly in front of it, behind the 18 cue-less rows the page lists before it. Three
+        // of them are near-duplicates of rows inside that very block (Ozy - Sacred Family,
+        // IN SYNC - Jam Tapes 3, and one of the five "Artist - ?" rows), which is what a guessed
+        // position costs. See tlImporter_insertMaxUnplacedRows: a row is inserted only where the
+        // merge can order it, otherwise it stays highlighted in the Candidate column for the
+        // reader to place by hand.
+        //
+        // What still lands: [42] steps over ONE cue-less row (Gimme Acid, between the matched
+        // [40] and [43]), and [52] is appended behind the last row, where no other slot exists.
+        name: "unplaceable candidate rows are left to the reader",
+        durationSec: 4974, // 1:22:54
+        original: 
+                  "# Staffan Linzatti - Intro\n" +
+                  "# ''Yagya - ? [Unreleased''\n" +
+                  "# ''Exos & Oculus - ? [Unreleased''\n" +
+                  "# Exos - Q Box [Thule 10]\n" +
+                  "# ''Thor - ? [Unreleased''\n" +
+                  "# ''Exos - ?[Unreleased''\n" +
+                  "# Plastik - Thule 11\n" +
+                  "# Ozy - Sacred Family - Strobelight Network 002\n" +
+                  "# Exos & Ohm - FróðiOctal Industries [Unreleased]\n" +
+                  "# Steve O'Sullivan - Where's Burt (Thor Remix)\n" +
+                  "# ''Exos - Unreleased''\n" +
+                  "# Exos - With The (Oculus Remix)\n" +
+                  "# Delano Smith - Behind The Shadows (Steve O'Sullivan Remix)\n" +
+                  "# IN SYNC - Jam Tapes 3\n" +
+                  "# ''Bjarki - ? [Unreleased''\n" +
+                  "# Sanasol - Glow\n" +
+                  "# Spankey Rodgers - Digit Fidgit\n" +
+                  "# Octal / Ruxpin - Unreleased Remix\n" +
+                  "# Lucy - Sana Sana Sana Cura Cura Cura\n" +
+                  "# Thomas Hessler - Perception\n" +
+                  "# Nina Kraviz - IMPRV\n" +
+                  "# Yaleesa Hall - First Leyland\n" +
+                  "# Bjarki - Gimme Acid [Trip 001]\n" +
+                  "# Bjarki - I Wanna Go Bang [Trip - 003]\n" +
+                  "# Exos - Red Dragon [Unreleased]\n" +
+                  "# ''Hidden People - ? [Unreleased''\n" +
+                  "# Splice - Syncussion [Unreleased]\n" +
+                  "# Dajae - Day By Day (Green Velvet Mix)\n" +
+                  "# Samuli Kemppi - Power Of Voltages\n" +
+                  "# Exos - Do Not Sleep 1 (KID Mistik Remix)\n" +
+                  "# Soul Is Back - Luke Slater Remix\n" +
+                  "# Aubrey - Grimson Nebular (Exos Remix)\n" +
+                  "# Planetary Assault Systems - No Exit\n" +
+                  "# Kwartz - Hole\n" +
+                  "# Lewis Fautzi - Big Bang\n" +
+                  "# Petter B - Edit Pilaf\n" +
+                  "# Lewis Fautzi - Range\n" +
+                  "# Hector Oaks - No One Tale\n" +
+                  "# Steve Bicknell - Lost Recordings\n" +
+                  "# Ben Buitendijk - Colourblind\n" +
+                  "# Echoplex - Warglass [Unreleased]\n" +
+                  "# Valmay - Minor A 10\n" +
+                  "# Ben Sims - Corsica [Forthcoming]\n" +
+                  "# Taken - B (Halcyon) [Unreleased]\n" +
+                  "# Jeff Mills - Spiral Therapy\n" +
+                  "# Ozy - Klukka",
+        candidate: 
+                   "[00] ?\n" +
+                   "...\n" +
+                   "[07] Exos - Áttfalt [X/OZ Music]\n" +
+                   "...\n" +
+                   "[13] Plastic - Most Unusual [Inner State]\n" +
+                   "[14] Ozy - Sagrada Familia [X/OZ Music]\n" +
+                   "...\n" +
+                   "[24] Insync - Jam Tape 1991 Cut 3 [Third Ear]\n" +
+                   "[27] ?\n" +
+                   "...\n" +
+                   "[34] Lucy - Sana Sana Sana Cura Cura Cura [Token]\n" +
+                   "[37] Thomas Hessler - Perception [Index Marcel Fengler]\n" +
+                   "[38] Nina Kraviz - Imprv [Trip]\n" +
+                   "[40] Yaleesa Hall - First Leyland\n" +
+                   "[42] Bjarki - Polygon Pink Toast [Trip]\n" +
+                   "[43] Bjarki - I Wanna Go Bang [Trip]\n" +
+                   "[46] ?\n" +
+                   "...\n" +
+                   "[52] Soul Designer - The Soul Is Back (Luke Slater Remix)\n" +
+                   "...",
+        expect: 
+                "[00] Staffan Linzatti - Intro\n" +
+                "[??] Yagya - ? [Unreleased\n" +
+                "[??] Exos & Oculus - ? [Unreleased\n" +
+                "[??] Exos - Q Box [Thule 10]\n" +
+                "[??] Thor - ? [Unreleased\n" +
+                "[??] Exos - ?[Unreleased\n" +
+                "[??] Plastik - Thule 11\n" +
+                "[??] Ozy - Sacred Family - Strobelight Network 002\n" +
+                "[??] Exos & Ohm - FróðiOctal Industries [Unreleased]\n" +
+                "[??] Steve O'Sullivan - Where's Burt (Thor Remix)\n" +
+                "[??] Exos - Unreleased\n" +
+                "[??] Exos - With The (Oculus Remix)\n" +
+                "[??] Delano Smith - Behind The Shadows (Steve O'Sullivan Remix)\n" +
+                "[??] IN SYNC - Jam Tapes 3\n" +
+                "[??] Bjarki - ? [Unreleased\n" +
+                "[??] Sanasol - Glow\n" +
+                "[??] Spankey Rodgers - Digit Fidgit\n" +
+                "[??] Octal / Ruxpin - Unreleased Remix\n" +
+                "[34] Lucy - Sana Sana Sana Cura Cura Cura [Token]\n" +
+                "[37] Thomas Hessler - Perception [Index Marcel Fengler]\n" +
+                "[38] Nina Kraviz - IMPRV [Trip]\n" +
+                "[40] Yaleesa Hall - First Leyland\n" +
+                "[4?] Bjarki - Gimme Acid [Trip 001]\n" +
+                "[42] Bjarki - Polygon Pink Toast [Trip]\n" +
+                "[43] Bjarki - I Wanna Go Bang [Trip - 003]\n" +
+                "[46] Exos - Red Dragon [Unreleased]\n" +
+                "[??] Hidden People - ? [Unreleased\n" +
+                "[??] Splice - Syncussion [Unreleased]\n" +
+                "[??] Dajae - Day By Day (Green Velvet Mix)\n" +
+                "[??] Samuli Kemppi - Power Of Voltages\n" +
+                "[??] Exos - Do Not Sleep 1 (KID Mistik Remix)\n" +
+                "[??] Soul Is Back - Luke Slater Remix\n" +
+                "[??] Aubrey - Grimson Nebular (Exos Remix)\n" +
+                "[??] Planetary Assault Systems - No Exit\n" +
+                "[??] Kwartz - Hole\n" +
+                "[??] Lewis Fautzi - Big Bang\n" +
+                "[??] Petter B - Edit Pilaf\n" +
+                "[??] Lewis Fautzi - Range\n" +
+                "[??] Hector Oaks - No One Tale\n" +
+                "[??] Steve Bicknell - Lost Recordings\n" +
+                "[??] Ben Buitendijk - Colourblind\n" +
+                "[??] Echoplex - Warglass [Unreleased]\n" +
+                "[??] Valmay - Minor A 10\n" +
+                "[??] Ben Sims - Corsica [Forthcoming]\n" +
+                "[??] Taken - B (Halcyon) [Unreleased]\n" +
+                "[??] Jeff Mills - Spiral Therapy\n" +
+                "[??] Ozy - Klukka\n" +
+                "[52] Soul Designer - The Soul Is Back (Luke Slater Remix)",
+        changed: true,
+        // the four unplaceable rows (3, 5, 6, 8) plus the "?" rows a gap-less original takes
+        // none of (1, 9) - and line 16's label, which loses against the page's own "[Trip - 003]"
+        unused: { cues: [1, 3, 5, 6, 8, 9], texts: [3, 5, 6, 8], labels: [3, 5, 6, 8, 16] }
     }
 ];
 

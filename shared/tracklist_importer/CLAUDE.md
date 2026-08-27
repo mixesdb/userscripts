@@ -190,7 +190,11 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   so that tab stays), polls `tlImporter_fetchPageText()` for the page the link points at and
   ticks the toolkit's "TID tracklist is integrated" box through the same
   `tlImporter_tickIntegrated()` the "Identical" verdict uses - manual ticking after every import
-  was the annoyance it removes. The tick POSTs and cannot be taken back, so a CHANGED tracklist
+  was the annoyance it removes. The "Integrated" note REPLACES the link it came from, so the row
+  ends up in the same shape a no-merge verdict gives it: [note Report] | [EDIT HIST]. The link
+  cannot stay - its `mdb-original` is the page text from BEFORE the save, so a second run would
+  merge against a tracklist that no longer exists; a reload builds a fresh link against the
+  current one. The tick POSTs and cannot be taken back, so a CHANGED tracklist
   is deliberately not the test: a foreign edit changes it too. The test is
   `tlImporter_candidateWrites()`, the number of candidate PARTS (cue/text/label over the merge's
   `diffItems.used`) the merge would still write into the page - measured once at click time
@@ -271,6 +275,26 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   of the merged list, because a `[??]`-heavy original has no parseable cues to sort against and
   every mid-list unknown would otherwise read as "at the end" too. An unknown whose cue lands
   within tolerance of an original track is still dropped, tail or not.
+- **A row the merge cannot PLACE is not placed.** An unmatched candidate track is inserted in
+  front of the first original row with a BIGGER cue, so it always lands at the END of the
+  cue-less run in front of that row - the merge has nothing in there to order it against and
+  silently takes the last of the run's possible slots. `tlImporter_unplacedRunLength()` measures
+  that run (bounded by a readable cue, by a `...` - there the page itself says tracks are
+  missing - or by the start of the list), `tlImporter_insertMaxUnplacedRows` (2) is what it may
+  be. Reported (Invite's Choice Podcast 224 Exos, trackid.net): the candidate's `[07]`, `[13]`,
+  `[14]` and `[24]` all found the same first matched row, `[34] Lucy`, and were dropped in front
+  of it - behind the 18 cue-less rows the page lists before it, three of them the page's own
+  rows under another spelling (`Ozy - Sacred Family` / `Sagrada Familia`, `IN SYNC - Jam Tapes 3`
+  / `Insync - Jam Tape 1991 Cut 3`, and one of the five `Artist - ?` rows the block holds). A
+  guessed position is a duplicate waiting to happen, and guessing buys nothing: the row stays
+  highlighted in the Candidate column and the reader places it by hand, which is the only
+  reading that is not a guess. Two stand-downs: one or two rows are a near miss the reader
+  corrects at a glance (`[42] Bjarki - Polygon Pink Toast` steps over one row and lands), and
+  the END of the list is no guess at all - nothing follows the last row, so there is no other
+  slot the merge could have chosen and the trailing appends are untouched. It took two
+  duplicates out of the NTS Japanese Techno example along the way (`Hiroshi Watanabe - Lost
+  City` behind `Hiroshi W. - Lost City`, `FLR - PART 8` behind `FLR - Easy Filter Part 8`),
+  which is exactly the shape the report names.
 - **A `...` the merge filled up is dropped, measured against the list's OWN median runtime.**
   `tlImporter_dropRedundantGaps()` is the last step of the merge, after every cue is final. A gap
   claims tracks are missing; between two known cues that claim is checkable, because the span it
@@ -324,8 +348,19 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   "Candidate", both VERBATIM (`tlImporter_rawItems`, the chaptered case's reason: no merge ran,
   so there is nothing to flag, and the parser would tidy up a list neither side holds). The grid
   is `.mdb-tlImporter-cols-2` - `tlImporter_addColResizers()` builds bars for three columns
-  only, so the 14px they would occupy is the gap instead, and down (one visible column) the
-  rule repeats with `!important` behind the down state's own three-column override.
+  only, so the 14px they would occupy is the gap instead.
+- **Down, an Insert shows NO column at all.** The Inserted column hands its text to the site's
+  editor and is hidden like every Merged one - and the Candidate is dropped with it, because on
+  an insert the two hold the SAME list: alone beside an editor carrying its own text, it is a
+  copy to read past, not something to compare against. What is left is the block's labelled
+  edge - legend and corner toggles - which still names the editor below it and still offers the
+  way back up; the fieldset's padding collapses so the empty frame does not stand there as a
+  box. The block carries `mdb-tlImporter-insert` for it (set in `tlImporter_renderDiffView`
+  next to the `cols-2` class): the CSS needs the reading on the FIELDSET, not on the grid, and
+  `tlImporter_downToggleTitle()` reads the same class so the arrow's tooltip stops promising
+  columns that stay above the editor. The hiding rule names `.mdb-tlImporter-cols`, not
+  `-cols-2`, so the narrow-window media query - which only rewrites `grid-template-columns` -
+  cannot bring the columns back.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
   top right corner (`tlImporter_applyDown`) moves the block AND `#editToolsBar-TLeditor` (the
   wrapper of the site's whole editor fieldset) to directly after `.editOptions` – below the

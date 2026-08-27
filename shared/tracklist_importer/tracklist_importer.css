@@ -384,16 +384,29 @@ body.mdb-tlImporter-resizing {
  * the three-column layout stays as the gap, so the two boxes keep the same distance.
  * Stands AFTER the base rule and after the down rule on purpose: both name the same element
  * with the same specificity, and the down one carries !important for the dragged inline
- * widths. Down, the Inserted column has given its text to the site's editor and is hidden,
- * which leaves the Candidate alone in the full width. */
+ * widths. */
 #mdb-tlImporter-diff .mdb-tlImporter-cols-2 {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-column-gap: 14px;
     column-gap: 14px;
 }
 
-#mdb-tlImporter-diff.mdb-tlImporter-down .mdb-tlImporter-cols-2 {
-    grid-template-columns: minmax(0, 1fr) !important;
+/* an Insert moved DOWN: no columns at all. The Inserted column has handed its text to the
+ * site's own Tracklist Editor and is hidden like every Merged one - and the Candidate goes
+ * with it, because on an insert the two are the SAME list: standing alone next to the editor
+ * holding its own text, it is a copy to read past, not something to compare against. What
+ * stays is the labelled edge - the legend and the corner toggles - so the block still names
+ * the editor below it and still offers the way back up. The padding goes with the content,
+ * or the frame would sit there as an empty box; the bottom border keeps 2px so the fieldset
+ * reads as one line, not as two. The rule names .mdb-tlImporter-cols (not -cols-2) so the
+ * narrow-window override, which only rewrites grid-template-columns, cannot bring it back. */
+#mdb-tlImporter-diff.mdb-tlImporter-down.mdb-tlImporter-insert .mdb-tlImporter-cols {
+    display: none;
+}
+
+#mdb-tlImporter-diff.mdb-tlImporter-down.mdb-tlImporter-insert {
+    padding-top: 0;
+    padding-bottom: 2px;
 }
 
 /* the row below #tlEditor-formActions while the block is down: the Apply button and the Live

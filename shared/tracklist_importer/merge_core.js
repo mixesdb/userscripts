@@ -46,6 +46,14 @@ var tlImporter_cueToleranceSec = 120;
 var tlImporter_gapRuntimeFactor = 1.5;
 var tlImporter_gapMinSamples = 3;
 
+// How many original rows WITHOUT a readable cue an insert may step over. The insert scan picks
+// the first original row whose cue is bigger than the candidate's, so a new row always lands at
+// the END of the cue-less run in front of that row - the merge has nothing in there to order it
+// against and silently takes the last of the run's possible slots. Over one or two rows that is
+// a near miss the reader corrects with one drag; over a BLOCK of them the row lands nowhere near
+// its own cue. See the insert step in tlImporter_mergeArrays().
+var tlImporter_insertMaxUnplacedRows = 2;
+
 // tlImporter_log
 // log() lives in global.js, which the deno runner does not load – so every log goes through
 // this guard instead of assuming the browser environment.
@@ -941,6 +949,28 @@ function tlImporter_cueClose( a, b ) {
 }
 
 
+
+// tlImporter_unplacedRunLength
+// How many original rows an insert at insertIndex would step over with no evidence for its
+// place among them: the rows between the insert point and the nearest thing that BOUNDS it -
+// a row with a readable cue (there the merge can order), a "..." (there the page itself says
+// tracks are missing) or the start of the list.
+function tlImporter_unplacedRunLength( arr, insertIndex ) {
+    var rows = 0;
+
+    for( var k = insertIndex - 1; k >= 0; k-- ) {
+        var item = arr[k];
+
+        if( item.type === "gap" ) break;                        // the page invited an insert here
+        if( item.type !== "track" ) continue;
+        if( tlImporter_cueToSec( item.cue ) !== null ) break;   // a cue to order against
+
+        rows++;
+    }
+
+    return rows;
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * The merge (port of the merger's mergeTracklists, plus usage tracking)
@@ -1256,6 +1286,23 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             }
         }
         if (insertIndex === -1) insertIndex = original_arr.length;
+
+        // A row the merge cannot PLACE is not placed. The insert lands at the end of the
+        // cue-less run in front of it (see tlImporter_insertMaxUnplacedRows), and over a block
+        // of such rows that position is pure guesswork: the row ends up nowhere near its own
+        // cue, and where the block holds rows the page could not name ("Exos - ?") the insert
+        // may well duplicate a track the page already lists - nothing says the new row is not
+        // exactly that unknown one. Reported (Invite's Choice Podcast 224 Exos, trackid.net):
+        // the candidate's [07], [13], [14] and [24] were dropped in front of the first matched
+        // row, behind the 18 rows the page lists before it, three of them near-duplicates of
+        // rows already in that block. Such a row stays highlighted in the Candidate column
+        // instead - the reader places it by hand, which is the only reading that is not a guess.
+        // The END of the list is not that guess: nothing follows the last row, so there is no
+        // other slot the merge could have chosen (same reasoning as the trailing unknown below).
+        if (insertIndex < original_arr.length &&
+            tlImporter_unplacedRunLength( original_arr, insertIndex ) > tlImporter_insertMaxUnplacedRows) {
+            return;
+        }
 
         // An unknown out of the candidate's trailing run that lands BEHIND the original's last
         // row is news even on a gap-less original: the list read as complete and the player
