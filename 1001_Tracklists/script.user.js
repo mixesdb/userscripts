@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.19
+// @version      2026.08.27.20
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_7
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_11
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
@@ -34,7 +34,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 37,
+var cacheVersion = 38,
     scriptName = "1001_Tracklists";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -292,6 +292,16 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.27.20
+ * Tracklist Importer: an Insert no longer shows a review block at all (tracklist_importer
+ * funcs.js v12, CSS). It only ever had one state worth having - the inserted list in the page's
+ * own Tracklist Editor, with Apply and the Live updates switch under it - because its two
+ * columns are the page's new tracklist and the list it came from, the same text twice. So an
+ * insert now goes down to that editor whatever the remembered up/down choice says, gets no
+ * arrow button, and its fieldset is never shown; the remembered choice is left alone, it
+ * belongs to the merges. Only an edit form whose Tracklist Editor never loads gets the block
+ * after all, a few seconds in, so the list can still be read and corrected.
  *
  * 2026.08.27.19
  * Tracklist Importer merge, the rows the merge cannot place (merge_core.js v7, reported on

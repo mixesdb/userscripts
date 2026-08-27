@@ -194,18 +194,20 @@ fixes can be applied at any point before saving – but not when the compare com
 merge that changed nothing after all drops the block instead of repeating what the edit box
 already holds.
 
-Behind an **Insert** link the block has two columns instead of three: the page had no tracklist,
-so there is nothing an Original column could show. The fieldset is named **Diff – the page had no
-tracklist, the whole list was inserted**, the editable column is called **Inserted** and holds
-what went into the page, and **Candidate** shows the found tracklist exactly as it stands –
-numbering, wiki markup and blank lines included. Nothing is highlighted: there was nothing to
-merge. Down – the default – that Inserted text goes into the page's own Tracklist Editor just as
-after a merge, which is what the block is here for: correcting the list you just inserted happens
-in the editor you know, with its menu, find/replace and undo, instead of copying the list down
-there by hand first. The grab bars go with the third column, and down the Candidate column goes
-too: it holds the same list the editor below it now holds, so there is nothing to compare it to.
-What stays above the editor is the block's named edge with the arrow button, which brings the
-Candidate back the moment you move the block up again.
+Behind an **Insert** link there is no block on screen at all. The inserted tracklist goes
+straight into the page's own Tracklist Editor, which stands directly below the wiki's
+Save/Preview buttons with the **Apply** button and the Live updates switch under it – exactly
+what a merge looks like once its block has moved down. Correcting the list you just inserted
+happens in the editor you know, with its menu, find/replace and undo, instead of copying it down
+there by hand first.
+
+An insert has no second state and no arrow button: the page had no tracklist, so there is
+nothing an Original column could show, and the Candidate is the very same list the editor
+already holds – a block above it could only repeat what is right there. Your remembered up/down
+choice is left alone on such a page; it belongs to the merges. Only when the edit form's own
+Tracklist Editor never loads does the block appear after a few seconds instead, named **Diff –
+the page had no tracklist, the whole list was inserted**, with the two columns **Inserted** and
+**Candidate** and its own Apply button, so the list can still be read and corrected.
 
 Behind a **Chaptered** link the same block opens without a merge behind it: the fieldset is named
 **Diff – chaptered page, nothing was merged** (or **chaptered tracklist**, when the found one

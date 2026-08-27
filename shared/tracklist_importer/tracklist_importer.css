@@ -391,22 +391,23 @@ body.mdb-tlImporter-resizing {
     column-gap: 14px;
 }
 
-/* an Insert moved DOWN: no columns at all. The Inserted column has handed its text to the
- * site's own Tracklist Editor and is hidden like every Merged one - and the Candidate goes
- * with it, because on an insert the two are the SAME list: standing alone next to the editor
- * holding its own text, it is a copy to read past, not something to compare against. What
- * stays is the labelled edge - the legend and the corner toggles - so the block still names
- * the editor below it and still offers the way back up. The padding goes with the content,
- * or the frame would sit there as an empty box; the bottom border keeps 2px so the fieldset
- * reads as one line, not as two. The rule names .mdb-tlImporter-cols (not -cols-2) so the
- * narrow-window override, which only rewrites grid-template-columns, cannot bring it back. */
-#mdb-tlImporter-diff.mdb-tlImporter-down.mdb-tlImporter-insert .mdb-tlImporter-cols {
+/* an Insert: the block is never SEEN. Down - which is the only state an insert has, see
+ * tlImporter_downToggleWhenReady - the Inserted column has handed its text to the site's own
+ * Tracklist Editor and is hidden like every Merged one, and the Candidate goes with it,
+ * because on an insert the two are the SAME list: standing alone next to the editor holding
+ * its own text, it is a copy to read past, not something to compare against. That leaves a
+ * fieldset with nothing in it, and an empty labelled frame above the editor is a thing to
+ * explain, not a thing to read.
+ *
+ * -wait covers the seconds before that, while the editor section is still loading: the block
+ * exists (it is what hands the text over) but showing it would flash two columns that are
+ * about to disappear. It comes off when the block goes down - or, if that section never
+ * arrives at all, on the timer in tlImporter_renderDiffView, and then the block IS shown:
+ * without an editor to move to, it is the only place the inserted list and the Candidate can
+ * be read. The block always stays in the DOM either way. */
+#mdb-tlImporter-diff.mdb-tlImporter-down.mdb-tlImporter-insert,
+#mdb-tlImporter-diff.mdb-tlImporter-insert-wait {
     display: none;
-}
-
-#mdb-tlImporter-diff.mdb-tlImporter-down.mdb-tlImporter-insert {
-    padding-top: 0;
-    padding-bottom: 2px;
 }
 
 /* the row below #tlEditor-formActions while the block is down: the Apply button and the Live

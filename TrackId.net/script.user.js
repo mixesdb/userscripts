@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.35
+// @version      2026.08.27.36
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_17
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_41
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_42
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 208,
+var cacheVersion = 209,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2415,6 +2415,16 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.36
+ * Tracklist Importer: an Insert no longer shows a review block at all (tracklist_importer
+ * funcs.js v42, CSS). It only ever had one state worth having - the inserted list in the page's
+ * own Tracklist Editor, with Apply and the Live updates switch under it - because its two
+ * columns are the page's new tracklist and the list it came from, the same text twice. So an
+ * insert now goes down to that editor whatever the remembered up/down choice says, gets no
+ * arrow button, and its fieldset is never shown; the remembered choice is left alone, it
+ * belongs to the merges. Only an edit form whose Tracklist Editor never loads gets the block
+ * after all, a few seconds in, so the list can still be read and corrected.
  *
  * 2026.08.27.35
  * Tracklist Importer merge, the rows the merge cannot place (merge_core.js v17, reported on
