@@ -53,8 +53,8 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
   a list of everything the script touches or sits next to:
   - a script that ADDS something to a shared feature (Tracklist Cue Switcher -> the Tracklist
     box) has none - name the surface it is applied to in `Runs on` instead
-  - a script that READS a shared feature another script put there (Tracklist Merger on
-    trackid.net) has none
+  - a script that READS a shared feature another script put there has none (the retired
+    Tracklist Merger read TrackId.net's tracklist box without listing it)
   - a script that only `@require`s a shared file without rendering its feature (Internet Archive
     requires `toolkit.js` but never calls `getToolkit()`) has none
 

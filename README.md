@@ -28,7 +28,6 @@ Each folder holds one userscript and a README describing its features.
 | [Player Checker](Player_Checker/) | blogs and podcast sites | Toolkit for embedded players, tracklists |
 | [MixesDB Userscripts Helper](MixesDB_Userscripts_Helper/) | mixesdb.com | Makes MixesDB accept what the other scripts hand over |
 | [Tracklist Cue Switcher](Tracklist_Cue_Switcher/) | mixesdb.com, trackid.net | Clickable cues, minutes ⟷ clock times |
-| [Tracklist Merger](Tracklist_Merger/) | mixesdb.com, trackid.net | Merge two tracklists with a diff (beta, stalled – replaced by the [Tracklist Importer](shared/tracklist_importer/)) |
 
 Shared across the site scripts, in [shared/](shared/): the [toolkit](shared/toolkit/), the
 [tracklist box](shared/tracklist_editor/), the [page creator](shared/page_creator/), the

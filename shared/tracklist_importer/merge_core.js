@@ -12,7 +12,7 @@
  *   - undiscovered tracks are inserted between existing consecutive tracks
  *   - tracks are added in "..." gaps
  *
- * Ported from the stalled Tracklist Merger userscript (Tracklist_Merger/script.user.js), made
+ * Ported from the stalled Tracklist Merger userscript (since removed from the repo), made
  * self-contained on purpose: pure text in, text out – no DOM, no network, no jQuery – which is
  * what lets the deno runner (importer_examples_test.js) exercise it outside a browser, the way
  * page_creator's title_builder.js is tested. Keep it that way: the DOM half lives in funcs.js.

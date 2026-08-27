@@ -16,9 +16,8 @@ site scripts, so it looks and behaves the same everywhere.
 
 Those are the scripts that ADD the box, and they are the only ones listing it as a shared
 feature. A script that merely applies its own feature to a box already on the page does not:
-the [Tracklist Cue Switcher](../../Tracklist_Cue_Switcher/) adds its cue format switch to it and
-the [Tracklist Merger](../../Tracklist_Merger/) reads what is in it, but neither puts a box
-there, so neither lists it.
+the [Tracklist Cue Switcher](../../Tracklist_Cue_Switcher/) adds its cue format switch to it,
+but it does not put a box there, so it does not list it.
 
 ## Features
 
@@ -79,9 +78,9 @@ Editing the box and asking again re-colours the same box rather than stacking a 
 under the first.
 
 The verdict itself stays the first line of the feedback. Everything the site scripts hang into
-it – TrackId.net's **Toggle** for the removed `?` tracks, the **Switch cue format** button, the
-link into the Tracklist Merger – sits under the verdict, whatever the answer is, so the sentence
-you opened the box for is always in the same place.
+it – TrackId.net's **Toggle** for the removed `?` tracks, the **Switch cue format** button –
+sits under the verdict, whatever the answer is, so the sentence you opened the box for is
+always in the same place.
 
 On sites that also show the [Toolkit](../toolkit/), the same verdict is repeated in the top
 right corner of the box as two icons – see

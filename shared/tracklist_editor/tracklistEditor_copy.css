@@ -211,8 +211,8 @@ textarea.mdb-tlBox.mdb-tlBox-updating {
 
 /*
  * Our own rows are rows of the message list and nothing else: plain <li>s, one per line, in
- * the <ul> the API's own feedback uses - the cue format switch, the Tracklist Merger link and
- * TrackId.net's notice about the removed "?" tracks with its Toggle.
+ * the <ul> the API's own feedback uses - the cue format switch and TrackId.net's notice about
+ * the removed "?" tracks with its Toggle.
  *
  * They were floated and then laid out inline to save the box a line or two. Both took them out
  * of the list: floated, they drifted into the top-right corner where the box's chips sit and

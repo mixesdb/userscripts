@@ -153,8 +153,8 @@ function tlBoxCssCacheParam() {
  *   a correction that lands as an invisible flash looks like it never happened.
  *
  * The marker attribute (not a jQuery .data flag) keeps a box from being bound twice: two of
- * our userscripts can share one page (TrackId.net + Tracklist Merger on trackid.net), and a
- * DOM attribute is the one flag both of them can see.
+ * our userscripts loading this file can share one page (TrackId.net + the retired Tracklist
+ * Merger did on trackid.net), and a DOM attribute is the one flag both copies can see.
  */
 var tlBoxUpdateMinMs = 400,
     tlBoxTypeDelayMs = 800; // same pause the reasoning panel's title edit waits out
@@ -423,7 +423,7 @@ function tlBoxSettleFeedbackHeight( box, from ) {
  * where the list itself carries the verdict. Everything else ("The tracklist seems valid and
  * complete.", the duplicates, the hints) arrives as <div id="tlEditor-feedback-text"> with no
  * list anywhere, and every row a script wants to add (TrackId.net's notice about the removed
- * "?" tracks with its Toggle, the cue format switch, the Tracklist Merger's link) then has
+ * "?" tracks with its Toggle, the cue format switch) then has
  * nowhere to go and silently does not appear. The better the tracklist, the fewer of our own
  * controls - the exact opposite of what they are there for.
  *
