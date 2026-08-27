@@ -119,6 +119,21 @@ function tlImporter_fetchPageText( pageId, done ) {
     });
 }
 
+// tlImporter_makeReportLink
+// The Report link. Built here rather than inline, because BOTH outcomes carry one: the
+// Insert/Merge link and the "nothing to merge" note. A verdict that turns out to be wrong is
+// exactly what needs reporting, so the case without a link must not be the case without a
+// report either.
+function tlImporter_makeReportLink( mode, originalText, pageId, verdict ) {
+    return $( '<a class="mdb-element mdb-mixesdbLink mdb-tlImporter-report" href="#"></a>' )
+        .attr( "title", "Open a paste-ready report of this import (original + candidate) for Discord." )
+        .data( "mdb-mode", mode )
+        .data( "mdb-original", originalText )
+        .data( "mdb-mixpageurl", "https://www.mixesdb.com/w/?curid=" + pageId )
+        .data( "mdb-verdict", verdict || "" )
+        .text( "Report" );
+}
+
 // tlImporter_addNoMergeNote
 // What stands where the Insert/Merge link would be when there is nothing to merge. That spot
 // used to stay empty, which reads exactly like "the importer did not run" - and the reader
@@ -130,7 +145,7 @@ function tlImporter_fetchPageText( pageId, done ) {
 //                      so the toolkit's "TID tracklist is integrated" checkbox is ticked too.
 //   "Nothing to add" - the page holds everything the found tracklist has AND more. No claim
 //                      is made about it: the reader decides whether that counts as integrated.
-function tlImporter_addNoMergeNote( wrapper, editLink, identical ) {
+function tlImporter_addNoMergeNote( wrapper, editLink, identical, reportLink ) {
     var note = $( '<span class="mdb-element mdb-tlImporter-note"></span>' )
         .attr( "title", identical
             ? "This tracklist and the tracklist of the MixesDB page are the same list - nothing to merge.\nMarked as integrated for you."
@@ -139,8 +154,8 @@ function tlImporter_addNoMergeNote( wrapper, editLink, identical ) {
 
     if( identical ) note.addClass( "mdb-tlImporter-note-identical" );
 
-    // same divider the links get, so [note] | [EDIT HIST] groups the same way
-    editLink.before( note, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
+    // same shape and same divider as the link row: [note Report] | [EDIT HIST]
+    editLink.before( note, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
     if( identical ) tlImporter_tickIntegrated( wrapper );
 }
@@ -234,7 +249,9 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                      + ( mergeTry.identical ? ", the two lists are identical." : "." ) );
 
                 tlImporter_loadCss();
-                tlImporter_addNoMergeNote( jNode, editLink, mergeTry.identical );
+                tlImporter_addNoMergeNote( jNode, editLink, mergeTry.identical,
+                    tlImporter_makeReportLink( mode, read.tlText, pageId,
+                        mergeTry.identical ? "identical" : "nothing to add" ) );
                 return;
             }
 
@@ -249,12 +266,7 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                     : "Insert this tracklist into the MixesDB page, which has none yet.\nOpens the edit form with the tracklist filled in and shows the changes." )
                 .text( mode == "merge" ? "Merge" : "Insert" );
 
-            var reportLink = $( '<a class="mdb-element mdb-mixesdbLink mdb-tlImporter-report" href="#"></a>' )
-                .attr( "title", "Open a paste-ready report of this import (original + candidate) for Discord." )
-                .data( "mdb-mode", mode )
-                .data( "mdb-original", read.tlText )
-                .data( "mdb-mixpageurl", "https://www.mixesdb.com/w/?curid=" + pageId )
-                .text( "Report" );
+            var reportLink = tlImporter_makeReportLink( mode, read.tlText, pageId );
 
             // the divider (styled in global.css) groups our two links apart from EDIT/HIST -
             // its twin between HIST and the integrated checkbox comes with the toolkit markup
@@ -298,6 +310,7 @@ function tlImporter_reportText( link ) {
     var mode = link.data( "mdb-mode" ) || "",
         original = link.data( "mdb-original" ) || "",
         mixPageUrl = link.data( "mdb-mixpageurl" ) || "",
+        verdict = link.data( "mdb-verdict" ) || "",
         candidate = tlImporter_candidateText(),
         fence = "```",
         lines = [];
@@ -307,6 +320,12 @@ function tlImporter_reportText( link ) {
     lines.push( "* Page URL: " + location.href );
     lines.push( "* Mix page: " + mixPageUrl );
     lines.push( "* Mode: " + mode );
+
+    // only the no-link outcomes carry one - it IS the thing being reported there
+    if( verdict ) {
+        lines.push( "* Verdict: no link, " + verdict
+                    + ( verdict == "identical" ? " (marked as integrated)" : "" ) );
+    }
 
     if( mode == "merge" ) {
         lines.push( "" );

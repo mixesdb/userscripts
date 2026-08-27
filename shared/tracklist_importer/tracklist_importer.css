@@ -33,6 +33,12 @@
     white-space: nowrap;
 }
 
+/* the Report link behind the note. global.css spaces the row's pills with "a + a", which a
+   span in front of one does not trigger - without this the note and Report sit flush. */
+.mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note + a {
+    margin-left: 5px;
+}
+
 /* the certain half of it - the same list on both sides, and the "TID tracklist is integrated"
    checkbox was ticked from it. Full strength instead of a colour: the toolkit runs on bright
    and on dark sites, and no one green reads well on both. */
