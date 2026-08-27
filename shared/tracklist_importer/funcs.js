@@ -119,6 +119,48 @@ function tlImporter_fetchPageText( pageId, done ) {
     });
 }
 
+// tlImporter_noMergeVerdicts
+// Every reason the importer stops before it can offer an Insert/Merge link. Each one gets a
+// note in the link's place and a Report link behind it - an action row that just stays empty
+// is indistinguishable from a broken userscript, and the reader is left guessing.
+//
+//   text    what stands in the row
+//   title   the tooltip behind it, which carries the actual reason
+//   report  how the Report names the verdict
+//   merged  whether a merge ran at all - only then may the Report show a merge result
+var tlImporter_noMergeVerdicts = {
+    identical: {
+        text: "Identical",
+        title: "This tracklist and the tracklist of the MixesDB page are the same list - nothing to merge.\nMarked as integrated for you.",
+        report: "identical (marked as integrated)",
+        merged: true
+    },
+    contained: {
+        text: "Nothing to add",
+        title: "The MixesDB page's tracklist already holds everything this tracklist could add - nothing to merge.",
+        report: "nothing to add",
+        merged: true
+    },
+    chapters: {
+        text: "Chaptered",
+        title: "The MixesDB page's tracklist is split into chapters (one per set).\nMerging into one of them is not supported yet.",
+        report: "the mix page tracklist has chapters",
+        merged: false
+    },
+    noSection: {
+        text: "No Tracklist section",
+        title: "The MixesDB page has no \"== Tracklist ==\" section - there is nothing to insert into.",
+        report: "the mix page has no Tracklist section",
+        merged: false
+    },
+    noPageText: {
+        text: "Page unreadable",
+        title: "The MixesDB page's text could not be read just now - reload the page to try again.",
+        report: "the mix page text could not be read",
+        merged: false
+    }
+};
+
 // tlImporter_makeReportLink
 // The Report link. Built here rather than inline, because BOTH outcomes carry one: the
 // Insert/Merge link and the "nothing to merge" note. A verdict that turns out to be wrong is
@@ -135,29 +177,24 @@ function tlImporter_makeReportLink( mode, originalText, pageId, verdict ) {
 }
 
 // tlImporter_addNoMergeNote
-// What stands where the Insert/Merge link would be when there is nothing to merge. That spot
-// used to stay empty, which reads exactly like "the importer did not run" - and the reader
-// has no way of telling the two apart.
-//
-// Two readings, because "nothing to merge" has two very different meanings (see
-// tlImporter_sameTracklists in merge_core.js):
-//   "Identical"      - the same list on both sides. The found tracklist IS in the mix page,
-//                      so the toolkit's "TID tracklist is integrated" checkbox is ticked too.
-//   "Nothing to add" - the page holds everything the found tracklist has AND more. No claim
-//                      is made about it: the reader decides whether that counts as integrated.
-function tlImporter_addNoMergeNote( wrapper, editLink, identical, reportLink ) {
-    var note = $( '<span class="mdb-element mdb-tlImporter-note"></span>' )
-        .attr( "title", identical
-            ? "This tracklist and the tracklist of the MixesDB page are the same list - nothing to merge.\nMarked as integrated for you."
-            : "The MixesDB page's tracklist already holds everything this tracklist could add - nothing to merge." )
-        .text( identical ? "Identical" : "Nothing to add" );
+// What stands where the Insert/Merge link would be, for every verdict of the table above.
+// "Identical" is the only one that also acts: it is the certain case (tlImporter_sameTracklists
+// in merge_core.js), so the toolkit's "TID tracklist is integrated" checkbox is ticked from it.
+function tlImporter_addNoMergeNote( wrapper, editLink, verdict, reportLink ) {
+    var reading = tlImporter_noMergeVerdicts[ verdict ];
 
-    if( identical ) note.addClass( "mdb-tlImporter-note-identical" );
+    if( !reading ) return;
+
+    var note = $( '<span class="mdb-element mdb-tlImporter-note"></span>' )
+        .attr( "title", reading.title )
+        .text( reading.text );
+
+    if( verdict == "identical" ) note.addClass( "mdb-tlImporter-note-identical" );
 
     // same shape and same divider as the link row: [note Report] | [EDIT HIST]
     editLink.before( note, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
-    if( identical ) tlImporter_tickIntegrated( wrapper, note );
+    if( verdict == "identical" ) tlImporter_tickIntegrated( wrapper, note );
 }
 
 // How long the "Identical" note announces itself before the checkbox is actually ticked. The
@@ -225,9 +262,21 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
             editHref = editLink.attr( "href" ) || "",
             pageId = ( editHref.match( /[?&]curid=(\d+)/ ) || [] )[1];
 
+        // the one stop that stays silent: without the EDIT link there is nothing to hang a
+        // note on, and without the page id nothing to report about
         if( !editLink.length || !pageId ) {
             log( "tlImporter: no EDIT link / no curid in it - no import link." );
             return;
+        }
+
+        // Every other stop says why, in the link's place, with the Report link behind it -
+        // see tlImporter_noMergeVerdicts.
+        function noLink( verdict, mode, originalText ) {
+            log( "tlImporter: no import link for page " + pageId + " - " + tlImporter_noMergeVerdicts[ verdict ].report + "." );
+
+            tlImporter_loadCss();
+            tlImporter_addNoMergeNote( jNode, editLink, verdict,
+                tlImporter_makeReportLink( mode, originalText, pageId, verdict ) );
         }
 
         // Two async steps deep on an SPA: drop the answer when the user has clicked on.
@@ -238,20 +287,20 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
             if( !jNode.closest( "body" ).length ) return; // the toolkit was rebuilt meanwhile
 
             if( !pageText ) {
-                log( "tlImporter: empty page text - no import link." );
+                noLink( "noPageText", "", "" );
                 return;
             }
 
             var read = tlImporter_extractTracklist( pageText );
 
             if( !read.hasSection ) {
-                log( "tlImporter: the mix page has no == Tracklist == section - no import link." );
+                noLink( "noSection", "", "" );
                 return;
             }
 
             // Chapters (";Name" rows) need their own merge logic - not yet
             if( read.hasTracks && /^\s*;/m.test( read.tlText ) ) {
-                log( "tlImporter: the mix page tracklist has chapters - merging those is not supported yet." );
+                noLink( "chapters", "merge", read.tlText );
                 return;
             }
 
@@ -265,13 +314,7 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
             var mergeTry = mode == "merge" ? tlImporter_merge( read.tlText, tlImporter_candidateText() ) : null;
 
             if( mergeTry && !mergeTry.changed ) {
-                log( "tlImporter: the mix page tracklist already holds everything this candidate could add - no import link"
-                     + ( mergeTry.identical ? ", the two lists are identical." : "." ) );
-
-                tlImporter_loadCss();
-                tlImporter_addNoMergeNote( jNode, editLink, mergeTry.identical,
-                    tlImporter_makeReportLink( mode, read.tlText, pageId,
-                        mergeTry.identical ? "identical" : "nothing to add" ) );
+                noLink( mergeTry.identical ? "identical" : "contained", mode, read.tlText );
                 return;
             }
 
@@ -330,7 +373,7 @@ function tlImporter_reportText( link ) {
     var mode = link.data( "mdb-mode" ) || "",
         original = link.data( "mdb-original" ) || "",
         mixPageUrl = link.data( "mdb-mixpageurl" ) || "",
-        verdict = link.data( "mdb-verdict" ) || "",
+        reading = tlImporter_noMergeVerdicts[ link.data( "mdb-verdict" ) ] || null,
         candidate = tlImporter_candidateText(),
         fence = "```",
         lines = [];
@@ -339,15 +382,13 @@ function tlImporter_reportText( link ) {
     lines.push( "" );
     lines.push( "* Page URL: " + location.href );
     lines.push( "* Mix page: " + mixPageUrl );
-    lines.push( "* Mode: " + mode );
+
+    if( mode ) lines.push( "* Mode: " + mode );
 
     // only the no-link outcomes carry one - it IS the thing being reported there
-    if( verdict ) {
-        lines.push( "* Verdict: no link, " + verdict
-                    + ( verdict == "identical" ? " (marked as integrated)" : "" ) );
-    }
+    if( reading ) lines.push( "* Verdict: no link, " + reading.report );
 
-    if( mode == "merge" ) {
+    if( original ) {
         lines.push( "" );
         lines.push( "## Original" );
         lines.push( "" );
@@ -363,7 +404,9 @@ function tlImporter_reportText( link ) {
     lines.push( candidate );
     lines.push( fence );
 
-    if( mode == "merge" && original && candidate ) {
+    // only where a merge actually ran: on a chaptered or unreadable page it never did, and
+    // running it here would invent a result nobody was ever shown
+    if( mode == "merge" && original && candidate && ( !reading || reading.merged ) ) {
         var res = tlImporter_merge( original, candidate );
 
         lines.push( "" );

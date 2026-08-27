@@ -83,10 +83,10 @@ has no tracklist yet) or **Merge** (it has one) link appears in front of the too
 link, with a **Report** link behind it – see
 [Tracklist Importer](../shared/tracklist_importer/) (beta). It opens the mix page's edit form
 with the tracklist already inserted or merged and MediaWiki's own diff on screen; nothing is
-saved for you. A mix page that already holds everything the found tracklist has gets no link –
-there would be nothing to merge – but a note saying which of the two cases it is: **Identical**
-(the same list on both sides) or **Nothing to add** (the page has that and more). The **Report**
-link stands behind that note too, so a verdict you disagree with can be reported like any merge.
+saved for you. Where no link can be offered, a note stands in its place and says why –
+**Identical**, **Nothing to add**, **Chaptered**, **No Tracklist section** or **Page
+unreadable** – with the **Report** link behind it, so a verdict you disagree with can be
+reported like any merge.
 
 ### Mark as integrated
 

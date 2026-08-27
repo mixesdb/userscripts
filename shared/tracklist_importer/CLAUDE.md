@@ -75,6 +75,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   along (`tlImporter_makeReportLink()`, one builder for both outcomes) and names the verdict in
   the report – the case without a link must not be the case without a report, because a wrong
   verdict is precisely what needs reporting.
+- **EVERY stop the reader can see says why.** Not only the no-change ones: chaptered originals,
+  a page without a `== Tracklist ==` section and an unreadable page text all get their note plus
+  Report through the same `noLink()` in the link builder. `tlImporter_noMergeVerdicts` is the
+  one table behind it – row text, tooltip, how the Report names the verdict, and whether a merge
+  ran at all (only then may the Report show a merge result; running one for a chaptered page
+  would invent a result nobody was shown). A new stop is a new entry there, not a bare `return`.
+  The single silent stop left is "no EDIT link / no curid": there is nothing to hang a note on
+  and nothing to report about.
 - **"Identical" is the certain reading, and it is the one that acts by itself.**
   `tlImporter_sameTracklists()` (merge_core.js, reported through `identical` on the merge
   result) has two readings, either of which is enough. Same serialized TEXT after the candidate's
