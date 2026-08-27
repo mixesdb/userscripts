@@ -1372,6 +1372,15 @@ function tlImporter_placeDiffBlock( wrap ) {
  * entirely): the real ones under the edit box are on this very page, and a second row of
  * them would say the same thing twice.
  *
+ * An INSERT knows only this one state. Its Inserted column gives the text to the editor and
+ * its Candidate column holds the very same list, so down there is nothing left of the block -
+ * and up it would be a two-column frame around a copy of what the editor below already holds.
+ * So an insert is moved down as soon as the editor section is there, whatever the stored
+ * choice says, it gets no arrow, and the fieldset is never shown: what the reader works with
+ * is the page's own Tracklist Editor, holding the inserted list, with the Apply button and the
+ * Live updates switch under it. The stored choice is neither read nor written on such a page -
+ * it belongs to the merges, which still have two states.
+ *
  * The arrow points up while the block is down; clicking it moves everything back - the text
  * returns to the Merged box exactly as it stands, so toggling never loses an edit. Down is
  * the DEFAULT: a browser that never clicked the arrow gets the full editor as soon as its
@@ -1383,7 +1392,11 @@ function tlImporter_placeDiffBlock( wrap ) {
 var tlImporter_downKey = "mdb-tlImporter-down",
     tlImporter_downObserver = null,
     tlImporter_downPollTimer = null,
-    tlImporter_downPollMs = 500;
+    tlImporter_downPollMs = 500,
+    // how long an insert's block stays hidden waiting for the site's editor section before it
+    // shows itself after all - see the -wait class in tlImporter_renderDiffView. Long enough
+    // for a ResourceLoader module on a slow connection, short enough not to look like a hang.
+    tlImporter_insertWaitMs = 6000;
 
 // tlImporter_downIcon
 // Two chevrons pointing down while the block is up (click to move it down to the site's
@@ -1582,22 +1595,11 @@ function tlImporter_addDownActions( ed ) {
 }
 
 // tlImporter_downToggleTitle
-// What the corner arrow promises, read off the block's own state. The Insert reading has no
-// Original column, and down it loses the Candidate as well (see the CSS): the inserted list
-// IS the candidate, so with the text in the site's editor there is nothing left to compare it
-// to and the block collapses to its labelled edge. The tooltip must not promise columns that
-// stay above the editor when none do.
+// What the corner arrow promises. Only merges and chaptered pages ever get one - an insert is
+// always down (tlImporter_downToggleWhenReady), so there is no insert reading here.
 function tlImporter_downToggleTitle( wrap, down ) {
-    var inserted = $( wrap ).hasClass( "mdb-tlImporter-insert" );
-
-    if( down ) {
-        return inserted
-            ? "Move the review back up above the edit box, with the inserted list next to the Candidate it came from."
-            : "Move the review back up above the edit box, with the Merged column between Original and Candidate.";
-    }
-
-    return inserted
-        ? "Move the review down to the page's own Tracklist Editor: the inserted list goes into the editor itself, and the Candidate goes with it - it is the same list."
+    return down
+        ? "Move the review back up above the edit box, with the Merged column between Original and Candidate."
         : "Move the review down to the page's own Tracklist Editor: the Merged text goes into the editor itself, Original and Candidate stay side by side above it.";
 }
 
@@ -1973,11 +1975,33 @@ function tlImporter_renderDiffView( data ) {
     // the two grab bars between the columns, plus the widths the reader last dragged. Two
     // columns get none (tlImporter_addColResizers answers only to three): the class carries
     // their grid and the gap the bars would have been. The class on the BLOCK is what the
-    // down state reads (CSS and tlImporter_downToggleTitle): down, an insert drops both of
-    // its columns, so the reading has to be visible from the fieldset itself.
+    // down state reads (CSS): down, an insert drops both of its columns and with them the
+    // whole fieldset, so the reading has to be visible from the fieldset itself.
+    //
+    // -wait hides the block from the very first paint. An insert ends up down every time
+    // (tlImporter_downToggleWhenReady), and the site's editor section arrives a moment after
+    // this render - without the class the two columns would flash up and vanish again. The
+    // timer below is the safety net for an edit form whose editor module never comes: no
+    // section, no down state, and the Candidate would be unreachable for good.
     if( inserted ) {
         cols.addClass( "mdb-tlImporter-cols-2" );
-        wrap.addClass( "mdb-tlImporter-insert" );
+        wrap.addClass( "mdb-tlImporter-insert mdb-tlImporter-insert-wait" );
+
+        setTimeout(function() {
+            var block = $( "#mdb-tlImporter-diff.mdb-tlImporter-insert-wait" ).first();
+
+            if( !block.length ) return;
+
+            block.removeClass( "mdb-tlImporter-insert-wait" );
+
+            log( "tlImporter: no Tracklist Editor section after " + ( tlImporter_insertWaitMs / 1000 )
+                + "s - the insert block stays above the edit box." );
+
+            // shown for the first time: the stretch and the toggle centering could not be
+            // measured while it was hidden
+            tlImporter_applyWide( block, block.hasClass( "mdb-tlImporter-wide" ) );
+            tlImporter_alignToggles( block );
+        }, tlImporter_insertWaitMs );
     }
 
     tlImporter_addColResizers( cols );
@@ -2062,6 +2086,18 @@ function tlImporter_renderDiffView( data ) {
         var block = $( "#mdb-tlImporter-diff" ).first();
 
         if( !block.length ) return;
+
+        // An insert has only the down state - see the section comment above. No arrow (there
+        // is nothing to go back up to) and no stored choice (it belongs to the merges): the
+        // block goes down the moment the editor section is there, and stays hidden, so what
+        // is on screen is the page's own Tracklist Editor holding the inserted list.
+        if( inserted ) {
+            if( !block.hasClass( "mdb-tlImporter-down" ) ) tlImporter_applyDown( block, true );
+
+            // the down class hides it from here on - one reason for one state
+            block.removeClass( "mdb-tlImporter-insert-wait" );
+            return;
+        }
 
         tlImporter_addDownToggle( block );
 
