@@ -79,14 +79,15 @@ Other players (Mixcloud, YouTube, hearthis.at) do not get the row yet.
 ### Insert or merge the tracklist into MixesDB
 
 When the toolkit found the mix page and the tracklist box is filled, an **Insert** (the page
-has no tracklist yet) or **Merge** (it has one) link appears in front of the toolkit's EDIT
-link, with a **Report** link behind it – see
+has no tracklist yet), **Merge** (it has one) or **Chaptered** (it has one split into chapters)
+link appears in front of the toolkit's EDIT link, with a **Report** link behind it – see
 [Tracklist Importer](../shared/tracklist_importer/) (beta). It opens the mix page's edit form
 with the tracklist already inserted or merged and MediaWiki's own diff on screen; nothing is
-saved for you. Where no link can be offered, a note stands in its place and says why –
-**Identical**, **Nothing to add**, **Chaptered**, **No Tracklist section** or **Page
-unreadable** – with the **Report** link behind it, so a verdict you disagree with can be
-reported like any merge.
+saved for you. **Chaptered** imports nothing – merging into one chapter is not supported yet –
+and opens the edit form with the page's tracklist and this one side by side, for the merge by
+hand. Where no link can be offered at all, a note stands in its place and says why –
+**Identical**, **Nothing to add**, **No Tracklist section** or **Page unreadable** – with the
+**Report** link behind it, so a verdict you disagree with can be reported like any merge.
 
 ### Mark as integrated
 
@@ -96,7 +97,7 @@ happened.
 
 The checkbox ticks itself when the [Tracklist Importer](../shared/tracklist_importer/) finds the
 mix page's tracklist and this one to be the same list – the **Identical** note in the same row,
-which fades to green for a moment first and stays green once the box is ticked.
+which fades to green just before the box is ticked and stays green afterwards.
 Nothing else ticks it for you: a page that merely holds everything this tracklist has stays
 untouched, and so does one the merge could still add something to.
 

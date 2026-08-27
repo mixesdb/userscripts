@@ -4,9 +4,10 @@
  *
  * Loaded lazily by funcs.js (tlImporter_loadCss) on both sides: the player site showing the
  * Insert/Merge/Report links, and the MixesDB edit form showing the review block.
- * The links themselves need no rules of their own - they sit inside the toolkit's
- * .mdb-mixesdbLink-actionLinks-wrapper, whose global.css rules style every <a> in it. The
- * "nothing to merge" note is the one thing there that is NOT an <a>, so it brings its own.
+ * The links themselves need next to no rules of their own - they sit inside the toolkit's
+ * .mdb-mixesdbLink-actionLinks-wrapper, whose global.css rules style every <a> in it; only the
+ * "Chaptered" one is toned down, being a verdict as much as an action. The "nothing to merge"
+ * note is the one thing there that is NOT an <a>, so it brings its own.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -40,6 +41,13 @@
     margin-left: 5px;
 }
 
+/* the "Chaptered" link. An <a> like Insert/Merge, but not the same promise: it opens the edit
+   form WITHOUT a merge, for the hand-merge there. Dimmed towards the notes above, so the row
+   does not read as "a merge is waiting here" - it is still a pill, because it IS clickable. */
+.mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-link-chapters {
+    opacity: .75;
+}
+
 /* the certain half of it - the same list on both sides, and the "TID tracklist is integrated"
    checkbox is ticked from it. Full strength instead of a colour: the toolkit runs on bright
    and on dark sites, and no one green reads well on both. */
@@ -47,9 +55,11 @@
     opacity: 1;
 }
 
-/* The tick happens by itself, so it announces itself: the note fades to green and back while
-   the click is still pending (tlImporter_tickDelayMs in funcs.js states the same span - keep
-   the two in step), and stays green once the checkbox has been ticked. The green is the
+/* The tick happens by itself, so it announces itself: the note fades to green while the click
+   is still pending, and the click lands shortly after it got there (tlImporter_tickDelayMs in
+   funcs.js - a little longer than this fade, keep the two in step). It HOLDS the green instead
+   of pulsing back: the ticked state below is the same green, so the note simply stays as it
+   ended up and nothing flickers under the reader's eyes. The green is the
    toolkit's own "integrated" green, kept in the --mdb-tlImporter-noteGreen variable on the note
    because keyframes are global and the bright sites need the darker one - same split as in
    global.css. */
@@ -57,16 +67,16 @@
     --mdb-tlImporter-noteGreen: #75b224;
 }
 
-/* no 0%/100% stops on purpose: the implicit ones are the note's own colour, whatever the site
-   gives it, so the pulse always returns to where it started */
+/* no "from" stop on purpose: the implicit one is the note's own colour, whatever the site
+   gives it, so the fade starts where the note already stands */
 @keyframes mdb-tlImporter-noteTick {
-    50% {
+    to {
         color: var(--mdb-tlImporter-noteGreen);
     }
 }
 
 .mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-ticking {
-    animation: mdb-tlImporter-noteTick 1.2s ease-in-out 2;
+    animation: mdb-tlImporter-noteTick .7s ease-in forwards;
 }
 
 .mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-ticked {

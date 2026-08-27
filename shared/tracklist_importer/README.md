@@ -19,18 +19,19 @@ page's current text is checked:
 
 - **no tracklist yet** – an **Insert** link appears in front of the toolkit's EDIT link
 - **a tracklist exists** – a **Merge** link appears there instead
+- **the tracklist is split into chapters** (`;Name` rows, one per set) – a **Chaptered** link
+  appears there. Merging into one chapter is not supported yet, so it imports nothing: it opens
+  the edit form with the page's tracklist and the found one side by side, for the merge by hand
 
-Both links open the mix page's edit form in a new tab with the work already done.
+All three open the mix page's edit form in a new tab – the first two with the work already done.
 
-Where neither can be offered, a short note stands in the link's place and says why – hover it
-for the full reason. The row never just stays empty; an empty row would only look like a broken
-userscript:
+Where none of them can be offered, a short note stands in the link's place and says why – hover
+it for the full reason. The row never just stays empty; an empty row would only look like a
+broken userscript:
 
 - **Identical** – both lists are the same list. Nothing to merge, and following a link would
   only lead to MediaWiki's "(No difference)"
 - **Nothing to add** – the page's tracklist holds everything the found one has, and more
-- **Chaptered** – the page's tracklist is split into chapters, one per set. Merging into one of
-  them is not supported yet
 - **No Tracklist section** – the page has no `== Tracklist ==` section, so there is nothing to
   insert into
 - **Page unreadable** – the page's text could not be fetched just now; reload to try again
@@ -39,10 +40,9 @@ The **Report** link stands behind every one of them, exactly as it does behind I
 and the report names the verdict – a verdict you disagree with is the very thing worth reporting.
 
 **Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you: when the
-mix page carries exactly this tracklist, it *is* integrated. It says so before it does it – the
-note fades to green and back for a moment, and only then is the box ticked, so the tick happens
-in front of you and not behind your back. Tick it yourself in that moment and nothing else
-happens. It is the certain reading – every
+mix page carries exactly this tracklist, it *is* integrated. It says so before it does it – the note
+fades to green and the box is ticked a moment later, so the tick happens in front of you and not
+behind your back. Tick it yourself in that moment and nothing else happens. It is the certain reading – every
 track of the found tracklist sits on the page, the page has no track the found one is missing,
 and there is nothing left over the merge could not place. **Nothing to add** never ticks anything:
 the page knows more than the found tracklist there, and whether that counts as integrated is your
@@ -82,6 +82,10 @@ indicator icons under the edit box updated to what the Tracklist Editor says abo
 tracklist (an existing `Tracklist: complete` is never downgraded) – and **Show changes** is
 clicked for you, so the first thing on screen is MediaWiki's own diff. Until that diff has
 loaded, **Save changes** and **Show preview** are locked: nothing can be saved unseen.
+
+Behind a **Chaptered** link none of that happens: the page text is left untouched, nothing is
+locked and nothing is clicked. Only the review block below opens, so the merge can be done by
+hand there.
 
 ### Review block above the edit box
 
@@ -131,6 +135,14 @@ fixes can be applied at any point before saving – but not when the compare com
 merge that changed nothing after all drops the block instead of repeating what the edit box
 already holds.
 
+On a chaptered page the same block opens without a merge behind it: the fieldset is named
+**Diff – chaptered page, nothing was merged**, Original shows the page's tracklist with its
+chapter rows, Candidate the found one, and nothing is highlighted – no merge ran, so there is
+nothing to claim. The Merged box in the middle is empty on purpose: build the tracklist for the
+whole section there, chapters included, and **Apply** writes it into the page like after any
+merge. This block also stays when a compare comes back empty – on a page nothing was written
+to, that is the normal answer, and the found tracklist has to stay on screen for the hand work.
+
 ### Report link
 
 Behind the Insert/Merge link – and behind every note that replaces it – sits **Report**: it opens a paste-ready Discord
@@ -141,8 +153,9 @@ creator's Report box.
 ## Known limitations
 
 - Beta, on TrackId.net only so far.
-- Mix pages whose tracklist has chapters (`;Name` rows) are skipped – merging those needs its
-  own logic. The row says **Chaptered** and offers the Report link.
+- Mix pages whose tracklist has chapters (`;Name` rows) are never merged automatically –
+  merging into one chapter needs its own logic. The **Chaptered** link opens the review block
+  for the merge by hand, and the Report link stands behind it as everywhere else.
 - The merge is a heuristic: fuzzy matching is a threshold, not certainty, and track insertion
   goes by cue times. Always read the diff before saving – that is why Save is locked until
   **Show changes** ran.

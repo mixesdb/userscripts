@@ -9,8 +9,9 @@
  * On the player site (TrackId.net first):
  *   - when the toolkit says the player is used on MixesDB AND the page has a filled tracklist
  *     box, the mix page's wikitext is fetched and its "== Tracklist ==" section decides the
- *     mode: no tracklist yet -> "Insert", existing tracklist -> "Merge", a tracklist the
- *     candidate cannot add anything to -> no link at all
+ *     mode: no tracklist yet -> "Insert", existing tracklist -> "Merge", a tracklist split
+ *     into chapters -> "Chaptered" (the review block without a merge, for the hand-merge), a
+ *     tracklist the candidate cannot add anything to -> no link at all
  *   - an Insert/Merge link goes into the toolkit's action links in front of EDIT, and a
  *     "Report" link behind it opens a paste-ready Discord report of the whole case
  *   - the link opens the mix page's edit form; the candidate travels in the URL HASH
@@ -22,6 +23,8 @@
  *   - merge: the page's tracklist is the original, the candidate enriches it (merge_core.js),
  *     the result is TLE-formatted and written back
  *   - the "Tracklist:" category and the indicator icons under the box follow the verdict
+ *   - chaptered: nothing is written and nothing is clicked - the review block opens with the
+ *     page's tracklist, an empty Merged box and the candidate, and the merge is done by hand
  *   - "Show changes" is clicked for the user, so the next thing on screen is MediaWiki's own
  *     diff; Save/Preview are disabled up to that click so nothing can be saved unseen
  *   - between that diff and the edit box a three-column review block shows the Original (what
@@ -128,6 +131,8 @@ function tlImporter_fetchPageText( pageId, done ) {
 //   title   the tooltip behind it, which carries the actual reason
 //   report  how the Report names the verdict
 //   merged  whether a merge ran at all - only then may the Report show a merge result
+//   link    the one verdict that is a LINK rather than a note (chapters) - it keeps the Report
+//           from calling itself "no link" about a row that has one
 var tlImporter_noMergeVerdicts = {
     identical: {
         text: "Identical",
@@ -141,11 +146,16 @@ var tlImporter_noMergeVerdicts = {
         report: "nothing to add",
         merged: true
     },
+    // The one entry that is NOT a note any more: a chaptered page gets a LINK carrying this
+    // text and title (see the link builder below), because the hand-merge on the edit page is
+    // still worth opening. The report half is unchanged - and `merged: false` still keeps the
+    // Report from inventing a merge result nobody was shown.
     chapters: {
         text: "Chaptered",
-        title: "The MixesDB page's tracklist is split into chapters (one per set).\nMerging into one of them is not supported yet.",
-        report: "the mix page tracklist has chapters",
-        merged: false
+        title: "The MixesDB page's tracklist is split into chapters (one per set).\nMerging into one of them is not supported yet - this opens the edit form with the page's tracklist and this one side by side, to merge by hand.",
+        report: "the mix page tracklist has chapters - a link without a merge",
+        merged: false,
+        link: true
     },
     noSection: {
         text: "No Tracklist section",
@@ -199,9 +209,10 @@ function tlImporter_addNoMergeNote( wrapper, editLink, verdict, reportLink ) {
 
 // How long the "Identical" note announces itself before the checkbox is actually ticked. The
 // tick is done FOR the reader and it POSTs - so it must not happen behind their back: the note
-// fades to green and back twice, and the click lands when that ends. Paired with the
-// mdb-tlImporter-noteTick animation in the CSS - change the one, change the other.
-var tlImporter_tickDelayMs = 2400;
+// fades to green, and the click lands a beat after it got there. Long enough to be seen, short
+// enough not to be a wait. Paired with the mdb-tlImporter-noteTick animation in the CSS, which
+// is the fade itself - change the one, change the other.
+var tlImporter_tickDelayMs = 1000;
 
 // tlImporter_tickIntegrated
 // Ticks the toolkit's "TID tracklist is integrated" checkbox of THIS usage row, by clicking
@@ -298,20 +309,20 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                 return;
             }
 
-            // Chapters (";Name" rows) need their own merge logic - not yet
-            if( read.hasTracks && /^\s*;/m.test( read.tlText ) ) {
-                noLink( "chapters", "merge", read.tlText );
-                return;
-            }
-
-            var mode = read.hasTracks ? "merge" : "insert";
+            var mode = read.hasTracks ? "merge" : "insert",
+                // Chapters (";Name" rows) have no merge logic yet - but they DO have a link:
+                // it opens the edit form with the page's tracklist and the candidate side by
+                // side, so the merge can be done by hand there (tlImporter_runEditPage writes
+                // nothing into the page for it). Detected again on the edit page from the LIVE
+                // text, so the mode in the URL stays plain "merge".
+                chaptered = mode == "merge" && /^\s*;/m.test( read.tlText );
 
             // A merge that would change nothing is not worth a link: following it would only
             // open the edit form on MediaWiki's "(No difference)". The merge itself is the
             // answer - pure JS, no network - and the candidate is re-read from the box here,
             // because the page text fetch above was async. A note takes the link's place, so
             // the row does not read as "the importer never ran" - see tlImporter_addNoMergeNote.
-            var mergeTry = mode == "merge" ? tlImporter_merge( read.tlText, tlImporter_candidateText() ) : null;
+            var mergeTry = ( mode == "merge" && !chaptered ) ? tlImporter_merge( read.tlText, tlImporter_candidateText() ) : null;
 
             if( mergeTry && !mergeTry.changed ) {
                 noLink( mergeTry.identical ? "identical" : "contained", mode, read.tlText );
@@ -320,22 +331,32 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
 
             tlImporter_loadCss();
 
+            // the chaptered link keeps the verdict as its label and tooltip - it is not an
+            // import, it is the way to the hand-merge, and the row must not promise a Merge
+            // that never runs
             var importLink = $( '<a class="mdb-element mdb-mixesdbLink mdb-tlImporter-link"></a>' )
                 .attr( "href", editHref ) // placeholder - the real href is built at click time
                 .attr( "target", "_blank" )
                 .attr( "data-mdb-importmode", mode )
-                .attr( "title", mode == "merge"
-                    ? "Merge this tracklist into the tracklist the MixesDB page already has.\nOpens the edit form with the merge applied and shows the changes."
-                    : "Insert this tracklist into the MixesDB page, which has none yet.\nOpens the edit form with the tracklist filled in and shows the changes." )
-                .text( mode == "merge" ? "Merge" : "Insert" );
+                .attr( "title", chaptered
+                    ? tlImporter_noMergeVerdicts.chapters.title
+                    : mode == "merge"
+                        ? "Merge this tracklist into the tracklist the MixesDB page already has.\nOpens the edit form with the merge applied and shows the changes."
+                        : "Insert this tracklist into the MixesDB page, which has none yet.\nOpens the edit form with the tracklist filled in and shows the changes." )
+                .text( chaptered
+                    ? tlImporter_noMergeVerdicts.chapters.text
+                    : mode == "merge" ? "Merge" : "Insert" );
 
-            var reportLink = tlImporter_makeReportLink( mode, read.tlText, pageId );
+            if( chaptered ) importLink.addClass( "mdb-tlImporter-link-chapters" );
+
+            var reportLink = tlImporter_makeReportLink( mode, read.tlText, pageId, chaptered ? "chapters" : "" );
 
             // the divider (styled in global.css) groups our two links apart from EDIT/HIST -
             // its twin between HIST and the integrated checkbox comes with the toolkit markup
             editLink.before( importLink, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
-            log( "tlImporter: added " + ( mode == "merge" ? "Merge" : "Insert" ) + " link for page " + pageId );
+            log( "tlImporter: added " + ( chaptered ? "Chaptered" : mode == "merge" ? "Merge" : "Insert" ) + " link for page " + pageId
+                + ( chaptered ? " (the page tracklist has chapters - no merge, the link opens the hand-merge)" : "" ) );
         });
     });
 }
@@ -385,8 +406,8 @@ function tlImporter_reportText( link ) {
 
     if( mode ) lines.push( "* Mode: " + mode );
 
-    // only the no-link outcomes carry one - it IS the thing being reported there
-    if( reading ) lines.push( "* Verdict: no link, " + reading.report );
+    // only the outcomes with a verdict carry one - it IS the thing being reported there
+    if( reading ) lines.push( "* Verdict: " + ( reading.link ? "" : "no link, " ) + reading.report );
 
     if( original ) {
         lines.push( "" );
@@ -501,8 +522,8 @@ function tlImporter_candidateFromHash() {
 // carried our parameters is gone afterwards, and the review block has to survive that.
 // data carries everything the block renders: mode, unchanged, items (candidate rows),
 // originalItems (original rows), mergedTl (the Merged box's text), status and feedback (the
-// TLE answer for it). The version stamp keeps a payload from an older script generation from
-// reaching the new renderer.
+// TLE answer for it) - plus chapters for the no-merge reading of the block. The version stamp
+// keeps a payload from an older script generation from reaching the new renderer.
 var tlImporter_storageVersion = 2;
 
 function tlImporter_storeDiff( data ) {
@@ -1374,7 +1395,12 @@ function tlImporter_watchApplyButton( textarea, button, baseline ) {
             .toggleClass( "mdb-tlImporter-locked", !changed )
             .attr( "title", changed
                 ? "Replace the page's tracklist with this box's text, as it stands, and update the \"Tracklist:\" category and its icons.\nThe Tracklist Editor is asked once for the verdict on the way - the text itself is not changed."
-                : "Nothing to apply: the box holds exactly what the merge already wrote into the page.\nEdit the box - or let the Tracklist Editor format it - and the button wakes up." );
+                // an EMPTY baseline is the chaptered case, where nothing was merged and the
+                // box is the reader's blank workbench - "the box holds what the merge wrote"
+                // would be a sentence about a merge that never ran
+                : $.trim( baseline || "" ) === ""
+                    ? "Nothing to apply: the box is empty.\nMerge the candidate into the page's tracklist here and the button wakes up."
+                    : "Nothing to apply: the box holds exactly what the merge already wrote into the page.\nEdit the box - or let the Tracklist Editor format it - and the button wakes up." );
     }
 
     // the baseline moves with a successful apply: what was just written to the page is the new
@@ -1398,9 +1424,15 @@ function tlImporter_watchApplyButton( textarea, button, baseline ) {
 //               fixes, with the TLE feedback (live updates, API calls, rows, state icons)
 //               under it and the Apply button that writes the box back into the page text
 //   Candidate – the tracklist the player site found, the parts the merge took highlighted
+//
+// data.chapters is the no-merge reading of the same block (a chaptered original): nothing was
+// merged, so nothing is highlighted, the Merged box opens EMPTY as the reader's workbench, and
+// the texts say so instead of talking about a merge that never ran.
 function tlImporter_renderDiffView( data ) {
     if( !data || !data.items || !data.items.length ) return;
     if( $( "#mdb-tlImporter-diff" ).length ) return;
+
+    var chapters = !!data.chapters;
 
     // a FIELDSET, not a div: the edit form is a column of fieldsets (the site's own
     // "Tracklist editor" among them), and the block reads as one of them, with its name on
@@ -1423,7 +1455,9 @@ function tlImporter_renderDiffView( data ) {
 
     // Original
     cols.append(
-        col( "Original", "The tracklist the page had before the merge. Highlighted parts were changed." )
+        col( "Original", chapters
+            ? "The tracklist the page has, chapters included. Nothing was merged into it."
+            : "The tracklist the page had before the merge. Highlighted parts were changed." )
             .append( tlImporter_renderPre( data.originalItems, function( item, p ) {
                 return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
             }) )
@@ -1442,6 +1476,13 @@ function tlImporter_renderDiffView( data ) {
         applyWrap = $( '<div class="mdb-tlImporter-apply-wrap"></div>' );
 
     textarea.val( data.mergedTl || "" );
+
+    // the chaptered case arrives with an empty box on purpose - a placeholder is what tells
+    // the reader that, and it disappears the moment they start writing
+    if( chapters ) {
+        textarea.attr( "placeholder", "Chaptered page - nothing was merged. Build the tracklist for the whole section here (chapters included), then Apply." );
+    }
+
     tlWrapper.append( textarea );
 
     // the OOUI classes dress the button like the wiki's own Save/Preview/Diff buttons - their
@@ -1453,7 +1494,8 @@ function tlImporter_renderDiffView( data ) {
     // an edit that changes nothing, another TLE call, and a button that looks like a step of
     // the workflow when it is not. It wakes up as soon as the text differs from what was
     // applied - by hand or through the Tracklist Editor's own formatting - and goes back to
-    // sleep if the reader undoes their change.
+    // sleep if the reader undoes their change. In the chaptered case the box starts EMPTY, so
+    // the very same rule keeps it asleep until the reader has written something.
     var applyButton = $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
 
     applyWrap.append( applyButton );
@@ -1461,7 +1503,9 @@ function tlImporter_renderDiffView( data ) {
     tlImporter_watchApplyButton( textarea, applyButton, tlImporter_applyBaseline );
 
     cols.append(
-        col( "Merged", "The result as applied to the page. Edit final fixes here, then Apply." )
+        col( "Merged", chapters
+            ? "Empty: chaptered pages are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section."
+            : "The result as applied to the page. Edit final fixes here, then Apply." )
             // named so the down state (tlImporter_applyDown) can hide exactly this column
             .addClass( "mdb-tlImporter-col-merged" )
             .append( tlWrapper, applyWrap )
@@ -1470,7 +1514,9 @@ function tlImporter_renderDiffView( data ) {
     // Candidate: green what the merge took over, orange what it could not place - gaps and
     // "?" blanks never carry a salvage flag (see tlImporter_candidateUse), so they stay plain
     cols.append(
-        col( "Candidate", "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
+        col( "Candidate", chapters
+            ? "The tracklist the player site found. Nothing is highlighted - no merge ran on this page."
+            : "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
             .append( tlImporter_renderPre( data.items, function( item, p ) {
                 if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
                 if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
@@ -1488,7 +1534,9 @@ function tlImporter_renderDiffView( data ) {
 
     // prepended AFTER the toggle so it stays the fieldset's first child - the legend is what
     // names the block on its border, like the site's own "Tracklist editor" fieldset
-    wrap.prepend( "<legend><strong>Diff</strong></legend>" );
+    wrap.prepend( chapters
+        ? "<legend><strong>Diff</strong> – chaptered page, nothing was merged</legend>"
+        : "<legend><strong>Diff</strong></legend>" );
 
     wrap.append( cols );
 
@@ -1836,6 +1884,31 @@ function tlImporter_runEditPage() {
         log( "tlImporter: the link said \"" + linkMode + "\" but the page says \"" + mode + "\" - going with the page." );
     }
 
+    // Chaptered original (";Name" rows, one chapter per set): no merge logic for it yet, so
+    // NOTHING is written - not into the page text, not into the Merged box - and "Show
+    // changes" is not clicked either, because there is no change to show. What the reader
+    // does get is the reason they came for: the page's tracklist and the candidate side by
+    // side, to merge by hand in the Merged box and Apply from there. Stored like every other
+    // review block, so it survives the form POSTs behind the wiki's own buttons.
+    if( mode == "merge" && /^\s*;/m.test( read.tlText ) ) {
+        log( "tlImporter: the page tracklist has chapters - no merge, showing the original and the candidate for the hand-merge." );
+
+        var chapterView = {
+            mode: mode,
+            chapters: true,
+            unchanged: true,
+            items: tlImporter_plainItems( tlImporter_parse( candidate ) ),
+            originalItems: tlImporter_plainItems( tlImporter_parse( read.tlText ) ),
+            mergedTl: "",
+            status: "",
+            feedback: null
+        };
+
+        tlImporter_storeDiff( chapterView );
+        tlImporter_renderDiffView( chapterView );
+        return;
+    }
+
     var finalTl = "",
         status = "",
         diffItems = null,
@@ -1857,11 +1930,6 @@ function tlImporter_runEditPage() {
             status = resIns.feedback && resIns.feedback.status ? resIns.feedback.status : "";
         }
     } else {
-        if( /^\s*;/m.test( read.tlText ) ) {
-            log( "tlImporter: the page tracklist has chapters - merging those is not supported yet." );
-            return;
-        }
-
         var mergeRes = tlImporter_merge( read.tlText, candidate );
 
         diffItems = mergeRes.diffItems;
@@ -1993,7 +2061,11 @@ function tlImporter_renderStoredDiff() {
     // The fallback behind the link-side check: when MediaWiki's own compare says the page text
     // does not change, the review block has nothing left to say - it would only repeat what
     // the edit box already holds. Clearing it also keeps it away from a "Show preview" after.
-    if( tlImporter_diffIsEmpty() ) {
+    //
+    // Not in the chaptered case: nothing was written there, so an empty compare is the NORMAL
+    // state of that page, and the block is the reader's material for the hand-merge - dropping
+    // it on the first "Show changes" would throw the candidate away for good.
+    if( !stored.chapters && tlImporter_diffIsEmpty() ) {
         log( "tlImporter: the compare shows no difference - dropping the review block." );
         tlImporter_clearStoredDiff();
         return;

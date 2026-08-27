@@ -75,12 +75,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   along (`tlImporter_makeReportLink()`, one builder for both outcomes) and names the verdict in
   the report – the case without a link must not be the case without a report, because a wrong
   verdict is precisely what needs reporting.
-- **EVERY stop the reader can see says why.** Not only the no-change ones: chaptered originals,
-  a page without a `== Tracklist ==` section and an unreadable page text all get their note plus
-  Report through the same `noLink()` in the link builder. `tlImporter_noMergeVerdicts` is the
-  one table behind it – row text, tooltip, how the Report names the verdict, and whether a merge
-  ran at all (only then may the Report show a merge result; running one for a chaptered page
-  would invent a result nobody was shown). A new stop is a new entry there, not a bare `return`.
+- **EVERY stop the reader can see says why.** Not only the no-change ones: a page without a
+  `== Tracklist ==` section and an unreadable page text get their note plus Report through the
+  same `noLink()` in the link builder. `tlImporter_noMergeVerdicts` is the one table behind it –
+  row text, tooltip, how the Report names the verdict, and whether a merge ran at all (only then
+  may the Report show a merge result; running one for a chaptered page would invent a result
+  nobody was shown). A new stop is a new entry there, not a bare `return`. Its `chapters` entry
+  is the exception that proves it: that case is a LINK now (see below) and the entry supplies
+  the link's label, tooltip and report line instead of a note's.
   The single silent stop left is "no EDIT link / no curid": there is nothing to hang a note on
   and nothing to report about.
 - **"Identical" is the certain reading, and it is the one that acts by itself.**
@@ -123,7 +125,18 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   every mid-list unknown would otherwise read as "at the end" too. An unknown whose cue lands
   within tolerance of an original track is still dropped, tail or not.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
-- **Chaptered originals (`;Name` rows) are skipped** on both sides – no link, no merge.
+- **Chaptered originals (`;Name` rows) are never merged, but they ARE opened.** The toolkit row
+  gets a third link, `Chaptered` (label and tooltip out of `tlImporter_noMergeVerdicts.chapters`,
+  dimmed by `.mdb-tlImporter-link-chapters`); the mode in the URL stays plain `merge` and
+  `tlImporter_runEditPage()` re-detects the `;` rows off the LIVE page text, like every other
+  reading there. That branch writes NOTHING – not the page text, not the category, not the
+  icons – locks nothing and does not click "Show changes": there is no change to show. It only
+  renders the review block, with `chapters: true` in the payload:
+  `tlImporter_plainItems()` (merge_core.js) turns both parsed lists into rows with no `changed` /
+  `use` / `used` on them, so nothing is highlighted – a highlight would be a claim about a merge
+  that never ran – and the Merged box opens EMPTY as the reader's workbench, Apply asleep until
+  they write something. `tlImporter_renderStoredDiff()` keeps such a block on an EMPTY compare
+  (the normal answer on a page nothing was written to), where a merge block is dropped.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
   top right corner (`tlImporter_applyDown`) moves the block AND `#editToolsBar-TLeditor` (the
   wrapper of the site's whole editor fieldset) to directly after `.editOptions` – below the
