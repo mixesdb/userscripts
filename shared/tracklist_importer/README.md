@@ -23,7 +23,8 @@ page's current text is checked:
   in its place saying so: **Identical** when the two lists are the same list, **Nothing to add**
   when the page holds everything the found tracklist has and more. The merge is tried before the
   link is offered, and one that would leave the page text as it is only leads to MediaWiki's
-  "(No difference)". Hover the note for the reason.
+  "(No difference)". Hover the note for the reason – and the **Report** link stands behind it
+  just as it does behind Insert and Merge, with the verdict named in the report.
 
 Both links open the mix page's edit form in a new tab with the work already done.
 
@@ -119,9 +120,10 @@ already holds.
 
 ### Report link
 
-Behind the Insert/Merge link sits **Report**: it opens a paste-ready Discord report holding the
-mix page's original tracklist, the found candidate and the raw merge result, plus the empty
-`Mistakes / learnings` and `Expected` lines only the reporter can fill – like the page
+Behind the Insert/Merge link – and behind the **Identical** / **Nothing to add** note, where a
+wrong verdict is the very thing worth reporting – sits **Report**: it opens a paste-ready Discord
+report holding the mix page's original tracklist, the found candidate and the raw merge result,
+plus the empty `Mistakes / learnings` and `Expected` lines only the reporter can fill – like the page
 creator's Report box.
 
 ## Known limitations

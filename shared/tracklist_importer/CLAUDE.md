@@ -71,7 +71,10 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   already carried counted as a change and produced a link into a `(No difference)` diff. The
   link builder runs the merge itself for this – it is pure JS, so that costs nothing but a few
   ms. The spot the link would have taken stays occupied by `tlImporter_addNoMergeNote()`: an
-  empty action row is indistinguishable from an importer that never ran.
+  empty action row is indistinguishable from an importer that never ran. The Report link comes
+  along (`tlImporter_makeReportLink()`, one builder for both outcomes) and names the verdict in
+  the report – the case without a link must not be the case without a report, because a wrong
+  verdict is precisely what needs reporting.
 - **"Identical" is the certain reading, and it is the one that acts by itself.**
   `tlImporter_sameTracklists()` (merge_core.js, reported through `identical` on the merge
   result) answers it off the MERGE, never off the two texts – cue format, spelling and labels
