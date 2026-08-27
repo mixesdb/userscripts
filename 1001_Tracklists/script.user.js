@@ -293,6 +293,17 @@ if( visitDomain != "mixesdb.com" ) {
  *
  * Changelog
  *
+ * 2026.08.27.6
+ * Tracklist Importer merge, half-known rows (merge_core.js v2): a page row that knows only
+ * ONE half of a track - "ID", "Chris Stussy - ?", "? - Untitled (B1)" - counts as an unknown
+ * the same way a bare "?" does. Such a row is matched by its cue time now instead of being
+ * passed over and then added a second time, and the candidate fills exactly the half the page
+ * is missing: a title the page has stays whatever the player site calls it. Artist and title
+ * are compared apart as well, so "Costigane - Camera Tricks" and "Brendan Costigane - Camera
+ * Tricks" are one track - the page's shorter spelling wins, the site's stands in the Candidate
+ * column. Reported on Chris Stussy's Essential Mix 2024-10-12, where all three shapes ended up
+ * on the page twice.
+ *
  * 2026.08.27.2
  * Tracklist Importer (shared/tracklist_importer/, beta) wired in, exactly as on TrackId.net:
  * the toolkit's usage rows gain Insert/Merge/Chaptered plus Report when the tracklist box is

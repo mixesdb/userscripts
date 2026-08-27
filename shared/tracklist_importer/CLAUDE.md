@@ -56,6 +56,35 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   what the merge wrote into the result, orange (`use` = false) what it could not place; parts
   the original already carried stay plain. Hand-salvage goes through the Merged box and its
   Apply button.
+- **An unknown row is a row's HALF that is unknown, not the string `?`.** `tlImporter_unknownParts()`
+  reads a track text as artist + title and says which half says nothing – `?`, `??`, `ID`, `ID2`;
+  never `Untitled`, which is a real title a release carries (the page's `? - Untitled (B1)` keeps
+  it against a candidate's `? - B1`). `tlImporter_isUnknownText()` is the both-halves case and
+  replaced every `trackText === "?"` in the merge, so the gap and slot machinery treats an `ID`
+  row like a `?` row; the half-known rows are deliberately NOT slots – they carry information.
+  What may be written follows from the same reading: `tlImporter_takesCandidateText()` lets the
+  candidate's text in only where the original's TITLE is unknown (a row that knows nothing at
+  all also takes a candidate that only knows the artist). That is "the original wins" per half
+  instead of per row.
+- **Nothing but a shared cue connects two half-known rows, so their KNOWN halves must not
+  contradict.** Step 3 of the matcher (reported: Chris Stussy, Essential Mix 2024-10-12, where
+  `? - Untitled (B1)`, `Chloé Caillet - ?` and their candidate rows each landed on the page a
+  second time) matches on an exactly equal cue plus one of: the page row knows nothing at all;
+  the page has no title and the candidate credits the page's artist; the page has no artist and
+  the candidate has none either; the page knows both halves and the CANDIDATE has no title (it
+  then only enriches cue and label). A cue minute alone proves nothing – two tracks can share
+  one – which is why no branch stands on the cue by itself, and why the cue must be equal, not
+  merely close. A page row already taken by an earlier candidate is skipped.
+- **Artist and title are also compared APART (step 2b).** `Costigane - Camera Tricks` and
+  `Brendan Costigane - Camera Tricks` are the same track, and whole-string similarity says no:
+  the missing first name is a fifth of the string, well past the 0.8 threshold. So the title
+  carries the match (equal or similar) and the artist only has to be COMPATIBLE – every artist
+  of the shorter credit named in the longer one, word-wise per name
+  (`tlImporter_sameArtistName`: "costigane" in "brendan costigane", never "sam" in "samantha").
+  Both halves must be KNOWN for this step; the unknown ones are step 3's business.
+  The step is anchored on the title on purpose: two different tracks with the same title AND
+  nested artist credits do not happen, while artist-anchored matching would merge every "A - X"
+  into every "A - Y".
 - **No `<li>` may survive inside the review block's feedback box.** MixesDB's own
   `ext.mixesdb.global` treats every `<li>` under `#mw-content-text` on ns-0 edit/submit pages
   as a potential track row, rewrites it via `.html().replace(/<br>[^+]/,'')` – a regex that

@@ -67,6 +67,11 @@ original is treated as more correct; the candidate only enriches it:
 - cue times and labels are added to tracks both lists carry
 - `?` unknown tracks are filled with the candidate's identification – keeping the original's
   own, usually more precise cue time
+- a track does not have to be a bare `?` to count as unknown: `ID`, `Chris Stussy - ?` and
+  `? - Untitled (B1)` are half-known rows, and the candidate fills the half that is missing –
+  the label, the title, the whole credit. Rows like these are recognized by their cue time, so
+  the halves both lists *do* know have to agree: a page row without an artist takes a found row
+  without one, a page row without a title only one that credits the same artist
 - undiscovered tracks are inserted between existing consecutive tracks
 - tracks are added in `...` gaps
 - an unknown the candidate found *behind* the last track of the tracklist is appended, even
@@ -74,7 +79,11 @@ original is treated as more correct; the candidate only enriches it:
   the page ends
 
 Titles are matched fuzzily, so spelling differences between the two sources do not produce
-duplicates, and the candidate's cues are converted to the cue format the original already uses.
+duplicates. Artist and title are compared apart as well, so an artist the page writes shorter
+than the player site does – `Costigane` where the site says `Brendan Costigane` – is still the
+same track as long as the title matches: the page's spelling stays, the site's one stands in the
+Candidate column for you to judge. The candidate's cues are converted to the cue format the
+original already uses.
 One exception: when the mix turns out to run past what the original's cue format can say – a
 track was detected at `[106]` but the page counts minutes in two digits – the whole list
 switches to the wider format (`[08]` becomes `[008]`, `[??]` becomes `[???]`) instead of mixing
