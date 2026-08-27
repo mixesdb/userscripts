@@ -157,8 +157,14 @@ function tlImporter_addNoMergeNote( wrapper, editLink, identical, reportLink ) {
     // same shape and same divider as the link row: [note Report] | [EDIT HIST]
     editLink.before( note, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
-    if( identical ) tlImporter_tickIntegrated( wrapper );
+    if( identical ) tlImporter_tickIntegrated( wrapper, note );
 }
+
+// How long the "Identical" note announces itself before the checkbox is actually ticked. The
+// tick is done FOR the reader and it POSTs - so it must not happen behind their back: the note
+// fades to green and back twice, and the click lands when that ends. Paired with the
+// mdb-tlImporter-noteTick animation in the CSS - change the one, change the other.
+var tlImporter_tickDelayMs = 2400;
 
 // tlImporter_tickIntegrated
 // Ticks the toolkit's "TID tracklist is integrated" checkbox of THIS usage row, by clicking
@@ -170,7 +176,7 @@ function tlImporter_addNoMergeNote( wrapper, editLink, identical, reportLink ) {
 // replaces the input with the check mark, or "no such player", which replaces the whole
 // wrapper with a sentence. So: poll for a VISIBLE input, stop as soon as the input is gone,
 // and give up after ~15s (every site but TrackId.net never shows the wrapper at all).
-function tlImporter_tickIntegrated( wrapper ) {
+function tlImporter_tickIntegrated( wrapper, note ) {
     var tries = 0,
         timer = setInterval(function() {
             var box = wrapper.find( "input.mdbTrackidCheck" );
@@ -186,9 +192,23 @@ function tlImporter_tickIntegrated( wrapper ) {
 
             if( box.prop( "checked" ) ) return;
 
-            log( "tlImporter: the two tracklists are identical - ticking the integrated checkbox." );
+            log( "tlImporter: the two tracklists are identical - ticking the integrated checkbox in " + tlImporter_tickDelayMs + "ms." );
 
-            box[0].click(); // native, so the site script's own click handler does the saving
+            note.addClass( "mdb-tlImporter-note-ticking" );
+
+            setTimeout(function() {
+                note.removeClass( "mdb-tlImporter-note-ticking" );
+
+                // the reader had those seconds to tick it themselves - or to navigate on
+                if( !box.closest( "body" ).length || box.prop( "checked" ) ) {
+                    log( "tlImporter: the integrated checkbox was handled meanwhile - not ticking it." );
+                    return;
+                }
+
+                box[0].click(); // native, so the site script's own click handler does the saving
+
+                note.addClass( "mdb-tlImporter-note-ticked" );
+            }, tlImporter_tickDelayMs );
         }, 300 );
 }
 

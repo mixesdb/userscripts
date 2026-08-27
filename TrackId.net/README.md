@@ -95,7 +95,8 @@ tracklist has been carried over. Pages already marked show a check mark and how 
 happened.
 
 The checkbox ticks itself when the [Tracklist Importer](../shared/tracklist_importer/) finds the
-mix page's tracklist and this one to be the same list – the **Identical** note in the same row.
+mix page's tracklist and this one to be the same list – the **Identical** note in the same row,
+which fades to green for a moment first and stays green once the box is ticked.
 Nothing else ticks it for you: a page that merely holds everything this tracklist has stays
 untouched, and so does one the merge could still add something to.
 
