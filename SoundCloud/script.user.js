@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.2
+// @version      2026.08.27.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -69,7 +69,7 @@ logVar( "cacheVersion", cacheVersion );
 // would have built cannot be compared with the page that exists.
 // With this on, the row is shown for used players too, marked "used" and without the "Create"
 // link (which would only start a duplicate page).
-window.mdbPageCreator_showForUsedPlayers = true; // True as default for the beta phase
+window.mdbPageCreator_showForUsedPlayers = false; // Off despite the beta phase (like on TrackId.net): the big PC block on used players is confusing while the Tracklist Importer is under test
 
 // Track page loading skeleton (new layout): the grey pulsing placeholder that covers the
 // wrapper below the Track header until buttons, toolkit and tracklist box have all arrived -

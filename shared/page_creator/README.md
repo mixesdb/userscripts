@@ -362,11 +362,13 @@ least 20 minutes, which is MixesDB's lower limit. Whether a player is already us
 [Toolkit](../toolkit/)'s answer, so the row shows up once the toolkit box next to it
 has one.
 
-**During the beta** it also appears for mixes that already have a page – without the **Create**
-link, with an **Exists** link to that page instead. That is on purpose: comparing the suggestion
-against the title a human actually chose is the fastest way to find what the suggestion still
-gets wrong, and it is exactly when the **Report** box is worth filling in. It ends when the beta
-does (see the roadmap).
+**During the beta** the row can also be shown for mixes that already have a page – without the
+**Create** link, with an **Exists** link to that page instead: comparing the suggestion against
+the title a human actually chose is the fastest way to find what the suggestion still gets
+wrong, and it is exactly when the **Report** box is worth filling in. This is currently switched
+off in both site scripts, so the row again only appears for unused players – the block was in
+the way of testing the [Tracklist Importer](../tracklist_importer/), which works exactly on
+those used players.
 
 ### Hints under the title
 
