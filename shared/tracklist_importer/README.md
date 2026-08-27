@@ -94,8 +94,19 @@ Titles are matched fuzzily, so spelling differences between the two sources do n
 duplicates. Artist and title are compared apart as well, so an artist the page writes shorter
 than the player site does – `Costigane` where the site says `Brendan Costigane` – is still the
 same track as long as the title matches: the page's spelling stays, the site's one stands in the
-Candidate column for you to judge. The candidate's cues are converted to the cue format the
-original already uses.
+Candidate column for you to judge.
+
+A page row that has artist and title **the other way round** is found as well: `Caprock -
+Majestic` on the page and `Majestic - Caprock` on the player site are one track, and until now
+the found one was written into the page a second time. The two halves are held against each
+other crosswise for this, and both have to answer – the page's artist against the site's title
+*and* the page's title against the site's artist – which is why they may be spelled a little
+more loosely than a straight comparison allows. This is the one place where the found row wins
+the text: nothing of the page is lost by turning the two halves round, and the player site reads
+its credit off a release database while the page row was typed by hand. The Original column
+shows the row as the page had it, so the change is visible in the comparison.
+
+The candidate's cues are converted to the cue format the original already uses.
 Two exceptions: when the mix turns out to run past what the original's cue format can say – a
 track was detected at `[106]` but the page counts minutes in two digits – the whole list
 switches to the wider format (`[08]` becomes `[008]`, `[??]` becomes `[???]`) instead of mixing

@@ -15,7 +15,9 @@ The audiostream's identified tracks as a MixesDB tracklist, with start times as 
 in brackets. On the way there a long list of cleanups is applied, all of them learned from real
 pages:
 
-- artist names de-duplicated, country codes stripped, `feat.` moved from the title to the artist
+- artist names de-duplicated, country codes stripped, `feat.` moved from the title to the artist,
+  and the disambiguation number Discogs hangs on names that exist twice in its database
+  (`Majestic (3)`) dropped – it belongs to the database, not to the act
 - titles normalised – `Title - Some Remix` becomes `Title (Some Remix)`, remaster/`(Mixed)`
   noise removed, numeric suffixes dropped
 - labels cleaned, major labels and labels that only repeat the artist removed

@@ -27,6 +27,13 @@
 // Threshold for fuzzy matching when merging track titles (same value the merger used)
 var tlImporter_similarityThreshold = 0.8;
 
+// Threshold for the CROSSWISE comparison of step 2c, where the page's artist is held against
+// the candidate's title and the page's title against the candidate's artist. Lower than the
+// straight one on purpose: two halves both have to answer here, and that double condition
+// carries a match far better than one whole-string comparison at 0.8 does - the swapped row
+// is written by hand, so the half that is not the anchor is exactly the one written loosely.
+var tlImporter_swapSimilarityThreshold = 0.7;
+
 // How far two cues may lie apart and still mean the same moment (seconds). Candidate cues are
 // often minute-rounded ([014] = 14 min) while the original keeps real times (00:13:20), so
 // exact comparison would call every rounded cue "different". Used when filling "?" slots, when
@@ -106,6 +113,11 @@ function tlImporter_normalizeForMatching( text ) {
     text = tlImporter_normalizeStreaming( text );
     text = tlImporter_removePointlessVersions( text );
     text = tlImporter_removeVersionWords( text ).replace( / \((.+) \)/, " ($1)" );
+    // The version stripper takes the WORD out and leaves the brackets standing: "City Lights
+    // (Edit)" came out as "city lights ( )", four characters of nothing that cost similarity
+    // against a page row without the bracket - "citylights" and "city lights ( )" read as 0.67
+    // where the two names alone are 0.91. An emptied bracket says nothing, so it goes too.
+    text = text.replace(/\s*[\(\[]\s*[\)\]]/g, "");
     text = text.replace(/\s+[x×]\s+/gi, " & ");
     text = text.replace( /^(.+) (?:Ft|Feat\.|Featuring?|Pres\.?|Presents) .+ - (.+)$/, "$1 - $2" );
 
@@ -113,7 +125,7 @@ function tlImporter_normalizeForMatching( text ) {
     if (parts.length > 1) {
         var artists = parts.shift();
         var title = parts.join(" - ");
-        artists = artists
+        artists = tlImporter_stripArtistNumbers( artists )
             .replace(/\s*(?:Ft|Feat\.?|Featuring|Pres\.?|Presents|\baka\b)\s+/gi, " & ")
             .replace(/\s*,\s*/g, " & ")
             .replace(/\s+[x×]\s+/gi, " & ");
@@ -378,6 +390,30 @@ function tlImporter_artistNamesCompatible( a, b ) {
 // tlImporter_artistNamesCompatible on two whole track texts.
 function tlImporter_artistsCompatible( aText, bText ) {
     return tlImporter_artistNamesCompatible( tlImporter_artistNames( aText ), tlImporter_artistNames( bText ) );
+}
+
+// tlImporter_stripArtistNumbers
+// Discogs numbers artist names that exist more than once in its database ("Majestic (3)"), and
+// the player sites that read their metadata from there hand the number through. It is not part
+// of the act's name, so it never takes part in a comparison: left in, it drags the similarity
+// under the threshold and makes the credit look like a different artist. Per name, so a comma
+// list keeps its other credits; max 3 digits, so a year in brackets is not read as one.
+// TrackId.net strips it on its own side as well – this is the safety net for a candidate that
+// arrives from somewhere else, or from an older cached copy of that script.
+function tlImporter_stripArtistNumbers( artists ) {
+    return String( artists || "" ).replace( /\s*\(\d{1,3}\)(?=\s*(?:,|&|$))/g, "" );
+}
+
+// tlImporter_artistNorm
+// The artist half normalized for comparison, "" when the row has no artist of its own or an
+// unknown one – the counterpart of tlImporter_titleNorm, and what step 2c holds against the
+// other side's title.
+function tlImporter_artistNorm( text ) {
+    var parts = tlImporter_unknownParts( text );
+
+    if( !parts.artist || parts.artistUnknown || parts.artist === text ) { return ""; }
+
+    return tlImporter_normalizeForMatching( tlImporter_stripArtistNumbers( parts.artist ) );
 }
 
 // tlImporter_titleNorm
@@ -1092,7 +1128,13 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             // so a "?" filled by an earlier candidate must not be re-read as a title later
             var titleNorm = tlImporter_titleNorm( item.trackText );
             if (titleNorm) {
-                splitList.push({ item: item, artistNames: tlImporter_artistNames( item.trackText ), titleNorm: titleNorm });
+                splitList.push({
+                    item: item,
+                    artistNames: tlImporter_artistNames( item.trackText ),
+                    // the artist as ONE normalized string, for the crosswise compare of step 2c
+                    artistNorm: tlImporter_artistNorm( item.trackText ),
+                    titleNorm: titleNorm
+                });
             }
 
             var norms = tlImporter_matchNorms( item.trackText );
@@ -1195,6 +1237,40 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                     }
                 }
             }
+
+            // 2c) Fallback: the page has the two halves the OTHER WAY ROUND. A row typed off
+            // what a player showed ends up as "Caprock - Majestic" where the release credits
+            // "Majestic - Caprock", and no straight comparison can see it - the whole string
+            // is a different string, and step 2b holds both halves against the wrong
+            // counterpart (reported: Groove Podcast 498 Doudou MD, trackid.net). So the halves
+            // are compared CROSSWISE and BOTH have to answer: the page's artist against the
+            // candidate's title, the page's title against the candidate's artist. That double
+            // condition is what carries the lower threshold - one fuzzy half on its own would
+            // match half the list.
+            // Here, and only here, the CANDIDATE wins the text. Both sides carry the same two
+            // halves, so nothing of the page is lost by turning them round, and the player
+            // site read its credit out of a release database while the page row was typed by
+            // hand - which is how the halves got swapped in the first place.
+            if (!origItem) {
+                var candSwapArtistNorm = tlImporter_artistNorm( candidateName ),
+                    candSwapTitleNorm  = tlImporter_titleNorm( candidateName );
+
+                // a row whose two halves read the same says nothing either way round
+                if (candSwapArtistNorm && candSwapTitleNorm && candSwapArtistNorm !== candSwapTitleNorm) {
+                    for (e = 0; e < splitList.length; e++) {
+                        var split = splitList[e];
+
+                        if (!split.artistNorm || split.artistNorm === split.titleNorm) continue;
+                        if (typeof split.item._mergeMatchedCandidateIndex === "number") continue; // taken by an earlier candidate
+                        if (!isLikelySimilarText( split.artistNorm, candSwapTitleNorm, tlImporter_swapSimilarityThreshold )) continue;
+                        if (!isLikelySimilarText( split.titleNorm, candSwapArtistNorm, tlImporter_swapSimilarityThreshold )) continue;
+
+                        origItem = split.item;
+                        cand._ti_swapped = true;
+                        break;
+                    }
+                }
+            }
         }
 
         // 3) Fallback: the same cue, where one side does not know what the other does. The
@@ -1231,7 +1307,10 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         if (origItem) {
             cand._ti_matchedOrig = origItem;
 
-            if (tlImporter_takesCandidateText( origItem.trackText, candidateName )) {
+            // A swapped match (step 2c) is the one place where the candidate's text beats the
+            // page's – there is no half to lose, only the order of the two to correct.
+            if (cand._ti_swapped ? origItem.trackText !== candidateName
+                                 : tlImporter_takesCandidateText( origItem.trackText, candidateName )) {
                 origItem.trackText = candidateName;
                 cand._ti_usedText = true;
                 state.changes++;

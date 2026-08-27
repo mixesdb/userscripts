@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.3
+// @version      2026.08.28.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_18
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_44
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
@@ -122,6 +122,13 @@ String.prototype.fixTidArtistnames = function() {
 
     var text = this.toString()
                    .replace( "Danilo Plessow & Motor City Drum Ensemble", "Motor City Drum Ensemble" )
+                   // Discogs numbers artists whose name exists more than once in its database
+                   // ("Majestic (3)") and TID hands that number through. It is not part of the
+                   // act's name, it only keeps the database rows apart - and on the wiki it
+                   // makes the credit a different artist than the one the page already knows.
+                   // Per name, so a comma list keeps its other credits: "Majestic (3), Foo (2)".
+                   // Max 3 digits, so a year in brackets is not read as one.
+                   .replace( /\s*\(\d{1,3}\)(?=\s*(?:,|&|$))/g, '' )
                    ;
     return text;
 };
@@ -2435,6 +2442,25 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.4
+ * Tracklist Importer merge, artist and title the WRONG WAY ROUND (merge_core.js v19, reported
+ * on Groove Podcast 498 Doudou MD -> curid 736753), plus the Discogs number on this script's
+ * own artist names. The page had "Caprock - Majestic", the detection "Majestic (3) - Caprock
+ * [Taste]", and every match step said no: the whole strings differ, and comparing the halves
+ * straight holds each one against the wrong counterpart. So the detection was INSERTED as a
+ * second row for the same track. The halves are now also compared CROSSWISE - the page's
+ * artist against the detection's title AND the page's title against the detection's artist,
+ * both known on both sides, both having to answer. That double condition carries a lower
+ * threshold (0.7 against the straight 0.8), and the detection then WINS the text: the same two
+ * halves, only turned round, and this side reads its credit off a release database while the
+ * page row was typed by hand. The " (3)" is a Discogs disambiguation number for names that
+ * exist twice in its database, not part of the act - fixTidArtistnames() takes it out of the
+ * tracklist box (max 3 digits, so a year in brackets stays), and merge_core ignores it in every
+ * comparison, so an older cached sender still matches. One more thing fell out of it: the
+ * version stripper left the brackets of the word it removed standing, so "City Lights (Edit)"
+ * compared as "city lights ( )" - 0.67 against the page's "Citylights" where the two names
+ * alone are 0.91. Emptied brackets are dropped now, which helps every fuzzy step.
  *
  * 2026.08.28.3
  * Tracklist Importer Report: the "## Cue gaps" block moved up, from behind the merged tracklist
