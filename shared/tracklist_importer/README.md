@@ -29,7 +29,10 @@ page's current text is checked:
 Both links open the mix page's edit form in a new tab with the work already done.
 
 **Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you: when the
-mix page carries exactly this tracklist, it *is* integrated. It is the certain reading – every
+mix page carries exactly this tracklist, it *is* integrated. It says so before it does it – the
+note fades to green and back for a moment, and only then is the box ticked, so the tick happens
+in front of you and not behind your back. Tick it yourself in that moment and nothing else
+happens. It is the certain reading – every
 track of the found tracklist sits on the page, the page has no track the found one is missing,
 and there is nothing left over the merge could not place. **Nothing to add** never ticks anything:
 the page knows more than the found tracklist there, and whether that counts as integrated is your

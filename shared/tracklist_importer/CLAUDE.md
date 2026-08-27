@@ -83,7 +83,11 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   same original row, nothing on it `tlImporter_candidateUse()` could not place) and no original
   row or gap left over. Only that ticks the toolkit's "TID tracklist is integrated" checkbox
   (`tlImporter_tickIntegrated()`, a native `.click()` so TrackId.net's own handler does the
-  saving – which POSTs, and the site knows no way back). A candidate merely CONTAINED in a
+  saving – which POSTs, and the site knows no way back). Which is why it is DELAYED and
+  announced: the note runs the `mdb-tlImporter-noteTick` pulse for `tlImporter_tickDelayMs`
+  (the two state the same span, keep them in step) and the click lands after it, so nothing is
+  written before the reader had a chance to see it coming – a tick they made themselves in that
+  window cancels ours. A candidate merely CONTAINED in a
   longer original is not identical: it reads "Nothing to add" and ticks nothing, because the
   page then knows more than the player site and only the reader can judge that.
   The tick has to WAIT: the checkbox arrives hidden and TrackId.net only shows it once its own

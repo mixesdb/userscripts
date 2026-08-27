@@ -31,6 +31,7 @@
     opacity: .62;
     cursor: help;
     white-space: nowrap;
+    --mdb-tlImporter-noteGreen: #8cc73f; /* the tick colours below - see there */
 }
 
 /* the Report link behind the note. global.css spaces the row's pills with "a + a", which a
@@ -40,10 +41,36 @@
 }
 
 /* the certain half of it - the same list on both sides, and the "TID tracklist is integrated"
-   checkbox was ticked from it. Full strength instead of a colour: the toolkit runs on bright
+   checkbox is ticked from it. Full strength instead of a colour: the toolkit runs on bright
    and on dark sites, and no one green reads well on both. */
 .mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-identical {
     opacity: 1;
+}
+
+/* The tick happens by itself, so it announces itself: the note fades to green and back while
+   the click is still pending (tlImporter_tickDelayMs in funcs.js states the same span - keep
+   the two in step), and stays green once the checkbox has been ticked. The green is the
+   toolkit's own "integrated" green, kept in the --mdb-tlImporter-noteGreen variable on the note
+   because keyframes are global and the bright sites need the darker one - same split as in
+   global.css. */
+.mdb-toolkit.mixcloud-com .mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note {
+    --mdb-tlImporter-noteGreen: #75b224;
+}
+
+/* no 0%/100% stops on purpose: the implicit ones are the note's own colour, whatever the site
+   gives it, so the pulse always returns to where it started */
+@keyframes mdb-tlImporter-noteTick {
+    50% {
+        color: var(--mdb-tlImporter-noteGreen);
+    }
+}
+
+.mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-ticking {
+    animation: mdb-tlImporter-noteTick 1.2s ease-in-out 2;
+}
+
+.mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-ticked {
+    color: var(--mdb-tlImporter-noteGreen);
 }
 
 /* the review block between MediaWiki's diff and the wiki edit box (mixesdb.com).
