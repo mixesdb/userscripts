@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.19
+// @version      2026.08.27.20
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -19,7 +19,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_118
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 202,
+var cacheVersion = 203,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -1055,13 +1055,22 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
  * the space below it, where page creator row and toolkit appear together at the reveal - the
  * row is placed "after" the player wrapper (funcTidPageCreator), so it is a hidden direct
  * child of the extras wrapper like the toolkit, not a visible part of the kept player.
- * No height option: the default in page_creator.css is the one source of truth - an inline
- * height here would silently win over any value tuned in the CSS.
+ * Row and toolkit are SEPARATE stand-in boxes: the "pageCreator" one only where the row
+ * really comes - funcTidPageCreator only builds it on audiostream detail pages with a
+ * SoundCloud player, and a grey box for a row that never arrives would reveal into a hole.
+ * The player URL is read off the wrapper (data-tidplayerurl), where both callers put it.
+ * No height option: the values in page_creator.css are the one source of truth - an inline
+ * height here would silently win over any value tuned in the CSS (the toolkit-only and the
+ * row+toolkit case each have their own height there).
  */
 function tidSkeleton_show() {
+    var playerUrl = $("#mdb-tid-audiostreamExtras").attr("data-tidplayerurl") || "",
+        rowComes = urlPath_noParams(1) == "audiostreams" && urlPath_noParams(2)
+                   && getDomain_fromUrlStr( playerUrl ) == "soundcloud.com";
+
     mdbSkeleton_show({
         target: "#mdb-tid-audiostreamExtras",
-        rows:   [ "toolkit" ],
+        rows:   rowComes ? [ "pageCreator", "toolkit" ] : [ "toolkit" ],
         keep:   ".mdb-player-audiostream"
     });
 }
@@ -2179,6 +2188,15 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.20
+ * The loading skeleton below the player shows the page creator row and the toolkit as two
+ * SEPARATE grey boxes instead of the one merged block (page_creator.js v_119, new
+ * "pageCreator" row type, and page_creator.css): the row's box only on audiostream detail
+ * pages with a SoundCloud player - the only pages funcTidPageCreator builds a row for
+ * (tidSkeleton_show reads the wrapper's data-tidplayerurl). Heights tuned against a
+ * revealed page (aka-aka-pres-rhythm-prism-radio-053): row box 110px, both boxes 220px
+ * total; toolkit-only pages keep the 125px box.
  *
  * 2026.08.27.18
  * Tracklist Importer: "Nothing to add" is treated like "Identical" now (tracklist_importer

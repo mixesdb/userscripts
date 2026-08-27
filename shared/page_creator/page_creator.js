@@ -8652,10 +8652,10 @@ function mdbPageCreator_tracklistWikitext() {
  *       target:     "#mdb-sc-trackExtras",  // selector string of the container to cover -
  *                                           // ALL its other children are display:none'd,
  *                                           // so it must be a container the script owns
- *       rows:       [ "head", "dates", "buttons", "player", "toolkit" ], // any subset, in
- *                                           // order; default [ "toolkit" ]
- *       height:     300,                    // px, optional - default is the 230px in
- *                                           // page_creator.css
+ *       rows:       [ "head", "dates", "pageCreator", "buttons", "player", "toolkit" ],
+ *                                           // any subset, in order; default [ "toolkit" ]
+ *       height:     300,                    // px, optional - the heights in
+ *                                           // page_creator.css are the default
  *       keep:       ".mdb-player-audiostream", // optional - direct children matching this
  *                                           // stay visible while loading (and are skipped
  *                                           // by the reveal fade): an embedded player that
@@ -8713,7 +8713,10 @@ function mdbSkeleton_noToolkit() {
 // The stand-in rows, composed from the row names the site passed. The shapes and sizes live
 // in page_creator.css; the sites share one vocabulary so the skeleton looks the same
 // everywhere: "head" (headline + artwork bar), "dates", "buttons" (pill row), "player"
-// (embed-sized block) and "toolkit" (the block that also absorbs the box's leftover height).
+// (embed-sized block), "pageCreator" (the page creator row's own box) and "toolkit" (the
+// toolkit's own box, which also absorbs the skeleton's leftover height). The two features
+// are SEPARATE boxes on purpose - one merged grey block misread as one thing arriving where
+// the page really gets two.
 function mdbSkeleton_html( rows ) {
     function bars( n ) {
         var out = "", i;
@@ -8742,6 +8745,9 @@ function mdbSkeleton_html( rows ) {
                 break;
             case "player":
                 html += '<div class="mdb-skeleton-bar mdb-skeleton-player"></div>';
+                break;
+            case "pageCreator":
+                html += '<div class="mdb-skeleton-block mdb-skeleton-pageCreator">' + bars(3) + '</div>';
                 break;
             case "toolkit":
                 html += '<div class="mdb-skeleton-block mdb-skeleton-toolkit">' + bars(2) + '</div>';

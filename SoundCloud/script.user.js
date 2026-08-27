@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.3
+// @version      2026.08.27.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_118
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_119
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -46,7 +46,7 @@
  * frames (widget players etc.) stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 175,
+var cacheVersion = 176,
     scriptName = "SoundCloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -1688,7 +1688,9 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
             // shared/page_creator/page_creator.js.
             mdbSkeleton_show({
                 target: "#mdb-sc-trackExtras",
-                rows:   [ "head", "dates", "buttons", "toolkit" ],
+                // pageCreator between dates and buttons: that is where the real row lands
+                // (mdbPageCreator_add places it after #mdb-trackHeader-headline)
+                rows:   [ "head", "dates", "pageCreator", "buttons", "toolkit" ],
                 extraReady: function() {
                     // buttons built from the API answer, or the API failure note (a direct
                     // wrapper child) - either way the SC API side is done
@@ -1904,6 +1906,14 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.08.27.4
+ * The loading skeleton shows the page creator row and the toolkit as two SEPARATE grey
+ * boxes instead of one merged block (page_creator.js v_119 - new "pageCreator" row type -
+ * and page_creator.css): the skeleton column itself is transparent now, the two feature
+ * stand-ins carry the dark surface, and the row's box sits between the dates and the
+ * buttons, where the real row lands. Heights tuned against a revealed track
+ * (coda-mix-066-offtrack): row box 90px, total unchanged at ~300px incl. margins.
  *
  * 2026.08.27.1
  * The MixesDB modal is a shared feature now (shared/mixesdb_modal/, split out of

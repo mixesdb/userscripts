@@ -1425,6 +1425,12 @@
  * (the tracklist textarea) sizes via its rows attribute, counted from the text, not from
  * the DOM. Hardcoded dark greys: both sites showing it (SoundCloud's redesigned track
  * pages, TrackId.net) are dark-themed.
+ *
+ * #mdb-skeleton itself is a TRANSPARENT flex column, not a box: the real additions sit
+ * directly on the page background, and the page creator row and the toolkit - the two
+ * features being waited for - are each their own dark box (.mdb-skeleton-block), so the
+ * skeleton shows two separate things arriving, the way the page really gets them. The bar
+ * rows (head/dates/buttons) float between the boxes like their real counterparts do.
  */
 /* .mdb-skeleton-keep marks direct children the site wants visible DURING loading (the keep
    option of mdbSkeleton_show() - TID's embedded player) */
@@ -1433,9 +1439,11 @@
 }
 
 /* Fixed height (the height option of mdbSkeleton_show() overrides inline), not the
-   stand-ins' natural height - the box reserves the space of the TYPICAL final content, and
-   an area that ends up taller simply grows in the one reveal step. Flex column: the fixed
-   rows keep their size and the toolkit stand-in absorbs whatever height is left. */
+   stand-ins' natural height - the column reserves the space of the TYPICAL final content,
+   and an area that ends up taller simply grows in the one reveal step. Flex column: the
+   fixed rows keep their size and the toolkit stand-in absorbs whatever height is left.
+   280px + the 10px margins = the ~300px a revealed SoundCloud track measures without a
+   tracklist box (coda-mix-066-offtrack, 2026-08-27). */
 #mdb-skeleton {
     box-sizing: border-box;
     height: 280px;
@@ -1443,9 +1451,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: #1c1c1c;
-    border-radius: 8px;
-    padding: 16px;
     margin-top: 10px;
     margin-bottom: 10px;
 }
@@ -1535,16 +1540,37 @@
     margin-bottom: 12px;
 }
 
-/* "toolkit" stand-in - the flex absorber that fills the box below the other rows */
+/* The feature stand-ins: page creator row and toolkit as two separate dark boxes - the
+   surface the whole skeleton used to be is theirs now */
 #mdb-skeleton .mdb-skeleton-block {
-    background-color: #212121;
-    border-radius: 6px;
+    box-sizing: border-box;
+    background-color: #1c1c1c;
+    border-radius: 8px;
     padding: 12px;
 }
 #mdb-skeleton .mdb-skeleton-block .mdb-skeleton-bar {
     height: 9px;
-    background-color: #2b2b2b;
+    background-color: #2e2e2e;
 }
+#mdb-skeleton .mdb-skeleton-block .mdb-skeleton-bar + .mdb-skeleton-bar {
+    margin-top: 8px;
+}
+
+/* "pageCreator" stand-in - the row's real height on a revealed SoundCloud track (90px,
+   coda-mix-066-offtrack, 2026-08-27): title line, score/create line, hints line */
+#mdb-skeleton .mdb-skeleton-pageCreator {
+    height: 90px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+#mdb-skeleton .mdb-skeleton-pageCreator .mdb-skeleton-bar {
+    height: 14px;
+    width: 58%;
+}
+#mdb-skeleton .mdb-skeleton-pageCreator .mdb-skeleton-bar:nth-child(2) { height: 10px; width: 24%; }
+#mdb-skeleton .mdb-skeleton-pageCreator .mdb-skeleton-bar:nth-child(3) { height: 10px; width: 40%; }
+
+/* "toolkit" stand-in - the flex absorber that fills the column below the other rows */
 #mdb-skeleton .mdb-skeleton-toolkit {
     flex: 1 1 auto;
     min-height: 0;
@@ -1552,9 +1578,6 @@
 }
 #mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar {
     width: 45%;
-}
-#mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar + .mdb-skeleton-bar {
-    margin-top: 8px;
 }
 #mdb-skeleton .mdb-skeleton-toolkit .mdb-skeleton-bar:nth-child(2) { width: 30%; }
 
@@ -1635,8 +1658,20 @@ body.soundcloud-com {
  * trackid.net
  */
 body.trackid-net {
+    /* toolkit-only skeleton (non-SoundCloud players: no page creator row comes) */
     & #mdb-skeleton {
         height: 125px;
+    }
+
+    /* with the page creator stand-in (SoundCloud players): row box + toolkit box, sized to
+       a revealed audiostream page (row 124px incl. hints, toolkit 74px; measured
+       aka-aka-pres-rhythm-prism-radio-053, 2026-08-27) */
+    & #mdb-skeleton:has(> .mdb-skeleton-pageCreator) {
+        height: 220px;
+    }
+
+    & #mdb-skeleton .mdb-skeleton-pageCreator {
+        height: 110px;
     }
     
     & #mdb-pageCreator-confidence * {

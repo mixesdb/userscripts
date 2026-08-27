@@ -85,8 +85,10 @@ All other children of `target` are `display:none` until the toolkit verdict is i
 `extraReady()` - if given - says the site's own async pieces are done, and the container's DOM
 has been quiet for a settle window; then skeleton and content swap in one step (6s cap either
 way). `rows` composes the grey stand-ins from a shared vocabulary (`head`, `dates`, `buttons`,
-`player`, `toolkit`); `keep` names direct children that stay visible while loading and skip the
-reveal fade (TID's embedded player - built on the spot, so covering it would only delay
+`player`, `pageCreator`, `toolkit` - the last two are each their own dark box, so the page
+creator row and the toolkit read as the two separate things they are; pass `pageCreator` only
+where the row really comes); `keep` names direct children that stay visible while loading and
+skip the reveal fade (TID's embedded player - built on the spot, so covering it would only delay
 playback); `window.mdbSkeleton_enabled = false` (site debug settings) turns it into timing-only
 mode, which logs the same "everything loaded" line without covering anything. SoundCloud and
 TrackId.net are the two callers.
