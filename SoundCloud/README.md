@@ -88,8 +88,9 @@ afterwards is left alone. Works with English and German account locales.
 
 ### Loading placeholder
 
-Until everything below the player has arrived – headline, dates, buttons, toolkit and tracklist
-box – a grey pulsing placeholder holds their space and the finished block appears in one step –
+Until everything below the player has arrived – headline, dates, buttons, page creator row,
+toolkit and tracklist box – grey pulsing placeholders hold their space and the finished content
+appears in one step; the page creator row and the toolkit are two separate placeholder boxes –
 see [Page creator](../shared/page_creator/#loading-placeholder). Only on the redesigned track
 pages.
 

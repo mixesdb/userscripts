@@ -48,9 +48,10 @@ MixesDB page.
 
 ### Loading placeholder
 
-The embedded player shows straight away; below it, a grey pulsing placeholder holds the space of
-the toolkit and the page creator row until they have arrived, and they appear in one step – see
-[Page creator](../shared/page_creator/#loading-placeholder).
+The embedded player shows straight away; below it, grey pulsing placeholders hold the space of
+the page creator row and the toolkit – one box each – until they have arrived, and they appear
+in one step. The page creator box only shows for SoundCloud players, the ones the row exists
+for – see [Page creator](../shared/page_creator/#loading-placeholder).
 
 ### MixesDB page creator
 

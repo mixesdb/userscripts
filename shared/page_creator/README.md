@@ -1007,14 +1007,18 @@ says about the text.
 ### Loading placeholder
 
 The MixesDB additions around a player arrive from different API answers – the toolkit, the title
-row, buttons, the tracklist box – each a moment after the other. Until they are all in, a dark
-grey pulsing placeholder holds their space, and the finished block then appears in one step
+row, buttons, the tracklist box – each a moment after the other. Until they are all in, dark
+grey pulsing placeholders hold their space, and the finished content then appears in one step
 instead of piece by piece. If an answer takes too long, whatever has arrived is shown after a
 few seconds.
 
+The page creator row and the toolkit are two separate placeholder boxes, standing where each of
+them will appear – the page really gets two things there, not one block.
+
 Where it shows: SoundCloud's redesigned track pages and TrackId.net's audiostream pages. On
 TrackId.net the embedded player itself is not covered – it shows and can play straight away; the
-placeholder only holds the space below it.
+placeholders only hold the space below it, and the page creator box only appears for SoundCloud
+players, the ones the row exists for.
 
 ## Known limitations
 
