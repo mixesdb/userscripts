@@ -812,6 +812,140 @@ function tlImporter_medianTrackRuntimeSec( runtimes ) {
     return median > 0 ? median : null;
 }
 
+// tlImporter_minText
+// Seconds as "4.2 min", one decimal – the one wording for a span, so the log lines and the
+// Report's cue gap block cannot drift apart.
+function tlImporter_minText( sec ) {
+    return ( Math.round( sec / 60 * 10 ) / 10 ) + " min";
+}
+
+// tlImporter_countText
+// "1 track" / "8 tracks" – the Report counts things in prose, and "1 distance(s)" reads like a
+// bug in the report rather than a number worth checking.
+function tlImporter_countText( n, word ) {
+    return n + " " + word + ( n === 1 ? "" : "s" );
+}
+
+// tlImporter_gapReading
+// The MEASUREMENT tlImporter_dropRedundantGaps decides on, taken apart from the deciding: how
+// many tracks and "..." the list has, how long one of its tracks runs (the median), how much
+// span a "..." therefore needs, and what every "..." between two known cues actually spans.
+//
+// Split out because the Report has to print these numbers for the ORIGINAL and the CANDIDATE
+// too, where no drop ever runs: a report saying "the ... stayed" without saying against which
+// median cannot be turned into an example, and a reader cannot tell a list that has no gaps
+// from one the step stood down on. Which is why nothing is left silent here – every reason not
+// to judge lands in `stood` as a sentence, and the caller prints it.
+//
+// Touches nothing: the flags are set by tlImporter_dropRedundantGaps, on the rows this reading
+// hands back in `rows`.
+function tlImporter_gapReading( tl_arr ) {
+    // Printed rows only, in list order – a "track (false)" never reaches the page and must not
+    // separate two neighbours.
+    var rows = ( tl_arr || [] ).filter(function( item ){
+            return item.type === "gap" || item.type === "track";
+        }),
+        sec = [],
+        gapRows = 0,
+        unreadable = false,
+        i;
+
+    for( i = 0; i < rows.length; i++ ) {
+        if( rows[i].type === "gap" ) {
+            gapRows++;
+            sec.push( null );
+            continue;
+        }
+
+        var cueSec = tlImporter_cueToSec( rows[i].cue );
+
+        // One unreadable cue and the whole step stands down: the distances around a "[??]" or
+        // an inferred "[09?]" row are guesses, and a median may not be built from guesses.
+        if( cueSec === null ) { unreadable = true; }
+
+        sec.push( cueSec );
+    }
+
+    var reading = {
+        rows: rows,             // the drop step's business – the hole indices point into this
+        tracks: rows.length - gapRows,
+        gaps: gapRows,
+        samples: 0,
+        median: null,           // seconds, null while nothing could be measured
+        maxSpan: null,          // seconds a "..." has to beat to survive
+        holes: [],              // [{ dist, gaps: [rowIndex], drop, after, before }]
+        stood: "",              // why nothing was judged, in words
+        applied: false          // whether the drop actually ran on this reading
+    };
+
+    if( unreadable ) {
+        reading.stood = "a cue could not be read, so no distance around it may be measured";
+        return reading;
+    }
+
+    // One pass for both readings: the distances WITHOUT a gap between them are the sample, the
+    // ones WITH are the holes to decide. A run of gaps between the same two tracks is one hole.
+    var runtimes = [],
+        holes = [],
+        prevTrack = -1,
+        pending = [];
+
+    for( i = 0; i < rows.length; i++ ) {
+        if( rows[i].type === "gap" ) {
+            if( prevTrack > -1 ) { pending.push( i ); } // a leading gap has no span to measure
+            continue;
+        }
+
+        if( prevTrack > -1 ) {
+            var dist = sec[i] - sec[ prevTrack ];
+
+            if( pending.length ) {
+                holes.push({
+                    dist: dist,
+                    gaps: pending,
+                    drop: false,
+                    // what the Report names the hole by – the two rows it sits between
+                    after: tlImporter_gapRowText( rows[ prevTrack ] ),
+                    before: tlImporter_gapRowText( rows[i] )
+                });
+            } else {
+                runtimes.push( dist );
+            }
+        }
+
+        prevTrack = i;
+        pending = [];
+    }
+    // whatever is left in pending is a TRAILING gap – nothing follows it, nothing to measure
+
+    reading.samples = runtimes.length;
+    reading.median = tlImporter_medianTrackRuntimeSec( runtimes );
+    reading.holes = holes;
+
+    if( reading.median === null ) {
+        reading.stood = "only " + tlImporter_countText( runtimes.length, "gapless neighbour distance" )
+                        + ", no median to judge by";
+        return reading;
+    }
+
+    reading.maxSpan = reading.median * tlImporter_gapRuntimeFactor;
+
+    holes.forEach(function( hole ){
+        // A backwards distance means the list is out of order – not something to act on here.
+        hole.drop = hole.dist >= 0 && hole.dist <= reading.maxSpan;
+    });
+
+    return reading;
+}
+
+// tlImporter_gapRowText
+// One row as the Report names it: "[15] Retina Burn", cue included where there is one.
+function tlImporter_gapRowText( row ) {
+    var cue = row && row.cue ? "[" + row.cue + "] " : "";
+
+    return cue + ( ( row && row.trackText ) || "" );
+}
+
 // tlImporter_dropRedundantGaps
 // The last reading of the merge: a "..." the merged cues themselves say is empty.
 //
@@ -840,84 +974,35 @@ function tlImporter_medianTrackRuntimeSec( runtimes ) {
 // The dropped gap stays in the array with a flag rather than being spliced out:
 // tlImporter_textFromArr() skips it, while tlImporter_originalItems() keeps showing it in the
 // review block's Original column, which has to show what the PAGE held.
+//
+// Returns the reading it acted on (tlImporter_gapReading), so the merge can hand the same
+// numbers to the Report instead of them living only in the console.
 function tlImporter_dropRedundantGaps( tl_arr ) {
-    // Printed rows only, in list order – a "track (false)" never reaches the page and must not
-    // separate two neighbours.
-    var rows = tl_arr.filter(function( item ){
-            return item.type === "gap" || item.type === "track";
-        }),
-        sec = [],
-        hasGap = false,
-        i;
+    var reading = tlImporter_gapReading( tl_arr );
 
-    for( i = 0; i < rows.length; i++ ) {
-        if( rows[i].type === "gap" ) {
-            hasGap = true;
-            sec.push( null );
-            continue;
-        }
-
-        var cueSec = tlImporter_cueToSec( rows[i].cue );
-
-        if( cueSec === null ) { return tl_arr; } // one unreadable cue and the whole step stands down
-
-        sec.push( cueSec );
+    if( reading.stood ) {
+        // Only worth a line where there was something to judge – a list without a single "..."
+        // is not standing down, it has nothing to decide.
+        if( reading.gaps ) { tlImporter_log( "gap check: " + reading.stood ); }
+        return reading;
     }
 
-    if( !hasGap ) { return tl_arr; }
+    if( !reading.holes.length ) { return reading; }
 
-    // One pass for both readings: the distances WITHOUT a gap between them are the sample, the
-    // ones WITH are the holes to decide. A run of gaps between the same two tracks is one hole.
-    var runtimes = [],
-        holes = [],
-        prevTrack = -1,
-        pending = [];
+    tlImporter_log( "gap check: median runtime " + tlImporter_minText( reading.median ) + ", "
+                    + "a \"...\" needs more than " + tlImporter_minText( reading.maxSpan ) + " of span" );
 
-    for( i = 0; i < rows.length; i++ ) {
-        if( rows[i].type === "gap" ) {
-            if( prevTrack > -1 ) { pending.push( i ); } // a leading gap has no span to measure
-            continue;
-        }
+    reading.holes.forEach(function( hole ){
+        if( !hole.drop ) { return; }
 
-        if( prevTrack > -1 ) {
-            var dist = sec[i] - sec[ prevTrack ];
+        hole.gaps.forEach(function( g ){ reading.rows[g]._ti_gapDropped = true; });
 
-            if( pending.length ) {
-                holes.push({ dist: dist, gaps: pending });
-            } else {
-                runtimes.push( dist );
-            }
-        }
-
-        prevTrack = i;
-        pending = [];
-    }
-    // whatever is left in pending is a TRAILING gap – nothing follows it, nothing to measure
-
-    if( !holes.length ) { return tl_arr; }
-
-    var median = tlImporter_medianTrackRuntimeSec( runtimes );
-
-    if( median === null ) {
-        tlImporter_log( "gap check: only " + runtimes.length + " gapless neighbour(s), no median to judge by" );
-        return tl_arr;
-    }
-
-    var maxSpan = median * tlImporter_gapRuntimeFactor;
-
-    tlImporter_log( "gap check: median runtime " + Math.round( median / 60 * 10 ) / 10 + " min, "
-                    + "a \"...\" needs more than " + Math.round( maxSpan / 60 * 10 ) / 10 + " min of span" );
-
-    holes.forEach(function( hole ){
-        // A backwards distance means the list is out of order – not something to act on here.
-        if( hole.dist < 0 || hole.dist > maxSpan ) { return; }
-
-        hole.gaps.forEach(function( g ){ rows[g]._ti_gapDropped = true; });
-
-        tlImporter_log( "gap check: dropped a \"...\" spanning " + Math.round( hole.dist / 60 * 10 ) / 10 + " min" );
+        tlImporter_log( "gap check: dropped a \"...\" spanning " + tlImporter_minText( hole.dist ) );
     });
 
-    return tl_arr;
+    reading.applied = true;
+
+    return reading;
 }
 
 // tlImporter_sameCue
@@ -1693,9 +1778,11 @@ function tlImporter_merge( originalText, candidateText, options ) {
     // Only on a merge that WROTE something - a gap in a list the candidate did not enrich is
     // the page's own statement, and rewriting it would also turn the silent "Identical" /
     // "Nothing to add" verdicts into merges. See tlImporter_dropRedundantGaps().
-    if( state.changes > 0 ) {
-        tlImporter_dropRedundantGaps( merged_arr );
-    }
+    // The reading is taken EITHER WAY: the Report prints the median and every "..." span even
+    // where nothing was dropped, and a merge that stood down is exactly the one being reported.
+    // Only the deciding half is behind the counter.
+    var gapCheck = state.changes > 0 ? tlImporter_dropRedundantGaps( merged_arr )
+                                     : tlImporter_gapReading( merged_arr );
 
     // "changed" answers the only question the callers really ask - would the page text
     // differ? state.changes alone cannot: it counts every WRITE into the original, and a write
@@ -1716,7 +1803,10 @@ function tlImporter_merge( originalText, candidateText, options ) {
         // the certain "these two are the same list" reading – see tlImporter_sameTracklists
         identical: tlImporter_sameTracklists( merged_arr, candidate_arr, changed, originalText_serialized ),
         diffItems: tlImporter_diffItems( candidate_arr ),
-        originalItems: tlImporter_originalItems( merged_arr )
+        originalItems: tlImporter_originalItems( merged_arr ),
+        // median runtime, the span a "..." needs and what every one of them spans - see
+        // tlImporter_gapReading. The Report prints it; nothing on the page reads it.
+        gapCheck: gapCheck
     };
 }
 

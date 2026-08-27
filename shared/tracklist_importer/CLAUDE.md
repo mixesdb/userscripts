@@ -316,6 +316,17 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   FLAGGED (`_ti_gapDropped`), not spliced out: `tlImporter_textFromArr()` skips it while
   `tlImporter_originalItems()` keeps it, because the review block's Original column has to keep
   showing what the page held.
+  The MEASURING half is its own function, `tlImporter_gapReading()`, and it touches nothing: it
+  returns tracks, `...` count, the gapless neighbour distances it measured, the median, the
+  `maxSpan` a `...` has to beat, one entry per hole (span, the rows it sits between, `drop`) and
+  a `stood` sentence wherever it could not judge. `tlImporter_dropRedundantGaps()` is the
+  deciding half on top of it and hands the reading back, which the merge attaches to its result
+  as `gapCheck` - taken EITHER WAY, also when `state.changes === 0` and nothing may be dropped
+  (`applied: false` then, and the Report words the holes as would-bes). That is what the Report's
+  `## Cue gaps` block prints, for the original and the candidate too - they are measured on the
+  spot, since neither ever goes through the merge's drop step. A reading with no numbers must
+  still say something: `stood` exists so a report cannot be read as "no gaps here" when the truth
+  is "an unreadable cue, nothing was judged".
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
 - **Chaptered tracklists (`;Name` rows) are never merged, but they ARE opened - on EITHER
   side.** The toolkit row gets a third link, `Chaptered` (label and tooltip out of

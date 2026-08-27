@@ -247,6 +247,16 @@ report holding the mix page's original tracklist, the found candidate, the mix r
 site prints one and the raw merge result, plus an empty `Mistakes / learnings` list and an empty
 `Expected` code block only the reporter can fill – like the Page Creator's Report box.
 
+A **Cue gaps** block comes with it, one line per tracklist – the page's, the found one and the
+merged one. Each says how many tracks and how many `...` the list holds, how long one of its
+tracks runs (the median from one track to the next where no `...` stands between them), over how
+many such distances that was measured and how much span a `...` therefore needs to survive. Under
+it stands one line per `...`: the two tracks it sits between, the minutes it spans and whether the
+merge dropped it or kept it. That is the reading behind every gap the merge removes, so a report
+about a `...` that went or stayed can be checked instead of guessed at. Where nothing could be
+measured the line says so – a list with a `[??]` cue in it, or one with too few tracks in a row to
+tell how long a track runs.
+
 ## Known limitations
 
 - Beta, on TrackId.net and 1001tracklists.com so far.
