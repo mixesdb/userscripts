@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.21
+// @version      2026.08.27.22
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 204,
+var cacheVersion = 205,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2287,6 +2287,12 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.22
+ * The page creator row states its font sizes in px instead of rem (page_creator.css): rem is
+ * the HOST page's root font size - 16px here, 14px on SoundCloud, 10px on YouTube - so the same
+ * row came out in three sizes. Here that means slightly smaller text (title field 13px instead
+ * of 14.4px, "Create" 14px instead of 16px): the row now looks the same on every site.
  *
  * 2026.08.27.21
  * Page creator row for YouTube players (funcTidPageCreator_youtube): the data comes from
