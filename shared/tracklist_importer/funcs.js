@@ -799,13 +799,19 @@ function tlImporter_reportText( link ) {
     lines.push( candidate );
     lines.push( fence );
 
-    // only where a merge actually ran: on a chaptered or unreadable page it never did, and
-    // running it here would invent a result nobody was ever shown
-    var res = null;
+    // The merge runs BEFORE the cue gap block is written, because that block reports its
+    // reading - only the merged TEXT waits for its own section further down. Only where a merge
+    // actually ran: on a chaptered or unreadable page it never did, and running it here would
+    // invent a result nobody was ever shown.
+    var res = mode == "merge" && original && candidate && ( !reading || reading.merged )
+        ? tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) )
+        : null;
 
-    if( mode == "merge" && original && candidate && ( !reading || reading.merged ) ) {
-        res = tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) );
+    // Between the two lists and the merged one: the gap reading is what the merge made of the
+    // cues above, and it explains the "..." the Merged block below either kept or lost.
+    lines = lines.concat( tlImporter_gapReportLines( original, candidate, res ) );
 
+    if( res ) {
         lines.push( "" );
         lines.push( "## Merged (raw, before Tracklist Editor formatting)" );
         lines.push( "" );
@@ -813,8 +819,6 @@ function tlImporter_reportText( link ) {
         lines.push( res.mergedText );
         lines.push( fence );
     }
-
-    lines = lines.concat( tlImporter_gapReportLines( original, candidate, res ) );
 
     lines.push( "" );
     lines.push( "## Mistakes / learnings" );
