@@ -686,7 +686,7 @@ function mdbPageCreator_pageText( title ) {
         body = mdbPageCreator_recentBodyChoice( findings );
 
     if( findings && findings.image && findings.image.value === "same" ) {
-        lead = "[[File:" + title + "." + ( findings.imageExt || "jpg" ) + "|right|360px]]\n\n";
+        lead = "[[File:" + mdbPageCreator_fileNameForTitle( title ) + "." + ( findings.imageExt || "jpg" ) + "|right|360px]]\n\n";
     }
 
     // An empty line where no URL was found: the heading is the point, not the link. A section
@@ -5250,9 +5250,29 @@ function mdbPageCreator_titleIsLiveRecording( title ) {
     return /\s+@\s+/.test( bits[1] || "" );
 }
 
+// mdbPageCreator_fileNameForTitle
+// The file name a page title becomes once it is uploaded. MediaWiki refuses a handful of
+// characters in a file name - $wgIllegalFileChars (":", "/", "\\") plus the ones no title may
+// carry at all ("#<>[]|{}") - and its uploader replaces every one of them with a "-", so
+// "2017-09-21 - Mohr/Sula - Transmittal Tapes 6" is filed as
+// "2017-09-21 - Mohr-Sula - Transmittal Tapes 6.jpg".
+//
+// Both ends of the artwork question need this. The vote below asks whether a page's artwork is
+// named after the page, and compared against the raw title that one "/" read as "named after
+// something else" - 6 of 7 is not 90%, and Transmittal Tapes lost the artwork line all seven of
+// its pages carry (reported 2026-08-27). The [[File:]] line a new page is given has the same
+// problem from the other side: written with the raw title it would point at a name the uploader
+// can never create.
+function mdbPageCreator_fileNameForTitle( title ) {
+    return String( title || "" )
+               .replace( /_/g, " " )
+               .replace( /[:\/\\#<>\[\]|{}]/g, "-" )
+               .trim();
+}
+
 // mdbPageCreator_recentImageVote
 // The lead artwork vote over one category's siblings: { vote, ext, skipped }, where vote is
-// mdbPageCreator_recentConsensus' verdict and skipped counts the pages left out of it.
+// mdbPageCreator_imageVerdict's verdict and skipped counts the pages left out of it.
 //
 // A live recording filed in a SERIES category is a page of another kind. The artwork belongs
 // to whatever the page records - the podcast for an episode, the event for a set played there
@@ -5304,12 +5324,48 @@ function mdbPageCreator_recentImageVote( reads ) {
     }
 
     return {
-        vote: mdbPageCreator_recentConsensus( votes ),
+        vote: mdbPageCreator_imageVerdict( votes ),
         // the majority extension among the lead artworks; a tie stays .jpg, the wiki's
         // uploader rewrites a wrong one anyway (page_text_learning.md)
         ext: png * 2 > exts.length ? "png" : "jpg",
         skipped: skipped
     };
+}
+
+// mdbPageCreator_imageVerdict
+// The artwork consensus, with one fallback the other learned signals do not get: where the
+// sample splits between "same" and "other" but NOT ONE page is without an artwork, "same" wins
+// on a plain majority instead of abstaining (marked weak for the reasoning panel).
+//
+// Abstaining is the wrong answer to that split. It writes the first page of the series that has
+// no artwork line at all, while every sibling has one - a mistake nothing on the page hints at
+// later. The other direction is cheap: a name the editor has to correct is a red link sitting
+// right where the image belongs, and MixesDB's inline uploader rewrites that line anyway.
+//
+// It stays narrow on purpose. A single "none" vote kills it - a series that sometimes goes
+// without an artwork is exactly the case the 90% bar is there for. And "same" has to be the
+// most common answer: a venue's or an event's pages name their artwork after the event, "other"
+// leads there, and no new page can predict that name.
+function mdbPageCreator_imageVerdict( votes ) {
+    var vote = mdbPageCreator_recentConsensus( votes ),
+        same = 0,
+        other = 0,
+        i;
+
+    if( vote ) return vote;
+
+    // mdbPageCreator_recentConsensus' own floor - below it nothing is a convention
+    if( votes.length < 3 ) return null;
+
+    for( i = 0; i < votes.length; i++ ) {
+        if( votes[i] === "same" ) same++;
+        else if( votes[i] === "other" ) other++;
+        else return null; // a page without an artwork - the 90% bar keeps its say
+    }
+
+    if( same <= other ) return null;
+
+    return { value: "same", count: same, n: votes.length, recentOnly: false, weak: true };
 }
 
 // mdbPageCreator_playerRead
@@ -5466,7 +5522,7 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
                 extMatch = /\.([A-Za-z0-9]+)$/.exec( fname ),
                 stem = extMatch ? fname.slice( 0, fname.length - extMatch[0].length ) : fname;
 
-            if( stem.toLowerCase() === pages[i].title.replace( /_/g, " " ).trim().toLowerCase() ) {
+            if( stem.toLowerCase() === mdbPageCreator_fileNameForTitle( pages[i].title ).toLowerCase() ) {
                 imageReads.push( { vote: "same", ext: extMatch && extMatch[1].toLowerCase() === "png" ? "png" : "jpg", live: live } );
             } else {
                 imageReads.push( { vote: "other", ext: "", live: live } );
@@ -7361,7 +7417,12 @@ function mdbPageCreator_reasoningRecentText( title ) {
 
     if( f.image && f.image.value === "same" ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " open with an artwork named after the page itself (." + f.imageExt + ") -> " +
+                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " open with an artwork named after the page itself (." + f.imageExt + ")" +
+                             // the majority verdict (mdbPageCreator_imageVerdict): says why the
+                             // line is written although the count is under the usual 90%
+                             ( f.image.weak
+                                 ? ", the rest name theirs after something else - but not one of them is without an artwork -> "
+                                 : " -> " ) +
                              "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" + imgAside } );
     } else if( f.image && f.image.value === "none" ) {
         rows.push( { label: "Lead artwork",

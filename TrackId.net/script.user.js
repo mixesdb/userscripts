@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.22
+// @version      2026.08.27.23
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_12
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_33
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
@@ -2287,6 +2287,16 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.23
+ * Tracklist Importer merge, the unknown cues of a cue-less tracklist (merge_core.js v13): a mix
+ * page whose tracklist carries no cue at all has no cue format the merge can keep, so it
+ * borrows the found tracklist's - "[??]" no longer stands two digits wide between three-digit
+ * cues. And an unknown cue keeps every leading digit the known cues around it agree on: one
+ * between [095] and [098] reads "[09?]" now, one between [098] and [103] stays "[???]" because
+ * the two say nothing in common. Nothing is filled in behind the last known cue (the stream
+ * runs on) or where more rows sit between two cues than there are minutes between them - six
+ * tracks did not play in minute 008. Reported on fibre podcast bman 011.
  *
  * 2026.08.27.22
  * The page creator row states its font sizes in px instead of rem (page_creator.css): rem is

@@ -285,6 +285,12 @@ var tlImporterExamples_merge = [
         // next to FLR - Easy Filter Part 8, ――――― - IN YER MEMORY next to Takkyu Ishino's) are
         // the fuzzy threshold's current reading, NOT part of the guard – a later matching
         // improvement may change those lines.
+        // It doubles as the counter-case to the unknown-cue prefixes below: the six rows between
+        // [008] and [009] keep their bare "[???]" – one minute cannot hold six tracks, so those
+        // bounds are not ones to write into the page – while the runs with room around them do
+        // take the one digit their bounds agree on ("[0??]": before minute 100, which on a
+        // 128-minute mix says something). The three rows behind [099] have no known cue after
+        // them at all and stay "[???]".
         name: "bare cue format widens for cues beyond 99",
         original: "# [00] Captain Funk - O.Y.M.\n" +
                   "# [00] Big Foot - Bisket Afro\n" +
@@ -360,29 +366,29 @@ var tlImporterExamples_merge = [
                 "[???] Moa - Malicia Mpedia\n" +
                 "[009] Hiroshi Watanabe - Lost City [King Street Sounds]\n" +
                 "[026] Takkyu Ishino - Feeling\n" +
-                "[???] Co-Fusion - Tokyo Funky Beat!\n" +
-                "[???] Zank - Dow\n" +
+                "[0??] Co-Fusion - Tokyo Funky Beat!\n" +
+                "[0??] Zank - Dow\n" +
                 "[033] Ryukyudisko - Super Spin Spam\n" +
-                "[???] The Anazaworld - Horse Direct\n" +
-                "[???] DJ Shufflemaster - Untitled\n" +
+                "[0??] The Anazaworld - Horse Direct\n" +
+                "[0??] DJ Shufflemaster - Untitled\n" +
                 "[042] Co-Fusion - Cycle [Musicmine]\n" +
-                "[???] Fumiya Tanaka - Micro One\n" +
-                "[???] Q'Hey - Login\n" +
-                "[???] Subvoice - Untitled\n" +
-                "[???] Takaaki Itoh - Serenity Through Pain\n" +
-                "[???] Go Hiyama - C\n" +
+                "[0??] Fumiya Tanaka - Micro One\n" +
+                "[0??] Q'Hey - Login\n" +
+                "[0??] Subvoice - Untitled\n" +
+                "[0??] Takaaki Itoh - Serenity Through Pain\n" +
+                "[0??] Go Hiyama - C\n" +
                 "[061] Kazu Kimura - Night Walk [CLR]\n" +
-                "[???] Akira Ishihara - Yamaga 7 O'Clock\n" +
-                "[???] Brothers In Raw (Tobynation & Mijk Van Dijk) - Ach-So! (Ebizoo Remix)\n" +
-                "[???] Chester Beatty - Untitled (Turia B1)\n" +
-                "[???] Kagami - Tiger Track\n" +
-                "[???] FLR - Easy Filter Part 8\n" +
+                "[0??] Akira Ishihara - Yamaga 7 O'Clock\n" +
+                "[0??] Brothers In Raw (Tobynation & Mijk Van Dijk) - Ach-So! (Ebizoo Remix)\n" +
+                "[0??] Chester Beatty - Untitled (Turia B1)\n" +
+                "[0??] Kagami - Tiger Track\n" +
+                "[0??] FLR - Easy Filter Part 8\n" +
                 "[073] FLR - PART 8 [70Drums]\n" +
                 "[076] Dr. Shingo - Galaxy Girls [Konsequent]\n" +
                 "[082] Chizawa - Panther\n" +
                 "[087] Nagai Eri - Howlin' Yumi [ACV]\n" +
-                "[???] Jin Hiyama - Exorista Japonica\n" +
-                "[???] Ryoh Mitomi - Haru-Kaze\n" +
+                "[0??] Jin Hiyama - Exorista Japonica\n" +
+                "[0??] Ryoh Mitomi - Haru-Kaze\n" +
                 "[094] 7th Gate - After The Silence [Rotation]\n" +
                 "[099] Ken Ishii - Extra\n" +
                 "[???] Takkyu Ishino - In Yer Memory\n" +
@@ -434,6 +440,39 @@ var tlImporterExamples_merge = [
         changed: true,
         // everything the candidate carries found its place - the page's own spellings winning
         // is not a part the merge could not place
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-27 (fibre podcast bman 011, trackid.net): the unknown cues of a
+        // CUE-LESS original. Two things were wrong with them.
+        //   1. Width: with no cue of its own the page had no format to win with, and the
+        //      fallback wrote a two-digit "[??]" between the candidate's three-digit cues. The
+        //      candidate's format is borrowed when the original has none.
+        //   2. Digits: an unknown between [000] and [005] can only be a 00x minute, so it reads
+        //      "[00?]" – the same "[09?]" / "[10?]" between [095]/[098] and [104]/[109]. What
+        //      the two bounds do NOT agree on stays "?"; the row behind the last known cue is
+        //      not bounded at all and keeps every "?" it has.
+        name: "unknown cues of a cue-less original",
+        original: "# A - One\n" +
+                  "# B - Two\n" +
+                  "# C - Three\n" +
+                  "# D - Four\n" +
+                  "# E - Five\n" +
+                  "# F - Six\n" +
+                  "# G - Seven",
+        candidate: "# [000] A - One\n" +
+                   "# [005] C - Three\n" +
+                   "# [095] D - Four\n" +
+                   "# [098] F - Six\n" +
+                   "# [104] G - Seven",
+        expect: "[000] A - One\n" +
+                "[00?] B - Two\n" +
+                "[005] C - Three\n" +
+                "[095] D - Four\n" +
+                "[09?] E - Five\n" +
+                "[098] F - Six\n" +
+                "[104] G - Seven",
+        changed: true,
         unused: { cues: [], texts: [], labels: [] }
     }
 ];

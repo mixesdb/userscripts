@@ -171,6 +171,24 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   target format grows (`XX` -> `XXX`) BEFORE the merge and every cue moves with it, `[??]` ->
   `[???]` included (`tlImporter_widenedCueFormat`, NTS Japanese Techno report). Colon formats
   are left alone – they carry any length as they are.
+- **A cue-less original has no format to win with, so it borrows the candidate's.** Every cue
+  the merged list ends up with then comes from the candidate, and `tlImporter_cueFormat()`
+  answering null let `tlImporter_unknownCue()` fall through to its two-digit default: `[??]`
+  between `[000]` and `[005]` (reported, fibre podcast bman 011). The borrow happens BEFORE the
+  dur fix, so a candidate that needs widening still gets it, and the original's own `[??]` rows
+  move to the borrowed width too.
+- **An unknown cue keeps every leading digit its known neighbours agree on.**
+  `tlImporter_fillUnknownCuePrefixes()` (last step of the merge, so it sees the final order):
+  `[??]` between `[095]` and `[098]` is `[09?]`, between `[098]` and `[103]` it stays `[???]`.
+  The bound is the LIST's own order – a row printed between two cues played between them –
+  which is also where its three limits come from. Nothing before the run means minute zero,
+  which IS a bound; nothing after it means no bound at all (the stream runs on past the last
+  cue), so nothing is filled; and a run with more rows than there are minutes between its bounds
+  is not believable – the NTS Japanese Techno case has six rows between `[008]` and `[009]`, and
+  writing `[00?]` on all six would put times into the page that cannot be true. One `?` always
+  survives, even when both bounds are the same minute: the cue is INFERRED, and a row that reads
+  like a known cue claims more than the merge knows. Bare formats only – colon cues keep the
+  last-known-prefix rule in `tlImporter_merge()`, which is the same idea with one neighbour.
 - **A gap-less original takes no unknowns – except at the very end.** `?` rows of the candidate
   are only placed where the original admits a gap; in a gap-less list they repeat what it
   already covers. The candidate's TRAILING run of `?` rows is the exception: it sits behind the
