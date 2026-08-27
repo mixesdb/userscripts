@@ -26,19 +26,39 @@ deno run --allow-read shared/tracklist_importer/importer_examples_test.js
 
 The Insert/Merge link copies the toolkit EDIT link's href at click time (so `&siteHasTl=...`
 rides along) and appends `&mdbTlImporter=<mode>` plus the candidate in the URL **hash**
-(`#mdbTlImporterDur=<sec>&mdbTlImporterTl=...`, the runtime first because the candidate is the
-long one). The hash never reaches the server, so tracklist length cannot break
+(`#mdbTlImporterFrom=<scriptName>&mdbTlImporterDur=<sec>&mdbTlImporterTl=...` - sender and
+runtime first, the candidate last because it is the long one). The hash never reaches the server, so tracklist length cannot break
 the request line the way a query parameter could – and the same userscript runs on
 mixesdb.com/w/*, where `funcs.js` reads it back.
 
 ## Settled
 
-- **ONE instance owns the mixesdb.com side.** TrackId.net and 1001 Tracklists both carry this
+- **ONE instance owns the mixesdb.com side, and it is the one the LINK names.** TrackId.net and
+  1001 Tracklists both carry this
   file onto mixesdb.com/w/*, each in its own sandbox; unguarded, both would apply the merge,
-  click "Show changes" and answer every Apply press once more. The first d.ready handler
-  claims the page with `data-mdb-tlimporter-owner` on `<html>` (ready handlers run
-  sequentially, so the synchronous check-and-set cannot race) and sets
-  `tlImporter_ownsEditPage`; the mixesdb-side delegated handlers (both Apply buttons, the down
+  click "Show changes" and answer every Apply press once more. The claim is
+  `data-mdb-tlimporter-owner` on `<html>` (ready handlers and timeouts run
+  sequentially, so the synchronous check-and-set cannot race) plus
+  `tlImporter_ownsEditPage`, both set by `tlImporter_claimEditPage()`, which also LOGS who owns
+  the page. Who claims is not "whoever was first" any more: the link carries
+  `&mdbTlImporterFrom=<scriptName>` and that instance takes it, because it is the one whose
+  merge the reader saw in the toolkit row and in the Report - the other script may sit on an
+  OLDER cached copy of these files and would answer the same click with a different merge,
+  which is what makes a fix impossible to test (reported: the Report showed the fixed merge,
+  the edit form got the old one). After a form POST the hash is gone, so the stored review
+  block carries `owner` and `tlImporter_storedOwner()` reads it back. The named instance is
+  waited for but not forever: `tlImporter_claimFallbackMs` (500ms, far past the one tick all
+  d.ready handlers share) later, a page still unclaimed goes to whoever is there - a link from
+  an older generation, or a sender not installed here, still gets its merge.
+  And the named instance TAKES the page when something else already claimed it (`takeOver`,
+  only for a sender out of the hash, not one out of the stored block): only an instance running
+  an older copy of this file can claim against the parameter, and its merge is exactly the stale
+  one being complained about. The overwrite lands in time because the "Show changes" click sits
+  in a `setTimeout(0)` behind every ready handler of the tick, so the form is submitted with the
+  text the winner wrote. What cannot be undone from here is the loser's `tlImporter_ownsEditPage`
+  in its own sandbox - an old instance answers Apply presses alongside the new one until it is
+  updated, which the takeover's log line says out loud.
+  The mixesdb-side delegated handlers (both Apply buttons, the down
   state's live-chip and textarea sync) check that flag at event time, because they are bound at
   file load, long before the claim. The player-site handlers (import link, Report) are NOT
   gated - one script per player site, and the flag is false there. A new site script that adds
@@ -213,6 +233,13 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   (`#mdbTlImporterDur=3894&mdbTlImporterTl=...`, read back by `tlImporter_durationFromHash()`),
   and it is named in the Report - a report without it cannot be turned into an example that
   reproduces the cues it bounded.
+- **The edit page has a runtime of its own, and needs it.** `tlImporter_pageDurationSec()`
+  (merge_core.js, so the deno runner covers it) reads the `dur` column of the page's own
+  `{|{{NormalTableFormat}}` File details table - one cell per line as `global.js` writes it, or
+  inline (`! dur !! MB`) as a hand-edited page may. `tlImporter_editPageDurationSec()` takes the
+  link's value first and this one behind it, and says in the log which it used. The hash alone
+  was not enough: it is empty for every site that prints no runtime (1001tracklists) and for
+  every link built before the parameter existed, while the dur cell is on the page either way.
 - **A gap-less original takes no unknowns – except at the very end.** `?` rows of the candidate
   are only placed where the original admits a gap; in a gap-less list they repeat what it
   already covers. The candidate's TRAILING run of `?` rows is the exception: it sits behind the

@@ -100,11 +100,11 @@ The two ends of the list are read the same way:
 - the **first** track is where the recording starts, so an unknown cue on it is written `[00]`
   outright – not a guess, unlike the ones above. Unless a `...` gap stands in front of it: then
   the list does not start there and the cue stays unknown
-- behind the **last** known cue the mix **runtime** takes the part of the missing neighbour,
-  where the player site prints one (TrackId.net does, above its tracklist): a track behind
-  `[61]` in a 1:04:54 mix can only have played in minute 6x, so it reads `[6?]`. Without a
-  runtime nothing is filled in there – the mix runs on from the last cue and nothing says how
-  far
+- behind the **last** known cue the mix **runtime** takes the part of the missing neighbour: a
+  track behind `[61]` in a 1:04:54 mix can only have played in minute 6x, so it reads `[6?]`.
+  The runtime comes from the player site where it prints one (TrackId.net does, above its
+  tracklist), otherwise from the `dur` cell of the mix page's own File details table. Without
+  either nothing is filled in there – the mix runs on from the last cue and nothing says how far
 
 ### On the edit form
 

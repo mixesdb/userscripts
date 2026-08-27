@@ -583,6 +583,20 @@ var tlImporterExamples_pageText = [
         expect: "== Tracklist ==\n\n# [00] A - One\n# [10] B - Two\n\n[[Category:2020]]"
     },
     {
+        // The mix runtime out of the page's own "File details" table (fibre podcast sigint 014):
+        // the second source for the bound of the last cues, and the one that is there whatever
+        // the link carried. durationSec 0 on every case without such a table.
+        name: "the File details table carries the mix runtime",
+        pageText: "{|{{NormalTableFormat}}\n! dur\n! MB\n! kbps\n|-\n| 1:04:54\n| \n| \n|}\n\n" +
+                  "== Tracklist ==\n\n# [00] A - One\n\n[[Category:2026]]",
+        durationSec: 3894,
+        hasTracks: true,
+        extracted: "# [00] A - One",
+        tl: "# [00] A - One\n# [61] B - Two",
+        expect: "{|{{NormalTableFormat}}\n! dur\n! MB\n! kbps\n|-\n| 1:04:54\n| \n| \n|}\n\n" +
+                "== Tracklist ==\n\n# [00] A - One\n# [61] B - Two\n\n[[Category:2026]]"
+    },
+    {
         // An existing tracklist inside <list> reads as "merge", and its text comes out
         // without the tags.
         name: "existing tracklist is extracted for merging",
