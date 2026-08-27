@@ -77,11 +77,14 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   verdict is precisely what needs reporting.
 - **"Identical" is the certain reading, and it is the one that acts by itself.**
   `tlImporter_sameTracklists()` (merge_core.js, reported through `identical` on the merge
-  result) answers it off the MERGE, never off the two texts – cue format, spelling and labels
-  differ between page and player site by nature, and only the matcher knows which row is which.
-  All of: nothing written, every candidate row matched 1:1 (not inserted, no two rows on the
-  same original row, nothing on it `tlImporter_candidateUse()` could not place) and no original
-  row or gap left over. Only that ticks the toolkit's "TID tracklist is integrated" checkbox
+  result) has two readings, either of which is enough. Same serialized TEXT after the candidate's
+  cues moved into the original's format – the plain one, and the only one that survives a track
+  played twice: both rows collapse onto one entry in the title lookup, so the 1:1 count below
+  comes up one short and read two character-identical lists as merely contained (reported,
+  Feathers & Bones Mixtape 04). Or, for two lists that are the same list without being the same
+  text, all of: nothing written, every candidate row matched 1:1 (not inserted, no two rows on
+  the same original row, nothing on it `tlImporter_candidateUse()` could not place) and no
+  original row or gap left over. Only that ticks the toolkit's "TID tracklist is integrated" checkbox
   (`tlImporter_tickIntegrated()`, a native `.click()` so TrackId.net's own handler does the
   saving – which POSTs, and the site knows no way back). Which is why it is DELAYED and
   announced: the note runs the `mdb-tlImporter-noteTick` pulse for `tlImporter_tickDelayMs`
