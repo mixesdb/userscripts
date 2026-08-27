@@ -1080,11 +1080,15 @@ placeholder only holds the space below it.
    *family* around a known name (`Dekmantel` → `Dekmantel Mix`, `Dekmantel Selectors`,
    `Dekmantel São Paulo Podcast`, …) and the pages around the mix date. So "this page may
    already exist" is visible **before** creating.
-3. **Duplicate protection on Create** – a mix page that carries the track's URL only as a
-   commented-out mirror looks like "not on MixesDB yet" today and invites duplicates; a search in
-   the page source catches it. Plus a sanity check when **Create** is clicked – exact and fuzzy
-   title match against existing pages – with the button turning into **"Yes, still create"** when
-   something similar is found. Nothing is ever blocked, the row only shows the evidence.
+3. **Duplicate protection on Create** – half live since 2026-08-27: a mix page that carries the
+   track's URL only written out by hand – e.g. as a commented-out mirror – used to look like
+   "not on MixesDB yet" and invited duplicates. The [Toolkit](../toolkit/) now searches the mix
+   page texts for the URL whenever the player lookup finds nothing and answers **This player
+   appears on MixesDB**; the creator row follows the toolkit's verdict as always, so those
+   pages show **Exists** instead of **Create**. Still to come: the sanity check when **Create**
+   is clicked – exact and fuzzy title match against existing pages – with the button turning
+   into **"Yes, still create"** when something similar is found. Nothing is ever blocked, the
+   row only shows the evidence.
 4. ✅ **Title and page text learned from the show's existing pages** – live since 2026-08-18.
    The ~10 newest pages of the entity's category are read with their wikitext, and whatever at
    least 90% of them agree on (or all of the 5 newest, where the series changed its

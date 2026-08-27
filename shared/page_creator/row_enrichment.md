@@ -171,6 +171,13 @@ user, not to adjudicate them.
 
 ### 4. The mirror-URL check - **needs no endpoint, could ship now**
 
+> **SHIPPED 2026-08-27 as the toolkit's second search layer** -
+> `mixesdbInsourceKeywords()` / `mixesdbInsourceSearch()` in `shared/toolkit/funcs.js`, fired
+> synchronously whenever `mixesdb_player_search` answers empty, hits rendered through the same
+> used-players output with the wording "This player appears on MixesDB". Internet Archive's
+> usage table reuses the shared function. The fold into the Create-click request (§3) stays
+> open, and the shared function is what it will call.
+
 CirrusSearch indexes the raw wikitext, **HTML comments included**. A phrase search for the
 track's URL slug finds a page that carries it only as a commented-out mirror:
 
