@@ -200,8 +200,12 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   hand-merge is read off the tracklist's LENGTH (it has to have grown). Only rows that HAVE the
   checkbox are watched (`input.mdbTrackidCheck` with a real `data-tidplayerurl`, i.e.
   TrackId.net); everywhere else the poll would run for minutes with nothing to tick at the end.
-  Cadence and deadline (`tlImporter_watch*Ms`) are a compromise, not a law: 10s for two minutes,
-  then 30s, giving up after 8 - about two dozen API calls per click.
+  Cadence and deadline are a compromise, not a law, and they live in ONE place:
+  `tlImporter_watchSteps`, read by `tlImporter_watchDelayMs()` ("until this many ms, ask every
+  that many") and by `tlImporter_watchMaxMinutes()` for the log. The last step's `until` IS the
+  deadline - `again()` refuses to schedule past it, which is the only place the watch times out.
+  Today: 5s through minute 1, 10s through minute 4, 30s through minute 10, about 40 API calls
+  for a watch that runs to the end.
 - **Save is locked until "Show changes" ran.** The auto-click is the convenience; the lock is
   the safety – a merge must not be savable unseen.
 - **The original's cue format wins, but it may WIDEN – the dur fix.** A bare `[XX]` format

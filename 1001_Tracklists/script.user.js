@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.13
+// @version      2026.08.27.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_111
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_5
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_7
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_8
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
@@ -293,8 +293,8 @@ if( visitDomain != "mixesdb.com" ) {
  *
  * Changelog
  *
- * 2026.08.27.13
- * Tracklist Importer (tracklist_importer funcs.js v7): after an Insert/Merge click the mix page
+ * 2026.08.27.14
+ * Tracklist Importer (tracklist_importer funcs.js v8): after an Insert/Merge click the mix page
  * is watched for the save, and the toolkit's "TID tracklist is integrated" checkbox is ticked
  * from what the page then holds instead of by hand. Only rows that HAVE that checkbox are
  * watched, which is TrackId.net's - nothing is polled here; the file is loaded for the shared
