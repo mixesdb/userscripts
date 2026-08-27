@@ -1702,12 +1702,22 @@ body.trackid-net {
  * The wrapper below the video metadata holds exactly the two feature boxes (page creator row +
  * toolkit), so the skeleton is sized like TID's SoundCloud case rather than the SC default.
  */
-body.youtube-com #mdb-skeleton {
-    height: 220px;
-}
+body.youtube-com {
+    & #mdb-pageCreator {
+        margin-top: 2rem;
 
-body.youtube-com #mdb-skeleton .mdb-skeleton-pageCreator {
-    height: 110px;
+        & a {
+            color: rgb(62, 166, 255); /* YouTube's link color in descriptions */
+        }
+    }
+
+    & #mdb-skeleton {
+        height: 220px;
+    }
+
+    &.mdb-skeleton-pageCreator {
+        height: 110px;
+    }
 }
 
 /*

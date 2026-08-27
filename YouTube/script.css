@@ -12,7 +12,9 @@
 	font-size: 14px;
 	line-height: 32px;
 	position: relative;
-	margin: 0;
+	/* own line below the thumbnail now, so it needs its own vertical spacing */
+	display: inline-block;
+	margin: 8px 0 0;
 	white-space: nowrap;
 	min-width: 0;
 	text-transform: none;
