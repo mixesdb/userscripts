@@ -124,6 +124,8 @@ the check mark and how long ago its tracklist was carried over, or a note that i
 or **Submit to TrackId.net**, which opens the [submit form](#submit-form) with the player URL and
 the page title already filled in.
 
+Both links open in a new tab, so the mix page you are working on stays where it is.
+
 Only players TrackId.net can take are given a link. This was part of the
 [MixesDB Userscripts Helper](../MixesDB_Userscripts_Helper/) until 2026-08-26; it moved here
 because the links are about TrackId.net, and it is this script a contributor installs for it.

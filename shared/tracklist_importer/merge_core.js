@@ -947,7 +947,15 @@ function tlImporter_originalItems( merged_arr ) {
 // candidate's cue format, its spelling and the labels it carries differ from the page's by
 // nature, and only the matcher knows which row over here is which row over there.
 //
-// True only when all three hold:
+// Two readings, either of which is enough. The plain one first: with the candidate's cues
+// moved into the original's format (which happened before the merge), both lists serialize to
+// the very same text. That is as certain as it gets - and it is the only reading that survives
+// a track played TWICE, whose two rows collapse onto one entry in the title lookup and leave
+// the 1:1 count below one short (reported: Feathers & Bones Mixtape 04 - the same Radian at
+// [20] and [25], the same Atlantis at [67] and [83], both lists otherwise character for
+// character the same).
+//
+// The other reading, for two lists that are the same list without being the same text:
 //   - the merge wrote nothing into the page (changed = false)
 //   - every candidate row found its counterpart in the original – matched, not inserted, no
 //     two candidate rows on the same original row, and nothing on it the merge could not
@@ -958,8 +966,10 @@ function tlImporter_originalItems( merged_arr ) {
 // the page then knows more than the candidate, and the callers act unattended on this flag
 // (the "TID tracklist is integrated" checkbox), so it has to mean certainty, not "close
 // enough".
-function tlImporter_sameTracklists( merged_arr, candidate_arr, changed ) {
+function tlImporter_sameTracklists( merged_arr, candidate_arr, changed, originalSerialized ) {
     if (changed) return false;
+
+    if (tlImporter_textFromArr( candidate_arr ) === originalSerialized) return true;
 
     var matchedOrigs = [],
         candTracks = 0,
@@ -1110,7 +1120,7 @@ function tlImporter_merge( originalText, candidateText ) {
         mergedText: mergedText,
         changed: changed,
         // the certain "these two are the same list" reading – see tlImporter_sameTracklists
-        identical: tlImporter_sameTracklists( merged_arr, candidate_arr, changed ),
+        identical: tlImporter_sameTracklists( merged_arr, candidate_arr, changed, originalText_serialized ),
         diffItems: tlImporter_diffItems( candidate_arr ),
         originalItems: tlImporter_originalItems( merged_arr )
     };

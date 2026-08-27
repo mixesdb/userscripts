@@ -216,6 +216,53 @@ var tlImporterExamples_merge = [
         unused: { cues: [], texts: [], labels: [] }
     },
     {
+        // Reported 2026-08-27 (Feathers & Bones - Mixtape #04, trackid.net): page and TID list
+        // were character for character the same, and the verdict still read "Nothing to add"
+        // instead of "Identical" - so the integrated checkbox was never ticked. A track played
+        // TWICE ([20] and [25] are the same Radian, [67] and [83] the same Atlantis) collapses
+        // onto one entry in the title lookup, so two candidate rows match one original row and
+        // the 1:1 count comes up short. Guard: two lists that serialize to the same text are
+        // identical, whatever the matcher made of their duplicates.
+        // The unused cues are the matcher's current reading of those duplicates, NOT part of
+        // the guard: both Radian rows match the LAST Radian of the original, so the first one's
+        // cue reads as 5 minutes off. It only shows in the diff view's Candidate column, which
+        // a no-merge case never opens.
+        name: "identical lists with a track played twice",
+        original: "[00] ?\n" +
+                  "...\n" +
+                  "[20] Rodriguez Jr & Liset Alea & RJLA - Radian (Cercle Version) [Mobilee]\n" +
+                  "[25] Rodriguez Jr & Liset Alea & RJLA - Radian (Cercle Version) [Mobilee]\n" +
+                  "[31] Rodriguez Jr - Kilian [Mobilee]\n" +
+                  "[36] ?\n" +
+                  "...\n" +
+                  "[67] Rodriguez Jr - Atlantis (Edit) [Systematic]\n" +
+                  "[83] Rodriguez Jr - Atlantis (Edit) [Systematic]\n" +
+                  "...",
+        candidate: "[00] ?\n" +
+                   "...\n" +
+                   "[20] Rodriguez Jr & Liset Alea & RJLA - Radian (Cercle Version) [Mobilee]\n" +
+                   "[25] Rodriguez Jr & Liset Alea & RJLA - Radian (Cercle Version) [Mobilee]\n" +
+                   "[31] Rodriguez Jr - Kilian [Mobilee]\n" +
+                   "[36] ?\n" +
+                   "...\n" +
+                   "[67] Rodriguez Jr - Atlantis (Edit) [Systematic]\n" +
+                   "[83] Rodriguez Jr - Atlantis (Edit) [Systematic]\n" +
+                   "...",
+        expect: "[00] ?\n" +
+                "...\n" +
+                "[20] Rodriguez Jr & Liset Alea & RJLA - Radian (Cercle Version) [Mobilee]\n" +
+                "[25] Rodriguez Jr & Liset Alea & RJLA - Radian (Cercle Version) [Mobilee]\n" +
+                "[31] Rodriguez Jr - Kilian [Mobilee]\n" +
+                "[36] ?\n" +
+                "...\n" +
+                "[67] Rodriguez Jr - Atlantis (Edit) [Systematic]\n" +
+                "[83] Rodriguez Jr - Atlantis (Edit) [Systematic]\n" +
+                "...",
+        changed: false,
+        identical: true,
+        unused: { cues: [3, 8], texts: [], labels: [] }
+    },
+    {
         // The weaker no-change shape: everything the candidate has is on the page, but the
         // page knows more (a track the candidate never found). Nothing to merge either way,
         // but this is NOT the same list - and the "Identical" note plus the automatic
