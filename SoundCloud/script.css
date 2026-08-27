@@ -317,7 +317,7 @@ a.sc_button-mdb:hover {
     background-color: transparent;
 }
 
-/* Too short for MixesDB (under 20 min): the toolkit and the page creator are skipped on
+/* Too short for MixesDB (under 20 min): the toolkit and the Page Creator are skipped on
    purpose, and the red duration button is what says so - see the toolkit duration gate in
    script.user.js. --mui-error-dark-color is SoundCloud's own error color, read live off the
    top document (#b40030); the fallback IS that value, for a document that does not define it.

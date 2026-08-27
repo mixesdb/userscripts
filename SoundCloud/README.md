@@ -5,7 +5,7 @@ stream and profile lists usable by filtering out what is not a mix.
 
 - **Runs on:** soundcloud.com – track pages, sets/playlists, streams and profiles
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js)
-- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [File details](../shared/README.md#file-details)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Page Creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [File details](../shared/README.md#file-details)
 
 ## Features
 
@@ -15,12 +15,12 @@ A headline above SoundCloud's own with the track title (click to select it) and 
 API knows: **Created at**, **Release date** and **Last modified**. The date MixesDB should use is
 highlighted.
 
-### MixesDB page creator
+### MixesDB Page Creator
 
-The suggested page title and the **Create** link – see [Page creator](../shared/page_creator/).
+The suggested page title and the **Create** link – see [Page Creator](../shared/page_creator/).
 SoundCloud is its reference implementation: title, uploader, dates, duration, player URL,
 artwork URL, description and the uploader's own channel URL all come off the SoundCloud API.
-That channel URL is what lets the page creator ask MixesDB which category page *links* this
+That channel URL is what lets the Page Creator ask MixesDB which category page *links* this
 channel – the one lookup that needs no name, and the only way to reach a series the wiki files
 under a name neither the title nor the channel spells.
 
@@ -40,7 +40,7 @@ nothing is written.
 The tracklist an uploader wrote into the description lands in an editable box below the toolkit,
 formatted in wiki syntax. When the description holds none, the track's comments are asked once
 for a complete tracklist somebody posted there – numbered (`1.`, `2.` …) or cued (`(00)`, `[05]`,
-`1:02:30`). Details in [Page creator](../shared/page_creator/).
+`1:02:30`). Details in [Page Creator](../shared/page_creator/).
 
 Uploaders often credit remixers by their SoundCloud channel handle rather than by name –
 `Blur - Tender (@reyneke Reinterpretation)`, `@drparnassus - Locomotiva`. Every `@handle` in a
@@ -59,8 +59,8 @@ redesign's frame URL never end up in a mix page.
 
 ### Tracks too short for MixesDB
 
-MixesDB does not take recordings under 20 minutes, so on a shorter track the toolkit, the page
-creator and the tracklist box are not loaded at all. The red duration is what says this is
+MixesDB does not take recordings under 20 minutes, so on a shorter track the toolkit, the Page
+Creator and the tracklist box are not loaded at all. The red duration is what says this is
 intended, not broken, and its tooltip explains it. It is only a label there: the file details
 are the wikitext for a mix page such a track will never get, so there is nothing to open and
 the duration does not react to a click.
@@ -88,10 +88,10 @@ afterwards is left alone. Works with English and German account locales.
 
 ### Loading placeholder
 
-Until everything below the player has arrived – headline, dates, buttons, page creator row,
+Until everything below the player has arrived – headline, dates, buttons, Page Creator row,
 toolkit and tracklist box – grey pulsing placeholders hold their space and the finished content
-appears in one step; the page creator row and the toolkit are two separate placeholder boxes –
-see [Page creator](../shared/page_creator/#loading-placeholder). Only on the redesigned track
+appears in one step; the Page Creator row and the toolkit are two separate placeholder boxes –
+see [Page Creator](../shared/page_creator/#loading-placeholder). Only on the redesigned track
 pages.
 
 ### Filters on streams, profiles and playlists

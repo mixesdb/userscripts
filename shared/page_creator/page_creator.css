@@ -1,5 +1,5 @@
 /*
- * MixesDB page creator - the row page_creator.js builds (#mdb-pageCreator).
+ * MixesDB Page Creator - the row page_creator.js builds (#mdb-pageCreator).
  *
  * Loaded with loadRawCss() by every site script that calls mdbPageCreator_add(), next to that
  * script's own script.css. Nothing in here is site-specific: where the row SITS is the site
@@ -1436,7 +1436,7 @@
  * specific rules at the bottom of this file.
  *
  * #mdb-skeleton itself is a TRANSPARENT flex column, not a box: the real additions sit
- * directly on the page background, and the page creator row and the toolkit - the two
+ * directly on the page background, and the Page Creator row and the toolkit - the two
  * features being waited for - are each their own dark box (.mdb-skeleton-block), so the
  * skeleton shows two separate things arriving, the way the page really gets them. The bar
  * rows (head/dates/buttons) float between the boxes like their real counterparts do.
@@ -1549,7 +1549,7 @@
     margin-bottom: 12px;
 }
 
-/* The feature stand-ins: page creator row and toolkit as two separate dark boxes - the
+/* The feature stand-ins: Page Creator row and toolkit as two separate dark boxes - the
    surface the whole skeleton used to be is theirs now */
 #mdb-skeleton .mdb-skeleton-block {
     box-sizing: border-box;
@@ -1667,12 +1667,12 @@ body.soundcloud-com {
  * trackid.net
  */
 body.trackid-net {
-    /* toolkit-only skeleton (non-SoundCloud players: no page creator row comes) */
+    /* toolkit-only skeleton (non-SoundCloud players: no Page Creator row comes) */
     & #mdb-skeleton {
         height: 125px;
     }
 
-    /* with the page creator stand-in (SoundCloud players): row box + toolkit box, sized to
+    /* with the Page Creator stand-in (SoundCloud players): row box + toolkit box, sized to
        a revealed audiostream page (row 124px incl. hints, toolkit 74px; measured
        aka-aka-pres-rhythm-prism-radio-053, 2026-08-27) */
     & #mdb-skeleton:has(> .mdb-skeleton-pageCreator) {
@@ -1699,7 +1699,7 @@ body.trackid-net {
 
 /*
  * youtube.com
- * The wrapper below the video metadata holds exactly the two feature boxes (page creator row +
+ * The wrapper below the video metadata holds exactly the two feature boxes (Page Creator row +
  * toolkit), so the skeleton is sized like TID's SoundCloud case rather than the SC default.
  */
 body.youtube-com {

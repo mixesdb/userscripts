@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Examples for the MixesDB page creator's title suggestion
+ * Examples for the MixesDB Page Creator's title suggestion
  *
  * Every title that was ever reported as wrong, kept as the input it came from and the title
  * it should produce. Run them with:

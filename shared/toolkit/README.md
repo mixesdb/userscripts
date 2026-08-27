@@ -11,7 +11,7 @@ everywhere – a script's own README says where on that site the box shows up.
   [hearthis.at](../../hearthis.at/), [Internet Archive](../../InternetArchive/),
   [Player Checker](../../Player_Checker/), [MixesDB Userscripts Helper](../../MixesDB_Userscripts_Helper/)
 - **Install:** nothing to install – it comes with the site scripts
-- **Shared features:** [Tracklist box](../tracklist_editor/), [Page creator](../page_creator/),
+- **Shared features:** [Tracklist box](../tracklist_editor/), [Page Creator](../page_creator/),
   [MixesDB modal](../mixesdb_modal/)
 
 ## Features

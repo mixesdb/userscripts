@@ -10,10 +10,10 @@ Each folder holds one userscript and a README describing its features.
 
 | Script | Runs on | What it does |
 | --- | --- | --- |
-| [SoundCloud](SoundCloud/) | soundcloud.com | Page creator, tracklist from the description, toolkit, artwork, list filters |
+| [SoundCloud](SoundCloud/) | soundcloud.com | Page Creator, tracklist from the description, toolkit, artwork, list filters |
 | [Mixcloud](Mixcloud/) | mixcloud.com | Toolkit, artwork URL, file details, hide used shows |
-| [YouTube](YouTube/) | youtube.com | Page creator, tracklist from the description, toolkit for mix-length videos, thumbnail, file details |
-| [TrackId.net](TrackId.net/) | trackid.net, mixesdb.com | Tracklist in wiki syntax, page creator, player embed, integration marker, TID links under MixesDB players |
+| [YouTube](YouTube/) | youtube.com | Page Creator, tracklist from the description, toolkit for mix-length videos, thumbnail, file details |
+| [TrackId.net](TrackId.net/) | trackid.net, mixesdb.com | Tracklist in wiki syntax, Page Creator, player embed, integration marker, TID links under MixesDB players |
 | [RA](RA/) | ra.co | Toolkit, podcast tracklist, artwork URLs, copy buttons |
 | [1001 Tracklists](1001_Tracklists/) | 1001tracklists.com, mixesdb.com | Tracklist in wiki syntax, toolkit for every player, tracklist import to MixesDB |
 | [hearthis.at](hearthis.at/) | hearthis.at | Toolkit for both player URL variants |
@@ -30,7 +30,7 @@ Each folder holds one userscript and a README describing its features.
 | [Tracklist Cue Switcher](Tracklist_Cue_Switcher/) | mixesdb.com, trackid.net | Clickable cues, minutes ⟷ clock times |
 
 Shared across the site scripts, in [shared/](shared/): the [toolkit](shared/toolkit/), the
-[tracklist box](shared/tracklist_editor/), the [page creator](shared/page_creator/), the
+[tracklist box](shared/tracklist_editor/), the [Page Creator](shared/page_creator/), the
 [tracklist importer](shared/tracklist_importer/) and the [MixesDB modal](shared/mixesdb_modal/).
 
 [private/](private/) holds personal import helpers for bulk work on a single show. They are not

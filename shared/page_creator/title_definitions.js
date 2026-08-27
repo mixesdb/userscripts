@@ -3,7 +3,7 @@ log( "/shared/page_creator/title_definitions.js loaded" );
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Definitions for the MixesDB page creator's title suggestion
+ * Definitions for the MixesDB Page Creator's title suggestion
  *
  * The suggestion itself is built in buildMixesdbTitle() (title_builder.js) and offered as an
  * editable input by page_creator.js. Everything in this file is plain data meant to be
@@ -920,7 +920,7 @@ var mdbTitleArtistJoinerSpellings = {
  * mdbTitleArtistSplitJoiners
  *
  * What separates two ARTISTS inside the artist group - i.e. every way a MixesDB title can say
- * "more than one person played this". The page creator files one [[Category:<name>]] per artist
+ * "more than one person played this". The Page Creator files one [[Category:<name>]] per artist
  * off this list, so a joiner missing from it costs a category:
  *
  *     "2023-08-02 - See Bastian b2b Afin - ..."

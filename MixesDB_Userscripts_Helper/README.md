@@ -37,7 +37,7 @@ Nothing is ever saved automatically, and a field that already holds something is
 
 ### Edit form: the preview opens by itself
 
-A link that says it came from the page creator (`&from=PageCreator`) lands on the edit form and
+A link that says it came from the Page Creator (`&from=PageCreator`) lands on the edit form and
 goes straight to **Preview**: the new mix page is on screen – players, the artwork's red file
 link, the tracklist – with the edit box under it, instead of a wall of wikitext to read. Only
 that link does it. The toolkit's **EDIT** link opens an existing page to change one line, where a

@@ -422,7 +422,7 @@ function toolkit_updateEditLinksSiteHasTl( fromSite="", siteHasTl="" ) {
  * They only REPORT: the state is read from the feedback ("The tracklist seems valid and
  * complete.") and nothing here is clickable. Picking one by hand only means something where
  * the tracklist itself travels to the mix page and the page text's category travels with it -
- * the page creator's "Create" - and nowhere else would the pick have anything to change. It
+ * the Page Creator's "Create" - and nowhere else would the pick have anything to change. It
  * was clickable for a while; git history has that version if it comes back for the creator.
  *
  * The function and the CSS classes keep saying "button". funcs.js arrives through @require and
@@ -543,7 +543,7 @@ function makeMixesdbLink_fromId( mdbPageId, title="MixesDB", className="", lastE
         output = '<a href="'+mixesdbUrl+'" class="mdb-mixesdbLink mixPage '+className+'" target="_top">'+title+'</a>';
 
     // The blue eye behind the mix page link: opens the page framed in the shared MixesDB
-    // modal (shared/mixesdb_modal/funcs.js) - the same five-second look the page creator's
+    // modal (shared/mixesdb_modal/funcs.js) - the same five-second look the Page Creator's
     // category chips answer with on a plain click, without leaving the page or the state of
     // its players. typeof-guarded: a site script that does not @require the modal file must
     // keep rendering its usage links, just without the eye.
@@ -633,7 +633,7 @@ function apiUrl_searchKeywords_fromUrl( thisUrl ) {
  * the URL's SLUG (the path behind the domain - protocol and "www." vary in hand-written
  * mirrors) still finds those pages (design: shared/page_creator/row_enrichment.md §4).
  * Shared on purpose: the toolkit's player search runs it as its second layer, Internet
- * Archive's usage table runs it on download URL paths, and the page creator's planned
+ * Archive's usage table runs it on download URL paths, and the Page Creator's planned
  * Create-click sanity check can reuse it - one implementation, not three.
  */
 
@@ -1020,8 +1020,8 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                  * right after this handler, so an async answer would arrive on a toolkit
                  * whose empty "used" list item the cleanup already removed.
                  * A hit feeds the SAME resultsArr/resultNum the player search fills, so the
-                 * whole used-rendering below (usage links, body success class, the page
-                 * creator's used/unused verdict) needs no second code path.
+                 * whole used-rendering below (usage links, body success class, the Page
+                 * Creator's used/unused verdict) needs no second code path.
                  */
                 if( resultNum == 0 ) {
                     var insourcePhrase = mixesdbInsourceKeywords( thisUrl_forApi );

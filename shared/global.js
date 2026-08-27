@@ -1409,7 +1409,7 @@ function mdbResetForNewPage() {
     // navigation, not per poll.
     $("*").removeData("alreadyFound");
 
-    // 4. Shared features that keep their own state. The page creator is a separate @require
+    // 4. Shared features that keep their own state. The Page Creator is a separate @require
     // that not every script loads, hence the typeof guard rather than a plain call.
     if( typeof mdbPageCreator_resetForNewPage === "function" ) mdbPageCreator_resetForNewPage();
 

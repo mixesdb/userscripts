@@ -12,7 +12,7 @@ site scripts, so it looks and behaves the same everywhere.
   [Discogs](../../Discogs/), [Apple Music](../../Apple_Music/),
   [Player Checker](../../Player_Checker/)
 - **Install:** nothing to install – it comes with the site scripts
-- **Shared features:** [Toolkit](../toolkit/), [Page creator](../page_creator/)
+- **Shared features:** [Toolkit](../toolkit/), [Page Creator](../page_creator/)
 
 Those are the scripts that ADD the box, and they are the only ones listing it as a shared
 feature. A script that merely applies its own feature to a box already on the page does not:
@@ -62,7 +62,7 @@ that rewrites, which is why it waits until you have left the box. Leaving the bo
 changed anything does nothing, and a box you are already typing in again when the answer arrives
 is left alone.
 
-On pages with the [Page creator](../page_creator/), the `Tracklist:` category of the page the
+On pages with the [Page Creator](../page_creator/), the `Tracklist:` category of the page the
 **Create** link would start follows the fresh verdict, and so does the reasoning panel's
 category section.
 

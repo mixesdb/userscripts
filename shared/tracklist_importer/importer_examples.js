@@ -474,6 +474,93 @@ var tlImporterExamples_merge = [
                 "[104] G - Seven",
         changed: true,
         unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-27 (fibre podcast sigint 014, trackid.net): the two ends of a
+        // cue-less original.
+        //   1. The FIRST row came out "[0?]" - inferred from minute zero and the candidate's
+        //      [03]. But it is not inferred at all: the first row of a tracklist is where the
+        //      recording starts, so it IS [00].
+        //   2. The LAST row came out "[??]": nothing follows it, so the prefix rule had no
+        //      upper bound. The mix RUNTIME is that bound - 1:04:54 behind a [61] leaves only
+        //      minutes 61 to 64, all of them "6x", so it reads "[6?]".
+        name: "first row is minute zero, the runtime bounds the last",
+        durationSec: 3894, // 1:04:54, the duration TrackId.net prints above the tracklist
+        original: "# Kushkusshhh - Revive [Unreleased]\n" +
+                  "# Kangding Ray - TARO\n" +
+                  "# Kushkusshhh - Drowning\n" +
+                  "# Ali Bilal - Wayfarer [Unreleased]\n" +
+                  "# Ottagone - Ottagone 016\n" +
+                  "# Ket Robinson - Siren Call (JakoJako Remix) [KR]\n" +
+                  "# ASEC - Quiet [Quiet Details]\n" +
+                  "# Delano Legito - Therapeutic Range [Float]\n" +
+                  "# Cleric - Unwritten Future (Cleric 10/10 Remix) [Clergy]\n" +
+                  "# Temudo - Live Extract 2.11 (Edit) [Clergy]\n" +
+                  "# Lindsey Herbert - Aussetzung Der Zeit [Clergy]\n" +
+                  "# Cleric X Dax J - Sirius (Cleric 9/10 Remix) [Clergy]\n" +
+                  "# VSK - Exit [Clergy]\n" +
+                  "# N\u00f8rbak - Your Heroes May Fail You [Dynamic Reflection]\n" +
+                  "# B\u00d8HM - Nonlinear System [Fever]\n" +
+                  "# N\u00f8rbak - Norma (VIL Remix) [NRBK]\n" +
+                  "# Ottagone - Ottagone 021\n" +
+                  "# Ebass - Anthem [SK_Eleven]",
+        candidate: "[00] ?\n" +
+                   "...\n" +
+                   "[03] Kangding Ray - Taro [Ara]\n" +
+                   "[09] Kushkusshhh - Drowning [Diffuse Reality]\n" +
+                   "...\n" +
+                   "[17] Ottagone - Ottagone 016 [Will & Ink]\n" +
+                   "[20] Ket Robinson - Siren Call (JakoJako Remix) [KR]\n" +
+                   "[24] ?\n" +
+                   "...\n" +
+                   "[28] Delano Legito - Therapeutic Range\n" +
+                   "[31] Cleric - Unwritten Future (Cleric 10/10 Remix) [Clergy]\n" +
+                   "[34] Temudo - Live Extract 2.11 [Edit] - Clergy]\n" +
+                   "[40] Lindsey Herbert - Aussetzung Der Zeit [Clergy]\n" +
+                   "[43] Cleric & Dax J - Sirius (Cleric 9/10 Remix) [Clergy]\n" +
+                   "[46] VSK - Exit [Clergy]\n" +
+                   "[50] ?\n" +
+                   "...\n" +
+                   "[53] B\u00d8HM - Nonlinear System [Fever]\n" +
+                   "[58] N\u00f8rbak - Norma (VIL Remix) [NRBK]\n" +
+                   "[61] Ottagone - Ottagone 021 [Will & Ink]",
+        expect: "[00] Kushkusshhh - Revive [Unreleased]\n" +
+                "[03] Kangding Ray - TARO [Ara]\n" +
+                "[09] Kushkusshhh - Drowning [Diffuse Reality]\n" +
+                "[??] Ali Bilal - Wayfarer [Unreleased]\n" +
+                "[17] Ottagone - Ottagone 016 [Will & Ink]\n" +
+                "[20] Ket Robinson - Siren Call (JakoJako Remix) [KR]\n" +
+                "[24] ASEC - Quiet [Quiet Details]\n" +
+                "[28] Delano Legito - Therapeutic Range [Float]\n" +
+                "[31] Cleric - Unwritten Future (Cleric 10/10 Remix) [Clergy]\n" +
+                "[34] Temudo - Live Extract 2.11 (Edit) [Clergy]\n" +
+                "[40] Lindsey Herbert - Aussetzung Der Zeit [Clergy]\n" +
+                "[43] Cleric X Dax J - Sirius (Cleric 9/10 Remix) [Clergy]\n" +
+                "[46] VSK - Exit [Clergy]\n" +
+                "[50] N\u00f8rbak - Your Heroes May Fail You [Dynamic Reflection]\n" +
+                "[53] B\u00d8HM - Nonlinear System [Fever]\n" +
+                "[58] N\u00f8rbak - Norma (VIL Remix) [NRBK]\n" +
+                "[61] Ottagone - Ottagone 021 [Will & Ink]\n" +
+                "[6?] Ebass - Anthem [SK_Eleven]",
+        changed: true,
+        // line 1 is the candidate's "[00] ?" - a gap-less original takes no unknown rows, so
+        // its cue stays unplaced (the [00] on the first row is our own rule, not that row's),
+        // and line 12's label is the "[Edit] - Clergy]" TrackId.net mangled the Temudo row
+        // into, which the page's own "[Clergy]" wins against
+        unused: { cues: [1], texts: [], labels: [12] }
+    },
+    {
+        // The two ends again, in the cases where nothing may be written:
+        //   - a leading "..." says tracks are missing BEFORE the first row, so it did not
+        //     start the mix and keeps its "[??]"
+        //   - no runtime came along (every site but TrackId.net so far), so nothing bounds the
+        //     rows behind the last known cue either
+        name: "leading gap and no runtime leave both ends unknown",
+        original: "...\n# A - One\n# B - Two\n# C - Three",
+        candidate: "...\n[20] B - Two [L2]",
+        expect: "...\n[??] A - One\n[20] B - Two [L2]\n[??] C - Three",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
     }
 ];
 

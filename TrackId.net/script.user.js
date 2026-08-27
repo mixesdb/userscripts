@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.24
+// @version      2026.08.27.25
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_33
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_34
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -47,14 +47,14 @@ loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVe
 loadRawCss( githubPath_raw + "shared/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
-// MixesDB page creator: normally the row is only offered for players that are NOT on MixesDB
+// MixesDB Page Creator: normally the row is only offered for players that are NOT on MixesDB
 // yet - for a used player there is nothing to create. With this on, the row is shown for used
 // players too, marked "used" and without the "Create" link (which would only start a duplicate
 // page). On window because page_creator.js is a @require and cannot see this IIFE's scope.
 window.mdbPageCreator_showForUsedPlayers = false; // Off despite the beta phase (like on SoundCloud): the big PC block gets in the way of testing the Tracklist Importer on used players
 
 // Loading skeleton on audiostream pages: the grey pulsing placeholder below the embedded
-// player (which shows straight away) until toolkit and page creator row have arrived -
+// player (which shows straight away) until toolkit and Page Creator row have arrived -
 // shared with SoundCloud, see mdbSkeleton_* in shared/page_creator/page_creator.js. With
 // this off, the pieces pop in one by one; the time until everything has loaded is logged
 // the same way in both modes.
@@ -1042,7 +1042,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
         }
     }
 
-    // MixesDB page creator - only needs the player URL, so it starts alongside the embed
+    // MixesDB Page Creator - only needs the player URL, so it starts alongside the embed
     funcTidPageCreator( playerUrl );
 }
 
@@ -1052,7 +1052,7 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
  * funcTidPlayers() for the players built on the spot and the toolkit handler for the
  * hearthis.at one, which only exists once its lookup has answered.
  * The player is NOT covered (keep): it should play as early as possible. The skeleton holds
- * the space below it, where page creator row and toolkit appear together at the reveal - the
+ * the space below it, where Page Creator row and toolkit appear together at the reveal - the
  * row is placed "after" the player wrapper (funcTidPageCreator), so it is a hidden direct
  * child of the extras wrapper like the toolkit, not a visible part of the kept player.
  * Row and toolkit are SEPARATE stand-in boxes: the "pageCreator" one only where the row
@@ -1079,7 +1079,7 @@ function tidSkeleton_show() {
 }
 
 /*
- * MixesDB page creator (shared/page_creator/)
+ * MixesDB Page Creator (shared/page_creator/)
  * The suggested-title row between the embedded player and the toolkit - SoundCloud and
  * YouTube players so far. Each player type has its own data source, because the TID page
  * itself only knows a normalized heading and a locale-formatted date, and the title builder
@@ -1091,7 +1091,7 @@ function tidSkeleton_show() {
  *     and it is a same-origin request with no token
  * The "Create" link does NOT use the shared description-tracklist detection: TID's own
  * tracklist box (#tlEditor, built from the identified tracks further down this file) is the
- * better tracklist, and the tracklistBox option points the page creator at it - whatever is in
+ * better tracklist, and the tracklistBox option points the Page Creator at it - whatever is in
  * that box at the moment "Create" is clicked goes onto the new page. A stream still processing
  * has no box yet; clicking "Create" then starts the page with an empty tracklist, so wait for
  * the box.
@@ -1102,7 +1102,7 @@ function funcTidPageCreator( playerUrl ) {
 
     // audiostream detail pages only - funcTidPlayers also runs for the submit form's preview
     if( urlPath_noParams(1) != "audiostreams" || !urlPath_noParams(2) ) {
-        log( "funcTidPageCreator: not an audiostream detail page - no page creator row." );
+        log( "funcTidPageCreator: not an audiostream detail page - no Page Creator row." );
         return;
     }
 
@@ -1115,7 +1115,7 @@ function funcTidPageCreator( playerUrl ) {
 
     // Mixcloud/hearthis.at still need their own data source
     if( playerDomain != "soundcloud.com" ) {
-        log( "funcTidPageCreator: not a SoundCloud or YouTube player - no page creator row yet." );
+        log( "funcTidPageCreator: not a SoundCloud or YouTube player - no Page Creator row yet." );
         return;
     }
 
@@ -1128,7 +1128,7 @@ function funcTidPageCreator( playerUrl ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         if( !scAccessToken || scAccessToken == "null" ) {
-            log( "funcTidPageCreator: no SC access token - no page creator row." );
+            log( "funcTidPageCreator: no SC access token - no Page Creator row." );
             return;
         }
 
@@ -1192,7 +1192,7 @@ function funcTidPageCreator( playerUrl ) {
 
 /*
  * funcTidPageCreator_youtube
- * The YouTube route of the page creator row. YouTube offers no tokenless metadata API that
+ * The YouTube route of the Page Creator row. YouTube offers no tokenless metadata API that
  * answers cross-origin (oEmbed carries no date, the innertube endpoint refuses a foreign
  * Origin header, and this script deliberately ships with no @grant) - but TID's OWN public
  * API already stores what its scraper read off the video: the original title, the channel
@@ -1304,7 +1304,7 @@ waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", functi
     getToolkit( playerUrl, "playerUrl", "detail page", jNode, "after", titleText, "link", 1, "", "auto" );
     jNode.addClass("mdb-processed-toolkit");
 
-    // the page creator row is gated behind that toolkit's usage verdict - re-arm the poll
+    // the Page Creator row is gated behind that toolkit's usage verdict - re-arm the poll
     // whenever the toolkit is (re)built
     mdbPageCreator_watchToolkit();
 });
@@ -1372,6 +1372,25 @@ waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
  * Tracklist table
  * via table .mdb-tid-table
  */
+
+// mdbTid_totalDurSec
+// The mix runtime TrackId.net prints in its header ("Duration 1:04:54"), in seconds. Read out
+// of the DOM at CALL time and never cached: trackid.net is a single-page app, and a value
+// stored once would still answer for the previous audiostream after a navigation.
+//
+// The Tracklist Importer picks it up through window.mdbTlImporter_durationSec (see
+// shared/tracklist_importer/funcs.js) - it is what bounds the guessed cues at the END of a
+// merged tracklist: a row behind [61] on a 1:04:54 mix can only be a "6x" minute, so it reads
+// "[6?]" instead of "[??]".
+function mdbTid_totalDurSec() {
+    var text = $("p.MuiTypography-body1:contains('Duration')").closest("div").next(".MuiGrid-item").text().trim(),
+        parts = text.split(":"),
+        sec = parts.length === 3 ? durToSec( text ) : parts.length === 2 ? durToSec_MS( text ) : 0;
+
+    return isFinite( sec ) && sec > 0 ? sec : 0;
+}
+window.mdbTlImporter_durationSec = mdbTid_totalDurSec; // a FUNCTION, so every read is this page's
+
 // waitForKeyElements
 waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode ) {
     logFunc( "funcTidTracklist" );
@@ -1387,7 +1406,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
     var heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
         mixTitle = heading.text(),
         totalDur = $("p.MuiTypography-body1:contains('Duration')").closest("div").next(".MuiGrid-item").text(),
-        totalDur_Sec = durToSec(totalDur);
+        totalDur_Sec = mdbTid_totalDurSec();
     log(mixTitle);
     logVar( "totalDur", totalDur);
 
@@ -2288,8 +2307,21 @@ function on_submitrequest() {
 /*
  * Changelog
  *
+ * 2026.08.27.25
+ * Tracklist Importer merge, the two ENDS of the cue guessing (merge_core.js v14,
+ * tracklist_importer funcs.js v34, reported on fibre podcast sigint 014). The neighbour rule
+ * needs a known cue on either side, and the first and the last row have only one. The FIRST
+ * row is where the recording starts, so an unknown cue on it is written "[00]" outright instead
+ * of being guessed down to "[0?]" - unless a "..." gap stands in front of it, which says the
+ * list does not start there. Behind the LAST known cue the mix RUNTIME now plays the missing
+ * neighbour: TrackId.net prints it in its header (mdbTid_totalDurSec, handed to the importer
+ * through window.mdbTlImporter_durationSec and travelling to the edit page in the hash), so a
+ * row behind [61] in a 1:04:54 mix reads "[6?]" - minute 61 to 64 all start with a 6. Sites
+ * without a runtime behave as before, nothing is filled in there. The Report names the runtime
+ * now, so a reported case can be reproduced.
+ *
  * 2026.08.27.24
- * Via the shared page creator (page_creator.js v_121): the lead artwork line no longer goes
+ * Via the shared Page Creator (page_creator.js v_121): the lead artwork line no longer goes
  * missing because ONE sibling's file name spells a character the wiki cannot put in a file
  * name. MediaWiki replaces ":", "/" and "\\" with a "-" on upload, so
  * "2017-09-21 - Mohr/Sula - Transmittal Tapes 6" is filed as "... - Mohr-Sula - ....jpg". That
@@ -2315,22 +2347,22 @@ function on_submitrequest() {
  * tracks did not play in minute 008. Reported on fibre podcast bman 011.
  *
  * 2026.08.27.22
- * The page creator row states its font sizes in px instead of rem (page_creator.css): rem is
+ * The Page Creator row states its font sizes in px instead of rem (page_creator.css): rem is
  * the HOST page's root font size - 16px here, 14px on SoundCloud, 10px on YouTube - so the same
  * row came out in three sizes. Here that means slightly smaller text (title field 13px instead
  * of 14.4px, "Create" 14px instead of 16px): the row now looks the same on every site.
  *
  * 2026.08.27.21
- * Page creator row for YouTube players (funcTidPageCreator_youtube): the data comes from
+ * Page Creator row for YouTube players (funcTidPageCreator_youtube): the data comes from
  * TID's own public API (/api/public/audiostreams/<slug>), which stores the original YT
  * title, channel name and upload date (createdOn) - same origin, no token. The row passes
  * channelTrust "low" (title_builder.js v_89, page_creator.js v_120): a YouTube channel is
  * often a broadcaster or re-uploader, so the title builder no longer falls back to its name
  * as artist/entity without backing (in the title, curated, or wiki-known). The loading
- * skeleton shows the page creator stand-in box for YouTube players too (tidSkeleton_show).
+ * skeleton shows the Page Creator stand-in box for YouTube players too (tidSkeleton_show).
  *
  * 2026.08.27.20
- * The loading skeleton below the player shows the page creator row and the toolkit as two
+ * The loading skeleton below the player shows the Page Creator row and the toolkit as two
  * SEPARATE grey boxes instead of the one merged block (page_creator.js v_119, new
  * "pageCreator" row type, and page_creator.css): the row's box only on audiostream detail
  * pages with a SoundCloud player - the only pages funcTidPageCreator builds a row for
@@ -2372,7 +2404,7 @@ function on_submitrequest() {
  * 2026.08.27.12
  * The MixesDB modal is a shared feature now (shared/mixesdb_modal/, split out of
  * page_creator.js v_118 - new @require, CSS loads itself): the toolkit's "used" mix page
- * links carry a blue eye icon that frames the page in the same popup the page creator's
+ * links carry a blue eye icon that frames the page in the same popup the Page Creator's
  * category chips open. Chips and arrow-key walk behave as before; the walk now also steps
  * through the toolkit's links, in page order.
  *
@@ -2970,7 +3002,7 @@ function on_submitrequest() {
  * the "Hints:" row column they had borrowed.
  *
  * 2026.08.20.25
- * The page creator's title builder and hints bar learned four rules from a SoundCloud report
+ * The Page Creator's title builder and hints bar learned four rules from a SoundCloud report
  * ("UFO95 LIVE @ DOMMUNE"). (1) A NAME is never read as an episode id (title_builder.js
  * v_68): the artist's own "UFO95" was consumed as a glued id, which made the venue the
  * artist and filed the page under [[Category:Dommune]] as its ARTIST. An id-shaped token
@@ -3115,7 +3147,7 @@ function on_submitrequest() {
  * observed and what it did to the page were not told apart the way the other rows do it.
  *
  * 2026.08.20.9
- * Three style refinements in the page creator (page_creator.js v_90). The empty style rows now
+ * Three style refinements in the Page Creator (page_creator.js v_90). The empty style rows now
  * follow what the siblings show: one spare row behind the written style only where some of the
  * entity's pages carry a further style (Tech House on 1 of Amplify Series' 10 - this mix may be
  * such a page too), none where they use nothing else, and the plain two where no style was
@@ -3156,7 +3188,7 @@ function on_submitrequest() {
  * untouched and still wins - those styles are read off the mix itself.
  *
  * 2026.08.20.5
- * Via the shared page creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):
+ * Via the shared Page Creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):
  * sections 3, 5 and 7 of the reasoning panel each close with an "API call" link - the exact
  * api.php URL that section's answers came out of, opening the raw answer in a new tab. Section
  * 3 carries the one lookup request plus every per-chip page fetch the hints bar fired off its
@@ -3168,7 +3200,7 @@ function on_submitrequest() {
  * what was really asked rather than an approximation of it.
  *
  * 2026.08.20.2
- * Via the shared page creator (page_creator.css): the box under an open hints bar chip hangs
+ * Via the shared Page Creator (page_creator.css): the box under an open hints bar chip hangs
  * 5px lower, and chip and box are one line all the way round - the chip's left border runs
  * straight down into the box's, and on the right the two are joined by an arc: the chip's
  * border turns into the box's top border in a quarter circle instead of a square step. The box
@@ -3176,7 +3208,7 @@ function on_submitrequest() {
  * this category yet" one keeps the shape.
  *
  * 2026.08.19.49
- * Via the shared page creator (page_creator.css; page_creator.js v_85 only retells it in the
+ * Via the shared Page Creator (page_creator.css; page_creator.js v_85 only retells it in the
  * comments): the mix pages a hints bar chip folds out hang in a box attached UNDER the chip
  * now. Chip and box are two connected parts - the chip keeps its pill, its width and its
  * height to the pixel, so the chips behind it stand still for the first time in three cuts at
@@ -3185,7 +3217,7 @@ function on_submitrequest() {
  * until it is folded shut.
  *
  * 2026.08.19.48
- * Via the shared page creator (page_creator.js v_84): the hints bar folds ONE chip's mix pages
+ * Via the shared Page Creator (page_creator.js v_84): the hints bar folds ONE chip's mix pages
  * out at a time - opening a chip closes the one that stood open before it. Two open lists left
  * the chips around them hanging in mid-air beside a tall list - "2026" next to one,
  * "Tracklist: none" next to the next - because a folded-out list is as wide as its longest mix
@@ -3193,7 +3225,7 @@ function on_submitrequest() {
  * "Used categories" a line that can be read as one.
  *
  * 2026.08.19.36
- * Via the shared page creator (page_creator.js v_73): the {{Player}} of the created page takes
+ * Via the shared Page Creator (page_creator.js v_73): the {{Player}} of the created page takes
  * the shape the series uses. Where at least 90% of the entity's recent pages publish every
  * episode on two platforms - {{Player|mode=mirrors}} with a line per platform, as Groove
  * Podcast, HATE Podcast, RA Podcast and XLR8R Podcast do - the new page is written that way,
@@ -3206,7 +3238,7 @@ function on_submitrequest() {
  * name and the player renders "{{{1}}}".
  *
  * 2026.08.19.33
- * Via the shared page creator (page_creator.js v_70): the lead artwork line is back on a series
+ * Via the shared Page Creator (page_creator.js v_70): the lead artwork line is back on a series
  * whose recent pages hold a live recording. Such a page opens with the EVENT's flyer, named
  * after the event - the artwork belongs to whatever the page records - so it cannot say what an
  * episode page starts with, and it no longer votes on it. Reported on SoundCloud's "GROOVE
@@ -3215,7 +3247,7 @@ function on_submitrequest() {
  * episodes carries. A venue's or an event's own category, where every page is such a recording,
  * decides as before, and reasoning section 7 says how many pages were left out.
  *
- * Via the shared page creator (page_creator.js v_70): a hints bar chip's fit score stays behind
+ * Via the shared Page Creator (page_creator.js v_70): a hints bar chip's fit score stays behind
  * its "N mixes" count when the count is toggled open - it used to drop under the folded-out mix
  * pages.
  *
@@ -3228,18 +3260,18 @@ function on_submitrequest() {
  * title came out as "DrumcomplexEd Radio 311" while the real category holds 311 mixes.
  *
  * 2026.08.19.25
- * Via the shared page creator (page_creator.js v_68, page_creator.css): every looked-up chip in
+ * Via the shared Page Creator (page_creator.js v_68, page_creator.css): every looked-up chip in
  * the hints bar's "Used categories" carries a fit score - how sure the row is that this is the
  * right category for THIS page, with the reasons in its tooltip. Not the reasoning panel's
  * section 3 percentage, which answers whether the wiki's answer is about the right NAME.
  *
  * 2026.08.19.24
- * Via the shared page creator (page_creator.js v_67): a category's pages are only read where
+ * Via the shared Page Creator (page_creator.js v_67): a category's pages are only read where
  * they can say anything about THIS mix - not when the title numbers its entity while MixesDB
  * knows that name as a venue or an event, and not when the category's newest page is more than
  * three years older than the mix.
  *
- * Via the shared page creator (page_creator.js v_67, page_creator.css): a category the
+ * Via the shared Page Creator (page_creator.js v_67, page_creator.css): a category the
  * entity's recent sibling pages share is no longer written onto the created page as a style.
  * The vote answers what those pages have in COMMON - a venue whose MixesDB pages are all
  * festival sets votes for the festival - so it is shown as a new "Hints:" row in the bar under
@@ -3247,14 +3279,14 @@ function on_submitrequest() {
  * reasoning section 6, while the page's two style rows stay empty for the editor.
  *
  * 2026.08.19.23
- * Via the shared page creator (page_creator.js v_66, page_creator.css): the grey
+ * Via the shared Page Creator (page_creator.js v_66, page_creator.css): the grey
  * "Category:Promo Mix" note under the "Create" link is gone. The hints bar's "Used categories"
  * already names every category the created page is filed under, "Promo Mix" among them, so the
  * note repeated it. What only it used to say - that the title leaves "(Promo Mix)" off because
  * its own name already says it - now sits in the tooltip of the "Promo Mix" chip.
  *
  * 2026.08.19.20
- * Via the shared page creator (title_builder.js v_51, title_definitions.js v_35,
+ * Via the shared Page Creator (title_builder.js v_51, title_definitions.js v_35,
  * page_creator.js v_62): a place that names the ROOM of a venue now files the page under the
  * VENUE. Behind the "@" the base name is asked about next to the full one, and where MixesDB
  * answers empty about the name while knowing the base as a venue or an event, the room word
@@ -3265,14 +3297,14 @@ function on_submitrequest() {
  * has a new "Alternative title:" line for that kind of second reading.
  *
  * 2026.08.19.19
- * Via the shared page creator (page_creator.js v_62, page_creator.css): the hints bar's "Used
+ * Via the shared Page Creator (page_creator.js v_62, page_creator.css): the hints bar's "Used
  * categories" line now names EVERY category the created page is filed under - the year, the
  * styles, "Promo Mix" and the "Tracklist:" filing ride along as plain grey chips, no link and
  * no mix count, since none of them is a name the wiki could spell differently. Reported for
  * "Promo Mix", which the page text writes while the line stayed silent about it.
  *
  * 2026.08.19.18
- * Via the shared page creator (page_creator.js v_61, title_builder.js v_51,
+ * Via the shared Page Creator (page_creator.js v_61, title_builder.js v_51,
  * title_definitions.js v_35): the "Switch title:" line no longer offers a dropped "Part 2".
  * The parts of one recording belong on one mix page, so the marker would only start a
  * duplicate. A chip may offer a different title for this page, never a different page.
@@ -3284,7 +3316,7 @@ function on_submitrequest() {
  * DJ set is announced the same way), it only offers the reading.
  *
  * 2026.08.19.16
- * The page creator's hints bar offers the readings the build decided against as
+ * The Page Creator's hints bar offers the readings the build decided against as
  * "Switch title:" chips (page_creator.js v_60, title_builder.js v_49, page_creator.css) -
  * a guessed "(Live PA)", an assumed or deliberately withheld "(Promo Mix)", a dropped
  * "Part N", each as the full title it would make. A click swaps it with the title field and
@@ -3476,7 +3508,7 @@ function on_submitrequest() {
  * so a TrackId.net install kept serving the older cached copies).
  *
  * 2026.08.17.28
- * Second round of the same report, via the shared page creator (title_definitions.js v_28,
+ * Second round of the same report, via the shared Page Creator (title_definitions.js v_28,
  * title_builder.js v_36, page_creator.js v_41, page_creator.css): the reasoning panel's
  * section 3 sorts its CHIPS into the two candidate columns, decided from the title's shape
  * before the lookup fires - names in front of the "@" ask as the artist; series-looking
@@ -3555,7 +3587,7 @@ function on_submitrequest() {
  * its own and swaps to the real content once everything is in.
  *
  * 2026.08.16.8
- * ONE skeleton for page creator row + toolkit, and the CSS owns the height. The row was
+ * ONE skeleton for Page Creator row + toolkit, and the CSS owns the height. The row was
  * appended INTO the kept (always visible) player wrapper, so it popped in on its own before
  * the reveal and the covered area below changed size - now it is placed "after" the player
  * wrapper, a hidden direct child of #mdb-tid-audiostreamExtras between player and toolkit,
@@ -3570,17 +3602,17 @@ function on_submitrequest() {
  * option of mdbSkeleton_show() (shared/page_creator/): direct children matching it stay
  * visible while loading and are skipped by the reveal fade, so the player does not blink
  * at the swap. The skeleton now only holds the space below the player (rows: toolkit,
- * 120px) where toolkit and page creator row appear.
+ * 120px) where toolkit and Page Creator row appear.
  *
  * 2026.08.16.4
  * Audiostream pages get the loading skeleton the SoundCloud script introduced, now shared
  * as mdbSkeleton_* in shared/page_creator/: player embed, toolkit and (for SoundCloud
- * players) the page creator row build up hidden behind a dark grey box with pulsing
+ * players) the Page Creator row build up hidden behind a dark grey box with pulsing
  * stand-ins (player block + toolkit lines) and appear in one step once the toolkit verdict
  * is in and the DOM has settled - or after a 6s cap. For that the player wrapper now sits
  * inside a new #mdb-tid-audiostreamExtras container, which also catches the toolkit
  * (getToolkit's "after" placement lands inside it, right behind the player); selectors on
- * .mdb-player-audiostream and the page creator target are unchanged. hearthis players
+ * .mdb-player-audiostream and the Page Creator target are unchanged. hearthis players
  * arrive through a separate async path outside the container and keep the old behaviour.
  * New debug option window.mdbSkeleton_enabled (default true): off = pieces pop in as
  * before, and both modes log the identical "everything loaded Xms" line for comparison.
@@ -3594,12 +3626,12 @@ function on_submitrequest() {
  * suggestions (or an emptied box) keep the two empty rows as before.
  *
  * 2026.08.15.1
- * The MixesDB page creator (shared/page_creator/) now runs on audiostream pages with a
+ * The MixesDB Page Creator (shared/page_creator/) now runs on audiostream pages with a
  * SoundCloud player: the suggested-title row with the "Create" link sits between the embedded
  * player and the toolkit, fed from the SC track API (title, username, dates, duration, artwork
  * "-original" URL) via the same access token the toolkit already uses - the TID page itself
  * only knows a normalized heading and a locale-formatted date. No description-tracklist
- * detection here: the new tracklistBox option of mdbPageCreator_add() points the page creator
+ * detection here: the new tracklistBox option of mdbPageCreator_add() points the Page Creator
  * at TID's own #tlEditor box, so whatever the identified tracks say at the moment "Create" is
  * clicked goes onto the new page, and the Tracklist Editor's verdict about that text files the
  * "Tracklist:" category. Other players (Mixcloud, YouTube, hearthis.at) do not get the row yet.

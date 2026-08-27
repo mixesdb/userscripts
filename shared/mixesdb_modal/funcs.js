@@ -7,12 +7,12 @@ log( "/shared/mixesdb_modal/funcs.js loaded" );
  *
  * A MixesDB page framed in an overlay ON the page the reader is working on - for the
  * five-second look ("is this the right category?", "does this page already exist?") that is
- * not worth a tab. Grown out of the page creator's "Used categories" chips and moved here
- * because the toolkit's usage links open it too, on sites that load no page creator at all.
+ * not worth a tab. Grown out of the Page Creator's "Used categories" chips and moved here
+ * because the toolkit's usage links open it too, on sites that load no Page Creator at all.
  *
  * Two things open it:
  *
- * - the page creator's category chips intercept the plain left click on a desktop-wide
+ * - the Page Creator's category chips intercept the plain left click on a desktop-wide
  *   window (their own delegated handler in page_creator.js)
  * - the eye icon the toolkit renders behind a "used" mix page link - built by
  *   mdbModal_eyeLink() below, clicks handled down here
@@ -76,7 +76,7 @@ var mdbModal_minWidth = 1024,
     mdbModal_cssRequested = false;
 
 // The walk's link providers - one function per feature that has MixesDB links worth walking
-// (the page creator's chip rows, the toolkit's usage links), each returning its CURRENT
+// (the Page Creator's chip rows, the toolkit's usage links), each returning its CURRENT
 // links as an array of nodes. A plain global array rather than a register function so the
 // @require order cannot matter: whoever runs first creates it, everybody else appends.
 window.mdbModal_linkProviders = window.mdbModal_linkProviders || [];
@@ -104,7 +104,7 @@ function mdbModal_cssCacheParam() {
  * like the tracklist editor's own CSS: an @require'd file runs before the site scripts'
  * frame opt-outs, so loading at file load time would fetch CSS into every foreign frame
  * SoundCloud embeds. Called where the modal becomes POSSIBLE - the eye icon being built,
- * the page creator's row being added - so the very first open is already styled, and again
+ * the Page Creator's row being added - so the very first open is already styled, and again
  * from mdbModal_open() as the safety net.
  */
 function mdbModal_ensureCss() {
@@ -120,7 +120,7 @@ function mdbModal_ensureCss() {
  * The opener a feature renders next to a MixesDB link: a small mono blue eye that frames the
  * page in the modal on a plain left click. Returned as an HTML string because the toolkit
  * builds its rows as strings. It is a REAL link to the same page - target="_blank" like the
- * page creator's chips, since the look it serves is a side trip taken while working on THIS
+ * Page Creator's chips, since the look it serves is a side trip taken while working on THIS
  * page - so every modifier click, the context menu and a narrow window (where the delegated
  * handler below stands aside) all behave like any other link.
  */
@@ -241,8 +241,8 @@ function mdbModal_overlay() {
 // mdbModal_open
 // One modal at a time - opening replaces whatever is up. The overlay is class mdb-element, so
 // the shared navigation cleanup (onUrlChange in global.js) takes it down with the rest of our
-// elements wherever it hangs in this document; where it hangs in the top one, the page
-// creator's reset for a new page is what closes it (mdbPageCreator_resetForNewPage).
+// elements wherever it hangs in this document; where it hangs in the top one, the Page
+// Creator's reset for a new page is what closes it (mdbPageCreator_resetForNewPage).
 // The frame and the header's link are filled by mdbModal_show, which is also what every
 // arrow key runs afterwards - opening is just the first step of the walk.
 function mdbModal_open( url ) {
@@ -567,7 +567,7 @@ function mdbModal_show( url ) {
 // mdbModal_links
 // The links the arrows walk: everything the registered providers return, merged into one
 // list in DOCUMENT order - which is the order the page reads, so on a page carrying both the
-// page creator's chips and the toolkit's usage links the walk does not jump between areas.
+// Page Creator's chips and the toolkit's usage links the walk does not jump between areas.
 // Read fresh on every step rather than kept from the open: the rows rebuild constantly (a
 // title edit, a lookup answering, a chip toggled), and a stored list would step to links
 // that are no longer on the page.
@@ -656,7 +656,7 @@ function mdbModal_count() {
 // next open runs mdbModal_close() first, and that is this.
 //
 // That cleanup only reaches the document THIS script runs in, though, and the overlay may
-// hang in the top one (mdbModal_doc) - which is why the page creator's own reset for a new
+// hang in the top one (mdbModal_doc) - which is why the Page Creator's own reset for a new
 // page calls this too (mdbPageCreator_resetForNewPage).
 function mdbModal_close() {
     mdbModal_unbindKeys();

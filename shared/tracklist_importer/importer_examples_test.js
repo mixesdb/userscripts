@@ -56,7 +56,8 @@ function unusedLines( diffItems, part ) {
 console.log( "\nMerge examples\n" );
 
 for( const c of tlImporterExamples_merge ) {
-    const res = tlImporter_merge( c.original, c.candidate );
+    // durationSec is the mix runtime the player site knew - only the cases that state one
+    const res = tlImporter_merge( c.original, c.candidate, { durationSec: c.durationSec } );
 
     report( res.mergedText === c.expect, c.name + " [merged text]", res.mergedText, c.expect );
     report( res.changed === c.changed, c.name + " [changed flag]", res.changed, c.changed );
