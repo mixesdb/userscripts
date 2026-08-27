@@ -56,6 +56,9 @@ var tlImporterExamples_merge = [
         candidate: "[00] A - One [CandLabel]\n[03] ?\n[10] B - Two",
         expect: "[00] A - One [OrigLabel]\n[10] B - Two",
         changed: false,
+        // not identical: the candidate has a label the page carries differently and a "?" row
+        // the merge dropped - both are things a reader may still want to look at
+        identical: false,
         unused: { cues: [2], texts: [], labels: [1] }
     },
     {
@@ -209,6 +212,20 @@ var tlImporterExamples_merge = [
                 "[038] ?\n" +
                 "...",
         changed: false,
+        identical: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // The weaker no-change shape: everything the candidate has is on the page, but the
+        // page knows more (a track the candidate never found). Nothing to merge either way,
+        // but this is NOT the same list - and the "Identical" note plus the automatic
+        // "TID tracklist is integrated" tick hang off that difference.
+        name: "candidate contained in a longer original",
+        original: "[00] A - One\n[10] B - Two\n[20] C - Three",
+        candidate: "[00] A - One\n[10] B - Two",
+        expect: "[00] A - One\n[10] B - Two\n[20] C - Three",
+        changed: false,
+        identical: false,
         unused: { cues: [], texts: [], labels: [] }
     },
     {

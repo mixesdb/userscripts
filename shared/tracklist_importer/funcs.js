@@ -119,6 +119,64 @@ function tlImporter_fetchPageText( pageId, done ) {
     });
 }
 
+// tlImporter_addNoMergeNote
+// What stands where the Insert/Merge link would be when there is nothing to merge. That spot
+// used to stay empty, which reads exactly like "the importer did not run" - and the reader
+// has no way of telling the two apart.
+//
+// Two readings, because "nothing to merge" has two very different meanings (see
+// tlImporter_sameTracklists in merge_core.js):
+//   "Identical"      - the same list on both sides. The found tracklist IS in the mix page,
+//                      so the toolkit's "TID tracklist is integrated" checkbox is ticked too.
+//   "Nothing to add" - the page holds everything the found tracklist has AND more. No claim
+//                      is made about it: the reader decides whether that counts as integrated.
+function tlImporter_addNoMergeNote( wrapper, editLink, identical ) {
+    var note = $( '<span class="mdb-element mdb-tlImporter-note"></span>' )
+        .attr( "title", identical
+            ? "This tracklist and the tracklist of the MixesDB page are the same list - nothing to merge.\nMarked as integrated for you."
+            : "The MixesDB page's tracklist already holds everything this tracklist could add - nothing to merge." )
+        .text( identical ? "Identical" : "Nothing to add" );
+
+    if( identical ) note.addClass( "mdb-tlImporter-note-identical" );
+
+    // same divider the links get, so [note] | [EDIT HIST] groups the same way
+    editLink.before( note, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
+
+    if( identical ) tlImporter_tickIntegrated( wrapper );
+}
+
+// tlImporter_tickIntegrated
+// Ticks the toolkit's "TID tracklist is integrated" checkbox of THIS usage row, by clicking
+// it: the saving belongs to the site script's own handler (TrackId.net/script.user.js), and a
+// silently set property would not reach it.
+//
+// It has to wait for that handler's own answer first. The checkbox arrives hidden and is only
+// shown once the check request came home - and that answer may be "already integrated", which
+// replaces the input with the check mark, or "no such player", which replaces the whole
+// wrapper with a sentence. So: poll for a VISIBLE input, stop as soon as the input is gone,
+// and give up after ~15s (every site but TrackId.net never shows the wrapper at all).
+function tlImporter_tickIntegrated( wrapper ) {
+    var tries = 0,
+        timer = setInterval(function() {
+            var box = wrapper.find( "input.mdbTrackidCheck" );
+
+            if( ++tries > 50 || !box.length || !wrapper.closest( "body" ).length ) {
+                clearInterval( timer );
+                return;
+            }
+
+            if( !box.is( ":visible" ) ) return; // the check request has not answered yet
+
+            clearInterval( timer );
+
+            if( box.prop( "checked" ) ) return;
+
+            log( "tlImporter: the two tracklists are identical - ticking the integrated checkbox." );
+
+            box[0].click(); // native, so the site script's own click handler does the saving
+        }, 300 );
+}
+
 // The links, one wrapper at a time. Registered once at the top level; the handler returns true
 // (= not handled, keep polling) until the page also has a filled candidate box, because a
 // toolkit link without a tracklist to carry would only ever insert nothing.
@@ -167,9 +225,16 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
             // A merge that would change nothing is not worth a link: following it would only
             // open the edit form on MediaWiki's "(No difference)". The merge itself is the
             // answer - pure JS, no network - and the candidate is re-read from the box here,
-            // because the page text fetch above was async.
-            if( mode == "merge" && !tlImporter_merge( read.tlText, tlImporter_candidateText() ).changed ) {
-                log( "tlImporter: the mix page tracklist already holds everything this candidate could add - no import link." );
+            // because the page text fetch above was async. A note takes the link's place, so
+            // the row does not read as "the importer never ran" - see tlImporter_addNoMergeNote.
+            var mergeTry = mode == "merge" ? tlImporter_merge( read.tlText, tlImporter_candidateText() ) : null;
+
+            if( mergeTry && !mergeTry.changed ) {
+                log( "tlImporter: the mix page tracklist already holds everything this candidate could add - no import link"
+                     + ( mergeTry.identical ? ", the two lists are identical." : "." ) );
+
+                tlImporter_loadCss();
+                tlImporter_addNoMergeNote( jNode, editLink, mergeTry.identical );
                 return;
             }
 

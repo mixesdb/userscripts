@@ -942,9 +942,75 @@ function tlImporter_originalItems( merged_arr ) {
     return items;
 }
 
+// tlImporter_sameTracklists
+// Do the two lists say the SAME thing? Read off the MERGE, never off the two texts: the
+// candidate's cue format, its spelling and the labels it carries differ from the page's by
+// nature, and only the matcher knows which row over here is which row over there.
+//
+// True only when all three hold:
+//   - the merge wrote nothing into the page (changed = false)
+//   - every candidate row found its counterpart in the original – matched, not inserted, no
+//     two candidate rows on the same original row, and nothing on it the merge could not
+//     place (tlImporter_candidateUse: a label the page has differently, a cue that disagrees)
+//   - no original row was left without a candidate, gaps counted
+//
+// A candidate that is merely CONTAINED in a longer original is deliberately not identical:
+// the page then knows more than the candidate, and the callers act unattended on this flag
+// (the "TID tracklist is integrated" checkbox), so it has to mean certainty, not "close
+// enough".
+function tlImporter_sameTracklists( merged_arr, candidate_arr, changed ) {
+    if (changed) return false;
+
+    var matchedOrigs = [],
+        candTracks = 0,
+        candGaps = 0,
+        allMatched = true;
+
+    candidate_arr.forEach(function( cand ) {
+        if (cand.type === "gap") {
+            candGaps++;
+            return;
+        }
+
+        if (cand.type !== "track") return; // "track (false)" never took part in the merge
+
+        candTracks++;
+
+        if (!cand._ti_matchedOrig || cand._ti_inserted) {
+            allMatched = false;
+            return;
+        }
+
+        // a part the merge could not place is something the reader may still want to salvage
+        // by hand – two lists with one of those in them are not the same list
+        var use = tlImporter_candidateUse( cand );
+
+        if (!use.cue || !use.text || !use.label) {
+            allMatched = false;
+            return;
+        }
+
+        if (matchedOrigs.indexOf( cand._ti_matchedOrig ) === -1) matchedOrigs.push( cand._ti_matchedOrig );
+    });
+
+    if (!allMatched || matchedOrigs.length !== candTracks) return false;
+
+    // The original rows inside the merged array are the ones carrying a pre-merge snapshot
+    // (_ti_before) resp. the _ti_origGap flag – everything else was spliced in by the merge.
+    var origTracks = 0,
+        origGaps = 0;
+
+    merged_arr.forEach(function( item ) {
+        if (item.type === "track" && item._ti_before) origTracks++;
+        if (item.type === "gap" && item._ti_origGap) origGaps++;
+    });
+
+    return matchedOrigs.length === origTracks && candGaps === origGaps;
+}
+
 // tlImporter_merge
 // The one entry the site code calls: original text + candidate text in, merged text (raw, NOT
-// yet TLE-formatted), a changed flag and the candidate diff rows out.
+// yet TLE-formatted), a changed flag, an identical flag and the candidate diff rows out.
 function tlImporter_merge( originalText, candidateText ) {
     var original_arr = tlImporter_parse( originalText ),
         candidate_arr = tlImporter_parse( candidateText );
@@ -1038,9 +1104,13 @@ function tlImporter_merge( originalText, candidateText ) {
     var mergedText = tlImporter_textFromArr( merged_arr ),
         originalText_serialized = tlImporter_textFromArr( tlImporter_parse( originalText ) );
 
+    var changed = state.changes > 0 && mergedText !== originalText_serialized;
+
     return {
         mergedText: mergedText,
-        changed: state.changes > 0 && mergedText !== originalText_serialized,
+        changed: changed,
+        // the certain "these two are the same list" reading – see tlImporter_sameTracklists
+        identical: tlImporter_sameTracklists( merged_arr, candidate_arr, changed ),
         diffItems: tlImporter_diffItems( candidate_arr ),
         originalItems: tlImporter_originalItems( merged_arr )
     };

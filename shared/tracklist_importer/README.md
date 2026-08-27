@@ -19,11 +19,20 @@ page's current text is checked:
 
 - **no tracklist yet** – an **Insert** link appears in front of the toolkit's EDIT link
 - **a tracklist exists** – a **Merge** link appears there instead
-- **a tracklist that already holds everything the found one has** – no link at all: the merge
-  is tried before the link is offered, and one that would leave the page text as it is only
-  leads to MediaWiki's "(No difference)"
+- **a tracklist that already holds everything the found one has** – no link, but a short note
+  in its place saying so: **Identical** when the two lists are the same list, **Nothing to add**
+  when the page holds everything the found tracklist has and more. The merge is tried before the
+  link is offered, and one that would leave the page text as it is only leads to MediaWiki's
+  "(No difference)". Hover the note for the reason.
 
-Both open the mix page's edit form in a new tab with the work already done.
+Both links open the mix page's edit form in a new tab with the work already done.
+
+**Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you: when the
+mix page carries exactly this tracklist, it *is* integrated. It is the certain reading – every
+track of the found tracklist sits on the page, the page has no track the found one is missing,
+and there is nothing left over the merge could not place. **Nothing to add** never ticks anything:
+the page knows more than the found tracklist there, and whether that counts as integrated is your
+call.
 
 ### Insert
 

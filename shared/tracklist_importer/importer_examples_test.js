@@ -61,6 +61,11 @@ for( const c of tlImporterExamples_merge ) {
     report( res.mergedText === c.expect, c.name + " [merged text]", res.mergedText, c.expect );
     report( res.changed === c.changed, c.name + " [changed flag]", res.changed, c.changed );
 
+    // only cases that state one - identical is the strict reading of a no-change merge
+    if( typeof c.identical === "boolean" ) {
+        report( res.identical === c.identical, c.name + " [identical flag]", res.identical, c.identical );
+    }
+
     if( c.unused ) {
         for( const part of [ "cues", "texts", "labels" ] ) {
             const key = part.replace( /s$/, "" ),
