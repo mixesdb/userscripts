@@ -49,7 +49,8 @@ is a plain **Insert** – chapters and all.
 Where no link can be offered, a note stands in its place and says why – **Identical**,
 **Nothing to add**, **No Tracklist section** or **Page unreadable** – with the **Report** link
 behind it. Unlike on TrackId.net there is no "integrated" checkbox on 1001 pages, so
-**Identical** only says so and ticks nothing.
+**Identical** only says so and ticks nothing – standing in the same green it ends up with
+over there.
 
 ### Adblock-blocker removed
 

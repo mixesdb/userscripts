@@ -448,4 +448,13 @@ body.thousandandonetracklists-com {
         background: var(--box-color);
         color: #eee !important;
     }
+
+    /* the "Identical" note wears the green right away. On TrackId.net the green is the tick
+       machinery's doing (note-ticking/-ticked) and the fade ANNOUNCES the auto-tick - here
+       there is no integrated checkbox and nothing to announce, so the certain verdict simply
+       stands in the colour it ends up with over there. The note's own --mdb-tlImporter-noteGreen
+       resolves to the bright-on-dark green, which is right for 1001's dark theme. */
+    & .mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-identical {
+        color: var(--mdb-tlImporter-noteGreen);
+    }
 }

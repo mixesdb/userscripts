@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.6
+// @version      2026.08.27.7
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -34,7 +34,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 32,
+var cacheVersion = 33,
     scriptName = "1001_Tracklists";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -292,6 +292,12 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.27.7
+ * The Tracklist Importer's "Identical" note is green here too (tracklist_importer.css,
+ * 1001-scoped rule): on TrackId.net the green arrives with the auto-tick of the integrated
+ * checkbox, which 1001 does not have - so the note now simply stands in that green from the
+ * start instead of staying plain.
  *
  * 2026.08.27.6
  * Tracklist Importer merge, half-known rows (merge_core.js v2): a page row that knows only
