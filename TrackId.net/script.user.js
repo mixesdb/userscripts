@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.26
+// @version      2026.08.27.27
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_35
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_36
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -2306,6 +2306,17 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.27
+ * Tracklist Importer: the "TID tracklist is integrated" checkbox no longer waits to be ticked
+ * by hand after an import (tracklist_importer funcs.js v36). Insert/Merge/Chaptered open the
+ * edit form in a new tab, so this page stays - and it now watches the mix page from here: every
+ * 10s for two minutes, every 30s after that, giving up after 8. The moment the page's tracklist
+ * carries what was carried over, an "Integrated" note appears in front of the link and the box
+ * is ticked the same announced way the "Identical" verdict ticks it. A merely CHANGED tracklist
+ * is not the test - a foreign edit changes it too, and the tick POSTs with no way back: what the
+ * merge would still write into the page has to have gone down (all of it, or the part the reader
+ * let in). Behind a Chaptered link, where no merge runs, a tracklist that grew is the answer.
  *
  * 2026.08.27.26
  * Tracklist Importer, two fixes behind one report ("the Report shows the right merge, the edit

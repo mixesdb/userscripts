@@ -106,8 +106,14 @@ The checkbox ticks itself when the [Tracklist Importer](../shared/tracklist_impo
 this tracklist on the mix page already – the **Identical** note in the same row (the same list
 on both sides) or the **Nothing to add** one (the page carries more on top of it), which fades
 to green just before the box is ticked and stays green afterwards.
-Nothing else ticks it for you: a page that merely holds everything this tracklist has stays
-untouched, and so does one the merge could still add something to.
+
+It also ticks itself after an **Insert**, **Merge** or **Chaptered** click: that link opens the
+edit form in a new tab, this page stays where it is, and the mix page is watched from here for
+the next 8 minutes. The moment its tracklist carries what was carried over, an **Integrated**
+note appears in front of the link and the box is ticked the same announced way. A tracklist that
+merely changed is not enough – somebody else's edit does that too – it has to have taken THIS
+tracklist in, whole or in part. Leave this page or close it and the watch ends with it; the
+checkbox is then yours to tick as before.
 
 ### Real tables instead of the data grid
 

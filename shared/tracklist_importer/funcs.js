@@ -277,7 +277,10 @@ var tlImporter_tickDelayMs = 1000;
 // replaces the input with the check mark, or "no such player", which replaces the whole
 // wrapper with a sentence. So: poll for a VISIBLE input, stop as soon as the input is gone,
 // and give up after ~15s (every site but TrackId.net never shows the wrapper at all).
-function tlImporter_tickIntegrated( wrapper, note ) {
+//
+// `why` is what the log says the tick stands on - the no-merge verdicts and the watch after a
+// save arrive here for different reasons and a log line naming the wrong one is a wrong lead.
+function tlImporter_tickIntegrated( wrapper, note, why ) {
     var tries = 0,
         timer = setInterval(function() {
             var box = wrapper.find( "input.mdbTrackidCheck" );
@@ -293,7 +296,8 @@ function tlImporter_tickIntegrated( wrapper, note ) {
 
             if( box.prop( "checked" ) ) return;
 
-            log( "tlImporter: the found tracklist is on the mix page already - ticking the integrated checkbox in " + tlImporter_tickDelayMs + "ms." );
+            log( "tlImporter: " + ( why || "the found tracklist is on the mix page already" )
+                 + " - ticking the integrated checkbox in " + tlImporter_tickDelayMs + "ms." );
 
             note.addClass( "mdb-tlImporter-note-ticking" );
 
@@ -311,6 +315,184 @@ function tlImporter_tickIntegrated( wrapper, note ) {
                 note.addClass( "mdb-tlImporter-note-ticked" );
             }, tlImporter_tickDelayMs );
         }, 300 );
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The watch behind an Insert/Merge click
+ *
+ * The edit form opens in a NEW tab, so this toolkit row stays on screen - and the moment the
+ * reader saves over there, the mix page's tracklist carries what the candidate had. That is
+ * exactly what the "TID tracklist is integrated" checkbox states, so asking the reader to come
+ * back and tick it by hand is asking them for an answer the mix page already gives: it is
+ * polled after the click, and a tracklist that took the candidate in ticks the box.
+ *
+ * The tick POSTs and the site knows no way back, so the same standard as the "Identical" tick
+ * applies - it must mean certainty, not "something happened". A CHANGED tracklist is not
+ * enough: someone else's edit lands in the same minutes and grows it too, and it proves
+ * nothing about THIS tracklist. What has to have gone down is what the merge would still
+ * write into the page - see tlImporter_candidateWrites.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// How the mix page is asked. Fast while the reader is likely still in front of the diff, slower
+// after that - a save can also come after a long read - and given up on well before the tab is
+// forgotten. Every tick is one API call for the page's wikitext, the same one the link builder
+// makes, so the whole watch costs about two dozen of them.
+var tlImporter_watchFastMs = 10000,
+    tlImporter_watchFastForMs = 120000,
+    tlImporter_watchSlowMs = 30000,
+    tlImporter_watchMaxMs = 480000;
+
+// tlImporter_candidateWrites
+// How many PARTS of the candidate the merge would write into the page - cue, text and label
+// counted one by one over the diff rows the merge hands back. The watch runs on this number:
+// it is > 0 before the save (a merge that writes nothing gets no link in the first place), and
+// a save that took the candidate in brings it down - to 0 where every part landed, to less
+// than before where the reader kept parts of the original.
+function tlImporter_candidateWrites( diffItems ) {
+    var writes = 0;
+
+    ( diffItems || [] ).forEach(function( item ) {
+        if( item.type !== "track" || !item.used ) return;
+
+        if( item.used.cue ) writes++;
+        if( item.used.text ) writes++;
+        if( item.used.label ) writes++;
+    });
+
+    return writes;
+}
+
+// tlImporter_watchVerdict
+// Has the mix page's tracklist taken THIS tracklist in? Answers the log line for a tick, or ""
+// for "not (yet)". Two readings, because the Chaptered link runs no merge at all:
+//   - the normal one: the merge's remaining writes dropped
+//   - the chaptered one: there is no merge to measure, so the hand-merge is read off the text -
+//     it has to have GROWN. A tracklist that only got shorter is a cleanup, not an integration.
+function tlImporter_watchVerdict( state, nowTl ) {
+    if( state.chaptered ) {
+        return nowTl.length > state.baselineTl.length
+            ? "the mix page's tracklist grew in the hand-merge (" + state.baselineTl.length + " -> " + nowTl.length + " characters)"
+            : "";
+    }
+
+    var writesNow = tlImporter_candidateWrites(
+            tlImporter_merge( nowTl, state.candidate, state.options ).diffItems );
+
+    if( writesNow >= state.writesBefore ) return "";
+
+    return "the mix page's tracklist took this tracklist in ("
+         + ( state.writesBefore - writesNow ) + " of " + state.writesBefore + " parts landed"
+         + ( writesNow ? ", " + writesNow + " still open" : "" ) + ")";
+}
+
+// tlImporter_watchMixPage
+// Started by the click on Insert/Merge/Chaptered, ended by the tick, by the reader navigating
+// on, or by the deadline. One poll at a time (the next one is scheduled from the answer), so a
+// slow API cannot stack requests.
+function tlImporter_watchMixPage( link, wrapper, pageId, candidate ) {
+    // Set before the two stops below, not after them: both are properties of the ROW and do
+    // not change while it stands, so the second event of the same gesture - and every later
+    // click on the link - must not log them again.
+    link.data( "mdb-tlImporter-watching", true );
+
+    var box = wrapper.find( "input.mdbTrackidCheck" ),
+        tidPlayerUrl = box.attr( "data-tidplayerurl" ) || "";
+
+    // Only where there is a checkbox to tick. The toolkit renders the wrapper on every site,
+    // but only TrackId.net fills it with a player URL and only its script answers a click -
+    // anywhere else this would poll the API for minutes with nothing to do at the end of it.
+    if( !box.length || !tidPlayerUrl || tidPlayerUrl == "undefined" ) {
+        log( "tlImporter: this row has no integrated checkbox - the mix page is not watched." );
+        return;
+    }
+
+    if( box.prop( "checked" ) ) return;
+
+    var chaptered = link.hasClass( "mdb-tlImporter-link-chapters" ),
+        options = tlImporter_mergeOptions( tlImporter_durationSec() ),
+        state = {
+            chaptered: chaptered,
+            candidate: candidate,
+            // the page's tracklist as the link builder read it - the "before" the poll answers
+            // are held against
+            baselineTl: String( link.data( "mdb-original" ) || "" ),
+            options: options
+        };
+
+    state.writesBefore = chaptered ? 0
+        : tlImporter_candidateWrites( tlImporter_merge( state.baselineTl, state.candidate, options ).diffItems );
+
+    var pageGeneration = typeof mdbPageGeneration !== "undefined" ? mdbPageGeneration : null,
+        started = Date.now(),
+        foreignChangeLogged = false;
+
+    function stop( why ) {
+        link.removeData( "mdb-tlImporter-watching" );
+        log( "tlImporter: no longer watching mix page " + pageId + " - " + why + "." );
+    }
+
+    function again() {
+        setTimeout( poll, Date.now() - started < tlImporter_watchFastForMs
+            ? tlImporter_watchFastMs : tlImporter_watchSlowMs );
+    }
+
+    function poll() {
+        if( Date.now() - started > tlImporter_watchMaxMs ) return stop( "no save arrived within " + Math.round( tlImporter_watchMaxMs / 60000 ) + " minutes" );
+        if( !wrapper.closest( "body" ).length ) return stop( "the toolkit row is gone" );
+        if( pageGeneration !== null && typeof mdbIsCurrentPage === "function" && !mdbIsCurrentPage( pageGeneration ) ) return stop( "the reader moved on to another page" );
+
+        var boxNow = wrapper.find( "input.mdbTrackidCheck" );
+
+        // gone = TrackId.net replaced it with the check mark, checked = someone was faster
+        if( !boxNow.length || boxNow.prop( "checked" ) ) return stop( "the checkbox was handled meanwhile" );
+
+        tlImporter_fetchPageText( pageId, function( pageText ) {
+            // a failed request is not an answer about the page - ask again
+            if( !pageText ) { again(); return; }
+
+            var nowTl = tlImporter_extractTracklist( pageText ).tlText || "";
+
+            if( nowTl === state.baselineTl ) { again(); return; }
+
+            var why = tlImporter_watchVerdict( state, nowTl );
+
+            if( !why ) {
+                // Someone edited the tracklist, but not towards this candidate. Not a reason
+                // to stop: OUR save may still be coming, and the next answer is measured
+                // against the same baseline either way.
+                if( !foreignChangeLogged ) {
+                    foreignChangeLogged = true;
+                    log( "tlImporter: mix page " + pageId + " has a changed tracklist that does not carry this one - watching on." );
+                }
+
+                again();
+                return;
+            }
+
+            stop( why );
+
+            tlImporter_loadCss();
+
+            // The note takes the place a "nothing to merge" note would have had, in front of
+            // the link that led here: the link itself stays, because a merge that landed only
+            // in part can be run again on the now current page text.
+            var note = $( '<span class="mdb-element mdb-tlImporter-note mdb-tlImporter-note-integrated"></span>' )
+                .attr( "title", "The MixesDB page's tracklist carries this tracklist now.\nMarked as integrated for you." )
+                .text( "Integrated" );
+
+            link.before( note );
+
+            tlImporter_tickIntegrated( wrapper, note, why );
+        });
+    }
+
+    log( "tlImporter: watching mix page " + pageId + " for the save"
+         + ( chaptered ? " (chaptered - the hand-merge is read off the tracklist's length)"
+                       : " (" + state.writesBefore + " candidate parts are waiting to land there)" ) + "." );
+
+    again();
 }
 
 // The links, one wrapper at a time. Registered once at the top level; the handler returns true
@@ -401,6 +583,9 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
                 .attr( "href", editHref ) // placeholder - the real href is built at click time
                 .attr( "target", "_blank" )
                 .attr( "data-mdb-importmode", mode )
+                // the page's tracklist as it stands NOW: the baseline the watch behind the
+                // click holds the page against once the reader saves over there
+                .data( "mdb-original", read.tlText )
                 .attr( "title", chaptered
                     ? tlImporter_noMergeVerdicts[ chapterVerdict ].title
                     : mode == "merge"
@@ -449,6 +634,17 @@ $(document).on( "mousedown click", "a.mdb-tlImporter-link", function() {
               + "mdbTlImporterFrom=" + encodeURIComponent( tlImporter_scriptName() ) + "&"
               + ( durSec ? "mdbTlImporterDur=" + durSec + "&" : "" )
               + "mdbTlImporterTl=" + encodeURIComponent( candidate );
+
+    // The edit form opens in a new tab and this row stays - so from here on the mix page is
+    // watched for the save, and the "TID tracklist is integrated" checkbox is ticked from what
+    // the page then holds instead of by hand. Guarded because this handler runs TWICE for one
+    // gesture (mousedown and click) - and a click that comes back after a watch ended (the
+    // reader went for a second run) starts a new one, because the flag is cleared with it.
+    if( !link.data( "mdb-tlImporter-watching" ) ) {
+        var pageId = ( editHref.match( /[?&]curid=(\d+)/ ) || [] )[1];
+
+        if( pageId ) tlImporter_watchMixPage( link, link.parent(), pageId, candidate );
+    }
 });
 
 /*
