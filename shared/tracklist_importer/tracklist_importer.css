@@ -439,3 +439,13 @@ body.mdb-tlImporter-down #editToolsBar-TLeditor #tlEditor-feedback-close {
         min-height: 0 !important;
     }
 }
+
+/*
+ * Site specific rules
+ */
+body.thousandandonetracklists-com {
+    & textarea#mdb-tlImporter-report-box.mono {
+        background: var(--box-color);
+        color: #eee !important;
+    }
+}

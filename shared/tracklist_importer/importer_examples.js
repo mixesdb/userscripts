@@ -397,6 +397,44 @@ var tlImporterExamples_merge = [
         // (line 25) is kept with its gap: it lands behind the original's last row, where it is
         // the only sign that the 2:00:17 stream runs on past it.
         unused: { cues: [2, 7, 10, 13], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-27 (Chris Stussy - Essential Mix 2024-10-12, 1001tracklists): three
+        // rows the merge could not see as rows it already had, each of them added a second
+        // time. Guards the three readings behind that:
+        //   [021] "? - Untitled (B1)" vs "? - B1 [Mask]" - an unknown ARTIST on both sides at
+        //         the same cue is the same track; the page's title wins, the label is added.
+        //   [089] "Chloé Caillet - ?" vs the full credit - an unknown TITLE takes the
+        //         candidate's text whole, as long as the candidate credits the page's artist.
+        //   [098] "Costigane" vs "Brendan Costigane" - the same title with the artist written
+        //         shorter on the page. The page wins ("Costigane" stays), the row is not
+        //         doubled, and the candidate's spelling stays readable in the Candidate column.
+        name: "half-known rows and a shortened artist name",
+        original: "# [002] Alex Cortex - Discola [Housewax]\n" +
+                  "# [016] Chris Stussy - The Streets Is Where I'm From\n" +
+                  "# [021] ''? - Untitled (B1)''\n" +
+                  "# [064] ?\n" +
+                  "# [089] ''Chloé Caillet - ?''\n" +
+                  "# [098] Costigane - Camera Tricks [Sense]\n" +
+                  "# [116] Weekend Players - Into The Sun [Multiply]",
+        candidate: "# [002] Alex Cortex - Discola [Housewax]\n" +
+                   "# [016] Chris Stussy - The Streets Is Where I'm From\n" +
+                   "# [021] ''? - B1 [Mask]''\n" +
+                   "# [064] Vil-N-X Feat. Jacqui Gray - De' Jah Voo (Rendezvous Mix) [Island Noyze]\n" +
+                   "# [089] Chloé Caillet & Luke Alessi Feat. Jocelyn Brown - The One [Disorder]\n" +
+                   "# [098] Brendan Costigane - Camera Tricks [Sense]\n" +
+                   "# [116] Weekend Players - Into The Sun [Multiply]",
+        expect: "[002] Alex Cortex - Discola [Housewax]\n" +
+                "[016] Chris Stussy - The Streets Is Where I'm From\n" +
+                "[021] ? - Untitled (B1) [Mask]\n" +
+                "[064] Vil-N-X Feat. Jacqui Gray - De' Jah Voo (Rendezvous Mix) [Island Noyze]\n" +
+                "[089] Chloé Caillet & Luke Alessi Feat. Jocelyn Brown - The One [Disorder]\n" +
+                "[098] Costigane - Camera Tricks [Sense]\n" +
+                "[116] Weekend Players - Into The Sun [Multiply]",
+        changed: true,
+        // everything the candidate carries found its place - the page's own spellings winning
+        // is not a part the merge could not place
+        unused: { cues: [], texts: [], labels: [] }
     }
 ];
 

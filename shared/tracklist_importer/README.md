@@ -153,8 +153,8 @@ to, that is the normal answer, and the found tracklist has to stay on screen for
 
 Behind the Insert/Merge link – and behind every note that replaces it – sits **Report**: it opens a paste-ready Discord
 report holding the mix page's original tracklist, the found candidate and the raw merge result,
-plus the empty `Mistakes / learnings` and `Expected` lines only the reporter can fill – like the page
-creator's Report box.
+plus an empty `Mistakes / learnings` list and an empty `Expected` code block only the reporter can
+fill – like the page creator's Report box.
 
 ## Known limitations
 
