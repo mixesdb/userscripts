@@ -12,7 +12,7 @@ stalled Tracklist Merger userscript (`Tracklist_Merger/`), whose merge logic it 
 | --- | --- |
 | `merge_core.js` | Pure text in, text out: the merge (`tlImporter_merge`), the matching and cue-format helpers, and the wikitext helpers for the `== Tracklist ==` section (`tlImporter_extractTracklist`, `tlImporter_setTracklist`, `tlImporter_tracklistWikitext`, `tlImporter_updateTlCategory`). No DOM, no network, no jQuery – deliberately self-contained (own copies of the normalization regexes), so the deno runner can load it. Keep it that way. |
 | `funcs.js` | The DOM half: the toolkit links and Report box on the player site, the import + review block (Original / Merged / Candidate above the edit box) + Apply + button gating on the mixesdb.com edit form. Loads the CSS lazily (`tlImporter_loadCss`). |
-| `tracklist_importer.css` | Report box, review block, locked-button state. Loaded by `funcs.js`, not by the site scripts. |
+| `tracklist_importer.css` | Report box, the "nothing to merge" note in the toolkit row, review block, locked-button state. Loaded by `funcs.js`, not by the site scripts. |
 | `importer_examples.js` | Test data: merges and page-text cases. Reported merges become cases here, like title reports in `../page_creator/title_examples.js`. |
 | `importer_examples_test.js` | The deno runner for it. |
 
@@ -66,10 +66,27 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   edit box. The one synchronous TLE call only supplies the verdict (category + icons) and the
   re-rendered feedback; it never rewrites the text. The seq bump on the box drops the blur
   update the click itself triggered, so nothing reformats the box behind the apply either.
-- **A merge that would change nothing gets no link.** `changed` is read off the merged TEXT,
-  not off the write counter in `state.changes`: writing a value the original already carried
-  counted as a change and produced a link into a `(No difference)` diff. The link builder runs
-  the merge itself for this – it is pure JS, so that costs nothing but a few ms.
+- **A merge that would change nothing gets no link, but a NOTE.** `changed` is read off the
+  merged TEXT, not off the write counter in `state.changes`: writing a value the original
+  already carried counted as a change and produced a link into a `(No difference)` diff. The
+  link builder runs the merge itself for this – it is pure JS, so that costs nothing but a few
+  ms. The spot the link would have taken stays occupied by `tlImporter_addNoMergeNote()`: an
+  empty action row is indistinguishable from an importer that never ran.
+- **"Identical" is the certain reading, and it is the one that acts by itself.**
+  `tlImporter_sameTracklists()` (merge_core.js, reported through `identical` on the merge
+  result) answers it off the MERGE, never off the two texts – cue format, spelling and labels
+  differ between page and player site by nature, and only the matcher knows which row is which.
+  All of: nothing written, every candidate row matched 1:1 (not inserted, no two rows on the
+  same original row, nothing on it `tlImporter_candidateUse()` could not place) and no original
+  row or gap left over. Only that ticks the toolkit's "TID tracklist is integrated" checkbox
+  (`tlImporter_tickIntegrated()`, a native `.click()` so TrackId.net's own handler does the
+  saving – which POSTs, and the site knows no way back). A candidate merely CONTAINED in a
+  longer original is not identical: it reads "Nothing to add" and ticks nothing, because the
+  page then knows more than the player site and only the reader can judge that.
+  The tick has to WAIT: the checkbox arrives hidden and TrackId.net only shows it once its own
+  check request came home – an answer that may replace the input with the check mark (already
+  integrated) or the whole wrapper with a sentence (player unknown to the API). Hence the poll
+  for a VISIBLE input, and the give-up after ~15s that every other site runs into.
 - **Save is locked until "Show changes" ran.** The auto-click is the convenience; the lock is
   the safety – a merge must not be savable unseen.
 - **The original's cue format wins, but it may WIDEN – the dur fix.** A bare `[XX]` format

@@ -84,13 +84,19 @@ link, with a **Report** link behind it – see
 [Tracklist Importer](../shared/tracklist_importer/) (beta). It opens the mix page's edit form
 with the tracklist already inserted or merged and MediaWiki's own diff on screen; nothing is
 saved for you. A mix page that already holds everything the found tracklist has gets no link –
-there would be nothing to merge.
+there would be nothing to merge – but a note saying which of the two cases it is: **Identical**
+(the same list on both sides) or **Nothing to add** (the page has that and more).
 
 ### Mark as integrated
 
 A **TID tracklist is integrated** checkbox next to the MixesDB page link records that this TID
 tracklist has been carried over. Pages already marked show a check mark and how long ago that
 happened.
+
+The checkbox ticks itself when the [Tracklist Importer](../shared/tracklist_importer/) finds the
+mix page's tracklist and this one to be the same list – the **Identical** note in the same row.
+Nothing else ticks it for you: a page that merely holds everything this tracklist has stays
+untouched, and so does one the merge could still add something to.
 
 ### Real tables instead of the data grid
 

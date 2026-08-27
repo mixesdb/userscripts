@@ -5,7 +5,8 @@
  * Loaded lazily by funcs.js (tlImporter_loadCss) on both sides: the player site showing the
  * Insert/Merge/Report links, and the MixesDB edit form showing the review block.
  * The links themselves need no rules of their own - they sit inside the toolkit's
- * .mdb-mixesdbLink-actionLinks-wrapper, whose global.css rules style every <a> in it.
+ * .mdb-mixesdbLink-actionLinks-wrapper, whose global.css rules style every <a> in it. The
+ * "nothing to merge" note is the one thing there that is NOT an <a>, so it brings its own.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -19,6 +20,24 @@
     font-family: monospace, monospace;
     font-size: 12px;
     line-height: 1.4;
+}
+
+/* the "Identical" / "Nothing to add" note in the toolkit's action row, standing where the
+ * Insert/Merge link would be. Deliberately NOT pill-shaped like the links around it: there is
+ * nothing to click here, it is a statement about the two tracklists. The row's own font-size
+ * is inherited; the help cursor announces the tooltip that carries the reason. */
+.mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note {
+    padding: 1px 2px;
+    opacity: .62;
+    cursor: help;
+    white-space: nowrap;
+}
+
+/* the certain half of it - the same list on both sides, and the "TID tracklist is integrated"
+   checkbox was ticked from it. Full strength instead of a colour: the toolkit runs on bright
+   and on dark sites, and no one green reads well on both. */
+.mdb-mixesdbLink-actionLinks-wrapper .mdb-tlImporter-note-identical {
+    opacity: 1;
 }
 
 /* the review block between MediaWiki's diff and the wiki edit box (mixesdb.com).
