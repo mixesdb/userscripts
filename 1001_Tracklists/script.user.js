@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.11
+// @version      2026.08.27.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-1001_Tracklists_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_111
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_4
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_6
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
@@ -292,6 +292,18 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.27.12
+ * Tracklist Importer, two fixes behind one report on trackid.net (tracklist_importer funcs.js
+ * v6, merge_core.js v5). Both scripts carrying the importer run on mixesdb.com/w/*, and until
+ * now the first ready handler took the edit page - so THIS script could answer a click whose
+ * link TrackId.net had built, with whatever version of the shared files it had cached. The link
+ * names its sender now (&mdbTlImporterFrom=), that instance owns the page, and the log says
+ * which one it is; an instance the link does not name takes over half a second later if the
+ * named one never shows up. Second: the merge reads the mix runtime out of the "dur" cell of
+ * the page's own File details table when the link carries none - which is always here, since
+ * 1001tracklists prints no runtime - so the cues behind the last identified track are bounded
+ * on this site too ("[6?]" instead of "[??]" behind [61] on a 1:04:54 mix).
  *
  * 2026.08.27.11
  * Tracklist Importer merge, the two ENDS of the cue guessing (merge_core.js v4,

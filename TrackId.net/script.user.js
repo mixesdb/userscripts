@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.25
+// @version      2026.08.27.26
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_14
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_34
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_35
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -2306,6 +2306,20 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.26
+ * Tracklist Importer, two fixes behind one report ("the Report shows the right merge, the edit
+ * form gets a wrong one", tracklist_importer funcs.js v35, merge_core.js v15). Both come from
+ * the mixesdb.com side, which BOTH carrying scripts (this one and 1001 Tracklists) run: until
+ * now the first ready handler took the page, so a script sitting on an older cached copy of the
+ * shared files could answer a click whose link the fresh script had built - the merge in the
+ * edit form was then not the merge the Report had shown, and no fix could be tested. The link
+ * names its sender now (&mdbTlImporterFrom=), that instance owns the page, and the log says
+ * which one it is; an instance the link does not name takes over half a second later if the
+ * named one never shows up. Second: the mix runtime is no longer only the link's to carry - the
+ * edit page reads the "dur" cell of the page's own File details table when the link brought
+ * none (tlImporter_pageDurationSec), so the cues behind the last known one are bounded on every
+ * page that states its duration, whatever built the link.
  *
  * 2026.08.27.25
  * Tracklist Importer merge, the two ENDS of the cue guessing (merge_core.js v14,

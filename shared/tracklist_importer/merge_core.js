@@ -1527,6 +1527,61 @@ function tlImporter_merge( originalText, candidateText, options ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// tlImporter_pageDurationSec
+// The mix runtime out of the page's OWN "File details" table (the "dur" column of
+// {|{{NormalTableFormat}} ... | 1:04:54), in seconds. 0 when the page carries none.
+//
+// The second source for the bound of the last cues, and the one that does not depend on the
+// link: it is read on the edit page itself, so it answers for a link built by an older script
+// generation, after a form POST has eaten the hash, and for every player site that prints no
+// runtime of its own. Both the one-cell-per-line shape global.js writes and the inline
+// "! dur !! MB" / "| 1:04:54 || 90" shape a hand-edited page may use are read.
+function tlImporter_pageDurationSec( pageText ) {
+    var lines = String( pageText || "" ).split( "\n" ),
+        headers = [],
+        cells = [],
+        column = -1;
+
+    function add( target, line, sep ) {
+        line.split( sep ).forEach(function( cell ){
+            // "| style=x | value" - a cell attribute is separated from the value by a single "|"
+            var parts = cell.split( "|" );
+            target.push( parts[ parts.length - 1 ].trim() );
+        });
+    }
+
+    for( var i = 0; i < lines.length; i++ ) {
+        var line = lines[i].trim();
+
+        if( line.indexOf( "{|" ) === 0 ) { headers = []; cells = []; column = -1; continue; }
+        if( line.indexOf( "|}" ) === 0 ) { break; }
+        if( line.indexOf( "|-" ) === 0 ) { continue; }
+
+        if( line.charAt(0) === "!" ) {
+            // the header row is only interesting up to the point a "dur" column is found
+            if( column === -1 ) {
+                add( headers, line.replace( /^!\s*/, "" ), "!!" );
+
+                for( var h = 0; h < headers.length; h++ ) {
+                    if( /^dur(ation)?$/i.test( headers[h] ) ) { column = h; break; }
+                }
+            }
+            continue;
+        }
+
+        if( line.charAt(0) === "|" && column > -1 ) {
+            add( cells, line.replace( /^\|\s*/, "" ), "||" );
+
+            if( cells.length > column ) {
+                var value = cells[ column ];
+                return /^\d+(:\d{1,2}){1,2}$/.test( value ) ? tlImporter_durToSec( value ) : 0;
+            }
+        }
+    }
+
+    return 0;
+}
+
 // tlImporter_findTracklistSection
 // The section's body span inside a page text: from the end of the "== Tracklist ==" line to
 // the next heading or the first category line. null when the page has no such section.

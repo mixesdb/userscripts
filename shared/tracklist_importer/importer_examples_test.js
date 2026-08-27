@@ -23,10 +23,12 @@ const source = [ "merge_core.js", "importer_examples.js" ]
     .join( "\n" );
 
 const [ tlImporter_merge, tlImporter_extractTracklist, tlImporter_tracklistWikitext,
-        tlImporter_setTracklist, tlImporterExamples_merge, tlImporterExamples_pageText ] =
+        tlImporter_setTracklist, tlImporter_pageDurationSec,
+        tlImporterExamples_merge, tlImporterExamples_pageText ] =
     ( 0, eval )( stubs + "\n" + source +
                  "\n;[ tlImporter_merge, tlImporter_extractTracklist, tlImporter_tracklistWikitext," +
-                 " tlImporter_setTracklist, tlImporterExamples_merge, tlImporterExamples_pageText ]" );
+                 " tlImporter_setTracklist, tlImporter_pageDurationSec," +
+                 " tlImporterExamples_merge, tlImporterExamples_pageText ]" );
 
 let failed = 0;
 
@@ -88,6 +90,11 @@ for( const c of tlImporterExamples_pageText ) {
     if( typeof c.extracted === "string" ) {
         report( read.tlText === c.extracted, c.name + " [extracted]", read.tlText, c.extracted );
     }
+
+    // the mix runtime the page itself knows - 0 on a page without a File details table
+    const durationSec = tlImporter_pageDurationSec( c.pageText );
+
+    report( durationSec === ( c.durationSec || 0 ), c.name + " [page duration]", durationSec, c.durationSec || 0 );
 
     const written = tlImporter_setTracklist( c.pageText, tlImporter_tracklistWikitext( c.tl ) );
 

@@ -59,6 +59,13 @@ function tlImporter_candidateText() {
     return $.trim( $( tlImporter_boxSelector() ).first().val() || "" );
 }
 
+// tlImporter_scriptName
+// Which userscript this instance is. Every sandbox has its own copy of these files, so this is
+// the only thing that tells two of them apart - see the d.ready claim at the bottom.
+function tlImporter_scriptName() {
+    return typeof scriptName !== "undefined" && scriptName ? String( scriptName ) : "unknown script";
+}
+
 // tlImporter_durationSec
 // The mix RUNTIME in seconds, where the player site prints one (TrackId.net does, above the
 // tracklist). The merge uses it as the upper bound for the unknown cues at the END of the list -
@@ -435,7 +442,11 @@ $(document).on( "mousedown click", "a.mdb-tlImporter-link", function() {
     // value last leaves the hash readable.
     var durSec = tlImporter_durationSec();
 
+    // The SENDER's name rides along too: several userscripts carry the edit-page side onto
+    // mixesdb.com, and the one that built this link is the one that must answer for it - see
+    // the d.ready claim at the bottom.
     this.href = editHref + "&mdbTlImporter=" + mode + "#"
+              + "mdbTlImporterFrom=" + encodeURIComponent( tlImporter_scriptName() ) + "&"
               + ( durSec ? "mdbTlImporterDur=" + durSec + "&" : "" )
               + "mdbTlImporterTl=" + encodeURIComponent( candidate );
 });
@@ -570,7 +581,11 @@ $(document).on( "click", "a.mdb-tlImporter-report", function( e ) {
 var tlImporter_ownsEditPage = false;
 
 var tlImporter_storageKey = "mdb-tlImporter-diff",
-    tlImporter_storageMaxAgeMs = 60 * 60 * 1000; // an hour-old diff belongs to another edit
+    tlImporter_storageMaxAgeMs = 60 * 60 * 1000, // an hour-old diff belongs to another edit
+    // How long an instance the link did not name waits before taking the page anyway. Every
+    // instance's d.ready runs in the same tick, so this is only ever spent when the named one
+    // is not on this page at all.
+    tlImporter_claimFallbackMs = 500;
 
 // tlImporter_articleId
 function tlImporter_articleId() {
@@ -606,6 +621,56 @@ function tlImporter_durationFromHash() {
     return isFinite( sec ) && sec > 0 ? sec : 0;
 }
 
+// tlImporter_senderFromHash
+// The userscript that built the Insert/Merge link (&mdbTlImporterFrom=TrackId.net). "" for a
+// link from before the parameter existed - the claim then falls back to "first one here".
+function tlImporter_senderFromHash() {
+    var m = String( location.hash || "" ).match( /[#&]mdbTlImporterFrom=([^&]+)/ );
+
+    if( !m ) return "";
+
+    try {
+        return decodeURIComponent( m[1] );
+    } catch( e ) {
+        return "";
+    }
+}
+
+// tlImporter_storedOwner
+// The instance that owned this article's review block, out of sessionStorage. The pages behind
+// "Show changes" and "Show preview" have no hash left, so this is what keeps the same instance
+// in charge across the form POSTs.
+function tlImporter_storedOwner() {
+    var stored = tlImporter_readStoredDiff();
+
+    return stored && stored.owner && stored.articleId === tlImporter_articleId()
+           && Date.now() - stored.t <= tlImporter_storageMaxAgeMs
+        ? String( stored.owner )
+        : "";
+}
+
+// tlImporter_editPageDurationSec
+// The mix runtime for the merge on the edit page: the link's value first, the page's own "File
+// details" table behind it. Two sources because the link's one only exists where the player
+// site prints a runtime AND the link was built by a current script - the page's dur cell is
+// there either way, and it is what the wiki itself claims about this mix.
+function tlImporter_editPageDurationSec( pageText ) {
+    var fromHash = tlImporter_durationFromHash();
+
+    if( fromHash ) {
+        log( "tlImporter: mix runtime " + fromHash + "s (from the link)." );
+        return fromHash;
+    }
+
+    var fromPage = tlImporter_pageDurationSec( pageText );
+
+    log( fromPage
+        ? "tlImporter: mix runtime " + fromPage + "s (from the page's File details)."
+        : "tlImporter: no mix runtime known - the cues behind the last known one stay unbounded." );
+
+    return fromPage;
+}
+
 // tlImporter_storeDiff
 // sessionStorage, because "Show changes" and "Show preview" POST the form: the URL that
 // carried our parameters is gone afterwards, and the review block has to survive that.
@@ -620,6 +685,7 @@ function tlImporter_storeDiff( data ) {
         data.v = tlImporter_storageVersion;
         data.articleId = tlImporter_articleId();
         data.t = Date.now();
+        data.owner = tlImporter_scriptName(); // who may render and answer for it after a POST
 
         // the TLE call counter travels with the block: the chip says "calls made on this
         // page", but the answer on screen was paid for on the edit page - a POST later, "0 API
@@ -2073,7 +2139,9 @@ function tlImporter_runEditPage() {
             status = resIns.feedback && resIns.feedback.status ? resIns.feedback.status : "";
         }
     } else {
-        var mergeRes = tlImporter_merge( read.tlText, candidate, tlImporter_mergeOptions( tlImporter_durationFromHash() ) );
+        // The runtime, from the link or from the page itself - see tlImporter_editPageDurationSec.
+        var durationSec = tlImporter_editPageDurationSec( pageText ),
+            mergeRes = tlImporter_merge( read.tlText, candidate, tlImporter_mergeOptions( durationSec ) );
 
         diffItems = mergeRes.diffItems;
         originalItems = mergeRes.originalItems;
@@ -2218,30 +2286,87 @@ function tlImporter_renderStoredDiff() {
     tlImporter_renderDiffView( stored );
 }
 
+// tlImporter_claimEditPage
+// The check-and-set plus the work behind it. Synchronous on purpose: ready handlers and
+// timeouts both run one after the other on the main thread, so two instances cannot both find
+// the attribute empty.
+//
+// takeOver is for the one case where an existing claim is not the last word: the link NAMES
+// this instance and another one took the page anyway, which only an instance running an older
+// copy of this file can do - it does not know the parameter and still claims first-come. Its
+// merge is the stale one the reader is trying to get rid of, so it is overwritten. That works
+// because the "Show changes" click sits in a setTimeout(0), behind every ready handler of this
+// tick: the form is submitted with the text written here, not with the one that lost.
+function tlImporter_claimEditPage( why, takeOver ) {
+    var claimed = document.documentElement.getAttribute( "data-mdb-tlimporter-owner" );
+
+    if( claimed && !takeOver ) {
+        log( "tlImporter: \"" + claimed + "\" handles this page - \"" + tlImporter_scriptName() + "\" is standing down." );
+        return false;
+    }
+
+    if( claimed ) {
+        log( "tlImporter: \"" + claimed + "\" took this page although the link names \"" + tlImporter_scriptName()
+             + "\" - that instance runs an OLDER copy of these files. Taking the page from it; update that userscript." );
+    }
+
+    document.documentElement.setAttribute( "data-mdb-tlimporter-owner", tlImporter_scriptName() );
+    tlImporter_ownsEditPage = true;
+
+    // Named out loud, because it decides WHICH copy of these files does the merge: two
+    // userscripts carry them, and a stale one produces a stale result on a page whose link
+    // came from the fresh one. Only where there is something to own, though - every mixesdb.com
+    // page runs this, and a wiki page nobody imported into does not need the line.
+    if( getURLParameter( "mdbTlImporter" ) || tlImporter_readStoredDiff() ) {
+        log( "tlImporter: \"" + tlImporter_scriptName() + "\" owns this page (" + why + ")." );
+    }
+
+    tlImporter_runEditPage();
+    tlImporter_renderStoredDiff();
+
+    return true;
+}
+
 d.ready(function() {
     if( typeof domain === "undefined" || domain != "mixesdb.com" ) return;
 
     // ONE instance only. Several userscripts carry this file onto mixesdb.com/w/* (TrackId.net
     // and 1001 Tracklists so far), each in its own sandbox - unguarded, every one of them
     // would apply the merge, click "Show changes" and answer every Apply press once more.
-    // The DOM is the one thing they share, so the first ready handler claims the page with a
-    // marker attribute and the rest stand down; ready handlers run one after the other on the
-    // main thread, so the synchronous check-and-set cannot race. The delegated handlers below
-    // (Apply, the down state's sync) check the same flag at event time, because they were
-    // bound long before this claim could run.
-    var claimed = document.documentElement.getAttribute( "data-mdb-tlimporter-owner" );
+    // The DOM is the one thing they share, so the claim is a marker attribute on <html>.
+    //
+    // WHICH one claims is not "whoever's ready handler fires first" any more. The link names
+    // its sender (&mdbTlImporterFrom=), and that instance owns the page: it is the one whose
+    // merge the reader saw in the toolkit row and in the Report, and the only one guaranteed
+    // to be the version they are testing - the other script may sit on an older cached copy of
+    // these files and would quietly produce a different merge for the same click. After a form
+    // POST the hash is gone, so the stored review block carries the owner instead.
+    // The named instance is waited for, not waited for FOREVER: if it does not take the page
+    // (not installed here, or an older version that does not know the parameter), the others
+    // fall back to the old first-one-here rule a moment later.
+    var fromLink = tlImporter_senderFromHash(),
+        sender = fromLink || tlImporter_storedOwner();
 
-    if( claimed ) {
-        log( "tlImporter: \"" + claimed + "\" already handles this page - standing down." );
+    if( sender && sender !== tlImporter_scriptName() ) {
+        log( "tlImporter: this page belongs to \"" + sender + "\" (" + ( fromLink ? "named in the link" : "it owns the stored review block" )
+             + "), so \"" + tlImporter_scriptName() + "\" leaves it alone." );
+
+        setTimeout(function(){
+            if( document.documentElement.getAttribute( "data-mdb-tlimporter-owner" ) ) return;
+
+            tlImporter_claimEditPage( "\"" + sender + "\" did not take the page" );
+        }, tlImporter_claimFallbackMs );
+
         return;
     }
 
-    document.documentElement.setAttribute( "data-mdb-tlimporter-owner",
-        typeof scriptName !== "undefined" ? scriptName : "unknown script" );
-    tlImporter_ownsEditPage = true;
-
-    tlImporter_runEditPage();
-    tlImporter_renderStoredDiff();
+    // Named in the LINK means named: an older instance that claimed first is overruled, because
+    // this is the click whose merge result is at stake. The stored owner does not overrule
+    // anything - on those pages nothing is merged, only the stored block is rendered, and that
+    // render is a no-op when it already stands.
+    tlImporter_claimEditPage( fromLink ? "named in the link"
+                            : sender ? "named in the stored review block"
+                            : "first one here", !!fromLink );
 });
 
 log( "tracklist_importer/funcs.js loaded" );
