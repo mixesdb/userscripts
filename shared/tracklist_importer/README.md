@@ -43,16 +43,14 @@ broken userscript:
 The **Report** link stands behind every one of them, exactly as it does behind Insert and Merge,
 and the report names the verdict – a verdict you disagree with is the very thing worth reporting.
 
-**Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you – on
-TrackId.net, the one site that has the checkbox; everywhere else the note only says so (on
-1001 Tracklists in the same green, right away): when the
-mix page carries exactly this tracklist, it *is* integrated. It says so before it does it – the note
-fades to green and the box is ticked a moment later, so the tick happens in front of you and not
-behind your back. Tick it yourself in that moment and nothing else happens. It is the certain reading – every
-track of the found tracklist sits on the page, the page has no track the found one is missing,
-and there is nothing left over the merge could not place. **Nothing to add** never ticks anything:
-the page knows more than the found tracklist there, and whether that counts as integrated is your
-call.
+**Identical** and **Nothing to add** also tick the toolkit's **TID tracklist is integrated**
+checkbox for you – on TrackId.net, the one site that has the checkbox; everywhere else the note
+only says so (on 1001 Tracklists in the same green, right away). Both mean every track of the
+found tracklist is on the mix page: with **Identical** the two lists are the same list, with
+**Nothing to add** the page carries more on top of it – either way the found tracklist *is*
+integrated. It says so before it does it – the note fades to green and the box is ticked a
+moment later, so the tick happens in front of you and not behind your back. Tick it yourself in
+that moment and nothing else happens.
 
 ### Insert
 

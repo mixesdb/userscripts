@@ -95,9 +95,10 @@ A **TID tracklist is integrated** checkbox next to the MixesDB page link records
 tracklist has been carried over. Pages already marked show a check mark and how long ago that
 happened.
 
-The checkbox ticks itself when the [Tracklist Importer](../shared/tracklist_importer/) finds the
-mix page's tracklist and this one to be the same list – the **Identical** note in the same row,
-which fades to green just before the box is ticked and stays green afterwards.
+The checkbox ticks itself when the [Tracklist Importer](../shared/tracklist_importer/) finds
+this tracklist on the mix page already – the **Identical** note in the same row (the same list
+on both sides) or the **Nothing to add** one (the page carries more on top of it), which fades
+to green just before the box is ticked and stays green afterwards.
 Nothing else ticks it for you: a page that merely holds everything this tracklist has stays
 untouched, and so does one the merge could still add something to.
 

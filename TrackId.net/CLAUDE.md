@@ -28,5 +28,5 @@ The paths, all covered:
 Rendering another verdict rebuilds the feedback box's CONTENT, which takes our own rows in it
 with it, so the "? tracks removed" notice goes back afterwards - that is what
 `showInfoCuesRemoved()` is for, and why its button is bound through a delegated handler rather
-than to the node that happened to be there. The cue format switch and the Tracklist Merger link
-re-attach by themselves; both wait for `ul#tlEditor-feedback-topInfo` to turn up.
+than to the node that happened to be there. The cue format switch re-attaches by itself; it
+waits for `ul#tlEditor-feedback-topInfo` to turn up.

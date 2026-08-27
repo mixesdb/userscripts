@@ -131,6 +131,8 @@ function tlImporter_fetchPageText( pageId, done ) {
 //   title   the tooltip behind it, which carries the actual reason
 //   report  how the Report names the verdict
 //   merged  whether a merge ran at all - only then may the Report show a merge result
+//   ticks   whether the verdict also TICKS the toolkit's "TID tracklist is integrated" checkbox
+//           and wears the certain-verdict styling - see tlImporter_addNoMergeNote
 //   link    the one verdict that is a LINK rather than a note (chapters) - it keeps the Report
 //           from calling itself "no link" about a row that has one
 var tlImporter_noMergeVerdicts = {
@@ -138,13 +140,18 @@ var tlImporter_noMergeVerdicts = {
         text: "Identical",
         title: "This tracklist and the tracklist of the MixesDB page are the same list - nothing to merge.\nMarked as integrated for you.",
         report: "identical (marked as integrated)",
-        merged: true
+        merged: true,
+        ticks: true
     },
+    // The page knows MORE than the found tracklist here - every track of the found one is
+    // already on the page. That still means the found tracklist IS integrated, so this ticks
+    // the checkbox exactly like "identical" does; only the wording says which of the two it is.
     contained: {
         text: "Nothing to add",
-        title: "The MixesDB page's tracklist already holds everything this tracklist could add - nothing to merge.",
-        report: "nothing to add",
-        merged: true
+        title: "The MixesDB page's tracklist already holds everything this tracklist could add - nothing to merge.\nMarked as integrated for you.",
+        report: "nothing to add (marked as integrated)",
+        merged: true,
+        ticks: true
     },
     // The one entry that is NOT a note any more: a chaptered page gets a LINK carrying this
     // text and title (see the link builder below), because the hand-merge on the edit page is
@@ -199,8 +206,9 @@ function tlImporter_makeReportLink( mode, originalText, pageId, verdict ) {
 
 // tlImporter_addNoMergeNote
 // What stands where the Insert/Merge link would be, for every verdict of the table above.
-// "Identical" is the only one that also acts: it is the certain case (tlImporter_sameTracklists
-// in merge_core.js), so the toolkit's "TID tracklist is integrated" checkbox is ticked from it.
+// The two `ticks` verdicts also ACT: "Identical" (both lists the same list) and "Nothing to
+// add" (the page holds everything the candidate has) both mean the found tracklist sits on the
+// page, so the toolkit's "TID tracklist is integrated" checkbox is ticked from them.
 function tlImporter_addNoMergeNote( wrapper, editLink, verdict, reportLink ) {
     var reading = tlImporter_noMergeVerdicts[ verdict ];
 
@@ -210,15 +218,15 @@ function tlImporter_addNoMergeNote( wrapper, editLink, verdict, reportLink ) {
         .attr( "title", reading.title )
         .text( reading.text );
 
-    if( verdict == "identical" ) note.addClass( "mdb-tlImporter-note-identical" );
+    if( reading.ticks ) note.addClass( "mdb-tlImporter-note-integrated" );
 
     // same shape and same divider as the link row: [note Report] | [EDIT HIST]
     editLink.before( note, reportLink, $( '<span class="mdb-element mdb-toolkit-actionDivider"></span>' ) );
 
-    if( verdict == "identical" ) tlImporter_tickIntegrated( wrapper, note );
+    if( reading.ticks ) tlImporter_tickIntegrated( wrapper, note );
 }
 
-// How long the "Identical" note announces itself before the checkbox is actually ticked. The
+// How long the note announces itself before the checkbox is actually ticked. The
 // tick is done FOR the reader and it POSTs - so it must not happen behind their back: the note
 // fades to green, and the click lands a beat after it got there. Long enough to be seen, short
 // enough not to be a wait. Paired with the mdb-tlImporter-noteTick animation in the CSS, which
@@ -251,7 +259,7 @@ function tlImporter_tickIntegrated( wrapper, note ) {
 
             if( box.prop( "checked" ) ) return;
 
-            log( "tlImporter: the two tracklists are identical - ticking the integrated checkbox in " + tlImporter_tickDelayMs + "ms." );
+            log( "tlImporter: the found tracklist is on the mix page already - ticking the integrated checkbox in " + tlImporter_tickDelayMs + "ms." );
 
             note.addClass( "mdb-tlImporter-note-ticking" );
 

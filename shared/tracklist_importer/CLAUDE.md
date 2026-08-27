@@ -4,7 +4,7 @@ Name alias in prompts: `TI`, `tracklist importer`
 
 The Tracklist Importer: the Insert/Merge/Report links the toolkit's usage row gains on a player
 site with a filled tracklist box, and the mix-page edit form work behind them. It replaces the
-stalled Tracklist Merger userscript (`Tracklist_Merger/`), whose merge logic it ports.
+stalled Tracklist Merger userscript (since removed from the repo), whose merge logic it ports.
 
 ## Files
 
@@ -139,7 +139,7 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   the link's label, tooltip and report line instead of a note's.
   The single silent stop left is "no EDIT link / no curid": there is nothing to hang a note on
   and nothing to report about.
-- **"Identical" is the certain reading, and it is the one that acts by itself.**
+- **"Identical" is the certain reading, and both no-change readings act by themselves.**
   `tlImporter_sameTracklists()` (merge_core.js, reported through `identical` on the merge
   result) has two readings, either of which is enough. Same serialized TEXT after the candidate's
   cues moved into the original's format – the plain one, and the only one that survives a track
@@ -148,15 +148,18 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   Feathers & Bones Mixtape 04). Or, for two lists that are the same list without being the same
   text, all of: nothing written, every candidate row matched 1:1 (not inserted, no two rows on
   the same original row, nothing on it `tlImporter_candidateUse()` could not place) and no
-  original row or gap left over. Only that ticks the toolkit's "TID tracklist is integrated" checkbox
+  original row or gap left over. It ticks the toolkit's "TID tracklist is integrated" checkbox
   (`tlImporter_tickIntegrated()`, a native `.click()` so TrackId.net's own handler does the
   saving – which POSTs, and the site knows no way back). Which is why it is DELAYED and
   announced: the note runs the `mdb-tlImporter-noteTick` pulse for `tlImporter_tickDelayMs`
   (the two state the same span, keep them in step) and the click lands after it, so nothing is
   written before the reader had a chance to see it coming – a tick they made themselves in that
-  window cancels ours. A candidate merely CONTAINED in a
-  longer original is not identical: it reads "Nothing to add" and ticks nothing, because the
-  page then knows more than the player site and only the reader can judge that.
+  window cancels ours. A candidate merely CONTAINED in a longer original stays a reading of its
+  own – it reads "Nothing to add", because the page then knows more than the player site – but it
+  ticks the SAME box: every track of the candidate is on the page, which is all "integrated"
+  claims. Both entries say so with `ticks: true` in `tlImporter_noMergeVerdicts`; neither the note
+  nor the tick machinery tests a verdict NAME any more, so a third no-change reading only has to
+  set that flag (and the note's class is `mdb-tlImporter-note-integrated`, not `-identical`).
   The tick has to WAIT: the checkbox arrives hidden and TrackId.net only shows it once its own
   check request came home – an answer that may replace the input with the check mark (already
   integrated) or the whole wrapper with a sentence (player unknown to the API). Hence the poll
