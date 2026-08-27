@@ -4988,6 +4988,17 @@ var mdbTitle_channelInitials = "";
 // the exit asks the wiki about the full name (mdbTitle_expandChannelAcronym).
 var mdbTitle_channelUsed = "";
 
+// Whether the channel name is worth anything WITHOUT confirmation. On SoundCloud (and
+// Mixcloud-like profile sites) the account IS the artist or the series most of the time, so
+// the branches may fall back to it where the title names nobody. On YouTube (and the other
+// planned players - Mixcloud pages aside, hearthis.at), the channel is at least as often a
+// broadcaster or re-uploader whose name has nothing to do with who played, so a site script
+// passes channelTrust "low" and the fallbacks then demand backing: the channel standing in
+// the title, a curated map entry, or the wiki knowing the name - all of which are
+// confirmation and keep working. Set once per suggestion off buildMixesdbTitle's
+// channelTrust parameter, read where a branch is about to use the channel as a pure guess.
+var mdbTitle_channelTrusted = true;
+
 // How the TITLE spells that channel name, where it names it at all - "DIRTYBIRD" comes back
 // as "Dirtybird" from "Dirtybird Radio 540", see "Which spelling of the channel name to use"
 // in title_definitions.js. The same answer mdbTitle_takeShowOutOfTitle gives the branches, set
@@ -6152,7 +6163,7 @@ function mdbTitle_titleChunks( playerTitle, username, description, refDate ) {
 // nothing on the first pass, before MixesDB has answered.
 // description is the player page's description text, when the site has one. Only read for the
 // labels its tracklist credits (mdbTitleKnownLabels) - nothing else in here looks at it.
-function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known, description ) {
+function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known, description, channelTrust ) {
     logFunc( "buildMixesdbTitle" );
 
     var conf = mdbTitle_confidence(),
@@ -6166,6 +6177,9 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
     mdbTitle_channelInitials = "";
     mdbTitle_channelUsed = "";
     mdbTitle_channelShown = "";
+    // "low" is the only value a site passes today; everything else (including the missing
+    // argument of older callers and the test runner) means the SoundCloud default
+    mdbTitle_channelTrusted = ( channelTrust !== "low" );
     // for mdbTitle_result, which canonicalizes the finished groups against the wiki
     mdbTitle_knownNow = known || null;
     mdbTitle_livePaTitle = false;
@@ -7766,6 +7780,15 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
                           ( dated.taken ? "dated" : monthly.taken ? "monthly" : "numbered" ) +
                           " mix and names nobody, so the channel was taken as the artist" );
 
+            // An untrusted channel (channelTrust "low" - YouTube and the like) is still the
+            // only name there is for a series that names nobody, so the reading stands - but
+            // on those sites "who uploaded it" and "who played it" are different people often
+            // enough that, without the wiki backing the name as an artist, the doubt has to
+            // show in the score.
+            if( !mdbTitle_channelTrusted && mdbTitle_knownAs( known, show ) !== "artist" ) {
+                conf.drop( 15, "on this site the channel name is often not who played, and nothing confirmed \"" + show + "\" as an artist" );
+            }
+
             return mdbTitle_result( date, show, seriesName, null, seriesPromo, [], conf, {
                 artist: "the title is a numbered series and names nobody, so the channel was taken as who made it",
                 entity: "the title is the series name, with its number written behind it"
@@ -7825,6 +7848,20 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
             logVar( "buildMixesdbTitle: dropping the show, the venue is already in the artist", show );
             show = "";
             conf.drop( 5, "the title names a venue with \"@\", so the channel was not added as a show" );
+
+        } else if( show && !mdbTitle_channelTrusted && !isMappedChannel && !taken.taken &&
+                   !showFromEpisodeRule && !episode && !mdbTitle_knownAs( known, show ) ) {
+            // An UNTRUSTED channel (channelTrust "low" - YouTube and the like) earns the
+            // entity slot only with backing: standing in the title, a curated map entry or
+            // the wiki knowing the name - all tested above or here. Without any of that the
+            // channel is a broadcaster or re-uploader often enough that appending it would
+            // invent a show nobody calls the mix by, and an entity category nobody wrote.
+            // An episode number keeps the channel even here (the branch is skipped): a number
+            // needs a name to hang on, and the channel is the only one on offer - the doubt
+            // is charged below instead.
+            logVar( "buildMixesdbTitle: dropping the show - the channel is untrusted on this site and nothing backs it", show );
+            show = "";
+            conf.drop( 5, "the channel \"" + username + "\" was not added as a show - on this site the channel name is often unrelated to the mix, and nothing confirmed it" );
         }
 
         // The channel not being a known show only matters now that it is settled whether the
@@ -7832,6 +7869,12 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
         // of title that carry their own entity.
         if( show && unknownShowReason ) {
             conf.drop( 5, unknownShowReason );
+
+            // the with-episode case the untrusted branch above deliberately let through:
+            // the number kept the channel in the slot, but nothing backs the name
+            if( !mdbTitle_channelTrusted && episode && !mdbTitle_knownAs( known, show ) ) {
+                conf.drop( 10, "on this site the channel name is often unrelated to the mix - only the episode number kept \"" + show + "\" in the title" );
+            }
         }
 
         // 7) assemble
@@ -8429,6 +8472,15 @@ function mdbTitle_growBareSeriesEntity( entity ) {
     if( !entity || !channel || !mdbTitle_isBareSeriesName( entity ) ) return entity;
 
     if( mdbTitle_isBareSeriesName( channel ) ) return entity;
+
+    // An untrusted channel (channelTrust "low" - YouTube and the like) may only grow into
+    // the name with backing: the title spelling the channel name somewhere
+    // (mdbTitle_channelSpelling), or the wiki knowing it. Without either, growing a
+    // re-uploader's name in front of the word invents a series nobody calls the mix by -
+    // the bare word then simply stays, and mdbPageCreator_entityCategory already refuses
+    // it as a category on its own.
+    if( !mdbTitle_channelTrusted && !mdbTitle_channelSpelling &&
+        !mdbTitle_knownAs( mdbTitle_knownNow, channel ) ) return entity;
 
     if( mdbTitle_normalizeCompare( entity ).indexOf( mdbTitle_normalizeCompare( channel ) ) !== -1 ) return entity;
 

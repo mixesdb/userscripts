@@ -1423,8 +1423,9 @@
  * mdbSkeleton_reveal() removes class and skeleton in one step.
  * display:none is safe for everything built in there - the one thing that MEASURES itself
  * (the tracklist textarea) sizes via its rows attribute, counted from the text, not from
- * the DOM. Hardcoded dark greys: both sites showing it (SoundCloud's redesigned track
- * pages, TrackId.net) are dark-themed.
+ * the DOM. Hardcoded dark greys: SoundCloud's redesigned track pages and TrackId.net are
+ * dark-themed. YouTube can be either - its light mode gets lighter greys in the site
+ * specific rules at the bottom of this file.
  *
  * #mdb-skeleton itself is a TRANSPARENT flex column, not a box: the real additions sit
  * directly on the page background, and the page creator row and the toolkit - the two
@@ -1681,9 +1682,36 @@ body.trackid-net {
     & #mdb-pageCreator-create {
         color: var(--main);
         text-decoration: none;
-        
+
         &:visited {
             color: var(--main-very-dark);
         }
     }
+}
+
+/*
+ * youtube.com
+ * The wrapper below the video metadata holds exactly the two feature boxes (page creator row +
+ * toolkit), so the skeleton is sized like TID's SoundCloud case rather than the SC default.
+ */
+body.youtube-com #mdb-skeleton {
+    height: 220px;
+}
+
+body.youtube-com #mdb-skeleton .mdb-skeleton-pageCreator {
+    height: 110px;
+}
+
+/*
+ * YouTube is the first LIGHT-themed page the skeleton shows on (the shared greys above assume
+ * a dark page). YouTube marks its dark mode with the html[dark] attribute, so light mode is
+ * the absence of it - dark mode keeps the shared colours.
+ */
+html:not([dark]) body.youtube-com #mdb-skeleton .mdb-skeleton-block {
+    background-color: #f2f2f2;
+}
+
+html:not([dark]) body.youtube-com #mdb-skeleton .mdb-skeleton-bar,
+html:not([dark]) body.youtube-com #mdb-skeleton .mdb-skeleton-block .mdb-skeleton-bar {
+    background-color: #e5e5e5;
 }

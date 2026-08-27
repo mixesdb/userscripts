@@ -1,11 +1,11 @@
 # YouTube
 
-Adds the MixesDB toolkit to YouTube videos long enough to be a DJ mix, plus the thumbnail and
-file details a mix page needs.
+Adds the MixesDB toolkit and page creator to YouTube videos long enough to be a DJ mix, plus
+the thumbnail and file details a mix page needs.
 
 - **Runs on:** youtube.com and youtu.be – watch pages and playlist pages
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/YouTube/script.user.js)
-- **Shared features:** [Toolkit](../shared/toolkit/), [File details](../shared/README.md#file-details)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [File details](../shared/README.md#file-details)
 
 ## Features
 
@@ -17,6 +17,28 @@ the form MixesDB embeds, and the same URL is offered as the copy-paste **Embed U
 
 Only videos of **at least 20 minutes** get a toolkit. Everything shorter is not a mix, and the
 duration is checked before any request goes out.
+
+### MixesDB page creator
+
+For videos the toolkit reports as not on MixesDB yet, the suggested page title and the
+**Create** link sit above the toolkit – see [Page creator](../shared/page_creator/). Title,
+channel name, upload date, duration, artwork URL and description are read fresh for the current
+video, so the row stays correct when YouTube swaps videos without reloading the page.
+
+The channel name is treated with care: a YouTube channel is a broadcaster or a re-uploader at
+least as often as it is the artist or the series, so the suggestion only uses it when the title
+itself or MixesDB backs it – see the
+[channel name](../shared/page_creator/#suggested-mix-page-title) notes there.
+
+A tracklist the uploader wrote into the video description ends up in the editable
+[tracklist box](../shared/page_creator/#tracklist-from-the-description) below the toolkit
+and on the created page. Same 20 minute gate as the toolkit.
+
+### Loading placeholder
+
+Below the video metadata, grey pulsing placeholders hold the space of the page creator row and
+the toolkit – one box each – until both have arrived, and they appear in one step. See
+[Loading placeholder](../shared/page_creator/#loading-placeholder).
 
 ### Thumbnail
 
