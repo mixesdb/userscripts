@@ -282,8 +282,9 @@ body.mdb-tlImporter-resizing {
     border-radius: .3em;
 }
 
-/* the Merged column's Tracklist Editor box - same padding as the pres left and right of it,
- * so the shared row count (set in tlImporter_renderDiffView) means the same visible height */
+/* the Merged column's Tracklist Editor box - same padding as the pres left and right of it, so
+ * a line of text sits at the same height in all three columns. Its own height comes from the
+ * rows attribute tlImporter_renderDiffView() sets; the pres are as tall as their text. */
 #mdb-tlImporter-diff textarea.mixesdb-TLbox {
     display: block;
     width: 100%;
@@ -377,6 +378,24 @@ body.mdb-tlImporter-resizing {
     column-gap: 14px;
 }
 
+/* the Insert reading of the block (tlImporter_renderDiffView): the page had no tracklist, so
+ * there is no Original column - Inserted and Candidate, and no grab bar between them, since
+ * tlImporter_addColResizers() only builds bars for three columns. The 14px the bars occupy in
+ * the three-column layout stays as the gap, so the two boxes keep the same distance.
+ * Stands AFTER the base rule and after the down rule on purpose: both name the same element
+ * with the same specificity, and the down one carries !important for the dragged inline
+ * widths. Down, the Inserted column has given its text to the site's editor and is hidden,
+ * which leaves the Candidate alone in the full width. */
+#mdb-tlImporter-diff .mdb-tlImporter-cols-2 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-column-gap: 14px;
+    column-gap: 14px;
+}
+
+#mdb-tlImporter-diff.mdb-tlImporter-down .mdb-tlImporter-cols-2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
 /* the row below #tlEditor-formActions while the block is down: the Apply button and the Live
  * updates switch - what the Merged column has under its box, minus the state icons (the real
  * ones under the edit box are on this very page). The chip's own rules bring the margins of
@@ -431,13 +450,6 @@ body.mdb-tlImporter-down #editToolsBar-TLeditor #tlEditor-feedback-close {
         white-space: normal;
         overflow: visible;
         text-overflow: clip;
-    }
-
-    /* the shared min-height tlImporter_renderDiffView() puts on the pres lines the three boxes
-     * up NEXT to each other - stacked there is nothing to line up with, and a short list would
-     * only end in empty box. !important because that min-height is an inline style. */
-    #mdb-tlImporter-diff pre.mdb-tlImporter-pre {
-        min-height: 0 !important;
     }
 }
 

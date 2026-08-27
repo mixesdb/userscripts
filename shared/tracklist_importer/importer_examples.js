@@ -88,6 +88,9 @@ var tlImporterExamples_merge = [
         // inserted; a "?" slot keeps its own more precise cue when filled (00:13:20, not
         // 00:14:00); a slot is only filled when the cues roughly agree, so Nu Genea (078)
         // fills [01:17:00] and not the segment's first "?" at [01:10:10].
+        // Also the redundant-gap rule in the small: the candidate's "..." between its [066] and
+        // [071] came in behind [01:10:10], where the page's own cues leave 50 seconds for the
+        // missing track it claims - well below the list's ~4 min median, so it is dropped.
         name: "HH:MM:SS original with minute-rounded candidate",
         original: "# [00:00:00] Addam (Be) & Crisologo & Massuma - Wagathoni\n" +
                   "# [00:05:10] andhim Feat. Zaho De Sagazan - Mon Corps [SUPERFRIENDS]\n" +
@@ -164,7 +167,6 @@ var tlImporterExamples_merge = [
                 "[01:04:10] ?\n" +
                 "[01:05:30] Augusto Yepes - Indian Flair [ABRACADABRA]\n" +
                 "[01:10:10] ?\n" +
-                "...\n" +
                 "[01:11:00] Dave Ruthwell & SGX - Dark Beat (Extended Mix) [Club Bad]\n" +
                 "[01:12:50] ?\n" +
                 "[01:17:00] Nu Genea - Tienaté [NG Licensed To Carosello]\n" +
@@ -559,6 +561,89 @@ var tlImporterExamples_merge = [
         original: "...\n# A - One\n# B - Two\n# C - Three",
         candidate: "...\n[20] B - Two [L2]",
         expect: "...\n[??] A - One\n[20] B - Two [L2]\n[??] C - Three",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-08-27 (Luke Slater @ The Lot Radio 2026-06-13, trackid.net -> curid
+        // 748401): the merge filled both of the page's holes with the candidate's rows and left
+        // the two "..." standing, where the cues around them no longer leave room for a missing
+        // track. The list's median runtime is 4 minutes, so a "..." has to span more than 6:
+        // the 5 minute hole ([10] -> [15]) and the 3 minute one ([28] -> [31]) go, the 7 minute
+        // ([31] -> [38]) and 9 minute ([41] -> [50]) ones stay.
+        name: "gaps the merged cues leave no room for are dropped",
+        durationSec: 3407, // 0:56:47, the duration TrackId.net prints above the tracklist
+        original: "[00] ?\n" +
+                  "...\n" +
+                  "[15] Planetary Assault Systems - Retina Burn\n" +
+                  "[19] Shinedoe - Dillema (Alexander Kowalski Pressure Point Remix)\n" +
+                  "...\n" +
+                  "[31] Planetary Assault Systems - Devotion",
+        candidate: "[00] Planetary Assault Systems - Sermon Of The Light Tides [Ostgut Ton]\n" +
+                   "[06] Planetary Assault Systems - Labyrinth [Ostgut Ton]\n" +
+                   "[10] ?\n" +
+                   "...\n" +
+                   "[16] Planetary Assault Systems - Retina Burn [Ostgut Ton]\n" +
+                   "[20] Shinedoe - Dillema (Alexander Kowalski Pressure Point Remix) [MTM]\n" +
+                   "[24] Planetary Assault Systems - Thunder Major [Ostgut Ton]\n" +
+                   "[28] ?\n" +
+                   "...\n" +
+                   "[32] Planetary Assault Systems - Devotion [Token]\n" +
+                   "...\n" +
+                   "[38] Uncertain - Phrase [Symbolism]\n" +
+                   "[41] Dorbachov - Ellesmere Street (Invexis Remix) [SCRAP & DELETE]\n" +
+                   "...\n" +
+                   "[50] Kevin Saunderson & Tronikhouse - Smooth Groove [KMS (BEAT Music Fund)]\n" +
+                   "[52] Seamus Haji - The Big Bang Theory (Satellite Club) [Big Love]\n" +
+                   "[56] Albert Salvatierra - Cypsela [Truncate]",
+        expect: "[00] Planetary Assault Systems - Sermon Of The Light Tides [Ostgut Ton]\n" +
+                "[06] Planetary Assault Systems - Labyrinth [Ostgut Ton]\n" +
+                "[10] ?\n" +
+                "[15] Planetary Assault Systems - Retina Burn [Ostgut Ton]\n" +
+                "[19] Shinedoe - Dillema (Alexander Kowalski Pressure Point Remix) [MTM]\n" +
+                "[24] Planetary Assault Systems - Thunder Major [Ostgut Ton]\n" +
+                "[28] ?\n" +
+                "[31] Planetary Assault Systems - Devotion [Token]\n" +
+                "...\n" +
+                "[38] Uncertain - Phrase [Symbolism]\n" +
+                "[41] Dorbachov - Ellesmere Street (Invexis Remix) [SCRAP & DELETE]\n" +
+                "...\n" +
+                "[50] Kevin Saunderson & Tronikhouse - Smooth Groove [KMS (BEAT Music Fund)]\n" +
+                "[52] Seamus Haji - The Big Bang Theory (Satellite Club) [Big Love]\n" +
+                "[56] Albert Salvatierra - Cypsela [Truncate]",
+        changed: true,
+        // nothing is left over: the candidate's [16], [20] and [32] lose against the page's own
+        // [15], [19] and [31], but one minute apart is well inside tlImporter_cueToleranceSec,
+        // so there is nothing in them worth salvaging by hand
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // The same rule in the small, and its two stand-downs. Here it fires: median 4 minutes,
+        // the "..." between [12] and [15] spans 3 and goes.
+        name: "a gap below the median runtime goes",
+        original: "[00] A - One\n[04] B - Two\n[08] C - Three\n[12] D - Four\n...\n[15] E - Five\n[20] F - Six",
+        candidate: "[00] A - One [L1]\n[04] B - Two\n[08] C - Three\n[12] D - Four\n[15] E - Five\n[20] F - Six",
+        expect: "[00] A - One [L1]\n[04] B - Two\n[08] C - Three\n[12] D - Four\n[15] E - Five\n[20] F - Six",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Stand-down 1: the very same list plus one cue-less row at the end. Its "[??]" makes
+        // every distance around it a guess, so no median may be built and the gap stays.
+        name: "an unknown cue stands the gap check down",
+        original: "[00] A - One\n[04] B - Two\n[08] C - Three\n[12] D - Four\n...\n[15] E - Five\n[20] F - Six\nG - Seven",
+        candidate: "[00] A - One [L1]\n[04] B - Two\n[08] C - Three\n[12] D - Four\n[15] E - Five\n[20] F - Six",
+        expect: "[00] A - One [L1]\n[04] B - Two\n[08] C - Three\n[12] D - Four\n...\n[15] E - Five\n[20] F - Six\n[??] G - Seven",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Stand-down 2: two tracks with the gap between them are no sample at all - there is no
+        // gapless neighbour distance to take a median of, so nothing is judged.
+        name: "too few gapless neighbours leave the gap alone",
+        original: "[00] A - One\n...\n[03] B - Two",
+        candidate: "[00] A - One [L1]\n[03] B - Two",
+        expect: "[00] A - One [L1]\n...\n[03] B - Two",
         changed: true,
         unused: { cues: [], texts: [], labels: [] }
     }

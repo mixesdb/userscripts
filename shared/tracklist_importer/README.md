@@ -58,6 +58,9 @@ The found tracklist goes into the page's empty Tracklist section: inside `<list>
 has gaps (`...`), replacing the tag when every track is a numbered `#` line – the same rule the
 [Page Creator](../page_creator/) writes new pages by.
 
+The review block below opens for an insert as well, so the list that just went in can be
+adjusted in the page's own Tracklist Editor right away.
+
 ### Merge
 
 The mix page's existing tracklist is the **original**, the found one the **candidate**. The
@@ -106,6 +109,20 @@ The two ends of the list are read the same way:
   tracklist), otherwise from the `dur` cell of the mix page's own File details table. Without
   either nothing is filled in there – the mix runs on from the last cue and nothing says how far
 
+A `...` the merge filled up is taken out again. A gap says tracks are missing at that spot, and
+once the found tracklist has put its own tracks in there the cues around it often say the
+opposite: nothing fits in the few minutes that are left. The merged list is measured against
+itself for this – the median time from one track to the next where no `...` stands between them
+is what one track of this mix runs, and a gap has to span more than one and a half times that to
+still be believable. In the reported Luke Slater set that median is 4 minutes: the gaps spanning
+3 and 5 minutes go, the ones spanning 7 and 9 minutes stay. The Original column still shows every
+`...` the page had, so a dropped one is visible in the comparison.
+
+Three things keep this careful: it only runs where the merge actually added something, so a page
+the found tracklist has nothing to give is never rewritten; every track in the list has to carry
+a real cue, because one `[??]` makes the times around it guesses; and a `...` at the very start or
+the very end of the list is left alone, having only one cue next to it.
+
 ### On the edit form
 
 The edit form opens with the tracklist inserted or merged, the `Tracklist:` category and the
@@ -120,7 +137,8 @@ hand there.
 
 ### Review block above the edit box
 
-After a merge, a three-column block sits between MediaWiki's diff and the wiki textbox:
+After a merge, a three-column block sits between MediaWiki's diff and the wiki textbox – after
+an insert it has two of them, see below:
 
 - **Original** – the tracklist the page had, with the parts the merge changed highlighted
 - **Merged** – the result as applied, in the same editable [Tracklist box](../tracklist_editor/)
@@ -165,6 +183,17 @@ Blanks and `...` gaps are never highlighted. The block stays while you preview o
 fixes can be applied at any point before saving – but not when the compare comes back empty: a
 merge that changed nothing after all drops the block instead of repeating what the edit box
 already holds.
+
+Behind an **Insert** link the block has two columns instead of three: the page had no tracklist,
+so there is nothing an Original column could show. The fieldset is named **Diff – the page had no
+tracklist, the whole list was inserted**, the editable column is called **Inserted** and holds
+what went into the page, and **Candidate** shows the found tracklist exactly as it stands –
+numbering, wiki markup and blank lines included. Nothing is highlighted: there was nothing to
+merge. Down – the default – that Inserted text goes into the page's own Tracklist Editor just as
+after a merge, which is what the block is here for: correcting the list you just inserted happens
+in the editor you know, with its menu, find/replace and undo, instead of copying the list down
+there by hand first. The grab bars go with the third column, and down, Candidate has the full
+width to itself.
 
 Behind a **Chaptered** link the same block opens without a merge behind it: the fieldset is named
 **Diff – chaptered page, nothing was merged** (or **chaptered tracklist**, when the found one

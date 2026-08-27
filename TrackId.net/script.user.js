@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.28
+// @version      2026.08.27.31
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,8 +14,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_37
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_16
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_39
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 205,
+var cacheVersion = 207,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2306,6 +2306,31 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.27.31
+ * Tracklist Importer: the Original and Candidate boxes of the review block are as tall as their
+ * own text again (tracklist_importer funcs.js v39, CSS). They used to be stretched to the row
+ * count of the tallest of the three columns, which left a screen of empty box under a short
+ * list. Only the Merged editor still gets that shared row count, so nothing is scrolled away.
+ *
+ * 2026.08.27.30
+ * Tracklist Importer: an Insert opens the review block too (tracklist_importer funcs.js v38,
+ * CSS). Until now only a merge did, so after an insert the tracklist had to be copied into the
+ * page's own Tracklist Editor by hand before it could be adjusted. The block now opens for an
+ * insert as well - and with it the down state, which puts the inserted list into that editor
+ * and hangs its Apply button under it. Two columns instead of three: the page had no tracklist,
+ * so there is no Original to show. "Inserted" holds what went into the page, "Candidate" the
+ * found list exactly as it stands, nothing highlighted - no merge ran to claim anything.
+ *
+ * 2026.08.27.29
+ * Tracklist Importer merge, the redundant "..." (merge_core.js v16, reported on Luke Slater @
+ * The Lot Radio 2026-06-13). A gap says tracks are missing at that spot - and once the found
+ * tracklist has filled it up, the cues around it often say the opposite. The merged list is now
+ * measured against itself: the median time from one track to the next where no "..." stands
+ * between them is what one track of this mix runs, and a gap has to span more than one and a
+ * half times that to survive. In the reported set (median 4 minutes) the 3 and 5 minute holes
+ * go and the 7 and 9 minute ones stay. Only merges that actually added something are touched,
+ * every track has to carry a real cue, and the first and last "..." of a list are left alone.
  *
  * 2026.08.27.28
  * Tracklist Importer: the "TID tracklist is integrated" checkbox no longer waits to be ticked

@@ -31,7 +31,8 @@
  *     the merge changed highlighted), the Merged result in an editable Tracklist Editor box
  *     with an Apply button, and the Candidate (what the merge used highlighted) – kept across
  *     "Show changes"/"Show preview" via sessionStorage, and dropped when that compare came
- *     back as "(No difference)"
+ *     back as "(No difference)". An insert gets the same block minus the Original column,
+ *     which the empty section could not fill – for the editable box, not for a diff
  *
  * Requires (load order): global.js, tracklist_editor/funcs.js (apiTracklist), merge_core.js.
  * The toolkit must be on the page for the player-site side – the links go into ITS output.
@@ -895,8 +896,9 @@ function tlImporter_editPageDurationSec( pageText ) {
 // carried our parameters is gone afterwards, and the review block has to survive that.
 // data carries everything the block renders: mode, unchanged, items (candidate rows),
 // originalItems (original rows), mergedTl (the Merged box's text), status and feedback (the
-// TLE answer for it) - plus chapters for the no-merge reading of the block. The version stamp
-// keeps a payload from an older script generation from reaching the new renderer.
+// TLE answer for it) - plus chapters for the no-merge reading of the block. mode is a reading
+// as well: "insert" leaves out the Original column, since the page's section was empty. The
+// version stamp keeps a payload from an older script generation from reaching the new renderer.
 var tlImporter_storageVersion = 2;
 
 function tlImporter_storeDiff( data ) {
@@ -1827,6 +1829,11 @@ function tlImporter_watchApplyButton( textarea, button, baseline ) {
 // merged, so both texts stand there VERBATIM (tlImporter_rawItems) with nothing highlighted,
 // the Merged box opens EMPTY as the reader's workbench, and the texts say so instead of talking
 // about a merge that never ran.
+//
+// data.mode "insert" is the third reading: the page's section was empty, so the Original column
+// is left out and the block is two columns - "Inserted", the box holding what went into the
+// page (and, down, the page's own Tracklist Editor), next to the Candidate it came from,
+// VERBATIM as well. No merge ran here either, so nothing is highlighted.
 function tlImporter_renderDiffView( data ) {
     if( !data || !data.items || !data.items.length ) return;
     if( $( "#mdb-tlImporter-diff" ).length ) return;
@@ -1834,7 +1841,11 @@ function tlImporter_renderDiffView( data ) {
     var chapters = !!data.chapters,
         // which side carries the ";Name" rows - stored blocks from before chaptersFrom
         // existed carry nothing, and those were always the page side
-        chaptersFromCandidate = chapters && data.chaptersFrom == "candidate";
+        chaptersFromCandidate = chapters && data.chaptersFrom == "candidate",
+        // the Insert reading: the page's Tracklist section was EMPTY, so there is no Original
+        // to put up - two columns instead of three, one of them the editable box the whole
+        // block is here for. Read off the stored mode, no flag of its own
+        inserted = !chapters && data.mode == "insert";
 
     // a FIELDSET, not a div: the edit form is a column of fieldsets (the site's own
     // "Tracklist editor" among them), and the block reads as one of them, with its name on
@@ -1855,8 +1866,9 @@ function tlImporter_renderDiffView( data ) {
         return column;
     }
 
-    // Original
-    cols.append(
+    // Original - an insert had none: the section was empty, and an empty box between the
+    // headings would only look like a column that failed to render
+    if( !inserted ) cols.append(
         col( "Original", chapters
             ? ( chaptersFromCandidate
                 ? "The tracklist the page has, exactly as it stands. Nothing was merged into it."
@@ -1908,11 +1920,13 @@ function tlImporter_renderDiffView( data ) {
     tlImporter_watchApplyButton( textarea, applyButton, tlImporter_applyBaseline );
 
     cols.append(
-        col( "Merged", chapters
+        col( inserted ? "Inserted" : "Merged", chapters
             ? ( chaptersFromCandidate
                 ? "Empty: chaptered tracklists are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section."
                 : "Empty: chaptered pages are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section." )
-            : "The result as applied to the page. Edit final fixes here, then Apply." )
+            : inserted
+                ? "The tracklist as inserted into the page. Edit final fixes here, then Apply."
+                : "The result as applied to the page. Edit final fixes here, then Apply." )
             // named so the down state (tlImporter_applyDown) can hide exactly this column
             .addClass( "mdb-tlImporter-col-merged" )
             .append( tlWrapper, applyWrap )
@@ -1925,7 +1939,9 @@ function tlImporter_renderDiffView( data ) {
             ? ( chaptersFromCandidate
                 ? "The tracklist the player site found, exactly as it stands - chapters included. Nothing is highlighted - no merge ran on this page."
                 : "The tracklist the player site found, exactly as it stands. Nothing is highlighted - no merge ran on this page." )
-            : "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
+            : inserted
+                ? "The tracklist the player site found, exactly as it stands - the page had none, so all of it went in."
+                : "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
             .append( tlImporter_renderPre( data.items, function( item, p ) {
                 if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
                 if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
@@ -1933,7 +1949,11 @@ function tlImporter_renderDiffView( data ) {
             }) )
     );
 
-    // the two grab bars between the columns, plus the widths the reader last dragged
+    // the two grab bars between the columns, plus the widths the reader last dragged. Two
+    // columns get none (tlImporter_addColResizers answers only to three): the class carries
+    // their grid and the gap the bars would have been.
+    if( inserted ) cols.addClass( "mdb-tlImporter-cols-2" );
+
     tlImporter_addColResizers( cols );
 
     // the widen toggle. First element after the legend, so tabbing reaches it before the
@@ -1947,7 +1967,9 @@ function tlImporter_renderDiffView( data ) {
         ? ( chaptersFromCandidate
             ? "<legend><strong>Diff</strong> – chaptered tracklist, nothing was merged</legend>"
             : "<legend><strong>Diff</strong> – chaptered page, nothing was merged</legend>" )
-        : "<legend><strong>Diff</strong></legend>" );
+        : inserted
+            ? "<legend><strong>Diff</strong> – the page had no tracklist, the whole list was inserted</legend>"
+            : "<legend><strong>Diff</strong></legend>" );
 
     wrap.append( cols );
 
@@ -1985,10 +2007,11 @@ function tlImporter_renderDiffView( data ) {
     // once directly, without waiting for the observer's microtask
     tlImporter_flattenFeedbackList( tlWrapper );
 
-    // One shared height for the three columns: the tallest list's ROW COUNT decides - logical
-    // rows only, soft line wrapping deliberately ignored. The textarea gets it as its rows
-    // attribute (after fixTLbox() sized it to its own text), the pres as a min-height in
-    // line-height units (1.5em per row, matching their CSS), so the three boxes line up.
+    // The textarea is sized to the tallest of the three lists: the tallest ROW COUNT decides -
+    // logical rows only, soft line wrapping deliberately ignored. fixTLbox() sized it to its
+    // own text before this, which leaves it short next to a longer original or candidate list.
+    // The pres are NOT given a matching min-height: their own text is their height, so a short
+    // list ends where it ends instead of trailing a screen of empty box.
     var maxRows = Math.max(
         data.originalItems ? data.originalItems.length : 0,
         data.items.length,
@@ -1996,7 +2019,6 @@ function tlImporter_renderDiffView( data ) {
     );
 
     textarea.attr( "rows", maxRows );
-    wrap.find( "pre.mdb-tlImporter-pre" ).css( "min-height", ( maxRows * 1.5 ) + "em" );
 
     // the boxes have their final height only now - the grab bars' rails are drawn to match it
     tlImporter_alignResizers( cols );
@@ -2356,7 +2378,16 @@ function tlImporter_runEditPage() {
 
             if( resIns.text ) finalTl = resIns.text;
             status = resIns.feedback && resIns.feedback.status ? resIns.feedback.status : "";
+            feedback = resIns.feedback || null;
         }
+
+        // An insert gets the review block too - not for a diff it does not have, but for the
+        // editable box under it: down (the default) that box IS the page's own Tracklist
+        // Editor, holding the inserted list, so adjusting what was just written is the same
+        // gesture as after a merge instead of a hand-copy into the editor. VERBATIM rows
+        // (tlImporter_rawItems, like the chaptered case): no merge ran, so there is nothing
+        // to flag parts of, and the parser would show a tidied-up list neither side holds.
+        diffItems = tlImporter_rawItems( candidate );
     } else {
         // The runtime, from the link or from the page itself - see tlImporter_editPageDurationSec.
         var durationSec = tlImporter_editPageDurationSec( pageText ),

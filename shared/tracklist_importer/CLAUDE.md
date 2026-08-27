@@ -271,6 +271,27 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   of the merged list, because a `[??]`-heavy original has no parseable cues to sort against and
   every mid-list unknown would otherwise read as "at the end" too. An unknown whose cue lands
   within tolerance of an original track is still dropped, tail or not.
+- **A `...` the merge filled up is dropped, measured against the list's OWN median runtime.**
+  `tlImporter_dropRedundantGaps()` is the last step of the merge, after every cue is final. A gap
+  claims tracks are missing; between two known cues that claim is checkable, because the span it
+  covers has to fit the row in FRONT of it plus something else. The yardstick is
+  `tlImporter_medianTrackRuntimeSec()` - the median distance between two rows with no `...`
+  between them, times `tlImporter_gapRuntimeFactor` (1.5). The median, not the average: one 12
+  minute opener would otherwise stretch the believable span for every gap in the list. Reported
+  (Luke Slater @ The Lot Radio 2026-06-13, curid 748401): the page's two holes were filled with
+  the candidate's `[06]`/`[10]` and `[24]`/`[28]` rows and the two `...` stayed, now spanning 5
+  and 3 minutes against a 4 minute median - while the 7 and 9 minute ones further down are real.
+  Three stand-downs, all of them deliberate: only a merge that WROTE something is touched
+  (`state.changes > 0` at the call site - a gap in a list the candidate did not enrich is the
+  contributor's own statement, and rewriting it would also turn the silent `Identical` /
+  `Nothing to add` verdicts into merges and cost their auto-tick); every track has to carry a
+  readable cue (one `[??]` or inferred `[09?]` and the distances around it are guesses, which is
+  not what a median may be built from); and fewer than `tlImporter_gapMinSamples` (3) gapless
+  neighbour distances are no sample at all. The two ENDS are out of scope by construction - a
+  leading `...` has no cue in front of it, a trailing one none behind it. The dropped gap is
+  FLAGGED (`_ti_gapDropped`), not spliced out: `tlImporter_textFromArr()` skips it while
+  `tlImporter_originalItems()` keeps it, because the review block's Original column has to keep
+  showing what the page held.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
 - **Chaptered tracklists (`;Name` rows) are never merged, but they ARE opened - on EITHER
   side.** The toolkit row gets a third link, `Chaptered` (label and tooltip out of
@@ -292,6 +313,19 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   Party 168. The Merged box opens EMPTY as the reader's workbench, Apply asleep until they write
   something. `tlImporter_renderStoredDiff()` keeps such a block on an EMPTY compare
   (the normal answer on a page nothing was written to), where a merge block is dropped.
+- **An Insert opens the review block too - for the BOX, not for a diff.** Reported: after an
+  insert the reader had to copy the list into the page's Tracklist Editor by hand to adjust it,
+  while a merge hands them exactly that editor filled (the down state). So `insert` now stores
+  a payload like every other mode and `tlImporter_runEditPage()` renders the block, which means
+  the down state fills `#tlEditor-textarea` and hangs its Apply row under the site's editor
+  there as well. The reading is the mode - `data.mode == "insert"`, no flag of its own - and it
+  leaves the Original column OUT: that section was empty by definition (`hasTracks` false), and
+  an empty third box reads as a column that failed to render. Two columns, "Inserted" and
+  "Candidate", both VERBATIM (`tlImporter_rawItems`, the chaptered case's reason: no merge ran,
+  so there is nothing to flag, and the parser would tidy up a list neither side holds). The grid
+  is `.mdb-tlImporter-cols-2` - `tlImporter_addColResizers()` builds bars for three columns
+  only, so the 14px they would occupy is the gap instead, and down (one visible column) the
+  rule repeats with `!important` behind the down state's own three-column override.
 - **The down toggle borrows the site's editor, it does not copy it.** The arrow in the block's
   top right corner (`tlImporter_applyDown`) moves the block AND `#editToolsBar-TLeditor` (the
   wrapper of the site's whole editor fieldset) to directly after `.editOptions` – below the

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.14
+// @version      2026.08.27.17
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,8 +13,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-1001_Tracklists_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_111
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_5
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_8
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_6
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
@@ -34,7 +34,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 34,
+var cacheVersion = 36,
     scriptName = "1001_Tracklists";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -292,6 +292,28 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.27.17
+ * Tracklist Importer: the Original and Candidate boxes of the review block are as tall as their
+ * own text again (tracklist_importer funcs.js v10, CSS). They used to be stretched to the row
+ * count of the tallest of the three columns, which left a screen of empty box under a short
+ * list. Only the Merged editor still gets that shared row count, so nothing is scrolled away.
+ *
+ * 2026.08.27.16
+ * Tracklist Importer: an Insert opens the review block too (tracklist_importer funcs.js v9,
+ * CSS) - and with it the down state, which puts the inserted tracklist into the page's own
+ * Tracklist Editor with an Apply button under it, instead of leaving it to be copied there by
+ * hand. Two columns instead of three: the page had no tracklist, so there is no Original.
+ *
+ * 2026.08.27.15
+ * Tracklist Importer merge, the redundant "..." (merge_core.js v6, reported on trackid.net for
+ * Luke Slater @ The Lot Radio 2026-06-13). A gap says tracks are missing at that spot - and
+ * once the found tracklist has filled it up, the cues around it often say the opposite. The
+ * merged list is now measured against itself: the median time from one track to the next where
+ * no "..." stands between them is what one track of this mix runs, and a gap has to span more
+ * than one and a half times that to survive. Only merges that actually added something are
+ * touched, every track has to carry a real cue, and the first and last "..." of a list are left
+ * alone.
  *
  * 2026.08.27.14
  * Tracklist Importer (tracklist_importer funcs.js v8): after an Insert/Merge click the mix page

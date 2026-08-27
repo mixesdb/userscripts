@@ -33,6 +33,19 @@ var tlImporter_similarityThreshold = 0.8;
 // dropping duplicate unknown candidates, and for the diff view's "cue was used" flag.
 var tlImporter_cueToleranceSec = 120;
 
+// A "..." between two known cues is only believable while ONE track could have filled the span
+// it covers. These two say what "could have" means, measured against the median runtime of the
+// list itself (tlImporter_medianTrackRuntimeSec -> tlImporter_dropRedundantGaps):
+//
+//   factor      how much longer than the median a single track may run. 1.5 keeps the reading
+//               on the safe side - the Luke Slater / The Lot Radio case (median 4 min) drops
+//               the 3 and 5 minute holes and keeps the 7 and 9 minute ones
+//   minSamples  how many gapless neighbour distances the median needs to mean anything. The
+//               median of one or two distances is noise, and a wrong median removes a "..."
+//               that carries real information
+var tlImporter_gapRuntimeFactor = 1.5;
+var tlImporter_gapMinSamples = 3;
+
 // tlImporter_log
 // log() lives in global.js, which the deno runner does not load – so every log goes through
 // this guard instead of assuming the browser environment.
@@ -446,6 +459,11 @@ function tlImporter_textFromArr( tl_arr ) {
 
             return line;
         } else if (item.type === "gap") {
+            // A gap the merge found redundant stays in the array – the review block's Original
+            // column still has to show what the page held – but it is not printed any more.
+            // See tlImporter_dropRedundantGaps().
+            if (item._ti_gapDropped) return null;
+
             return "...";
         }
 
@@ -763,6 +781,133 @@ function tlImporter_fillUnknownCuePrefixes( tl_arr, format, endMinute ) {
             }
         }
     }
+
+    return tl_arr;
+}
+
+// tlImporter_medianTrackRuntimeSec
+// How long one track of THIS list runs, in seconds: the median distance between two rows that
+// follow each other without a "..." between them. Only those pairs measure a single track –
+// across a gap the distance covers an unknown number of them, which is exactly the question
+// tlImporter_dropRedundantGaps asks.
+//
+// The median, not the average: a tracklist regularly carries one 12 minute opener or a closing
+// ambient piece, and an average would let those stretch the believable span for every gap in
+// the list. null when fewer than tlImporter_gapMinSamples distances are known.
+function tlImporter_medianTrackRuntimeSec( runtimes ) {
+    if( !runtimes || runtimes.length < tlImporter_gapMinSamples ) { return null; }
+
+    var sorted = runtimes.slice().sort(function( a, b ){ return a - b; }),
+        mid = Math.floor( sorted.length / 2 ),
+        median = sorted.length % 2 ? sorted[ mid ] : ( sorted[ mid - 1 ] + sorted[ mid ] ) / 2;
+
+    return median > 0 ? median : null;
+}
+
+// tlImporter_dropRedundantGaps
+// The last reading of the merge: a "..." the merged cues themselves say is empty.
+//
+// A gap claims "tracks are missing here". Between two known cues that claim is checkable – the
+// span between them has to be long enough for the row in front of the gap to have played AND
+// something else after it. Measured against the list's own median runtime
+// (tlImporter_medianTrackRuntimeSec) times tlImporter_gapRuntimeFactor: everything up to that
+// is one track's own runtime and leaves no room for a second one, so the gap is dropped.
+//
+// Reported case (Luke Slater @ The Lot Radio 2026-06-13, trackid.net -> curid 748401): the page
+// carried "[00] ? ... [15] Retina Burn" and "[19] Dillema ... [31] Devotion", and the merge
+// filled both holes with the candidate's [06], [10], [24] and [28] rows. The two "..." then sat
+// between cues 5 resp. 3 minutes apart – below the list's 4 minute median, so nothing fits in
+// there any more – while the 7 and 9 minute holes further down still do and keep their gap.
+//
+// Deliberately narrow, in three ways:
+//   - it only runs on a merge that WROTE something (see the call in tlImporter_merge). A gap
+//     the page had all along, in a list the candidate did not enrich, is the contributor's own
+//     statement and none of the importer's business – and touching it would turn the silent
+//     "Identical" / "Nothing to add" verdicts into merges
+//   - EVERY track has to carry a readable cue. One "[??]" or inferred "[09?]" row and the
+//     distances around it are guesses, which is not what a median may be built from
+//   - the two ENDS are left alone: a leading "..." has no cue in front of it and a trailing one
+//     none behind it, so there is no span to measure
+//
+// The dropped gap stays in the array with a flag rather than being spliced out:
+// tlImporter_textFromArr() skips it, while tlImporter_originalItems() keeps showing it in the
+// review block's Original column, which has to show what the PAGE held.
+function tlImporter_dropRedundantGaps( tl_arr ) {
+    // Printed rows only, in list order – a "track (false)" never reaches the page and must not
+    // separate two neighbours.
+    var rows = tl_arr.filter(function( item ){
+            return item.type === "gap" || item.type === "track";
+        }),
+        sec = [],
+        hasGap = false,
+        i;
+
+    for( i = 0; i < rows.length; i++ ) {
+        if( rows[i].type === "gap" ) {
+            hasGap = true;
+            sec.push( null );
+            continue;
+        }
+
+        var cueSec = tlImporter_cueToSec( rows[i].cue );
+
+        if( cueSec === null ) { return tl_arr; } // one unreadable cue and the whole step stands down
+
+        sec.push( cueSec );
+    }
+
+    if( !hasGap ) { return tl_arr; }
+
+    // One pass for both readings: the distances WITHOUT a gap between them are the sample, the
+    // ones WITH are the holes to decide. A run of gaps between the same two tracks is one hole.
+    var runtimes = [],
+        holes = [],
+        prevTrack = -1,
+        pending = [];
+
+    for( i = 0; i < rows.length; i++ ) {
+        if( rows[i].type === "gap" ) {
+            if( prevTrack > -1 ) { pending.push( i ); } // a leading gap has no span to measure
+            continue;
+        }
+
+        if( prevTrack > -1 ) {
+            var dist = sec[i] - sec[ prevTrack ];
+
+            if( pending.length ) {
+                holes.push({ dist: dist, gaps: pending });
+            } else {
+                runtimes.push( dist );
+            }
+        }
+
+        prevTrack = i;
+        pending = [];
+    }
+    // whatever is left in pending is a TRAILING gap – nothing follows it, nothing to measure
+
+    if( !holes.length ) { return tl_arr; }
+
+    var median = tlImporter_medianTrackRuntimeSec( runtimes );
+
+    if( median === null ) {
+        tlImporter_log( "gap check: only " + runtimes.length + " gapless neighbour(s), no median to judge by" );
+        return tl_arr;
+    }
+
+    var maxSpan = median * tlImporter_gapRuntimeFactor;
+
+    tlImporter_log( "gap check: median runtime " + Math.round( median / 60 * 10 ) / 10 + " min, "
+                    + "a \"...\" needs more than " + Math.round( maxSpan / 60 * 10 ) / 10 + " min of span" );
+
+    holes.forEach(function( hole ){
+        // A backwards distance means the list is out of order – not something to act on here.
+        if( hole.dist < 0 || hole.dist > maxSpan ) { return; }
+
+        hole.gaps.forEach(function( g ){ rows[g]._ti_gapDropped = true; });
+
+        tlImporter_log( "gap check: dropped a \"...\" spanning " + Math.round( hole.dist / 60 * 10 ) / 10 + " min" );
+    });
 
     return tl_arr;
 }
@@ -1496,6 +1641,14 @@ function tlImporter_merge( originalText, candidateText, options ) {
     // and [098] -> "[09?]"). Last, so it sees the final order and every cue the merge wrote.
     // The mix runtime plays the missing neighbour for the rows behind the last known cue.
     tlImporter_fillUnknownCuePrefixes( merged_arr, originalCueFormat, tlImporter_endMinute( options ) );
+
+    // And once every cue is final: a "..." the merged cues themselves say is empty is dropped.
+    // Only on a merge that WROTE something - a gap in a list the candidate did not enrich is
+    // the page's own statement, and rewriting it would also turn the silent "Identical" /
+    // "Nothing to add" verdicts into merges. See tlImporter_dropRedundantGaps().
+    if( state.changes > 0 ) {
+        tlImporter_dropRedundantGaps( merged_arr );
+    }
 
     // "changed" answers the only question the callers really ask - would the page text
     // differ? state.changes alone cannot: it counts every WRITE into the original, and a write
