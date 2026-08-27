@@ -32,6 +32,23 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
 
 ## Settled
 
+- **ONE instance owns the mixesdb.com side.** TrackId.net and 1001 Tracklists both carry this
+  file onto mixesdb.com/w/*, each in its own sandbox; unguarded, both would apply the merge,
+  click "Show changes" and answer every Apply press once more. The first d.ready handler
+  claims the page with `data-mdb-tlimporter-owner` on `<html>` (ready handlers run
+  sequentially, so the synchronous check-and-set cannot race) and sets
+  `tlImporter_ownsEditPage`; the mixesdb-side delegated handlers (both Apply buttons, the down
+  state's live-chip and textarea sync) check that flag at event time, because they are bound at
+  file load, long before the claim. The player-site handlers (import link, Report) are NOT
+  gated - one script per player site, and the flag is false there. A new site script that adds
+  `@include http*mixesdb.com/w/*` needs nothing: the claim comes with this file. But BOTH
+  installed scripts must load a claim-aware version - an old instance does not know to stand
+  down, so importer-funcs require-param bumps go into every carrying script together.
+- **`tlImporter_parse` strips quote RUNS (`'{2,}`), not pairs.** Pair-wise `''` removal turned
+  1001's bold intro rows (`'''Live @ X:''' Artist - Title`) into `'Live @ X:'` with a stray
+  quote that would land in the page wherever a candidate part is written. Italics behave as
+  before; the intro text itself stays part of the track text.
+
 - **The live page decides Insert vs Merge**, not the link's label: the page can change between
   the link being built and clicked. The label is only what the fetch at link-build time said.
 - **The original wins.** The candidate never overwrites an original cue, title or label – it
@@ -125,11 +142,16 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   every mid-list unknown would otherwise read as "at the end" too. An unknown whose cue lands
   within tolerance of an original track is still dropped, tail or not.
 - **`Tracklist: complete` is never downgraded** (same rule as the toolkit's siteHasTl block).
-- **Chaptered originals (`;Name` rows) are never merged, but they ARE opened.** The toolkit row
-  gets a third link, `Chaptered` (label and tooltip out of `tlImporter_noMergeVerdicts.chapters`,
-  dimmed by `.mdb-tlImporter-link-chapters`); the mode in the URL stays plain `merge` and
-  `tlImporter_runEditPage()` re-detects the `;` rows off the LIVE page text, like every other
-  reading there. That branch writes NOTHING – not the page text, not the category, not the
+- **Chaptered tracklists (`;Name` rows) are never merged, but they ARE opened - on EITHER
+  side.** The toolkit row gets a third link, `Chaptered` (label and tooltip out of
+  `tlImporter_noMergeVerdicts.chapters`, or `.chaptersCandidate` when the CANDIDATE carries the
+  `;` rows - 1001tracklists' multi-set pages do, and a merge would swallow them as track
+  titles; the page side outranks the candidate side in the wording. Dimmed by
+  `.mdb-tlImporter-link-chapters` either way); the mode in the URL stays plain `merge` and
+  `tlImporter_runEditPage()` re-detects the `;` rows off the LIVE page text AND the hash's
+  candidate, like every other reading there. Only a merge is stopped by candidate chapters: a
+  chaptered candidate into an empty section is a plain verbatim Insert. The stored payload's
+  `chaptersFrom` ("page"/"candidate", missing = "page") only picks the block's wording. That branch writes NOTHING – not the page text, not the category, not the
   icons – locks nothing and does not click "Show changes": there is no change to show. It only
   renders the review block, with `chapters: true` in the payload:
   `tlImporter_rawItems()` (merge_core.js) puts BOTH texts up VERBATIM – one row per line, no

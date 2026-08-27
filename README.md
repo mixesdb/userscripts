@@ -15,7 +15,7 @@ Each folder holds one userscript and a README describing its features.
 | [YouTube](YouTube/) | youtube.com | Toolkit for mix-length videos, thumbnail, file details |
 | [TrackId.net](TrackId.net/) | trackid.net, mixesdb.com | Tracklist in wiki syntax, page creator, player embed, integration marker, TID links under MixesDB players |
 | [RA](RA/) | ra.co | Toolkit, podcast tracklist, artwork URLs, copy buttons |
-| [1001 Tracklists](1001_Tracklists/) | 1001tracklists.com | Tracklist in wiki syntax, toolkit for every player |
+| [1001 Tracklists](1001_Tracklists/) | 1001tracklists.com, mixesdb.com | Tracklist in wiki syntax, toolkit for every player, tracklist import to MixesDB |
 | [hearthis.at](hearthis.at/) | hearthis.at | Toolkit for both player URL variants |
 | [NTS](NTS/) | nts.live | Tracklist in wiki syntax |
 | [BBC](BBC/) | bbc.co.uk | Tracklist in wiki syntax |

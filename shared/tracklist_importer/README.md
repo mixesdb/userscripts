@@ -6,7 +6,7 @@ Carries a tracklist a userscript found – TLE-formatted, sitting in the
 thing left to do is check the diff and save.
 
 - **Runs on:** every site whose userscript loads it and shows the toolkit with player search –
-  TrackId.net first – plus mixesdb.com/w/* for the edit-form part
+  TrackId.net and 1001tracklists.com so far – plus mixesdb.com/w/* for the edit-form part
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** part of the shared set; the site script's README says where it shows up
 
@@ -21,7 +21,11 @@ page's current text is checked:
 - **a tracklist exists** – a **Merge** link appears there instead
 - **the tracklist is split into chapters** (`;Name` rows, one per set) – a **Chaptered** link
   appears there. Merging into one chapter is not supported yet, so it imports nothing: it opens
-  the edit form with the page's tracklist and the found one side by side, for the merge by hand
+  the edit form with the page's tracklist and the found one side by side, for the merge by hand.
+  The same link appears when the *found* tracklist is the chaptered one – 1001tracklists'
+  multi-set pages are – because a merge would swallow its chapter rows as track titles. Only a
+  merge is stopped by chapters: a chaptered tracklist going into a page without one is a plain
+  **Insert**, chapters and all
 
 All three open the mix page's edit form in a new tab – the first two with the work already done.
 
@@ -39,7 +43,8 @@ broken userscript:
 The **Report** link stands behind every one of them, exactly as it does behind Insert and Merge,
 and the report names the verdict – a verdict you disagree with is the very thing worth reporting.
 
-**Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you: when the
+**Identical** also ticks the toolkit's **TID tracklist is integrated** checkbox for you – on
+TrackId.net, the one site that has the checkbox; everywhere else the note only says so: when the
 mix page carries exactly this tracklist, it *is* integrated. It says so before it does it – the note
 fades to green and the box is ticked a moment later, so the tick happens in front of you and not
 behind your back. Tick it yourself in that moment and nothing else happens. It is the certain reading – every
@@ -135,8 +140,9 @@ fixes can be applied at any point before saving – but not when the compare com
 merge that changed nothing after all drops the block instead of repeating what the edit box
 already holds.
 
-On a chaptered page the same block opens without a merge behind it: the fieldset is named
-**Diff – chaptered page, nothing was merged**, Original shows the page's tracklist and Candidate
+Behind a **Chaptered** link the same block opens without a merge behind it: the fieldset is named
+**Diff – chaptered page, nothing was merged** (or **chaptered tracklist**, when the found one
+carries the chapters), Original shows the page's tracklist and Candidate
 the found one, both exactly as they stand – numbering, chapter rows, wiki markup and blank lines
 included – and nothing is highlighted, because no merge ran to claim anything. The Merged box in the middle is empty on purpose: build the tracklist for the
 whole section there, chapters included, and **Apply** writes it into the page like after any
@@ -152,10 +158,11 @@ creator's Report box.
 
 ## Known limitations
 
-- Beta, on TrackId.net only so far.
-- Mix pages whose tracklist has chapters (`;Name` rows) are never merged automatically –
-  merging into one chapter needs its own logic. The **Chaptered** link opens the review block
-  for the merge by hand, and the Report link stands behind it as everywhere else.
+- Beta, on TrackId.net and 1001tracklists.com so far.
+- Chaptered tracklists (`;Name` rows) are never merged automatically, on either side: neither
+  into a mix page whose tracklist has chapters, nor from a found tracklist that carries them –
+  merging chapters needs its own logic. The **Chaptered** link opens the review block for the
+  merge by hand, and the Report link stands behind it as everywhere else.
 - The merge is a heuristic: fuzzy matching is a threshold, not certainty, and track insertion
   goes by cue times. Always read the diff before saving – that is why Save is locked until
   **Show changes** ran.
