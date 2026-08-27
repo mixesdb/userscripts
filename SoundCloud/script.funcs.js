@@ -119,7 +119,7 @@ function fixScRedirectUrl( url ) {
 // The "Buy" / "Free download" URL as it really points, with the gate.sc wrapper taken off where
 // SoundCloud put one on. Guarded rather than applied blindly: fixScRedirectUrl() ends in
 // decodeURIComponent(), which throws on a stray "%" in a URL that was never wrapped.
-// Two callers want the same string - the button in the track header, and the page creator,
+// Two callers want the same string - the button in the track header, and the Page Creator,
 // which searches this field for the created page's Notes link. The wrapper hides the host from
 // both, and a gate.sc URL carrying a bit.ly cannot be recognised as a shortened link at all.
 //
@@ -711,7 +711,7 @@ function resetAll() {
 
 // scFollowRedirect
 // Follows ONE redirect and hands the target to done(), or "" where there is none. Handed to
-// the page creator as its followRedirect option, and asked for exactly one thing: the
+// the Page Creator as its followRedirect option, and asked for exactly one thing: the
 // episode's real page behind the shortened link uploaders write instead of it ("Go to
 // bit.ly/BRCPod for track list and short interview" - a 301 to the groove.de page that belongs
 // in the new page's Notes section).
@@ -730,7 +730,7 @@ function resetAll() {
 //
 // anonymous: true - a redirector has no business seeing the reader's cookies.
 //
-// Whatever comes back is only a candidate: the page creator writes it only if it lands on the
+// Whatever comes back is only a candidate: the Page Creator writes it only if it lands on the
 // host the series' own Notes sections link (mdbPageCreator_notesUrlIn).
 function scFollowRedirect( url, done ) {
     logFunc( "scFollowRedirect" );

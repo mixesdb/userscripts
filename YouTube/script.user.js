@@ -276,7 +276,7 @@ var youtubeDetailsAddedFor = null,
     youtubeDurationAddedFor = null;
 
 /*
- * Whether the page creator row's side of #mdb-yt-extras is DECIDED - either the row is in or
+ * Whether the Page Creator row's side of #mdb-yt-extras is DECIDED - either the row is in or
  * we know there will be none. The loading skeleton's extraReady() reads it (see below); it is
  * reset to false with every fresh container, so the next video waits for its own row.
  */
@@ -338,7 +338,7 @@ function addDetailPageEnhancements( wrapper ) {
 
     /*
      * One container we own for everything that arrives async below the video metadata: the
-     * page creator row and the toolkit. That is what lets the loading skeleton
+     * Page Creator row and the toolkit. That is what lets the loading skeleton
      * (mdbSkeleton_* in shared/page_creator/page_creator.js) cover the build-up and reveal
      * both in one step - the row and the toolkit are its two separate grey stand-in boxes,
      * like on TrackId.net. mdb-element: taken down again on SPA navigation.
@@ -353,7 +353,7 @@ function addDetailPageEnhancements( wrapper ) {
             target: "#mdb-yt-extras",
             rows:   [ "pageCreator", "toolkit" ],
             /*
-             * The toolkit verdict alone is NOT enough here: the page creator row needs the
+             * The toolkit verdict alone is NOT enough here: the Page Creator row needs the
              * video data, which is its own async lookup and lands a second or more after the
              * verdict - so the skeleton used to reveal a toolkit-only box and the row then
              * popped in below it, which is exactly what the skeleton exists to prevent.
@@ -373,7 +373,7 @@ function addDetailPageEnhancements( wrapper ) {
     // skeleton covers it.
     getToolkit( playerUrl, "playerUrl", "detail page", $("#mdb-yt-extras"), "append", titleText, "link", 1, playerUrl );
 
-    // the page creator row is gated behind that toolkit's usage verdict - (re)arm the poll
+    // the Page Creator row is gated behind that toolkit's usage verdict - (re)arm the poll
     mdbPageCreator_watchToolkit();
 
     // the row itself needs the video's data, which is its own (possibly async) lookup
@@ -384,7 +384,7 @@ function addDetailPageEnhancements( wrapper ) {
 
 /*
  * getYtVideoData
- * Everything the page creator needs about the CURRENT video, keyed by its id: title, channel
+ * Everything the Page Creator needs about the CURRENT video, keyed by its id: title, channel
  * name and URL, upload date, duration, description. Three sources, best first:
  *
  * 1. window.ytInitialPlayerResponse - but only when it really describes this video. YouTube
@@ -514,7 +514,7 @@ function getYtVideoData( ytId, done ) {
 }
 
 /*
- * MixesDB page creator (shared/page_creator/)
+ * MixesDB Page Creator (shared/page_creator/)
  * The suggested-title row above the toolkit, in the #mdb-yt-extras wrapper. Everything
  * site-specific is read off the video data here and handed over - the creator itself never
  * looks at a YouTube page.
@@ -535,7 +535,7 @@ function addYtPageCreator( ytId, dur_sec ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
         if( !data || !data.title ) {
-            log( "addYtPageCreator: no usable video data - no page creator row." );
+            log( "addYtPageCreator: no usable video data - no Page Creator row." );
             ytPageCreatorSettled = true; // decided: nothing more is coming, let the skeleton go
             return;
         }
@@ -793,7 +793,7 @@ if( typeof onUrlChange === "function" ) {
  * Changelog
  *
  * 2026.08.27.6
- * Via the shared page creator (page_creator.js v_121): the lead artwork line no longer goes
+ * Via the shared Page Creator (page_creator.js v_121): the lead artwork line no longer goes
  * missing because ONE sibling's file name spells a character the wiki cannot put in a file
  * name. MediaWiki replaces ":", "/" and "\\" with a "-" on upload, so
  * "2017-09-21 - Mohr/Sula - Transmittal Tapes 6" is filed as "... - Mohr-Sula - ....jpg". That
@@ -809,7 +809,7 @@ if( typeof onUrlChange === "function" ) {
  * something else", decide as before.
  *
  * 2026.08.27.4
- * The page creator row now arrives seconds after the toolkit instead of ~20s, and the loading
+ * The Page Creator row now arrives seconds after the toolkit instead of ~20s, and the loading
  * skeleton waits for it. Two fixes: getYtVideoData no longer polls window.ytInitialPlayerResponse
  * for 10s when that global is not VISIBLE at all - Tampermonkey runs the script in an isolated
  * world under Chrome MV3, where the page's globals never show up, so it asks the page's own
@@ -821,14 +821,14 @@ if( typeof onUrlChange === "function" ) {
  * the toolkit under it. Every size in the row is px now, so all three sites match.
  *
  * 2026.08.27.3
- * MixesDB page creator on watch pages (shared/page_creator/, new @requires): the suggested
+ * MixesDB Page Creator on watch pages (shared/page_creator/, new @requires): the suggested
  * page title, the "Create" link and the description's tracklist box, above/below the toolkit
  * in the new #mdb-yt-extras wrapper - only for videos long enough for a mix, behind the same
  * 20 min gate as the toolkit. Video data comes fresh per video id (getYtVideoData):
  * ytInitialPlayerResponse when it matches, else the page's own /youtubei/v1/player API, else
  * the DOM. channelTrust "low" tells the title builder not to fall back to the channel name
  * without backing - YouTube channels are often broadcasters/re-uploaders, not who played.
- * The wrapper's build-up is covered by the shared loading skeleton with the page creator row
+ * The wrapper's build-up is covered by the shared loading skeleton with the Page Creator row
  * and the toolkit as two separate grey boxes (split skeleton, like TrackId.net) - with light
  * greys in YouTube's light mode (page_creator.css site rules).
  */

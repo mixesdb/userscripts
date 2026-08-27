@@ -51,7 +51,7 @@ for( const example of mdbTitleExamples ) {
     }
 
     // A case's "channelUrlShow" stands in for the channel-URL round, which runs over the
-    // network in the browser too: the page creator asks which MixesDB category page links the
+    // network in the browser too: the Page Creator asks which MixesDB category page links the
     // channel (mdbPageCreator_channelCatEnsure in page_creator.js, not loaded here) and writes
     // the answer into mdbTitle_channelUrlShows, where the parse reads it like a curated
     // mdbTitleUsernameConversions entry. Cleared before every case, so one case's channel

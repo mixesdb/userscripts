@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
- * Examples for the page creator's tracklist detector
+ * Examples for the Page Creator's tracklist detector
  *
  * Real player descriptions, as the site's API hands them over, next to the tracklist that has to
  * come out of them. Run them with:

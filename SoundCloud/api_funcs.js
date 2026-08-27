@@ -34,7 +34,7 @@ function getScAccessTokenFromApi(handleData) {
 // formatScDate
 // The API's "2026/08/07 17:28:15 +0000" as the "2026-08-07" MixesDB titles and reports use.
 // Lives here, not in script.funcs.js: every script reading the SC API needs it (TrackId.net
-// feeds the page creator from SC track data too), and this is the file they all @require.
+// feeds the Page Creator from SC track data too), and this is the file they all @require.
 function formatScDate( date ) {
     // string check, not just typeof !== "undefined": the API answers null for a missing
     // release_date, and null.replace() would take the whole success handler down with it
@@ -60,7 +60,7 @@ function scArtworkOriginalUrl( artwork_url ) {
 
 // getScTrackComments
 // The comments under a track, reduced to their plain bodies - which is all the tracklist
-// detector wants. Only ever called when the description held no tracklist (the page creator
+// detector wants. Only ever called when the description held no tracklist (the Page Creator
 // decides that, see mdbPageCreator_addTracklist), so this costs a request on the minority of
 // tracks rather than on all of them.
 //

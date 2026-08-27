@@ -26,7 +26,8 @@ deno run --allow-read shared/tracklist_importer/importer_examples_test.js
 
 The Insert/Merge link copies the toolkit EDIT link's href at click time (so `&siteHasTl=...`
 rides along) and appends `&mdbTlImporter=<mode>` plus the candidate in the URL **hash**
-(`#mdbTlImporterTl=...`). The hash never reaches the server, so tracklist length cannot break
+(`#mdbTlImporterDur=<sec>&mdbTlImporterTl=...`, the runtime first because the candidate is the
+long one). The hash never reaches the server, so tracklist length cannot break
 the request line the way a query parameter could – and the same userscript runs on
 mixesdb.com/w/*, where `funcs.js` reads it back.
 
@@ -189,6 +190,29 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   survives, even when both bounds are the same minute: the cue is INFERRED, and a row that reads
   like a known cue claims more than the merge knows. Bare formats only – colon cues keep the
   last-known-prefix rule in `tlImporter_merge()`, which is the same idea with one neighbour.
+- **The list's two ENDS are bounds of their own.** The neighbour rule above needs a known cue on
+  either side, and the first and the last row have only one - so both ends had their own wrong
+  answer (reported, fibre podcast sigint 014). The first row is where the RECORDING starts:
+  `tlImporter_firstCueZero()` writes `[00]` on it outright, a known cue and not an inferred one,
+  because this is not a guess from neighbours - every mix starts at minute 0. Two rows are not
+  that row: one behind a leading `...` (the gap says tracks are missing before it) and one in a
+  tracklist that carries no cues at all, where a cue would rewrite a line the candidate never
+  touched. Behind the LAST known cue the mix RUNTIME plays the missing neighbour
+  (`tlImporter_merge`'s `options.durationSec` -> `tlImporter_endMinute()` -> the `endMinute`
+  argument of `tlImporter_fillUnknownCuePrefixes`): a row behind `[61]` on a 1:04:54 mix started
+  between minute 61 and 64, all of them `6x`, so it reads `[6?]`. Every other limit of the
+  prefix rule still holds there - one `?` survives, and a run with more rows than minutes is not
+  filled. The runtime is OPTIONAL and arrives as 0 from every site that prints none, which is
+  the pre-runtime behaviour (nothing bounds the tail), so no cue logic may DEPEND on it.
+- **The runtime is the site's to know, and it is read at CALL time.** `window.mdbTlImporter_durationSec`
+  is the hook (`tlImporter_durationSec()` in funcs.js takes a function, a number or a "1:04:54"
+  string), set by the site script the way `window.mdbTlImporter_candidateBox` is - TrackId.net
+  points it at `mdbTid_totalDurSec()`, which reads its header. A FUNCTION, not a value: these
+  are single-page apps, and a duration captured once answers for the previous mix for ever.
+  It rides to the edit page in the hash in front of the candidate
+  (`#mdbTlImporterDur=3894&mdbTlImporterTl=...`, read back by `tlImporter_durationFromHash()`),
+  and it is named in the Report - a report without it cannot be turned into an example that
+  reproduces the cues it bounded.
 - **A gap-less original takes no unknowns – except at the very end.** `?` rows of the candidate
   are only placed where the original admits a gap; in a gap-less list they repeat what it
   already covers. The candidate's TRAILING run of `?` rows is the exception: it sits behind the

@@ -132,7 +132,7 @@ fine and every page after it is stale or empty:
     tell it apart from theirs
 
 ## Testing / Verification
-- No automated test suite, with one exception: the MixesDB page creator's title suggestion has
+- No automated test suite, with one exception: the MixesDB Page Creator's title suggestion has
   `shared/page_creator/title_examples.js` (reported titles + what they should produce) and a
   deno runner. See `shared/page_creator/CLAUDE.md`. Use deno, not node - node is not
   installed here.

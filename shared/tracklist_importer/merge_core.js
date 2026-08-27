@@ -614,6 +614,59 @@ function tlImporter_unknownCue( format ) {
     return new Array( ( format && format.cueDigits ? format.cueDigits : 2 ) + 1 ).join("?");
 }
 
+// tlImporter_zeroCue
+// Minute zero in the active cue style ("00" / "000" / "0:00" / "00:00:00") - the cue the first
+// row of a tracklist gets, see tlImporter_firstCueZero.
+function tlImporter_zeroCue( format ) {
+    if( format && format.hasColon ) {
+        if( format.parts === 3 ) {
+            return tlImporter_padStart( 0, format.hourDigits ) + ":" +
+                   tlImporter_padStart( 0, format.minDigits ) + ":" +
+                   tlImporter_padStart( 0, format.secDigits );
+        }
+
+        return tlImporter_padStart( 0, format.minDigits ) + ":" + tlImporter_padStart( 0, format.secDigits );
+    }
+
+    return tlImporter_padStart( 0, format && format.cueDigits ? format.cueDigits : 2 );
+}
+
+// tlImporter_isPlaceholderCue
+// A cue that says nothing at all: "??", "???", "?:??", "??:??:??". A cue carrying digits
+// ("[09?]" from an earlier merge) is NOT one - it knows something.
+function tlImporter_isPlaceholderCue( cue ) {
+    return /^[?:]+$/.test( String( cue || "" ) );
+}
+
+// tlImporter_firstCueZero
+// The first row of a tracklist is where the recording starts, so an unknown cue on it is not
+// unknown at all: it is minute zero (reported: fibre podcast sigint 014, trackid.net, where a
+// cue-less page row in front of the candidate's [03] came out "[0?]"). Written as a KNOWN cue,
+// unlike the inferred ones of tlImporter_fillUnknownCuePrefixes, because this is not a guess
+// from neighbours - every mix starts at 0.
+//
+// Two rows are not the first row: one behind a leading "..." (the gap says tracks are missing
+// BEFORE it, so the list does not start there) and one in a tracklist that carries no cues at
+// all (adding one would rewrite a line the candidate never touched).
+function tlImporter_firstCueZero( tl_arr, format ) {
+    if( !format ) { return tl_arr; }
+
+    for( var i = 0; i < tl_arr.length; i++ ) {
+        var item = tl_arr[i];
+
+        if( item.type === "gap" ) { return tl_arr; }
+        if( item.type !== "track" ) { continue; }
+
+        if( tlImporter_isPlaceholderCue( item.cue ) ) {
+            item.cue = tlImporter_zeroCue( format );
+        }
+
+        return tl_arr;
+    }
+
+    return tl_arr;
+}
+
 // tlImporter_ensureCues
 // The Tracklist Editor API treats unbracketed leading numbers as cue times. Add an explicit
 // unknown cue to every merged track without one, so artist names starting with digits remain
@@ -639,8 +692,13 @@ function tlImporter_ensureCues( tl_arr, format ) {
 // The bound is the LIST's own order, which is what a tracklist claims in the first place: a row
 // printed between two cues played between them. Hence:
 //   - no known cue before the run -> minute zero is the lower bound, a bound like any other
-//   - no known cue after the run  -> nothing bounds it from above (the stream runs on past the
-//                                   last cue), so nothing may be filled in
+//   - no known cue after the run  -> the mix RUNTIME is the upper bound when the player site
+//                                   knew one (endMinute, the last minute the stream reaches):
+//                                   a row behind [61] on a 1:04:54 mix started between minute
+//                                   61 and 64, which both read "6x", so it is "[6?]"
+//                                   (reported: fibre podcast sigint 014). Without a runtime
+//                                   nothing bounds the run from above (the stream runs on past
+//                                   the last cue) and nothing may be filled in
 //   - all digits equal            -> one "?" is kept anyway: the cue is INFERRED, and a row that
 //                                    reads like a known cue claims more than the merge knows
 //   - more unknown rows than minutes between the two bounds -> nothing is filled: six rows
@@ -648,7 +706,7 @@ function tlImporter_ensureCues( tl_arr, format ) {
 //     none of the times) cannot all have played in minute 008, so the bound is not one to write
 //     into the page. One minute per row is the smallest span worth believing.
 // Bare formats only. Colon cues have their own prefix rule in tlImporter_merge().
-function tlImporter_fillUnknownCuePrefixes( tl_arr, format ) {
+function tlImporter_fillUnknownCuePrefixes( tl_arr, format, endMinute ) {
     if( !format || format.hasColon || !format.cueDigits ) { return tl_arr; }
 
     var digits = format.cueDigits,
@@ -670,6 +728,15 @@ function tlImporter_fillUnknownCuePrefixes( tl_arr, format ) {
         while( i + 1 < rows.length && knownCue( rows[i + 1] ) === null ) { i++; }
 
         var after = i + 1 < rows.length ? knownCue( rows[i + 1] ) : null;
+
+        // The trailing run: only the mix runtime can bound it. Skipped when the runtime needs
+        // more digits than the format has - a [XX] list on a 106 minute mix would be comparing
+        // "106" with "61" character by character.
+        if( after === null && endMinute !== null && endMinute !== undefined
+            && String( endMinute ).length <= digits ) {
+            after = tlImporter_padStart( endMinute, digits );
+        }
+
         if( after === null ) { continue; }
 
         var before = runStart > 0 ? knownCue( rows[runStart - 1] ) : tlImporter_padStart( 0, digits );
@@ -1306,10 +1373,25 @@ function tlImporter_sameTracklists( merged_arr, candidate_arr, changed, original
     return matchedOrigs.length === origTracks && candGaps === origGaps;
 }
 
+// tlImporter_endMinute
+// The last minute the stream reaches, out of the mix runtime the player site knew
+// (options.durationSec, 1:04:54 -> 64). null when no runtime came along - which is the normal
+// case for every site that does not print one, so no cue logic may DEPEND on it.
+function tlImporter_endMinute( options ) {
+    var sec = options && options.durationSec;
+
+    if( typeof sec === "string" ) { sec = sec.indexOf(':') > -1 ? tlImporter_durToSec( sec ) : parseInt( sec, 10 ); }
+    if( typeof sec !== "number" || !isFinite( sec ) || sec <= 0 ) { return null; }
+
+    return Math.floor( sec / 60 );
+}
+
 // tlImporter_merge
 // The one entry the site code calls: original text + candidate text in, merged text (raw, NOT
 // yet TLE-formatted), a changed flag, an identical flag and the candidate diff rows out.
-function tlImporter_merge( originalText, candidateText ) {
+// options.durationSec is the mix runtime when the player site knows one - it bounds the
+// unknown cues at the END of the list, see tlImporter_fillUnknownCuePrefixes.
+function tlImporter_merge( originalText, candidateText, options ) {
     var original_arr = tlImporter_parse( originalText ),
         candidate_arr = tlImporter_parse( candidateText );
 
@@ -1381,6 +1463,10 @@ function tlImporter_merge( originalText, candidateText ) {
     var mergedHasCue = merged_arr.some(function( item ){ return item.type === "track" && item.cue; });
     if( mergedHasCue ) {
         tlImporter_ensureCues( merged_arr, originalCueFormat );
+
+        // The first row starts the mix: its unknown cue is minute zero, not a guess. Before the
+        // two prefix rules below, so both read it as the known cue it is.
+        tlImporter_firstCueZero( merged_arr, originalCueFormat );
     }
 
     // If the merged list uses colon cues, give unknown cues the last known prefix ("X:??").
@@ -1408,7 +1494,8 @@ function tlImporter_merge( originalText, candidateText ) {
 
     // Unknown cues take on every digit their known neighbours agree on ("[??]" between [095]
     // and [098] -> "[09?]"). Last, so it sees the final order and every cue the merge wrote.
-    tlImporter_fillUnknownCuePrefixes( merged_arr, originalCueFormat );
+    // The mix runtime plays the missing neighbour for the rows behind the last known cue.
+    tlImporter_fillUnknownCuePrefixes( merged_arr, originalCueFormat, tlImporter_endMinute( options ) );
 
     // "changed" answers the only question the callers really ask - would the page text
     // differ? state.changes alone cannot: it counts every WRITE into the original, and a write

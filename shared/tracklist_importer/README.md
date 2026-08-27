@@ -56,7 +56,7 @@ that moment and nothing else happens.
 
 The found tracklist goes into the page's empty Tracklist section: inside `<list>` tags when it
 has gaps (`...`), replacing the tag when every track is a numbered `#` line – the same rule the
-[page creator](../page_creator/) writes new pages by.
+[Page Creator](../page_creator/) writes new pages by.
 
 ### Merge
 
@@ -92,8 +92,19 @@ tracklist's is used for the whole list.
 Tracks the found tracklist does not know keep an unknown cue, and that cue says as much as the
 list allows: a track between `[095]` and `[098]` can only have played in minute 09x, so it reads
 `[09?]`. Between `[098]` and `[103]` the two neighbours agree on nothing and it stays `[???]`.
-Nothing is filled in behind the last known cue – the mix runs on from there – or where more
-unknown tracks sit between two cues than there are minutes between them.
+Nothing is filled in where more unknown tracks sit between two cues than there are minutes
+between them.
+
+The two ends of the list are read the same way:
+
+- the **first** track is where the recording starts, so an unknown cue on it is written `[00]`
+  outright – not a guess, unlike the ones above. Unless a `...` gap stands in front of it: then
+  the list does not start there and the cue stays unknown
+- behind the **last** known cue the mix **runtime** takes the part of the missing neighbour,
+  where the player site prints one (TrackId.net does, above its tracklist): a track behind
+  `[61]` in a 1:04:54 mix can only have played in minute 6x, so it reads `[6?]`. Without a
+  runtime nothing is filled in there – the mix runs on from the last cue and nothing says how
+  far
 
 ### On the edit form
 
@@ -167,9 +178,9 @@ to, that is the normal answer, and the found tracklist has to stay on screen for
 ### Report link
 
 Behind the Insert/Merge link – and behind every note that replaces it – sits **Report**: it opens a paste-ready Discord
-report holding the mix page's original tracklist, the found candidate and the raw merge result,
-plus an empty `Mistakes / learnings` list and an empty `Expected` code block only the reporter can
-fill – like the page creator's Report box.
+report holding the mix page's original tracklist, the found candidate, the mix runtime where the
+site prints one and the raw merge result, plus an empty `Mistakes / learnings` list and an empty
+`Expected` code block only the reporter can fill – like the Page Creator's Report box.
 
 ## Known limitations
 

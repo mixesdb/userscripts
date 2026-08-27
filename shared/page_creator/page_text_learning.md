@@ -237,12 +237,12 @@
 > handed over. Writing it turned up a live bug in the existing Buy BUTTON: the guard there was
 > `/^https?:\/\/gate\.sc\//`, and SoundCloud writes the wrapper WITHOUT the slash now, so that
 > button had been linking the raw `gate.sc?url=...` string. Both forms are accepted now
-> (`[\/?]`), and the button and the page creator share the one helper.
+> (`[\/?]`), and the button and the Page Creator share the one helper.
 
 > **Signal E added 2026-08-19: the `{{Player}}` itself.** Not in the plan below either, and
 > the second signal (after D) whose value is partly the EMPTY line it writes. A series that
 > publishes every episode on two platforms says so in the template: `{{Player|mode=mirrors}}`
-> with one ` |URL` line per platform. The page creator only ever has the ONE URL of the player
+> with one ` |URL` line per platform. The Page Creator only ever has the ONE URL of the player
 > page it sits on, so what the siblings decide is the SHAPE - the mirrors head and the second
 > line, left empty for the editor to paste the other address into.
 >
@@ -311,7 +311,7 @@
 > `t1=`/`t2=` title: nothing a page with one URL can be started as. It votes as `other`, which
 > can win the vote and still writes nothing.
 
-The page creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
+The Page Creator writes the wikitext a new mix page starts as (`mdbPageCreator_pageText()` in
 `page_creator.js`). Today that text is the same shape for every page. But MixesDB already
 contains the right shape: the other episodes of the same show sitting in the entity's category.
 Once a candidate resolves to a non-artist category we can read the most recent of those and copy

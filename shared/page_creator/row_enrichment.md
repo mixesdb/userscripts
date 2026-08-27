@@ -1,4 +1,4 @@
-# Plan: enriching the page creator row against duplicates
+# Plan: enriching the Page Creator row against duplicates
 
 **Status: mostly planned, not built.** Same gate as everything else - the category lookup from
 `mixesdb_api_request.md` - except the mirror-URL check, which needs nothing and is marked so.

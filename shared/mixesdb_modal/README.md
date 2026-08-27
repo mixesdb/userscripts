@@ -8,7 +8,7 @@ Two things open it, on a desktop-sized window:
 
 - the **blue eye icon** behind a mix page link in the [toolkit](../toolkit/)'s
   *This mix is on MixesDB* row
-- a plain left click on the [page creator](../page_creator/)'s category chips and their
+- a plain left click on the [Page Creator](../page_creator/)'s category chips and their
   recent mix pages
 
 - **Runs on:** every site whose script loads it – [SoundCloud](../../SoundCloud/),
@@ -34,7 +34,7 @@ be smaller than a tab) they simply stay the links they are.
 
 While the popup is open the **left and right arrow keys** frame the previous or the next
 MixesDB link on the page – every mix page of the toolkit's row, every category chip and folded-out
-mix page of the page creator's bar – without going back to the page between two looks. The
+mix page of the Page Creator's bar – without going back to the page between two looks. The
 header counts the steps (`3 / 12`) in its middle and carries the same two arrows as buttons.
 
 The walk goes **round**: one step past the last link is the first one again, and one step back

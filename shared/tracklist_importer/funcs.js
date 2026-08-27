@@ -59,6 +59,33 @@ function tlImporter_candidateText() {
     return $.trim( $( tlImporter_boxSelector() ).first().val() || "" );
 }
 
+// tlImporter_durationSec
+// The mix RUNTIME in seconds, where the player site prints one (TrackId.net does, above the
+// tracklist). The merge uses it as the upper bound for the unknown cues at the END of the list -
+// see tlImporter_fillUnknownCuePrefixes in merge_core.js. 0 means "the site knows no runtime",
+// which is a normal answer: the merge then simply leaves those cues alone.
+//
+// The site script sets window.mdbTlImporter_durationSec, preferably as a FUNCTION reading its
+// own DOM: these are single-page apps, and a value set once would still answer for the previous
+// mix after a navigation. A number and a "1:04:54" string are taken as well.
+function tlImporter_durationSec() {
+    var hook = window.mdbTlImporter_durationSec,
+        sec = typeof hook === "function" ? hook() : hook;
+
+    if( typeof sec === "string" && sec.indexOf( ":" ) > -1 ) { sec = tlImporter_durToSec( sec ); }
+
+    sec = parseInt( sec, 10 );
+
+    return isFinite( sec ) && sec > 0 ? sec : 0;
+}
+
+// tlImporter_mergeOptions
+// What the merge needs beyond the two texts. One builder, so the link builder, the Report and
+// the edit page cannot drift apart on it.
+function tlImporter_mergeOptions( durationSec ) {
+    return { durationSec: durationSec || 0 };
+}
+
 // tlImporter_loadCss
 // Lazy, like the tracklist box's CSS: only pages that actually show importer UI fetch it. The
 // cache param mirrors tlBoxCssCacheParam() in tracklist_editor/funcs.js, so a CSS change ships
@@ -349,7 +376,9 @@ if( typeof visitDomain !== "undefined" && visitDomain != "mixesdb.com" ) {
             // answer - pure JS, no network - and the candidate is re-read from the box here,
             // because the page text fetch above was async. A note takes the link's place, so
             // the row does not read as "the importer never ran" - see tlImporter_addNoMergeNote.
-            var mergeTry = ( mode == "merge" && !chaptered ) ? tlImporter_merge( read.tlText, tlImporter_candidateText() ) : null;
+            var mergeTry = ( mode == "merge" && !chaptered )
+                ? tlImporter_merge( read.tlText, tlImporter_candidateText(), tlImporter_mergeOptions( tlImporter_durationSec() ) )
+                : null;
 
             if( mergeTry && !mergeTry.changed ) {
                 noLink( mergeTry.identical ? "identical" : "contained", mode, read.tlText );
@@ -401,12 +430,18 @@ $(document).on( "mousedown click", "a.mdb-tlImporter-link", function() {
     if( !editHref || !candidate ) return;
 
     // The candidate rides in the HASH: fragments never reach the server, so a long tracklist
-    // cannot blow the request line the way a query parameter could.
-    this.href = editHref + "&mdbTlImporter=" + mode + "#mdbTlImporterTl=" + encodeURIComponent( candidate );
+    // cannot blow the request line the way a query parameter could. The runtime rides in FRONT
+    // of it - the candidate is encoded, so it carries no "&" of its own, but keeping the long
+    // value last leaves the hash readable.
+    var durSec = tlImporter_durationSec();
+
+    this.href = editHref + "&mdbTlImporter=" + mode + "#"
+              + ( durSec ? "mdbTlImporterDur=" + durSec + "&" : "" )
+              + "mdbTlImporterTl=" + encodeURIComponent( candidate );
 });
 
 /*
- * The Report box: the whole case as one paste-able Markdown block, like the page creator's
+ * The Report box: the whole case as one paste-able Markdown block, like the Page Creator's
  * "Report" - what the mix page has, what the site found, what the merge would make of it, and
  * the empty lines only the reporter can fill. Anything typed into it stops the refill.
  */
@@ -423,6 +458,7 @@ function tlImporter_reportText( link ) {
         mixPageUrl = link.data( "mdb-mixpageurl" ) || "",
         reading = tlImporter_noMergeVerdicts[ link.data( "mdb-verdict" ) ] || null,
         candidate = tlImporter_candidateText(),
+        durationSec = tlImporter_durationSec(),
         fence = "```",
         lines = [];
 
@@ -432,6 +468,12 @@ function tlImporter_reportText( link ) {
     lines.push( "* Mix page: " + mixPageUrl );
 
     if( mode ) lines.push( "* Mode: " + mode );
+
+    // The runtime is part of the case: it is what bounds the last cues, so a report without it
+    // cannot be turned into an example that reproduces them.
+    if( durationSec ) {
+        lines.push( "* Duration: " + ( typeof convertHMS === "function" ? convertHMS( durationSec ) : durationSec ) + " (" + durationSec + "s)" );
+    }
 
     // only the outcomes with a verdict carry one - it IS the thing being reported there
     if( reading ) lines.push( "* Verdict: " + ( reading.link ? "" : "no link, " ) + reading.report );
@@ -455,7 +497,7 @@ function tlImporter_reportText( link ) {
     // only where a merge actually ran: on a chaptered or unreadable page it never did, and
     // running it here would invent a result nobody was ever shown
     if( mode == "merge" && original && candidate && ( !reading || reading.merged ) ) {
-        var res = tlImporter_merge( original, candidate );
+        var res = tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) );
 
         lines.push( "" );
         lines.push( "## Merged (raw, before Tracklist Editor formatting)" );
@@ -551,6 +593,17 @@ function tlImporter_candidateFromHash() {
         log( "tlImporter: the hash could not be decoded (" + e.message + ")" );
         return "";
     }
+}
+
+// tlImporter_durationFromHash
+// The mix runtime the player site put into the hash (&mdbTlImporterDur=3894). 0 when it did not
+// know one, or when the link was built by an older script generation - the merge treats that as
+// "no upper bound for the last cues", which is what it did before the parameter existed.
+function tlImporter_durationFromHash() {
+    var m = String( location.hash || "" ).match( /[#&]mdbTlImporterDur=(\d+)/ ),
+        sec = m ? parseInt( m[1], 10 ) : 0;
+
+    return isFinite( sec ) && sec > 0 ? sec : 0;
 }
 
 // tlImporter_storeDiff
@@ -2020,7 +2073,7 @@ function tlImporter_runEditPage() {
             status = resIns.feedback && resIns.feedback.status ? resIns.feedback.status : "";
         }
     } else {
-        var mergeRes = tlImporter_merge( read.tlText, candidate );
+        var mergeRes = tlImporter_merge( read.tlText, candidate, tlImporter_mergeOptions( tlImporter_durationFromHash() ) );
 
         diffItems = mergeRes.diffItems;
         originalItems = mergeRes.originalItems;

@@ -5,7 +5,7 @@ which TID tracklists have already been integrated into MixesDB.
 
 - **Runs on:** trackid.net, plus mixesdb.com/w/* for the links under the players and the edit-form part
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TrackId.net/script.user.js)
-- **Shared features:** [Toolkit](../shared/toolkit/), [Page creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [Tracklist Importer](../shared/tracklist_importer/)
+- **Shared features:** [Toolkit](../shared/toolkit/), [Page Creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [Tracklist Importer](../shared/tracklist_importer/)
 
 ## Features
 
@@ -31,7 +31,7 @@ feedback follows the **Toggle**, back to orange while the unfiltered version is 
 
 The stream's TrackId.net styles, mapped to MixesDB category names, in a copyable box below the
 tracklist – with the reminder to double-check them by skipping through the mix. On pages with
-the [page creator](#mixesdb-page-creator) row they also prefill the created page's style
+the [Page Creator](#mixesdb-page-creator) row they also prefill the created page's style
 categories.
 
 ### Cue format switch
@@ -49,15 +49,15 @@ MixesDB page.
 ### Loading placeholder
 
 The embedded player shows straight away; below it, grey pulsing placeholders hold the space of
-the page creator row and the toolkit – one box each – until they have arrived, and they appear
-in one step. The page creator box only shows for SoundCloud and YouTube players, the ones the
-row exists for – see [Page creator](../shared/page_creator/#loading-placeholder).
+the Page Creator row and the toolkit – one box each – until they have arrived, and they appear
+in one step. The Page Creator box only shows for SoundCloud and YouTube players, the ones the
+row exists for – see [Page Creator](../shared/page_creator/#loading-placeholder).
 
-### MixesDB page creator
+### MixesDB Page Creator
 
 On audiostream pages whose source player is on SoundCloud or YouTube, the suggested page title
 and the **Create** link sit between the embedded player and the toolkit – see
-[Page creator](../shared/page_creator/). The values are not read off the TID page, which only
+[Page Creator](../shared/page_creator/). The values are not read off the TID page, which only
 shows a normalized heading: for a SoundCloud player the title, channel name, date, duration and
 artwork URL come from the SoundCloud API, so the suggestion is the same one the SoundCloud
 script would make on the track's own page; for a YouTube player they come from TrackId.net's
@@ -93,6 +93,8 @@ and opens the edit form with the page's tracklist and this one side by side, for
 hand. Where no link can be offered at all, a note stands in its place and says why –
 **Identical**, **Nothing to add**, **No Tracklist section** or **Page unreadable** – with the
 **Report** link behind it, so a verdict you disagree with can be reported like any merge.
+The mix duration printed above the tracklist travels along: it is what lets the merge guess the
+cue times of the tracks behind the last identified one.
 
 ### Mark as integrated
 

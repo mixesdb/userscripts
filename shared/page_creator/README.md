@@ -1,4 +1,4 @@
-# Page creator
+# Page Creator
 
 The row next to a player holding a suggested MixesDB mix page title and a **Create** link that
 opens the new page's edit form already filled in. Shared by the site scripts, so it looks and
@@ -1031,13 +1031,13 @@ grey pulsing placeholders hold their space, and the finished content then appear
 instead of piece by piece. If an answer takes too long, whatever has arrived is shown after a
 few seconds.
 
-The page creator row and the toolkit are two separate placeholder boxes, standing where each of
+The Page Creator row and the toolkit are two separate placeholder boxes, standing where each of
 them will appear – the page really gets two things there, not one block.
 
 Where it shows: SoundCloud's redesigned track pages, YouTube watch pages of mix-length videos
 (light grey in YouTube's light mode) and TrackId.net's audiostream pages. On TrackId.net the
 embedded player itself is not covered – it shows and can play straight away; the placeholders
-only hold the space below it, and the page creator box only appears for SoundCloud and YouTube
+only hold the space below it, and the Page Creator box only appears for SoundCloud and YouTube
 players, the ones the row exists for.
 
 ## Known limitations

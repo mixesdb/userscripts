@@ -27,7 +27,7 @@ log( "shared/tracklist_editor/funcs.js: started executing" );
 // tlEditorFeedbackClass
 // Which colour a Tracklist Editor answer gives the box: red for a warning, orange for a hint or
 // a tracklist that is merely incomplete, green only for one that is valid AND complete.
-// Its own function because the feedback is not only printed once - the page creator re-asks the
+// Its own function because the feedback is not only printed once - the Page Creator re-asks the
 // API for the tracklist the editor has since changed and has to re-colour the same box.
 function tlEditorFeedbackClass( feedback ) {
     if( !feedback ) return "";
@@ -731,8 +731,8 @@ function tlBoxTypeUpdate( tl ) {
         tlBoxRenderFeedback( tl, res.feedback );
 
         // the formatted text, caret and all - see tlBoxApplyWhileTyping. Its answer is
-        // whether the box now HOLDS that text, which is exactly what decides whether the page
-        // creator may treat the tracklist as validated: if the write was skipped (composing,
+        // whether the box now HOLDS that text, which is exactly what decides whether the Page
+        // Creator may treat the tracklist as validated: if the write was skipped (composing,
         // typed on since), the blur pass still owes it the formatting.
         var applied = tlBoxApplyWhileTyping( tl, sent, res );
 
@@ -954,7 +954,7 @@ function tlBoxLineWiseOffset( oldLines, newLines, offset ) {
 // Writes an API answer into a box: text, size, colour, printed feedback. Bumps the request
 // sequence first, so a blur update still in flight for this box finds itself outdated and
 // drops its answer instead of overwriting this newer one. The one place both appliers share -
-// the blur update below and the page creator's way into its "Create" click, which must not
+// the blur update below and the Page Creator's way into its "Create" click, which must not
 // outrun the box (mdbPageCreator_validateTracklist).
 function tlBoxApplyResult( tl, res ) {
     if( !res || !res.text ) return false;
@@ -1004,7 +1004,7 @@ function tlBoxBlurUpdate( tl ) {
 
     // "standard" whatever type the site first formatted with: what sits IN a box is wiki
     // syntax already, and "standard" is the type that validates that - the same call the
-    // page creator makes about this box on the way into its "Create" click.
+    // Page Creator makes about this box on the way into its "Create" click.
     apiTracklistAsync( sent, "standard", "", function( res ) {
         var wait = Math.max( 0, tlBoxUpdateMinMs - ( Date.now() - startedAt ) );
 
@@ -1019,7 +1019,7 @@ function tlBoxBlurUpdate( tl ) {
 
             // the box left the page while the API was thinking (SPA navigation removes it) -
             // writing into the detached node would only leak the previous page's verdict into
-            // the next one's page creator state
+            // the next one's Page Creator state
             if( !$.contains( document.documentElement, tl.get( 0 ) ) ) {
                 log( "tlBoxBlurUpdate: the box is no longer on the page - dropping the answer." );
                 return;
@@ -1049,7 +1049,7 @@ function tlBoxBlurUpdate( tl ) {
 
             log( "tlBoxBlurUpdate: box updated (status " + ( res.feedback && res.feedback.status ? res.feedback.status : "(none)" ) + ")." );
 
-            // the page creator reads this box for the page its "Create" link starts - hand it
+            // the Page Creator reads this box for the page its "Create" link starts - hand it
             // the fresh verdict so the "Tracklist:" category and the reasoning panel follow.
             // typeof-guarded: most site scripts do not load page_creator.js at all.
             if( typeof mdbPageCreator_tracklistBoxUpdated === "function" ) {

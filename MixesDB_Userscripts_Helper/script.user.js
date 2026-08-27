@@ -443,13 +443,13 @@ d.ready(function () {
  *
  * Edit: show the preview right away
  *
- * A page text that arrived ready-made (the page creator's "Create" link, see the "insert"
+ * A page text that arrived ready-made (the Page Creator's "Create" link, see the "insert"
  * section above) is read, not written: the first thing to do with it is look at the page it
  * makes - the players, the artwork's red file link, the tracklist. MediaWiki has no URL
  * parameter for that, the preview is a POST of the edit form, so this clicks the form's own
  * Preview button.
  *
- * Only for &from=PageCreator, which the page creator's link carries and nothing else does -
+ * Only for &from=PageCreator, which the Page Creator's link carries and nothing else does -
  * the toolkit's EDIT link says "toolkit" in the same parameter and opens an EXISTING page to
  * change one line, where a preview would only be a page load in the way.
  *
@@ -533,7 +533,7 @@ d.ready(function () { // needs mw.config
  * inside .textareaBottomInfo): TLn = none, TLi = incomplete, TLc = complete. Each holds a
  * dimmed icon that lights up when the button carries the .op1 class - but nothing on the site
  * lights them from the TEXT in the box, so a page text that arrived filled in (the "insert"
- * section above - the page creator's "Create" link) showed three dark icons however clearly
+ * section above - the Page Creator's "Create" link) showed three dark icons however clearly
  * it said [[Category:Tracklist: ...]].
  *
  * So this owns the lighting: the button matching the category the text actually carries is

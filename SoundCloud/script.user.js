@@ -64,7 +64,7 @@ logVar( "cacheVersion", cacheVersion );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// MixesDB page creator: normally the row is only offered for players that are NOT on MixesDB
+// MixesDB Page Creator: normally the row is only offered for players that are NOT on MixesDB
 // yet - for a used player there is nothing to create, so it stays hidden and the title it
 // would have built cannot be compared with the page that exists.
 // With this on, the row is shown for used players too, marked "used" and without the "Create"
@@ -287,7 +287,7 @@ const hideIfXed = (soundItem) => {
 
 // Note: loadRawCss() (in global.js) does not log success/error itself - if styling ever looks
 // broken, check the Network tab for these URLs, since a failed fetch here fails silently.
-// page_creator.css belongs to the shared MixesDB page creator (shared/page_creator/) and is
+// page_creator.css belongs to the shared MixesDB Page Creator (shared/page_creator/) and is
 // loaded by every site script that calls mdbPageCreator_add() - see its header comment.
 logFunc( "Loading CSS" );
 var globalCssUrl = githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion,
@@ -878,7 +878,7 @@ waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
  * Toolkit duration gate
  *
  * MixesDB does not take recordings under 20 min (Help:File_Details#Minimum_duration). The
- * page creator already refuses those - and for the toolkit the MixesDB usage check could
+ * Page Creator already refuses those - and for the toolkit the MixesDB usage check could
  * only ever answer "not used", so it is not loaded at all for them, which saves MixesDB
  * that request. The red #mdb-fileInfo button is what tells the reader this is on purpose.
  *
@@ -907,7 +907,7 @@ function toolkitDurationGate_clearFallbackTimer() {
 
 // toolkitDurationGate_tooShort
 // Only a positively known duration may drop the toolkit - see the section comment.
-// mdbPageCreator_minDurationMs is the page creator's 20 min constant (page_creator.js), so
+// mdbPageCreator_minDurationMs is the Page Creator's 20 min constant (page_creator.js), so
 // both features keep skipping at the same threshold.
 function toolkitDurationGate_tooShort() {
     return toolkitDurationGate_durMs !== null
@@ -1149,7 +1149,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                      * under SPA navigation it is either
                      *   - absent, coming from the feed          -> "no track ID", no toolkit
                      *   - the PREVIOUS track, coming from one   -> the mix before this one is
-                     *     what gets looked up, which is how its header, page creator row and
+                     *     what gets looked up, which is how its header, Page Creator row and
                      *     tracklist ended up on the next mix's page.
                      * Both symptoms disappear on a manual reload, which is exactly the tell.
                      *
@@ -1169,7 +1169,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                         success: function( t ) {
                             // The reader moved on while this was in the air - this whole
                             // block writes the track it describes into the page, so it would
-                            // put the PREVIOUS mix's header, page creator row and tracklist
+                            // put the PREVIOUS mix's header, Page Creator row and tracklist
                             // onto the one now on screen.
                             if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
@@ -1195,7 +1195,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                             // usable duration", which releases ungated.
                             toolkitDurationGate_resolve( kind == "track" ? dur_ms : 0 );
 
-                            // MixesDB does not take recordings under 20 min: no page creator
+                            // MixesDB does not take recordings under 20 min: no Page Creator
                             // row, no tracklist box (the toolkit was dropped by the gate
                             // above). Read off the gate so both use the same verdict.
                             var tooShortForMixesdb = toolkitDurationGate_tooShort();
@@ -1258,7 +1258,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                     }
                                 }
 
-                                // MixesDB page creator (shared/page_creator/), below the
+                                // MixesDB Page Creator (shared/page_creator/), below the
                                 // headline. Everything site-specific is read off the API
                                 // response here and handed over - the creator itself never
                                 // looks at a SoundCloud page.
@@ -1272,7 +1272,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 // The artwork URL goes with it for MixesDB's image upload form;
                                 // it is NOT put on the page. scArtworkOriginalUrl() is applied
                                 // HERE and not over there: asking for the "-original" size is a
-                                // SoundCloud CDN trick, not something a page creator knows.
+                                // SoundCloud CDN trick, not something a Page Creator knows.
                                 // target as a selector string, not a node: SoundCloud re-renders
                                 // under us, and the string is looked up again on every render.
                                 // Not called at all for a track under the 20 min minimum:
@@ -1287,7 +1287,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         durationMs:  dur_ms,
                                         playerUrl:   getScPlayerUrl(),
                                         // The uploader's channel page, off the same API answer
-                                        // as the channel name. The page creator compares it to
+                                        // as the channel name. The Page Creator compares it to
                                         // the URLs in the entity category's sibling pages -
                                         // the wikitext linking this channel is what ties a
                                         // category to a channel beyond the name.
@@ -1322,7 +1322,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                         placement:   "after"
                                     });
                                 } else {
-                                    log( "Track is under the 20 min MixesDB minimum - no page creator row and no tracklist box." );
+                                    log( "Track is under the 20 min MixesDB minimum - no Page Creator row and no tracklist box." );
                                 }
 
                                 // add toggleTarget
@@ -1331,7 +1331,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                 }
 
                                 // The tracklist an uploader wrote into the description (or, when
-                                // there is none there, into a comment): the page creator finds
+                                // there is none there, into a comment): the Page Creator finds
                                 // it, has MixesDB's Tracklist Editor format it and puts it into
                                 // an editable box that then rides along into the created page.
                                 // Only the description is handed over up front - the comments
@@ -1456,7 +1456,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                             // wikitext that goes onto a mix page, and this track
                                             // will never get one - so the duration is a plain
                                             // label here and nothing opens under it. The red fill
-                                            // says why the toolkit and page creator are missing
+                                            // says why the toolkit and Page Creator are missing
                                             // (styled in script.css, cursor included), and the
                                             // tooltip spells it out. Leaving mdb-toggle and
                                             // data-toggleid off is what makes it inert: the click
@@ -1464,7 +1464,7 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
                                             fileInfoClass = soundActionFakeButtonClass + ( tooShortForMixesdb ? ' mdb-fileInfo-tooShort' : ' mdb-toggle' ),
                                             fileInfoToggle = tooShortForMixesdb ? '' : ' data-toggleid="mdb-fileDetails"',
                                             fileInfoTitle = tooShortForMixesdb
-                                                ? 'Too short for MixesDB (under 20:00), so no toolkit, no page creator and no file details for this track.'
+                                                ? 'Too short for MixesDB (under 20:00), so no toolkit, no Page Creator and no file details for this track.'
                                                 : 'Click to copy file details';
 
                                         if( isNewSoundCloudLayout ) {
@@ -1682,7 +1682,7 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
             watchTrackExtrasForRemoval( $("#mdb-sc-trackExtras").get(0) );
 
             // Everything async that lands in this wrapper (buttons/dates from the SC API,
-            // the toolkit's MixesDB verdict, the page creator row, the tracklist box) used
+            // the toolkit's MixesDB verdict, the Page Creator row, the tracklist box) used
             // to pop in piece by piece. Cover the build-up with the pulsing grey skeleton
             // instead and swap it out in one step - see mdbSkeleton_* in
             // shared/page_creator/page_creator.js.
@@ -1710,7 +1710,7 @@ waitForKeyElements('section[aria-label="Track header" i], section[aria-label="Tr
                 // it was registered for (React wipe), and this handler re-requests for the new one
                 getToolkit( getScPlayerUrl(), "playerUrl", "detail page", $("#mdb-sc-trackExtras"), "append", jNode.find("h1").first().text(), "", 1, getScPlayerUrl() );
 
-                // the page creator row is gated behind that toolkit's usage verdict
+                // the Page Creator row is gated behind that toolkit's usage verdict
                 mdbPageCreator_watchToolkit();
             });
         }
@@ -1839,7 +1839,7 @@ waitForKeyElements('.l-listen__mainContent .listenDetails__partialInfo:not(.mdb-
             log( "Calling getToolkit() for old layout .listenDetails." );
             getToolkit( getScPlayerUrl(), "playerUrl", "detail page", jNode, "before", titleText, "", 1, getScPlayerUrl() );
 
-            // the page creator row is gated behind that toolkit's usage verdict
+            // the Page Creator row is gated behind that toolkit's usage verdict
             mdbPageCreator_watchToolkit();
         });
     } else {
@@ -1908,7 +1908,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * Changelog
  *
  * 2026.08.27.6
- * Via the shared page creator (page_creator.js v_121): the lead artwork line no longer goes
+ * Via the shared Page Creator (page_creator.js v_121): the lead artwork line no longer goes
  * missing because ONE sibling's file name spells a character the wiki cannot put in a file
  * name. MediaWiki replaces ":", "/" and "\\" with a "-" on upload, so
  * "2017-09-21 - Mohr/Sula - Transmittal Tapes 6" is filed as "... - Mohr-Sula - ....jpg". That
@@ -1924,13 +1924,13 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * something else", decide as before.
  *
  * 2026.08.27.5
- * The page creator row states its font sizes in px instead of rem (page_creator.css): rem is
+ * The Page Creator row states its font sizes in px instead of rem (page_creator.css): rem is
  * the HOST page's root font size - 14px here, 16px on TrackId.net, 10px on YouTube - so the
  * same row came out in three sizes. Nothing moves on SoundCloud (the px values are what its
  * 14px root produced), the row just looks the same on every site now.
  *
  * 2026.08.27.4
- * The loading skeleton shows the page creator row and the toolkit as two SEPARATE grey
+ * The loading skeleton shows the Page Creator row and the toolkit as two SEPARATE grey
  * boxes instead of one merged block (page_creator.js v_119 - new "pageCreator" row type -
  * and page_creator.css): the skeleton column itself is transparent now, the two feature
  * stand-ins carry the dark surface, and the row's box sits between the dates and the
@@ -2538,7 +2538,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * observed and what it did to the page were not told apart the way the other rows do it.
  *
  * 2026.08.20.10
- * Three style refinements in the page creator (page_creator.js v_90). The empty style rows now
+ * Three style refinements in the Page Creator (page_creator.js v_90). The empty style rows now
  * follow what the siblings show: one spare row behind the written style only where some of the
  * entity's pages carry a further style (Tech House on 1 of Amplify Series' 10 - this mix may be
  * such a page too), none where they use nothing else, and the plain two where no style was
@@ -2606,7 +2606,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * pass.
  *
  * 2026.08.20.5
- * Via the shared page creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):
+ * Via the shared Page Creator (page_creator.js v_86, title_builder.js v_60, page_creator.css):
  * sections 3, 5 and 7 of the reasoning panel each close with an "API call" link - the exact
  * api.php URL that section's answers came out of, opening the raw answer in a new tab. Section
  * 3 carries the one lookup request plus every per-chip page fetch the hints bar fired off its
@@ -2642,7 +2642,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * that can be read as one.
  *
  * 2026.08.19.47
- * Via the shared page creator (page_creator.js v_81): the MixesDB modal now dims and blurs the
+ * Via the shared Page Creator (page_creator.js v_81): the MixesDB modal now dims and blurs the
  * whole window, SoundCloud's own menu bar at the top of the page included. A track page has
  * lived in a frame of its own since the ~Aug 2026 redesign and the overlay stopped where that
  * frame stops, so the menu bar stood above a dimmed page sharp and clickable - which read as
@@ -2650,7 +2650,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * hangs in the page's top document, which also gives the box the full height of the window.
  *
  * 2026.08.19.38
- * Via the shared page creator (page_creator.js v_73): the {{Player}} of the created page takes
+ * Via the shared Page Creator (page_creator.js v_73): the {{Player}} of the created page takes
  * the shape the series uses. Where at least 90% of the entity's recent pages publish every
  * episode on two platforms - {{Player|mode=mirrors}} with a line per platform, as Groove
  * Podcast, HATE Podcast, RA Podcast and XLR8R Podcast do - the new page is written that way,
@@ -2663,7 +2663,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * name and the player renders "{{{1}}}".
  *
  * 2026.08.19.35
- * Two fixes in the row's page creator (page_creator.js v_70). The lead artwork line is back on
+ * Two fixes in the row's Page Creator (page_creator.js v_70). The lead artwork line is back on
  * a series whose recent pages hold a live recording: reported on "GROOVE Podcast 514 - Black
  * Rave Culture", where reasoning section 7 said "no 90% agreement - no image line" although
  * every Groove Podcast episode page opens with its own artwork. Two of that category's 10
@@ -3098,7 +3098,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * 2026.08.16.6
  * A track under MixesDB's 20 min minimum no longer loads the toolkit at all - its MixesDB
  * usage check could only ever answer "not used", so that request is saved along with the
- * page creator row and the tracklist box, which were already refused for such tracks. The
+ * Page Creator row and the tracklist box, which were already refused for such tracks. The
  * duration comes out of the ONE SC API answer the buttons are built from (new "Toolkit
  * duration gate" section: getToolkit() is parked and released - or dropped - by that
  * answer; no second SC API call). The red #mdb-fileInfo duration button (light red fill,
@@ -3137,7 +3137,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * while the real elements assemble hidden underneath (display:none is safe there: the one
  * thing that measures itself, the tracklist textarea, sizes via its rows attribute counted
  * from the text). One reveal swaps skeleton for content: SC API buttons and the toolkit
- * verdict present plus 600ms of wrapper quiet - which lets the page creator row and a
+ * verdict present plus 600ms of wrapper quiet - which lets the Page Creator row and a
  * description tracklist slip in - or a 6s cap that shows whatever arrived. The API failure
  * note counts as the API being done, so a dead API does not hold the page; a
  * comments-fetched tracklist may still pop in after the reveal (rare, sits at the bottom).
@@ -3146,7 +3146,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  *
  * 2026.08.15.6
  * formatScDate() and scArtworkOriginalUrl() moved from script.funcs.js to api_funcs.js:
- * TrackId.net now feeds the page creator from the SC track API on its audiostream pages and
+ * TrackId.net now feeds the Page Creator from the SC track API on its audiostream pages and
  * needs both, and api_funcs.js is the file every script reading the SC API already @requires
  * (RA, 1001 Tracklists, Player Checker) - pulling in script.funcs.js instead would have
  * dragged this page's DOM handlers along. No behaviour change on SoundCloud; formatScDate()
@@ -3283,7 +3283,7 @@ log( "script.user.js IIFE finished - all handlers registered." );
  * answers with an empty body).
  *
  * 2026.08.10.10
- * The mix page title row is now the shared "MixesDB page creator" in
+ * The mix page title row is now the shared "MixesDB Page Creator" in
  * shared/page_creator/ - renamed after the "Create" link, since the title has long stopped
  * being all it hands to the wiki (file details, {{Player}}, categories, artwork URL). Nothing
  * about it was SoundCloud-specific except where the values come from, so it moved out whole:

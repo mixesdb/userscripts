@@ -1,8 +1,8 @@
 
 
-Name alias in prompts: `PC`, `page creator`
+Name alias in prompts: `PC`, `Page Creator`
 
-The MixesDB page creator: the row (`#mdb-pageCreator`) a site script puts next to a player,
+The MixesDB Page Creator: the row (`#mdb-pageCreator`) a site script puts next to a player,
 holding an editable suggested mix page title, a confidence score and a "Create" link that opens
 the new page's edit form prefilled with the file details, the `{{Player}}`, the categories and
 the artwork URL.
@@ -94,8 +94,8 @@ All other children of `target` are `display:none` until the toolkit verdict is i
 `extraReady()` - if given - says the site's own async pieces are done, and the container's DOM
 has been quiet for a settle window; then skeleton and content swap in one step (6s cap either
 way). `rows` composes the grey stand-ins from a shared vocabulary (`head`, `dates`, `buttons`,
-`player`, `pageCreator`, `toolkit` - the last two are each their own dark box, so the page
-creator row and the toolkit read as the two separate things they are; pass `pageCreator` only
+`player`, `pageCreator`, `toolkit` - the last two are each their own dark box, so the Page
+Creator row and the toolkit read as the two separate things they are; pass `pageCreator` only
 where the row really comes); `keep` names direct children that stay visible while loading and
 skip the reveal fade (TID's embedded player - built on the spot, so covering it would only delay
 playback); `window.mdbSkeleton_enabled = false` (site debug settings) turns it into timing-only
@@ -1036,7 +1036,7 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   sibling as `mirrors` / `plain` / `other` / `none`, the usual 90% vote decides, and only
   `mirrors` writes anything (measured: it fires on `Groove Podcast`, `HATE Podcast`,
   `RA Podcast` and `XLR8R Podcast`, and abstains on everything else, incl. `Boiler Room` at
-  8/10). The page creator only ever has the one URL of the player page it sits on, so the
+  8/10). The Page Creator only ever has the one URL of the player page it sits on, so the
   second line is left open for the editor - and MixesDB answers an open slot with
   `No value for one of the players!` instead of a player, which is the point on a series where
   all ten newest pages carry the mirror, and is why the reasoning panel's Player row names that
@@ -1154,7 +1154,7 @@ not get re-litigated:
   dedupe key) and records the verdict per answer with its reason. The row renders the
   survivors, the panel's section 8 the whole list - so the two can never disagree about which
   answer made the row, and "why didn't we see that related cat" is answered on screen.
-- **The chips join the modal and its arrow-key walk** - the page creator's walk provider (in
+- **The chips join the modal and its arrow-key walk** - the Page Creator's walk provider (in
   `window.mdbModal_linkProviders`, read by the shared `mdbModal_links()`) and the click
   interception read both category rows, in document order, which is the order the bar reads. Section 8 closes with the request as an "API call" link (kind `prefix`) - moved
   there from section 3 on 2026-08-20: nothing in 3 reads the prefix answers, and the link

@@ -1,10 +1,10 @@
 /*
  * The MixesDB modal (shared/mixesdb_modal/funcs.js): the framed MixesDB page an eye icon or
- * a page creator chip opens on a desktop-wide window, plus the eye icon itself. Loaded by
+ * a Page Creator chip opens on a desktop-wide window, plus the eye icon itself. Loaded by
  * funcs.js (mdbModal_ensureCss), not by the site scripts - the "?v-<script>_<n>" cache param
  * comes from each script's cacheVersion.
  *
- * The box takes the page creator panels' dark frame; the iframe itself stays white, because
+ * The box takes the Page Creator panels' dark frame; the iframe itself stays white, because
  * MixesDB is a light page and white is what it will paint anyway - a dark hole that flashes
  * bright on load is worse. z-index at the top of the scale: the sites layer their own
  * overlays generously, and a modal half under a player bar is unusable.

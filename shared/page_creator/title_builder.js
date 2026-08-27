@@ -5,7 +5,7 @@ log( "/shared/page_creator/title_builder.js loaded" );
  *
  *
  *
- * MixesDB page creator - the title builder (beta)
+ * MixesDB Page Creator - the title builder (beta)
  *
  * Builds a starting point for a MixesDB mix page title out of what a player page can answer
  * for: the player title, the channel/uploader name and the upload date.
@@ -5613,7 +5613,7 @@ function mdbTitle_showFromUsername( username ) {
  * and no name lookup can bridge the two - not the exact one (no such category), not the
  * prefix one ("EG en Español" starts nothing). The URL does, exactly.
  *
- * The page creator does the asking (mdbPageCreator_channelCatEnsure in page_creator.js, one
+ * The Page Creator does the asking (mdbPageCreator_channelCatEnsure in page_creator.js, one
  * list=exturlusage request against namespace 14 - the API behind Special:LinkSearch) and
  * writes the answer in here, so this file stays free of requests and the parse reads one map
  * whoever filled it. Only a finding the title itself BACKS is written - see the support test
