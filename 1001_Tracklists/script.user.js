@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.2
+// @version      2026.08.28.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-1001_Tracklists_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_111
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_8
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_9
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_14
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
@@ -292,6 +292,21 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.28.3
+ * Tracklist Importer merge, artist and title the WRONG WAY ROUND (merge_core.js v9, reported on
+ * a trackid.net import). A page row typed off what a player showed has the two halves the wrong
+ * way round often enough - "Caprock - Majestic" against the found "Majestic - Caprock" - and
+ * every match step said no: the whole strings differ, and comparing the halves straight holds
+ * each one against the wrong counterpart, so the found row was INSERTED as a second row for the
+ * same track. The halves are now also compared CROSSWISE, both known on both sides and both
+ * having to answer, which carries a lower threshold (0.7 against the straight 0.8). The found
+ * row then WINS the text: the same two halves, only turned round, and the player site reads its
+ * credit off a release database while the page row was typed by hand. Two smaller things came
+ * with it: the Discogs disambiguation number on an artist name ("Majestic (3)") takes no part in
+ * any comparison, and the version stripper's emptied brackets are dropped before comparing -
+ * "City Lights (Edit)" compared as "city lights ( )", 0.67 against a page's "Citylights" where
+ * the two names alone are 0.91.
  *
  * 2026.08.28.2
  * Tracklist Importer Report: the "## Cue gaps" block moved up, from behind the merged tracklist

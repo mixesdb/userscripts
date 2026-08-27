@@ -786,6 +786,51 @@ var tlImporterExamples_merge = [
         // the four unplaceable rows (3, 5, 6, 8) plus the "?" rows a gap-less original takes
         // none of (1, 9) - and line 16's label, which loses against the page's own "[Trip - 003]"
         unused: { cues: [1, 3, 5, 6, 8, 9], texts: [3, 5, 6, 8], labels: [3, 5, 6, 8, 16] }
+    },
+    {
+        // Artist and title the other way round on the page: the crosswise compare of step 2c
+        // finds the row and the CANDIDATE wins the text - the halves are the same, only their
+        // order was wrong. Without it the candidate was inserted as a second row.
+        // Reported: Groove Podcast 498 Doudou MD, trackid.net.
+        name: "swapped artist and title match, the candidate turns them round",
+        original: "[20] A - One\nCaprock - Majestic\n[33] B - Two",
+        candidate: "[20] A - One\n[29] Majestic - Caprock [Taste]\n[33] B - Two",
+        expect: "[20] A - One\n[29] Majestic - Caprock [Taste]\n[33] B - Two",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Same case with the Discogs disambiguation number still on the artist ("Majestic (3)"):
+        // it takes no part in the comparison, so the swap is found either way. The number does
+        // ride into the page here - the sending site strips it, this file only ignores it.
+        name: "a Discogs artist number does not stop the swap match",
+        original: "[20] A - One\nCaprock - Majestic\n[33] B - Two",
+        candidate: "[20] A - One\n[29] Majestic (3) - Caprock [Taste]\n[33] B - Two",
+        expect: "[20] A - One\n[29] Majestic (3) - Caprock [Taste]\n[33] B - Two",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // The swapped halves do not have to be written identically - the version stripper's
+        // emptied bracket is dropped before comparing, so "City Lights (Edit)" meets the page's
+        // "Citylights" at 0.91 instead of 0.67.
+        name: "swap match survives a loose half",
+        original: "[20] A - One\nCitylights - Compass\n[33] B - Two",
+        candidate: "[20] A - One\n[29] Compass - City Lights (Edit) [Cabinet]\n[33] B - Two",
+        expect: "[20] A - One\n[29] Compass - City Lights (Edit) [Cabinet]\n[33] B - Two",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // The straight reading wins where there is one: a swap must never turn a row round that
+        // both sides already agree on, and the crosswise compare must not reach across rows -
+        // "One - A" is NOT the page's "A - One" turned round when the page has both.
+        name: "swap does not touch rows that match straight",
+        original: "[20] A - One\n[29] One - A",
+        candidate: "[20] A - One [L1]\n[29] One - A [L2]",
+        expect: "[20] A - One [L1]\n[29] One - A [L2]",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
     }
 ];
 

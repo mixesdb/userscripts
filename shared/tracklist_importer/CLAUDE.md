@@ -76,7 +76,8 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   only fills what is missing. The Candidate column shows both readings: green (`used`) marks
   what the merge wrote into the result, orange (`use` = false) what it could not place; parts
   the original already carried stay plain. Hand-salvage goes through the Merged box and its
-  Apply button.
+  Apply button. The ONE exception is the swapped row of step 2c below, and it is one because
+  nothing of the page is given up there: both sides carry the same two halves.
 - **An unknown row is a row's HALF that is unknown, not the string `?`.** `tlImporter_unknownParts()`
   reads a track text as artist + title and says which half says nothing – `?`, `??`, `ID`, `ID2`;
   never `Untitled`, which is a real title a release carries (the page's `? - Untitled (B1)` keeps
@@ -106,6 +107,34 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   The step is anchored on the title on purpose: two different tracks with the same title AND
   nested artist credits do not happen, while artist-anchored matching would merge every "A - X"
   into every "A - Y".
+- **The halves are also compared CROSSWISE (step 2c), and there the candidate wins the text.**
+  A page row typed off what a player showed has artist and title the wrong way round often
+  enough (reported: Groove Podcast 498 Doudou MD, where the page's `Caprock - Majestic` met the
+  candidate's `Majestic (3) - Caprock` and every straight step said no, so the candidate was
+  INSERTED as a second row). So the page's artist is held against the candidate's title and the
+  page's title against the candidate's artist, both halves KNOWN on both sides, and BOTH have to
+  answer. That double condition is what carries `tlImporter_swapSimilarityThreshold` (0.7) below
+  the straight 0.8: one fuzzy half on its own would match half the list, two crosswise ones
+  practically cannot meet by accident. A row already taken by an earlier candidate is skipped,
+  and a row whose two halves read the same is no evidence either way round.
+  The candidate's TEXT then overwrites the page's – the single place in this merge where it
+  does. Nothing of the page is lost (the same two halves, turned round), and the player site
+  reads its credit out of a release database while the page row was typed by hand. That is why
+  the exception is safe and why it does not generalize: `tlImporter_takesCandidateText()` still
+  governs every other match.
+- **A Discogs artist number is not part of the name.** Discogs numbers names that exist more
+  than once in its database (`Majestic (3)`), and the sites reading their metadata from there
+  hand the number through. `tlImporter_stripArtistNumbers()` takes it out of every comparison
+  (max 3 digits, so `Underworld (1992)` is not read as one), and TrackId.net's
+  `fixTidArtistnames()` takes it out of the TEXT – merge_core only ignores it, so a candidate
+  from a site that does not strip it still carries it into the page. Both sides are needed: the
+  comparison one so an older cached sender still matches, the text one so nothing writes a
+  database artefact into the wiki.
+- **An emptied bracket is dropped before comparing.** `tlImporter_removeVersionWords()` takes
+  the WORD out and leaves the brackets standing, so `City Lights (Edit)` normalized to
+  `city lights ( )` – four characters of nothing that pushed it to 0.67 against the page's
+  `Citylights`, where the two names alone are 0.91. `tlImporter_normalizeForMatching()` now
+  drops brackets it emptied. Found through step 2c, but it costs every fuzzy step.
 - **No `<li>` may survive inside the review block's feedback box.** MixesDB's own
   `ext.mixesdb.global` treats every `<li>` under `#mw-content-text` on ns-0 edit/submit pages
   as a potential track row, rewrites it via `.html().replace(/<br>[^+]/,'')` – a regex that
