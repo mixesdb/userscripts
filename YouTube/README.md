@@ -46,7 +46,7 @@ The video's `maxresdefault` thumbnail below the title, linking to the full-size 
 
 ### Duration and file details
 
-The duration as a button in the action row. Clicking it opens the copy-paste ready
+The duration as a button right below the thumbnail. Clicking it opens the copy-paste ready
 [File details](../shared/README.md#file-details) table.
 
 ### Submit a playlist to TrackId.net

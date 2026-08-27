@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.4
+// @version      2026.08.27.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -36,7 +36,7 @@
  * had its chance to report a dead global.js - loadRawCss() lives there
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 40,
+var cacheVersion = 41,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -589,15 +589,19 @@ function addDurationEnhancements() {
     if( !dur_sec ) return true; // player not ready yet - ask again on the next poll
 
     var dur = convertHMS( dur_sec ),
-        buttonTarget = $("#top-level-buttons-computed, ytd-watch-metadata #actions-inner").first(),
+        // The duration button goes right below the thumbnail we add ourselves instead of into
+        // YouTube's own action row: keeps both of our additions together and out of the row
+        // YouTube keeps re-rendering.
+        buttonTarget = $(".mdb-thumbImgLink-wrapper").first(),
         detailsTarget = $("ytd-watch-metadata #description, ytd-expandable-video-description-body-renderer").first();
 
-    // The metadata row hydrates later than the player, so both targets have to be there
-    // before this video counts as done - otherwise it would be marked off with nothing added.
+    // The thumbnail is added by addDetailPageEnhancements() and the metadata row hydrates later
+    // than the player, so both targets have to be there before this video counts as done -
+    // otherwise it would be marked off with nothing added.
     if( !buttonTarget.length || !detailsTarget.length ) return true;
 
     if( !$("#mdb-fileInfo").length ) {
-        buttonTarget.prepend('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
+        buttonTarget.after('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
     }
 
     if( !$("#mdb-fileDetails").length ) {
