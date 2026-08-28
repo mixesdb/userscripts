@@ -767,6 +767,32 @@ a.mdb-copy-text-button:focus,
 
 
 /*
+ * The toolkit with the Page Creator row ABOVE it.
+ *
+ * Two of the site rules above pull the toolkit UP with a negative top margin (mixcloud.com
+ * -25px, toxicfamily.de -10px): they close the gap the site leaves under its own block, which
+ * is what the toolkit is glued to on those pages. With the Page Creator row standing between
+ * the two, that pull has nothing left to close - it drags the toolkit into the row's last
+ * line instead.
+ *
+ * The sibling combinator is what says "above it": the row is placed as the toolkit's preceding
+ * sibling on every site so far. "~" and not "+" so a site that puts something of its own
+ * between the two still gets it.
+ *
+ * Only the two NEGATIVE pulls are listed. The positive top margins (trackid.net 20px,
+ * youtube.com 25px) are the gap between the row and the toolkit on those pages and have to
+ * stay - a blanket "margin-top: 0" for every toolkit with a row above it would collapse them.
+ * A site that grows a negative pull later belongs on this list.
+ *
+ * One ID and one class beats the two classes of the site rules above, so no !important.
+ */
+#mdb-pageCreator ~ .mdb-toolkit.mixcloud-com,
+#mdb-pageCreator ~ .mdb-toolkit.toxicfamily-de {
+    margin-top: 0;
+}
+
+
+/*
  * mdbTrackidCheck
  */
 .mdb-mixesdbLink.history {

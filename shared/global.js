@@ -637,6 +637,27 @@ function isHearthisIdUrl(url) {
     return /.*hearthis\.at.+/.test(url) && regExp_numbers.test(url.split("/")[3]);
 }
 
+/*
+ * formatHearthisDate
+ * Takes an api-v2.hearthis.at track object and answers the "YYYY-MM-DD" MixesDB titles and
+ * reports use - the same shape formatScDate() answers for the SoundCloud API.
+ * release_date is the date the uploader gave the recording itself (the mix date on a
+ * re-upload), created_at only says when the file was put on hearthis - so release_date wins
+ * and created_at stands in when there is none.
+ * The date is CUT out of the string, never parsed: hearthis writes both fields in the
+ * uploader's own local time without a zone marker, and release_timestamp is that same moment
+ * as unix time. Feeding either into Date() reads it in the READER's zone, so a recording
+ * released just after midnight (or just before it, west of hearthis' server) comes back with
+ * the neighbouring day - which is how the full timestamp used to reach the title.
+ */
+function formatHearthisDate( t ) {
+    var raw = ( t && typeof t.release_date === "string" && t.release_date ) ? t.release_date
+                  : ( t && typeof t.created_at === "string" ? t.created_at : "" ),
+        matches_date = raw.match( /^(\d{4}-\d{2}-\d{2})/ );
+
+    return matches_date ? matches_date[1] : "";
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *

@@ -501,6 +501,122 @@ function mdbPageCreator_place( wrapper, target ) {
     }
 }
 
+// mdbPageCreator_syncReportColor
+// "Report" always in the colour of the "Create" link next to it - read off it as a COMPUTED
+// colour and written onto "Report" inline.
+//
+// Why not in CSS: every attempt at that was a per-site guess at "the link colour", and every one
+// of them was wrong somewhere. The row runs in layouts we do not control and cannot enumerate -
+// SoundCloud alone renders it in two documents (the old page and the new layout's webi iframe),
+// and the class global.js puts on the body does not even reach the second one - so a rule that
+// names a variable, a hex value or a body class paints "Report" right in the layout it was
+// written for and leaves it standing grey next to a blue "Create" in the next one. That was the
+// bug, three times over. The computed colour of "Create" cannot go out of step with "Create",
+// whatever painted it, so this is the one version that holds everywhere. See the "Report" link
+// colour section in the Page Creator's CLAUDE.md.
+//
+// Nothing to sync on the used-player debug row: it has no "Create", and there the grey from
+// page_creator.css is right - "Exists" next to it is grey for the same reason.
+function mdbPageCreator_syncReportColor( wrapper ) {
+    var report = wrapper.find( "#mdb-pageCreator-report" ),
+        create = wrapper.find( "#mdb-pageCreator-create" );
+
+    if( !report.length || !create.length ) return;
+
+    // getComputedStyle answers with the browser's defaults for a detached node, so the row has
+    // to be in the document before the answer means anything
+    if( !document.contains( create[0] ) ) return;
+
+    var color = window.getComputedStyle( create[0] ).color;
+
+    // "" (no layout yet) and a fully transparent colour are "not painted yet", not an answer -
+    // taking either would repaint "Report" into something unreadable
+    if( !color || color === "rgba(0, 0, 0, 0)" || color === "transparent" ) return;
+
+    if( report[0].style.color === color ) return; // already in step - no repaint, no log noise
+
+    report.css( "color", color );
+    logVar( "mdbPageCreator_syncReportColor: colour taken from Create", color );
+}
+
+// mdbPageCreator_queueReportColorSync
+// The same sync, run again a moment later: our own stylesheet is fetched and injected at
+// runtime, and these sites restyle their links after the row is long on the page, so the colour
+// read at placement time is not always the final one. Two late passes cover both, and they are
+// nearly free - the sync above stops as soon as nothing changed.
+function mdbPageCreator_queueReportColorSync( wrapper ) {
+    mdbPageCreator_syncReportColor( wrapper );
+
+    [ 300, 1500 ].forEach( function( ms ) {
+        setTimeout( function() {
+            mdbPageCreator_syncReportColor( wrapper );
+        }, ms );
+    });
+}
+
+// mdbPageCreator_markPageTheme
+// Marks the row when it stands on a LIGHT page, so the hints bar can wear a palette that is
+// readable there - see "The hints bar on a light page" in page_creator.css. Called right after
+// the row is placed, because the answer needs the row to be IN the page.
+//
+// Measured, not configured, and that is the whole point of doing it here: a
+// "prefers-color-scheme: light" media query answers for the OS, not for the page, and the
+// sites disagree with it in both directions - SoundCloud and TrackId.net are dark whatever the
+// OS says, Mixcloud and YouTube follow it. So the row asks the page it was just placed in.
+function mdbPageCreator_markPageTheme( wrapper ) {
+    var node = wrapper[0],
+        brightness = null;
+
+    // Up from the row: the first ancestor that paints something IS the surface the bar sits
+    // on. A see-through parent shows whatever is behind it, so it is not an answer - keep
+    // walking. html/body are the last word.
+    while( node && node.nodeType === 1 && brightness === null ) {
+        brightness = mdbPageCreator_bgBrightness( node );
+        node = node.parentNode;
+    }
+
+    // Nothing opaque anywhere (a background image, a page that paints nothing): stay dark,
+    // which is what every rule outside the light block already assumes.
+    var isLight = brightness !== null && brightness > 0.55;
+
+    wrapper.toggleClass( "mdb-pageCreator-onLight", isLight );
+
+    logVar( "mdbPageCreator_markPageTheme: background brightness", brightness );
+    logVar( "mdbPageCreator_markPageTheme: light page", isLight );
+}
+
+// mdbPageCreator_bgBrightness
+// How bright the node's own background is, 0 (black) to 1 (white) - or null when it paints
+// nothing worth calling a surface. The default "rgba(0, 0, 0, 0)" every element starts with
+// means "the parent shows through", NOT black, so it has to answer null rather than 0.
+function mdbPageCreator_bgBrightness( node ) {
+    // the node's OWN view, not this script's: SoundCloud's new layout renders our row into a
+    // second document (the webi iframe), and a cross-document getComputedStyle is not a thing
+    // every browser answers the same way
+    var view = node.ownerDocument && node.ownerDocument.defaultView;
+
+    if( !view ) return null;
+
+    var color = view.getComputedStyle( node ).backgroundColor,
+        inside = /^rgba?\(([^)]+)\)/.exec( color || "" );
+
+    if( !inside ) return null;
+
+    // both spellings in one split: the legacy "rgb(30, 30, 30)" and the modern
+    // "rgb(30 30 30 / 0.5)" browsers increasingly compute to
+    var parts = inside[1].split( /[\s,\/]+/ ).map( parseFloat );
+
+    if( parts.length < 3 || parts.slice( 0, 3 ).some( isNaN ) ) return null;
+
+    // half see-through or more is not a surface either - the thing behind it is what the
+    // reader sees, so keep walking up
+    if( parts.length > 3 && !( parts[3] > 0.5 ) ) return null;
+
+    // perceived brightness (ITU-R BT.601), the cheap luminance every "is this dark?" check
+    // uses - the eye weighs green far heavier than blue
+    return ( parts[0] * 0.299 + parts[1] * 0.587 + parts[2] * 0.114 ) / 255;
+}
+
 // The "Create" link target: the edit form of the new page itself, not the "Add a new mix" form
 // that only takes a title. Everything the site page already knows about the mix rides along in
 // the "insert" parameter - MixesDB_Userscripts_Helper puts it into the edit box, see its
@@ -1359,6 +1475,11 @@ function mdbPageCreator_refresh( wrapper ) {
     // the trace and the lookup log just changed with the refined suggestion - redraw right
     // away, no debounce: nothing here waits on typing
     mdbPageCreator_renderReasoning( wrapper );
+
+    // A refresh can be the first moment the row is fully painted - the MixesDB lookup lands
+    // after the first suggestion, and on SoundCloud's new layout the site's own styles can
+    // still be arriving then - so the colour is taken off "Create" once more here
+    mdbPageCreator_syncReportColor( wrapper );
 }
 
 // mdbPageCreator_render
@@ -1579,6 +1700,14 @@ function mdbPageCreator_render() {
     mdbPageCreator_queueCategoryUpdate();
 
     mdbPageCreator_place( wrapper, target );
+
+    // After the placement, never before: the brightness behind the row can only be read once
+    // the row is really in the page.
+    mdbPageCreator_markPageTheme( wrapper );
+
+    // Same reason: the colour "Report" copies off "Create" is the site's only once the row is
+    // in the page and painted.
+    mdbPageCreator_queueReportColorSync( wrapper );
 }
 
 // mdbPageCreator_confidenceBand
