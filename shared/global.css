@@ -725,7 +725,7 @@ a.mdb-copy-text-button:focus,
      * - a.mdb-copy-text-button - a button that happens to be an <a>
      */
     & a:not(.mdb-mixesdbLink):not(.mdb-copy-text-button) {
-        color: var(--link-standard-color, #699fff);
+        color: var(--mui-palette-link-main, #5590fc);
     }
 }
 
