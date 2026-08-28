@@ -8,7 +8,8 @@ behaves the same everywhere.
   [YouTube](../../YouTube/) (watch pages of mix-length videos),
   [Mixcloud](../../Mixcloud/) (show pages of mix length),
   [hearthis.at](../../hearthis.at/) (track pages of mix length) and
-  [TrackId.net](../../TrackId.net/) (audiostream pages with a SoundCloud or YouTube player)
+  [TrackId.net](../../TrackId.net/) (audiostream pages with a SoundCloud, YouTube, Mixcloud
+  or hearthis.at player)
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** [Tracklist box](../tracklist_editor/)
 
@@ -1048,8 +1049,7 @@ them will appear – the page really gets two things there, not one block.
 Where it shows: SoundCloud's redesigned track pages, YouTube watch pages of mix-length videos
 (light grey in YouTube's light mode) and TrackId.net's audiostream pages. On TrackId.net the
 embedded player itself is not covered – it shows and can play straight away; the placeholders
-only hold the space below it, and the Page Creator box only appears for SoundCloud and YouTube
-players, the ones the row exists for.
+only hold the space below it.
 
 ## Known limitations
 

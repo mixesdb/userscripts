@@ -68,19 +68,18 @@ MixesDB page.
 
 The embedded player shows straight away; below it, grey pulsing placeholders hold the space of
 the Page Creator row and the toolkit – one box each – until they have arrived, and they appear
-in one step. The Page Creator box only shows for SoundCloud and YouTube players, the ones the
-row exists for – see [Page Creator](../shared/page_creator/#loading-placeholder).
+in one step – see [Page Creator](../shared/page_creator/#loading-placeholder).
 
 ### MixesDB Page Creator
 
-On audiostream pages whose source player is on SoundCloud or YouTube, the suggested page title
-and the **Create** link sit between the embedded player and the toolkit – see
-[Page Creator](../shared/page_creator/). The values are not read off the TID page, which only
-shows a normalized heading: for a SoundCloud player the title, channel name, date, duration and
-artwork URL come from the SoundCloud API, so the suggestion is the same one the SoundCloud
-script would make on the track's own page; for a YouTube player they come from TrackId.net's
-own API, which stores the original video title, channel name and upload date. A YouTube
-channel name is only used in the title when something backs it – see the
+On audiostream pages, the suggested page title and the **Create** link sit between the embedded
+player and the toolkit – see [Page Creator](../shared/page_creator/). The values are not read
+off the TID page, which only shows a normalized heading: for a SoundCloud, Mixcloud or
+hearthis.at player the title, channel name, date, duration, artwork URL and description come
+from that site's own API, so the suggestion is the same one the site's own script would make on
+the player's page; for a YouTube player they come from TrackId.net's own API, which stores the
+original video title, channel name and upload date. A YouTube, Mixcloud or hearthis.at channel
+name is only used in the title when something backs it – see the
 [channel name](../shared/page_creator/#suggested-mix-page-title) notes there.
 
 Unlike on SoundCloud there is no tracklist detection from the description: the **Create** link
@@ -96,8 +95,6 @@ where MixesDB files that name under `Category:Style`, so a festival or a venue t
 stays a hint under the row. An empty row is left behind the written style only where some of
 the entity's pages carry a further style; without any style at all the page keeps the two empty
 rows to fill in by hand.
-
-Other players (Mixcloud, hearthis.at) do not get the row yet.
 
 ### Insert or merge the tracklist into MixesDB
 
