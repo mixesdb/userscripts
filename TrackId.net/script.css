@@ -240,6 +240,11 @@ table.mdb-tid-table {
  * body.mixesdb-com scopes them: this file is loaded on trackid.net too, where .playerWrapper
  * does not exist but a rule with no site in it is a trap for the day it does.
  */
+body.mixesdb-com {
+	& img.mdb-checked-icon {
+        margin-right: 0;
+    }
+}
 body.mixesdb-com .playerWrapper .tidLink {
     text-align: right;
 
