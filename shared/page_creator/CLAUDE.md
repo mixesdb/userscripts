@@ -49,8 +49,8 @@ then `loadRawCss()` `page_creator.css` next to the script's own `script.css`, an
 `mdbPageCreator_add({ title, channel, createdAt, ..., target, placement })` when the site's data
 arrives plus `mdbPageCreator_watchToolkit()` whenever the toolkit is (re)built.
 
-A site whose channel names are often UNRELATED to the mix's artist or entity - YouTube and the
-other planned players (Mixcloud, hearthis.at), where broadcasters and re-uploaders are common -
+A site whose channel names are often UNRELATED to the mix's artist or entity - YouTube,
+Mixcloud and hearthis.at, where broadcasters and re-uploaders are common -
 passes `channelTrust: "low"`. The title builder then refuses to fall back to the channel name
 without backing (the name standing in the title, a curated map entry, or the wiki knowing it):
 an unbacked channel is dropped from the suggestion instead of being appended as the show, and

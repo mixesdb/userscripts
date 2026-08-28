@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.1
+// @version      2026.08.28.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -36,7 +36,7 @@
  * had its chance to report a dead global.js - loadRawCss() lives there
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 41,
+var cacheVersion = 42,
     scriptName = "YouTube";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -827,20 +827,21 @@ function addDurationEnhancements() {
         // The duration button goes right below the thumbnail we add ourselves instead of into
         // YouTube's own action row: keeps both of our additions together and out of the row
         // YouTube keeps re-rendering.
-        buttonTarget = $(".mdb-thumbImgLink-wrapper").first(),
-        detailsTarget = $("ytd-watch-metadata #description, ytd-expandable-video-description-body-renderer").first();
+        buttonTarget = $(".mdb-thumbImgLink-wrapper").first();
 
-    // The thumbnail is added by addDetailPageEnhancements() and the metadata row hydrates later
-    // than the player, so both targets have to be there before this video counts as done -
-    // otherwise it would be marked off with nothing added.
-    if( !buttonTarget.length || !detailsTarget.length ) return true;
+    // The thumbnail is added by addDetailPageEnhancements(), so the button's anchor can still
+    // be missing when the player is already up - ask again on the next poll instead of marking
+    // this video off with nothing added.
+    if( !buttonTarget.length ) return true;
 
     if( !$("#mdb-fileInfo").length ) {
         buttonTarget.after('<button id="mdb-fileInfo" class="mdb-element mdb-toggle" data-toggleid="mdb-fileDetails" title="Click to copy file details">'+dur+'</button>');
     }
 
+    // Directly below its own button, not down at YouTube's description: the toggle opens where
+    // the user clicked instead of somewhere further down the page.
     if( !$("#mdb-fileDetails").length ) {
-        detailsTarget.before( getFileDetails_forToggle( dur_sec ) );
+        $("#mdb-fileInfo").after( getFileDetails_forToggle( dur_sec ) );
     }
 
     youtubeDurationAddedFor = ytId;

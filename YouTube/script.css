@@ -26,11 +26,13 @@
 	background: rgba(255,255,255,0.2);
 }
 
+/* sits directly under the #mdb-fileInfo button now, so it aligns with it instead of
+   centering itself across the whole column */
 #mdb-fileDetails {
 	display: block;
 	width: 100%;
-	margin: 20px auto 0;
-	text-align: center;
+	margin: 8px 0 0;
+	text-align: left;
 	
 	& textarea {
 		width: 170px;
