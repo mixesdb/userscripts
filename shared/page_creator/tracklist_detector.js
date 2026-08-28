@@ -251,6 +251,12 @@ var mdbTracklist_indexRe = /^([#(]?)(\d{1,3})([.):\]]+|\s*[-–—])?[ \t]+/;
 // A cue in front of the artist: "[000]", "[00:12:30]", "[cue]"
 var mdbTracklist_cueRe = /^\[[^\]]*\]\s*/;
 
+// The same cue written WITHOUT those brackets, plus whatever the writer put between it and the
+// track: "00:36 = Artist - Title", "1:02:30 Artist - Title", "05:12 - Artist - Title".
+// A clock time only. A bare number in front of a track is the NUMBERING (mdbTracklist_indexRe
+// reads that one), and the colon is the whole difference between the two.
+var mdbTracklist_leadingCueRe = /^(\d{1,3}(?::\d{2}){1,2})[ \t]*(?:[=|>~:–—-]+[ \t]*)?(?=\S)/;
+
 // The same thing as a MARKER inside the one line a comment has: "(00)Gerd-Echo Jammz? (02)ID?
 // ...". Read by mdbTracklist_splitCued() and by nothing else - a description splits into tracks
 // by its line breaks and needs none of this.
@@ -606,12 +612,13 @@ function mdbTracklist_evenIndexLine( line, style, lead, sep ) {
 
 // mdbTracklist_tidy
 // Everything the block gets on the way to the API, in the order the steps read the line: the
-// bullet in front of it off first, then the numbering behind that evened out, then the separator
-// in the middle, then the cue behind the track moved in front of it - and last the writer's own
-// "?" off the end, which has to come last because it is the only step that reads the separator
-// the steps above it wrote.
+// bullet in front of it off first, then the cue that stands in front of the track written the
+// way MixesDB writes one - both are decorations every step below has to look past - then the
+// numbering evened out, then the separator in the middle, then the cue behind the track moved in
+// front of it - and last the writer's own "?" off the end, which has to come last because it is
+// the only step that reads the separator the steps above it wrote.
 function mdbTracklist_tidy( lines ) {
-    return mdbTracklist_tidyUnsure( mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( mdbTracklist_stripBullets( lines ) ) ) ) ) );
+    return mdbTracklist_tidyUnsure( mdbTracklist_tidyCues( mdbTracklist_plainDashes( mdbTracklist_dashifySeparators( mdbTracklist_evenIndexes( mdbTracklist_tidyLeadingCues( mdbTracklist_stripBullets( lines ) ) ) ) ) ) );
 }
 
 // mdbTracklist_dashifySeparators
@@ -718,6 +725,58 @@ function mdbTracklist_plainDashLine( line ) {
         at = mdbTracklist_bodyAt( text );
 
     return text.slice( 0, at ) + text.slice( at ).replace( mdbTracklist_artistTitleRe, "$1 - $2" );
+}
+
+// mdbTracklist_tidyLeadingCues
+// A cue in FRONT of the track, put into the brackets MixesDB writes a cue in: "00:36 = Power
+// Tool - Madness" -> "[00:36] Power Tool - Madness". The digits are left exactly as they were
+// typed, the same way mdbTracklist_splitCued() writes a comment's markers.
+//
+// The API cannot read the bare form (measured against it 2026-08-28): it takes the "00:" for the
+// line's numbering and leaves a stray "36" standing in front of the artist, and "1:31:39" loses
+// its hour the same way - "# 36 = Power Tool - Madness" for a line 33 uploaders out of 33 wrote
+// as a timestamp. Whatever they put between the cue and the track goes with the rewriting: an
+// "=" left standing would be read as part of the artist, a "-" as the artist/title separator
+// itself, which costs the whole track.
+//
+// Half the block has to carry one, for the same reason mdbTracklist_tidyCues() below waits for
+// the same majority: a single line opening with something clock-shaped is not a pattern.
+function mdbTracklist_tidyLeadingCues( lines ) {
+    var withCue = 0,
+        out = [],
+        i;
+
+    for( i = 0; i < lines.length; i++ ) {
+        if( mdbTracklist_leadingCueLine( lines[i] ) !== null ) withCue++;
+    }
+
+    if( withCue * 2 < lines.length ) return lines;
+
+    log( "mdbTracklist_tidy: " + withCue + " of " + lines.length + " lines open with a cue of their own - writing it the way MixesDB writes a cue." );
+
+    for( i = 0; i < lines.length; i++ ) {
+        out.push( mdbTracklist_leadingCueLine( lines[i] ) || lines[i] );
+    }
+
+    return out;
+}
+
+// mdbTracklist_leadingCueLine
+// The one line rewritten, or null when it carries no bare cue in front - which is also how
+// mdbTracklist_tidyLeadingCues() counts them, so the test and the rewriting can never disagree.
+//
+// The line's NUMBERING is taken off first and put back untouched: "01. 00:36 Artist - Title" is
+// the shape a numbered tracklist with timestamps is written in, and the cue in it sits behind
+// the number, not at the start of the line.
+function mdbTracklist_leadingCueLine( line ) {
+    var text = String( line || "" ),
+        index = text.match( mdbTracklist_indexRe ),
+        at = index ? index[0].length : 0,
+        body = text.slice( at );
+
+    if( !mdbTracklist_leadingCueRe.test( body ) ) return null;
+
+    return text.slice( 0, at ) + body.replace( mdbTracklist_leadingCueRe, "[$1] " );
 }
 
 // mdbTracklist_tidyCues

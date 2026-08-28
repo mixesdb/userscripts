@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.6
+// @version      2026.08.28.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,7 +17,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-YouTube_29
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_14
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_121
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
@@ -442,15 +442,11 @@ function getYtVideoData( ytId, done ) {
     function askPlayerApi() {
         log( "getYtVideoData: ytInitialPlayerResponse stayed stale - asking the page's own player API." );
 
-        var context = ( window.ytcfg && typeof window.ytcfg.get === "function" )
-                          ? window.ytcfg.get( "INNERTUBE_CONTEXT" )
-                          : null;
-
         fetch( "/youtubei/v1/player?prettyPrint=false", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                context: context || { client: { clientName: "WEB", clientVersion: "2.20260801.00.00" } },
+                context: getYtInnertubeContext(),
                 videoId: ytId
             })
         }).then( function( response ) {
@@ -514,6 +510,239 @@ function getYtVideoData( ytId, done ) {
 }
 
 /*
+ * getYtInnertubeContext
+ * The "context" block every /youtubei/v1/ call has to carry. window.ytcfg holds the page's
+ * own one - but it belongs to the PAGE's window, and under Chrome MV3 Tampermonkey runs us in
+ * an isolated world where that is not our window (see the poll in getYtVideoData above), so
+ * the fallback is the normal case there rather than the exception. Both endpoints we ask
+ * (player, next) answer a bare WEB client without an API key, as long as the call is
+ * same-origin.
+ */
+function getYtInnertubeContext() {
+    var context = ( window.ytcfg && typeof window.ytcfg.get === "function" )
+                      ? window.ytcfg.get( "INNERTUBE_CONTEXT" )
+                      : null;
+
+    return context || { client: { clientName: "WEB", clientVersion: "2.20260801.00.00" } };
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Comments
+ *
+ * A YouTube tracklist is written into the description most of the time, but by no means
+ * always: on channels that upload a mix a week it regularly arrives as a comment instead,
+ * pinned by the uploader or written by a listener -
+ * https://www.youtube.com/watch?v=1os948yIB7k is one of those. The Page Creator asks for the
+ * comments only when the description held no tracklist (see mdbPageCreator_addTracklist() in
+ * page_creator.js), so a video carrying its tracklist in the description costs nothing here.
+ *
+ * There is no "give me the comments" endpoint. The watch page reads them the way we do here:
+ * /youtubei/v1/next for the video hands out a continuation TOKEN for its comment section, and
+ * that token, posted back to the same endpoint, returns a page of comments plus the token for
+ * the page after it. Same origin, no API key - see getYtVideoData() above for what that
+ * endpoint family does and does not answer.
+ *
+ * Sorted the way the section opens: top comments. A tracklist comment on a mix is normally
+ * pinned or the most liked one, so it sits on the first page whenever it exists at all.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// How many pages of comments are read at most. Each page is a request of its own and holds 20
+// comments, and the page after the first is only ever fetched when everything so far held no
+// tracklist - which is also the case where a further page is least likely to pay off. Two is
+// the compromise: 40 top comments, and one extra request on the videos that have nothing.
+var ytCommentPagesMax = 2;
+
+/*
+ * ytInnertubeNext
+ * One POST to /youtubei/v1/next, the endpoint the watch page itself uses for everything below
+ * the player. `payload` is what the call is ABOUT: { videoId: ... } for the watch page's own
+ * data, { continuation: token } for a page of comments. Hands over null on any failure - a
+ * tracklist we did not get is not worth an exception.
+ */
+function ytInnertubeNext( payload, done ) {
+    fetch( "/youtubei/v1/next?prettyPrint=false", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify( $.extend( { context: getYtInnertubeContext() }, payload ) )
+    }).then( function( response ) {
+        if( !response.ok ) throw new Error( "HTTP " + response.status );
+        return response.json();
+    }).then( done ).catch( function( e ) {
+        log( "ytInnertubeNext: FAILED (" + e + ")." );
+        done( null );
+    });
+}
+
+/*
+ * ytFindDeep
+ * Hands every value stored under `key` anywhere in a parsed InnerTube answer to `hit`, in the
+ * order they are written. The paths are never hardcoded on purpose: YouTube moves its
+ * renderers around between releases - the same answer already carries the comment section in
+ * two different places - and a hardcoded path breaks silently, with no line in the log saying
+ * which one it was.
+ */
+function ytFindDeep( node, key, hit ) {
+    if( !node || typeof node !== "object" ) return;
+
+    var i, k;
+
+    if( Array.isArray( node ) ) {
+        for( i = 0; i < node.length; i++ ) ytFindDeep( node[i], key, hit );
+        return;
+    }
+
+    for( k in node ) {
+        if( !Object.prototype.hasOwnProperty.call( node, k ) ) continue;
+
+        if( k === key ) hit( node[k] );
+
+        ytFindDeep( node[k], key, hit );
+    }
+}
+
+/*
+ * ytCommentsToken
+ * The continuation token that opens the comment section, out of the answer for the video. The
+ * section is the itemSectionRenderer marked "comment-item-section" - it is the marker that is
+ * looked for, not its place in the answer, and the FIRST one wins (the same answer describes
+ * the section a second time for the comments engagement panel, which holds the same token).
+ * Empty when the video has its comments turned off, or when YouTube answered us with nothing.
+ */
+function ytCommentsToken( answer ) {
+    var token = "";
+
+    ytFindDeep( answer, "itemSectionRenderer", function( section ) {
+        if( token || !section || section.sectionIdentifier !== "comment-item-section" ) return;
+
+        ytFindDeep( section, "continuationCommand", function( command ) {
+            if( !token && command && command.token ) token = command.token;
+        });
+    });
+
+    return token;
+}
+
+/*
+ * ytCommentsNextToken
+ * The "more comments" token of a comment page. Read off the TOP level of the returned item
+ * lists, where it is the last entry behind the threads, rather than by searching the answer:
+ * a thread that has replies carries a continuation of its own, of the very same type, and
+ * that one would load the replies of one comment instead of the next twenty comments.
+ */
+function ytCommentsNextToken( answer ) {
+    var endpoints = ( answer && answer.onResponseReceivedEndpoints ) || [],
+        token = "",
+        i, j, command, items, last;
+
+    for( i = 0; i < endpoints.length; i++ ) {
+        // the first page arrives as a "reload", every page after it as an "append"
+        command = endpoints[i].reloadContinuationItemsCommand || endpoints[i].appendContinuationItemsAction;
+        items = ( command && command.continuationItems ) || [];
+
+        for( j = 0; j < items.length; j++ ) {
+            last = items[j].continuationItemRenderer;
+
+            if( last && last.continuationEndpoint && last.continuationEndpoint.continuationCommand ) {
+                token = last.continuationEndpoint.continuationCommand.token || token;
+            }
+        }
+    }
+
+    return token;
+}
+
+/*
+ * ytCommentBodies
+ * The comment texts of one page, as the plain strings the detector wants. Two shapes, because
+ * YouTube changed this one: today the thread renderers only REFERENCE their comment and the
+ * text arrives in the frameworkUpdates entity batch (commentEntityPayload), while the older
+ * answers carried it inside the thread itself (commentRenderer.contentText). The old shape is
+ * only read when the new one gave nothing, so a page that ships both cannot count double.
+ */
+function ytCommentBodies( answer ) {
+    var bodies = [];
+
+    ytFindDeep( answer, "commentEntityPayload", function( payload ) {
+        var content = payload && payload.properties && payload.properties.content;
+
+        if( content && content.content ) bodies.push( content.content );
+    });
+
+    if( !bodies.length ) {
+        ytFindDeep( answer, "commentRenderer", function( comment ) {
+            var text = comment && comment.contentText;
+
+            if( !text ) return;
+
+            if( text.simpleText ) {
+                bodies.push( text.simpleText );
+            } else if( text.runs ) {
+                bodies.push( text.runs.map( function( run ) { return run.text || ""; } ).join( "" ) );
+            }
+        });
+    }
+
+    return bodies;
+}
+
+/*
+ * getYtVideoComments
+ * The top-level comments of a video as plain strings - what the Page Creator's loadComments
+ * hands over. Replies are left out: they are behind a continuation of their own, and a
+ * tracklist is not written as a reply.
+ * Every answer can outlive the page it was asked for, so each step checks the page generation
+ * before spending the next request (see mdbPageGeneration in global.js). An empty array on
+ * every failure - the box then simply stays away, as it does for a video with no tracklist.
+ */
+function getYtVideoComments( ytId, done ) {
+    logFunc( "getYtVideoComments" );
+
+    var pageGeneration = mdbPageGeneration,
+        bodies = [],
+        pages = 0;
+
+    function readPage( token ) {
+        ytInnertubeNext({ continuation: token }, function( answer ) {
+            if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            pages++;
+            bodies = bodies.concat( ytCommentBodies( answer ) );
+
+            logVar( "getYtVideoComments: comments read after page " + pages, bodies.length );
+
+            var next = ytCommentsNextToken( answer );
+
+            // One more page only while nothing has been found: the detector runs again over
+            // everything in the creator, so this ask is purely about whether the next request
+            // is worth sending.
+            if( next && pages < ytCommentPagesMax && !mdbTracklist_detectInComments( bodies ) ) {
+                readPage( next );
+                return;
+            }
+
+            done( bodies );
+        });
+    }
+
+    ytInnertubeNext({ videoId: ytId }, function( answer ) {
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+        var token = ytCommentsToken( answer );
+
+        if( !token ) {
+            log( "getYtVideoComments: no comment section in the answer - comments are off for this video, or YouTube did not answer this session (see getYtVideoData)." );
+            done( [] );
+            return;
+        }
+
+        readPage( token );
+    });
+}
+
+/*
  * MixesDB Page Creator (shared/page_creator/)
  * The suggested-title row above the toolkit, in the #mdb-yt-extras wrapper. Everything
  * site-specific is read off the video data here and handed over - the creator itself never
@@ -523,8 +752,9 @@ function getYtVideoData( ytId, done ) {
  * not fall back to its name as artist/entity without backing (the name standing in the title,
  * a curated map entry, or MixesDB knowing it) - see mdbPageCreator_add()'s header comment.
  * The description IS handed to the shared tracklist detection, like on SoundCloud: YouTube
- * uploaders write their tracklist into it often enough. No loadComments - reading YouTube
- * comments would need its own API, and the description is the reliable source here.
+ * uploaders write their tracklist into it often enough. loadComments is handed over as well,
+ * for the ones who do not - see the Comments section above; it is only ever called when the
+ * description held nothing.
  */
 function addYtPageCreator( ytId, dur_sec ) {
     // the video lookup can be a round trip - drop the answer if the user has clicked on to
@@ -568,15 +798,20 @@ function addYtPageCreator( ytId, dur_sec ) {
 
         ytPageCreatorSettled = true; // the row is in - the skeleton may reveal now
 
-        // the tracklist an uploader wrote into the description, as an editable box below the
-        // toolkit that rides along into the created page
-        if( data.description ) {
-            mdbPageCreator_addTracklist({
-                description: data.description,
-                target:      "#mdb-toolkit",
-                placement:   "after"
-            });
-        }
+        // The tracklist an uploader wrote into the description, as an editable box below the
+        // toolkit that rides along into the created page - and, when the description holds
+        // none, the one somebody posted as a comment.
+        // Not gated on a description being there: a video with an empty description is exactly
+        // the case where the comments are the only source, and the detector answers an empty
+        // text with "nothing found" like any other.
+        mdbPageCreator_addTracklist({
+            description:  data.description,
+            loadComments: function( done ) {
+                getYtVideoComments( ytId, done );
+            },
+            target:       "#mdb-toolkit",
+            placement:    "after"
+        });
     });
 }
 
@@ -791,6 +1026,19 @@ if( typeof onUrlChange === "function" ) {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.1
+ * The tracklist box no longer needs the description: when the uploader wrote none, the video's
+ * top COMMENTS are read for one (getYtVideoComments). YouTube has no endpoint for comments, so
+ * it is /youtubei/v1/next twice - once for the video, which hands out the comment section's
+ * continuation token, once with that token for a page of comments - same origin and no API key,
+ * like the player call above it. Two pages at most, and the second only when the first held
+ * nothing; a video whose description carries the tracklist costs no request at all. The shared
+ * detector (tracklist_detector.js v_15) decides what is a tracklist, as it does for the
+ * description, and it learned the shape these comments are written in on the way: a timestamp
+ * in front of every track ("00:36 = Power Tool - Madness") is put into the brackets MixesDB
+ * writes a cue in, because the API reads the bare form as the line's numbering and leaves
+ * "# 36 = Power Tool - Madness" of it.
  *
  * 2026.08.27.6
  * Via the shared Page Creator (page_creator.js v_121): the lead artwork line no longer goes
