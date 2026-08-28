@@ -650,9 +650,17 @@ function mdbModal_frame( url, front ) {
     } else {
         logVar( "mdbModal_frame builds", url );
 
+        // The NAME is what a userscript running INSIDE the frame recognizes us by
+        // (window.name === "mdbModal"): a userscript manager injects into frames as well,
+        // and a script that has to know whether it is in our popup - TrackId.net's does,
+        // where it runs reduced - cannot ask the DOM around it. The class is ours to read
+        // from out here, the name is theirs to read from in there.
+        // Set before the node is inserted, so the browsing context is named from its very
+        // first load; the framed document then sees it on the first line it runs.
+        // Cross-origin-safe both ways: window.name is the frame's own property.
         entry = {
             url: url,
-            node: $("<iframe>").addClass( "mdb-modal-frame" ).attr( "src", url )[0]
+            node: $("<iframe>").addClass( "mdb-modal-frame" ).attr( "name", "mdbModal" ).attr( "src", url )[0]
         };
 
         frames.append( entry.node );

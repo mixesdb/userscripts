@@ -676,6 +676,29 @@ a.mdb-copy-text-button:focus,
 /* soundcloud.com */
 .mdb-toolkit.soundcloud-com {
     margin-bottom: 5px !important;
+
+    /*
+     * SoundCloud lets links inherit their color, so a plain <a> of ours renders in the color
+     * of the surrounding text and does not read as a link at all. Take the site's own link
+     * color instead: --link-standard-color is a var SoundCloud redefines per theme on <body>
+     * (#699fff on the dark listen page, #044dd2 on light surfaces), so the var follows the
+     * theme by itself. The fallback is the DARK value, not the light one: it only ever fires
+     * in the new Material layout's own document, which does not carry SoundCloud's legacy
+     * vars and is dark - a #044dd2 there would be unreadable.
+     *
+     * Left out on purpose, all three have a look of their own already:
+     * - a.mdb-mixesdbLink.mixPage - the orange MixesDB highlight further down
+     * - the EDIT/HIST pills - .mdb-mixesdbLink too, and colored as pills, not as links
+     * - a.mdb-copy-text-button - a button that happens to be an <a>
+     *
+     * SoundCloud has no visited color of its own (it does not distinguish the state
+     * anywhere), so :visited is pinned to the same value, which keeps the browser's default
+     * purple out.
+     */
+    & a:not(.mdb-mixesdbLink):not(.mdb-copy-text-button),
+    & a:not(.mdb-mixesdbLink):not(.mdb-copy-text-button):visited {
+        color: var(--link-standard-color, #699fff);
+    }
 }
 
 /* toxicfamily.de */
