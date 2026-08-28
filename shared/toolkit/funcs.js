@@ -1556,6 +1556,23 @@ function toolkit_addTidLink( playerUrl, title ) {
 
                     if( trackidurl ) {
                         li_tidLink_out += '<a href="'+trackidurl+'" target="_top">This player exists on TrackId.net</a>';
+
+                        /*
+                         * The blue eye behind it: frames that TrackId.net page ON the player
+                         * site (shared/mixesdb_modal/funcs.js) - "is this the same mix?",
+                         * "is its tracklist worth taking over?" answered without leaving the
+                         * player and its playback state. The mirror image of the eye the
+                         * TrackId.net script puts behind the same link on mixesdb.com.
+                         * The submit link gets NONE, for the reason given there: a framed
+                         * page is signed out (third-party frames get their own partitioned
+                         * storage, where TID's session token is not), and the submit form is
+                         * of no use signed out.
+                         * typeof-guarded like every other caller - a site script that does
+                         * not @require the modal file still gets its row, just without eye.
+                         */
+                        if( typeof mdbModal_eyeLink === "function" ) {
+                            li_tidLink_out += mdbModal_eyeLink( trackidurl );
+                        }
                     }
 
                     if( lastCheckedAgainstMixesDB ) {
