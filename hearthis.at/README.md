@@ -15,8 +15,8 @@ Below the track header: is this track already used on MixesDB – see
 
 hearthis.at players are embedded on MixesDB under two different URLs: the readable
 `hearthis.at/user/track/` one and the numeric `hearthis.at/12345/` one the embed uses. Both are
-looked up, so a track already on MixesDB is found no matter which of the two was used there, and
-both are offered as copy-paste player URLs.
+looked up, so a track already on MixesDB is found no matter which of the two was used there, but
+only the numeric URL is listed as copy-paste player URL – the same one the Embed URL field shows.
 
 ### MixesDB Page Creator
 

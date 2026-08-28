@@ -976,6 +976,22 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
         playerUrl_possibleUsageVariants = 2;
     }
 
+    /*
+     * The URL that is LISTED under Used/Unused players - not necessarily the one that is searched.
+     * hearthis.at is searched under both of its forms (canonical /<user>/<permalink>/ and the
+     * numeric /<id>/), because a MixesDB page may carry either one. Listing both of them only
+     * shows the same mix twice, so both runs list the numeric URL - the form MixesDB embeds and
+     * the one the Embed URL input above already shows. The cleanup's text-based de-duplication
+     * then drops the second, identical list item.
+     */
+    var listedUrl = thisUrl;
+
+    if( domain == "hearthis.at" && embedUrl && isHearthisIdUrl( embedUrl ) ) {
+        listedUrl = embedUrl;
+    }
+
+    logVar( "listedUrl", listedUrl );
+
     var class_solvedUrlVariants = "";
 
     /*
@@ -1138,7 +1154,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                             if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
 
                             $("ul", jNode).append(
-                                makeAvailableLinksListItem(thisUrl, titleText, "used", class_solvedUrlVariants, toolboxIteration)
+                                makeAvailableLinksListItem(listedUrl, titleText, "used", class_solvedUrlVariants, toolboxIteration)
                             );
 
                             reorderToolkitPlayerUrlListItems(jNode);
@@ -1204,7 +1220,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 if (!jNode.length || !$last.length || jNode[0] !== $last[0]) return;
 
                                 $("ul", jNode).append(
-                                    makeAvailableLinksListItem(thisUrl, titleText, "unused", class_solvedUrlVariants, toolboxIteration)
+                                    makeAvailableLinksListItem(listedUrl, titleText, "unused", class_solvedUrlVariants, toolboxIteration)
                                 );
 
                                 reorderToolkitPlayerUrlListItems(jNode);
@@ -1229,7 +1245,7 @@ function getToolkit_run( thisUrl, type, outputType="detail page", wrapper, inser
                                 }
 
                                 $("ul", jNode).append(
-                                    makeAvailableLinksListItem(thisUrl, titleText, unclear, class_solvedUrlVariants, toolboxIteration)
+                                    makeAvailableLinksListItem(listedUrl, titleText, unclear, class_solvedUrlVariants, toolboxIteration)
                                 );
 
                                 reorderToolkitPlayerUrlListItems(jNode);
