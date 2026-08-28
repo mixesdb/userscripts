@@ -771,6 +771,32 @@ function mdbPageCreator_artwork() {
     return fromPage || mdbPageCreator_artworkUrl;
 }
 
+// the file types MixesDB's uploader takes; anything else in the URL is not an artwork we could
+// upload under that name, so the siblings' vote keeps deciding
+var mdbPageCreator_imageExts = { jpg: "jpg", jpeg: "jpg", png: "png", gif: "gif", webp: "webp" };
+
+// mdbPageCreator_artworkExt
+// The extension of THIS player's artwork, read off the URL the upload form is going to be given
+// (mdbPageCreator_artwork - #mdb-artwork-input holds the original the site really serves, e.g.
+// "...-tGWbdQ-original.png"), or "" where there is no URL yet or it names no known image type.
+function mdbPageCreator_artworkExt() {
+    var url = String( mdbPageCreator_artwork() || "" ).split( /[?#]/ )[0],
+        file = url.substring( url.lastIndexOf( "/" ) + 1 ),
+        m = /\.([a-z0-9]{2,5})$/i.exec( file );
+
+    return ( m && mdbPageCreator_imageExts[ m[1].toLowerCase() ] ) || "";
+}
+
+// mdbPageCreator_leadImageExt
+// The extension the [[File:]] line is written with. The siblings' majority (findings.imageExt)
+// only ever says what the SERIES usually uploads - this episode's artwork is a fact, and a
+// series that is 8 jpg / 2 png still gets a .png line when this player's original is a PNG
+// (reported 2026-08-28: Amplify Series 136 is a PNG among jpg siblings). The vote stays the
+// fallback for the moment before the artwork URL is on the page, and .jpg behind that.
+function mdbPageCreator_leadImageExt( findings ) {
+    return mdbPageCreator_artworkExt() || ( findings && findings.imageExt ) || "jpg";
+}
+
 // mdbPageCreator_pageText
 // The wikitext a new mix page starts as. Only what the site page can actually answer for is
 // filled in: the file details, the player, the tracklist the description gave away and the
@@ -781,9 +807,11 @@ function mdbPageCreator_artwork() {
 // rendered in the reasoning panel's "Page text analysis of recent mixes" section):
 //
 // - the leading artwork line, written with the LITERAL title (read off the field like the
-//   categories, so a corrected title takes the image name with it). The extension is the one
-//   the siblings use - a wrong guess costs nothing, MixesDB's inline uploader rewrites the
-//   extension in the page text when the uploaded file differs.
+//   categories, so a corrected title takes the image name with it). The extension is THIS
+//   player's artwork's own (mdbPageCreator_leadImageExt, off the URL the upload form gets),
+//   with the siblings' majority as the fallback - a wrong guess costs nothing either way,
+//   MixesDB's inline uploader rewrites the extension in the page text when the uploaded file
+//   differs.
 // - the file details body: where the series uses a {{StandardShow*}} template, the table (and
 //   with it this file's duration) must not be written - the template states the show's
 //   standard length instead.
@@ -802,7 +830,7 @@ function mdbPageCreator_pageText( title ) {
         body = mdbPageCreator_recentBodyChoice( findings );
 
     if( findings && findings.image && findings.image.value === "same" ) {
-        lead = "[[File:" + mdbPageCreator_fileNameForTitle( title ) + "." + ( findings.imageExt || "jpg" ) + "|right|360px]]\n\n";
+        lead = "[[File:" + mdbPageCreator_fileNameForTitle( title ) + "." + mdbPageCreator_leadImageExt( findings ) + "|right|360px]]\n\n";
     }
 
     // An empty line where no URL was found: the heading is the point, not the link. A section
@@ -7544,15 +7572,23 @@ function mdbPageCreator_reasoningRecentText( title ) {
                 : " (" + skipped + " live recordings left out - their artwork is the event's flyer, named after the event)" )
             : "";
 
+    // The extension is not the siblings' business where this player's artwork answers for
+    // itself (mdbPageCreator_leadImageExt) - said out loud, since the row would otherwise
+    // promise a ".jpg" line and write a ".png" one.
+    var leadExt = mdbPageCreator_leadImageExt( f ),
+        extAside = ( f.imageExt && leadExt !== f.imageExt )
+            ? " - but this player's artwork is a ." + leadExt + ", which decides it"
+            : "";
+
     if( f.image && f.image.value === "same" ) {
         rows.push( { label: "Lead artwork",
-                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " open with an artwork named after the page itself (." + f.imageExt + ")" +
+                     detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " open with an artwork named after the page itself (." + f.imageExt + ")" + extAside +
                              // the majority verdict (mdbPageCreator_imageVerdict): says why the
                              // line is written although the count is under the usual 90%
                              ( f.image.weak
                                  ? ", the rest name theirs after something else - but not one of them is without an artwork -> "
                                  : " -> " ) +
-                             "the page text starts with [[File:<title>." + f.imageExt + "|right|360px]]" + imgAside } );
+                             "the page text starts with [[File:<title>." + leadExt + "|right|360px]]" + imgAside } );
     } else if( f.image && f.image.value === "none" ) {
         rows.push( { label: "Lead artwork",
                      detail: mdbPageCreator_reasoningRecentCount( f.image, whole ) + " carry no artwork -> no image line" + imgAside } );

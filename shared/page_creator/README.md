@@ -799,7 +799,8 @@ ends up used.
   score, while none found says nothing either way (older pages and other platforms are
   common). Then, one per signal: whether the pages open
   with an artwork named after the page itself (then the page text starts with the
-  `[[File:…|right|360px]]` line, in the extension the siblings use – the live recordings among
+  `[[File:…|right|360px]]` line, in the extension this player's artwork has, and the line says
+  so when that differs from the extension the siblings use – the live recordings among
   the siblings are left out of that count, and the line says how many; where the pages split
   between the two namings the line also says that not one of them is without an artwork, which
   is why the line is written under the usual 90%), whether the file details
@@ -862,8 +863,11 @@ placeholder rows and shows the real content in one step once the answers are in.
 Opens the edit form of the new page, prefilled with:
 
 - the leading `[[File:<page title>.jpg|right|360px]]` artwork line, where the entity's recent
-  pages open with an artwork named after the page itself – in the extension those artworks
-  use, and following the title field, so a corrected title takes the image name with it. Where
+  pages open with an artwork named after the page itself – in the extension **this player's own
+  artwork** has (the original the site serves, the one the upload form is handed), falling back
+  to the extension the siblings' artworks use where the page has no artwork URL yet. So a PNG
+  episode in a series of JPGs leads with a `.png` line. The name follows the title field, so a
+  corrected title takes the image name with it. Where
   the siblings name their artwork after something else (venues do) or carry none, no image
   line is invented. A **live recording** filed in a series category has no say here: its
   artwork is the event's flyer, named after the event, so a couple of `… @ Venue (Series 510)`

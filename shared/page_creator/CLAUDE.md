@@ -1011,7 +1011,11 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   `_categoryEntries()`) -
   `{{StandardShow2h}}` instead of the file details table (only when the player duration roughly
   fits its stated length, ±30%), the leading
-  `[[File:<literal title>.jpg|right|360px]]` in the extension the siblings use, the
+  `[[File:<literal title>.jpg|right|360px]]` - whose EXTENSION is this player's own artwork's
+  (`mdbPageCreator_leadImageExt()` off `mdbPageCreator_artwork()`, i.e. `#mdb-artwork-input`,
+  the original the upload form is handed; asked for 2026-08-28 off a PNG episode in a jpg
+  series), with the siblings' majority only as the fallback for the moment the artwork URL is
+  not on the page yet - the
   `== Notes ==` section (signal D, 2026-08-19) and the shape of the `{{Player}}`
   (signal E, 2026-08-19). Design and
   measurements in

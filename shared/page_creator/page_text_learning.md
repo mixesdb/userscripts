@@ -17,6 +17,11 @@
 > - **The extension IS voted on** (majority among the same-named lead artworks, tie -> `.jpg`),
 >   against the "always .jpg" section below - the example the feature was asked with names a
 >   `.png`, and the inline uploader's rewrite makes a wrong vote as free as a wrong constant.
+>   **Delta 2026-08-28: the vote is only the fallback now.** What the page text is written with
+>   is THIS player's artwork's own extension (`mdbPageCreator_leadImageExt()`, read off the URL
+>   in `#mdb-artwork-input` that the upload form is handed) - a fact beats a majority, and
+>   Amplify Series 136 is a PNG in a series of jpgs. The vote still decides in the moment
+>   before the artwork URL is on the page, and `.jpg` behind that.
 > - **The literal final title instead of `{{subst:PAGENAME}}`** in the `[[File:]]` line - the
 >   image line is built from the (editable) title field at click time like the categories, so
 >   a corrected title still takes the image name with it, and the inline uploader can match
