@@ -1834,6 +1834,17 @@ body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
 
 
 /*
+ * hearthis.at
+ *
+ * The row sits directly above the toolkit here, so it takes the toolkit's own margin
+ * (.mdb-toolkit.hearthis-at in global.css): the same 20px indent hearthis' track-detail
+ * header has, and the 25px below that becomes the gap to the toolkit.
+ */
+body.hearthis-at #mdb-pageCreator {
+    margin: 0 20px 25px 20px;
+}
+
+/*
  * trackid.net
  */
 body.trackid-net {
