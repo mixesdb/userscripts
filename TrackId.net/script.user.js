@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.5
+// @version      2026.08.28.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1064,8 +1064,8 @@ function funcTidPlayers( jNode, playerUrl, titleText ) {
  * child of the extras wrapper like the toolkit, not a visible part of the kept player.
  * Row and toolkit are SEPARATE stand-in boxes: the "pageCreator" one only where the row
  * really comes - funcTidPageCreator only builds it on audiostream detail pages with a
- * SoundCloud or YouTube player, and a grey box for a row that never arrives would reveal
- * into a hole.
+ * player it has a data source for (SoundCloud, YouTube, Mixcloud, hearthis.at), and a grey
+ * box for a row that never arrives would reveal into a hole.
  * The player URL is read off the wrapper (data-tidplayerurl), where both callers put it.
  * No height option: the values in page_creator.css are the one source of truth - an inline
  * height here would silently win over any value tuned in the CSS (the toolkit-only and the
@@ -1076,7 +1076,8 @@ function tidSkeleton_show() {
         playerDomain = getDomain_fromUrlStr( playerUrl ),
         // the same player types funcTidPageCreator builds a row for
         rowComes = urlPath_noParams(1) == "audiostreams" && urlPath_noParams(2)
-                   && ( playerDomain == "soundcloud.com" || playerDomain == "youtube.com" || playerDomain == "youtu.be" );
+                   && ( playerDomain == "soundcloud.com" || playerDomain == "youtube.com" || playerDomain == "youtu.be"
+                        || playerDomain == "mixcloud.com" || playerDomain == "hearthis.at" );
 
     mdbSkeleton_show({
         target: "#mdb-tid-audiostreamExtras",
@@ -1087,8 +1088,8 @@ function tidSkeleton_show() {
 
 /*
  * MixesDB Page Creator (shared/page_creator/)
- * The suggested-title row between the embedded player and the toolkit - SoundCloud and
- * YouTube players so far. Each player type has its own data source, because the TID page
+ * The suggested-title row between the embedded player and the toolkit - for every player
+ * type there is a data source for. Each player type has its own, because the TID page
  * itself only knows a normalized heading and a locale-formatted date, and the title builder
  * deserves better input than that:
  *   - SoundCloud: the SC track API (title, username, dates, duration, artwork, description),
@@ -1096,6 +1097,11 @@ function tidSkeleton_show() {
  *   - YouTube: TID's OWN public API (funcTidPageCreator_youtube below) - it stores the
  *     original YT title, channel name and upload date, which is everything the row needs,
  *     and it is a same-origin request with no token
+ *   - Mixcloud: api.mixcloud.com (funcTidPageCreator_mixcloud below), the same answer the
+ *     Mixcloud script reads - it allows trackid.net cross-origin, no token
+ *   - hearthis.at: api-v2.hearthis.at (funcTidPageCreator_hearthis below), the same answer
+ *     the hearthis.at script reads - ACAO *, no token; a numeric short URL costs one page
+ *     fetch first to learn the canonical URL the API answers under
  * The "Create" link does NOT use the shared description-tracklist detection: TID's own
  * tracklist box (#tlEditor, built from the identified tracks further down this file) is the
  * better tracklist, and the tracklistBox option points the Page Creator at it - whatever is in
@@ -1120,9 +1126,18 @@ function funcTidPageCreator( playerUrl ) {
         return;
     }
 
-    // Mixcloud/hearthis.at still need their own data source
+    if( playerDomain == "mixcloud.com" ) {
+        funcTidPageCreator_mixcloud( playerUrl );
+        return;
+    }
+
+    if( playerDomain == "hearthis.at" ) {
+        funcTidPageCreator_hearthis( playerUrl );
+        return;
+    }
+
     if( playerDomain != "soundcloud.com" ) {
-        log( "funcTidPageCreator: not a SoundCloud or YouTube player - no Page Creator row yet." );
+        log( "funcTidPageCreator: no Page Creator data source for this player type (" + playerDomain + ") - no row." );
         return;
     }
 
@@ -1278,6 +1293,180 @@ function funcTidPageCreator_youtube( playerUrl ) {
         },
         error: function( jqXHR, textStatus, errorThrown ) {
             log( "funcTidPageCreator_youtube: FAILED to read the TID API (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
+        }
+    });
+}
+
+/*
+ * funcTidPageCreator_mixcloud
+ * The Mixcloud route of the Page Creator row. Same data source as the Mixcloud script:
+ * api.mixcloud.com under the show's own URL - it answers trackid.net cross-origin (verified
+ * 2026-08-28) and needs no token. audio_length doubles as the "is this a show?" guard: the
+ * same API describes playlists and profiles, and those carry none.
+ * channelTrust "low" like on YouTube: a Mixcloud account is a broadcaster or re-uploader at
+ * least as often as it is who played - see mdbPageCreator_add()'s header comment in
+ * shared/page_creator/page_creator.js.
+ */
+function funcTidPageCreator_mixcloud( playerUrl ) {
+    logFunc( "funcTidPageCreator_mixcloud" );
+
+    var apiUrl = removeParametersFromUrl( playerUrl ).replace( /(www\.)?mixcloud\.com/, "api.mixcloud.com" ),
+        // one round trip - drop the answer if the reader has clicked on to the next
+        // audiostream meanwhile (see mdbPageGeneration in global.js)
+        pageGeneration = mdbPageGeneration;
+
+    logVar( "funcTidPageCreator_mixcloud: apiUrl", apiUrl );
+
+    $.ajax({
+        dataType: "json",
+        url: apiUrl,
+        success: function( data ) {
+            if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            if( !data || !data.name || !data.audio_length ) {
+                log( "funcTidPageCreator_mixcloud: the API answered without a show (name/audio_length missing) - no Page Creator row." );
+                return;
+            }
+
+            // The original-size artwork for MixesDB's upload form: /unsafe/0x0/ asks the
+            // thumbnailer for the unscaled image (same trick as the Mixcloud script).
+            var artworkUrl = "";
+            if( data.pictures ) {
+                artworkUrl = ( data.pictures.extra_large || data.pictures.large || "" ).replace( /\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/" );
+            }
+
+            logVar( "funcTidPageCreator_mixcloud: title", data.name );
+            logVar( "funcTidPageCreator_mixcloud: channel", data.user ? data.user.name : "" );
+            logVar( "funcTidPageCreator_mixcloud: created_time", data.created_time );
+
+            mdbPageCreator_add({
+                title:        data.name,
+                channel:      ( data.user && data.user.name ) ? data.user.name : "",
+                // Mixcloud accounts are often not who played - see the function comment
+                channelTrust: "low",
+                createdAt:    data.created_time,
+                durationMs:   data.audio_length * 1000,
+                // the canonical show URL off the API - the form MixesDB embeds
+                playerUrl:    data.url || removeParametersFromUrl( playerUrl ),
+                channelUrl:   ( data.user && data.user.url ) ? data.user.url : "",
+                artworkUrl:   artworkUrl,
+                // the TITLE builder reads the labels a description tracklist credits out of
+                // this ("Artist - Title [Label]") - the tracklist itself comes from the TID
+                // box, see tracklistBox below
+                description:  data.description || "",
+                // the values above are Mixcloud's, so a report reads "MC title:" here
+                sourceLabel:  "MC",
+                // same placement as the SoundCloud route - see the comment there
+                target:       ".mdb-player-audiostream",
+                placement:    "after",
+                // TID's own tracklist box and style suggestions, read at click time
+                tracklistBox: "#tlEditor #mixesdb-TLbox",
+                stylesBox:    "#mixesdb-TIDstyles"
+            });
+        },
+        error: function( jqXHR, textStatus, errorThrown ) {
+            log( "funcTidPageCreator_mixcloud: FAILED to read the Mixcloud API (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
+        }
+    });
+}
+
+/*
+ * funcTidPageCreator_hearthis
+ * The hearthis.at route of the Page Creator row. Same data source as the hearthis.at script:
+ * api-v2.hearthis.at under the canonical /<user>/<permalink>/ URL - it answers any origin
+ * (verified 2026-08-28) and needs no token. The numeric short URL has no API endpoint, so
+ * that form costs one fetch of the page first: its HTML names the canonical URL in og:url
+ * (the same page fetch embed_hearthis_fromAnyUrl() in global.js does for the embed id).
+ * Dots are removed from the slug the way the toolkit handler does it - hearthis strips them
+ * from its canonical URLs, and the dotted form only answers with a redirect.
+ * channelTrust "low" like on YouTube: a hearthis.at account is a broadcaster or re-uploader
+ * at least as often as it is who played - see mdbPageCreator_add()'s header comment in
+ * shared/page_creator/page_creator.js.
+ */
+function funcTidPageCreator_hearthis( playerUrl ) {
+    logFunc( "funcTidPageCreator_hearthis" );
+
+    // each round trip below checks this - drop answers for an audiostream the reader has
+    // already left (see mdbPageGeneration in global.js)
+    var pageGeneration = mdbPageGeneration;
+
+    // numeric short URL: one fetch of the page to learn the canonical URL, then this
+    // function again with it (the fresh call re-captures the page generation)
+    if( isHearthisIdUrl( playerUrl ) ) {
+        $.ajax({
+            url: playerUrl,
+            success: function( html ) {
+                if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+                var m = String( html ).match( /property="og:url" content="([^"]+)"/ );
+
+                if( m && m[1] && !isHearthisIdUrl( m[1] ) ) {
+                    funcTidPageCreator_hearthis( m[1] );
+                } else {
+                    log( "funcTidPageCreator_hearthis: the numeric URL's page names no canonical og:url - no Page Creator row." );
+                }
+            },
+            error: function( jqXHR, textStatus, errorThrown ) {
+                log( "funcTidPageCreator_hearthis: FAILED to read the page behind the numeric URL (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
+            }
+        });
+        return;
+    }
+
+    var apiUrl = removeParametersFromUrl( playerUrl ).removeDotsFromUrlSlug()
+                     .replace( /^https?:\/\/(www\.)?hearthis\.at\//, "https://api-v2.hearthis.at/" );
+
+    logVar( "funcTidPageCreator_hearthis: apiUrl", apiUrl );
+
+    $.ajax({
+        dataType: "json",
+        url: apiUrl,
+        success: function( t ) {
+            if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+            if( !t || !t.title ) {
+                log( "funcTidPageCreator_hearthis: the API answered without a title - no Page Creator row." );
+                return;
+            }
+
+            // created_at is the uploader's local time without a zone marker, which every
+            // reader's browser would read in their OWN zone - release_timestamp is the same
+            // moment as unix time, so it is the one that parses unambiguously
+            var createdAt = t.release_timestamp
+                                ? new Date( t.release_timestamp * 1000 ).toISOString()
+                                : ( t.created_at || "" );
+
+            logVar( "funcTidPageCreator_hearthis: title", t.title );
+            logVar( "funcTidPageCreator_hearthis: channel", t.user ? t.user.username : "" );
+            logVar( "funcTidPageCreator_hearthis: createdAt", createdAt );
+
+            mdbPageCreator_add({
+                title:        t.title,
+                channel:      ( t.user && t.user.username ) ? t.user.username : "",
+                // hearthis.at accounts are often not who played - see the function comment
+                channelTrust: "low",
+                createdAt:    createdAt,
+                // the API writes seconds as a string
+                durationMs:   ( parseInt( t.duration, 10 ) || 0 ) * 1000,
+                // the numeric short URL - the form MixesDB embeds (see hearthis.at/README.md)
+                playerUrl:    t.id ? "https://hearthis.at/" + t.id + "/" : removeParametersFromUrl( playerUrl ),
+                channelUrl:   ( t.user && t.user.permalink_url ) ? t.user.permalink_url : "",
+                // w800 is the largest size the thumbnailer really holds - bigger only upscales
+                artworkUrl:   t.artwork_url_retina || t.artwork_url || "",
+                // for the title builder's label reading - the tracklist comes from the TID box
+                description:  t.description || "",
+                // the values above are hearthis.at's, so a report reads "HT title:" here
+                sourceLabel:  "HT",
+                // same placement as the SoundCloud route - see the comment there
+                target:       ".mdb-player-audiostream",
+                placement:    "after",
+                // TID's own tracklist box and style suggestions, read at click time
+                tracklistBox: "#tlEditor #mixesdb-TLbox",
+                stylesBox:    "#mixesdb-TIDstyles"
+            });
+        },
+        error: function( jqXHR, textStatus, errorThrown ) {
+            log( "funcTidPageCreator_hearthis: FAILED to read the hearthis.at API (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
         }
     });
 }
@@ -2516,6 +2705,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.6
+ * Page Creator row for Mixcloud and hearthis.at players too, now that both their site
+ * scripts carry the row - each with the same data source those scripts read
+ * (funcTidPageCreator_mixcloud: api.mixcloud.com, funcTidPageCreator_hearthis:
+ * api-v2.hearthis.at; both answer trackid.net cross-origin without a token, verified
+ * 2026-08-28). A numeric hearthis.at short URL costs one fetch of its page first, to learn
+ * the canonical URL in og:url - the API has no endpoint for the numeric form - and slugs
+ * lose their dots the way the toolkit handler already does it. channelTrust "low" and
+ * sourceLabel "MC"/"HT" like over there; tracklist and styles still come from TID's own
+ * boxes, read at click time. The loading skeleton's Page Creator stand-in now goes up for
+ * these players as well (tidSkeleton_show).
  *
  * 2026.08.28.4
  * Tracklist Importer merge, artist and title the WRONG WAY ROUND (merge_core.js v19, reported
