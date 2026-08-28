@@ -10,12 +10,18 @@ log( "/shared/mixesdb_modal/funcs.js loaded" );
  * not worth a tab. Grown out of the Page Creator's "Used categories" chips and moved here
  * because the toolkit's usage links open it too, on sites that load no Page Creator at all.
  *
- * Two things open it:
+ * Three things open it:
  *
  * - the Page Creator's category chips intercept the plain left click on a desktop-wide
  *   window (their own delegated handler in page_creator.js)
  * - the eye icon the toolkit renders behind a "used" mix page link - built by
  *   mdbModal_eyeLink() below, clicks handled down here
+ * - the same eye behind the TrackId.net links under the players on mixesdb.com
+ *   (TrackId.net/script.user.js), which is the one place where the framed page is NOT a
+ *   MixesDB page: on the wiki itself a MixesDB page in a popup would be pointless, and the
+ *   look worth having is the one at TrackId.net. Nothing in here is about MixesDB other than
+ *   the name - the framed URL is whatever the opener hands over, and the header's way out is
+ *   named after the site it leads to (mdbModal_extLabel).
  *
  * Everything that ASKS for a tab still gets one: cmd/ctrl/shift/alt and middle clicks fall
  * through to the links' own href/target (they stay real links), and so does a narrow window,
@@ -75,6 +81,23 @@ var mdbModal_minWidth = 1024,
     // whether mdbModal_ensureCss() already fired - one fetch per page, however often asked
     mdbModal_cssRequested = false;
 
+// How much of the box has to stay inside the window when it is dragged out of it, in px.
+// The point of dragging is being able to push the modal aside to read what is under it, so it
+// is allowed far out - but never so far that the header it is grabbed by is gone, which would
+// leave no way of pulling it back.
+var mdbModal_dragKeep = 140,
+    // Where the box sits relative to its centred place, in px - a transform, not a position,
+    // so the flex centring stays the resting state and 0/0 is always "as opened". Kept per
+    // modal: mdbModal_close() puts it back to 0.
+    mdbModal_dragX = 0,
+    mdbModal_dragY = 0,
+    // the running drag, or null - see mdbModal_dragStart for what it holds
+    mdbModal_drag = null,
+    // until when a click on the backdrop is ignored, as a timestamp. A drag whose pointer is
+    // released over the backdrop can end in a click on the OVERLAY - which closes the modal -
+    // wherever setPointerCapture() was not available to retarget the gesture onto the header.
+    mdbModal_dragUntil = 0;
+
 // The walk's link providers - one function per feature that has MixesDB links worth walking
 // (the Page Creator's chip rows, the toolkit's usage links), each returning its CURRENT
 // links as an array of nodes. A plain global array rather than a register function so the
@@ -123,12 +146,16 @@ function mdbModal_ensureCss() {
  * Page Creator's chips, since the look it serves is a side trip taken while working on THIS
  * page - so every modifier click, the context menu and a narrow window (where the delegated
  * handler below stands aside) all behave like any other link.
+ *
+ * extraClass is for a caller whose surroundings need one on the eye itself: the TrackId.net
+ * links on mixesdb.com sit inside a .playerWrapper, where MediaWiki:Common.css stretches
+ * every element to width:100% unless it carries "fixedWidth".
  */
-function mdbModal_eyeLink( url ) {
+function mdbModal_eyeLink( url, extraClass ) {
     // the CSS styles the eye itself, so it is needed the moment one is rendered
     mdbModal_ensureCss();
 
-    return '<a href="' + url + '" class="mdb-modalEye" target="_blank" title="Preview this page in a popup right here - every other click opens it as usual">' +
+    return '<a href="' + url + '" class="mdb-modalEye' + ( extraClass ? ' ' + extraClass : '' ) + '" target="_blank" title="Preview this page in a popup right here - every other click opens it as usual">' +
         '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>' +
         '</a>';
 }
@@ -257,10 +284,26 @@ function mdbModal_open( url ) {
 
     logVar( "mdbModal_open mounts in", doc === document ? "this document" : "the top document" );
 
+    // Two userscripts of ours run on mixesdb.com/w/* (TrackId.net and 1001 Tracklists), each
+    // in its own sandbox with its own copy of this file - so ONE click on an eye reaches two
+    // delegated handlers and used to build two overlays, one behind the other, each loading
+    // the framed page again. They share the DOM though, so the overlay that is already there
+    // is what tells them apart: mdbModal_close() above has just taken OURS off the page, and
+    // anything still answering to the id belongs to the other instance, which got here first.
+    // It is a complete modal with its own keys and its own close - the second instance has
+    // nothing to add and stands down.
+    if( $( doc ).find( "#mdb-modal" ).length ) {
+        log( "mdbModal_open: another userscript instance already has a modal open on this page - standing down." );
+        return;
+    }
+
     var overlay = $("<div>")
         .attr( "id", "mdb-modal" )
         .addClass( "mdb-element" )
         .on( "click", function( e ) {
+            // the click a just-finished drag can leave behind is not a click beside the box
+            if( Date.now() < mdbModal_dragUntil ) return;
+
             // the dark backdrop closes, the box does not - e.target tells them apart
             if( e.target === this ) mdbModal_close();
         });
@@ -278,11 +321,12 @@ function mdbModal_open( url ) {
                 $("<span>").addClass( "mdb-modal-side" ),
                 mdbModal_nav(),
                 $("<span>").addClass( "mdb-modal-side mdb-modal-side-end" ).append(
+                    // no text yet: what this link is called depends on the page framed at
+                    // the moment, which mdbModal_show knows (mdbModal_extLabel)
                     $("<a>")
                         .addClass( "mdb-modal-ext" )
                         .attr( "target", "_blank" )
-                        .attr( "title", "Open this page as its own tab" )
-                        .text( "Open on MixesDB" ),
+                        .attr( "title", "Open this page as its own tab" ),
                     $("<button>")
                         .addClass( "mdb-modal-close" )
                         .attr( "type", "button" )
@@ -303,8 +347,181 @@ function mdbModal_open( url ) {
     // created once it is there, so no iframe is ever moved between documents (which reloads it)
     $( doc.body ).append( overlay );
 
+    // the header doubles as the box's handle - see mdbModal_dragStart
+    mdbModal_dragBind( overlay );
+
     mdbModal_show( url );
     mdbModal_bindKeys();
+}
+
+/*
+ * Dragging the box by its header
+ *
+ * The modal covers the middle of the window, which is usually exactly where the thing it was
+ * opened FROM sits - a category chip, the toolkit's row, the tracklist under it. Being able to
+ * shove the box aside and compare the two is why this exists, so the box may be pushed far out
+ * of the window; only mdbModal_dragKeep px of it and the whole height of its header have to
+ * stay reachable, or there would be nothing left to pull it back by.
+ *
+ * The first actual movement also clears the backdrop (class mdb-modal-undimmed, the fade is in
+ * the CSS): the reader is dragging the box away from something, and a blur over that something
+ * defeats the drag. It stays cleared for the rest of the modal's life - going dark again the
+ * moment the box is dropped would undo the look the drag was for.
+ *
+ * Pointer events, not mouse events, and captured on the header: the box is filled with a
+ * cross-origin iframe, which eats every mouse event the moment the pointer crosses into it -
+ * a drag would end wherever the frame begins. setPointerCapture() keeps the whole gesture on
+ * the header no matter what it travels over; where it is not available the document takes the
+ * move/up pair instead. The frames are additionally made pointer-transparent while a drag runs
+ * (class mdb-modal-dragging), which also keeps the framed page from selecting its own text.
+ */
+
+// mdbModal_dragBind
+// Hangs the gesture on the header of an overlay that is already on the page. Native
+// addEventListener rather than jQuery: the overlay may live in the TOP document, and the
+// pointer event's own properties (pointerId above all) are wanted untouched.
+function mdbModal_dragBind( overlay ) {
+    var head = overlay.find( ".mdb-modal-head" )[0];
+
+    if( !head ) return;
+
+    head.addEventListener( "pointerdown", mdbModal_dragStart );
+}
+
+// mdbModal_dragStart
+// Begins a drag - unless the header was grabbed by one of the controls sitting in it (the two
+// arrows, the close button, "Open on MixesDB"), which stay clickable.
+//
+// Everything the move needs is measured ONCE, here: the box's untransformed place in the
+// window (its current rect minus the offset it already carries) and its size. Re-measuring per
+// move would read a rect that already contains the offset being computed from it.
+function mdbModal_dragStart( e ) {
+    var head = e.currentTarget,
+        box = head.parentNode,
+        rect, target;
+
+    // only the primary button, and never the controls in the header
+    if( e.button !== 0 ) return;
+    if( $(e.target).closest( "button, a" ).length ) return;
+
+    rect = box.getBoundingClientRect();
+
+    mdbModal_drag = {
+        box: box,
+        head: head,
+        pointer: e.pointerId,
+        // where the pointer started, in the window the overlay hangs in
+        fromX: e.clientX,
+        fromY: e.clientY,
+        // and where the box stood when it was grabbed
+        startX: mdbModal_dragX,
+        startY: mdbModal_dragY,
+        // the box without any offset - what the clamp counts from
+        left: rect.left - mdbModal_dragX,
+        top: rect.top - mdbModal_dragY,
+        width: rect.width,
+        headHeight: head.getBoundingClientRect().height,
+        moved: false
+    };
+
+    // keeps the header's text from being selected while the box is dragged - which also takes
+    // the focus the click would have moved, so the box is focused by hand: a reader who has
+    // clicked into the framed page gets the arrow keys back by grabbing the header, and that
+    // has to keep working while the header is also the drag handle.
+    e.preventDefault();
+    box.focus();
+
+    target = head;
+
+    try {
+        head.setPointerCapture( e.pointerId );
+    } catch( err ) {
+        logVar( "mdbModal_dragStart: no pointer capture (" + err + ") - listening on the document instead" );
+        target = head.ownerDocument;
+    }
+
+    mdbModal_drag.target = target;
+
+    target.addEventListener( "pointermove", mdbModal_dragMove );
+    target.addEventListener( "pointerup", mdbModal_dragEnd );
+    target.addEventListener( "pointercancel", mdbModal_dragEnd );
+}
+
+// mdbModal_dragMove
+// One step of the gesture: the offset the pointer has travelled, clamped to what has to stay
+// on screen, written onto the box.
+function mdbModal_dragMove( e ) {
+    var d = mdbModal_drag,
+        win, keep, x, y;
+
+    if( !d || e.pointerId !== d.pointer ) return;
+
+    win = d.box.ownerDocument.defaultView;
+
+    x = d.startX + ( e.clientX - d.fromX );
+    y = d.startY + ( e.clientY - d.fromY );
+
+    // a box narrower than the margin we want to keep may not be clamped to more than itself
+    keep = Math.min( mdbModal_dragKeep, d.width );
+
+    // horizontally: keep px of the box stay inside either edge
+    x = Math.min( x, win.innerWidth - keep - d.left );
+    x = Math.max( x, keep - d.width - d.left );
+
+    // vertically: the header may not leave the window on either side - above the top edge it
+    // could not be grabbed again, below the bottom one it could not be seen
+    y = Math.min( y, win.innerHeight - d.headHeight - d.top );
+    y = Math.max( y, -d.top );
+
+    mdbModal_dragX = x;
+    mdbModal_dragY = y;
+
+    // the first real movement is what clears the backdrop and takes the frames out of the
+    // pointer's way - a plain click on the header changes nothing
+    if( !d.moved ) {
+        d.moved = true;
+
+        mdbModal_overlay().addClass( "mdb-modal-dragging mdb-modal-undimmed" );
+
+        logVar( "mdbModal_dragMove: drag started, backdrop cleared for", mdbModal_url );
+    }
+
+    mdbModal_dragApply();
+}
+
+// mdbModal_dragEnd
+// Drops the box where it is: the offset stays, only the listeners go. The cleared backdrop
+// stays cleared as well - see the section comment.
+function mdbModal_dragEnd( e ) {
+    var d = mdbModal_drag;
+
+    if( !d || ( e && e.pointerId !== d.pointer ) ) return;
+
+    d.target.removeEventListener( "pointermove", mdbModal_dragMove );
+    d.target.removeEventListener( "pointerup", mdbModal_dragEnd );
+    d.target.removeEventListener( "pointercancel", mdbModal_dragEnd );
+
+    try {
+        d.head.releasePointerCapture( d.pointer );
+    } catch( err ) {}
+
+    mdbModal_overlay().removeClass( "mdb-modal-dragging" );
+
+    // the click that follows this pointerup - see mdbModal_dragUntil
+    if( d.moved ) mdbModal_dragUntil = Date.now() + 300;
+
+    mdbModal_drag = null;
+}
+
+// mdbModal_dragApply
+// The offset onto the box. A transform, so nothing about the modal's layout is touched: the
+// overlay keeps centring the box, and 0/0 is the place it was opened in.
+function mdbModal_dragApply() {
+    var box = mdbModal_overlay().find( ".mdb-modal-box" )[0];
+
+    if( !box ) return;
+
+    box.style.transform = mdbModal_dragX || mdbModal_dragY ? "translate(" + mdbModal_dragX + "px, " + mdbModal_dragY + "px)" : "";
 }
 
 // mdbModal_bindKeys / mdbModal_unbindKeys
@@ -513,7 +730,9 @@ function mdbModal_nav() {
             .addClass( "mdb-modal-step" )
             .attr( "type", "button" )
             .attr( "data-mdb-dir", String( dir ) )
-            .attr( "title", "The " + what + " MixesDB link on the page (" + sign + ") - the walk goes round" )
+            // not "MixesDB link": on mixesdb.com the walk steps through the TrackId.net
+            // links under the players
+            .attr( "title", "The " + what + " link on the page (" + sign + ") - the walk goes round" )
             .text( sign )
             .on( "click", function() {
                 mdbModal_step( dir );
@@ -528,8 +747,8 @@ function mdbModal_nav() {
 }
 
 // mdbModal_show
-// Brings one page to the front of the modal that is already up - its "Open on MixesDB" link,
-// the counter and its frame.
+// Brings one page to the front of the modal that is already up - its way-out link in the
+// header, the counter and its frame.
 //
 // Nothing is torn down here. The frame of the page stepped away from stays loaded behind the
 // new one (mdbModal_frame), which is what makes a step back as immediate as a step on: only
@@ -545,7 +764,7 @@ function mdbModal_show( url ) {
 
     mdbModal_url = url;
 
-    overlay.find( "a.mdb-modal-ext" ).attr( "href", url );
+    overlay.find( "a.mdb-modal-ext" ).attr( "href", url ).text( mdbModal_extLabel( url ) );
 
     entry = mdbModal_frame( url, true );
 
@@ -562,6 +781,29 @@ function mdbModal_show( url ) {
     // had the focus before (a title field, the link that was clicked) would otherwise keep
     // answering the arrow keys
     box.trigger( "focus" );
+}
+
+// mdbModal_extLabel
+// What the header's way-out link is called for the page framed right now. It used to say
+// "Open on MixesDB" for good, which turned into a lie the moment something other than a
+// MixesDB page was framed - the TrackId.net links under the players on mixesdb.com do
+// exactly that. Named after the SITE rather than after the link, because that is the whole
+// information: the reader knows which page is in front of them, not where a plain "Open"
+// would take them. Anything we have no name for is called by its host, and a URL that does
+// not parse still gets a working link with a neutral label.
+function mdbModal_extLabel( url ) {
+    var host;
+
+    try {
+        host = new URL( url, window.location.href ).hostname.replace( /^www\./, "" );
+    } catch( e ) {
+        return "Open the page";
+    }
+
+    if( host.indexOf( "mixesdb.com" ) > -1 ) return "Open on MixesDB";
+    if( host.indexOf( "trackid.net" ) > -1 ) return "Open on TrackId.net";
+
+    return "Open on " + host;
 }
 
 // mdbModal_links
@@ -659,9 +901,14 @@ function mdbModal_count() {
 // hang in the top one (mdbModal_doc) - which is why the Page Creator's own reset for a new
 // page calls this too (mdbPageCreator_resetForNewPage).
 function mdbModal_close() {
+    mdbModal_dragEnd();
     mdbModal_unbindKeys();
     mdbModal_overlay().remove();
     mdbModal_node = null;
     mdbModal_frames = [];
     mdbModal_url = null;
+
+    // the next modal opens centred again - the offset belongs to the box that is now gone
+    mdbModal_dragX = 0;
+    mdbModal_dragY = 0;
 }

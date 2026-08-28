@@ -259,6 +259,14 @@ body.mixesdb-com .playerWrapper .tidLink {
         padding-right: 4px;
         margin-top: -3px !important;
     }
+
+    /* The modal's eye behind each link (shared/mixesdb_modal/): same width:100% fight as the
+       icons above - the link itself is excluded by the "fixedWidth" it is rendered with, the
+       svg inside it is not, so it is sized here. */
+    & a.mdb-modalEye svg {
+        width: 15px !important;
+        height: 15px;
+    }
 }
 
 body.mixesdb-com.ns-0 .playerWrapper .tidLink {
