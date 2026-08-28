@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.12
+// @version      2026.08.28.14
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -25,7 +25,6 @@
 // @include      http*trackid.net*
 // @include      http*mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=trackid.net
-// @noframes
 // @run-at       document-end
 // ==/UserScript==
 
@@ -36,12 +35,83 @@
  *
  * Load @ressource files with variables
  * global.js URL needs to be changed manually
+ * Only the declarations live up here: the CSS itself loads
+ * after the frame opt-out below, so foreign frames stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 213,
+var cacheVersion = 214,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Frame handling
+ *
+ * @noframes had to go so this script also runs INSIDE the MixesDB modal's iframe
+ * (shared/mixesdb_modal/): the "Exists on TrackId.net" links under the players on mixesdb.com
+ * frame a TID page right on the mix page, and without the script that page is TrackId.net's
+ * raw UI - no tracklist in wiki syntax and no real table, which is most of the reason to look
+ * at it at all.
+ *
+ * Every OTHER frame is none of our business and the script stands down there. Ours is
+ * recognized by the page that embeds it: mixesdb.com, where our own modal is the only thing
+ * framing trackid.net. location.ancestorOrigins is the exact answer where it exists (Chrome,
+ * Safari); Firefox has none, so the referrer of the framed document - which is the embedding
+ * page - answers the same question one step less directly.
+ *
+ * Inside that frame the script runs REDUCED, see tidInModal below: everything about the mix
+ * page - the embedded player, the toolkit, the Page Creator row, the loading skeleton - is
+ * already on the mixesdb.com page BEHIND the popup, and building it a second time inside a
+ * popup opened FROM it would be work done twice and read as a page inside a page.
+ *
+ * What the framed page can never be is signed in: a browser gives a third-party frame its own
+ * partitioned storage, and TrackId.net keeps its session in localStorage (no cookies), so the
+ * token simply is not there. Nothing in the reduced set needs it - the tracklist, the styles
+ * and the table are what a signed-out visitor sees too.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// tidModalFrame
+// Whether this instance runs in a frame that our own modal opened. Answers false in the top
+// document, where the question does not arise.
+function tidModalFrame() {
+    if( window.self === window.top ) return false;
+
+    var from = "";
+
+    try {
+        var ancestors = window.location.ancestorOrigins;
+
+        // the LAST entry is the top document - the one whose page the reader is on
+        from = ( ancestors && ancestors.length ) ? ancestors[ ancestors.length - 1 ] : document.referrer;
+    } catch( e ) {
+        from = document.referrer;
+    }
+
+    logVar( "tidModalFrame: this frame was embedded by", from );
+
+    return /^https?:\/\/([a-z0-9-]+\.)*mixesdb\.com([\/?#]|$)/i.test( from );
+}
+
+logVar( "window.self === window.top", window.self === window.top );
+
+const tidInModal = tidModalFrame();
+
+logVar( "tidInModal", tidInModal );
+
+if( window.self !== window.top && !tidInModal ) {
+    log( "STOPPING: this frame is not the MixesDB modal's - nothing to do here. (" + location.href + ")" );
+    return; // not a frame we have anything to do in
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Loading CSS
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + "shared/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion );
@@ -264,13 +334,16 @@ if( visitDomain == "trackid.net" ) {
  * Runs on mix pages (ns 0) and on MixesDB:Explorer/Mixes; the mix page half also fires on the
  * edit form's preview, where the players are rendered the same way.
  *
- * Every one of these links carries the blue eye of the shared MixesDB modal
- * (shared/mixesdb_modal/): a plain left click frames the TrackId.net page ON the mix page
+ * "Exists on TrackId.net" carries the blue eye of the shared MixesDB modal
+ * (shared/mixesdb_modal/): a plain left click frames that TrackId.net page ON the mix page
  * instead of leaving it. It is the same look the toolkit's eye answers on the player sites,
  * turned around - here the reader sits on MixesDB and the page worth a glance is the one at
- * TrackId.net ("is this the same mix?", "has this been submitted already?"), while the mix
+ * TrackId.net ("is this the same mix?", "is its tracklist worth taking over?"), while the mix
  * page they are working on, its players and a half-written edit stay where they are. Every
  * click that asks for a tab still gets one, since the eye is a real link.
+ *
+ * "Submit to TrackId.net" does NOT get one: a framed page is signed out (see the eye's own
+ * comment down at tidLink_submit), and the submit form is of no use signed out.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -390,11 +463,13 @@ if( visitDomain == "mixesdb.com" ) {
                         // avoid undefined error
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
-                            // the URL in a variable of its own: the eye behind the link
-                            // has to point at exactly the same page, or the walk cannot
-                            // find its position (mdbModal_index compares hrefs)
-                            var tidSubmitUrl = makeTidSubmitUrl( playerUrl, keywords ),
-                                tidLink_submit = '<a href="'+tidSubmitUrl+'" class="mdb-tidLink" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>' + tidLink_modalEye( tidSubmitUrl );
+                            // No eye on this one, and no mdb-tidLink either (which keeps it
+                            // out of the popup's arrow-key walk): submitting needs a
+                            // signed-in TrackId.net, and a framed page never is one - the
+                            // browser gives a third-party frame its own partitioned storage,
+                            // where TID's session token simply is not. The submit form has
+                            // to be a real tab.
+                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
                             playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
@@ -1539,7 +1614,18 @@ waitForKeyElements(".mdb-player-audiostream:not(.mdb-processed-toolkit)", functi
 });
 
 // embed player
+// Everything about the mix page hangs off this one handler: it builds
+// #mdb-tid-audiostreamExtras, and the toolkit registration above waits for the player inside
+// it, which is what the Page Creator row and the skeleton wait for in turn. Standing down
+// here is therefore the whole reduced mode of the modal frame - see the Frame handling block
+// at the top. No "return true": the frame is a frame for its whole life, so the node is
+// marked done rather than offered again three times a second.
 waitForKeyElements(".request-summary img.artwork", function( jNode ) {
+    if( tidInModal ) {
+        log( "In the MixesDB modal's frame: no player, no toolkit, no Page Creator row - they are on the page behind the popup." );
+        return;
+    }
+
     var playerUrl = jNode.closest("a").attr("href"),
         heading = $(".MuiGrid-root h1"),
         titleText = normalizeTitleForSearch( heading.text() );
@@ -2738,6 +2824,23 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.14
+ * The popup over a TrackId.net link is this script's page now, and the Submit link lost its
+ * eye. @noframes had to go for the first half: a userscript manager injects into top-level
+ * documents only, so the framed TID page was TrackId.net's raw UI - no tracklist in wiki
+ * syntax, no real table, which is most of what the look is for. The script now also starts
+ * in frames and stands down in every one that is not our modal's, recognized by the page
+ * embedding it (location.ancestorOrigins, document.referrer where there is none). Inside the
+ * frame it runs REDUCED, tidInModal: no embedded player, and with it no toolkit, no Page
+ * Creator row and no loading skeleton - all three are already on the mix page behind the
+ * popup. Tracklist box, cue switch, style suggestions and tables are what is left, which is
+ * what there is to copy from.
+ * The second half is the browser's, not ours: a page in a frame gets its own partitioned
+ * storage, and TrackId.net keeps its session in localStorage - so a framed TID page is always
+ * signed out and its cookie banner is always back. Nothing in the reduced set needs the
+ * account, but the submit form does, so "Submit to TrackId.net" is a plain link again and
+ * stays out of the popup's arrow-key walk.
  *
  * 2026.08.28.11
  * The MixesDB modal behind the TrackId.net links under the players on mixesdb.com

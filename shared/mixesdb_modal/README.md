@@ -11,10 +11,11 @@ Three things open it, on a desktop-sized window:
   *This mix is on MixesDB* row
 - a plain left click on the [Page Creator](../page_creator/)'s category chips and their
   recent mix pages
-- the same **blue eye icon** behind the *Exists on TrackId.net* and *Submit to TrackId.net*
-  links under the players on MixesDB – see [TrackId.net](../../TrackId.net/#links-under-the-players-on-mixesdb).
+- the same **blue eye icon** behind the *Exists on TrackId.net* links under the players on
+  MixesDB – see [TrackId.net](../../TrackId.net/#links-under-the-players-on-mixesdb).
   This is the one place where the framed page is not a MixesDB page: on the wiki itself the
-  look worth having is the one at TrackId.net
+  look worth having is the one at TrackId.net, and that page arrives with everything the
+  TrackId.net script makes of it – its tracklist in wiki syntax included
 
 - **Runs on:** every site whose script loads it – [SoundCloud](../../SoundCloud/),
   [Mixcloud](../../Mixcloud/), [YouTube](../../YouTube/), [RA](../../RA/),
@@ -82,3 +83,9 @@ the popup drops all of them. Nothing is fetched from MixesDB before a popup is a
   trackpad needs no click and leaves the keys alone.
 - On windows narrower than about 1024px the popup does not open at all – the eye and the chips
   then behave like the plain links they are.
+- A framed TrackId.net page is always **signed out**, and its cookie banner is back every time:
+  the browser gives a page in a frame its own separate storage, and TrackId.net keeps its
+  session there. Nothing worth framing needs the account – but anything that does (submitting a
+  request, amendments) belongs in a real tab. A framed MixesDB page can be signed out the same
+  way – it depends on how the browser treats cookies of a framed site – which shows as the
+  logged-out skin and changes nothing about reading the page.
