@@ -260,7 +260,7 @@ a.mdb-modalEye:hover,
 /* the toolkit underlines every hovered link with !important - outrun it by specificity */
 .mdb-toolkit a.mdb-modalEye:hover {
     display: inline-block;
-    margin-left: 6px;
+    margin-left: 3px;
     color: #4a90d2 !important;
     text-decoration: none !important;
     border: 0 !important;
@@ -275,7 +275,7 @@ a.mdb-modalEye:hover,
 }
 
 a.mdb-modalEye svg {
-    width: 15px;
-    height: 15px;
-    vertical-align: -2px;
+    width: 17px;
+    height: 17px;
+    vertical-align: -4px;
 }
