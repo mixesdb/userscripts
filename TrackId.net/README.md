@@ -154,12 +154,25 @@ the check mark and how long ago its tracklist was carried over, or a note that i
 or **Submit to TrackId.net**, which opens the [submit form](#submit-form) with the player URL and
 the page title already filled in.
 
-Both links open in a new tab, so the mix page you are working on stays where it is. Behind each
-one sits the blue eye of the [MixesDB modal](../shared/mixesdb_modal/): a click on it frames that
-TrackId.net page in a popup right on the mix page, and the arrow keys step from one player's
-TrackId.net page to the next. Nothing on the page below it moves – a half-written edit and a
-playing player included – and **Open on TrackId.net** in the popup's header opens the page as a
-tab after all.
+Both links open in a new tab, so the mix page you are working on stays where it is. Behind
+**Exists on TrackId.net** sits the blue eye of the [MixesDB modal](../shared/mixesdb_modal/): a
+click on it frames that TrackId.net page in a popup right on the mix page, and the arrow keys
+step from one player's TrackId.net page to the next. Nothing on the page below it moves – a
+half-written edit and a playing player included – and **Open on TrackId.net** in the popup's
+header opens the page as a tab after all.
+
+The framed page is this script's page: the [tracklist in wiki syntax](#tracklist-in-wiki-syntax)
+with its feedback and cue switch, the [style suggestions](#style-suggestions) and the
+[real table](#real-tables-instead-of-the-data-grid) are all there to copy from, inside the popup.
+What is not is everything the mix page behind the popup already carries – the embedded player,
+the toolkit, the Page Creator row – there is no point in building those a second time on top of
+themselves.
+
+The popup is always **signed out**, whatever your browser is signed into: a page in a frame gets
+its own separate storage from the browser, and that is where TrackId.net keeps the session. It
+costs nothing here, since tracklist, styles and table are public – but it is why **Submit to
+TrackId.net** has no eye and stays a plain link: submitting needs the account, so it needs a
+real tab.
 
 Only players TrackId.net can take are given a link. This was part of the
 [MixesDB Userscripts Helper](../MixesDB_Userscripts_Helper/) until 2026-08-26; it moved here

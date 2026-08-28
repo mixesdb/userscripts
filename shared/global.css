@@ -824,7 +824,7 @@ a.mdb-copy-text-button:focus,
 
     & img.mdb-checked-icon {
         width: 13px;
-        margin: 1px 4px -1px 0;
+        margin: 1px 0 -1px;
     }
 }
 

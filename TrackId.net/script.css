@@ -249,7 +249,7 @@ body.mixesdb-com .playerWrapper .tidLink {
     & .tidSubmit-icon {
         height: 14px;
         vertical-align: middle;
-        margin-top: -2px;
+        margin-top: -3px;
     }
 
     & .mdb-checked-icon {
@@ -264,8 +264,8 @@ body.mixesdb-com .playerWrapper .tidLink {
        icons above - the link itself is excluded by the "fixedWidth" it is rendered with, the
        svg inside it is not, so it is sized here. */
     & a.mdb-modalEye svg {
-        width: 15px !important;
-        height: 15px;
+        width: 16px !important;
+        height: 16px;
     }
 }
 
