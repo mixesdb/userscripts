@@ -1,4 +1,4 @@
-https://app.fanpagekarma.com/de/login/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Basics
  *
@@ -477,6 +477,29 @@ a.mdb-copy-text-button:focus,
     }
 }
 
+/*
+ * A clicked toolkit link keeps the look of a new one.
+ *
+ * On every site that colors plain <a>s at all, this is already the case and nothing here
+ * fires: a site rule written without :visited applies to visited links just as well, and an
+ * author rule always outranks the browser's own stylesheet no matter how weak it is. The
+ * purple only appears where a site colors no plain <a> (YouTube), or where the toolkit ends
+ * up in a document that does not carry the site's CSS at all - there the browser's default
+ * takes over, and its default paints a clicked link differently from a new one.
+ *
+ * LinkText IS the browser's default color for a NEW link (and follows color-scheme, so it
+ * stays readable on dark pages), which is why pinning :visited to it means "keep looking
+ * new" without this file ever naming a color of its own.
+ *
+ * :where() is the whole trick: it makes the selector weigh nothing (specificity 0,0,0), so
+ * this rule can only ever beat the browser's default and loses to every site rule and to
+ * every rule of ours further down. Never write this selector without it - a bare
+ * .mdb-toolkit a:visited would repaint the toolkit's links on the sites that style them.
+ */
+:where(.mdb-toolkit a:visited) {
+    color: LinkText;
+}
+
 /* nested lists */
 .mdb-toolkit li ul:not(.mdb-nolist) {
     margin: .15rem 0 0 !important;
@@ -678,25 +701,30 @@ a.mdb-copy-text-button:focus,
     margin-bottom: 5px !important;
 
     /*
-     * SoundCloud lets links inherit their color, so a plain <a> of ours renders in the color
-     * of the surrounding text and does not read as a link at all. Take the site's own link
-     * color instead: --link-standard-color is a var SoundCloud redefines per theme on <body>
-     * (#699fff on the dark listen page, #044dd2 on light surfaces), so the var follows the
-     * theme by itself. The fallback is the DARK value, not the light one: it only ever fires
-     * in the new Material layout's own document, which does not carry SoundCloud's legacy
-     * vars and is dark - a #044dd2 there would be unreadable.
+     * SoundCloud's own link color, taken from the var the site keeps it in:
+     * --link-standard-color is redefined per theme on <body> (#699fff on the dark listen
+     * page, #044dd2 on light surfaces), so the var follows the theme by itself. The fallback
+     * is the DARK value, not the light one: it only ever fires in the new Material layout's
+     * own document, which does not carry SoundCloud's legacy vars and is dark - a #044dd2
+     * there would be unreadable.
+     *
+     * SoundCloud's own rule is "a, a:visited { color: var(--link-standard-color) }", i.e. it
+     * already paints our links right on the pages that carry its CSS, and it already paints
+     * both states the same. This is what covers the pages that do NOT - the Material
+     * layout's document - where a plain <a> would otherwise fall back to the browser default
+     * and turn purple once clicked.
+     *
+     * Written WITHOUT :visited on purpose: a selector that does not name a link state
+     * matches visited links too, so one declaration covers both, and one is what "same color
+     * clicked or not" needs. (A :visited twin would be worse than redundant - Chrome does
+     * not resolve var() inside a :visited rule at all.)
      *
      * Left out on purpose, all three have a look of their own already:
      * - a.mdb-mixesdbLink.mixPage - the orange MixesDB highlight further down
      * - the EDIT/HIST pills - .mdb-mixesdbLink too, and colored as pills, not as links
      * - a.mdb-copy-text-button - a button that happens to be an <a>
-     *
-     * SoundCloud has no visited color of its own (it does not distinguish the state
-     * anywhere), so :visited is pinned to the same value, which keeps the browser's default
-     * purple out.
      */
-    & a:not(.mdb-mixesdbLink):not(.mdb-copy-text-button),
-    & a:not(.mdb-mixesdbLink):not(.mdb-copy-text-button):visited {
+    & a:not(.mdb-mixesdbLink):not(.mdb-copy-text-button) {
         color: var(--link-standard-color, #699fff);
     }
 }
@@ -767,16 +795,17 @@ a.mdb-copy-text-button:focus,
         margin-top: 10px !important;
     }
     
+    /* YouTube colors no plain <a> of its own, so these rows carry the color themselves.
+       No :visited half: the state used to dim the row to #ccc, which made a row the reader
+       had already clicked look switched off. One declaration, no link state named, so it
+       covers clicked and unclicked alike. */
     & .mdb-toolkit-usageLink,
     & .mdb-toolkit-tidLink {
         & a:hover {
             cursor: pointer;
         }
-        & a:not(:visited) {
+        & a {
             color: #fff;
-        }
-        & a:visited {
-            color: #ccc;
         }
     }
 }
@@ -888,12 +917,12 @@ a.mdb-copy-text-button:focus,
 .mdb-toolkit.soundcloud-com,
 .mdb-toolkit.trackid-net,
 .mdb-toolkit.youtube-com {
+    /* the EDIT/HIST pills. One color for both states, like the light-site block further
+       down already has it: a pill that dims to #ccc after the first click reads as disabled
+       rather than as visited. */
     & .mdb-mixesdbLink-actionLinks-wrapper {
-        & a:not(:visited) {
+        & a {
             color: #fff;
-        }
-        & a:visited {
-            color: #ccc;
         }
     }
 
