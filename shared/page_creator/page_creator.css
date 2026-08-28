@@ -147,14 +147,25 @@
 }
 
 /*
- * "Report" under the score - opens the report box below the row. Deliberately NOT styled as a
- * link: it is the same kind of side note as #mdb-pageCreator-beta above it, and the two sit in
- * one column, so it takes that grey and that size.
+ * "Report" under the score - opens the report box below the row.
+ *
+ * NO colour here on purpose: it is set inline by mdbPageCreator_syncReportColor()
+ * (page_creator.js), which copies the COMPUTED colour of the "Create" link in the same row onto
+ * it. That rule is not cosmetic, it is the fix for a bug that came back three times: every
+ * per-site attempt at "the link colour" (a --mui-* variable, a hardcoded blue, a fallback grey)
+ * only ever knew ONE of the layouts these scripts run in, and on the others "Report" fell back
+ * to a grey while "Create" two items away stood in the site's blue. Reading the colour off
+ * "Create" is the only version that cannot go out of step with it - see the "Report" link
+ * colour section in the Page Creator's CLAUDE.md.
+ *
+ * The grey below is only what "Report" looks like BEFORE that runs, and on the used-player debug
+ * row, which has no "Create" to take a colour from.
  *
  * Written with the wrapper's ID in front, which is not decoration: it is an <a>, and these sites
  * style their <a>s hard enough to beat a single ID (SoundCloud's Material layout paints it blue
  * and underlines it). Two IDs beat that without reaching for !important - the same reasoning as
- * the #tlEditor-feedback note further down.
+ * the #tlEditor-feedback note further down. No !important anywhere on this colour either: the
+ * inline style from the sync has to win over it.
  */
 #mdb-pageCreator #mdb-pageCreator-report {
     color: var(--mdb-grey-muted);
@@ -1342,6 +1353,176 @@
     border-color: rgba(255, 255, 255, 0.40);
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The hints bar on a LIGHT page
+ *
+ * Everything above assumes the bar sits on a dark page, which is where it was born
+ * (SoundCloud, TrackId.net). Mixcloud and YouTube follow the OS theme, so the same bar stands
+ * on white there: a #1d1d1d slab with #58c96b names on it, dropped into a white page.
+ *
+ * General, not per site - the class comes from a MEASUREMENT, not from a site name:
+ * mdbPageCreator_markPageTheme() in page_creator.js reads the real background behind the row
+ * and puts .mdb-pageCreator-onLight on the row when it is bright. A "prefers-color-scheme:
+ * light" media query could not do this job: it answers for the OS, and SoundCloud and
+ * TrackId.net stay dark no matter what the OS says - they would have lost their palette the
+ * moment the reader's Mac was in light mode.
+ *
+ * Only the COLOURS are restated here; every size, border width and layout rule above still
+ * holds. Same meanings too - green = the wiki has it, red = it does not, amber = take a look,
+ * grey = a fact - only darkened until they carry on white: the panel's #58c96b / #ef6a6a /
+ * #e3b341 were picked against #1d1d1d and read as pastel on a bright surface.
+ *
+ * Every selector starts with "#mdb-pageCreator.mdb-pageCreator-onLight", which is one class
+ * more than the darkest rule above states - that is what makes each of these win without a
+ * single !important.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* the bar itself: a light card instead of the dark slab - a hair off white, so it still reads
+   as its own box on a white page the way the slab does on a dark one */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints {
+    color: #3a3a3a;
+    background-color: #f6f6f6;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+/* the bar's muted greys - labels, notes, counts. #6a6a6a rather than the dark bar's #8b8b8b:
+   the same distance from the text colour, measured from the other side */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-hint-label,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-hintCat-note,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-plain > span,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-note,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-usedCat-mixes {
+    color: #6a6a6a;
+}
+
+/* the fit score behind a chip - the row score's colours darkened, same three bands */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-high { color: #1f8b34; }
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-mid  { color: #a86800; }
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat .mdb-pageCreator-catFit.mdb-pageCreator-score-low  { color: #c0392b; }
+
+/* the hairline pill of a chip with no verdict behind it, and of a "Switch title" chip: black
+   at the same faintness the dark bar used white */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-titleAlt {
+    border-color: rgba(0, 0, 0, 0.22);
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-plain {
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+/*
+ * The three verdict tints. --mdb-usedCat-border is restated wherever the dark rules set it:
+ * the open chip's neck, arc and box read it, so a chip that can fold out has to carry the
+ * light tint into every part of the fold-out as well.
+ */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known {
+    --mdb-usedCat-border: rgba(31, 139, 52, 0.45);
+    border-color: rgba(31, 139, 52, 0.45);
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing {
+    border-color: rgba(192, 57, 43, 0.45);
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-similar {
+    border-color: rgba(168, 104, 0, 0.45);
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole {
+    --mdb-usedCat-border: rgba(168, 104, 0, 0.45);
+    border-color: rgba(168, 104, 0, 0.45);
+}
+
+/* the category names themselves - :visited spelled out for the same reason it is above: an
+   unstated visited colour turns the name purple, and the colour IS the verdict */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a:visited,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-known > a:hover {
+    color: #1f8b34;
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a:visited,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-missing > a:hover {
+    color: #c0392b;
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-similar > a,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-similar > a:visited,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-similar > a:hover,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole > a,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole > a:visited,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-otherRole > a:hover {
+    color: #a86800;
+}
+
+/* the name the wiki was not asked about - the bar's own text colour, never red */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-unknown > span {
+    color: #3a3a3a;
+}
+
+/* the "N mixes" toggle: its dotted underline and its brightening hover, both turned around */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat a.mdb-pageCreator-usedCat-mixes {
+    border-bottom-color: rgba(106, 106, 106, 0.7);
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat a.mdb-pageCreator-usedCat-mixes:hover {
+    color: #222;
+    border-bottom-color: rgba(34, 34, 34, 0.7);
+}
+
+/*
+ * The open chip's fold-out. The neck's fill and the box's background are the BAR's colour, not
+ * the page's - that is what the dark rules used #1d1d1d for, and the box has to stay opaque:
+ * it hangs over whatever follows the bar.
+ */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open::after {
+    background-color: #f6f6f6;
+    border-left-color: var(--mdb-usedCat-border, rgba(31, 139, 52, 0.45));
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open::before {
+    border-left-color: var(--mdb-usedCat-border, rgba(31, 139, 52, 0.45));
+    border-bottom-color: var(--mdb-usedCat-border, rgba(31, 139, 52, 0.45));
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-open .mdb-pageCreator-usedCat-recent {
+    background-color: #f6f6f6;
+    border-color: var(--mdb-usedCat-border, rgba(31, 139, 52, 0.45));
+}
+
+/* one mix page per line - the ordinary link blue, darkened until it carries on white */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:visited,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent a:hover {
+    color: #1257a8;
+}
+
+/* the waiting spinner: the ring in the same muted grey, its track a fifth of it */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-usedCat-recent-waiting::before {
+    border-color: rgba(0, 0, 0, 0.20);
+    border-top-color: #6a6a6a;
+}
+
+/* the "Switch title" chip - candidate grey on a light page is dark text, and the hover
+   darkens rather than brightens */
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a,
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a:visited {
+    color: #3a3a3a;
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-titleAlt > a:hover {
+    color: #000;
+}
+
+#mdb-pageCreator.mdb-pageCreator-onLight #mdb-pageCreator-hints .mdb-pageCreator-titleAlt:hover {
+    border-color: rgba(0, 0, 0, 0.40);
+}
+
+
 /*
  * The MixesDB modal moved to its own shared feature: shared/mixesdb_modal/mixesdb_modal.css,
  * loaded by shared/mixesdb_modal/funcs.js itself - the toolkit's usage links open it too, on
@@ -1641,26 +1822,15 @@ body.soundcloud-com #mdb-sc-trackExtras #mdb-pageCreator-create:hover {
     color: var(--mui-palette-link-light, inherit);
 }
 
-/* 
+/*
  * soundcloud.com
+ *
+ * No "Report" colour rule here any more, and none belongs here again: the link takes the
+ * computed colour of "Create" inline (mdbPageCreator_syncReportColor in page_creator.js), which
+ * on this site is exactly the MUI link colour the rule that used to stand here tried to name -
+ * only without having to know which of SoundCloud's two layouts the row landed in. The
+ * !important it carried is gone with it: it beat the inline style.
  */
-body.soundcloud-com {
-    /*
-     * "Report" in the layout's own link colour.
-     *
-     * The literal is not decoration, it is what makes the rule work at all: the MUI variables
-     * only exist in the NEW layout's document (the webi iframe), and a var() that resolves to
-     * nothing makes the whole declaration invalid at computed-value time - which for an
-     * inherited property like "color" means "inherit", NOT "fall back to the grey rule above".
-     * So on every old-layout page this painted the link in the surrounding text colour instead
-     * of the blue, which is what "grey most of the time, blue now and then" was.
-     * #5590FC is the value --mui-palette-link-main resolves to in the new layout, so the link
-     * looks the same in both.
-     */
-    & #mdb-pageCreator #mdb-pageCreator-report {
-        color: var(--mui-palette-link-main, #5590FC) !important;
-    }
-}
 
 
 /*

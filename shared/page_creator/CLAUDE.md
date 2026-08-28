@@ -1466,6 +1466,41 @@ renders them. Settled, so it does not get re-litigated:
 - **A switch counts as an edit** (`mdb-edited`): the reading was chosen on purpose, and the
   next refresh or recent-pages refinement must not put the suggestion back over it.
 
+## The "Report" link colour
+
+**"Report" always wears the colour of the "Create" link in the same row, and never a grey of its
+own while "Create" stands in the site's blue.** They are the row's two links; one of them looking
+switched off reads as "this is not clickable", which is exactly wrong - the box behind it is the
+only way a wrong title ever becomes a case.
+
+The colour is therefore not stated in CSS at all. `mdbPageCreator_syncReportColor()` in
+`page_creator.js` reads the **computed** colour off `#mdb-pageCreator-create` once the row is in
+the page and writes it onto `#mdb-pageCreator-report` inline - at placement, on every refresh,
+and twice more shortly after (300ms / 1500ms), because our own stylesheet is fetched at runtime
+and these sites restyle their links long after the row is up.
+
+Do not "fix" this back into a stylesheet. Every earlier attempt was a per-site guess at the link
+colour and each one broke somewhere else:
+
+- a `var(--mui-palette-link-main)` - the MUI variables only exist in SoundCloud's NEW layout, and
+  a `var()` that resolves to nothing makes an inherited property fall back to `inherit`, not to
+  the rule above, so the old layout painted it in the running text colour
+- a hardcoded blue next to that - right on SoundCloud, wrong the moment the row shows up on a
+  site whose links are not that blue
+- a `body.<site>` scope - the class `global.js` puts on the body does not reach the document
+  SoundCloud's new layout renders in (the webi iframe), so the whole rule missed there
+
+The computed colour of "Create" cannot go out of step with "Create", whatever painted it. That
+is the point.
+
+Two rules follow from it:
+
+- the grey in `#mdb-pageCreator #mdb-pageCreator-report` (page_creator.css) is only the state
+  BEFORE the sync runs, plus the used-player debug row, which has no "Create" to read - it is
+  not the link's colour
+- **no `!important` anywhere on that colour**, in the shared file or in a site block: it would
+  beat the inline style and bring the grey straight back
+
 ## Title suggestion reports
 
 Reports come out of the **"Report" box** under the score (`mdbPageCreator_reportText()` in
