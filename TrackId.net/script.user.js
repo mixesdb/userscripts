@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.4
+// @version      2026.08.28.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1484,6 +1484,59 @@ function mdbTid_medianTrackRuntimeSec( tlWrapper ) {
     return median;
 }
 
+// mdbTid_removedCues / mdbTid_droppedGaps
+// What the last tracklist build actually took out, for the notice above the box
+// (showInfoCuesRemoved). Module level because the Toggle re-renders that notice long after the
+// build, and re-reading the arrays there is not possible – they are gone with the build.
+var mdbTid_removedCues = false,
+    mdbTid_droppedGaps = false;
+
+// mdbTid_dropRedundantGaps
+// The second opinion on every "..." this page wrote – the Tracklist Importer's own gap check
+// (tlImporter_dropRedundantGaps in shared/tracklist_importer/merge_core.js), run on the
+// FINISHED tracklist array instead of on trackid.net's detections.
+//
+// Why a second pass at all, when the "..." above were already written against a median: the
+// two medians are not the same number, and cannot be.
+//   - mdbTid_medianTrackRuntimeSec measures trackid.net's DETECTIONS, and for a detection with
+//     a hole behind it that is the detection's own span – the piece of audio the fingerprint
+//     matched, not the track. It is deliberately the smaller reading (see there), i.e. it errs
+//     towards WRITING a "...".
+//   - the importer measures the printed ROWS, cue to cue, on the list that actually goes into
+//     the box – which is the list AFTER tidMarkFalseCues() threw the short "?" rows out and
+//     removeAdjacentDuplicateTracks() collapsed the repeats. Those removals take the shortest
+//     distances out of the sample, so that median comes out clearly higher.
+//
+// Reported case (Radio 1's Residency Lens "The Other Room", trackid.net ->
+// 2026-01-22-radio-1s-residency-lens-the-other-room-opus): the detections put the median at
+// 1.5 min, so a hole needed 2.3 min and the 3 min hole behind SHERELLE got its "...". On the
+// finished list the median is 3 min and a "..." needs 4.5 min – the Importer's Report said
+// "[028] ? ... [031] Y U QT: 3 min - short enough to drop" about a "..." this page had put
+// there itself.
+//
+// So the page proposes and the shared check disposes, with exactly the numbers the Report
+// prints later. Only the two ENDS keep this page's own verdict: a leading "..." has no cue in
+// front of it and a trailing one none behind it, so the importer has no span to measure there
+// and leaves both alone.
+//
+// Returns a NEW array without the dropped rows – tlImporter_dropRedundantGaps only flags them
+// (its own text builder skips the flag, arr_toTlText() knows nothing about it).
+function mdbTid_dropRedundantGaps( tl_arr ) {
+    if( typeof tlImporter_dropRedundantGaps !== "function" ) {
+        log( "mdbTid_dropRedundantGaps: merge_core.js is not loaded, every \"...\" stands" );
+        return tl_arr;
+    }
+
+    tlImporter_dropRedundantGaps( tl_arr );
+
+    var kept = tl_arr.filter(function( item ){ return !item._ti_gapDropped; }),
+        dropped = tl_arr.length - kept.length;
+
+    log( "mdbTid_dropRedundantGaps: " + dropped + " \"...\" row(s) dropped by the shared gap check" );
+
+    return kept;
+}
+
 // mdbTid_totalDurSec
 // The mix runtime TrackId.net prints in its header ("Duration 1:04:54"), in seconds. Read out
 // of the DOM at CALL time and never cached: trackid.net is a single-page app, and a value
@@ -1736,7 +1789,19 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             var tl_arr = make_tlArr( tlApi ),
                 tl_arr_fixedCues = tidMarkFalseCues( addCueDiffs( tl_arr ) ),
                 tl_arr_noDupes = removeAdjacentDuplicateTracks( tl_arr_fixedCues ),
-                tl_fixedCues = arr_toTlText( tl_arr_noDupes );
+                // last, and on the finished rows: the shared gap check needs the list the box
+                // will hold, not the one the "?" rows were still in – see mdbTid_dropRedundantGaps
+                tl_arr_noGaps = mdbTid_dropRedundantGaps( tl_arr_noDupes ),
+                tl_fixedCues = arr_toTlText( tl_arr_noGaps );
+
+            // What the notice above the box may claim was taken out. Two different removals
+            // end up in one line count, and a notice naming only the "?" rows would be wrong
+            // on a list where nothing but a "..." went.
+            // tidMarkFalseCues() only re-TYPES its rows (arr_toTlText skips them), so a
+            // length comparison would miss exactly the case the notice is about.
+            mdbTid_removedCues = tl_arr_fixedCues.some(function( item ){ return item.type === "track (false)"; })
+                                 || tl_arr_noDupes.length < tl_arr_fixedCues.length;
+            mdbTid_droppedGaps = tl_arr_noGaps.length < tl_arr_noDupes.length;
 
             log( "tl_fixedCues:\n" + tl_fixedCues );
 
@@ -1973,7 +2038,16 @@ $(document).on("click", "#switchCueFormat", function(e) {
 function showInfoCuesRemoved() {
     if( $("#toggleTlCandidate").length ) return;
 
-    var info_cuesRemoved = '<li class="info_cuesRemoved">Possibly false <code>"?"</code> tracks have been removed due to short cue differences.';
+    // Two removals share this one line, and which of them ran is what it has to say: the "?"
+    // rows with too small a cue difference (tidMarkFalseCues) and the "..." rows the shared
+    // gap check found no room in (mdbTid_dropRedundantGaps). Either can run without the other.
+    var what = mdbTid_removedCues && mdbTid_droppedGaps
+                 ? 'Possibly false <code>"?"</code> tracks and redundant <code>"..."</code> rows have been removed.'
+             : mdbTid_droppedGaps
+                 ? 'Redundant <code>"..."</code> rows have been removed: the cues around them leave no room for another track.'
+                 : 'Possibly false <code>"?"</code> tracks have been removed due to short cue differences.';
+
+    var info_cuesRemoved = '<li class="info_cuesRemoved">' + what;
     info_cuesRemoved += ' <button id="toggleTlCandidate" class="hand">Toggle</button>';
     //info_cuesRemoved += '&nbsp; <span id="select_tidminGap_wrapper" style="display:none">Max gap: <select id="select_tidminGap"><option>1</option><option>2</option><option selected="selected">3</option></select> minutes</span>';
     info_cuesRemoved += '</li>';

@@ -34,10 +34,16 @@ pages:
   three measurable distances keep the fixed spans of two, three resp. four minutes
 
 Tracks whose cue is suspiciously close to the previous one are treated as false positives and
-removed; a **Toggle** button above the box shows the unfiltered version. The filtered tracklist
-is then checked once more, so the feedback belongs to the version in the box: a tracklist that
-was incomplete only because of those `?` rows comes back green once they are gone - and the
-feedback follows the **Toggle**, back to orange while the unfiltered version is on screen.
+removed; a **Toggle** button above the box shows the unfiltered version. Once they are gone the
+`...` rows are measured a second time, now on the cues of the list that is actually in the box:
+a `...` whose two neighbouring cues leave no room for another track goes with them. Both
+readings answer the same question, but the second one has the better numbers – the first is
+taken on TrackId.net's detections, where a detection covers only the piece of audio the
+fingerprint matched and every short `?` row still counts, so it reads a mix as faster than it
+is and writes a `...` too many. The list is then checked once more, so the feedback belongs to
+the version in the box: a tracklist that was incomplete only because of those `?` rows comes
+back green once they are gone - and the feedback follows the **Toggle**, back to orange while
+the unfiltered version is on screen.
 
 ### Style suggestions
 
