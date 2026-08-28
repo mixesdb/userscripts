@@ -5,7 +5,9 @@ opens the new page's edit form already filled in. Shared by the site scripts, so
 behaves the same everywhere.
 
 - **Runs on:** every site whose script loads it – currently [SoundCloud](../../SoundCloud/),
-  [YouTube](../../YouTube/) (watch pages of mix-length videos) and
+  [YouTube](../../YouTube/) (watch pages of mix-length videos),
+  [Mixcloud](../../Mixcloud/) (show pages of mix length),
+  [hearthis.at](../../hearthis.at/) (track pages of mix length) and
   [TrackId.net](../../TrackId.net/) (audiostream pages with a SoundCloud or YouTube player)
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** [Tracklist box](../tracklist_editor/)
@@ -22,11 +24,12 @@ score next to it says how sure the suggestion is.
 
 How much the **channel name** is worth depends on the site. On SoundCloud the account is the
 artist or the series most of the time, so where a title names nobody the channel fills the gap.
-On YouTube it is at least as often a broadcaster or a re-uploader whose name has nothing to do
-with who played, so there the channel name is only used when something backs it – it stands in
-the title, it is on the curated list, or MixesDB knows the name. An unbacked YouTube channel is
-left out of the title instead of being invented into a show; only where an episode number needs
-a name to hang on does it stay, with the doubt priced into the confidence score.
+On YouTube, Mixcloud and hearthis.at it is at least as often a broadcaster or a re-uploader
+whose name has nothing to do with who played, so there the channel name is only used when
+something backs it – it stands in the title, it is on the curated list, or MixesDB knows the
+name. An unbacked channel on those sites is left out of the title instead of being invented
+into a show; only where an episode number needs a name to hang on does it stay, with the doubt
+priced into the confidence score.
 
 MixesDB's own category names sharpen the guess: the names in the title and the channel name are
 looked up on the wiki, so a name MixesDB knows as an artist, podcast, show, venue or event is

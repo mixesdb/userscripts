@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.27.2
+// @version      2026.08.28.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,12 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-Mixcloud_34
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-Mixcloud_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-Mixcloud_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-Mixcloud_210
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_121
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -29,12 +34,13 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 34,
+var cacheVersion = 35,
     scriptName = "Mixcloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
 
 loadRawCss( githubPath_raw + "shared/global.css?v-" + scriptName + "_" + cacheVersion );
+loadRawCss( githubPath_raw + "shared/page_creator/page_creator.css?v-" + scriptName + "_" + cacheVersion );
 loadRawCss( githubPath_raw + scriptName + "/script.css?v-" + cacheVersion );
 
 
@@ -310,6 +316,12 @@ waitForKeyElements('button[aria-label="Add To"]:not(.mdb-processed-actions)', fu
     /*
      * Using API data
      */
+    // The answer is a round trip - the reader may have clicked on to another show meanwhile.
+    // The Page Creator block below writes next to the CURRENT page's toolkit via a selector,
+    // so a stale answer must be dropped there (see mdbPageGeneration in global.js). The dur
+    // toggle above it needs no guard: it only writes into jNode, which a navigation detaches.
+    var pageGeneration = mdbPageGeneration;
+
     $.get(apiUrl, function( data ) {
         // add dur toggle
         var dur_sec = data["audio_length"],
@@ -332,6 +344,66 @@ waitForKeyElements('button[aria-label="Add To"]:not(.mdb-processed-actions)', fu
             $("#mdb-fileDetails").toggle();
             $("#mdb-fileDetails textarea").select().focus();
         });
+
+        /*
+         * MixesDB Page Creator (shared/page_creator/), above the toolkit. Everything
+         * site-specific is read off this API answer and handed over - the creator itself
+         * never looks at a Mixcloud page. audio_length gates it twice over: an answer
+         * without one is not a show (the same API describes playlists and profiles), and
+         * MixesDB does not take recordings under 20 min (mdbPageCreator_minDurationMs in
+         * page_creator.js) - skipping here also saves the creator's MixesDB lookups.
+         * target is a selector string on purpose: the row waits for the toolkit's usage
+         * verdict, so #mdb-toolkit exists by the time it renders, and the string is looked
+         * up fresh on every render (Mixcloud re-renders under our feet).
+         */
+        if( !mdbIsCurrentPage( pageGeneration ) ) return;
+
+        var dur_ms = ( parseInt( dur_sec, 10 ) || 0 ) * 1000;
+
+        if( !dur_ms ) {
+            log( "The API answer carries no audio_length - not a show, no Page Creator row." );
+        } else if( dur_ms < mdbPageCreator_minDurationMs ) {
+            log( "Show is under the " + ( mdbPageCreator_minDurationMs / 60000 ) + " min MixesDB minimum - no Page Creator row and no tracklist box." );
+        } else {
+            // The original-size artwork for MixesDB's upload form: same thumbnailer trick as
+            // the artwork feature above - /unsafe/0x0/ asks the CDN for the unscaled image.
+            var artworkUrl = "";
+            if( data.pictures ) {
+                artworkUrl = ( data.pictures.extra_large || data.pictures.large || "" ).replace( /\/unsafe\/[0-9]+x[0-9]+\//, "/unsafe/0x0/" );
+            }
+
+            mdbPageCreator_add({
+                title:        data.name,
+                channel:      ( data.user && data.user.name ) ? data.user.name : "",
+                // A Mixcloud account is a broadcaster or re-uploader at least as often as it
+                // is the artist or the series, so the title builder must not fall back to its
+                // name without backing - see mdbPageCreator_add()'s header comment.
+                channelTrust: "low",
+                createdAt:    data.created_time,
+                durationMs:   dur_ms,
+                // The canonical show URL off the API - the form MixesDB embeds, without the
+                // query parameters location.href may carry.
+                playerUrl:    data.url,
+                channelUrl:   ( data.user && data.user.url ) ? data.user.url : "",
+                artworkUrl:   artworkUrl,
+                // The TITLE builder reads the labels a description tracklist credits out of
+                // this ("Artist - Title [Label]") - the tracklist box is the separate call below.
+                description:  data.description || "",
+                // what the "Report" box calls this site ("MC title:", "MC date:")
+                sourceLabel:  "MC",
+                target:       "#mdb-toolkit",
+                placement:    "before"
+            });
+
+            // The tracklist the uploader wrote into the description, as an editable box below
+            // the toolkit that rides along into the created page. The detector answers an
+            // empty description with "nothing found" like any other, so this is not gated.
+            mdbPageCreator_addTracklist({
+                description:  data.description || "",
+                target:       "#mdb-toolkit",
+                placement:    "after"
+            });
+        }
 
     }, "json" );
 });
@@ -360,12 +432,26 @@ waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed
     
     getToolkit( embedUrl, "playerUrl", "detail page", jNode, "prepend", titleText, "", 1, embedUrl );
 
+    // The Page Creator row is gated behind this toolkit's usage verdict - (re)arm the poll.
+    // The row's data comes out of the API answer in the action-buttons handler above;
+    // whichever of the two lands last puts the row on the page.
+    mdbPageCreator_watchToolkit();
+
     jNode.addClass("mdb-processed-toolkit");
 });
 
 })();
 
 /* ## Changelog
+ * 2026.08.28.1  MixesDB Page Creator on show pages (shared/page_creator/, new @requires): the
+ *               suggested page title, the confidence score and the "Create" link above the
+ *               toolkit, plus the tracklist an uploader wrote into the description as an
+ *               editable box below it that rides along into the created page. Everything is
+ *               read off the api.mixcloud.com answer the script already fetches (title,
+ *               uploader, upload date, duration, canonical URL, original-size artwork,
+ *               description). channelTrust "low" tells the title builder not to fall back to
+ *               the account name without backing - Mixcloud accounts are often broadcasters
+ *               or re-uploaders, not who played. Only for shows of mix length (20 min gate).
  * 2026.08.27.1  Toolkit usage links: a blue eye icon behind each mix page link opens the page
  *               in the shared MixesDB modal (new @require shared/mixesdb_modal/funcs.js) - a
  *               popup on this page with an arrow-key walk, so the quick "is that the right
