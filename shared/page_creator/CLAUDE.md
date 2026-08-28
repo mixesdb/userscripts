@@ -262,8 +262,16 @@ Settled, so it does not get re-litigated:
   cue and takes a trailing one for part of the title, so this cannot be left to it. Only done when
   at least half the block's lines carry such a cue - one title ending in something clock-shaped is
   not a pattern.
+- **A cue in FRONT of the track is put into MixesDB's brackets, and whatever stood between it
+  and the track goes with it** (`mdbTracklist_tidyLeadingCues()`): `00:36 = Power Tool - Madness`
+  -> `[00:36] Power Tool - Madness`. The bare form is not something the API can read - it takes
+  the `00:` for the line's numbering and leaves a stray `36` in front of the artist, and
+  `1:31:39` loses its hour the same way (measured 2026-08-28). Digits untouched, and the same
+  majority rule as the trailing cue above: half the block or nothing.
 - **Comments are asked only when the description gave nothing**, and only for a WHOLE
-  tracklist. A comment is one long line, so what MARKS its tracks is the only thing to split on,
+  tracklist. A comment that KEPT its line breaks is read like a description - YouTube's do,
+  SoundCloud's arrive as one line - and only the single-line ones need the splitting below.
+  There, what MARKS its tracks is the only thing to split on,
   and there are two markers: the NUMBERING (`1.`, `2.` ..., starting at 1 and counting up
   without a gap, `mdbTracklist_splitNumbered()`) and the CUES (`(00)`, `[05]`, `1:02:30` - a
   number in brackets or a clock time carrying its colon, never a bare one, never running
@@ -275,7 +283,9 @@ Settled, so it does not get re-litigated:
   (`mdbTracklist_acceptSplit()`), and a cue is rewritten into the brackets MixesDB writes it in,
   digits untouched - `(00)Gerd` would reach the API as an artist called `(00)Gerd`. The site
   script fetches the comments (it owns the API token); this file decides whether they are worth
-  fetching.
+  fetching. SoundCloud has an endpoint for them; YouTube has none, so its script asks
+  `/youtubei/v1/next` twice - once for the video, to get the comment section's continuation
+  token, once with that token for the page of top comments (`getYtVideoComments()`).
 - **A trailing `?` is the writer's, not the title's** (`mdbTracklist_tidyUnsure()`):
   `Gerd - Echo Jammz?` loses it, and so does a trailing `…`. Only ever in a block that ALREADY
   writes `?` the MixesDB way somewhere - in place of an artist, in place of a title, or as the

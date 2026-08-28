@@ -923,11 +923,12 @@ Filling the edit form, showing that preview and filling the upload field needs t
 The tracklist an uploader wrote into the description ends up in an editable box next to the
 player and, from there, on the created page. Comments are read only when the description held no
 tracklist, and only for a whole one somebody posted in a single comment – single track IDs in
-comments are never taken. Such a comment is one long line, so its tracks have to be marked before
-they can be told apart: either **numbered** (`1.`, `2.` … starting at 1 and counting up without a
-gap) or **cued** (`(00)`, `[05]`, `1:02:30` – a number in brackets or a clock time carrying its
-colon, never a bare number, and never running backwards). A cue arrives in the box written the
-way MixesDB writes cues, with the digits left as they were typed, so
+comments are never taken. A comment that kept its line breaks (YouTube's do, SoundCloud's arrive
+as one long line) is read exactly like a description. One that is a single line has to have its
+tracks marked before they can be told apart: either **numbered** (`1.`, `2.` … starting at 1 and
+counting up without a gap) or **cued** (`(00)`, `[05]`, `1:02:30` – a number in brackets or a
+clock time carrying its colon, never a bare number, and never running backwards). A cue arrives
+in the box written the way MixesDB writes cues, with the digits left as they were typed, so
 `(00)Gerd-Echo Jammz (02)ID? (05)Tikkle-Bubbles (Club Mix)` becomes
 
 ```
@@ -935,6 +936,13 @@ way MixesDB writes cues, with the digits left as they were typed, so
 [02] ID?
 [05] Tikkle - Bubbles (Club Mix)
 ```
+
+The same goes for a tracklist whose tracks each open with a timestamp –
+`00:36 = Power Tool - Madness Uplifting Siren`, `1:31:39 Enrico Sangiuliano - Order In Chaos`.
+The timestamp is put into the brackets MixesDB writes a cue in and whatever stood between it and
+the track goes, because the Tracklist Editor takes the bare form for the line's numbering and
+eats half of it (`# 36 = Power Tool - Madness`). Half the tracks have to carry one before any of
+them is rewritten, so a single title that ends in something clock-shaped is left alone.
 
 A description holding several tracklists, each under its own headline – a resident's hour and a
 guest mix, say – becomes one tracklist in

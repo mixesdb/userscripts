@@ -265,8 +265,21 @@ var mdbTracklistExamples = [
             lines: 18,
             text: "1. @sailorandi - Turn Around (Âme Remix)\n2. @Nhiimusic - Branches\n3. @drparnassus - Locomotiva\n4. @guylalibertedj & @soulofzoo - Into Your Tribe (@justemmaoffical Sunset Remix)\n5. Beyoncé - Purehoney (@pullichomba Edit)\n6. One-T - The Magic Key (@seniorcitizen_wav Remix)\n7. Queen - Radio Ga Ga (@djshai-t Revisit Mix)\n8. @tpusemusic - Syd´s Night (@theoddness Remix)\n9. Britney Spears - Gimme More (@joe-carl Remix)\n10. Blur - Tender (@reyneke Reinterpretation)\n11. Deichkind - Remmidemmi (@air_horse_one Remix)\n12. Missy Elliot - Lose Control (@jan_sml Crunked & Wired Edit)\n13. @matijasound & The Ghost Of Z - Vichy Check\n14. Lana Del Rey - Born to Die (@deepandi Edit)\n15. The Alan Parsons Project - Eye in the Sky (@mauditemachine Remix)\n16. Karat - Der blaue Planet (@dj-jauche Rework)\n17. Kate Bush - Running up that Hill (@notredamemusic Edit)\n18. Friedemann - Das Sammeln von Licht (@harrotriptrap Remix)"
         }
+    },
+    {
+        // The other half of the leading-cue case in the comments below: there the timestamp opens
+        // the line, here it stands BEHIND the numbering, which is how a numbered tracklist with
+        // timestamps is written. The numbering has to stay where it is and only the cue may move
+        // into its brackets, so this one names its whole `text` - the block alone, not a report.
+        what: "numbered tracks that each carry a timestamp",
+        text: "1. 00:36 Power Tool - Madness Uplifting Siren\n2. 05:12 Chaos In The CBD - Multiverse\n3. 11:40 Mall Grab - Sun Ra\n4. 19:05 Ross From Friends - Talk To Me\n5. 26:30 DJ Boring - Winona\n6. 1:03:15 Palms Trax - Equation",
+        expect: {
+            lines: 6,
+            text: "1. [00:36] Power Tool - Madness Uplifting Siren\n2. [05:12] Chaos In The CBD - Multiverse\n3. [11:40] Mall Grab - Sun Ra\n4. [19:05] Ross From Friends - Talk To Me\n5. [26:30] DJ Boring - Winona\n6. [1:03:15] Palms Trax - Equation"
+        }
     }
 ];
+
 
 // Comment tracklists. A SoundCloud comment is a single line, so what MARKS the tracks - the
 // numbering or the cues - is the only thing left to split on. See the header of
@@ -366,5 +379,23 @@ var mdbTracklistCommentExamples = [
             "top 3 for me: 5. Ellen Allien - Alles Sehen 12. Answer Code Request - Cimmerian 30. Efdemin - Track 4, rest was filler"
         ],
         expect: null
+    },
+    {
+        // A YouTube comment, and the first one that arrives with real line breaks in it: the
+        // watch page's comments keep them, where SoundCloud's arrive as one long line. So this
+        // one is read like a description - and it is here for what the CUES cost. Every track
+        // opens with the timestamp and an "=", which the Tracklist Editor API reads as the
+        // line's numbering and leaves half-eaten ("# 36 = Power Tool - Madness"), hour and all.
+        // From https://www.youtube.com/watch?v=1os948yIB7k.
+        what: "a YouTube comment tracklist whose tracks open with a timestamp",
+        comments: [
+            "Awakenings was my first European festival and you had the best set of the weekend",
+            "TRACKLIST:\n00:36 = Power Tool - Madness Uplifting Siren \n01:41 = Mattia Saviolo - Code Me\n05:43 = Charles D (USA) - Flutter\n08:56 = Timmo - ID\n12:58 = DJ Jordan - Big Beautiful Bass \n16:22 = Tao Andra - ID\n20:05 = HI-LO - ID\n23:24 = LUSU - Elevate\n26:52 = Veerus & Mattia Saviolo - Move Your Body \n31:10 = Eli Brown - Badman Riddim\n34:13 = Armin van Buuren & Adam Beyer - No Mercy (Arti Prjct Remix) \n37:07 = Adam Beyer - Twisted Groove\n41:24 = Thomas Schumacher - Bigman Riddim \n45:10 = Eli Brown - India Vibes\n48:55 = Chris Avantgarde - Jester \n54:05 = Alex Farell - Critical \n56:55 = Adam Beyer & Victor Ruiz - Relax Your Body\n1:01:39 = ID - ID\n1:05:30 = ID - ID\n1:09:40 = Milo Spykers - Fade In \n1:13:17 = Charlotte de Witte - Malina \n1:17:27 = Jay Lumen - My Bassline \n1:21:13 = Frank Biazzi - My House \n1:22:50 = Mattia Saviolo - Monolith\n1:27:56 = Armin van Buuren & Adam Beyer vs. D-Shake - Techno Trance  \n1:31:39 = Enrico Sangiuliano - Order In Chaos (Reactive Mix) \nw/ Bedrock - Heaven Scent \n1:35:55 = Audio State & Darren Irvine - Spectrum\n1:38:51 = Faithless - We Come 1 (ID Remix) \n1:43:30 = Paula Van Klar - The Finest \n1:47:40 = Kölsch - Opa (Karla Blum Remix) \n1:50:54 = Punctual & RY X - You're Not Alone (Adam Beyer Remix) \n1:54:50 = Adam Beyer & Mark Reeve - Love Within",
+            "Third listen is another great listen. The fest itself, Awakenings upload, and now DCR!"
+        ],
+        expect: {
+            lines: 33,
+            text: "[00:36] Power Tool - Madness Uplifting Siren\n[01:41] Mattia Saviolo - Code Me\n[05:43] Charles D (USA) - Flutter\n[08:56] Timmo - ID\n[12:58] DJ Jordan - Big Beautiful Bass\n[16:22] Tao Andra - ID\n[20:05] HI-LO - ID\n[23:24] LUSU - Elevate\n[26:52] Veerus & Mattia Saviolo - Move Your Body\n[31:10] Eli Brown - Badman Riddim\n[34:13] Armin van Buuren & Adam Beyer - No Mercy (Arti Prjct Remix)\n[37:07] Adam Beyer - Twisted Groove\n[41:24] Thomas Schumacher - Bigman Riddim\n[45:10] Eli Brown - India Vibes\n[48:55] Chris Avantgarde - Jester\n[54:05] Alex Farell - Critical\n[56:55] Adam Beyer & Victor Ruiz - Relax Your Body\n[1:01:39] ID - ID\n[1:05:30] ID - ID\n[1:09:40] Milo Spykers - Fade In\n[1:13:17] Charlotte de Witte - Malina\n[1:17:27] Jay Lumen - My Bassline\n[1:21:13] Frank Biazzi - My House\n[1:22:50] Mattia Saviolo - Monolith\n[1:27:56] Armin van Buuren & Adam Beyer vs. D-Shake - Techno Trance\n[1:31:39] Enrico Sangiuliano - Order In Chaos (Reactive Mix)\nw/ Bedrock - Heaven Scent\n[1:35:55] Audio State & Darren Irvine - Spectrum\n[1:38:51] Faithless - We Come 1 (ID Remix)\n[1:43:30] Paula Van Klar - The Finest\n[1:47:40] Kölsch - Opa (Karla Blum Remix)\n[1:50:54] Punctual & RY X - You're Not Alone (Adam Beyer Remix)\n[1:54:50] Adam Beyer & Mark Reeve - Love Within"
+        }
     }
 ];

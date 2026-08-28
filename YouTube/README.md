@@ -34,6 +34,12 @@ A tracklist the uploader wrote into the video description ends up in the editabl
 [tracklist box](../shared/page_creator/#tracklist-from-the-description) below the toolkit
 and on the created page. Same 20 minute gate as the toolkit.
 
+When the description holds none, the **comments** are read: the top comments of the video are
+asked once for a whole tracklist somebody posted there – pinned by the channel or written by a
+listener – and the first one found lands in the same box. Single track IDs in comments are never
+taken, only a complete tracklist. Videos whose description already carries the tracklist cost no
+comment lookup at all.
+
 ### Loading placeholder
 
 Below the video metadata, grey pulsing placeholders hold the space of the Page Creator row and
