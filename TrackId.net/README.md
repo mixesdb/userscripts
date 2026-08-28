@@ -168,6 +168,11 @@ What is not is everything the mix page behind the popup already carries – the 
 the toolkit, the Page Creator row – there is no point in building those a second time on top of
 themselves.
 
+The same goes for the popup opened by the eye behind the [toolkit](../shared/toolkit/)'s
+*This player exists on TrackId.net* – on SoundCloud, Mixcloud, YouTube, RA, hearthis.at,
+1001 Tracklists and the Player Checker's sites: with this script installed, that popup is this
+script's page too, tracklist in wiki syntax included.
+
 The popup is always **signed out**, whatever your browser is signed into: a page in a frame gets
 its own separate storage from the browser, and that is where TrackId.net keeps the session. It
 costs nothing here, since tracklist, styles and table are public – but it is why **Submit to

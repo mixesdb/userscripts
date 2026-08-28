@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.17
+// @version      2026.08.28.18
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_115
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_3
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
@@ -51,20 +51,28 @@ window.cacheVersion = cacheVersion; // same reason: the @require'd shared files 
  *
  * @noframes had to go so this script also runs INSIDE the MixesDB modal's iframe
  * (shared/mixesdb_modal/): the "Exists on TrackId.net" links under the players on mixesdb.com
- * frame a TID page right on the mix page, and without the script that page is TrackId.net's
- * raw UI - no tracklist in wiki syntax and no real table, which is most of the reason to look
- * at it at all.
+ * frame a TID page right on the mix page, and so does the toolkit's own eye behind "This
+ * player exists on TrackId.net" on every player site (SoundCloud, Mixcloud, YouTube, RA,
+ * hearthis.at, 1001 Tracklists ...). Without the script that framed page is TrackId.net's raw
+ * UI - no tracklist in wiki syntax and no real table, which is most of the reason to look at
+ * it at all.
  *
  * Every OTHER frame is none of our business and the script stands down there. Ours is
- * recognized by the page that embeds it: mixesdb.com, where our own modal is the only thing
- * framing trackid.net. location.ancestorOrigins is the exact answer where it exists (Chrome,
- * Safari); Firefox has none, so the referrer of the framed document - which is the embedding
- * page - answers the same question one step less directly.
+ * recognized by its NAME: mdbModal_frame() creates every popup iframe with name="mdbModal",
+ * which the framed document reads back as window.name - the frame's own property, so it works
+ * cross-origin and, unlike the embedding origin, it does not have to be re-taught the list of
+ * sites our toolkit runs on. That list was the earlier bug: the check only knew mixesdb.com,
+ * so the eye on soundcloud.com opened a popup this script stood down in.
+ * The embedder is still accepted as a second answer for mixesdb.com, where a userscript
+ * manager may still hold a cached modal file from before the frames were named.
+ * location.ancestorOrigins is the exact answer where it exists (Chrome, Safari); Firefox has
+ * none, so the referrer of the framed document - which is the embedding page - answers the
+ * same question one step less directly.
  *
  * Inside that frame the script runs REDUCED, see tidInModal below: everything about the mix
  * page - the embedded player, the toolkit, the Page Creator row, the loading skeleton - is
- * already on the mixesdb.com page BEHIND the popup, and building it a second time inside a
- * popup opened FROM it would be work done twice and read as a page inside a page.
+ * already on the page BEHIND the popup, and building it a second time inside a popup opened
+ * FROM it would be work done twice and read as a page inside a page.
  *
  * What the framed page can never be is signed in: a browser gives a third-party frame its own
  * partitioned storage, and TrackId.net keeps its session in localStorage (no cookies), so the
@@ -78,6 +86,12 @@ window.cacheVersion = cacheVersion; // same reason: the @require'd shared files 
 // document, where the question does not arise.
 function tidModalFrame() {
     if( window.self === window.top ) return false;
+
+    // the name our modal gives every frame it builds - the answer on every host site
+    if( window.name === "mdbModal" ) {
+        log( "tidModalFrame: this frame is named mdbModal - it is our popup" );
+        return true;
+    }
 
     var from = "";
 
@@ -2824,6 +2838,17 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.18
+ * The popup behind the toolkit's eye ("This player exists on TrackId.net") fires this script
+ * on every site now, not only on mixesdb.com. The frame check only knew the one embedder it
+ * was written for, so the same eye on soundcloud.com, mixcloud.com, youtube.com, ra.co,
+ * hearthis.at, 1001tracklists.com and the Player Checker's sites opened a popup this script
+ * stood down in - TrackId.net's raw UI, which is exactly what the popup exists to avoid.
+ * The modal now names every frame it builds (mixesdb_modal funcs.js v3: name="mdbModal") and
+ * the check reads window.name, the frame's own property: it works cross-origin and does not
+ * have to be re-taught the list of sites our toolkit runs on. The embedder is still accepted
+ * as a second answer for mixesdb.com, for managers still holding the older modal file.
  *
  * 2026.08.28.14
  * The popup over a TrackId.net link is this script's page now, and the Submit link lost its

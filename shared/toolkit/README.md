@@ -60,6 +60,10 @@ mix?" and "is its tracklist worth taking over?" are answered without leaving the
 stopping playback. Every other click on it opens the page as usual. The **Submit** link has
 no eye: the framed page is signed out, and the submit form is of no use signed out.
 
+With the [TrackId.net](../../TrackId.net/) userscript installed, the framed page arrives with
+everything that script makes of it – its tracklist in wiki syntax above all, which is what
+there is to take over. Without it the popup shows TrackId.net's own page.
+
 ### Tracklist state icons
 
 In the chip row of the [Tracklist box](../tracklist_editor/)'s feedback, next to the row
