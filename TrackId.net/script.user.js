@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.10
+// @version      2026.08.28.12
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -11,7 +11,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/youtube_funcs.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_115
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_3
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_132
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
@@ -38,7 +38,7 @@
  * global.js URL needs to be changed manually
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 211,
+var cacheVersion = 213,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -264,7 +264,23 @@ if( visitDomain == "trackid.net" ) {
  * Runs on mix pages (ns 0) and on MixesDB:Explorer/Mixes; the mix page half also fires on the
  * edit form's preview, where the players are rendered the same way.
  *
+ * Every one of these links carries the blue eye of the shared MixesDB modal
+ * (shared/mixesdb_modal/): a plain left click frames the TrackId.net page ON the mix page
+ * instead of leaving it. It is the same look the toolkit's eye answers on the player sites,
+ * turned around - here the reader sits on MixesDB and the page worth a glance is the one at
+ * TrackId.net ("is this the same mix?", "has this been submitted already?"), while the mix
+ * page they are working on, its players and a half-written edit stay where they are. Every
+ * click that asks for a tab still gets one, since the eye is a real link.
+ *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// tidLink_modalEye
+// The eye behind one TID link. typeof-guarded like every other caller of the modal, and with
+// "fixedWidth" on it: MediaWiki:Common.css stretches every element inside a .playerWrapper to
+// width:100%, and that class is the exclusion it honours (the TID icon carries it too).
+function tidLink_modalEye( url ) {
+    return typeof mdbModal_eyeLink === "function" ? mdbModal_eyeLink( url, "fixedWidth" ) : "";
+}
 
 if( visitDomain == "mixesdb.com" ) {
     d.ready(function(){ // needed for mw.config
@@ -298,6 +314,18 @@ if( visitDomain == "mixesdb.com" ) {
         }
 
         log( "Criteria for mix page matched." );
+
+        // These links' contribution to the modal's arrow-key walk (mdbModal_links in
+        // shared/mixesdb_modal/funcs.js): a mix page carries one per player, so the arrows
+        // step from one player's TrackId.net page to the next without closing the popup.
+        // The links themselves only, never the eyes behind them - both point at the same
+        // page, and a walk counting both would count every page twice. Pushed into the
+        // plain-array global rather than through a register function, so the @require order
+        // of the two files cannot matter.
+        window.mdbModal_linkProviders = window.mdbModal_linkProviders || [];
+        window.mdbModal_linkProviders.push( function() {
+            return $(".playerWrapper .tidLink a.mdb-tidLink").get();
+        });
 
         /*
          * TrackId.net submit link under each player
@@ -355,13 +383,18 @@ if( visitDomain == "mixesdb.com" ) {
                          * Both links leave MixesDB for TrackId.net while the contributor is
                          * still working on the mix page - submitting or comparing a tracklist
                          * is a side trip, so they open in a new tab and leave the page behind
-                         * them untouched.
+                         * them untouched. The eye behind them is the smaller version of the
+                         * same idea: the TrackId.net page framed on this one, no tab at all.
                          */
 
                         // avoid undefined error
                         if( ( data.error && data.error.code == "notfound" )  ) {
                             // no result
-                            var tidLink_submit = '<a href="'+makeTidSubmitUrl( playerUrl, keywords )+'" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>';
+                            // the URL in a variable of its own: the eye behind the link
+                            // has to point at exactly the same page, or the walk cannot
+                            // find its position (mdbModal_index compares hrefs)
+                            var tidSubmitUrl = makeTidSubmitUrl( playerUrl, keywords ),
+                                tidLink_submit = '<a href="'+tidSubmitUrl+'" class="mdb-tidLink" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Submit to TrackId.net</a>' + tidLink_modalEye( tidSubmitUrl );
                             playerWrapper.append( '<div class="tidLink '+playerSite+'">'+tidLink_submit+'</div>' );
                         } else {
                             var tidLink = "",
@@ -372,7 +405,10 @@ if( visitDomain == "mixesdb.com" ) {
                             logVar( "lastCheckedAgainstMixesDB", lastCheckedAgainstMixesDB );
 
                             if( trackidurl ) {
-                                tidLink += '<a href="'+trackidurl+'" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
+                                tidLink += '<a href="'+trackidurl+'" class="mdb-tidLink" target="_blank"><img class="tidSubmit-icon fixedWidth" src="'+favicon_TID+'" alt="TrackId.net" style="max-height:1.2em;"> Exists on TrackId.net</a>';
+                                // behind the link, before the integration state: the eye
+                                // belongs to the page it opens, not to the row
+                                tidLink += tidLink_modalEye( trackidurl );
 
                                 if( lastCheckedAgainstMixesDB ) {
                                     tidLink += ' <span id="mdbTrackidCheck-wrapper" class="integrated" style="max-height:15px">'+checkIcon+'integrated</span>';
@@ -2702,6 +2738,20 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.28.11
+ * The MixesDB modal behind the TrackId.net links under the players on mixesdb.com
+ * (mixesdb_modal funcs.js v2, css v212): every "Exists on TrackId.net" and "Submit to
+ * TrackId.net" carries the blue eye now, and a plain left click frames that TrackId.net page
+ * ON the mix page - the same five-second look the toolkit's eye gives on the player sites,
+ * turned around, with the mix page, its players and a half-written edit left untouched.
+ * The arrow keys walk the page's TID links, one per player. Two things in the shared file
+ * had to follow: the header's way out is named after the site it leads to instead of always
+ * saying "Open on MixesDB" (mdbModal_extLabel), and an instance whose click finds a modal
+ * already on the page stands down - TrackId.net and 1001 Tracklists both run on
+ * mixesdb.com/w/*, so one click on an eye reaches two copies of the file and used to build
+ * two overlays. Update both scripts together: an old copy without the stand-down does not
+ * know to keep its hands off.
  *
  * 2026.08.28.6
  * Page Creator row for Mixcloud and hearthis.at players too, now that both their site

@@ -1,41 +1,60 @@
 # MixesDB modal
 
-A MixesDB page opened in a popup **on the page you are working on** – for the five-second look
-("is this the right category?", "does this page already exist?") that is not worth a tab. The
-page behind it goes dark and blurred so nothing beside the box competes for the eye.
+A MixesDB page – on MixesDB itself a TrackId.net page – opened in a popup **on the page you are
+working on**, for the five-second look ("is this the right category?", "does this page already
+exist?") that is not worth a tab. The page behind it goes dark and blurred so nothing beside the
+box competes for the eye.
 
-Two things open it, on a desktop-sized window:
+Three things open it, on a desktop-sized window:
 
 - the **blue eye icon** behind a mix page link in the [toolkit](../toolkit/)'s
   *This mix is on MixesDB* row
 - a plain left click on the [Page Creator](../page_creator/)'s category chips and their
   recent mix pages
+- the same **blue eye icon** behind the *Exists on TrackId.net* and *Submit to TrackId.net*
+  links under the players on MixesDB – see [TrackId.net](../../TrackId.net/#links-under-the-players-on-mixesdb).
+  This is the one place where the framed page is not a MixesDB page: on the wiki itself the
+  look worth having is the one at TrackId.net
 
 - **Runs on:** every site whose script loads it – [SoundCloud](../../SoundCloud/),
   [Mixcloud](../../Mixcloud/), [YouTube](../../YouTube/), [RA](../../RA/),
   [TrackId.net](../../TrackId.net/), [1001 Tracklists](../../1001_Tracklists/),
-  [hearthis.at](../../hearthis.at/), [Player Checker](../../Player_Checker/)
+  [hearthis.at](../../hearthis.at/), [Player Checker](../../Player_Checker/), plus
+  mixesdb.com itself for the TrackId.net links under the players
 - **Install:** nothing to install – it comes with the site scripts
 
 ## Features
 
 ### The framed page
 
-The popup frames the MixesDB page right there: the state of the page you came from – a playing
+The popup frames the page right there: the state of the page you came from – a playing
 player above all – is untouched, and closing the popup puts you back exactly where you were.
-**Esc**, the **×** or a click beside the box close it; **Open on MixesDB** in its header opens
-the same page as a tab after all.
+**Esc**, the **×** or a click beside the box close it; the header's **Open on MixesDB** –
+**Open on TrackId.net** where that is what is framed – opens the same page as a tab after all.
 
 Everything that asks for a tab still gets one: cmd/ctrl/shift- and middle-clicking the eye or a
 chip opens the page as a tab like any link, and on a narrow window (where the framed page would
 be smaller than a tab) they simply stay the links they are.
 
+### Moving the popup out of the way
+
+The popup can be **dragged by its header** – grab the bar with the arrows in it and the box
+follows the mouse. It may be pushed far past the edge of the window, far enough to park it in a
+corner as a strip; only a hand's width of it and its header stay inside, so there is always
+something left to pull it back by.
+
+The moment the box starts moving, the **blur over the page fades away**: dragging the popup
+aside is done to look at what is under it, and the point of the drag is that this becomes
+readable. It stays clear until the popup is closed. Closing and opening it again puts the box
+back in the middle of the window.
+
 ### Walking the page's MixesDB links
 
 While the popup is open the **left and right arrow keys** frame the previous or the next
-MixesDB link on the page – every mix page of the toolkit's row, every category chip and folded-out
-mix page of the Page Creator's bar – without going back to the page between two looks. The
-header counts the steps (`3 / 12`) in its middle and carries the same two arrows as buttons.
+link on the page – every mix page of the toolkit's row, every category chip and folded-out mix
+page of the Page Creator's bar, and on MixesDB every player's TrackId.net link – without going
+back to the page between two looks. The header counts the steps (`3 / 12`) in its middle and
+carries the same two arrows as buttons.
 
 The walk goes **round**: one step past the last link is the first one again, and one step back
 from the first is the last. It walks exactly what is on screen, in the order the page reads,

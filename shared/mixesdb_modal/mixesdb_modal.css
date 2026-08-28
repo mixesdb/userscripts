@@ -31,6 +31,22 @@
        modal opened invisibly (which read as the links being dead).
        Animating backdrop-filter itself is expensive, so the whole overlay's opacity moves. */
     animation: mdb-modal-in .25s ease-out;
+
+    /* ... except once, when the box is dragged away by its header (mdb-modal-undimmed below):
+       there the blur IS what changes, so it gets its own transition. */
+    transition: backdrop-filter .35s ease, -webkit-backdrop-filter .35s ease, background-color .35s ease;
+}
+
+/*
+ * Dragging the box aside clears the backdrop for good (mdbModal_dragMove): the reader is
+ * pulling the modal off something they want to look at, and a blur over exactly that thing
+ * defeats the drag. blur(0px) rather than "none" - a keyword has nothing to interpolate from,
+ * so the blur would jump instead of fading.
+ */
+#mdb-modal.mdb-modal-undimmed {
+    backdrop-filter: blur(0px) saturate(100%);
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
+    background-color: rgba(0, 0, 0, 0);
 }
 
 @keyframes mdb-modal-in {
@@ -41,6 +57,7 @@
 @media (prefers-reduced-motion: reduce) {
     #mdb-modal {
         animation: none;
+        transition: none;
     }
 }
 
@@ -75,6 +92,25 @@
     line-height: 1.5;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+
+    /* the header is the box's handle (mdbModal_dragStart) - the cursor is the only thing that
+       says so, and the drag must not paint the header's text as a selection on the way */
+    cursor: move;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ... but the controls IN it are still controls */
+#mdb-modal .mdb-modal-head a,
+#mdb-modal .mdb-modal-head button {
+    cursor: pointer;
+}
+
+/* While a drag runs the framed page must not answer the pointer: it is a cross-origin document
+   and would otherwise start selecting its own text under the moving box. The pointer capture
+   already keeps the EVENTS on the header - this is about what happens inside the frame. */
+#mdb-modal.mdb-modal-dragging .mdb-modal-frames {
+    pointer-events: none;
 }
 
 /* The two sides of the header, empty on the left and the buttons on the right. Both grow,

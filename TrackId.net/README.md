@@ -154,7 +154,12 @@ the check mark and how long ago its tracklist was carried over, or a note that i
 or **Submit to TrackId.net**, which opens the [submit form](#submit-form) with the player URL and
 the page title already filled in.
 
-Both links open in a new tab, so the mix page you are working on stays where it is.
+Both links open in a new tab, so the mix page you are working on stays where it is. Behind each
+one sits the blue eye of the [MixesDB modal](../shared/mixesdb_modal/): a click on it frames that
+TrackId.net page in a popup right on the mix page, and the arrow keys step from one player's
+TrackId.net page to the next. Nothing on the page below it moves – a half-written edit and a
+playing player included – and **Open on TrackId.net** in the popup's header opens the page as a
+tab after all.
 
 Only players TrackId.net can take are given a link. This was part of the
 [MixesDB Userscripts Helper](../MixesDB_Userscripts_Helper/) until 2026-08-26; it moved here
