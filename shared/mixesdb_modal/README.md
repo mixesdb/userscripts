@@ -9,6 +9,9 @@ Three things open it, on a desktop-sized window:
 
 - the **blue eye icon** behind a mix page link in the [toolkit](../toolkit/)'s
   *This mix is on MixesDB* row
+- the same icon behind the toolkit's *This player exists on TrackId.net* link, which frames
+  that TrackId.net page instead of a MixesDB one. The toolkit's *Submit* link has none: a
+  framed page is signed out, and the submit form is of no use signed out
 - a plain left click on the [Page Creator](../page_creator/)'s category chips and their
   recent mix pages
 - the same **blue eye icon** behind the *Exists on TrackId.net* links under the players on

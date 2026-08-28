@@ -54,6 +54,12 @@ being visited.
 already – or a **Submit this player URL to TrackId.net** link when it does not. The row always
 starts with the TrackId.net icon, so it can be told apart from the other rows at a glance.
 
+The *exists* link carries a blue **eye icon**: it opens that TrackId.net page in the
+[MixesDB modal](../mixesdb_modal/) – a popup on the page you are on – so "is this the same
+mix?" and "is its tracklist worth taking over?" are answered without leaving the player and
+stopping playback. Every other click on it opens the page as usual. The **Submit** link has
+no eye: the framed page is signed out, and the submit form is of no use signed out.
+
 ### Tracklist state icons
 
 In the chip row of the [Tracklist box](../tracklist_editor/)'s feedback, next to the row
