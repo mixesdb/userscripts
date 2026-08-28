@@ -260,7 +260,7 @@ a.mdb-modalEye:hover,
 /* the toolkit underlines every hovered link with !important - outrun it by specificity */
 .mdb-toolkit a.mdb-modalEye:hover {
     display: inline-block;
-    margin-left: 3px;
+    margin-left: 5px;
     color: #4a90d2 !important;
     text-decoration: none !important;
     border: 0 !important;
