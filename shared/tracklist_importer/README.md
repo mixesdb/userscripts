@@ -247,23 +247,29 @@ Merge mode is the same review block, with one column turned round:
   Tracklist Editor you may already be working in keeps what you typed
 - **Candidate** is an empty box to paste into
 
-Below both columns stands one button. While the Candidate box is empty it reads **Paste
-clipboard & merge**: the tracklist is on your clipboard anyway, so it fetches it, drops it into
-the Candidate box and merges, all on one click. Type or paste into the box yourself and the
-button becomes a plain **Merge** – it then merges what stands there and never touches the
-clipboard. Where a browser will not hand the clipboard over (Firefox does not let a page script
-read it at all, Chrome asks and may be told no), the button says so and puts the caret in the
-box for you.
+Below both columns stands one button, and it is the same button throughout. While the Candidate
+box is empty it reads **Paste clipboard & merge**: the tracklist is on your clipboard anyway, so
+it fetches it, drops it into the Candidate box and merges, all on one click. Type or paste into
+the box yourself and it becomes a plain **Merge** – it then merges what stands there and never
+touches the clipboard. Where a browser will not hand the clipboard over (Firefox does not let a
+page script read it at all, Chrome asks and may be told no), the block says so and puts the caret
+in the box for you.
+
+What you paste is run through the Tracklist Editor once before it is merged, the way a tracklist
+sitting in a player site's box already has been. So `1. 05:23 Artist – Title (Label)` is read as
+the tracklist it is, and what the merge takes over from it arrives in the page's own formatting
+rather than the other source's.
 
 After the merge the three columns read exactly as after a link merge: the Original with what the
 merge changed highlighted, the merge result in the box, the pasted list with green for what was
-used and orange for what could not be placed. **Paste another** takes the button's place and
-empties the Candidate column for a second source – the next merge builds on the result of the
-last one, so several sources can go into one page one after the other.
+used and orange for what could not be placed. The button below still says **Merge**, and one
+click on it does the whole next source at once: the Candidate column is emptied, what you copied
+goes in, and the merge runs – so several sources can go into one page one after the other, each
+building on the result of the last.
 
-Original and Candidate are held to the same height while the Candidate is still a paste box: it
-opens as tall as the page's tracklist beside it, and the two grow together as you paste a longer
-list in.
+Original and Candidate are held to the same height throughout, before the merge and after it.
+Both sides are measured rather than counted in lines, so a long track row that wraps onto two
+lines on screen is accounted for.
 
 The one difference to a merge behind a link: **nothing is written to the page until you press
 Apply.** You are already standing on the form with your own text in the box, so no page text is
