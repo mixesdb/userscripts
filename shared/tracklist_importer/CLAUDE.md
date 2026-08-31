@@ -36,7 +36,7 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
 
 ## Merge mode
 
-The second entry point: a `Merge tracklist` LINK in the legend of the site's Tracklist Editor
+The second entry point: a `Merge mode` LINK in the legend of the site's Tracklist Editor
 fieldset opens the review block with no candidate at all, and the Candidate column is a TEXTAREA
 the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.js`, and
 `data.hand` is the flag the renderer reads. Settled about it:
@@ -58,12 +58,14 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   did not ask for. `tlImporter_applyDown` therefore does not write an EMPTY Merged box into the
   site's editor at all (the chaptered case gets the same protection), and
   `tlImporter_handFillColumns` writes the result straight into whichever box is the live one.
-- **The way in is a LINK in the fieldset's legend, not a button in the editor's action row.**
-  This form is used to edit a tracklist a hundred times for every once one is merged into it; a
-  button standing among Standard / Cap / find-replace claims to be one of the editor's own
-  tools. The legend gets `width: 100%` and a clearfix from our CSS so a right float lands at the
-  border's end - a legend is shrink-to-fit otherwise. No legend on the section (a skin change,
-  a markup change) falls back to a row below `#tlEditor-formActions`: a way in that is simply
+- **The way in is a LINK appended to the fieldset's legend, not a button in the editor's action
+  row.** This form is used to edit a tracklist a hundred times for every once one is merged into
+  it; a button standing among Standard / Cap / find-replace claims to be one of the editor's own
+  tools. It goes directly behind the legend's own text, and **the legend itself is left alone**:
+  `width: 100%` on it, to float the link to the far right, deleted the fieldset's whole TOP
+  BORDER (reported with a screenshot) - a legend is the notch in that border, so a legend as
+  wide as the fieldset leaves no border to notch. No legend on the section (a skin change, a
+  markup change) falls back to a row below `#tlEditor-formActions`: a way in that is simply
   missing is the one outcome worth avoiding.
 - **The merge button has two labels and is never disabled.** An empty paste box does not mean
   there is nothing to merge - the tracklist is on the clipboard, where the reader copied it - so

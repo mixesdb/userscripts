@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.2
+// @version      2026.08.31.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_112
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_9
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_16
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
@@ -34,7 +34,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 42,
+var cacheVersion = 43,
     scriptName = "1001_Tracklists";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -292,6 +292,15 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.31.3
+ * Tracklist Importer merge mode, two fixes off a screenshot (tracklist_importer funcs.js v17,
+ * CSS). The site's Tracklist editor fieldset had lost its whole TOP BORDER: our CSS stretched
+ * its legend to width 100% so the merge-mode link could float to the far right, and a legend IS
+ * the notch in that border - one as wide as the fieldset leaves no border to notch. Nothing is
+ * done to the legend any more; the link is simply appended to it.
+ * And it is called "Merge mode" now, not "Merge tracklist", sitting directly behind the
+ * section's own name in that label instead of at its right end.
  *
  * 2026.08.31.2
  * Tracklist Importer merge mode, the styling round (tracklist_importer funcs.js v16, CSS).

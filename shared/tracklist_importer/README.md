@@ -236,8 +236,8 @@ to, that is the normal answer, and the found tracklist has to stay on screen for
 
 Everything above needs a player site in front of it. A tracklist you simply **copied** from
 somewhere – a forum post, a comment, a site no userscript of ours runs on – gets in the other
-way: on the edit form of a mix page that already has a tracklist, a small **Merge tracklist**
-link sits at the right end of the Tracklist editor section's own label. It opens merge mode and
+way: on the edit form of a mix page that already has a tracklist, a small **Merge mode** link
+sits in the Tracklist editor section's own label, right behind its name. It opens merge mode and
 goes; the section below it is untouched until you actually merge something.
 
 Merge mode is the same review block, with one column turned round:
@@ -278,8 +278,8 @@ Two things merge mode says instead of doing them, in a line under the block's na
 - a merge that **took nothing** from the pasted list says so; the page's tracklist already holds
   everything it says
 
-Reloading the edit form closes merge mode. The link only appears where there is something to
-merge into: a page whose `== Tracklist ==` section is empty has nothing for a merge, and pasting
+Reloading the edit form closes merge mode. The **Merge mode** link only appears where there is
+something to merge into: a page whose `== Tracklist ==` section is empty has nothing for a merge, and pasting
 a list into the page's own Tracklist Editor is all an insert would be.
 
 ### Marked as integrated after the save
