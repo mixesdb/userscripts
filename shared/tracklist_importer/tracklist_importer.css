@@ -450,8 +450,9 @@ body.mdb-tlImporter-resizing {
 
 /* the paste box wears the pres' clothes, not the Merged box's: it stands in a column where a
  * <pre> stands in every other state of this block, and the three columns have to keep reading
- * as one row of boxes. resize: vertical because the reader may paste a list far longer than
- * the page's, and the column's own height was measured for the page's. */
+ * as one row of boxes. Its height is set in px by tlImporter_handMatchHeights(), which holds
+ * it and the Original <pre> to one measured height; resize: vertical leaves the reader the
+ * last word over it until the next keystroke measures again. */
 #mdb-tlImporter-diff textarea#mdb-tlImporter-candidate {
     display: block;
     width: 100%;

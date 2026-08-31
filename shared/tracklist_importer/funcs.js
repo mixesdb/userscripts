@@ -1374,6 +1374,10 @@ function tlImporter_addWideToggle( wrap ) {
             // a new height now and the grab bars' rails have to match it again
             if( wrap.hasClass( "mdb-tlImporter-wide" ) ) tlImporter_applyWide( wrap, true );
             else tlImporter_alignResizers( wrap.find( ".mdb-tlImporter-cols" ).first() );
+
+            // narrower columns wrap more rows, so merge mode's two boxes need a new common
+            // height before the rails above are worth anything
+            tlImporter_handMatchHeights( wrap );
         }, 150 );
     });
 }
@@ -2858,11 +2862,17 @@ function tlImporter_handPasteBody() {
 }
 
 // tlImporter_handMatchHeights
-// Original and Candidate stand side by side and read as two views of one list, so they are the
-// same height while the Candidate is still a paste box. The BOX is the one that can be sized:
-// it gets the row count of the taller of the two - the page's list to begin with, the pasted
-// one once that is longer - and the <pre> beside it, which is otherwise only ever as tall as
-// its own text, is given that height as a minimum.
+// Original and Candidate stand side by side and read as two views of one list, so the two are
+// held to ONE height while the Candidate is still a paste box: whichever of them needs more
+// room decides, and the other is given that height.
+//
+// Both sides are MEASURED, never counted off the line breaks. A row like
+// "# Kevin McKay, Boogietraxx, Akeem Raphael - Go Back To '89 (Extended Mix) [Glasgow
+// Underground]" is one logical row and two rows on screen, and a column full of them is
+// several rows taller than its text says - which is exactly how the first version of this got
+// it wrong: it sized the box by row count and then handed the <pre> a min-height SHORTER than
+// the height its own wrapped text already had, so the pre kept its natural height and the box
+// stayed a couple of rows short of it (reported with a screenshot).
 function tlImporter_handMatchHeights( wrap ) {
     wrap = $( wrap ).first();
 
@@ -2871,16 +2881,32 @@ function tlImporter_handMatchHeights( wrap ) {
 
     if( !pre.length || !box.length ) return;
 
-    var preRows = pre.text().split( "\n" ).length,
-        boxRows = String( box.val() || "" ).split( "\n" ).length;
+    var preNode = pre.get( 0 ),
+        boxNode = box.get( 0 );
 
-    box.attr( "rows", Math.max( preRows, boxRows ) );
+    // scrollHeight counts padding but not borders; offsetHeight counts both, so the difference
+    // is what has to be added back further down. Read while the box still stands at its normal
+    // height - one thing less that has to be true of a box collapsed to zero.
+    var borders = boxNode.offsetHeight - boxNode.clientHeight;
 
-    // MEASURED off the box, not calculated from the row count: the two share font and
-    // line-height but not their padding and borders, and a line too long for its column wraps
-    // - one row in the text, two on screen. Read after the rows attribute above, so it is the
-    // height the box actually ended up with.
-    pre.css( "min-height", box.get( 0 ).offsetHeight + "px" );
+    // Let go of the last measurement, or each run reads its own answer back as the natural
+    // height and the pair can only ever grow. height:0 on the textarea is what makes its
+    // scrollHeight the height of the TEXT - at any other height scrollHeight answers with the
+    // box whenever the box is the taller of the two.
+    pre.css( "min-height", "" );
+    box.css( "height", "0px" );
+
+    // The <pre> is border-box in the CSS for the same reason the borders are added here: its
+    // min-height has to mean what offsetHeight means.
+    var need = Math.max( preNode.offsetHeight, boxNode.scrollHeight + borders );
+
+    pre.css( "min-height", need + "px" );
+    box.css( "height", need + "px" );
+
+    // the rows attribute is the fallback height for the moment before this runs, and for a
+    // page where the stylesheet never arrived - the pixel height above wins wherever it did
+    box.attr( "rows", Math.max( pre.text().split( "\n" ).length,
+                                String( box.val() || "" ).split( "\n" ).length ) );
 }
 
 // tlImporter_handActions
@@ -2935,8 +2961,12 @@ $(document).on( "input.mdbTlImporterHand", "#mdb-tlImporter-candidate", function
 
     tlImporter_refreshHandMerge();
 
-    // the box grows with what is pasted into it, and the <pre> beside it follows
-    tlImporter_handMatchHeights( $( "#mdb-tlImporter-diff" ) );
+    // the box grows with what is pasted into it, the <pre> beside it follows, and the grab
+    // bars' rails are drawn down the boxes, so they are re-measured with them
+    var wrap = $( "#mdb-tlImporter-diff" ).first();
+
+    tlImporter_handMatchHeights( wrap );
+    tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
 });
 
 // tlImporter_handClipboardFailed
