@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.19
+// @version      2026.08.31.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_44
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_45
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -39,7 +39,7 @@
  * after the frame opt-out below, so foreign frames stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 217,
+var cacheVersion = 218,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2838,6 +2838,23 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.31.1
+ * Tracklist Importer: MERGE MODE, a merge started on the edit page itself (tracklist_importer
+ * funcs.js v45, CSS). Everything the importer did needed a player site in front of it - a
+ * tracklist copied from a forum post, a comment or a site no userscript of ours runs on had no
+ * way in. A "Merge tracklist" button below the page's own Tracklist Editor now opens the
+ * review block with the page's tracklist in Original and in the Merged box, and the Candidate
+ * column as a paste box with a Merge button under it. It swaps to the usual highlighted list
+ * once the merge ran, with "Paste another" for a second source on top of the first. Up and
+ * down work exactly as after a link merge - down from the first moment, because the Merged box
+ * is seeded with the page's tracklist the editor already holds. The one difference to the link
+ * flow: the merge writes NOTHING into the page, so no "Show changes" is clicked and Save is
+ * never locked - Apply is what writes, and it starts awake instead of asleep.
+ * MixesDB Userscripts Helper carries the importer onto mixesdb.com now as well, so merge mode
+ * reaches every contributor and not only the ones with this script installed; an edit form no
+ * import link and no stored review block points at is owned by that script (tlImporter_homeScript),
+ * which turns the old first-ready-handler coin toss into an answer.
  *
  * 2026.08.28.18
  * The popup behind the toolkit's eye ("This player exists on TrackId.net") fires this script

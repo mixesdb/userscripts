@@ -6,6 +6,7 @@ Podcasts.
 
 - **Runs on:** mixesdb.com
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/MixesDB_Userscripts_Helper/script.user.js)
+- **Shared features:** [Tracklist Importer](../shared/tracklist_importer/)
 
 ## Features
 
@@ -53,6 +54,19 @@ no category in the text means none lit. MixesDB itself never lights them from th
 a page text that arrived filled in used to show three dark icons however clearly it named the
 category.
 
+### Edit form: merge a tracklist from anywhere
+
+On the edit form of a mix page that already has a tracklist, a **Merge tracklist** button sits
+below the page's own Tracklist Editor. It opens the
+[Tracklist Importer](../shared/tracklist_importer/)'s review block in **merge mode**: paste a
+tracklist you copied from anywhere into its Candidate column, press **Merge**, read the three
+columns, and **Apply** writes the result back into the page – tracklist, `Tracklist:` category
+and indicator icons in one click. Nothing is written before you press it.
+
+The importer's other half – the **Insert**/**Merge** links that carry a tracklist over from a
+player site – belongs to the site scripts and needs one of those installed. Merge mode does not:
+this script is on every mix page anyway, which is why it carries the importer too.
+
 ### Edit form: AI formatting review
 
 The formatting review section is moved below the form buttons, where it does not sit between the
@@ -66,3 +80,8 @@ edit box and Save.
   [TrackId.net script](../TrackId.net/)'s now – install that one to get them back.
 - This script is what makes the other scripts' **Create** links work. Without it, such a link
   still opens the right edit form, but empty.
+- The **Merge tracklist** button needs a mix page whose `== Tracklist ==` section already holds
+  something – there is nothing to merge into otherwise. Where the TrackId.net or 1001 Tracklists
+  script is installed as well and has not been updated in a while, it can take the edit page
+  before this one does and the button stays away; the browser console names the owner
+  (`tlImporter: "…" owns this page`).

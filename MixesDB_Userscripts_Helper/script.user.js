@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.1
+// @version      2026.08.31.1
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -10,7 +10,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-MixesDB_Userscripts_Helper_17
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-MixesDB_Userscripts_Helper_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-MixesDB_Userscripts_Helper_19
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-MixesDB_Userscripts_Helper_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-MixesDB_Userscripts_Helper_1
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -28,7 +31,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 20,
+var cacheVersion = 21,
     scriptName = "MixesDB_Userscripts_Helper";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -803,3 +806,23 @@ d.ready(function () { // needs mw.config
 });
 
 })();
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Changelog
+ *
+ * 2026.08.31.1
+ * This script carries the shared Tracklist Importer now (new @require: tracklist_editor/funcs.js,
+ * tracklist_importer/merge_core.js and tracklist_importer/funcs.js), which brings the importer's
+ * new MERGE MODE to every contributor instead of only to the ones who happen to have the
+ * TrackId.net or 1001 Tracklists script installed: a "Merge tracklist" button below the edit
+ * form's own Tracklist Editor opens the review block, a tracklist copied from anywhere is pasted
+ * into its Candidate column, and Apply writes the merge result back into the page. The importer's
+ * player-site half stays asleep here - it gates itself on visitDomain != "mixesdb.com".
+ * Three scripts now carry the importer onto mixesdb.com/w/*, and only one of them may act on a
+ * page. THIS one owns every edit form that no import link and no stored review block points at
+ * (tlImporter_homeScript in tracklist_importer/funcs.js), because it is the one every contributor
+ * has; the older "whoever's ready handler fires first" rule stays as the fallback for a browser
+ * where this script is not installed.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
