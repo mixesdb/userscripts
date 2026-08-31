@@ -815,10 +815,12 @@ d.ready(function () { // needs mw.config
  * This script carries the shared Tracklist Importer now (new @require: tracklist_editor/funcs.js,
  * tracklist_importer/merge_core.js and tracklist_importer/funcs.js), which brings the importer's
  * new MERGE MODE to every contributor instead of only to the ones who happen to have the
- * TrackId.net or 1001 Tracklists script installed: a "Merge tracklist" button below the edit
- * form's own Tracklist Editor opens the review block, a tracklist copied from anywhere is pasted
- * into its Candidate column, and Apply writes the merge result back into the page. The importer's
- * player-site half stays asleep here - it gates itself on visitDomain != "mixesdb.com".
+ * TrackId.net or 1001 Tracklists script installed: a small "Merge tracklist" link at the right
+ * end of the edit form's Tracklist editor label opens the review block, one click on "Paste
+ * clipboard & merge" takes a tracklist copied from anywhere into its Candidate column and merges
+ * it, and Apply writes the result back into the page. Nothing is written into the page, and
+ * nothing into the Tracklist Editor, before a merge has run. The importer's player-site half
+ * stays asleep here - it gates itself on visitDomain != "mixesdb.com".
  * Three scripts now carry the importer onto mixesdb.com/w/*, and only one of them may act on a
  * page. THIS one owns every edit form that no import link and no stored review block points at
  * (tlImporter_homeScript in tracklist_importer/funcs.js), because it is the one every contributor
