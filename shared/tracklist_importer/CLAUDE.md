@@ -36,10 +36,10 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
 
 ## Merge mode
 
-The second entry point: a `Merge tracklist` button below the page's own `#tlEditor-formActions`
-opens the review block with no candidate at all, and the Candidate column is a TEXTAREA the
-reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.js`, and `data.hand`
-is the flag the renderer reads. Settled about it:
+The second entry point: a `Merge tracklist` LINK in the legend of the site's Tracklist Editor
+fieldset opens the review block with no candidate at all, and the Candidate column is a TEXTAREA
+the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.js`, and
+`data.hand` is the flag the renderer reads. Settled about it:
 
 - **The merge writes NOTHING into the page; Apply does.** Behind a link the reader clicked a
   promise of a finished edit form, so the text is written and "Show changes" is clicked for them,
@@ -50,10 +50,38 @@ is the flag the renderer reads. Settled about it:
   re-reads that baseline from `#wpTextbox1` on every render for the same reason: the block also
   comes back on the pages behind "Show changes"/"Show preview", where the result is still not in
   the page.
-- **The Merged box is seeded with the page's tracklist, not left empty.** The chaptered case
-  leaves it empty because there is no result to put there; here it is what makes the DOWN state
-  work from the first moment - down, that box IS `#tlEditor-textarea`, which already holds
-  exactly that text. An empty box would have meant merge mode could only open up.
+- **NOTHING is filled into any editor before a merge has run.** The Merged box opens empty, and
+  down - where that box IS `#tlEditor-textarea` - the site's own editor keeps whatever the
+  reader had typed in it. Seeding it with the page's tracklist was tried first, for the down
+  state's sake, and it is the wrong trade: merge mode is opened on a form somebody is already
+  working on, and writing into their editor before they have merged anything is a change they
+  did not ask for. `tlImporter_applyDown` therefore does not write an EMPTY Merged box into the
+  site's editor at all (the chaptered case gets the same protection), and
+  `tlImporter_handFillColumns` writes the result straight into whichever box is the live one.
+- **The way in is a LINK in the fieldset's legend, not a button in the editor's action row.**
+  This form is used to edit a tracklist a hundred times for every once one is merged into it; a
+  button standing among Standard / Cap / find-replace claims to be one of the editor's own
+  tools. The legend gets `width: 100%` and a clearfix from our CSS so a right float lands at the
+  border's end - a legend is shrink-to-fit otherwise. No legend on the section (a skin change,
+  a markup change) falls back to a row below `#tlEditor-formActions`: a way in that is simply
+  missing is the one outcome worth avoiding.
+- **The merge button has two labels and is never disabled.** An empty paste box does not mean
+  there is nothing to merge - the tracklist is on the clipboard, where the reader copied it - so
+  it reads `Paste clipboard & merge` and does both on one click. `navigator.clipboard.readText()`
+  is called straight out of the click handler: it needs that click's user activation, and
+  anything awaited in front of it spends it. The moment the box holds text the offer would be
+  wrong (it would throw that text away), so the label becomes `Merge`. Firefox does not give a
+  page script the clipboard at all and Chrome may be told no - `tlImporter_handClipboardFailed`
+  says so in the note line and focuses the box, never a dead end.
+- **The button sits below BOTH columns** (`tlImporter_handActions`), not in the Candidate column:
+  Original and Candidate are two views of one list, and a control under one of them reads as
+  belonging to that one alone.
+- **Original and Candidate are held level while the Candidate is a paste box**
+  (`tlImporter_handMatchHeights`): the box takes the row count of the taller of the two, and the
+  `<pre>` gets that box's `offsetHeight` as a `min-height` - measured, not calculated, because
+  the two do not share padding and borders and a wrapped line is one row in the text and two on
+  screen. Hence `box-sizing: border-box` on the pre. Cleared again once the merge has run, where
+  each column is as tall as its own text as everywhere else in this block.
 - **A second Merge builds on the Merged box, not on the page.** `tlImporter_handMergeRun` takes
   the box's current text as the original and only falls back to the page's section when it is
   empty, so several sources can be merged into one page one after the other ("Paste another").

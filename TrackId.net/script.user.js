@@ -2843,14 +2843,18 @@ function on_submitrequest() {
  * Tracklist Importer: MERGE MODE, a merge started on the edit page itself (tracklist_importer
  * funcs.js v45, CSS). Everything the importer did needed a player site in front of it - a
  * tracklist copied from a forum post, a comment or a site no userscript of ours runs on had no
- * way in. A "Merge tracklist" button below the page's own Tracklist Editor now opens the
- * review block with the page's tracklist in Original and in the Merged box, and the Candidate
- * column as a paste box with a Merge button under it. It swaps to the usual highlighted list
- * once the merge ran, with "Paste another" for a second source on top of the first. Up and
- * down work exactly as after a link merge - down from the first moment, because the Merged box
- * is seeded with the page's tracklist the editor already holds. The one difference to the link
- * flow: the merge writes NOTHING into the page, so no "Show changes" is clicked and Save is
- * never locked - Apply is what writes, and it starts awake instead of asleep.
+ * way in. A small "Merge tracklist" link at the right end of the Tracklist editor section's own
+ * label now opens the review block: the page's tracklist in Original, an EMPTY Merged box and
+ * an empty Candidate box to paste into, held to the same height as the Original beside it.
+ * Below both columns stands one button - "Paste clipboard & merge" while the box is empty (it
+ * fetches what you copied and merges in one click), a plain "Merge" the moment you type or
+ * paste into the box yourself. After the merge the Candidate reads like every other one, green
+ * and orange, with "Paste another" in the button's place for a second source on top of the
+ * first. Up and down work exactly as after a link merge.
+ * Two things it deliberately does NOT do: it writes nothing into the page (so no "Show changes"
+ * is clicked and Save is never locked - Apply is what writes, and it starts awake instead of
+ * asleep), and it fills nothing into any editor before a merge has run, so the Tracklist Editor
+ * you may already be working in keeps what you typed.
  * MixesDB Userscripts Helper carries the importer onto mixesdb.com now as well, so merge mode
  * reaches every contributor and not only the ones with this script installed; an edit form no
  * import link and no stored review block points at is owned by that script (tlImporter_homeScript),

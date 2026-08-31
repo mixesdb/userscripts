@@ -280,6 +280,10 @@ body.mdb-tlImporter-resizing {
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: .3em;
+    /* merge mode holds this box level with the paste box beside it by setting a min-height
+     * measured off that box's offsetHeight (tlImporter_handMatchHeights) - which counts
+     * padding and border, so this one has to as well */
+    box-sizing: border-box;
 }
 
 /* the Merged column's Tracklist Editor box - same padding as the pres left and right of it, so
@@ -410,15 +414,48 @@ body.mdb-tlImporter-resizing {
     display: none;
 }
 
-/* Merge mode - the entry button below the page's own Tracklist Editor action row, and the
- * paste box that takes the Candidate column's place until the merge has run. Same row layout
- * as #mdb-tlImporter-downActions below, so the two never look like two different kinds of
- * control in the same spot. */
+/* Merge mode - the way in. A LINK at the right end of the site Tracklist Editor fieldset's own
+ * legend: this form is used to edit a tracklist far more often than to merge one into it, and a
+ * button among the editor's own controls would claim a weight the feature does not have.
+ * The legend is shrink-to-fit by default, so it is given the full width the float needs, and
+ * the clearfix keeps it as tall as the floated link. */
+legend.mdb-tlImporter-legend {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+legend.mdb-tlImporter-legend::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+#mdb-tlImporter-handStart {
+    float: right;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+/* the fallback, for a Tracklist Editor section that has no legend to hang the link on: a row of
+ * its own below the editor's actions, laid out like #mdb-tlImporter-downActions further down so
+ * the two never look like two different kinds of control in the same spot */
 #mdb-tlImporter-handRow {
     display: flex;
     align-items: center;
-    gap: .8em;
     margin: 8px 0;
+}
+
+#mdb-tlImporter-handRow #mdb-tlImporter-handStart {
+    float: none;
+}
+
+/* the merge button, below BOTH columns rather than under one of the two boxes that belong
+ * together - block, full width of the block, centered. The columns carry a -10px top margin
+ * against the legend, so the air above this row is its own. */
+#mdb-tlImporter-diff #mdb-tlImporter-handActions {
+    display: block;
+    margin-top: 10px;
+    text-align: center;
 }
 
 /* the paste box wears the pres' clothes, not the Merged box's: it stands in a column where a

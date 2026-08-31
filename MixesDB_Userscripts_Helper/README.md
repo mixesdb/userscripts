@@ -56,12 +56,14 @@ category.
 
 ### Edit form: merge a tracklist from anywhere
 
-On the edit form of a mix page that already has a tracklist, a **Merge tracklist** button sits
-below the page's own Tracklist Editor. It opens the
-[Tracklist Importer](../shared/tracklist_importer/)'s review block in **merge mode**: paste a
-tracklist you copied from anywhere into its Candidate column, press **Merge**, read the three
-columns, and **Apply** writes the result back into the page – tracklist, `Tracklist:` category
-and indicator icons in one click. Nothing is written before you press it.
+On the edit form of a mix page that already has a tracklist, a small **Merge tracklist** link
+sits at the right end of the Tracklist editor section's label. It opens the
+[Tracklist Importer](../shared/tracklist_importer/)'s review block in **merge mode**: one click
+on **Paste clipboard & merge** takes the tracklist you copied from anywhere, puts it in the
+Candidate column and merges it into the page's list; then read the three columns and **Apply**
+writes the result back into the page – tracklist, `Tracklist:` category and indicator icons in
+one click. Nothing is written into the page, and nothing into the Tracklist Editor you may be
+working in, before a merge has run.
 
 The importer's other half – the **Insert**/**Merge** links that carry a tracklist over from a
 player site – belongs to the site scripts and needs one of those installed. Merge mode does not:
@@ -80,7 +82,7 @@ edit box and Save.
   [TrackId.net script](../TrackId.net/)'s now – install that one to get them back.
 - This script is what makes the other scripts' **Create** links work. Without it, such a link
   still opens the right edit form, but empty.
-- The **Merge tracklist** button needs a mix page whose `== Tracklist ==` section already holds
+- The **Merge tracklist** link needs a mix page whose `== Tracklist ==` section already holds
   something – there is nothing to merge into otherwise. Where the TrackId.net or 1001 Tracklists
   script is installed as well and has not been updated in a while, it can take the edit page
   before this one does and the button stays away; the browser console names the owner

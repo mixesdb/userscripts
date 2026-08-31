@@ -236,22 +236,34 @@ to, that is the normal answer, and the found tracklist has to stay on screen for
 
 Everything above needs a player site in front of it. A tracklist you simply **copied** from
 somewhere – a forum post, a comment, a site no userscript of ours runs on – gets in the other
-way: on the edit form of a mix page that already has a tracklist, a **Merge tracklist** button
-sits below the page's own Tracklist Editor.
+way: on the edit form of a mix page that already has a tracklist, a small **Merge tracklist**
+link sits at the right end of the Tracklist editor section's own label. It opens merge mode and
+goes; the section below it is untouched until you actually merge something.
 
-It opens the same review block, with one column turned round:
+Merge mode is the same review block, with one column turned round:
 
 - **Original** holds the page's tracklist as it stands
-- **Merged** starts as the page's tracklist too – so the block can stand down at the page's own
-  Tracklist Editor from the first moment, which is where it opens unless you moved a block up
-  once before
-- **Candidate** is an empty box to paste into, with a **Merge** button under it
+- **Merged** is empty – **nothing is filled into any editor before a merge has run**, so the
+  Tracklist Editor you may already be working in keeps what you typed
+- **Candidate** is an empty box to paste into
 
-Paste the other tracklist, press **Merge**, and the three columns read exactly as after a link
-merge: the Original with what the merge changed highlighted, the merge result in the box, the
-pasted list with green for what was used and orange for what could not be placed. **Paste
-another** empties the Candidate column for a second source – the next merge builds on the result
-of the last one, so several sources can go into one page one after the other.
+Below both columns stands one button. While the Candidate box is empty it reads **Paste
+clipboard & merge**: the tracklist is on your clipboard anyway, so it fetches it, drops it into
+the Candidate box and merges, all on one click. Type or paste into the box yourself and the
+button becomes a plain **Merge** – it then merges what stands there and never touches the
+clipboard. Where a browser will not hand the clipboard over (Firefox does not let a page script
+read it at all, Chrome asks and may be told no), the button says so and puts the caret in the
+box for you.
+
+After the merge the three columns read exactly as after a link merge: the Original with what the
+merge changed highlighted, the merge result in the box, the pasted list with green for what was
+used and orange for what could not be placed. **Paste another** takes the button's place and
+empties the Candidate column for a second source – the next merge builds on the result of the
+last one, so several sources can go into one page one after the other.
+
+Original and Candidate are held to the same height while the Candidate is still a paste box: it
+opens as tall as the page's tracklist beside it, and the two grow together as you paste a longer
+list in.
 
 The one difference to a merge behind a link: **nothing is written to the page until you press
 Apply.** You are already standing on the form with your own text in the box, so no page text is
@@ -266,7 +278,7 @@ Two things merge mode says instead of doing them, in a line under the block's na
 - a merge that **took nothing** from the pasted list says so; the page's tracklist already holds
   everything it says
 
-Reloading the edit form closes merge mode. The button only appears where there is something to
+Reloading the edit form closes merge mode. The link only appears where there is something to
 merge into: a page whose `== Tracklist ==` section is empty has nothing for a merge, and pasting
 a list into the page's own Tracklist Editor is all an insert would be.
 
