@@ -414,24 +414,14 @@ body.mdb-tlImporter-resizing {
     display: none;
 }
 
-/* Merge mode - the way in. A LINK at the right end of the site Tracklist Editor fieldset's own
- * legend: this form is used to edit a tracklist far more often than to merge one into it, and a
- * button among the editor's own controls would claim a weight the feature does not have.
- * The legend is shrink-to-fit by default, so it is given the full width the float needs, and
- * the clearfix keeps it as tall as the floated link. */
-legend.mdb-tlImporter-legend {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-legend.mdb-tlImporter-legend::after {
-    content: "";
-    display: block;
-    clear: both;
-}
-
+/* Merge mode - the way in. A LINK directly behind the label of the site's own Tracklist editor
+ * fieldset: this form is used to edit a tracklist far more often than to merge one into it, and
+ * a button among the editor's own controls would claim a weight the feature does not have.
+ * NOTHING is done to the legend itself. Stretching it to 100% to float this to the far right
+ * took the fieldset's whole top border with it - the legend IS the notch in that border, so a
+ * legend as wide as the fieldset leaves no border to notch. */
 #mdb-tlImporter-handStart {
-    float: right;
+    margin-left: .8em;
     font-size: 12px;
     font-weight: normal;
 }
@@ -446,7 +436,7 @@ legend.mdb-tlImporter-legend::after {
 }
 
 #mdb-tlImporter-handRow #mdb-tlImporter-handStart {
-    float: none;
+    margin-left: 0;
 }
 
 /* the merge button, below BOTH columns rather than under one of the two boxes that belong

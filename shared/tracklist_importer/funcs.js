@@ -23,6 +23,9 @@
  *   - merge: the page's tracklist is the original, the candidate enriches it (merge_core.js),
  *     the result is TLE-formatted and written back
  *   - the "Tracklist:" category and the indicator icons under the box follow the verdict
+ *   - merge mode: a "Merge mode" link in the page's own Tracklist Editor legend opens the same
+ *     block with an empty Candidate box to paste a tracklist from anywhere into - see the
+ *     Merge mode section further down
  *   - chaptered: nothing is written and nothing is clicked - the review block opens with the
  *     page's tracklist, an empty Merged box and the candidate, and the merge is done by hand
  *   - "Show changes" is clicked for the user, so the next thing on screen is MediaWiki's own
@@ -2761,24 +2764,30 @@ function tlImporter_renderStoredDiff() {
  * userscript of ours runs on - had no way in at all.
  *
  * Merge mode is that way in, and it is the same block with one column turned round:
- *   - a "Merge tracklist" button below the page's own Tracklist Editor opens the review block,
- *     with the page's tracklist in Original AND in the Merged box (which is what makes the
- *     down state work from the first moment: down, that box IS the page's editor, and the
- *     editor already holds exactly that text)
- *   - the Candidate column is a TEXTAREA instead of a <pre> - the paste box, with a Merge
- *     button under it - and swaps to the usual highlighted <pre> once the merge has run.
- *     "Paste another" swaps it back, so a second source can be merged on top of the first
+ *   - a small "Merge mode" LINK, appended to the legend of the page's own Tracklist Editor
+ *     fieldset right behind its name, opens the review block and takes itself off the page
+ *   - the block opens with the page's tracklist in Original, an EMPTY Merged box and an empty
+ *     Candidate box, the last two held to the height of the Original beside them
+ *   - the Candidate column is a TEXTAREA instead of a <pre> - the paste box - and swaps to the
+ *     usual highlighted <pre> once the merge has run. "Paste another" swaps it back, so a
+ *     second source can be merged on top of the first
+ *   - below BOTH columns stands the one button this needs: "Paste clipboard & merge" while the
+ *     paste box is empty, a plain "Merge" the moment it holds something
  *
- * The one deliberate difference to the link flow: NOTHING is written to the page text by the
- * merge itself. There, the reader clicked a link whose whole promise was the finished edit
- * form; here they are already standing on the form, with their own text in the box, and a
- * merge that rewrote it under them would be a surprise. So the merge only fills the three
- * columns, Apply writes - which is also why "Show changes" is not clicked and Save/Preview are
- * never locked: there is nothing unreviewed to protect them from.
+ * Two deliberate differences to the link flow:
+ *   - NOTHING is written to the page text by the merge itself. There, the reader clicked a link
+ *     whose whole promise was the finished edit form; here they are already standing on the
+ *     form, with their own text in the box, and a merge that rewrote it under them would be a
+ *     surprise. So the merge only fills the three columns, Apply writes - which is also why
+ *     "Show changes" is not clicked and Save/Preview are never locked: there is nothing
+ *     unreviewed to protect them from
+ *   - and nothing is written into any EDITOR before a merge has run either, which is why the
+ *     Merged box opens empty: down, that box IS the page's own Tracklist Editor, and whatever
+ *     the reader had already typed down there has to survive merge mode being opened
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// How long the entry button waits for mixesdb.com's editor module to render its section, and
+// How long the entry link waits for mixesdb.com's editor module to render its section, and
 // how often it looks. Its OWN timer on purpose, never waitForKeyElements: that helper keeps
 // one interval per SELECTOR, and #tlEditor-textarea already has one (the down toggle, see
 // tlImporter_renderDiffView) - a second registration on the same selector is silently dropped.
@@ -3320,17 +3329,19 @@ function tlImporter_addHandStart() {
     // A LINK in the editor fieldset's own legend, not a button in its action row. This form is
     // used a hundred times to edit a tracklist for every once one is merged in, and a button
     // standing among Standard / Cap / find-replace reads as one more of the editor's own tools
-    // - a weight this does not have. Floated to the right end of the label it is on the
+    // - a weight this does not have. Directly behind the label's own text, where it is on the
     // section it belongs to and in the way of nothing the editor does.
-    var link = $( '<a id="mdb-tlImporter-handStart" class="mdb-element hand" href="#">Merge tracklist</a>' )
+    var link = $( '<a id="mdb-tlImporter-handStart" class="mdb-element hand" href="#">Merge mode</a>' )
         .attr( "title", "Merge a tracklist from another source into this page's tracklist.\nIt opens the review block: the other tracklist goes into its Candidate column, and Apply writes the merge result back into the page." );
 
     var legend = ed.bar.find( "legend" ).first();
 
     if( legend.length ) {
-        // the class carries the full width the float needs - a legend is shrink-to-fit, and
-        // a right float inside one lands next to the text instead of at the border's end
-        legend.addClass( "mdb-tlImporter-legend" ).append( link );
+        // Appended, and the legend left at its own width. Stretching it to 100% to float the
+        // link to the far right took the fieldset's whole TOP BORDER with it: a legend is the
+        // notch in that border, so a legend as wide as the fieldset is a border with nothing
+        // left of it.
+        legend.append( link );
 
         log( "tlImporter: merge mode link placed in the Tracklist Editor's legend." );
 
@@ -3457,7 +3468,7 @@ d.ready(function() {
         stored = tlImporter_storedOwner(),
         // Nothing points at this page: no import link brought the reader here and no review
         // block is stored for it. Since merge mode (see that section) any edit form is still
-        // worth owning - it gets the "Merge tracklist" button - and "whoever's ready handler
+        // worth owning - it gets the "Merge mode" link - and "whoever's ready handler
         // fires first" is a coin toss between the scripts that happen to be installed. The
         // script that is on mixesdb.com for mixesdb.com's own sake takes those pages: it is
         // the one every contributor has, so the coin toss becomes an answer.

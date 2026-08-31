@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.2
+// @version      2026.08.31.3
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-MixesDB_Userscripts_Helper_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-MixesDB_Userscripts_Helper_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-MixesDB_Userscripts_Helper_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-MixesDB_Userscripts_Helper_2
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-MixesDB_Userscripts_Helper_3
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -31,7 +31,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 22,
+var cacheVersion = 23,
     scriptName = "MixesDB_Userscripts_Helper";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -810,6 +810,13 @@ d.ready(function () { // needs mw.config
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.31.3
+ * Tracklist Importer merge mode, two fixes off a screenshot (tracklist_importer funcs.js v3
+ * here, CSS). The edit form's Tracklist editor fieldset had lost its whole top border - our CSS
+ * stretched its legend to the full width so the merge-mode link could float right, and a legend
+ * is the notch in that border. The legend is left alone now. The link is called "Merge mode"
+ * and sits directly behind the section's own name in the label.
  *
  * 2026.08.31.2
  * Tracklist Importer merge mode, the styling round (tracklist_importer funcs.js v2 here, CSS).
