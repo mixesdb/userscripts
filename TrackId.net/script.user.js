@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.1
+// @version      2026.08.31.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_45
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_46
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -39,7 +39,7 @@
  * after the frame opt-out below, so foreign frames stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 218,
+var cacheVersion = 219,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2839,22 +2839,39 @@ function on_submitrequest() {
 /*
  * Changelog
  *
+ * 2026.08.31.2
+ * Tracklist Importer merge mode, the styling round (tracklist_importer funcs.js v46, CSS).
+ * The way in is a LINK now, small and floated to the right end of the Tracklist editor
+ * section's own label, instead of a button below its action row: this form is used to edit a
+ * tracklist a hundred times for every once one is merged into it, and a button standing among
+ * Standard / Cap / find-replace claimed a weight the feature does not have. It removes itself
+ * once clicked.
+ * Merge mode fills NOTHING into any editor before a merge has run - the Merged box opens empty
+ * and, down, the page's own Tracklist Editor keeps whatever was typed in it (tlImporter_applyDown
+ * no longer writes an empty Merged box into it at all, which the chaptered case gets out of the
+ * same fix). The merge result still goes straight into whichever box is the live one.
+ * Original and Candidate are held to the same height while the Candidate is a paste box
+ * (tlImporter_handMatchHeights): the box opens at the Original's row count and the two grow
+ * together as a longer list is pasted in.
+ * The button moved out of the Candidate column to below BOTH columns, centered on the block's
+ * full width - the two boxes belong together and a control under one of them read as belonging
+ * to that one alone. It carries two labels: "Paste clipboard & merge" while the box is empty,
+ * which fetches what you copied and merges it in one click, and a plain "Merge" the moment
+ * there is text in the box. Firefox does not let a page script read the clipboard and Chrome
+ * may be told no - the block then says so and puts the caret in the box.
+ *
  * 2026.08.31.1
  * Tracklist Importer: MERGE MODE, a merge started on the edit page itself (tracklist_importer
  * funcs.js v45, CSS). Everything the importer did needed a player site in front of it - a
  * tracklist copied from a forum post, a comment or a site no userscript of ours runs on had no
- * way in. A small "Merge tracklist" link at the right end of the Tracklist editor section's own
- * label now opens the review block: the page's tracklist in Original, an EMPTY Merged box and
- * an empty Candidate box to paste into, held to the same height as the Original beside it.
- * Below both columns stands one button - "Paste clipboard & merge" while the box is empty (it
- * fetches what you copied and merges in one click), a plain "Merge" the moment you type or
- * paste into the box yourself. After the merge the Candidate reads like every other one, green
- * and orange, with "Paste another" in the button's place for a second source on top of the
- * first. Up and down work exactly as after a link merge.
- * Two things it deliberately does NOT do: it writes nothing into the page (so no "Show changes"
- * is clicked and Save is never locked - Apply is what writes, and it starts awake instead of
- * asleep), and it fills nothing into any editor before a merge has run, so the Tracklist Editor
- * you may already be working in keeps what you typed.
+ * way in. A "Merge tracklist" button below the page's own Tracklist Editor now opens the
+ * review block with the page's tracklist in Original and in the Merged box, and the Candidate
+ * column as a paste box with a Merge button under it. It swaps to the usual highlighted list
+ * once the merge ran, with "Paste another" for a second source on top of the first. Up and
+ * down work exactly as after a link merge - down from the first moment, because the Merged box
+ * is seeded with the page's tracklist the editor already holds. The one difference to the link
+ * flow: the merge writes NOTHING into the page, so no "Show changes" is clicked and Save is
+ * never locked - Apply is what writes, and it starts awake instead of asleep.
  * MixesDB Userscripts Helper carries the importer onto mixesdb.com now as well, so merge mode
  * reaches every contributor and not only the ones with this script installed; an edit form no
  * import link and no stored review block points at is owned by that script (tlImporter_homeScript),
