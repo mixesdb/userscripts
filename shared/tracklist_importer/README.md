@@ -3,10 +3,13 @@
 Carries a tracklist a userscript found – TLE-formatted, sitting in the
 [Tracklist box](../tracklist_editor/) – over to the MixesDB mix page the
 [Toolkit](../toolkit/)'s player search matched, and prepares that page's edit form so the only
-thing left to do is check the diff and save.
+thing left to do is check the diff and save. On a mix page's edit form it also works the other
+way round: **merge mode** takes a tracklist you paste in from anywhere.
 
 - **Runs on:** every site whose userscript loads it and shows the toolkit with player search –
-  TrackId.net and 1001tracklists.com so far – plus mixesdb.com/w/* for the edit-form part
+  TrackId.net and 1001tracklists.com so far – plus mixesdb.com for the edit-form part, which the
+  [MixesDB Userscripts Helper](../../MixesDB_Userscripts_Helper/) carries as well, so merge mode
+  is there whether or not a player-site script is installed
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** part of the shared set; the site script's README says where it shows up
 
@@ -229,6 +232,44 @@ whole section there, chapters included, and **Apply** writes it into the page li
 merge. This block also stays when a compare comes back empty – on a page nothing was written
 to, that is the normal answer, and the found tracklist has to stay on screen for the hand work.
 
+### Merge mode on the edit page
+
+Everything above needs a player site in front of it. A tracklist you simply **copied** from
+somewhere – a forum post, a comment, a site no userscript of ours runs on – gets in the other
+way: on the edit form of a mix page that already has a tracklist, a **Merge tracklist** button
+sits below the page's own Tracklist Editor.
+
+It opens the same review block, with one column turned round:
+
+- **Original** holds the page's tracklist as it stands
+- **Merged** starts as the page's tracklist too – so the block can stand down at the page's own
+  Tracklist Editor from the first moment, which is where it opens unless you moved a block up
+  once before
+- **Candidate** is an empty box to paste into, with a **Merge** button under it
+
+Paste the other tracklist, press **Merge**, and the three columns read exactly as after a link
+merge: the Original with what the merge changed highlighted, the merge result in the box, the
+pasted list with green for what was used and orange for what could not be placed. **Paste
+another** empties the Candidate column for a second source – the next merge builds on the result
+of the last one, so several sources can go into one page one after the other.
+
+The one difference to a merge behind a link: **nothing is written to the page until you press
+Apply.** You are already standing on the form with your own text in the box, so no page text is
+rewritten under you, MediaWiki's **Show changes** is not clicked for you and Save is never
+locked. Apply is awake from the moment a merge has run – that is the step that writes the
+tracklist, the `Tracklist:` category and the indicator icons.
+
+Two things merge mode says instead of doing them, in a line under the block's name:
+
+- a **chaptered** tracklist on either side is not merged, here as little as behind a link – both
+  lists stay on screen as they are and the Merged box is where you put them together
+- a merge that **took nothing** from the pasted list says so; the page's tracklist already holds
+  everything it says
+
+Reloading the edit form closes merge mode. The button only appears where there is something to
+merge into: a page whose `== Tracklist ==` section is empty has nothing for a merge, and pasting
+a list into the page's own Tracklist Editor is all an insert would be.
+
 ### Marked as integrated after the save
 
 The Insert/Merge/Chaptered link opens the edit form in a **new tab**, so the toolkit row stays
@@ -283,7 +324,12 @@ checked instead of guessed at. Where nothing could be measured the line says so 
   is deliberate – see above – but it means the merge adds little there beyond cues and labels
   for the tracks it recognized.
 - The candidate travels in the link's URL fragment; the link must be followed normally
-  (left/middle/ctrl-click) for it to arrive.
+  (left/middle/ctrl-click) for it to arrive. Merge mode has no link and no fragment – what you
+  paste is what it merges.
+- Merge mode lives in whichever of the installed scripts owns the edit page, and a script that
+  has not been updated does not know it: with an old TrackId.net or 1001 Tracklists next to a
+  current MixesDB Userscripts Helper the button can stay away. The browser console names the
+  owner on every edit form (`tlImporter: "…" owns this page`) – update that script.
 - The watch that ticks the integrated checkbox after the save lives in the player-site tab:
   close it or navigate on there and the checkbox stays for you. It also gives up after
   10 minutes – a save that comes later is not seen.

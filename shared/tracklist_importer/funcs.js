@@ -887,7 +887,11 @@ var tlImporter_storageKey = "mdb-tlImporter-diff",
     // How long an instance the link did not name waits before taking the page anyway. Every
     // instance's d.ready runs in the same tick, so this is only ever spent when the named one
     // is not on this page at all.
-    tlImporter_claimFallbackMs = 500;
+    tlImporter_claimFallbackMs = 500,
+    // Who owns an edit form that no import link and no stored review block points at - see the
+    // d.ready claim at the bottom. Not installed here, or an older copy that does not know the
+    // rule: the others take the page after tlImporter_claimFallbackMs, as always.
+    tlImporter_homeScript = "MixesDB_Userscripts_Helper";
 
 // tlImporter_articleId
 function tlImporter_articleId() {
@@ -1938,7 +1942,10 @@ function tlImporter_watchApplyButton( textarea, button, baseline ) {
 // page (and, down, the page's own Tracklist Editor), next to the Candidate it came from,
 // VERBATIM as well. No merge ran here either, so nothing is highlighted.
 function tlImporter_renderDiffView( data ) {
-    if( !data || !data.items || !data.items.length ) return;
+    // an empty items array is a real state in MERGE MODE only (data.hand): the block opens
+    // before there is a candidate at all, and the Candidate column is the box it gets pasted
+    // into. Everywhere else no candidate means nothing to show.
+    if( !data || !data.items || ( !data.items.length && !data.hand ) ) return;
     if( $( "#mdb-tlImporter-diff" ).length ) return;
 
     var chapters = !!data.chapters,
@@ -1948,7 +1955,12 @@ function tlImporter_renderDiffView( data ) {
         // the Insert reading: the page's Tracklist section was EMPTY, so there is no Original
         // to put up - two columns instead of three, one of them the editable box the whole
         // block is here for. Read off the stored mode, no flag of its own
-        inserted = !chapters && data.mode == "insert";
+        inserted = !chapters && data.mode == "insert",
+        // merge mode: the reader opened this block on the edit page itself, so no candidate
+        // came with a link - see the "Merge mode" section further down
+        hand = !!data.hand,
+        // ... and until they have pressed Merge, the Candidate column is a paste box
+        handPasting = hand && !data.items.length;
 
     // a FIELDSET, not a div: the edit form is a column of fieldsets (the site's own
     // "Tracklist editor" among them), and the block reads as one of them, with its name on
@@ -1972,11 +1984,16 @@ function tlImporter_renderDiffView( data ) {
     // Original - an insert had none: the section was empty, and an empty box between the
     // headings would only look like a column that failed to render
     if( !inserted ) cols.append(
-        col( "Original", chapters
+        col( "Original", hand
+            ? tlImporter_handHelp( "original", handPasting ? "pasting" : chapters ? "chapters" : "merged" )
+            : chapters
             ? ( chaptersFromCandidate
                 ? "The tracklist the page has, exactly as it stands. Nothing was merged into it."
                 : "The tracklist the page has, exactly as it stands - chapters included. Nothing was merged into it." )
             : "The tracklist the page had before the merge. Highlighted parts were changed." )
+            // named so merge mode can swap this column's <pre> for the highlighted one when
+            // the merge has run - see tlImporter_handFillColumns
+            .addClass( "mdb-tlImporter-col-original" )
             .append( tlImporter_renderPre( data.originalItems, function( item, p ) {
                 return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
             }) )
@@ -2019,11 +2036,22 @@ function tlImporter_renderDiffView( data ) {
     var applyButton = $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
 
     applyWrap.append( applyButton );
-    tlImporter_applyBaseline = data.mergedTl || "";
+
+    // In MERGE MODE the merge writes nothing into the page (see that section), so what the box
+    // holds and what the page holds part company the moment a merge runs - the baseline is
+    // therefore the PAGE's tracklist, not the box's text. Read here and not once at open time
+    // because this render also happens on the pages behind "Show changes"/"Show preview",
+    // where an unapplied result would otherwise come back with its Apply button asleep.
+    tlImporter_applyBaseline = hand
+        ? tlImporter_extractTracklist( $( "#wpTextbox1" ).val() || "" ).tlText
+        : ( data.mergedTl || "" );
+
     tlImporter_watchApplyButton( textarea, applyButton, tlImporter_applyBaseline );
 
     cols.append(
-        col( inserted ? "Inserted" : "Merged", chapters
+        col( inserted ? "Inserted" : "Merged", hand
+            ? tlImporter_handHelp( "merged", handPasting ? "pasting" : chapters ? "chapters" : "merged" )
+            : chapters
             ? ( chaptersFromCandidate
                 ? "Empty: chaptered tracklists are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section."
                 : "Empty: chaptered pages are not merged. Merge by hand here, then Apply - it replaces the whole Tracklist section." )
@@ -2038,18 +2066,25 @@ function tlImporter_renderDiffView( data ) {
     // Candidate: green what the merge took over, orange what it could not place - gaps and
     // "?" blanks never carry a salvage flag (see tlImporter_candidateUse), so they stay plain
     cols.append(
-        col( "Candidate", chapters
+        col( "Candidate", hand
+            ? tlImporter_handHelp( "candidate", handPasting ? "pasting" : chapters ? "chapters" : "merged" )
+            : chapters
             ? ( chaptersFromCandidate
                 ? "The tracklist the player site found, exactly as it stands - chapters included. Nothing is highlighted - no merge ran on this page."
                 : "The tracklist the player site found, exactly as it stands. Nothing is highlighted - no merge ran on this page." )
             : inserted
                 ? "The tracklist the player site found, exactly as it stands - the page had none, so all of it went in."
                 : "The tracklist the player site found. Green parts were used by the merge, orange parts were not." )
-            .append( tlImporter_renderPre( data.items, function( item, p ) {
-                if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
-                if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
-                return "";
-            }) )
+            // named for the same reason as the Original column above: merge mode swaps this
+            // column's body between the paste box and the highlighted result
+            .addClass( "mdb-tlImporter-col-candidate" )
+            .append( handPasting
+                ? tlImporter_handPasteBody()
+                : tlImporter_handWrapBody( tlImporter_renderPre( data.items, function( item, p ) {
+                    if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
+                    if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
+                    return "";
+                }), hand ) )
     );
 
     // the two grab bars between the columns, plus the widths the reader last dragged. Two
@@ -2093,7 +2128,11 @@ function tlImporter_renderDiffView( data ) {
 
     // prepended AFTER the toggle so it stays the fieldset's first child - the legend is what
     // names the block on its border, like the site's own "Tracklist editor" fieldset
-    wrap.prepend( chapters
+    wrap.prepend( hand
+        ? ( handPasting
+            ? "<legend><strong>Merge mode</strong> – paste a tracklist into the Candidate column and press Merge</legend>"
+            : "<legend><strong>Merge mode</strong> – nothing is written to the page until you press Apply</legend>" )
+        : chapters
         ? ( chaptersFromCandidate
             ? "<legend><strong>Diff</strong> – chaptered tracklist, nothing was merged</legend>"
             : "<legend><strong>Diff</strong> – chaptered page, nothing was merged</legend>" )
@@ -2104,6 +2143,10 @@ function tlImporter_renderDiffView( data ) {
     wrap.append( cols );
 
     if( !tlImporter_placeDiffBlock( wrap ) ) return;
+
+    // merge mode's reason line, back from the stored block - see tlImporter_handNote. After
+    // the columns are in, because it hangs itself in front of them
+    if( hand && data.handNote ) tlImporter_handNote( wrap, data.handNote );
 
     // only now, with the block on the page, can its distance to the window's left edge be
     // measured - the stored choice is applied from here, not at build time
@@ -2149,6 +2192,10 @@ function tlImporter_renderDiffView( data ) {
     );
 
     textarea.attr( "rows", maxRows );
+
+    // the paste box of merge mode is one of the three columns and has to start as tall as
+    // the others - it holds nothing yet, so its own text cannot say how tall that is
+    wrap.find( "#mdb-tlImporter-candidate" ).attr( "rows", maxRows );
 
     // the boxes have their final height only now - the grab bars' rails are drawn to match it
     tlImporter_alignResizers( cols );
@@ -2668,7 +2715,10 @@ function tlImporter_renderStoredDiff() {
     // Not in the chaptered case: nothing was written there, so an empty compare is the NORMAL
     // state of that page, and the block is the reader's material for the hand-merge - dropping
     // it on the first "Show changes" would throw the candidate away for good.
-    if( !stored.chapters && tlImporter_diffIsEmpty() ) {
+    // Merge mode is out for the same reason: it writes nothing into the page either, so an
+    // empty compare is its normal state up to the first Apply - and the pasted candidate only
+    // exists inside the block. Dropping it would throw the reader's paste away.
+    if( !stored.chapters && !stored.hand && tlImporter_diffIsEmpty() ) {
         log( "tlImporter: the compare shows no difference - dropping the review block." );
         tlImporter_clearStoredDiff();
         return;
@@ -2677,6 +2727,497 @@ function tlImporter_renderStoredDiff() {
     tlImporter_loadCss();
     tlImporter_renderDiffView( stored );
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * Merge mode - a merge started on the edit page itself
+ *
+ * Everything above this point needs a player site in front of it: the toolkit found the mix
+ * page, the candidate travelled in the link's hash, and the edit form did the work on arrival.
+ * A tracklist that is simply COPIED from somewhere - a forum post, a comment, a site no
+ * userscript of ours runs on - had no way in at all.
+ *
+ * Merge mode is that way in, and it is the same block with one column turned round:
+ *   - a "Merge tracklist" button below the page's own Tracklist Editor opens the review block,
+ *     with the page's tracklist in Original AND in the Merged box (which is what makes the
+ *     down state work from the first moment: down, that box IS the page's editor, and the
+ *     editor already holds exactly that text)
+ *   - the Candidate column is a TEXTAREA instead of a <pre> - the paste box, with a Merge
+ *     button under it - and swaps to the usual highlighted <pre> once the merge has run.
+ *     "Paste another" swaps it back, so a second source can be merged on top of the first
+ *
+ * The one deliberate difference to the link flow: NOTHING is written to the page text by the
+ * merge itself. There, the reader clicked a link whose whole promise was the finished edit
+ * form; here they are already standing on the form, with their own text in the box, and a
+ * merge that rewrote it under them would be a surprise. So the merge only fills the three
+ * columns, Apply writes - which is also why "Show changes" is not clicked and Save/Preview are
+ * never locked: there is nothing unreviewed to protect them from.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// How long the entry button waits for mixesdb.com's editor module to render its section, and
+// how often it looks. Its OWN timer on purpose, never waitForKeyElements: that helper keeps
+// one interval per SELECTOR, and #tlEditor-textarea already has one (the down toggle, see
+// tlImporter_renderDiffView) - a second registration on the same selector is silently dropped.
+var tlImporter_handPollMs = 500,
+    tlImporter_handWaitMs = 20000,
+    tlImporter_handPollTimer = null;
+
+// tlImporter_handHelp
+// The three columns' help lines in merge mode - ONE source for them, because they are written
+// twice: once by tlImporter_renderDiffView when the block is built (and rebuilt after a form
+// POST from the stored data) and once by the merge itself, which changes them under a standing
+// block. Two copies of these sentences drifted apart on the chaptered case within an hour of
+// being written.
+function tlImporter_handHelp( which, state ) {
+    if( which == "original" ) {
+        return state == "pasting"
+            ? "The tracklist this page holds right now. Nothing has been merged into it yet."
+            : state == "chapters"
+                ? "The tracklist the page has, exactly as it stands - chapters included. Nothing was merged into it."
+                : "The tracklist the page had before the merge. Highlighted parts were changed.";
+    }
+
+    if( which == "candidate" ) {
+        return state == "pasting"
+            ? "Paste the tracklist you want to merge into this page here, then press Merge."
+            : state == "chapters"
+                ? "The tracklist you pasted, exactly as it stands. Nothing is highlighted - no merge ran."
+                : "The tracklist you pasted. Green parts were used by the merge, orange parts were not.";
+    }
+
+    return state == "pasting"
+        ? "The page's tracklist, as the box you work in. The merge result lands here - then Apply writes it back."
+        : state == "chapters"
+            ? "The page's tracklist. Chaptered lists are never merged - put the two together here, then Apply."
+            : "The merge result. Nothing of it is in the page yet - Apply is what writes it there.";
+}
+
+// tlImporter_handSetHelp
+// Those three lines onto a block that is already standing.
+function tlImporter_handSetHelp( wrap, state ) {
+    wrap.find( ".mdb-tlImporter-col-help" ).each(function() {
+        var help = $( this ),
+            col = help.closest( ".mdb-tlImporter-col" ),
+            text = tlImporter_handHelp( col.hasClass( "mdb-tlImporter-col-original" ) ? "original"
+                                      : col.hasClass( "mdb-tlImporter-col-candidate" ) ? "candidate"
+                                      : "merged", state );
+
+        help.attr( "title", text ).text( text );
+    });
+}
+
+// tlImporter_handWrapBody
+// The Candidate column's swappable body. Both states go into this one wrapper, so switching
+// between the paste box and the highlighted result is a single replaceWith - the column head
+// and its help line above it stay where they are.
+function tlImporter_handWrapBody( content, withAgain ) {
+    var body = $( '<div class="mdb-tlImporter-cand-body"></div>' ).append( content );
+
+    // only merge mode gets the way back: the link flow's candidate came with the link and
+    // cannot be re-pasted, and a button offering it would promise something that is not there
+    if( withAgain ) {
+        body.append( $( '<div class="mdb-tlImporter-apply-wrap"></div>' ).append(
+            $( '<button id="mdb-tlImporter-handAgain" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Paste another</button>' )
+                .attr( "title", "Empty the Candidate column and paste another tracklist into it.\nWhat the last merge put into the Merged box stays - the next merge builds on it." )
+        ) );
+    }
+
+    return body;
+}
+
+// tlImporter_handPasteBody
+// The Candidate column while merge mode is waiting for a tracklist.
+function tlImporter_handPasteBody() {
+    var box = $( '<textarea id="mdb-tlImporter-candidate" class="mono" spellcheck="false"></textarea>' )
+            .attr( "placeholder", "Paste the tracklist to merge in here - one track per line, as the other source prints it.\n\nCue times in [ ] are read where there are any; without them the merge can still add labels and fill \"?\" tracks." ),
+        actions = $( '<div class="mdb-tlImporter-apply-wrap"></div>' ),
+        button = $( '<button id="mdb-tlImporter-merge" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Merge</button>' );
+
+    actions.append( button );
+
+    return tlImporter_handWrapBody( [ box, actions ], false );
+}
+
+// tlImporter_refreshHandMerge
+// The Merge button's wake/sleep. Asleep on an empty paste box and on nothing else - what the
+// merge will make of the text is not something a button state can say in advance.
+function tlImporter_refreshHandMerge() {
+    var button = $( "#mdb-tlImporter-merge" );
+
+    if( !button.length ) return;
+
+    var ready = $.trim( $( "#mdb-tlImporter-candidate" ).val() || "" ) !== "";
+
+    button
+        .prop( "disabled", !ready )
+        .toggleClass( "mdb-tlImporter-locked", !ready )
+        .attr( "title", ready
+            ? "Merge this tracklist into the page's tracklist.\nNothing is written to the page - the result lands in the Merged box, and Apply writes it from there."
+            : "Nothing to merge: paste a tracklist into the box first." );
+}
+
+$(document).on( "input.mdbTlImporterHand", "#mdb-tlImporter-candidate", function() {
+    // only the instance that claimed the page answers - see tlImporter_ownsEditPage
+    if( !tlImporter_ownsEditPage ) return;
+
+    tlImporter_refreshHandMerge();
+});
+
+// tlImporter_mergedBox
+// Where the Merged text lives right now: the block's own box, or - while the block is down -
+// the page's own Tracklist Editor, which the down state moved it into. Looked up fresh on
+// every call for the same reason tlImporter_downBox() is.
+function tlImporter_mergedBox( wrap ) {
+    return $( wrap ).hasClass( "mdb-tlImporter-down" )
+        ? tlImporter_downBox()
+        : $( wrap ).find( "textarea.mixesdb-TLbox" ).first();
+}
+
+// tlImporter_handNote
+// One line under the block's legend, for what a merge could not do. Replaced on every merge,
+// so an old reason never stands next to a new result.
+function tlImporter_handNote( wrap, text ) {
+    var note = wrap.find( ".mdb-tlImporter-hand-note" ).first();
+
+    if( !text ) {
+        note.remove();
+        return;
+    }
+
+    if( !note.length ) {
+        note = $( '<div class="mdb-tlImporter-hand-note mdb-element"></div>' );
+        wrap.children( ".mdb-tlImporter-cols" ).first().before( note );
+    }
+
+    note.text( text );
+}
+
+// tlImporter_handFillColumns
+// The merge result into the block that is already standing - never a re-render. The block
+// carries the down state, the dragged column widths, the site editor moved up next to it and
+// two MutationObservers; tearing it down and building it again would have to restore all of
+// that, and the one thing that actually changes is the content of three boxes.
+function tlImporter_handFillColumns( wrap, res, finalTl, feedback ) {
+    // Original: the verbatim rows the block opened with give way to the merge's reading of
+    // the same list, with what the merge rewrote flagged
+    wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).first()
+        .replaceWith( tlImporter_renderPre( res.originalItems, function( item, p ) {
+            return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
+        }) );
+
+    // Candidate: the paste box gives way to the usual highlighted list, plus the way back
+    wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-cand-body" ).first()
+        .replaceWith( tlImporter_handWrapBody( tlImporter_renderPre( res.diffItems, function( item, p ) {
+            if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
+            if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
+            return "";
+        }), true ) );
+
+    // Merged: wherever that box currently is. mdbTlboxKnown travels with the text so the next
+    // blur does not re-ask for a verdict this merge already paid for; the input event is what
+    // re-sizes the box and wakes the Apply watcher.
+    var box = tlImporter_mergedBox( wrap );
+
+    if( box.length ) {
+        box.data( "mdbTlboxKnown", finalTl );
+        box.val( finalTl );
+        box.get( 0 ).dispatchEvent( new Event( "input", { bubbles: true } ) );
+
+        if( feedback && feedback.text ) tlBoxRenderFeedback( box, feedback );
+    }
+
+    tlImporter_handSetHelp( wrap, "merged" );
+
+    wrap.children( "legend" ).html( "<strong>Merge mode</strong> – nothing is written to the page until you press Apply" );
+
+    // the boxes have new heights - the grab bars' rails are drawn to match them
+    tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
+}
+
+// tlImporter_handMergeRun
+// One press on the Merge button.
+function tlImporter_handMergeRun() {
+    var wrap = $( "#mdb-tlImporter-diff" ).first(),
+        box = $( "#mdb-tlImporter-candidate" ).first(),
+        textbox = $( "#wpTextbox1" ).first(),
+        candidate = $.trim( box.val() || "" );
+
+    if( !wrap.length || !box.length || !textbox.length || !candidate ) return;
+
+    logFunc( "tlImporter_handMergeRun" );
+
+    var pageText = textbox.val(),
+        read = tlImporter_extractTracklist( pageText );
+
+    if( !read.hasSection ) {
+        tlImporter_handNote( wrap, "This page has no \"== Tracklist ==\" section any more - nothing to merge into." );
+        return;
+    }
+
+    // The ORIGINAL is what the reader is working on, not what the page was opened with: the
+    // Merged box may already hold the result of an earlier merge from another source, and a
+    // second Merge has to build on that instead of throwing it away. Only when that box is
+    // empty does the page's own section stand in.
+    var mergedBox = tlImporter_mergedBox( wrap ),
+        original = $.trim( mergedBox.val() || "" ) || read.tlText;
+
+    // Chapters on either side, exactly as in the link flow: no merge logic for them yet. Here
+    // that costs nothing but the merge - the reader already has both lists on screen and the
+    // Merged box to do it in, which is the whole point of the block.
+    var pageChapters = /^\s*;/m.test( original ),
+        candidateChapters = /^\s*;/m.test( candidate );
+
+    if( pageChapters || candidateChapters ) {
+        log( "tlImporter: the " + ( pageChapters ? "page tracklist" : "pasted tracklist" ) + " has chapters - no merge, both lists stand as they are for the hand-merge." );
+
+        var chapterData = {
+            mode: "merge",
+            hand: true,
+            chapters: true,
+            chaptersFrom: pageChapters ? "page" : "candidate",
+            unchanged: true,
+            // VERBATIM on both sides - no merge ran, so there is nothing to flag parts of
+            items: tlImporter_rawItems( candidate ),
+            originalItems: tlImporter_rawItems( original ),
+            mergedTl: original,
+            status: "",
+            feedback: null
+        };
+
+        wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).first()
+            .replaceWith( tlImporter_renderPre( chapterData.originalItems, function() { return ""; } ) );
+
+        wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-cand-body" ).first()
+            .replaceWith( tlImporter_handWrapBody(
+                tlImporter_renderPre( chapterData.items, function() { return ""; } ), true ) );
+
+        chapterData.handNote = ( pageChapters ? "The page's" : "The pasted" )
+            + " tracklist has chapters (\";Name\" rows) - those are never merged automatically. Both lists stand as they are; merge them by hand in the Merged box, then Apply.";
+
+        tlImporter_handSetHelp( wrap, "chapters" );
+        tlImporter_handNote( wrap, chapterData.handNote );
+
+        tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
+        tlImporter_storeDiff( chapterData );
+        return;
+    }
+
+    var durationSec = tlImporter_editPageDurationSec( pageText ),
+        res = tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) ),
+        finalTl = res.mergedText,
+        status = "",
+        feedback = null;
+
+    if( res.changed ) {
+        // the same one TLE call the link flow makes: it decides the "#" numbering and hands
+        // back the verdict the "Tracklist:" category follows when Apply writes
+        var api = apiTracklist( res.mergedText, "standard" );
+
+        finalTl = api.text || res.mergedText;
+        status = api.feedback && api.feedback.status ? api.feedback.status : "";
+        feedback = api.feedback || null;
+    }
+
+    var note = res.changed ? ""
+        : "The merge took nothing from this tracklist - the page's list already holds everything it says.";
+
+    tlImporter_handFillColumns( wrap, res, finalTl, feedback );
+    tlImporter_handNote( wrap, note );
+
+    // The Apply button's baseline is what the PAGE holds, never what the merge produced: the
+    // merge wrote nothing, so there is something to apply from the very first moment. In the
+    // link flow the two are the same text, which is why that button starts asleep.
+    tlImporter_applyBaseline = read.tlText;
+    $( "#mdb-tlImporter-apply" ).trigger( "mdbApplied", [ read.tlText ] );
+    tlImporter_refreshDownApply();
+
+    tlImporter_storeDiff({
+        mode: "merge",
+        hand: true,
+        unchanged: !res.changed,
+        items: res.diffItems,
+        originalItems: res.originalItems,
+        mergedTl: finalTl,
+        status: status,
+        feedback: feedback,
+        // it explains what the columns show; the block comes back after a form POST and the
+        // reason has to come back with it, or the reader is left with an unhighlighted
+        // Candidate column and nothing saying why
+        handNote: note
+    });
+
+    log( "tlImporter: merge mode - merged " + res.diffItems.length + " pasted rows into "
+        + res.originalItems.length + " page rows (" + ( res.changed ? "TLE status: " + ( status || "(none)" ) : "nothing was taken over" ) + ")." );
+}
+
+// tlImporter_handPasteAgain
+// The way back to the paste box, for a second source on top of the first. The Merged box is
+// left exactly as it stands - it IS the result so far, and the next merge takes it as its
+// original (see tlImporter_handMergeRun).
+function tlImporter_handPasteAgain() {
+    var wrap = $( "#mdb-tlImporter-diff" ).first();
+
+    if( !wrap.length ) return;
+
+    var rows = wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).first().text().split( "\n" ).length;
+
+    wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-cand-body" ).first()
+        .replaceWith( tlImporter_handPasteBody() );
+
+    wrap.find( "#mdb-tlImporter-candidate" ).attr( "rows", rows ).trigger( "focus" );
+
+    var help = wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-col-help" ).first(),
+        text = "Paste the next tracklist to merge in here, then press Merge.";
+
+    help.attr( "title", text ).text( text );
+
+    tlImporter_handNote( wrap, "" );
+
+    var stored = tlImporter_readStoredDiff();
+
+    if( stored && stored.handNote ) {
+        stored.handNote = "";
+        tlImporter_storeDiff( stored );
+    }
+
+    tlImporter_refreshHandMerge();
+    tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
+}
+
+$(document).on( "click.mdbTlImporterHand", "#mdb-tlImporter-merge", function() {
+    // only the instance that claimed the page answers - see tlImporter_ownsEditPage
+    if( !tlImporter_ownsEditPage ) return;
+
+    tlImporter_handMergeRun();
+});
+
+$(document).on( "click.mdbTlImporterHand", "#mdb-tlImporter-handAgain", function() {
+    if( !tlImporter_ownsEditPage ) return;
+
+    tlImporter_handPasteAgain();
+});
+
+// tlImporter_openHandMerge
+// The block itself, opened by the entry button. The page's tracklist goes into Original AND
+// into the Merged box - see the section comment on why the Merged box is not empty here the
+// way it is in the chaptered case.
+function tlImporter_openHandMerge() {
+    var textbox = $( "#wpTextbox1" ).first();
+
+    if( !textbox.length || $( "#mdb-tlImporter-diff" ).length ) return;
+
+    var read = tlImporter_extractTracklist( textbox.val() );
+
+    if( !read.hasSection || !read.hasTracks ) {
+        log( "tlImporter: merge mode needs a filled \"== Tracklist ==\" section - nothing to merge into here." );
+        return;
+    }
+
+    logFunc( "tlImporter_openHandMerge" );
+
+    $( "#mdb-tlImporter-handRow" ).remove();
+
+    var data = {
+        mode: "merge",
+        hand: true,
+        unchanged: true,
+        // no candidate yet - the Candidate column is the box it gets pasted into
+        items: [],
+        // VERBATIM, like the chaptered case: no merge has run, so there is nothing to flag
+        // parts of, and the parser would show a tidied-up list the page does not hold
+        originalItems: tlImporter_rawItems( read.tlText ),
+        mergedTl: read.tlText,
+        status: "",
+        feedback: null
+    };
+
+    tlImporter_loadCss();
+    tlImporter_storeDiff( data );
+    tlImporter_renderDiffView( data );
+    tlImporter_refreshHandMerge();
+}
+
+// tlImporter_addHandStart
+// The entry button, in a row of its own below the page's own Tracklist Editor action row -
+// where tracklist work on this form happens anyway, and where the block itself stands once it
+// is moved down. Answers true when there is nothing left to wait for.
+function tlImporter_addHandStart() {
+    if( $( "#mdb-tlImporter-handRow" ).length ) return true;
+
+    // a block is already on the page: it arrived with an Insert/Merge link, or merge mode is
+    // open. Either way there is nothing for a second entry point to open
+    if( $( "#mdb-tlImporter-diff" ).length ) return true;
+
+    var textbox = $( "#wpTextbox1" ).first();
+
+    if( !textbox.length ) return true; // not logged in, or a protected page
+
+    var ed = tlImporter_siteEditor();
+
+    if( !ed ) return false; // the site's editor module is still coming
+
+    var read = tlImporter_extractTracklist( textbox.val() );
+
+    if( !read.hasSection || !read.hasTracks ) {
+        log( "tlImporter: no filled \"== Tracklist ==\" section on this page - no merge mode button." );
+        return true;
+    }
+
+    // the row is styled by this feature's own sheet, so it is fetched before the row lands -
+    // not lazily on the click, which would show the button unstyled for a moment first
+    tlImporter_loadCss();
+
+    var row = $( '<div id="mdb-tlImporter-handRow" class="mdb-element"></div>' ),
+        button = $( '<button id="mdb-tlImporter-handStart" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Merge tracklist</button>' )
+            .attr( "title", "Merge a tracklist from another source into this page's tracklist.\nIt opens the review block: paste the other tracklist into its Candidate column, press Merge, and Apply writes the result back into the page." );
+
+    row.append( button );
+    ed.actions.after( row );
+
+    log( "tlImporter: merge mode button placed below the page's Tracklist Editor." );
+
+    return true;
+}
+
+$(document).on( "click.mdbTlImporterHand", "#mdb-tlImporter-handStart", function() {
+    if( !tlImporter_ownsEditPage ) return;
+
+    tlImporter_openHandMerge();
+});
+
+// tlImporter_watchForHandStart
+// mixesdb.com renders its Tracklist Editor section through a ResourceLoader module, so it is
+// usually not on the page yet when the claim runs - see tlImporter_handPollMs on why this is
+// a timer of its own and not waitForKeyElements.
+function tlImporter_watchForHandStart() {
+    var action = getURLParameter( "action" );
+
+    // the edit form and the pages its own buttons lead to; nowhere else is there a wiki
+    // textbox to merge into
+    if( action != "edit" && action != "submit" ) return;
+
+    if( tlImporter_addHandStart() ) return;
+
+    var waited = 0;
+
+    if( tlImporter_handPollTimer ) clearInterval( tlImporter_handPollTimer );
+
+    tlImporter_handPollTimer = setInterval(function() {
+        waited += tlImporter_handPollMs;
+
+        if( !tlImporter_addHandStart() && waited < tlImporter_handWaitMs ) return;
+
+        clearInterval( tlImporter_handPollTimer );
+        tlImporter_handPollTimer = null;
+
+        if( waited >= tlImporter_handWaitMs && !$( "#mdb-tlImporter-handRow" ).length ) {
+            log( "tlImporter: no Tracklist Editor section after " + ( tlImporter_handWaitMs / 1000 )
+                + "s - no merge mode button on this page." );
+        }
+    }, tlImporter_handPollMs );
+}
+
 
 // tlImporter_claimEditPage
 // The check-and-set plus the work behind it. Synchronous on purpose: ready handlers and
@@ -2709,12 +3250,18 @@ function tlImporter_claimEditPage( why, takeOver ) {
     // userscripts carry them, and a stale one produces a stale result on a page whose link
     // came from the fresh one. Only where there is something to own, though - every mixesdb.com
     // page runs this, and a wiki page nobody imported into does not need the line.
-    if( getURLParameter( "mdbTlImporter" ) || tlImporter_readStoredDiff() ) {
+    var action = getURLParameter( "action" );
+
+    if( getURLParameter( "mdbTlImporter" ) || tlImporter_readStoredDiff() || action == "edit" || action == "submit" ) {
         log( "tlImporter: \"" + tlImporter_scriptName() + "\" owns this page (" + why + ")." );
     }
 
     tlImporter_runEditPage();
     tlImporter_renderStoredDiff();
+
+    // last, so a block one of the two above put on the page is already there to be seen: the
+    // entry button is for the pages that have none
+    tlImporter_watchForHandStart();
 
     return true;
 }
@@ -2737,11 +3284,22 @@ d.ready(function() {
     // (not installed here, or an older version that does not know the parameter), the others
     // fall back to the old first-one-here rule a moment later.
     var fromLink = tlImporter_senderFromHash(),
-        sender = fromLink || tlImporter_storedOwner();
+        stored = tlImporter_storedOwner(),
+        // Nothing points at this page: no import link brought the reader here and no review
+        // block is stored for it. Since merge mode (see that section) any edit form is still
+        // worth owning - it gets the "Merge tracklist" button - and "whoever's ready handler
+        // fires first" is a coin toss between the scripts that happen to be installed. The
+        // script that is on mixesdb.com for mixesdb.com's own sake takes those pages: it is
+        // the one every contributor has, so the coin toss becomes an answer.
+        home = ( !fromLink && !stored ) ? tlImporter_homeScript : "",
+        sender = fromLink || stored || home;
 
     if( sender && sender !== tlImporter_scriptName() ) {
-        log( "tlImporter: this page belongs to \"" + sender + "\" (" + ( fromLink ? "named in the link" : "it owns the stored review block" )
-             + "), so \"" + tlImporter_scriptName() + "\" leaves it alone." );
+        // silent for the home case - it is every mixesdb.com page, not an import
+        if( !home ) {
+            log( "tlImporter: this page belongs to \"" + sender + "\" (" + ( fromLink ? "named in the link" : "it owns the stored review block" )
+                 + "), so \"" + tlImporter_scriptName() + "\" leaves it alone." );
+        }
 
         setTimeout(function(){
             if( document.documentElement.getAttribute( "data-mdb-tlimporter-owner" ) ) return;
@@ -2757,7 +3315,8 @@ d.ready(function() {
     // anything - on those pages nothing is merged, only the stored block is rendered, and that
     // render is a no-op when it already stands.
     tlImporter_claimEditPage( fromLink ? "named in the link"
-                            : sender ? "named in the stored review block"
+                            : stored ? "named in the stored review block"
+                            : home ? "the mixesdb.com script owns the pages nothing points at"
                             : "first one here", !!fromLink );
 });
 

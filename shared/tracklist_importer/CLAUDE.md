@@ -6,12 +6,15 @@ The Tracklist Importer: the Insert/Merge/Report links the toolkit's usage row ga
 site with a filled tracklist box, and the mix-page edit form work behind them. It replaces the
 stalled Tracklist Merger userscript (since removed from the repo), whose merge logic it ports.
 
+Since v45 it also runs the other way round: **merge mode**, a merge started on the edit page
+itself, with no player site and no link in front of it - see the section below.
+
 ## Files
 
 | File | What it is |
 | --- | --- |
 | `merge_core.js` | Pure text in, text out: the merge (`tlImporter_merge`), the matching and cue-format helpers, and the wikitext helpers for the `== Tracklist ==` section (`tlImporter_extractTracklist`, `tlImporter_setTracklist`, `tlImporter_tracklistWikitext`, `tlImporter_updateTlCategory`). No DOM, no network, no jQuery – deliberately self-contained (own copies of the normalization regexes), so the deno runner can load it. Keep it that way. |
-| `funcs.js` | The DOM half: the toolkit links and Report box on the player site, the import + review block (Original / Merged / Candidate above the edit box) + Apply + button gating on the mixesdb.com edit form. Loads the CSS lazily (`tlImporter_loadCss`). |
+| `funcs.js` | The DOM half: the toolkit links and Report box on the player site, the import + review block (Original / Merged / Candidate above the edit box) + Apply + button gating on the mixesdb.com edit form, and merge mode (the `tlImporter_hand*` functions). Loads the CSS lazily (`tlImporter_loadCss`). |
 | `tracklist_importer.css` | Report box, the "nothing to merge" note in the toolkit row, review block, locked-button state. Loaded by `funcs.js`, not by the site scripts. |
 | `importer_examples.js` | Test data: merges and page-text cases. Reported merges become cases here, like title reports in `../page_creator/title_examples.js`. |
 | `importer_examples_test.js` | The deno runner for it. |
@@ -31,8 +34,55 @@ runtime first, the candidate last because it is the long one). The hash never re
 the request line the way a query parameter could – and the same userscript runs on
 mixesdb.com/w/*, where `funcs.js` reads it back.
 
+## Merge mode
+
+The second entry point: a `Merge tracklist` button below the page's own `#tlEditor-formActions`
+opens the review block with no candidate at all, and the Candidate column is a TEXTAREA the
+reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.js`, and `data.hand`
+is the flag the renderer reads. Settled about it:
+
+- **The merge writes NOTHING into the page; Apply does.** Behind a link the reader clicked a
+  promise of a finished edit form, so the text is written and "Show changes" is clicked for them,
+  with Save locked until it ran. In merge mode they are already standing on the form with their
+  own text in the box - rewriting it under them would be the surprise, not the service. So no
+  page write, no click, no lock, and `tlImporter_applyBaseline` is the PAGE's tracklist instead
+  of the box's text, which is what makes Apply start awake instead of asleep. `renderDiffView`
+  re-reads that baseline from `#wpTextbox1` on every render for the same reason: the block also
+  comes back on the pages behind "Show changes"/"Show preview", where the result is still not in
+  the page.
+- **The Merged box is seeded with the page's tracklist, not left empty.** The chaptered case
+  leaves it empty because there is no result to put there; here it is what makes the DOWN state
+  work from the first moment - down, that box IS `#tlEditor-textarea`, which already holds
+  exactly that text. An empty box would have meant merge mode could only open up.
+- **A second Merge builds on the Merged box, not on the page.** `tlImporter_handMergeRun` takes
+  the box's current text as the original and only falls back to the page's section when it is
+  empty, so several sources can be merged into one page one after the other ("Paste another").
+- **The result goes into the standing block, never into a re-render**
+  (`tlImporter_handFillColumns`). The block carries the down state, the dragged column widths,
+  the site's editor section moved up next to it and two MutationObservers; a rebuild would have
+  to restore all of it, and the only thing that actually changes is the content of three boxes.
+- **The entry button has its OWN timer, never `waitForKeyElements`.** That helper keeps one
+  interval per SELECTOR and `#tlEditor-textarea` already has one (the down toggle, registered in
+  `tlImporter_renderDiffView`) - a second registration on the same selector is silently dropped
+  and its callback never runs. See `tlImporter_handPollMs`.
+- **`tlImporter_renderStoredDiff` must not drop a hand block on an empty compare.** Same reason
+  as the chaptered one: nothing was written to the page, so "(No difference)" is its normal state
+  up to the first Apply - and the pasted candidate exists nowhere but inside the block.
+- **A plain `action=edit` clears the stored block, and that is the way out of merge mode.** There
+  is no close button; reloading the form is it.
+
 ## Settled
 
+- **An edit form nothing points at belongs to `tlImporter_homeScript`
+  (`MixesDB_Userscripts_Helper`).** Since merge mode every edit form is worth owning - it gets
+  the button - and there is no link and no stored block to name an owner on most of them, so the
+  old rule decided it by which sandbox's `d.ready` fired first. That is a coin toss between
+  whichever scripts happen to be installed, and it decides which COPY of these files answers.
+  The script that is on mixesdb.com for mixesdb.com's own sake takes those pages: every
+  contributor has it. It runs through the same wait/fallback path as a named sender, so a browser
+  without it (or with an older copy that does not know the rule) still gets the page taken by
+  whoever is there after `tlImporter_claimFallbackMs`. Silent in the log, unlike a real sender:
+  this is every mixesdb.com page, not an import.
 - **ONE instance owns the mixesdb.com side, and it is the one the LINK names.** TrackId.net and
   1001 Tracklists both carry this
   file onto mixesdb.com/w/*, each in its own sandbox; unguarded, both would apply the merge,
@@ -62,7 +112,8 @@ mixesdb.com/w/*, where `funcs.js` reads it back.
   state's live-chip and textarea sync) check that flag at event time, because they are bound at
   file load, long before the claim. The player-site handlers (import link, Report) are NOT
   gated - one script per player site, and the flag is false there. A new site script that adds
-  `@include http*mixesdb.com/w/*` needs nothing: the claim comes with this file. But BOTH
+  `@include http*mixesdb.com/w/*` needs nothing: the claim comes with this file. THREE scripts
+  carry it now - TrackId.net, 1001 Tracklists and MixesDB Userscripts Helper. But ALL
   installed scripts must load a claim-aware version - an old instance does not know to stand
   down, so importer-funcs require-param bumps go into every carrying script together.
 - **`tlImporter_parse` strips quote RUNS (`'{2,}`), not pairs.** Pair-wise `''` removal turned

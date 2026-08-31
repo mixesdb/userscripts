@@ -410,6 +410,51 @@ body.mdb-tlImporter-resizing {
     display: none;
 }
 
+/* Merge mode - the entry button below the page's own Tracklist Editor action row, and the
+ * paste box that takes the Candidate column's place until the merge has run. Same row layout
+ * as #mdb-tlImporter-downActions below, so the two never look like two different kinds of
+ * control in the same spot. */
+#mdb-tlImporter-handRow {
+    display: flex;
+    align-items: center;
+    gap: .8em;
+    margin: 8px 0;
+}
+
+/* the paste box wears the pres' clothes, not the Merged box's: it stands in a column where a
+ * <pre> stands in every other state of this block, and the three columns have to keep reading
+ * as one row of boxes. resize: vertical because the reader may paste a list far longer than
+ * the page's, and the column's own height was measured for the page's. */
+#mdb-tlImporter-diff textarea#mdb-tlImporter-candidate {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    font-family: monospace, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: .3em;
+    resize: vertical;
+}
+
+/* what a merge could not do, under the legend and above the columns - one line, replaced on
+ * every merge so an old reason never stands next to a new result */
+#mdb-tlImporter-diff .mdb-tlImporter-hand-note {
+    /* the same -10px the columns carry, so the note takes the spot they would have started
+     * at; their own -10px then eats 10 of the 18 below and leaves an 8px gap */
+    margin: -10px 0 18px 0;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #664d03;
+    background-color: #fff8e1;
+    border: 1px solid #ffe1a8;
+    border-radius: .3em;
+}
+
 /* the row below #tlEditor-formActions while the block is down: the Apply button and the Live
  * updates switch - what the Merged column has under its box, minus the state icons (the real
  * ones under the edit box are on this very page). The chip's own rules bring the margins of
