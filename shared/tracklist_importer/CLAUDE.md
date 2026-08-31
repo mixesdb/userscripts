@@ -78,12 +78,19 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
 - **The button sits below BOTH columns** (`tlImporter_handActions`), not in the Candidate column:
   Original and Candidate are two views of one list, and a control under one of them reads as
   belonging to that one alone.
-- **Original and Candidate are held level while the Candidate is a paste box**
-  (`tlImporter_handMatchHeights`): the box takes the row count of the taller of the two, and the
-  `<pre>` gets that box's `offsetHeight` as a `min-height` - measured, not calculated, because
-  the two do not share padding and borders and a wrapped line is one row in the text and two on
-  screen. Hence `box-sizing: border-box` on the pre. Cleared again once the merge has run, where
-  each column is as tall as its own text as everywhere else in this block.
+- **Original and Candidate are held to one MEASURED height while the Candidate is a paste box**
+  (`tlImporter_handMatchHeights`): both sides are measured, whichever needs more room decides,
+  and the other is given that height - `min-height` on the `<pre>`, `height` in px on the box.
+  Counting line breaks instead was the first version and it was wrong: a long
+  `# Artist, Artist, Artist - Title (Extended Mix) [Label]` row is one row in the text and two
+  on screen, so the `<pre>` got a min-height shorter than its own wrapped text needed, kept its
+  natural height, and the box stood rows short of it (reported with a screenshot). The order
+  matters - borders are read while the box still stands at its normal height, then `height:0`
+  makes `scrollHeight` the height of the TEXT rather than of the box, and the last measurement
+  is let go of first or the pair can only grow. Hence `box-sizing: border-box` on the pre, so
+  its min-height means what `offsetHeight` means. Re-measured on every keystroke, after the down
+  move and after a window resize - all three change how many rows wrap. Cleared once the merge
+  has run, where each column is as tall as its own text as everywhere else in this block.
 - **A second Merge builds on the Merged box, not on the page.** `tlImporter_handMergeRun` takes
   the box's current text as the original and only falls back to the page's section when it is
   empty, so several sources can be merged into one page one after the other ("Paste another").

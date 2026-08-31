@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.3
+// @version      2026.08.31.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_47
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -39,7 +39,7 @@
  * after the frame opt-out below, so foreign frames stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 220,
+var cacheVersion = 222,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2839,8 +2839,19 @@ function on_submitrequest() {
 /*
  * Changelog
  *
- * 2026.08.31.3
- * Tracklist Importer merge mode, two fixes off a screenshot (tracklist_importer funcs.js v47,
+ * 2026.08.31.5
+ * Tracklist Importer merge mode: Original and Candidate are held to one MEASURED height now
+ * (tracklist_importer funcs.js v49, CSS). They were sized by counting line breaks, and a row
+ * like "# Kevin McKay, Boogietraxx, Akeem Raphael - Go Back To '89 (Extended Mix) [Glasgow
+ * Underground]" is one row in the text and two on screen - so the <pre> was handed a
+ * min-height SHORTER than its own wrapped text already needed, kept its natural height, and
+ * the paste box beside it stood a couple of rows short (reported with a screenshot). Both
+ * sides are measured instead: whichever needs more room decides, and the other is given that
+ * height. Re-measured on every keystroke in the box, after the down move and after a window
+ * resize - all three change how many rows wrap.
+ *
+ * 2026.08.31.4
+ * Tracklist Importer merge mode, two fixes off a screenshot (tracklist_importer funcs.js v48,
  * CSS). The site's Tracklist editor fieldset had lost its whole TOP BORDER: our CSS stretched
  * its legend to width 100% so the merge-mode link could float to the far right, and a legend IS
  * the notch in that border - one as wide as the fieldset leaves no border to notch. Nothing is
