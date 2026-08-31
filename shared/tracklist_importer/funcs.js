@@ -2176,7 +2176,7 @@ function tlImporter_renderDiffView( data ) {
     if( hand && data.handNote ) tlImporter_handNote( wrap, data.handNote );
 
     // and its action row, which hangs itself behind them
-    if( hand ) tlImporter_handActions( wrap, handPasting ? "merge" : "again" );
+    if( hand ) tlImporter_handActions( wrap );
 
     // only now, with the block on the page, can its distance to the window's left edge be
     // measured - the stored choice is applied from here, not at build time
@@ -2223,9 +2223,9 @@ function tlImporter_renderDiffView( data ) {
 
     textarea.attr( "rows", maxRows );
 
-    // the paste box of merge mode starts at the row count of the Original beside it, and the
-    // two are held level from there on - see tlImporter_handMatchHeights
-    if( handPasting ) tlImporter_handMatchHeights( wrap );
+    // merge mode's two columns are held to one height, in both states - see
+    // tlImporter_handMatchHeights
+    if( hand ) tlImporter_handMatchHeights( wrap );
 
     // the boxes have their final height only now - the grab bars' rails are drawn to match it
     tlImporter_alignResizers( cols );
@@ -2877,43 +2877,60 @@ function tlImporter_handMatchHeights( wrap ) {
     wrap = $( wrap ).first();
 
     var pre = wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).first(),
-        box = wrap.find( "#mdb-tlImporter-candidate" ).first();
+        box = wrap.find( "#mdb-tlImporter-candidate" ).first(),
+        // the Candidate column is a paste box before the merge and a <pre> after it, and the
+        // two columns have to stand level in BOTH states - the merged one is the one that is
+        // read side by side the longest
+        cand = box.length ? box : wrap.find( ".mdb-tlImporter-col-candidate pre.mdb-tlImporter-pre" ).first();
 
-    if( !pre.length || !box.length ) return;
+    if( !pre.length || !cand.length ) return;
 
     var preNode = pre.get( 0 ),
-        boxNode = box.get( 0 );
+        candNode = cand.get( 0 );
 
     // scrollHeight counts padding but not borders; offsetHeight counts both, so the difference
     // is what has to be added back further down. Read while the box still stands at its normal
-    // height - one thing less that has to be true of a box collapsed to zero.
-    var borders = boxNode.offsetHeight - boxNode.clientHeight;
+    // height - one thing less that has to be true of a box collapsed to zero. Only the textarea
+    // needs it; a <pre> is measured with offsetHeight straight.
+    var borders = box.length ? candNode.offsetHeight - candNode.clientHeight : 0;
 
     // Let go of the last measurement, or each run reads its own answer back as the natural
     // height and the pair can only ever grow. height:0 on the textarea is what makes its
     // scrollHeight the height of the TEXT - at any other height scrollHeight answers with the
     // box whenever the box is the taller of the two.
     pre.css( "min-height", "" );
-    box.css( "height", "0px" );
 
-    // The <pre> is border-box in the CSS for the same reason the borders are added here: its
-    // min-height has to mean what offsetHeight means.
-    var need = Math.max( preNode.offsetHeight, boxNode.scrollHeight + borders );
+    if( box.length ) box.css( "height", "0px" );
+    else cand.css( "min-height", "" );
+
+    // The <pre>s are border-box in the CSS for the same reason the borders are added here:
+    // a min-height has to mean what offsetHeight means.
+    var need = Math.max( preNode.offsetHeight,
+                         box.length ? candNode.scrollHeight + borders : candNode.offsetHeight );
 
     pre.css( "min-height", need + "px" );
-    box.css( "height", need + "px" );
 
-    // the rows attribute is the fallback height for the moment before this runs, and for a
-    // page where the stylesheet never arrived - the pixel height above wins wherever it did
-    box.attr( "rows", Math.max( pre.text().split( "\n" ).length,
-                                String( box.val() || "" ).split( "\n" ).length ) );
+    if( box.length ) {
+        box.css( "height", need + "px" );
+
+        // the rows attribute is the fallback height for the moment before this runs, and for a
+        // page where the stylesheet never arrived - the pixel height above wins wherever it did
+        box.attr( "rows", Math.max( pre.text().split( "\n" ).length,
+                                    String( box.val() || "" ).split( "\n" ).length ) );
+    } else {
+        cand.css( "min-height", need + "px" );
+    }
 }
 
 // tlImporter_handActions
-// The row below BOTH columns: one button, centered, on the full width of the block - not in
-// the Candidate column, where it sat under one of two boxes that belong together. "merge"
-// while there is something to merge, "again" once a merge has run.
-function tlImporter_handActions( wrap, state ) {
+// The row below BOTH columns: ONE button, centered, on the full width of the block - not in the
+// Candidate column, where it sat under one of two boxes that belong together.
+//
+// One button for every state of merge mode, and it is always the merge button. A second,
+// differently named one for the round after the first ("Paste another") made a step out of
+// something that is not one: what the reader wants after a merge is the next merge, not an
+// empty box to look at. Its label is the only thing that moves - see tlImporter_refreshHandMerge.
+function tlImporter_handActions( wrap ) {
     wrap = $( wrap ).first();
 
     var row = wrap.children( "#mdb-tlImporter-handActions" ).first();
@@ -2923,13 +2940,11 @@ function tlImporter_handActions( wrap, state ) {
         wrap.children( ".mdb-tlImporter-cols" ).first().after( row );
     }
 
-    row.empty().append( state == "merge"
-        ? $( '<button id="mdb-tlImporter-merge" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button"></button>' )
-        : $( '<button id="mdb-tlImporter-handAgain" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Paste another</button>' )
-            .attr( "title", "Empty the Candidate column for another tracklist.\nWhat the last merge put into the Merged box stays - the next merge builds on it." ) );
+    if( !row.children( "#mdb-tlImporter-merge" ).length ) {
+        row.empty().append( $( '<button id="mdb-tlImporter-merge" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button"></button>' ) );
+    }
 
-    // the merge button has no fixed label - see tlImporter_refreshHandMerge
-    if( state == "merge" ) tlImporter_refreshHandMerge();
+    tlImporter_refreshHandMerge();
 }
 
 // tlImporter_refreshHandMerge
@@ -2944,15 +2959,20 @@ function tlImporter_refreshHandMerge() {
 
     if( !button.length ) return;
 
-    var typed = $.trim( $( "#mdb-tlImporter-candidate" ).val() || "" ) !== "";
+    var box = $( "#mdb-tlImporter-candidate" ),
+        // no paste box in the column means a merge has run and its result is standing there
+        merged = !box.length,
+        typed = box.length && $.trim( box.val() || "" ) !== "";
 
     button
         .prop( "disabled", false )
         .removeClass( "mdb-tlImporter-locked" )
-        .text( typed ? "Merge" : "Paste clipboard & merge" )
-        .attr( "title", typed
-            ? "Merge the tracklist in the Candidate box into the page's tracklist.\nNothing is written to the page - the result lands in the Merged box, and Apply writes it from there."
-            : "Put what you copied into the Candidate box and merge it, in one go.\nOr paste it in yourself first - the button then merges what stands there." );
+        .text( merged || typed ? "Merge" : "Paste clipboard & merge" )
+        .attr( "title", merged
+            ? "Merge the NEXT tracklist into this one: the Candidate column is emptied, what you copied goes in, and the merge runs - all on this click.\nThe result so far stays and the next merge builds on it."
+            : typed
+                ? "Merge the tracklist in the Candidate box into the page's tracklist.\nNothing is written to the page - the result lands in the Merged box, and Apply writes it from there."
+                : "Put what you copied into the Candidate box and merge it, in one go.\nOr paste it in yourself first - the button then merges what stands there." );
 }
 
 $(document).on( "input.mdbTlImporterHand", "#mdb-tlImporter-candidate", function() {
@@ -3027,7 +3047,15 @@ function tlImporter_handReadClipboard( box ) {
 function tlImporter_handMergePress() {
     var box = $( "#mdb-tlImporter-candidate" ).first();
 
-    if( !box.length ) return;
+    // A merge has run and its result stands in the Candidate column: this press is the NEXT
+    // round, so the column goes back to being a paste box and the clipboard fills it below -
+    // one click for the whole thing, the same one click the first merge took.
+    if( !box.length ) {
+        tlImporter_handPasteAgain();
+        box = $( "#mdb-tlImporter-candidate" ).first();
+
+        if( !box.length ) return;
+    }
 
     if( $.trim( box.val() || "" ) !== "" ) {
         tlImporter_handMergeRun();
@@ -3087,11 +3115,7 @@ function tlImporter_handFillColumns( wrap, res, finalTl, feedback ) {
             return "";
         }) ) );
 
-    // both columns are <pre> again, each as tall as its own text - the minimum the paste box
-    // held the Original to belongs to the paste box and goes with it
-    wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).css( "min-height", "" );
-
-    tlImporter_handActions( wrap, "again" );
+    tlImporter_handActions( wrap );
 
     // Merged: wherever that box currently is. mdbTlboxKnown travels with the text so the next
     // blur does not re-ask for a verdict this merge already paid for; the input event is what
@@ -3109,6 +3133,10 @@ function tlImporter_handFillColumns( wrap, res, finalTl, feedback ) {
     tlImporter_handSetHelp( wrap, "merged" );
 
     wrap.children( "legend" ).html( "<strong>Merge mode</strong> – nothing is written to the page until you press Apply" );
+
+    // the two columns are <pre>s now, and they are held level as they were while one of them
+    // was the paste box - the merged pair is the one that gets read side by side the longest
+    tlImporter_handMatchHeights( wrap );
 
     // the boxes have new heights - the grab bars' rails are drawn to match them
     tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
@@ -3171,9 +3199,8 @@ function tlImporter_handMergeRun() {
             .replaceWith( tlImporter_handWrapBody(
                 tlImporter_renderPre( chapterData.items, function() { return ""; } ) ) );
 
-        wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).css( "min-height", "" );
-
-        tlImporter_handActions( wrap, "again" );
+        tlImporter_handActions( wrap );
+        tlImporter_handMatchHeights( wrap );
 
         chapterData.handNote = ( pageChapters ? "The page's" : "The pasted" )
             + " tracklist has chapters (\";Name\" rows) - those are never merged automatically. Both lists stand as they are; merge them by hand in the Merged box, then Apply.";
@@ -3184,6 +3211,25 @@ function tlImporter_handMergeRun() {
         tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
         tlImporter_storeDiff( chapterData );
         return;
+    }
+
+    // The candidate goes through the TLE ONCE before it is merged. Behind a link it arrives
+    // TLE-formatted already - it sat in the shared tracklist box on the player site, which is
+    // what that box is - but a tracklist pasted in here is whatever the other source prints:
+    // "1. 05:23 Artist – Title (Label)" and every other shape. The merge matches on parsed
+    // artist/title/cue, so an unnormalized candidate matches worse, and the parts it does
+    // hand over would carry the other site's formatting into the page. One call, and the
+    // Candidate column then shows what was actually merged rather than what was pasted.
+    var normalized = apiTracklist( candidate, "standard" );
+
+    if( normalized && normalized.text && $.trim( normalized.text ) !== "" ) {
+        if( $.trim( normalized.text ) !== candidate ) {
+            log( "tlImporter: merge mode - the pasted tracklist was normalized by the Tracklist Editor before merging." );
+        }
+
+        candidate = $.trim( normalized.text );
+    } else {
+        log( "tlImporter: merge mode - the Tracklist Editor did not answer for the pasted tracklist; merging it as pasted." );
     }
 
     var durationSec = tlImporter_editPageDurationSec( pageText ),
@@ -3260,7 +3306,7 @@ function tlImporter_handPasteAgain() {
         tlImporter_storeDiff( stored );
     }
 
-    tlImporter_handActions( wrap, "merge" );
+    tlImporter_handActions( wrap );
     tlImporter_handMatchHeights( wrap );
 
     wrap.find( "#mdb-tlImporter-candidate" ).trigger( "focus" );
@@ -3273,12 +3319,6 @@ $(document).on( "click.mdbTlImporterHand", "#mdb-tlImporter-merge", function() {
     if( !tlImporter_ownsEditPage ) return;
 
     tlImporter_handMergePress();
-});
-
-$(document).on( "click.mdbTlImporterHand", "#mdb-tlImporter-handAgain", function() {
-    if( !tlImporter_ownsEditPage ) return;
-
-    tlImporter_handPasteAgain();
 });
 
 // tlImporter_openHandMerge

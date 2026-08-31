@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MixesDB Userscripts Helper (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.5
+// @version      2026.08.31.6
 // @description  Change the look and behaviour of the MixesDB website to enable feature usable by other MixesDB userscripts.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1293952534268084234
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-MixesDB_Userscripts_Helper_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-MixesDB_Userscripts_Helper_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-MixesDB_Userscripts_Helper_1
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-MixesDB_Userscripts_Helper_5
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-MixesDB_Userscripts_Helper_6
 // @match        https://www.mixesdb.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
@@ -31,7 +31,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 25,
+var cacheVersion = 26,
     scriptName = "MixesDB_Userscripts_Helper";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -810,6 +810,13 @@ d.ready(function () { // needs mw.config
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.08.31.6
+ * Tracklist Importer merge mode (tracklist_importer funcs.js v6 here): what you paste is run
+ * through the Tracklist Editor before it is merged, so a tracklist in another site's formatting
+ * is read as the tracklist it is; "Paste another" is gone in favour of one button that says
+ * "Merge" throughout and does the whole next source on one press; and the two columns are held
+ * to one height after the merge as well as before it.
  *
  * 2026.08.31.5
  * Tracklist Importer merge mode: the Original and Candidate columns are held to one measured

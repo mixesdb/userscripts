@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.5
+// @version      2026.08.31.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_49
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_50
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -39,7 +39,7 @@
  * after the frame opt-out below, so foreign frames stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 222,
+var cacheVersion = 223,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2838,6 +2838,22 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.08.31.6
+ * Tracklist Importer merge mode, three things (tracklist_importer funcs.js v50).
+ * The pasted candidate is run through the TLE API before it is merged. Behind a link it always
+ * arrived TLE-formatted - it had been sitting in the shared tracklist box on the player site -
+ * but a tracklist pasted in by hand is whatever the other source prints ("1. 05:23 Artist -
+ * Title (Label)"). The merge matches on parsed artist/title/cue, so an unnormalized candidate
+ * matched worse, and whatever it did hand over carried the other site's formatting into the
+ * page. The chapters check still runs on the RAW paste, where ";Name" rows are recognizable.
+ * "Paste another" is gone: there is ONE button for every state of merge mode now and only its
+ * label moves. After a merge it says "Merge" like before, and one press does the whole next
+ * source - Candidate column emptied, clipboard read, merge run - the same single click the
+ * first merge took.
+ * And the two columns are held to one height AFTER the merge as well, not only while the
+ * Candidate is a paste box. Two <pre>s side by side is the pair that gets read the longest and
+ * it was the one pair left to end at different heights.
  *
  * 2026.08.31.5
  * Tracklist Importer merge mode: Original and Candidate are held to one MEASURED height now

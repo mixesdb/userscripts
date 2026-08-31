@@ -77,9 +77,21 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   says so in the note line and focuses the box, never a dead end.
 - **The button sits below BOTH columns** (`tlImporter_handActions`), not in the Candidate column:
   Original and Candidate are two views of one list, and a control under one of them reads as
-  belonging to that one alone.
-- **Original and Candidate are held to one MEASURED height while the Candidate is a paste box**
-  (`tlImporter_handMatchHeights`): both sides are measured, whichever needs more room decides,
+  belonging to that one alone. And there is exactly ONE button for every state of merge mode -
+  only its label moves. A separate `Paste another` for the round after the first made a step out
+  of something that is not one: what the reader wants after a merge is the next merge, so the
+  post-merge press empties the Candidate column, takes the clipboard and merges, all on the one
+  click the first merge also took (`tlImporter_handMergePress` -> `tlImporter_handPasteAgain`).
+- **The pasted candidate goes through `apiTracklist()` before the merge.** Behind a link the
+  candidate arrives TLE-formatted, having sat in the shared tracklist box on the player site;
+  pasted in here it is whatever the other source prints. The merge matches on parsed
+  artist/title/cue, so an unnormalized candidate matches worse - and the parts it does hand over
+  would carry the other site's formatting into the page. The chapters check runs BEFORE that
+  call, on the raw paste: `;Name` rows are recognizable there and the TLE has no reading for
+  them. A call that answers with nothing falls back to merging the paste as it stands.
+- **Original and Candidate are held to one MEASURED height in BOTH states**
+  (`tlImporter_handMatchHeights`) - paste box next to `<pre>` before the merge, `<pre>` next to
+  `<pre>` after it, which is the pair that gets read side by side the longest: both sides are measured, whichever needs more room decides,
   and the other is given that height - `min-height` on the `<pre>`, `height` in px on the box.
   Counting line breaks instead was the first version and it was wrong: a long
   `# Artist, Artist, Artist - Title (Extended Mix) [Label]` row is one row in the text and two
@@ -89,8 +101,7 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   makes `scrollHeight` the height of the TEXT rather than of the box, and the last measurement
   is let go of first or the pair can only grow. Hence `box-sizing: border-box` on the pre, so
   its min-height means what `offsetHeight` means. Re-measured on every keystroke, after the down
-  move and after a window resize - all three change how many rows wrap. Cleared once the merge
-  has run, where each column is as tall as its own text as everywhere else in this block.
+  move and after a window resize - all three change how many rows wrap.
 - **A second Merge builds on the Merged box, not on the page.** `tlImporter_handMergeRun` takes
   the box's current text as the original and only falls back to the page's section when it is
   empty, so several sources can be merged into one page one after the other ("Paste another").
