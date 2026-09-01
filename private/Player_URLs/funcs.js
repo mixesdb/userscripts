@@ -161,7 +161,10 @@ function nextPlayerTitleNumber( urlLines ) {
     return highestNumber + 1;
 }
 
-function addUrlToPlayer( text, url, forceVideoAudio, title ) {
+// addLast: put the added URL after the URLs already in the template instead of letting the
+// preferred site order decide where it lands - see the position option at the top of the
+// calling userscript.
+function addUrlToPlayer( text, url, forceVideoAudio, title, addLast ) {
     return text.replace( /{{Player[^}]*}}/, function( player ) {
         var lines = player.split( "\n" ),
             header = lines.shift(),
@@ -174,7 +177,9 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
 
         if( lines.length == 0 ) {
             return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                var items = title ? [ { url: oldUrl }, { url: url, title: title, hasTitle: true } ] : sortPlayerUrlItemsByPreferredOrder([ { url: url }, { url: oldUrl } ]),
+                var items = title ? [ { url: oldUrl }, { url: url, title: title, hasTitle: true } ]
+                        : addLast ? [ { url: oldUrl }, { url: url } ]
+                        : sortPlayerUrlItemsByPreferredOrder([ { url: url }, { url: oldUrl } ]),
                     forceTitles = playerUrlItemsNeedTitles( items ),
                     urls = items.map(function( item ) { return item.url; }),
                     forceNumbered = playerUrlsNeedNumberedLines( urls, [] );
@@ -228,7 +233,11 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
                 return playerUrlLine( item.url, index + 1, forceNumbered, item.title, true );
             });
         } else {
-            urls = sortPlayerUrlItemsByPreferredOrder([ { url: url } ].concat( urlLines.map( playerUrlParts ) ));
+            // With addLast the new URL is appended after the existing ones, which keep the
+            // preferred site order among themselves; otherwise it takes part in that order.
+            urls = addLast
+                ? sortPlayerUrlItemsByPreferredOrder( urlLines.map( playerUrlParts ) ).concat([ { url: url } ])
+                : sortPlayerUrlItemsByPreferredOrder([ { url: url } ].concat( urlLines.map( playerUrlParts ) ));
             titleMissingPlayerUrlItemsAsComplete( urls );
             forceNumbered = playerUrlsNeedNumberedLines( urls.map(function( item ) { return item.url; }), urlLines );
 
@@ -241,8 +250,8 @@ function addUrlToPlayer( text, url, forceVideoAudio, title ) {
     });
 }
 
-function addApplePodcastUrlToPlayer( text, url ) {
-    return addUrlToPlayer( text, url, false );
+function addApplePodcastUrlToPlayer( text, url, addLast ) {
+    return addUrlToPlayer( text, url, false, "", addLast );
 }
 
 function addYouTubeUrlToPlayer( text, url, title ) {
