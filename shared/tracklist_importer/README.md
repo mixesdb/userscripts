@@ -109,6 +109,12 @@ the text: nothing of the page is lost by turning the two halves round, and the p
 its credit off a release database while the page row was typed by hand. The Original column
 shows the row as the page had it, so the change is visible in the comparison.
 
+A **text row** – a line the page carries in MixesDB's italics because it is not a readable
+`Artist - Title`, like `''? (Nick Stoynoff Remix) [Tronic]''` – keeps those marks. Filling in
+nothing but its cue used to hand the row back bare, so the page lost the marking on every merge
+that touched such a row. The marks go if the found tracklist actually names the track, because
+then the row is no longer the unreadable one the page marked.
+
 The candidate's cues are converted to the cue format the original already uses.
 Two exceptions: when the mix turns out to run past what the original's cue format can say – a
 track was detected at `[106]` but the page counts minutes in two digits – the whole list

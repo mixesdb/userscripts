@@ -434,17 +434,30 @@ function tlImporter_titleNorm( text ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// tlImporter_unwrapQuotes
+// A wiki quote run WRAPPING a whole row - "''? - ? [Unreleased]''", the mark MixesDB puts on a
+// row that is not a readable "Artist - Title". Returns the run and the row without it, an empty
+// run when the row is not wrapped, so the caller can tell "never had marks" from "marks taken
+// off" and print them back (tlImporter_textFromArr).
+//
+// Only a run that OPENS the line and CLOSES it with the SAME number of quotes counts. 1001's
+// bold intro rows ("'''Live @ X:''' Artist - Title") open with three and close with none, so
+// they fall through to the plain strip in tlImporter_parse() - unwrapping them would leave the
+// leading quote of the run behind, which is the mangling that made the strip run-wise in the
+// first place.
+function tlImporter_unwrapQuotes( line ) {
+    var wrap = String( line || "" ).match(/^('{2,})([\s\S]*?)('{2,})$/);
+
+    if( !wrap || wrap[1] !== wrap[3] ) { return { quotes: "", text: String( line || "" ) }; }
+
+    return { quotes: wrap[1], text: wrap[2] };
+}
+
 // tlImporter_parse
 // Port of make_tlArr (tracklist_editor/funcs.js) under its own name: the merge core cannot
 // call the shared one (deno), and must not overwrite it on pages that load both.
 function tlImporter_parse( tl ) {
-    // Strip wiki quote runs whole: '' italics AND ''' bold. Pair-wise removal (/''/g) turned
-    // the bold intro rows 1001tracklists carries ("'''Live @ X:''' Artist - Title") into a
-    // mangled "'Live @ X:'" with one quote left over - and that is what would land in the
-    // page wherever a candidate part is written.
-    tl = String( tl || "" ).replace(/'{2,}/g, ""); // ''Hitam - ? [Unreleased]'' > Hitam - ? [Unreleased]
-
-    var lines = tl.split('\n'),
+    var lines = String( tl || "" ).split('\n'),
         result = [];
 
     lines.forEach(function (line) {
@@ -462,12 +475,34 @@ function tlImporter_parse( tl ) {
         // Remove leading "#" numbering
         line = line.replace(/^#\s*/, '');
 
+        // The row's own italics/bold marks come off here and are remembered on the row: the
+        // merge must not silently UNMARK a row the page marked (reported: Tronic Podcast 735,
+        // where "''? (Nick Stoynoff Remix) [Tronic]''" came back out of the merge bare because
+        // the candidate had filled in its cue). Tried before the cue is taken off and again
+        // after it, because either may stand first ("''[00] X''" / "[00] ''X''").
+        var unwrapped = tlImporter_unwrapQuotes( line );
+        row.quotes = unwrapped.quotes;
+        line = unwrapped.text;
+
         // Optional cue [00] / [0:00] / [??] at the start
         var cueMatch = line.match(/^\[((?:\d|X|\?)+(?::(?:\d|X|\?){1,2}){0,2})\]/i);
         if (cueMatch) {
             row.cue = cueMatch[1];
             line = line.replace(/^\[((?:\d|X|\?)+(?::(?:\d|X|\?){1,2}){0,2})\]\s*/i, '');
         }
+
+        if (!row.quotes) {
+            unwrapped = tlImporter_unwrapQuotes( line.trim() );
+            row.quotes = unwrapped.quotes;
+            line = unwrapped.text;
+        }
+
+        // Quote runs that are NOT a wrapper are stripped whole, before the label is read off
+        // the end - '' italics AND ''' bold. Pair-wise removal (/''/g) turned the bold intro
+        // rows 1001tracklists carries ("'''Live @ X:''' Artist - Title") into a mangled
+        // "'Live @ X:'" with one quote left over - and that is what would land in the page
+        // wherever a candidate part is written.
+        line = line.replace(/'{2,}/g, ""); // ''Hitam - ? [Unreleased]'' > Hitam - ? [Unreleased]
 
         // Optional label at the end
         var labelMatch = line.match(/\[(.*?)\]$/);
@@ -493,15 +528,20 @@ function tlImporter_textFromArr( tl_arr ) {
         if (item.type === "track (false)") return null;
 
         if (item.type && item.type.indexOf("track") === 0) {
-            var line = "";
+            var line = "",
+                body = item.trackText || "";
+
+            if (item.label) body += " [" + item.label + "]";
+
+            // The row's wiki marks (tlImporter_parse -> row.quotes) go back around text AND
+            // label, with the cue outside them: "[00] ''? - ? [Unreleased]''" is the shape the
+            // Tracklist Editor writes, and a merge that only filled a cue must hand the row
+            // back the way the page had it.
+            if (item.quotes) body = item.quotes + body + item.quotes;
 
             if (item.cue) line += "[" + item.cue + "] ";
 
-            line += item.trackText || "";
-
-            if (item.label) line += " [" + item.label + "]";
-
-            return line;
+            return line + body;
         } else if (item.type === "gap") {
             // A gap the merge found redundant stays in the array – the review block's Original
             // column still has to show what the page held – but it is not printed any more.
@@ -1312,6 +1352,10 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             if (cand._ti_swapped ? origItem.trackText !== candidateName
                                  : tlImporter_takesCandidateText( origItem.trackText, candidateName )) {
                 origItem.trackText = candidateName;
+                // the row is the candidate's text now, so it carries the candidate's wiki
+                // marks (normally none) - keeping the page's italics around a name the page
+                // never had would mark a row that is no longer unidentified
+                origItem.quotes = cand.quotes || "";
                 cand._ti_usedText = true;
                 state.changes++;
             }
@@ -1405,7 +1449,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                     // missing or unknown one (same rule as for matched tracks above).
                     if (cand.cue && (!slot.cue || String(slot.cue).indexOf('?') > -1)) { slot.cue = cand.cue; cand._ti_usedCue = true; state.changes++; }
                     if (cand.dur && !slot.dur) slot.dur = cand.dur;
-                    if (!tlImporter_isUnknownText( cand.trackText )) { slot.trackText = cand.trackText; cand._ti_usedText = true; state.changes++; }
+                    if (!tlImporter_isUnknownText( cand.trackText )) { slot.trackText = cand.trackText; slot.quotes = cand.quotes || ""; cand._ti_usedText = true; state.changes++; }
                     if (cand.label && !slot.label) { slot.label = cand.label; cand._ti_usedLabel = true; state.changes++; }
                     slot._mergeConsumedUnknown = true;
                     unmatchedItem.filledUnknownSlot = true;

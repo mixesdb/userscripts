@@ -374,17 +374,17 @@ var tlImporterExamples_merge = [
                 "[0??] Zank - Dow\n" +
                 "[033] Ryukyudisko - Super Spin Spam\n" +
                 "[0??] The Anazaworld - Horse Direct\n" +
-                "[0??] DJ Shufflemaster - Untitled\n" +
+                "[0??] ''DJ Shufflemaster - Untitled''\n" +
                 "[042] Co-Fusion - Cycle [Musicmine]\n" +
                 "[0??] Fumiya Tanaka - Micro One\n" +
                 "[0??] Q'Hey - Login\n" +
-                "[0??] Subvoice - Untitled\n" +
+                "[0??] ''Subvoice - Untitled''\n" +
                 "[0??] Takaaki Itoh - Serenity Through Pain\n" +
                 "[0??] Go Hiyama - C\n" +
                 "[061] Kazu Kimura - Night Walk [CLR]\n" +
                 "[0??] Akira Ishihara - Yamaga 7 O'Clock\n" +
                 "[0??] Brothers In Raw (Tobynation & Mijk Van Dijk) - Ach-So! (Ebizoo Remix)\n" +
-                "[0??] Chester Beatty - Untitled (Turia B1)\n" +
+                "[0??] ''Chester Beatty - Untitled (Turia B1)''\n" +
                 "[0??] Kagami - Tiger Track\n" +
                 "[0??] FLR - Easy Filter Part 8\n" +
                 "[076] Dr. Shingo - Galaxy Girls [Konsequent]\n" +
@@ -436,7 +436,7 @@ var tlImporterExamples_merge = [
                    "# [116] Weekend Players - Into The Sun [Multiply]",
         expect: "[002] Alex Cortex - Discola [Housewax]\n" +
                 "[016] Chris Stussy - The Streets Is Where I'm From\n" +
-                "[021] ? - Untitled (B1) [Mask]\n" +
+                "[021] ''? - Untitled (B1) [Mask]''\n" +
                 "[064] Vil-N-X Feat. Jacqui Gray - De' Jah Voo (Rendezvous Mix) [Island Noyze]\n" +
                 "[089] Chloé Caillet & Luke Alessi Feat. Jocelyn Brown - The One [Disorder]\n" +
                 "[098] Costigane - Camera Tricks [Sense]\n" +
@@ -735,20 +735,20 @@ var tlImporterExamples_merge = [
                    "...",
         expect: 
                 "[00] Staffan Linzatti - Intro\n" +
-                "[??] Yagya - ? [Unreleased\n" +
-                "[??] Exos & Oculus - ? [Unreleased\n" +
+                "[??] ''Yagya - ? [Unreleased''\n" +
+                "[??] ''Exos & Oculus - ? [Unreleased''\n" +
                 "[??] Exos - Q Box [Thule 10]\n" +
-                "[??] Thor - ? [Unreleased\n" +
-                "[??] Exos - ?[Unreleased\n" +
+                "[??] ''Thor - ? [Unreleased''\n" +
+                "[??] ''Exos - ?[Unreleased''\n" +
                 "[??] Plastik - Thule 11\n" +
                 "[??] Ozy - Sacred Family - Strobelight Network 002\n" +
                 "[??] Exos & Ohm - FróðiOctal Industries [Unreleased]\n" +
                 "[??] Steve O'Sullivan - Where's Burt (Thor Remix)\n" +
-                "[??] Exos - Unreleased\n" +
+                "[??] ''Exos - Unreleased''\n" +
                 "[??] Exos - With The (Oculus Remix)\n" +
                 "[??] Delano Smith - Behind The Shadows (Steve O'Sullivan Remix)\n" +
                 "[??] IN SYNC - Jam Tapes 3\n" +
-                "[??] Bjarki - ? [Unreleased\n" +
+                "[??] ''Bjarki - ? [Unreleased''\n" +
                 "[??] Sanasol - Glow\n" +
                 "[??] Spankey Rodgers - Digit Fidgit\n" +
                 "[??] Octal / Ruxpin - Unreleased Remix\n" +
@@ -760,7 +760,7 @@ var tlImporterExamples_merge = [
                 "[42] Bjarki - Polygon Pink Toast [Trip]\n" +
                 "[43] Bjarki - I Wanna Go Bang [Trip - 003]\n" +
                 "[46] Exos - Red Dragon [Unreleased]\n" +
-                "[??] Hidden People - ? [Unreleased\n" +
+                "[??] ''Hidden People - ? [Unreleased''\n" +
                 "[??] Splice - Syncussion [Unreleased]\n" +
                 "[??] Dajae - Day By Day (Green Velvet Mix)\n" +
                 "[??] Samuli Kemppi - Power Of Voltages\n" +
@@ -831,6 +831,59 @@ var tlImporterExamples_merge = [
         expect: "[20] A - One [L1]\n[29] One - A [L2]",
         changed: true,
         unused: { cues: [], texts: [], labels: [] }
+    },
+    {
+        // Reported 2026-09-01 (Tronic Podcast 735 with Nick Stoynoff, trackid.net): the page's
+        // wiki marks. Row 7 is a text row - "''? (Nick Stoynoff Remix) [Tronic]''", the shape
+        // MixesDB writes when the row is not a readable "Artist - Title" - and the candidate
+        // knew nothing about it but its cue. Filling that cue in reprinted the row bare: the
+        // parser stripped every quote run before the merge ever saw a row, so the marks existed
+        // nowhere in the result. They are remembered per row now (tlImporter_parse ->
+        // row.quotes, printed back by tlImporter_textFromArr), cue outside them, label inside.
+        //
+        // The two unused labels are the page winning: "Oathcreations" over the page's "Oath",
+        // and "Passiflora" over the page's "Passiﬂora" - the page holds the fl LIGATURE, and
+        // the merge does not correct spellings the page already has.
+        name: "a text row keeps its wiki marks",
+        durationSec: 3599, // 0:59:59
+        original: "# Genius Of Time - Sunswell [Oath]\n" +
+                  "# Facundo Losardo - Readiness [Bedrock]\n" +
+                  "# Sean Harvey - Do This [Keep Thinking]\n" +
+                  "# Patch Park - Moca [District]\n" +
+                  "# Hernan Cattaneo & Tom Pavicich - Wink [Electronic Groove]\n" +
+                  "# Maarten Van Der Vleuten Pres. V48 - Only Human [Passiﬂora]\n" +
+                  "# ''? (Nick Stoynoff Remix) [Tronic]''\n" +
+                  "# Kamilo Sanclemente - Jupiter Code [Tronic]\n" +
+                  "# Anthony Pappa & Nick Stoynoff - 435 [Selador]\n" +
+                  "# Zuccasam - Feel Happy [Plastic Fantastic]\n" +
+                  "# Four Candles & Feemarx - Eudaimonia 303 [Bedrock]\n" +
+                  "# Nick Stoynoff - The Hero's Journey (Dusty Kid Remix) [NOFF!]",
+        candidate: "[00] Genius Of Time - Sunswell [Oathcreations]\n" +
+                   "[08] Facundo Losardo - Readiness [Bedrock]\n" +
+                   "[13] Sean Harvey - Do This [Keep Thinking]\n" +
+                   "[16] Patch Park - Moca [District]\n" +
+                   "[22] ?\n" +
+                   "[26] V48 - Only Human [Passiflora]\n" +
+                   "[29] ?\n" +
+                   "...\n" +
+                   "[41] Anthony Pappa - 435 [Selador]\n" +
+                   "[48] Zuccasam - Feel Happy [Plastic Fantastic]\n" +
+                   "[54] Four Candles - Eudaimonia 303 [Bedrock]\n" +
+                   "[58] ?",
+        expect: "[00] Genius Of Time - Sunswell [Oath]\n" +
+                "[08] Facundo Losardo - Readiness [Bedrock]\n" +
+                "[13] Sean Harvey - Do This [Keep Thinking]\n" +
+                "[16] Patch Park - Moca [District]\n" +
+                "[22] Hernan Cattaneo & Tom Pavicich - Wink [Electronic Groove]\n" +
+                "[26] Maarten Van Der Vleuten Pres. V48 - Only Human [Passiﬂora]\n" +
+                "[29] ''? (Nick Stoynoff Remix) [Tronic]''\n" +
+                "[??] Kamilo Sanclemente - Jupiter Code [Tronic]\n" +
+                "[41] Anthony Pappa & Nick Stoynoff - 435 [Selador]\n" +
+                "[48] Zuccasam - Feel Happy [Plastic Fantastic]\n" +
+                "[54] Four Candles & Feemarx - Eudaimonia 303 [Bedrock]\n" +
+                "[58] Nick Stoynoff - The Hero's Journey (Dusty Kid Remix) [NOFF!]",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [ 1, 6 ] }
     }
 ];
 
