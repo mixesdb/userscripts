@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Apple Podcasts Player URLs (private)
-// @version      2026.09.01.3
+// @version      2026.09.01.4
 // @description  Add Apple Podcasts player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js
@@ -10,6 +10,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.09.01.3
 // @match        https://www.mixesdb.com/*
 // @match        https://*podcasts.apple.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=mixesdb.com
 // @noframes
 // @grant        unsafeWindow
 // @run-at       document-end
@@ -22,6 +23,16 @@
 // The URLs already in the template keep the preferred site order of ../funcs.js among themselves,
 // except on a titled player, where their order is the part order and is left untouched
 const addAtPosition = "last"; // first, middle or last
+
+// Regex string for matching episode numbers in MixesDB page titles
+//var epId_regex = /^(?:.+ - .+ - )(?:Whitenoise|White Noise) (\d+)(?:, RTÉ 2FM)?(?: \(Best Of.+)?$/;
+//var epId_regex = /^(?:.+ - .+)(?:\(|, )(DCR\d+)(?:\))$/;
+//var epId_regex = /^(?:.+ - .+Transmissions )(\d+).*$/; // used to be zero-padded to 3 digits
+//var epId_regex = /^(?:.+ - .+[ (]Purified )(\d\d\d)\)?$/;
+//var epId_regex = /^(?:.+ - .+[ (]We Are The Brave (?:Radio )?)(\d+)\)?$/; // used to be zero-padded to 3 digits
+//var epId_regex = /^(?:.+ - .+ - )(SlothBoogie Guestmix \d+)$/;
+//var epId_regex = /^(?:.+ - .+ - )Resident (\d+).*$/;
+var epId_regex = /^(?:.+ - .+ - Monument )(\d+).*$/;
 
 var episodes_arr = {
 "533": "https://podcasts.apple.com/gb/podcast/mnmt-533-black-merlin/id1147084286?i=1000786340976",
@@ -627,14 +638,8 @@ if( location.hostname == "www.mixesdb.com" ) {
         if( ( wgAction=="edit" || wgAction=="submit" ) && ( wgNamespaceNumber==0 || wgNamespaceNumber==4 ) && wgTitle!="Main Page" ) {
             log("editing");
 
-            //var epId = wgTitle.replace( /^(.+ - .+ - )(?:Whitenoise|White Noise) (\d+)(, RTÉ 2FM)?( \(Best Of.+)?$/, "$2" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+)(?:\(|, )(DCR\d+)(?:\))$/, "$1" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+Transmissions )(\d+).*$/, "$1" ).trim().replace( /^(\d\d)$/, "0$1" );
-            //var epId = wgTitle.replace( /^(?:.+ - .+[ (]Purified )(\d\d\d)\)?$/, "$1" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+[ (]We Are The Brave (?:Radio )?)(\d+)\)?$/, "$1" ).trim().replace( /^(\d\d)$/, "0$1" ).replace( /^(\d)$/, "00$1" );
-            //var epId = wgTitle.replace( /^(?:.+ - .+ - )(SlothBoogie Guestmix \d+)$/, "$1" ).trim();
-            //var epId = wgTitle.replace( /^(?:.+ - .+ - )Resident (\d+).*$/, "$1" ).trim();
-            var epId = wgTitle.replace( /^(?:.+ - .+ - Monument )(\d+).*$/, "$1" ).trim();
+            // Regex to match mix page titles
+            var epId = wgTitle.replace( epId_regex, "$1" ).trim();
 
             var epUrl = episodes_arr[epId];
             logVar( "epId", epId +" "+ epUrl );
@@ -720,7 +725,7 @@ if( location.hostname == "podcasts.apple.com" ) {
         // logging
         // building episodes_arr reuires copying from the log
         // while that the titles can be normalized to just read the episode number (or ID.001 etc.)
-        // that ID must then match the mix page title (see code var epId = wgTitle.replace)
+        // that ID must then match the mix page title (see epId_regex on top)
         log( "" + epTitle + " : " + epUrl + "" );
     });
 }

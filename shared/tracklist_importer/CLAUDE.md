@@ -164,10 +164,20 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   carry it now - TrackId.net, 1001 Tracklists and MixesDB Userscripts Helper. But ALL
   installed scripts must load a claim-aware version - an old instance does not know to stand
   down, so importer-funcs require-param bumps go into every carrying script together.
-- **`tlImporter_parse` strips quote RUNS (`'{2,}`), not pairs.** Pair-wise `''` removal turned
-  1001's bold intro rows (`'''Live @ X:''' Artist - Title`) into `'Live @ X:'` with a stray
-  quote that would land in the page wherever a candidate part is written. Italics behave as
-  before; the intro text itself stays part of the track text.
+- **A quote run WRAPPING a whole row is remembered on the row; every other run is stripped.**
+  `tlImporter_unwrapQuotes()` takes the run off in `tlImporter_parse()` and puts it on
+  `row.quotes`, and `tlImporter_textFromArr()` prints it back around text AND label with the cue
+  outside it - `[00] ''? - ? [Unreleased]''`, the shape the TLE writes. Without that the merge
+  silently UNMARKED a text row it had only filled a cue into (reported: Tronic Podcast 735,
+  `''? (Nick Stoynoff Remix) [Tronic]''`). The marks follow the TEXT, not the row: where the
+  candidate's text replaces the original's, the candidate's marks (normally none) come with it -
+  a row the found tracklist can name is not the unreadable one the page marked any more.
+  Only a run that opens the line and closes it with the SAME number of quotes counts as a
+  wrapper. Everything else is still stripped as a RUN (`'{2,}`), not pair-wise: pair-wise `''`
+  removal turned 1001's bold intro rows (`'''Live @ X:''' Artist - Title`) into `'Live @ X:'`
+  with a stray quote that would land in the page wherever a candidate part is written, and those
+  rows are exactly the ones the wrapper test has to let through (three quotes open, none close).
+  The intro text itself stays part of the track text.
 
 - **The live page decides Insert vs Merge**, not the link's label: the page can change between
   the link being built and clicked. The label is only what the fetch at link-build time said.

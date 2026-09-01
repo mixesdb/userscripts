@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.31.6
+// @version      2026.09.01.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-1001_Tracklists_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_112
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_9
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_10
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_20
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
@@ -292,6 +292,19 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.09.01.1
+ * Tracklist Importer merge: a TEXT ROW keeps its wiki italics (merge_core.js v10). A row the
+ * page carries as "''? (Nick Stoynoff Remix) [Tronic]''" - the marks MixesDB writes around a row
+ * that is not a readable "Artist - Title" - came back out of the merge bare as soon as anything
+ * about it changed, here the cue the found tracklist knew (reported on Tronic Podcast 735 with
+ * Nick Stoynoff). The parser stripped every quote run before the merge saw a row, so the marks
+ * existed nowhere in the result and the page lost them on Apply. A run that WRAPS the whole row
+ * is remembered on that row now and printed back around text and label, with the cue outside it.
+ * The marks follow the text: where the found tracklist actually names the track, its own
+ * (normally absent) marks come with it - the row is not the unreadable one the page marked any
+ * more. Runs that are not a wrapper are stripped as before, which is what keeps 1001's bold
+ * intro rows ("'''Live @ X:''' Artist - Title") readable.
  *
  * 2026.08.31.6
  * Tracklist Importer merge mode, three things (tracklist_importer funcs.js v20).
