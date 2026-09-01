@@ -161,10 +161,29 @@ function nextPlayerTitleNumber( urlLines ) {
     return highestNumber + 1;
 }
 
-// addLast: put the added URL after the URLs already in the template instead of letting the
-// preferred site order decide where it lands - see the position option at the top of the
-// calling userscript.
-function addUrlToPlayer( text, url, forceVideoAudio, title, addLast ) {
+// Puts the added URL among the ones already in the template, at the position the calling
+// userscript asks for ("first", "middle" or "last" - the addAtPosition option at its top).
+// sortExisting reorders the URLs that are already there by the preferred site order; it is off
+// for titled players, where the existing order is the part order and must survive untouched.
+function placePlayerUrlItem( newItem, existingItems, position, sortExisting ) {
+    var items = sortExisting ? sortPlayerUrlItemsByPreferredOrder( existingItems ) : existingItems.slice(),
+        insertIndex;
+
+    if( position == "last" ) {
+        insertIndex = items.length;
+    } else if( position == "middle" ) {
+        // Centre of the resulting list. With only one URL there is no centre, so Math.round()
+        // leaning to the back half puts the added URL second, i.e. last.
+        insertIndex = Math.round( items.length / 2 );
+    } else {
+        insertIndex = 0;
+    }
+
+    return items.slice( 0, insertIndex ).concat( [ newItem ], items.slice( insertIndex ) );
+}
+
+// position: where the added URL lands - "first", "middle" or "last", see placePlayerUrlItem().
+function addUrlToPlayer( text, url, forceVideoAudio, title, position ) {
     return text.replace( /{{Player[^}]*}}/, function( player ) {
         var lines = player.split( "\n" ),
             header = lines.shift(),
@@ -177,9 +196,8 @@ function addUrlToPlayer( text, url, forceVideoAudio, title, addLast ) {
 
         if( lines.length == 0 ) {
             return header.replace( /^(\{\{Player)([^}]*)\|(?:1=)?(https?:\/\/.+)\}\}$/, function( match, templateStart, options, oldUrl ) {
-                var items = title ? [ { url: oldUrl }, { url: url, title: title, hasTitle: true } ]
-                        : addLast ? [ { url: oldUrl }, { url: url } ]
-                        : sortPlayerUrlItemsByPreferredOrder([ { url: url }, { url: oldUrl } ]),
+                var items = title ? placePlayerUrlItem( { url: url, title: title, hasTitle: true }, [ { url: oldUrl } ], position, false )
+                        : placePlayerUrlItem( { url: url, title: "" }, [ { url: oldUrl } ], position, true ),
                     forceTitles = playerUrlItemsNeedTitles( items ),
                     urls = items.map(function( item ) { return item.url; }),
                     forceNumbered = playerUrlsNeedNumberedLines( urls, [] );
@@ -224,8 +242,7 @@ function addUrlToPlayer( text, url, forceVideoAudio, title, addLast ) {
         var urls, forceNumbered;
 
         if( title ) {
-            urls = urlLines.map( playerUrlParts );
-            urls.push( { url: url, title: title, hasTitle: true } );
+            urls = placePlayerUrlItem( { url: url, title: title, hasTitle: true }, urlLines.map( playerUrlParts ), position, false );
             titleMissingPlayerUrlItemsAsComplete( urls );
             forceNumbered = playerUrlsNeedNumberedLines( urls.map(function( item ) { return item.url; }), urlLines );
 
@@ -233,11 +250,9 @@ function addUrlToPlayer( text, url, forceVideoAudio, title, addLast ) {
                 return playerUrlLine( item.url, index + 1, forceNumbered, item.title, true );
             });
         } else {
-            // With addLast the new URL is appended after the existing ones, which keep the
-            // preferred site order among themselves; otherwise it takes part in that order.
-            urls = addLast
-                ? sortPlayerUrlItemsByPreferredOrder( urlLines.map( playerUrlParts ) ).concat([ { url: url } ])
-                : sortPlayerUrlItemsByPreferredOrder([ { url: url } ].concat( urlLines.map( playerUrlParts ) ));
+            // Only the added URL is pinned by the position option; the URLs already in the
+            // template keep the preferred site order among themselves.
+            urls = placePlayerUrlItem( { url: url, title: "" }, urlLines.map( playerUrlParts ), position, true );
             titleMissingPlayerUrlItemsAsComplete( urls );
             forceNumbered = playerUrlsNeedNumberedLines( urls.map(function( item ) { return item.url; }), urlLines );
 
@@ -250,10 +265,10 @@ function addUrlToPlayer( text, url, forceVideoAudio, title, addLast ) {
     });
 }
 
-function addApplePodcastUrlToPlayer( text, url, addLast ) {
-    return addUrlToPlayer( text, url, false, "", addLast );
+function addApplePodcastUrlToPlayer( text, url, position ) {
+    return addUrlToPlayer( text, url, false, "", position );
 }
 
-function addYouTubeUrlToPlayer( text, url, title ) {
-    return addUrlToPlayer( text, url, true, title );
+function addYouTubeUrlToPlayer( text, url, title, position ) {
+    return addUrlToPlayer( text, url, true, title, position );
 }

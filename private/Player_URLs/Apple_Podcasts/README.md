@@ -19,8 +19,9 @@ prepared list knows, an **AP** button appears, inserts that Apple Podcasts URL i
 `{{Player}}` – or creates the template when the page has none yet – and saves. It fires by
 itself as soon as it appears, so a show can be worked through without clicking.
 
-Where the URL lands is set by `addAtPosition` at the top of the script: `"first"` (the default)
-puts it in front of the URLs already in the template, `"last"` appends it after them.
+Where the URL lands is set by `addAtPosition` at the top of the script: `"first"` puts it in
+front of the URLs already in the template, `"last"` after them, and `"middle"` in the centre of
+the resulting list – with only one URL already there, `"middle"` also puts it second.
 
 ### "1=" button
 
@@ -29,9 +30,8 @@ switches the template to `mode=mirrors`. When the page uses `t` title parameters
 of saving – those have to be renumbered by hand.
 
 Both buttons order the URLs of a multi-player page by the preferred site order in `../funcs.js`
-(Apple Podcasts, SoundCloud, hearthis.at, YouTube, Mixcloud). With `addAtPosition = "last"` the
-inserted URL goes to the end instead, while the URLs already there keep that order among
-themselves.
+(Apple Podcasts, SoundCloud, hearthis.at, YouTube, Mixcloud). `addAtPosition` overrules that for
+the inserted URL only – the URLs already in the template keep that order among themselves.
 
 ### Collecting the episode list
 
