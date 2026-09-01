@@ -21,6 +21,14 @@ without clicking.
 
 A page that already holds a YouTube URL is left alone and not saved again.
 
+Where the URL lands is set by `addAtPosition` at the top of the script: `"last"` (the default,
+so a video mirror does not become the page's default player) appends it after the URLs already in
+the template, `"first"` puts it in front of them, `"middle"` in the centre of the resulting list –
+with only one URL already there, `"middle"` also puts it second. The URLs already in the template
+keep the preferred site order of `../funcs.js` (Apple Podcasts, SoundCloud, hearthis.at, YouTube,
+Mixcloud) among themselves; on a player with `t` titles their order is the part order and is left
+untouched.
+
 ### "1=" button
 
 Renumbers the URLs of an existing `{{Player}}` to the referenced form (`|1=URL |2=URL`) and

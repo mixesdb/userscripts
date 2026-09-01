@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         Apple Podcasts Player URLs (private)
-// @version      2026.09.01.1
+// @version      2026.09.01.3
 // @description  Add Apple Podcasts player URLs from array to mix pages when episode numbers match the mix page title
 // @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js
 // @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/Apple_Podcasts/script.user.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-MixesDB_Players_Helper_9
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.09.01.1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/private/Player_URLs/funcs.js?v-2026.09.01.3
 // @match        https://www.mixesdb.com/*
 // @match        https://*podcasts.apple.com/*
 // @noframes
@@ -15,10 +15,13 @@
 // @run-at       document-end
 // ==/UserScript==
 
-// Position of the Apple Podcasts URL inside the {{Player}} template: "first" (default) or "last"
-// "first" lets the preferred site order of ../funcs.js decide, which lists Apple Podcasts first
-// "last" appends the URL after the URLs already in the template
-const addAtPosition = "last"; // first or last
+// Position of the Apple Podcasts URL inside the {{Player}} template
+// "first": in front of the URLs already there
+// "middle": centre of the resulting list - with only one URL there it ends up second
+// "last": after the URLs already there
+// The URLs already in the template keep the preferred site order of ../funcs.js among themselves,
+// except on a titled player, where their order is the part order and is left untouched
+const addAtPosition = "last"; // first, middle or last
 
 var episodes_arr = {
 "533": "https://podcasts.apple.com/gb/podcast/mnmt-533-black-merlin/id1147084286?i=1000786340976",
@@ -566,7 +569,7 @@ function replaceAndSave( mode, url="" ) {
                 skipSave = true;
             } else {
                 logVar( "addAtPosition", addAtPosition );
-                textReplaced = addApplePodcastUrlToPlayer( text, url, addAtPosition == "last" );
+                textReplaced = addApplePodcastUrlToPlayer( text, url, addAtPosition );
 
                 if( textReplaced == text ) {
                     textReplaced = text
@@ -670,7 +673,11 @@ if( location.hostname == "www.mixesdb.com" ) {
          * On MixesDB:Explorer
          * Add a link ot the results header to open all edit links
          */
-        if( wgPageName == "MixesDB:Explorer/Mixes" || wgPageName == "MixesDB:Explorer/Lists" ) {
+        // Both Player URLs userscripts (Apple Podcasts and YouTube) run on MixesDB and would each
+        // add their own link, resulting in a duplicate id and every edit link opening twice.
+        // Whichever script gets here first wins, the other one skips creation AND the click handler.
+        if( ( wgPageName == "MixesDB:Explorer/Mixes" || wgPageName == "MixesDB:Explorer/Lists" )
+            && !document.getElementById( "editAllRes" ) ) {
             var editAllRes = '<a id="editAllRes" style="float:right" href="#" >Edit all results</a>';
             $("#explorerRes-wrapper .explorerRes").append( editAllRes );
 
