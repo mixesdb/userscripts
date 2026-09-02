@@ -884,7 +884,7 @@ Opens the edit form of the new page, prefilled with:
   rule back in charge
 - the **File details** table (duration and what else the site gave away) – or the series'
   `{{StandardShow…}}` template instead, where that is the house style on the recent pages and
-  this file's duration roughly fits it. Where those pages could not decide it, a
+  this file's duration roughly fits it. Where a show's pages could not decide it, a
   **dropdown next to "Create"** lets you (see below)
 - the `{{Player}}` with the player URL as MixesDB embeds it. Where the entity's recent pages
   publish every episode on two platforms – `{{Player|mode=mirrors}}` with a line per platform,
@@ -931,24 +931,26 @@ Filling the edit form, showing that preview and filling the upload field needs t
 
 Whether the new page gets the **File details** table or a `{{StandardShow…}}` template is read
 off the entity's ten newest pages: at least 90% of them using one shape settles it, and then
-there is nothing to ask. A dropdown appears behind **Create** only when that reading came to
-nothing:
+there is nothing to ask. A dropdown appears behind **Create** only when the entity is a
+**show, podcast or radio programme** MixesDB knows (the categories under `Category:Show`) and
+that reading came to nothing:
 
-- the title names no show category MixesDB knows, so there are no sibling pages to read – the
-  usual case behind a page that came out with a table although the show uses a template
 - the category's pages split on it – 8 of 10 using `{{StandardShow1h}}` is not 90%
 - the pages use a template, but this file's duration is too far off its stated length (a 40
   minute file on a 2h show), which is a hint the category was misread
 - the fetch failed, or the category holds fewer than three pages
 
-The dropdown holds **File details table** with this file's duration (`1:02:33`, so the choice is
-made with the length in view), `{{StandardShow1h}}` and `{{StandardShow2h}}` – plus the
-template the siblings use where it is a different one (`{{StandardShow90min}}`). It opens on
-what the page text writes anyway, so leaving it alone changes nothing; its tooltip says what
-could not be decided and how the pages voted. A pick is written into the page text the moment
-**Create** is clicked and is named in the reasoning panel's "Page text analysis of recent
-mixes" section. Editing the title into a different show re-reads the decision: where the new
-category settles it, the dropdown goes and the page follows the verdict.
+A venue, an event, a label, an artist, a **Promo Mix** or a name the wiki does not know gets
+no dropdown: none of them has a standard length, so the table is the right body there.
+
+The dropdown holds the table as this file's bare duration (`1:02:33` – what the table carries,
+so the choice is made with the length in view), `{{StandardShow1h}}` and `{{StandardShow2h}}` –
+plus the template the siblings use where it is a different one (`{{StandardShow90min}}`). It
+opens on what the page text writes anyway, so leaving it alone changes nothing; its tooltip
+says what could not be decided and how the pages voted. A pick is written into the page text
+the moment **Create** is clicked and is named in the reasoning panel's "Page text analysis of
+recent mixes" section. Editing the title into a different show re-reads the decision: where the
+new category settles it, the dropdown goes and the page follows the verdict.
 
 ### Tracklist from the description
 
