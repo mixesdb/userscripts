@@ -5150,17 +5150,23 @@ function mdbPageCreator_recentBodyChoice( findings ) {
  * The page text writes the dur table unless the entity's recent pages settled on a
  * {{StandardShow*}} template (mdbPageCreator_recentBodyChoice). That is the right call where
  * the pages SPOKE - 90% of them using the table, or a template this file's length fits. Where
- * they could not - no series category to read, a split vote, a template the duration
- * contradicts - the table was written on silence, and every StandardShow series whose category
- * the title got wrong went out with a dur table the editor had to swap by hand.
+ * they could not - a split vote, a template the duration contradicts, a fetch that failed -
+ * the table was written on silence, and a StandardShow series whose pages happen to disagree
+ * went out with a dur table the editor had to swap by hand.
  *
  * So in exactly those cases the decision is handed over: a dropdown behind "Create" with the
- * table (carrying this file's duration, so the choice is made with the length in view), the
- * two templates nearly every StandardShow series uses, and the siblings' own template where it
- * is a different one. It opens on what the page text writes anyway, so not touching it changes
- * nothing; its tooltip says what could not be decided. Where the verdict IS clear there is no
- * dropdown - a control that agrees with the page 90% of the time would only teach editors to
- * ignore it.
+ * table (labelled with this file's duration, so the choice is made with the length in view),
+ * the two templates nearly every StandardShow series uses, and the siblings' own template
+ * where it is a different one. It opens on what the page text writes anyway, so not touching
+ * it changes nothing; its tooltip says what could not be decided. Where the verdict IS clear
+ * there is no dropdown - a control that agrees with the page 90% of the time would only teach
+ * editors to ignore it.
+ *
+ * Only for a SERIES: the question "table or StandardShow" exists for a show, a podcast or a
+ * radio programme (mdbTitle_entityTypes - what MixesDB files under Category:Show), and nowhere
+ * else. A venue's or a label's pages, an artist's, a Promo Mix, a name the wiki does not know:
+ * none of them has a standard length, so none of them gets the dropdown - the table is right
+ * there, not written on silence.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -5171,12 +5177,13 @@ var mdbPageCreator_bodyOptions = [ "table", "StandardShow1h", "StandardShow2h" ]
 // mdbPageCreator_bodyChoiceState
 // Whether the file details body needs the editor's decision, and with what preselected.
 // Returns { show, chosen, why, tally }:
-// - show:   true where the siblings could not settle it - no series category to read (every
-//           skip reason of mdbPageCreator_recentAnalysisFor), a fetch that failed, too few
-//           pages, a vote under the 90% bar, a sample that uses neither shape, or a
-//           {{StandardShow*}} verdict this file's duration contradicts. false while the
-//           analysis is still on its way (the row would flash a dropdown that disappears a
-//           second later) and where the verdict is clear
+// - show:   true where the entity is a series (a show/podcast/radio category the wiki knows)
+//           and its siblings could not settle it - a fetch that failed, too few pages, a vote
+//           under the 90% bar, a sample that uses neither shape, or a {{StandardShow*}}
+//           verdict this file's duration contradicts. false for every other kind of entity
+//           (venue, event, label, artist, Promo Mix, unknown name - none has a standard
+//           length), while the analysis is still on its way (the row would flash a dropdown
+//           that disappears a second later), and where the verdict is clear
 // - chosen: what the page text writes without any pick - the template the verdict settled on,
 //           else "table" - so the dropdown opens on the truth, never on a guess
 // - why:    one clause for the tooltip saying what could not be decided
@@ -5190,9 +5197,16 @@ function mdbPageCreator_bodyChoiceState( title ) {
         verdict = mdbPageCreator_recentBodyChoice( findings ),
         body = findings && findings.body,
         state = { show: false, chosen: verdict || "table", why: "", tally: ( findings && findings.bodyTally ) || [] },
-        durText = mdbPageCreator_durationMs ? convertHMS( Math.floor( mdbPageCreator_durationMs / 1000 ) ) : "";
+        durText = mdbPageCreator_durationMs ? convertHMS( Math.floor( mdbPageCreator_durationMs / 1000 ) ) : "",
+        // the series types, as title_builder.js knows them; typeof-guarded against a stale
+        // cached copy without the list
+        seriesTypes = ( typeof mdbTitle_entityTypes !== "undefined" && mdbTitle_entityTypes ) ? mdbTitle_entityTypes : [ "podcast", "show", "radio", "internet radio" ];
 
     if( pending ) return state;
+
+    // not a series (Promo Mix, an artist, a venue, a name the wiki does not know): the table
+    // is the right body, there is nothing to ask
+    if( !info.match || seriesTypes.indexOf( String( info.match.type || "" ) ) === -1 ) return state;
 
     // mdbPageCreator_reasoningRecentState already phrases every reason nothing could be read
     // off the siblings (no entity, unknown category, failed fetch, too few pages, ...) - the
@@ -5246,10 +5260,11 @@ function mdbPageCreator_bodyTallyText( tally ) {
 }
 
 // mdbPageCreator_bodyOptionLabel
-// What a dropdown entry reads: "File details table 1:02:33" (the duration only where the
-// player gave one) or "{{StandardShow1h}}".
+// What a dropdown entry reads: the table as this file's bare duration, "1:02:33" - that is what
+// the table carries and what the choice is made against - or "{{StandardShow1h}}". Only a
+// player that gave no duration falls back to the words.
 function mdbPageCreator_bodyOptionLabel( value, durText ) {
-    if( value === "table" ) return "File details table" + ( durText ? " " + durText : "" );
+    if( value === "table" ) return durText || "File details table";
 
     return "{{" + value + "}}";
 }
