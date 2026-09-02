@@ -1960,5 +1960,31 @@ var mdbTitleExamples = [
         expectEntity: "Hidden Heights",
         expectEntities: [ "Hidden Heights", "Sami J", "Doog & Rich" ],
         expect: "2026 - SLo Motion @ Hidden Heights, Sami J, Doog & Rich"
+    },
+    {
+        // Two things at once, both reported on this one Mixcloud show.
+        // 1. Mixcloud's API dates a show with a full timestamp ("2026-08-07T17:33:30Z"), and it
+        //    went into the title as it stood - see mdbTitle_dayOnly, which now cuts every date
+        //    the sites hand over down to the day before anything reads it. The date here is
+        //    deliberately the raw Mixcloud one.
+        // 2. The uploader writes the "&" that MixesDB spells out: Category:Terrence Parker And
+        //    Friends Radio Show. Both spellings are ONE name to mdbTitle_normalizeCompare now,
+        //    so the wiki's answer lands where the asked name looks it up and the title is
+        //    respelled the wiki's way. The asking itself (mdbTitle_spellingVariants' "&" -> "And"
+        //    variant, and the redirect the wiki answers with since 2026-09-02) runs over the
+        //    network and is not what this case can guard - what it guards is the title.
+        url: "https://www.mixcloud.com/terrenceparker/terrence-parker-friends-radio-show-131/",
+        title: "Terrence Parker & Friends Radio Show 131",
+        channel: "Terrence Parker",
+        date: "2026-08-07T17:33:30Z",
+        known: {
+            "Terrence Parker": { type: "artist", mixes: 260 },
+            "Terrence Parker And Friends Radio Show": { type: "show", mixes: 12 }
+        },
+        expectArtists: [ "Terrence Parker" ],
+        // the slot as the title writes it, number included - the category the page is filed
+        // under is the name without it, and that cut is mdbPageCreator_entityCategory's
+        expectEntity: "Terrence Parker And Friends Radio Show 131",
+        expect: "2026-08-07 - Terrence Parker - Terrence Parker And Friends Radio Show 131"
     }
 ];

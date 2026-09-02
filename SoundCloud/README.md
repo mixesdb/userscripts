@@ -105,7 +105,13 @@ A **Hide:** row above lazy-loading lists, each option remembered:
 - **X'ed items** – hide entries removed with the **X** button
 
 And a **Filter:** row with two sliders: **Durations ≥ n minutes** and **Favorites ≥ n**, so short
-uploads and unnoticed tracks disappear from the list.
+uploads and unnoticed tracks disappear from the list. Moving a slider takes effect at once; a
+duration already known is not looked up again.
+
+SoundCloud only loads the next entries when the page is scrolled, and a strict filter can hide so
+much that there is nothing left to scroll. The list then fetches further entries by itself until
+something passes or it reaches its end – so with a strict filter the page fills in gradually
+rather than not at all.
 
 Both rows also sit above the search results on **Everything**, **Go+** and **Tracks** – the
 search tabs that list single tracks. Switching an option there reloads the page with the search
@@ -134,7 +140,8 @@ A submit link above a set's track list, handing the whole set over to TrackId.ne
   reporting.
 - Visible SoundCloud UI text is matched in English and German only. Other account locales fall
   back to whatever works without it (e.g. the description is not auto-expanded).
-- The favorites filter resolves entries one at a time and pauses under load, so a long list fills
-  in gradually.
+- Where an entry's duration is not known yet it is looked up one at a time, only while the entry
+  is on screen, and for at most 40 entries per page; an entry whose duration cannot be determined
+  stays visible.
 - Channel handles are looked up for at most 50 different handles per tracklist. Beyond that the
   remaining handles stay in the text as they are.

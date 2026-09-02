@@ -184,6 +184,14 @@ function mdbTitle_normalizeCompare( s ) {
     // NFD splits "ö" into "o" + the combining diaeresis, and the mark is what comes off
     if( text.normalize ) text = text.normalize( "NFD" ).replace( /[\u0300-\u036f]/g, "" );
 
+    // "&" IS the word "and", and the two spellings have to read as one name: MixesDB files
+    // "Terrence Parker And Friends Radio Show" while the uploader writes "Terrence Parker &
+    // Friends Radio Show", and with the "&" simply dropped the two normalized differently
+    // ("...parkerfriends..." vs "...parkerandfriends..."), so the wiki's answer landed under a
+    // key nobody read and the title kept the uploader's spelling.
+    // Written out before the strip below, which would otherwise throw the character away.
+    text = text.replace( /&/g, " and " );
+
     return text.toLowerCase().replace( /[^a-z0-9]/g, "" );
 }
 
@@ -502,6 +510,29 @@ function mdbTitle_takeJokeYear( text ) {
     }
 
     return result;
+}
+
+// mdbTitle_dayOnly
+// A date as the plain YYYY-MM-DD a MixesDB title is written in. The sites hand their API's own
+// spelling over ("2026-08-07T17:33:30Z" on Mixcloud, "2026/08/12 10:00:00 +0000" elsewhere), and
+// whatever comes in ends up in the title as it stands - reported on "Terrence Parker & Friends
+// Radio Show 131", whose suggestion opened with the full timestamp.
+// UTC on the way out, not local: these are UTC timestamps, and a local reading moves the day for
+// anyone east or west of it. It is also what the date SCORING needs - mdbTitle_scoreCandidate
+// parses the reference date as refIso + "T00:00:00Z", which a full timestamp turns into NaN, so
+// a title dating itself could not be compared with the upload date at all.
+// An unparsable string is handed back unchanged rather than dropped: a wrong date in the
+// suggestion can be seen and corrected, no suggestion at all cannot.
+function mdbTitle_dayOnly( date ) {
+    var text = String( date || "" ).trim(),
+        iso = /^(\d{4}-\d{2}-\d{2})/.exec( text );
+
+    if( iso ) return iso[1];
+    if( !text ) return "";
+
+    var parsed = new Date( text );
+
+    return isNaN( parsed.getTime() ) ? text : parsed.toISOString().slice( 0, 10 );
 }
 
 // mdbTitle_yearOf
@@ -3311,6 +3342,25 @@ function mdbTitle_canonicalName( known, name, preferTypes ) {
                 mdbTitle_knownMatch( known, name, null ),
         cmp = mdbTitle_normalizeCompare( name );
 
+    // An edition's name is the series name plus its number ("Terrence Parker & Friends Radio
+    // Show 131"), and the wiki knows the SERIES - which is also the only name the lookup asked
+    // about. Without stepping over the number the answer sits right there unread and the title
+    // keeps the uploader's spelling of a name MixesDB spells differently (reported on that very
+    // show: MixesDB files it as "... And Friends Radio Show").
+    // The number is written back exactly as it stood - this is a spelling rewrite, not a cut.
+    // Only where the number COUNTS editions: mdbTitle_numberBelongsToName says whether the
+    // digits are part of the name itself, and "Route 8" is an artist, not the eighth Route -
+    // respelling that one after a category "Route" would rename a different act.
+    if( !match && !mdbTitle_numberBelongsToName( name ) ) {
+        var numbered = mdbTitle_stripTrailingNumber( name );
+
+        if( numbered && numbered !== name ) {
+            var canonNumbered = mdbTitle_canonicalName( known, numbered, preferTypes );
+
+            if( canonNumbered !== numbered ) return canonNumbered + name.slice( numbered.length );
+        }
+    }
+
     if( !match ) return name;
 
     if( match.title && mdbTitle_normalizeCompare( match.title ) === cmp ) {
@@ -4004,6 +4054,16 @@ function mdbTitle_spellingVariants( name ) {
         };
 
     if( !text ) return out;
+
+    // The wiki writes the word where the title writes the sign, and the other way round:
+    // "Terrence Parker & Friends Radio Show" -> "Terrence Parker And Friends Radio Show".
+    // First, because a name carrying an "&" is far more often spelled out on the wiki than it
+    // is glued, and every variant costs a slot of the one request.
+    // Both spellings normalize to the same key (mdbTitle_normalizeCompare writes "&" out), so
+    // the answer lands where the asked name looks it up and mdbTitle_canonicalName respells
+    // the title to the wiki's version - the same contract the moves below keep.
+    if( /&/.test( text ) ) push( text.replace( /\s*&\s*/g, " And " ) );
+    if( /\sand\s/i.test( text ) ) push( text.replace( /\s+and\s+/gi, " & " ) );
 
     // The wiki glues what the title separates: "EG AFTER" -> "EGAFTER", "R.E.M." -> "REM".
     // First, because it is the spelling this round was built for. Two or three segments at
@@ -6168,6 +6228,14 @@ function buildMixesdbTitle( playerTitle, username, createdAt, releaseDate, known
 
     var conf = mdbTitle_confidence(),
         nothing = { title: "", confidence: 0, reasons: [] };
+
+    // The upload/release date as a plain day before anything reads it: it stands in as the
+    // title's own date where the title carries none, and it is the reference every date IN the
+    // title is scored against. The sites hand over whatever their API returns - see
+    // mdbTitle_dayOnly. Done here as well as in mdbPageCreator_add() so a direct caller (the
+    // title test runner) gets the same treatment as a site script.
+    createdAt = mdbTitle_dayOnly( createdAt );
+    releaseDate = mdbTitle_dayOnly( releaseDate );
 
     mdbTitle_reCased = false;
     mdbTitle_joinerUnified = false;

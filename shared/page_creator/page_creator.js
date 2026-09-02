@@ -288,8 +288,13 @@ function mdbPageCreator_add( options ) {
         // the other planned players) - the title builder then refuses to fall back to the
         // channel as artist/entity without backing. Omitted = the SoundCloud default.
         channelTrust = o.channelTrust || "",
-        createdAt = o.createdAt || "",
-        releaseDate = o.releaseDate || "",
+        // The upload and release dates as plain YYYY-MM-DD days, whatever the site's API spells
+        // them as ("2026-08-07T17:33:30Z" on Mixcloud): the day is what a MixesDB title carries,
+        // what the report box prints and what the date parse scores a title's own date against.
+        // Normalized HERE, at the one door every site comes through, rather than in each site
+        // script - mdbTitle_dayOnly() does the same job for a direct caller of the builder.
+        createdAt = mdbTitle_dayOnly( o.createdAt || "" ),
+        releaseDate = mdbTitle_dayOnly( o.releaseDate || "" ),
         // Read by the title builder's label test, for the labels the tracklist credits
         // ("Artist - Title [Label]") - see mdbTitleKnownLabels in title_definitions.js - and
         // by the Notes section's link search (mdbPageCreator_recentNotesUrl). The tracklist
