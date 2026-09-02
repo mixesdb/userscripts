@@ -3,7 +3,7 @@
 Turns a SoundCloud track page into a place a MixesDB page can be written from, and makes long
 stream and profile lists usable by filtering out what is not a mix.
 
-- **Runs on:** soundcloud.com – track pages, sets/playlists, streams and profiles
+- **Runs on:** soundcloud.com – track pages, sets/playlists, streams, profiles and search results
 - **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.user.js)
 - **Shared features:** [Toolkit](../shared/toolkit/), [Page Creator](../shared/page_creator/), [Tracklist box](../shared/tracklist_editor/), [File details](../shared/README.md#file-details)
 
@@ -94,7 +94,7 @@ appears in one step; the Page Creator row and the toolkit are two separate place
 see [Page Creator](../shared/page_creator/#loading-placeholder). Only on the redesigned track
 pages.
 
-### Filters on streams, profiles and playlists
+### Filters on streams, profiles, playlists and search results
 
 A **Hide:** row above lazy-loading lists, each option remembered:
 
@@ -105,10 +105,13 @@ A **Hide:** row above lazy-loading lists, each option remembered:
 - **X'ed items** – hide entries removed with the **X** button
 
 And a **Filter:** row with two sliders: **Durations ≥ n minutes** and **Favorites ≥ n**, so short
-uploads and unnoticed tracks disappear from the list.
+uploads and unnoticed tracks disappear from the list. The same **Filter:** row sits above the
+search results on **Everything**, **Go+** and **Tracks** – the search tabs that list single
+tracks. The **People**, **Albums** and **Playlists** tabs have neither a duration nor a
+favorites count to go by and stay untouched, and search results get no **Hide:** row.
 
-Every list entry gets an **X** button that removes it from view; favorited entries have their
-title highlighted. The filter settings ride along when switching between a profile's tabs.
+In the stream and profile lists every entry gets an **X** button that removes it from view;
+favorited entries have their title highlighted. The filter settings ride along when switching between a profile's tabs.
 
 ### Links in playlists and sets
 
