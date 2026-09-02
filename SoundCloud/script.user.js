@@ -2009,6 +2009,21 @@ log( "script.user.js IIFE finished - all handlers registered." );
 /*
  * Changelog
  *
+ * 2026.09.02.6
+ * Search results get the "Hide:" row too - Playlists, Favs, Used and X'ed items - not just the
+ * "Filter:" row of .3. The rows there carry the same markup as a stream's, only the wrapper
+ * differs (li.searchList__item instead of li.soundList__item), so every hiding handler now
+ * looks the entry up with listRowSelector (script.funcs.js v_58) instead of naming
+ * .soundList__item. No "Reposts" box: a search result is always the original upload.
+ * Switching an option no longer loses the search. The reload URL was built as "the URL with
+ * the query string cut off" + the five options, which threw away the ?q= the results exist
+ * for; hideOptionsUrl() now writes the options INTO the existing query string and leaves
+ * every other parameter alone, and switchHideOption() replaces the five near-identical
+ * change handlers.
+ * The persisted options are forced off on the search tabs that get no bar (people, albums,
+ * playlists), the same way the sets tab already does it - their rows carry the markup the
+ * handlers act on, and without a checkbox there is no way to switch an option off again.
+ *
  * 2026.09.02.5
  * Page Creator (page_creator.js v_128): the file details dropdown counts a show word anywhere in
  * the suggested title or the player's own title, not only in the entity slot - "Vamos Music
