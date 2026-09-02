@@ -931,10 +931,11 @@ Filling the edit form, showing that preview and filling the upload field needs t
 
 Whether the new page gets the **File details** table or a `{{StandardShow…}}` template is read
 off the entity's ten newest pages: at least 90% of them using one shape settles it, and then
-there is nothing to ask. A dropdown appears behind **Create** only when the entity is a
-**show, podcast or radio programme** – one MixesDB knows as such (the categories under
-`Category:Show`), or a name the wiki has no category for yet whose own words say it
-(`Low Orbit Radio Show`) – and that reading came to nothing:
+there is nothing to ask. A dropdown appears behind **Create** only when this is a
+**show, podcast or radio programme** – the entity is one MixesDB knows as such (the categories
+under `Category:Show`), or a show word stands anywhere in the suggested title or the player's
+own title (`Low Orbit Radio Show 092`, `Vamos Music Radio Show - Guest Mix Tovio` – even where
+the parse put the show in the wrong slot) – and that reading came to nothing:
 
 - MixesDB has no category of that name yet, so there are no pages to read – the show's first
   page, which is exactly where you have to decide
@@ -943,9 +944,8 @@ there is nothing to ask. A dropdown appears behind **Create** only when the enti
   minute file on a 2h show), which is a hint the category was misread
 - the fetch failed, or the category holds fewer than three pages
 
-A venue, an event, a label, an artist or a **Promo Mix** gets no dropdown: none of them has a
-standard length, so the table is the right body there. Neither does an unknown name without a
-show word in it.
+A venue, an event, a label, an artist or a **Promo Mix** whose title says nothing of the kind
+gets no dropdown: none of them has a standard length, so the table is the right body there.
 
 The dropdown holds the table as this file's bare duration (`1:02:33` – what the table carries,
 so the choice is made with the length in view), `{{StandardShow1h}}` and `{{StandardShow2h}}` –

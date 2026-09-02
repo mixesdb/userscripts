@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hearthis.at (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.3
+// @version      2026.09.02.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,7 +17,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_127
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_128
 // @include      http*hearthis.at*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hearthis.at
 // @noframes
@@ -172,6 +172,10 @@ onUrlChange( runHearthisPage, { runNow: true } );
 })();
 
 /* ## Changelog
+ * 2026.09.02.4  Page Creator (page_creator.js v_128): the file details dropdown counts a show
+ *               word anywhere in the suggested title or the player's own title, not only in the
+ *               entity slot - "Vamos Music Radio Show - Guest Mix Tovio" had the show parsed as
+ *               the artist and got none.
  * 2026.09.02.3  Page Creator (page_creator.js v_127): the file details dropdown also for a show
  *               the wiki has no category for yet, when the name's own words say it is one ("Low
  *               Orbit Radio Show") - its first page is where there is nothing to read.
