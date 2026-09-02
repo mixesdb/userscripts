@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.6
+// @version      2026.09.02.9
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,10 +14,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_17
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_131
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_90
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_128
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_58
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_129
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_60
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -709,8 +709,12 @@ waitForKeyElements("li.soundList__item .sound__body, li.searchList__item .sound_
 
 // on click
 // scrolling is needed because it wouldn't load more when all visible are removed
+// Bound on the ONE button the callback was handed, not on every .mdb-removeItem on the page:
+// the latter added another handler to every older button each time a row arrived, so on a
+// long list the first X ran its handler a few hundred times per click - removing the row,
+// saving the slug and jiggling the scroll position that often.
 waitForKeyElements("li.soundList__item .mdb-removeItem, li.searchList__item .mdb-removeItem", function( jNode ) {
-    $(".mdb-removeItem").click(function(){
+    jNode.on("click", function(){
         log( "click remove" );
 
         // keep lazy loading active
@@ -2008,6 +2012,46 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.09.02.9
+ * Lists with the filter row no longer lag (script.funcs.js v_60). Four things did it, all in the
+ * "Filter:" machinery: every DOM mutation of the page - a hover, a second of playback - had the
+ * whole list evaluated again, each row asking for its getBoundingClientRect() with the previous
+ * row's attribute written in between, i.e. one forced layout per row; a row whose duration could
+ * not be answered was asked again every 1.6s for ever; the duration cache was serialised and
+ * written to localStorage on every API answer and every lookup; and the X button's click handler
+ * was bound to EVERY X on the page each time a row arrived, so one click on a long list ran it
+ * hundreds of times. Now the IntersectionObserver alone says what is on screen, the mutation
+ * observer only notices new rows, a slider move re-judges the list from what is already known
+ * (no lookup is repeated, dragging is immediate), the cache is written 2s after the last change
+ * at most and capped at 3000 entries, and the X binds to its own button.
+ * Lookups: one at a time and always for a row on screen right now, api-v2 only - api-widget
+ * answers 401 without a client_id, so every lookup was two requests with the first one failing.
+ * The client_id is also read off SoundCloud's earlier requests in the performance timeline.
+ * Fixed on the way: the cache was never read back (a temporal dead zone at load, swallowed by a
+ * catch - every visit started empty); "Favorites" alone also hid short tracks; and leaving only
+ * "Favorites" on switched "Durations" back on at the next visit.
+ *
+ * 2026.09.02.8
+ * Page Creator (title_builder.js v_90, page_creator.js v_129): the upload date is cut down to the
+ * plain day before anything reads it - Mixcloud dates a show with a full timestamp, and
+ * "2026-08-07T17:33:30Z" stood in the suggested title as it came. And an "&" now reads as the
+ * word "and" wherever a name is compared, so "Terrence Parker & Friends Radio Show 131" is filed
+ * under the wiki's spelling "Terrence Parker And Friends Radio Show" - a name the wiki denies
+ * with the "&" is asked in that spelling too, and a numbered edition is respelled off its
+ * series name.
+ *
+ * 2026.09.02.7
+ * Lists with a filter on keep loading (script.funcs.js v_59). SoundCloud fetches the next page
+ * of a lazy loading list from its scroll handler only, and hiding rows shrinks the list without
+ * a scroll: once the page was shorter than the window there was no way to scroll at all, the
+ * spinner sat in view for good and nothing loaded - on a search with "Durations >= 39" 9 of 11
+ * results were hidden and the page stopped right there. Whenever a row gets hidden (or the DOM
+ * changes otherwise, which covers the "Hide:" options removing rows) while the spinner is in
+ * view, a synthetic scroll event now runs SoundCloud's own check, at most once a second, so the
+ * list grows until something passes the filter or it reaches its end. Rows arriving with a
+ * later page are handed to the IntersectionObserver too, instead of waiting for some unrelated
+ * DOM mutation to evaluate them while in view.
  *
  * 2026.09.02.6
  * Search results get the "Hide:" row too - Playlists, Favs, Used and X'ed items - not just the

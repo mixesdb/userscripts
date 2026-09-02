@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.5
+// @version      2026.09.02.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,9 +16,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-YouTube_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-YouTube_30
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_90
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_128
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_129
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
@@ -1033,6 +1033,15 @@ if( typeof onUrlChange === "function" ) {
 
 /*
  * Changelog
+ *
+ * 2026.09.02.6
+ * Page Creator (title_builder.js v_90, page_creator.js v_129): the upload date is cut down to the
+ * plain day before anything reads it - Mixcloud dates a show with a full timestamp, and
+ * "2026-08-07T17:33:30Z" stood in the suggested title as it came. And an "&" now reads as the
+ * word "and" wherever a name is compared, so "Terrence Parker & Friends Radio Show 131" is filed
+ * under the wiki's spelling "Terrence Parker And Friends Radio Show" - a name the wiki denies
+ * with the "&" is asked in that spelling too, and a numbered edition is respelled off its
+ * series name.
  *
  * 2026.09.02.5
  * The debug setting mdbPageCreator_showForUsedPlayers now sits at the top of this script too
