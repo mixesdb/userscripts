@@ -429,6 +429,12 @@ function getAllTrackCards(root = document) {
     ]));
 }
 function asCard(el) {
+    // Search results: the row to hide is the <li>, not the .searchItem inside it. The li carries
+    // the list's own spacing (sc-mt-3x), so hiding only its child leaves that gap behind and a
+    // filtered search list ends up full of holes.
+    const searchRow = el.closest('li.searchList__item');
+    if (searchRow) return searchRow;
+
     return el.closest('article, li.soundList__item, .lazyLoadingList__item, .searchItem, .soundList__item') || el;
 }
 function getCardUrl(card) {

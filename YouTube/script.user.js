@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.2
+// @version      2026.09.02.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -18,7 +18,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_126
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_127
 // @match        *://*.youtube.com/*
 // @match        *://youtu.be/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
@@ -1027,6 +1027,11 @@ if( typeof onUrlChange === "function" ) {
 
 /*
  * Changelog
+ *
+ * 2026.09.02.3
+ * Page Creator (page_creator.js v_127): the file details dropdown also for a show the wiki has
+ * no category for yet, when the name's own words say it is one ("Low Orbit Radio Show") - its
+ * first page is where there is nothing to read.
  *
  * 2026.09.02.2
  * Page Creator (page_creator.js v_126): the file details dropdown only for a show, podcast or

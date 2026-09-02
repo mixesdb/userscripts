@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.2
+// @version      2026.09.02.4
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,8 +16,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_126
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_56
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_127
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -322,6 +322,25 @@ function isSetPage() {
 
 function isSetsTab() {
     return isSetPage() && !urlPath_noParams(3);
+}
+
+// Search results
+// https://soundcloud.com/search?q=vamos%20show and its tabs (/search/go, /search/sounds,
+// /search/people, /search/albums, /search/sets).
+// Functions rather than values for the same reason as isSetPage() above.
+function isSearchPage() {
+    return urlPath_noParams(1) == "search";
+}
+
+// The search tabs that list single tracks - the only ones the filter row means anything on.
+// "people" lists users, which have neither a duration nor a favorites count. "albums"/"sets"
+// list playlists, and those are left out for the same reason the sets tab of a profile shows
+// no filter row: resolving every playlist of the list only creates server load.
+// "" is the default tab ("Everything"), which is what /search?q= lands on.
+const searchTabsWithTracks = [ "", "go", "sounds" ];
+
+function isSearchTabWithTracks() {
+    return isSearchPage() && searchTabsWithTracks.indexOf( urlPath_noParams(2) ) > -1;
 }
 
 // url parameters
@@ -731,6 +750,58 @@ waitForKeyElements(".userStream.lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".soundList.lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".trackList.lazyLoadingList", lazyLoadingList);
 
+// Search results have a lazy loading list of their own, and it is NOT one of the four above.
+// Only the filter row is offered there, no "Hide:" checkboxes: every one of those reloads the
+// page with its state in the query string, built from the URL with the query string cut off -
+// which on a search page would throw away the ?q= the results exist for.
+// https://soundcloud.com/search?q=vamos%20show
+waitForKeyElements(".searchList.lazyLoadingList", searchList);
+
+function searchList( jNode ) {
+    // Tested inside the handler, not at registration time: SoundCloud goes from the search page
+    // to a track and back without ever loading a document, and waitForKeyElements keeps the one
+    // closure it was registered with. Returning true leaves the node on the watch list, so a
+    // tab switch to a list we DO filter is still picked up.
+    if( !isSearchTabWithTracks() ) return true;
+
+    logFunc( "searchList" );
+
+    // The bar the filter row mounts into. No #mdb-streamActions-hide child, see above.
+    if( $("#mdb-streamActions").length === 0 ) {
+        jNode.before('<div id="mdb-streamActions" class="sc-text-grey"></div>');
+    }
+
+    setupStreamActionsFilterRow( "searchList" );
+}
+
+// setupStreamActionsFilterRow
+// Brings up the filter row inside #mdb-streamActions: the UI itself plus the machinery feeding
+// it - client_id/duration sniffing on fetch and XHR, the IntersectionObserver evaluating cards
+// as they scroll into view, and the DOM/SPA watcher. All of it lives in script.funcs.js.
+// Called by every list that offers the row, i.e. the stream/profile lists and the search
+// results. Everything but mountUI()/refreshVisible() is global to the document and installed
+// once: a second observeDOM() would add a second MutationObserver plus a second SPA poll, and
+// a second installNetworkHooks() would wrap the already wrapped fetch again.
+var streamActionsHooksInstalled = false;
+
+function setupStreamActionsFilterRow( caller ) {
+    logFunc( "setupStreamActionsFilterRow (" + caller + ")" );
+
+    if( !streamActionsHooksInstalled ) {
+        streamActionsHooksInstalled = true;
+
+        log( "setupStreamActionsFilterRow: installing the global hooks (installNetworkHooks, attachIO, observeDOM)." );
+        installNetworkHooks();
+        attachIO();
+        observeDOM();
+    } else {
+        log( "setupStreamActionsFilterRow: global hooks are already installed - only mounting the row." );
+    }
+
+    mountUI();
+    refreshVisible();
+}
+
 function lazyLoadingList(jNode) {
     logFunc( "lazyLoadingList" );
 
@@ -768,12 +839,7 @@ function lazyLoadingList(jNode) {
 
     // Filter row
     if( !isSetsTab() ) {
-        log( "lazyLoadingList: setting up filter row (installNetworkHooks, mountUI, attachIO, observeDOM, refreshVisible)." );
-        installNetworkHooks();
-        mountUI();
-        attachIO();
-        observeDOM();
-        refreshVisible();
+        setupStreamActionsFilterRow( "lazyLoadingList" );
     } else {
         log( "lazyLoadingList: isSetsTab - skipping filter row setup." );
     }
@@ -1906,6 +1972,23 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.09.02.4
+ * Page Creator (page_creator.js v_127): the file details dropdown also for a show the wiki has
+ * no category for yet, when the name's own words say it is one ("Low Orbit Radio Show") - its
+ * first page is where there is nothing to read.
+ *
+ * 2026.09.02.3
+ * The "Filter:" row of #mdb-streamActions (Durations >= n, Favorites >= n) now also sits above
+ * the search results (script.funcs.js v_57), on /search, /search/go and /search/sounds - the
+ * tabs that list single tracks. Its own lazy loading list is .searchList, which none of the
+ * four lazyLoadingList handlers matched, so the row had nowhere to mount. No "Hide:"
+ * checkboxes there: each of those reloads the page with its state in the query string, built
+ * from the URL with the query string cut off, which would drop the search's own ?q=.
+ * asCard() now hides the <li> of a search hit instead of the .searchItem inside it, or the
+ * list's own spacing stays behind as a gap. The hooks the row needs (fetch/XHR patch,
+ * IntersectionObserver, DOM/SPA watcher) moved into setupStreamActionsFilterRow() and are
+ * installed once per document instead of once per list that asks for the row.
  *
  * 2026.09.02.2
  * Page Creator (page_creator.js v_126): the file details dropdown only for a show, podcast or

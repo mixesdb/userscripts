@@ -5163,10 +5163,13 @@ function mdbPageCreator_recentBodyChoice( findings ) {
  * editors to ignore it.
  *
  * Only for a SERIES: the question "table or StandardShow" exists for a show, a podcast or a
- * radio programme (mdbTitle_entityTypes - what MixesDB files under Category:Show), and nowhere
- * else. A venue's or a label's pages, an artist's, a Promo Mix, a name the wiki does not know:
- * none of them has a standard length, so none of them gets the dropdown - the table is right
- * there, not written on silence.
+ * radio programme, and nowhere else. A series is one the wiki knows as such
+ * (mdbTitle_entityTypes - what MixesDB files under Category:Show) - or, where the wiki knows
+ * no category of that name yet, a name whose own words say it ("Low Orbit Radio Show",
+ * mdbTitle_saysShowNotPromo): its first page is exactly where the editor has to decide with
+ * nothing to read. A venue's or a label's pages, an artist's, a Promo Mix: none of them has a
+ * standard length, so none of them gets the dropdown - the table is right there, not written
+ * on silence.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -5177,11 +5180,12 @@ var mdbPageCreator_bodyOptions = [ "table", "StandardShow1h", "StandardShow2h" ]
 // mdbPageCreator_bodyChoiceState
 // Whether the file details body needs the editor's decision, and with what preselected.
 // Returns { show, chosen, why, tally }:
-// - show:   true where the entity is a series (a show/podcast/radio category the wiki knows)
-//           and its siblings could not settle it - a fetch that failed, too few pages, a vote
-//           under the 90% bar, a sample that uses neither shape, or a {{StandardShow*}}
-//           verdict this file's duration contradicts. false for every other kind of entity
-//           (venue, event, label, artist, Promo Mix, unknown name - none has a standard
+// - show:   true where the entity is a series - a show/podcast/radio category the wiki
+//           knows, or a name the wiki has no category for whose words say it is one - and
+//           its siblings could not settle it: no pages to read, a fetch that failed, too few
+//           pages, a vote under the 90% bar, a sample that uses neither shape, or a
+//           {{StandardShow*}} verdict this file's duration contradicts. false for every other
+//           kind of entity (venue, event, label, artist, Promo Mix - none has a standard
 //           length), while the analysis is still on its way (the row would flash a dropdown
 //           that disappears a second later), and where the verdict is clear
 // - chosen: what the page text writes without any pick - the template the verdict settled on,
@@ -5204,9 +5208,14 @@ function mdbPageCreator_bodyChoiceState( title ) {
 
     if( pending ) return state;
 
-    // not a series (Promo Mix, an artist, a venue, a name the wiki does not know): the table
-    // is the right body, there is nothing to ask
-    if( !info.match || seriesTypes.indexOf( String( info.match.type || "" ) ) === -1 ) return state;
+    // A series by the wiki's answer - or, where the wiki has no category of that name, by the
+    // name's own words ("Low Orbit Radio Show"; typeof-guarded against a stale cached
+    // title_builder.js). Anything else (Promo Mix, an artist, a venue, a nameless slot) is no
+    // series: the table is the right body, there is nothing to ask.
+    var type = String( ( info.match && info.match.type ) || "" ),
+        wordsSaySeries = info.skip === "unknown" && typeof mdbTitle_saysShowNotPromo === "function" && mdbTitle_saysShowNotPromo( info.catName );
+
+    if( seriesTypes.indexOf( type ) === -1 && !wordsSaySeries ) return state;
 
     // mdbPageCreator_reasoningRecentState already phrases every reason nothing could be read
     // off the siblings (no entity, unknown category, failed fetch, too few pages, ...) - the
