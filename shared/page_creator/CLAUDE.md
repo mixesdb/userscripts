@@ -1094,13 +1094,13 @@ mirror of this table - keep the two in step):
 | 4 | Page text learned from siblings: episode number format, `{{StandardShow*}}`, lead image, shared categories at 90% | `page_text_learning.md` | **DONE 2026-08-18**: one `generator=categorymembers` + `prop=revisions` call per entity category (`mdbPageCreator_recentFetch()`, cached in `mdbPageCreator_recentAnalysisCache`), consensus at 90% with the unanimous newest-5 overriding a disagreeing sample (`mdbPageCreator_recentConsensus()` - newer pages take precedence). Feeds the SUGGESTION (`mdbPageCreator_applyRecentToSuggestion()`: episode format incl. zero-padding, the name as titles write it, the venue's city; never an edited title), the PAGE TEXT (lead `[[File:]]` with the literal title + the siblings' extension - the live recordings among the siblings do not vote on it since 2026-08-19, `mdbPageCreator_recentImageVote()`: their artwork is the event's, and 2 of 10 such pages cost Groove Podcast the artwork line all its episodes carry -, `{{StandardShow*}}` when the duration roughly fits, an empty `== Notes ==` section where the series has one, prefilled from the description where its Notes link a host the description names too, `{{Player|mode=mirrors}}` with the mirror line empty where the series publishes every episode twice - the 90% style vote fills a style line again since 2026-08-20, but only for a name MixesDB files under `Category:Style` - one `prop=categories&clcategories=Category:Style` request, `mdbPageCreator_styleCatFetch()`/`_recentLearnedCategories()`; every other winner stays the "Hints:" chip it was) and reasoning panel sections 5 + 7. `mdbPageCreator_bucketCategories` ("Promo Mix") is skipped everywhere, incl. the hints bar's "N mixes" toggle. Deltas against the plan file are noted at its top |
 | 5 | **End of beta**: no row at all for a mix that already has a page | - | open, and LAST on purpose - see below |
 
-**Step 5 in full.** Today `window.mdbPageCreator_showForUsedPlayers = true` ships in both site
-scripts ("True as default for the beta phase"), which is what `mdbPageCreator_showForUsed()`
-reads and what lets `mdbPageCreator_render()` build the row for a used player - with "Exists"
-in place of "Create". Ending the beta means shipping it `false` (and then dropping the flag,
-the `isUsed` branch and the `used` styling once nobody needs the comparison). Note the "Debug
-settings" comment block in the site scripts claims "All off in the shipped script", which this
-one is not - fix that line as part of the same work.
+**Step 5 in full.** `window.mdbPageCreator_showForUsedPlayers` is what
+`mdbPageCreator_showForUsed()` reads and what lets `mdbPageCreator_render()` build the row for a
+used player - with "Exists" in place of "Create". Since 2026-09-02 the flag is declared at the
+top of EVERY site script that calls `mdbPageCreator_add()` (SoundCloud, TrackId.net, Mixcloud,
+YouTube, hearthis.at), all of them `false`, so the comparison can be switched back on per site
+without editing anything else. What is left of step 5 is dropping the flag, the `isUsed` branch
+and the `used` styling once nobody needs the comparison any more.
 
 It is LAST on purpose and not a code cleanup to do early: while the row still fires for used
 players it is a free safety net, because a mix whose page we FAILED to find is still shown to a

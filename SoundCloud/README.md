@@ -105,13 +105,16 @@ A **Hide:** row above lazy-loading lists, each option remembered:
 - **X'ed items** – hide entries removed with the **X** button
 
 And a **Filter:** row with two sliders: **Durations ≥ n minutes** and **Favorites ≥ n**, so short
-uploads and unnoticed tracks disappear from the list. The same **Filter:** row sits above the
-search results on **Everything**, **Go+** and **Tracks** – the search tabs that list single
-tracks. The **People**, **Albums** and **Playlists** tabs have neither a duration nor a
-favorites count to go by and stay untouched, and search results get no **Hide:** row.
+uploads and unnoticed tracks disappear from the list.
 
-In the stream and profile lists every entry gets an **X** button that removes it from view;
-favorited entries have their title highlighted. The filter settings ride along when switching between a profile's tabs.
+Both rows also sit above the search results on **Everything**, **Go+** and **Tracks** – the
+search tabs that list single tracks. Switching an option there reloads the page with the search
+term intact. There is no **Reposts** box, since a search result is always the original upload.
+The **People**, **Albums** and **Playlists** tabs are left alone: they list users and playlists,
+which have neither a duration nor a favorites count to go by, and no option hides anything there.
+
+Every list entry gets an **X** button that removes it from view; favorited entries have their
+title highlighted. The filter settings ride along when switching between a profile's tabs.
 
 ### Links in playlists and sets
 

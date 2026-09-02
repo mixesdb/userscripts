@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.4
+// @version      2026.09.02.5
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -42,6 +42,12 @@ window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
 
 console.log( "YouTube userscript init" );
+
+// MixesDB Page Creator: normally the row is only offered for players that are NOT on MixesDB
+// yet - for a used player there is nothing to create. With this on, the row is shown for used
+// players too, marked "used" and without the "Create" link (which would only start a duplicate
+// page). On window because page_creator.js is a @require and cannot see this IIFE's scope.
+window.mdbPageCreator_showForUsedPlayers = false; // Off like on SoundCloud and TrackId.net: the big PC block on a used player only gets in the way
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1028,6 +1034,11 @@ if( typeof onUrlChange === "function" ) {
 /*
  * Changelog
  *
+ * 2026.09.02.5
+ * The debug setting mdbPageCreator_showForUsedPlayers now sits at the top of this script too
+ * (off, like everywhere): flipping it to true shows the Page Creator row on players that already
+ * have a MixesDB page - marked "used" and without the "Create" link. Until now only SoundCloud
+ * and TrackId.net carried the switch.
  * 2026.09.02.4
  * Page Creator (page_creator.js v_128): the file details dropdown counts a show word anywhere in
  * the suggested title or the player's own title, not only in the entity slot - "Vamos Music
