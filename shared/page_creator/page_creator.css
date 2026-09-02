@@ -34,10 +34,12 @@
      * "Create"/"Exists") always keep their natural width - on every site, whatever its fonts,
      * with no per-site max-width guesswork. The trailing 1fr is an always-empty filler: without
      * it a full-width child (the report box, grid-column 1 / -1) would only span the content
-     * columns, not the whole container. A fifth inline item would land in that filler - add a
-     * column here if one is ever added to the row.
+     * columns, not the whole container. The fourth max-content column is the file details
+     * dropdown behind "Create" (#mdb-pageCreator-body), which is only on the page while that
+     * choice is in doubt - an absent item leaves an empty zero-width column, nothing shifts. A
+     * sixth inline item would land in the filler - add a column here if one is ever added.
      */
-    grid-template-columns: minmax(0, max-content) repeat(3, max-content) 1fr;
+    grid-template-columns: minmax(0, max-content) repeat(4, max-content) 1fr;
     align-items: center;
     margin: 10px 0;
     /*
@@ -839,6 +841,36 @@
 #mdb-pageCreator-confidence,
 #mdb-pageCreator-create {
     padding-left: 10px;
+}
+
+/*
+ * The file details dropdown behind "Create" (mdbPageCreator_renderBodySelect in
+ * page_creator.js): the dur table with this file's duration, {{StandardShow1h}} and
+ * {{StandardShow2h}} - shown only while the entity's recent pages could not decide which one
+ * the page gets. A native <select>, theme-neutral like the rest of the row: inherited colour
+ * and a translucent frame, so it reads on SoundCloud's white and on TrackId.net's dark alike.
+ * Smaller than "Create" on purpose - it is the fallback for the decision, not the action.
+ *
+ * The options get explicit colours: Chrome paints the open list with the select's own colour
+ * and background, and an inherited light-on-dark text over the OS's white list would be
+ * unreadable. Two IDs for the same reason as "Create" above.
+ */
+#mdb-pageCreator #mdb-pageCreator-body {
+    margin-left: 10px;
+    padding: 2px 4px;
+    font: inherit;
+    font-size: 12px;
+    color: inherit;
+    background-color: rgba(128, 128, 128, 0.12);
+    border: 1px solid rgba(128, 128, 128, 0.45);
+    border-radius: 4px;
+    max-width: 100%;
+    cursor: pointer;
+}
+
+#mdb-pageCreator #mdb-pageCreator-body option {
+    color: #000;
+    background-color: #fff;
 }
 
 /*

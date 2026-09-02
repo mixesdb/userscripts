@@ -147,6 +147,11 @@ var mdbPageCreator_title = "",
     // over - see the header comment; read only by mdbPageCreator_channelLinkFinding()
     mdbPageCreator_channelUrl = "",
     mdbPageCreator_durationMs = 0,
+    // What the dropdown next to "Create" picked for the file details body
+    // (mdbPageCreator_renderBodySelect): "" while nothing was picked or the dropdown is not on
+    // the page, otherwise "table" or a {{StandardShow*}} template name. Read at click time by
+    // mdbPageCreator_bodyChoice(), the way the title is read off the field.
+    mdbPageCreator_bodyOverride = "",
     mdbPageCreator_artworkUrl = "",
     // The two places the "== Notes ==" section's link is looked for (signal D). The
     // description is where the series' link usually stands in prose; purchaseUrl is
@@ -814,7 +819,8 @@ function mdbPageCreator_leadImageExt( findings ) {
 //   differs.
 // - the file details body: where the series uses a {{StandardShow*}} template, the table (and
 //   with it this file's duration) must not be written - the template states the show's
-//   standard length instead.
+//   standard length instead. Where those pages could not decide it, the dropdown next to
+//   "Create" does (mdbPageCreator_bodyChoice / mdbPageCreator_renderBodySelect).
 // - the "== Notes ==" section: where the series' pages carry one, the new page gets it too,
 //   empty, above the tracklist - and with the episode's own page URL already in it where the
 //   description held one on the host those Notes link to (mdbPageCreator_recentNotesUrl).
@@ -827,7 +833,7 @@ function mdbPageCreator_pageText( title ) {
         findings = ( info.entry && info.entry.status === "done" ) ? info.entry.text : null,
         lead = "",
         notes = "",
-        body = mdbPageCreator_recentBodyChoice( findings );
+        body = mdbPageCreator_bodyChoice( findings );
 
     if( findings && findings.image && findings.image.value === "same" ) {
         lead = "[[File:" + mdbPageCreator_fileNameForTitle( title ) + "." + mdbPageCreator_leadImageExt( findings ) + "|right|360px]]\n\n";
@@ -1499,6 +1505,9 @@ function mdbPageCreator_refresh( wrapper ) {
         .text( mdbPageCreator_confidencePercent + "%" );
 
     mdbPageCreator_renderHints( wrapper );
+    // the recent-pages verdict on the file details body may just have landed - the dropdown
+    // next to "Create" appears or goes with it
+    mdbPageCreator_renderBodySelect( wrapper );
     mdbPageCreator_fillReport( wrapper );
     // the trace and the lookup log just changed with the refined suggestion - redraw right
     // away, no debounce: nothing here waits on typing
@@ -1714,6 +1723,9 @@ function mdbPageCreator_render() {
         });
 
         wrapper.append( create );
+
+        // behind "Create", and only while the file details body is in doubt
+        mdbPageCreator_renderBodySelect( wrapper );
     }
 
     // Last, so it forms the second line of the row - and before the report box and the
@@ -4073,6 +4085,28 @@ function mdbPageCreator_recentConsensus( values ) {
     return null;
 }
 
+// mdbPageCreator_recentTally
+// The same votes as a plain count per value, most common first - for the places that have to
+// SAY how a vote went after mdbPageCreator_recentConsensus returned null on it (the file
+// details dropdown's tooltip: "8 use {{StandardShow1h}}, 2 use the dur table").
+function mdbPageCreator_recentTally( values ) {
+    var counts = {},
+        out = [],
+        i, v;
+
+    for( i = 0; i < values.length; i++ ) {
+        counts[ values[i] ] = ( counts[ values[i] ] || 0 ) + 1;
+    }
+
+    for( v in counts ) {
+        if( Object.prototype.hasOwnProperty.call( counts, v ) ) out.push( { value: v, count: counts[v] } );
+    }
+
+    out.sort( function( a, b ) { return b.count - a.count; } );
+
+    return out;
+}
+
 // mdbPageCreator_recentAnalysisFor
 // What the recent-pages analyses know about one title's ENTITY, resolved fresh off the title
 // every time (the field is editable, and an edited entity is a different category). Returns
@@ -5109,6 +5143,209 @@ function mdbPageCreator_recentBodyChoice( findings ) {
     return body.value;
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The file details dropdown next to "Create"
+ *
+ * The page text writes the dur table unless the entity's recent pages settled on a
+ * {{StandardShow*}} template (mdbPageCreator_recentBodyChoice). That is the right call where
+ * the pages SPOKE - 90% of them using the table, or a template this file's length fits. Where
+ * they could not - no series category to read, a split vote, a template the duration
+ * contradicts - the table was written on silence, and every StandardShow series whose category
+ * the title got wrong went out with a dur table the editor had to swap by hand.
+ *
+ * So in exactly those cases the decision is handed over: a dropdown behind "Create" with the
+ * table (carrying this file's duration, so the choice is made with the length in view), the
+ * two templates nearly every StandardShow series uses, and the siblings' own template where it
+ * is a different one. It opens on what the page text writes anyway, so not touching it changes
+ * nothing; its tooltip says what could not be decided. Where the verdict IS clear there is no
+ * dropdown - a control that agrees with the page 90% of the time would only teach editors to
+ * ignore it.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// The bodies the dropdown always offers, in this order: today's dur/MB/kbps table
+// (mdbPageCreator_fileDetails) and the two templates in general use.
+var mdbPageCreator_bodyOptions = [ "table", "StandardShow1h", "StandardShow2h" ];
+
+// mdbPageCreator_bodyChoiceState
+// Whether the file details body needs the editor's decision, and with what preselected.
+// Returns { show, chosen, why, tally }:
+// - show:   true where the siblings could not settle it - no series category to read (every
+//           skip reason of mdbPageCreator_recentAnalysisFor), a fetch that failed, too few
+//           pages, a vote under the 90% bar, a sample that uses neither shape, or a
+//           {{StandardShow*}} verdict this file's duration contradicts. false while the
+//           analysis is still on its way (the row would flash a dropdown that disappears a
+//           second later) and where the verdict is clear
+// - chosen: what the page text writes without any pick - the template the verdict settled on,
+//           else "table" - so the dropdown opens on the truth, never on a guess
+// - why:    one clause for the tooltip saying what could not be decided
+// - tally:  the body votes per value (mdbPageCreator_recentTally), [] where none were read
+function mdbPageCreator_bodyChoiceState( title ) {
+    var info = mdbPageCreator_recentAnalysisFor( title ),
+        // no entry yet = the fetch has not been started (the settle path does that, and
+        // re-renders after it) - as much "still on its way" as a pending one
+        pending = info.skip === "pending-lookup" || ( !info.skip && ( !info.entry || info.entry.status === "pending" ) ),
+        findings = ( !info.skip && info.entry && info.entry.status === "done" ) ? info.entry.text : null,
+        verdict = mdbPageCreator_recentBodyChoice( findings ),
+        body = findings && findings.body,
+        state = { show: false, chosen: verdict || "table", why: "", tally: ( findings && findings.bodyTally ) || [] },
+        durText = mdbPageCreator_durationMs ? convertHMS( Math.floor( mdbPageCreator_durationMs / 1000 ) ) : "";
+
+    if( pending ) return state;
+
+    // mdbPageCreator_reasoningRecentState already phrases every reason nothing could be read
+    // off the siblings (no entity, unknown category, failed fetch, too few pages, ...) - the
+    // same sentence the reasoning panel's section 7 shows, so the two never disagree
+    var unread = mdbPageCreator_reasoningRecentState( info );
+
+    if( !findings || unread ) {
+        state.show = true;
+        state.why = unread || "the entity's recent pages could not be read";
+        return state;
+    }
+
+    if( !body ) {
+        state.show = true;
+        state.why = "Category:" + info.catTitle + "'s " + findings.n + " newest pages split on it (" +
+                    mdbPageCreator_bodyTallyText( state.tally ) + ") - under the 90% bar";
+        return state;
+    }
+
+    if( body.value === "none" ) {
+        state.show = true;
+        state.why = mdbPageCreator_reasoningRecentCount( body, mdbPageCreator_recentWholeCategory( info ) ) +
+                    " of Category:" + info.catTitle + " carry neither a {{StandardShow}} template nor the dur table";
+        return state;
+    }
+
+    if( /^StandardShow/.test( String( body.value ) ) && !verdict ) {
+        state.show = true;
+        state.why = mdbPageCreator_reasoningRecentCount( body, mdbPageCreator_recentWholeCategory( info ) ) +
+                    " of Category:" + info.catTitle + " use {{" + body.value + "}}, but this file's " +
+                    ( durText || "unknown duration" ) + " is too far off its stated length - the category may be a misread";
+        return state;
+    }
+
+    // the table at 90%, or a template this file fits: nothing to ask
+    return state;
+}
+
+// mdbPageCreator_bodyTallyText
+// "8 use {{StandardShow1h}}, 2 use the dur table, 1 neither" - a body vote spelled out.
+function mdbPageCreator_bodyTallyText( tally ) {
+    var parts = [],
+        i, v;
+
+    for( i = 0; i < tally.length; i++ ) {
+        v = tally[i].value;
+        parts.push( tally[i].count + ( v === "none" ? " neither" : " use " + ( v === "table" ? "the dur table" : "{{" + v + "}}" ) ) );
+    }
+
+    return parts.join( ", " );
+}
+
+// mdbPageCreator_bodyOptionLabel
+// What a dropdown entry reads: "File details table 1:02:33" (the duration only where the
+// player gave one) or "{{StandardShow1h}}".
+function mdbPageCreator_bodyOptionLabel( value, durText ) {
+    if( value === "table" ) return "File details table" + ( durText ? " " + durText : "" );
+
+    return "{{" + value + "}}";
+}
+
+// mdbPageCreator_bodyChoice
+// The file details body the page text writes: the dropdown's pick where the editor made one,
+// otherwise the siblings' verdict (mdbPageCreator_recentBodyChoice). A template name, or null
+// for the dur table.
+function mdbPageCreator_bodyChoice( findings ) {
+    if( mdbPageCreator_bodyOverride ) {
+        return mdbPageCreator_bodyOverride === "table" ? null : mdbPageCreator_bodyOverride;
+    }
+
+    return mdbPageCreator_recentBodyChoice( findings );
+}
+
+// mdbPageCreator_renderBodySelect
+// The dropdown behind "Create" - on the page only while the file details body is in doubt
+// (mdbPageCreator_bodyChoiceState). Built on the first render and brought up to date on every
+// refresh and every debounced title edit: the recent-pages analysis lands after the row is on
+// screen, and an edited title can name a different series - both are moments the doubt appears
+// or goes away. A pick the editor made survives a refresh. The moment the verdict becomes
+// clear the dropdown goes and the pick with it - the page text follows the verdict then.
+function mdbPageCreator_renderBodySelect( wrapper ) {
+    var input = wrapper.find( "#mdb-pageCreator-title" ),
+        create = wrapper.find( "#mdb-pageCreator-create" ),
+        select = wrapper.find( "#mdb-pageCreator-body" );
+
+    if( !input.length || !create.length ) return; // the used-player debug row has no "Create" to decide for
+
+    var state = mdbPageCreator_bodyChoiceState( $.trim( input.val() ) );
+
+    if( !state.show ) {
+        if( select.length ) {
+            log( "mdbPageCreator_renderBodySelect: the file details body is settled now - dropdown removed." );
+            select.remove();
+        }
+
+        if( mdbPageCreator_bodyOverride ) {
+            mdbPageCreator_bodyOverride = "";
+            mdbPageCreator_syncCreateHref( input, create );
+        }
+
+        return;
+    }
+
+    var picked = select.length ? ( select.data( "mdb-picked" ) || "" ) : "",
+        durText = mdbPageCreator_durationMs ? convertHMS( Math.floor( mdbPageCreator_durationMs / 1000 ) ) : "",
+        options = mdbPageCreator_bodyOptions.slice(),
+        i, v;
+
+    // the siblings' own template where it is not one of the two standard ones
+    // (StandardShow90min) - it is what this series writes, so it has to be pickable
+    for( i = 0; i < state.tally.length; i++ ) {
+        v = state.tally[i].value;
+
+        if( /^StandardShow/.test( v ) && options.indexOf( v ) === -1 ) options.push( v );
+    }
+
+    if( !select.length ) {
+        select = $("<select>")
+            .attr( "id", "mdb-pageCreator-body" );
+
+        select.on( "change", function() {
+            mdbPageCreator_bodyOverride = select.val();
+            select.data( "mdb-picked", select.val() );
+            logVar( "mdbPageCreator_renderBodySelect: file details body picked", select.val() );
+            mdbPageCreator_syncCreateHref( input, create );
+            // the reasoning panel's "File details" row names the pick - a no-op while closed
+            mdbPageCreator_renderReasoning( wrapper );
+        });
+
+        create.after( select );
+        logVar( "mdbPageCreator_renderBodySelect: the file details body is in doubt - dropdown shown. Why", state.why );
+    }
+
+    select.empty();
+
+    for( i = 0; i < options.length; i++ ) {
+        select.append( $("<option>").attr( "value", options[i] ).text( mdbPageCreator_bodyOptionLabel( options[i], durText ) ) );
+    }
+
+    // the editor's pick stays a pick; without one the dropdown shows what the page text writes
+    var value = ( picked && options.indexOf( picked ) !== -1 ) ? picked : state.chosen;
+
+    select.val( value );
+    mdbPageCreator_bodyOverride = picked ? value : "";
+
+    select.attr( "title",
+        "Which file details the new page gets. The entity's recent pages could not decide it: " + state.why + ".\n" +
+        "Preselected is what the page text writes without a pick" +
+        ( state.chosen === "table" ? " (the dur table)" : " ({{" + state.chosen + "}})" ) + "." );
+
+    mdbPageCreator_syncCreateHref( input, create );
+}
+
 // mdbPageCreator_playerWikitext
 // The {{Player}} the new page carries. A player page can only ever hand over the ONE URL it
 // is, so what the siblings decide here is the SHAPE (page_text_learning.md, signal E): a
@@ -5820,6 +6057,9 @@ function mdbPageCreator_recentPageTextFindings( catTitle, pages ) {
         imageExt: image.ext,
         imageSkipped: image.skipped,
         body: body,
+        // the raw body count behind the verdict (or behind the lack of one) - what the file
+        // details dropdown's tooltip tells the editor when the verdict is not clear
+        bodyTally: mdbPageCreator_recentTally( bodyVotes ),
         notes: notes,
         notesHost: notesHost,
         notesSample: notesSample,
@@ -6474,6 +6714,9 @@ function mdbPageCreator_queueCategoryUpdate() {
             var row = $("#mdb-pageCreator");
 
             mdbPageCreator_renderHints( row );
+            // an edited entity is a different category with its own verdict on the file
+            // details body - the dropdown next to "Create" follows it
+            mdbPageCreator_renderBodySelect( row );
             // the report quotes these answers in its "Lookups" block, so it follows them too
             // - a no-op on a closed box and on one the reporter has written in
             mdbPageCreator_fillReport( row );
@@ -7620,6 +7863,16 @@ function mdbPageCreator_reasoningRecentText( title ) {
         rows.push( { label: "File details", detail: "no 90% agreement -> the dur table stays" } );
     }
 
+    // the dropdown next to "Create" (mdbPageCreator_renderBodySelect) overrules the row above
+    // where the editor picked something in it - said here, or the panel would promise a table
+    // and the page open with a template
+    if( mdbPageCreator_bodyOverride ) {
+        rows.push( { label: "File details",
+                     detail: "picked in the dropdown next to \"Create\": " +
+                             ( mdbPageCreator_bodyOverride === "table" ? "the dur table" : "{{" + mdbPageCreator_bodyOverride + "}}" ) +
+                             " -> written instead" } );
+    }
+
     // The {{Player}}. Only the mirrors shape is ever copied, and the line for the second
     // platform is written empty - the row says so, because a reader who does not expect that
     // line would read MixesDB's "No value for one of the players!" as a bug of ours.
@@ -8275,6 +8528,7 @@ function mdbPageCreator_resetForNewPage() {
     mdbPageCreator_playerUrl = "";
     mdbPageCreator_channelUrl = "";
     mdbPageCreator_durationMs = 0;
+    mdbPageCreator_bodyOverride = "";
     mdbPageCreator_artworkUrl = "";
     mdbPageCreator_description = "";
     mdbPageCreator_purchaseUrl = "";
