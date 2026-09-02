@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.02.4
+// @version      2026.09.02.6
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,8 +16,8 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_88
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_127
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_57
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_128
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
@@ -361,7 +361,10 @@ function readHideOptions() {
 
     // The sets tab only shows an informational placeholder instead of filter
     // controls, so no persisted hide option may remove its playlist entries.
-    if( isSetsTab() ) {
+    // The same goes for the search tabs that get no bar (people, albums, playlists): the rows
+    // there carry the very markup the hiding handlers look for, and without a checkbox on the
+    // page there would be no way to switch a persisted option off again.
+    if( isSetsTab() || ( isSearchPage() && !isSearchTabWithTracks() ) ) {
         getHidePl = getHideReposts = getHideFav = getHideUsed = getHideXed = "false";
     }
 
@@ -581,11 +584,11 @@ waitForKeyElements(".listenInfo .image span.sc-artwork[style*='background-image'
 
 log( "Registering handlers: Favorite button" );
 
-// soundList__item
-waitForKeyElements(".soundList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
+// One row of a stream/profile list or of the search results - see listRowSelector
+waitForKeyElements("li.soundList__item .sc-button-like:not(.mdb-processed-favorited), li.searchList__item .sc-button-like:not(.mdb-processed-favorited)", function( jNode ) {
     // is favorited
     if( jNode.hasClass("sc-button-selected") ) {
-        var title = jNode.closest(".soundList__item").find(".soundTitle__title");
+        var title = jNode.closest(listRowSelector).find(".soundTitle__title");
         log( "Favorite found: " + title.text() );
 
         // Highlight player title if favorited
@@ -699,14 +702,14 @@ waitForKeyElements(".listenDetails li .trackItem__actions:not(:visible)", functi
 log( "Registering handlers: [X] remove button" );
 
 // if favorited before, show hidden soundActions
-waitForKeyElements(".soundList__item .sound__body", function( jNode ) {
+waitForKeyElements("li.soundList__item .sound__body, li.searchList__item .sound__body", function( jNode ) {
     var removeItem = '<div class="mdb-element mdb-removeItem hand sc-text-grey" title="Remove the player (can be filtered out again with the hiding option &quot;X\'ed items&quot;)">X</div>';
     jNode.append( removeItem );
 });
 
 // on click
 // scrolling is needed because it wouldn't load more when all visible are removed
-waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
+waitForKeyElements("li.soundList__item .mdb-removeItem, li.searchList__item .mdb-removeItem", function( jNode ) {
     $(".mdb-removeItem").click(function(){
         log( "click remove" );
 
@@ -714,7 +717,7 @@ waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
         $(".lazyInfo").remove();
         $(".lazyLoadingList__list, .userStream__list .soundList").after('<div style="text-align:center; margin-bottom:20px" class="lazyInfo">Problems loading more players? Try scrolling up and down.</div>');
 
-        const soundItem = $(this).closest('.soundList__item');
+        const soundItem = $(this).closest(listRowSelector);
         const slug = getSlugFromSoundItem(soundItem);
         addXedItem(slug);
 
@@ -730,7 +733,7 @@ waitForKeyElements(".soundList__item .mdb-removeItem", function( jNode ) {
     });
 });
 
-waitForKeyElements('.soundList__item:not(.mdb-processed-xed)', function( jNode ) {
+waitForKeyElements("li.soundList__item:not(.mdb-processed-xed), li.searchList__item:not(.mdb-processed-xed)", function( jNode ) {
     jNode.addClass('mdb-processed-xed');
     hideIfXed(jNode);
 });
@@ -751,9 +754,8 @@ waitForKeyElements(".soundList.lazyLoadingList", lazyLoadingList);
 waitForKeyElements(".trackList.lazyLoadingList", lazyLoadingList);
 
 // Search results have a lazy loading list of their own, and it is NOT one of the four above.
-// Only the filter row is offered there, no "Hide:" checkboxes: every one of those reloads the
-// page with its state in the query string, built from the URL with the query string cut off -
-// which on a search page would throw away the ?q= the results exist for.
+// It gets the same bar, built by the same function - the rows in it carry the same markup as a
+// stream's, see listRowSelector.
 // https://soundcloud.com/search?q=vamos%20show
 waitForKeyElements(".searchList.lazyLoadingList", searchList);
 
@@ -761,17 +763,12 @@ function searchList( jNode ) {
     // Tested inside the handler, not at registration time: SoundCloud goes from the search page
     // to a track and back without ever loading a document, and waitForKeyElements keeps the one
     // closure it was registered with. Returning true leaves the node on the watch list, so a
-    // tab switch to a list we DO filter is still picked up.
+    // later switch to a tab we DO filter is still picked up.
     if( !isSearchTabWithTracks() ) return true;
 
     logFunc( "searchList" );
 
-    // The bar the filter row mounts into. No #mdb-streamActions-hide child, see above.
-    if( $("#mdb-streamActions").length === 0 ) {
-        jNode.before('<div id="mdb-streamActions" class="sc-text-grey"></div>');
-    }
-
-    setupStreamActionsFilterRow( "searchList" );
+    lazyLoadingList( jNode );
 }
 
 // setupStreamActionsFilterRow
@@ -829,7 +826,13 @@ function lazyLoadingList(jNode) {
         } else {
             if( !isSetPage() ) {
                 saHide.append('<label class="pointer"><input type="checkbox" id="hidePl" name="hidePl" '+checkedPl+' value="">Playlists</label>');
-                saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
+
+                // Search results are never reposts - SoundCloud lists the original upload - so
+                // the checkbox would sit there with nothing to do.
+                if( !isSearchPage() ) {
+                    saHide.append('<label class="pointer"><input type="checkbox" id="hideReposts" name="hideReposts" '+checkedReposts+' value="">Reposts</label>');
+                }
+
                 saHide.append('<label class="pointer" title="Hide players that are favorited by you"><input type="checkbox" id="hideFav" name="hideFav" '+checkedFav+' value="">Favs</label>');
             }
             saHide.append('<label class="pointer" title="Hide players that are used on MixesDB"><input type="checkbox" id="hideUsed" name="hideUsed" '+checkedUsed+' value="">Used</label>');
@@ -845,49 +848,82 @@ function lazyLoadingList(jNode) {
     }
 
     // reload
-    var windowLocation = window.location,
-        href = $(location).attr('href');
+    // readHideOptions() reads the options back off the query string, so switching one means
+    // loading the page again with its new value in there.
+    // Namespaced .off()/.on(): lazyLoadingList() runs once per matching list, and the
+    // checkboxes are built only for the first of them, so a plain .change() would stack a
+    // second handler on the same box.
+    $("#hidePl").off("change.mdbHideOption").on("change.mdbHideOption", function(){
+        switchHideOption( "hidePl", hidePlaylistsKey, this.checked );
+    });
+    $("#hideReposts").off("change.mdbHideOption").on("change.mdbHideOption", function(){
+        switchHideOption( "hideReposts", hideRepostsKey, this.checked );
+    });
+    $("#hideFav").off("change.mdbHideOption").on("change.mdbHideOption", function(){
+        switchHideOption( "hideFav", hideFavoritesKey, this.checked );
+    });
+    $("#hideUsed").off("change.mdbHideOption").on("change.mdbHideOption", function(){
+        switchHideOption( "hideUsed", hideUsedKey, this.checked );
+    });
+    $("#hideXed").off("change.mdbHideOption").on("change.mdbHideOption", function(){
+        switchHideOption( "hideXed", null, this.checked );
+    });
+}
 
-    if( typeof href != "undefined" ) {
-        var url = href.replace(/\?.*$/g,"");
+// hideOptionsUrl
+// The current URL with all five hiding options written into its query string, the one just
+// switched carrying the new value. Everything ELSE in the query string is kept: on a search
+// page ?q= IS the page, and the reload used to be built from the URL with the whole query
+// string cut off, which dropped the search term along with the old options.
+// Returns "" where the URL cannot be parsed, so the caller can stay put instead of navigating
+// to nothing.
+function hideOptionsUrl( changedParam, value ) {
+    var url;
+
+    try {
+        url = new URL( window.location.href );
+    } catch( e ) {
+        log( "hideOptionsUrl: cannot parse " + window.location.href );
+        return "";
     }
 
-    if( typeof url != "undefined" ) {
-        $("#hidePl").change(function(){
-            const hidePlEnabled = this.checked;
-            setHideOption(hidePlaylistsKey, hidePlEnabled);
+    var values = {
+            hidePl: getHidePl,
+            hideReposts: getHideReposts,
+            hideFav: getHideFav,
+            hideUsed: getHideUsed,
+            hideXed: getHideXed
+        };
 
-            if(!hidePlEnabled) { windowLocation.href = url + "?hidePl=false&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
-                              } else { windowLocation.href = url + "?hidePl=true&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
-        }});
-        $("#hideReposts").change(function(){
-            const hideRepostsEnabled = this.checked;
-            setHideOption(hideRepostsKey, hideRepostsEnabled);
+    values[changedParam] = value;
 
-            if(!hideRepostsEnabled) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=false&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts=true&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
-        }});
-        $("#hideFav").change(function(){
-            const hideFavEnabled = this.checked;
-            setHideOption(hideFavoritesKey, hideFavEnabled);
+    Object.keys( values ).forEach(function( name ) {
+        url.searchParams.set( name, values[name] );
+    });
 
-            if(!hideFavEnabled) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=false&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav=true&hideUsed="+getHideUsed+"&hideXed="+getHideXed;
-        }});
-        $("#hideUsed").change(function(){
-            const hideUsedEnabled = this.checked;
-            setHideOption(hideUsedKey, hideUsedEnabled);
+    return url.href;
+}
 
-            if(!hideUsedEnabled) { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=false&hideXed="+getHideXed;
-                              } else { windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed=true&hideXed="+getHideXed;
-        }});
-        $("#hideXed").change(function(){
-            const hideXedEnabled = this.checked;
-            setHideXedEnabled(hideXedEnabled);
+// switchHideOption
+// Persists the new state of one hiding option and reloads the page with it.
+function switchHideOption( paramName, storageKey, isEnabled ) {
+    logFunc( "switchHideOption: " + paramName + " -> " + isEnabled );
 
-            windowLocation.href = url + "?hidePl="+getHidePl+"&hideReposts="+getHideReposts+"&hideFav="+getHideFav+"&hideUsed="+getHideUsed+"&hideXed="+(hideXedEnabled ? "true" : "false");
-        });
+    // X'ed items is the one option that is not kept under a plain hide-option key
+    if( storageKey ) {
+        setHideOption( storageKey, isEnabled );
+    } else {
+        setHideXedEnabled( isEnabled );
     }
+
+    var target = hideOptionsUrl( paramName, isEnabled ? "true" : "false" );
+
+    if( !target ) {
+        log( "switchHideOption: no reload URL could be built - staying on the page." );
+        return;
+    }
+
+    window.location.href = target;
 }
 
 // Pass URL parameters for hiding options to user profile tabs
@@ -907,10 +943,10 @@ waitForKeyElements(".userInfoBar__tabs ul", function( jNode ) {
 });
 
 // Hiding option: each playlist
-waitForKeyElements(".soundList__item .sound.playlist", function( jNode ) {
+waitForKeyElements("li.soundList__item .sound.playlist, li.searchList__item .sound.playlist", function( jNode ) {
     if( getHidePl == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
+        jNode.closest(listRowSelector).remove();
     }
 });
 
@@ -924,15 +960,15 @@ waitForKeyElements(".soundList__item .sc-ministats-reposts", function( jNode ) {
 
 // Hiding option: each fFaved players > on waitForKeyElements fav button
 
-// Hiding option: each used player in li.soundList__item
+// Hiding option: each used player in one row of a list - see listRowSelector
 waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
     if( getHideUsed == "true" ) {
-        logFunc( "Hiding used players in li.soundList__item" );
+        logFunc( "Hiding used players in a list row" );
 
-        var wrapper = jNode.closest("li.soundList__item"),
+        var wrapper = jNode.closest(listRowSelector),
             playerUrl = "soundcloud.com" + jNode.attr("href");
 
-        logVar( "li.soundList__itemplayerUrl", playerUrl );
+        logVar( "list row playerUrl", playerUrl );
 
         getToolkit( playerUrl, "hide if used", "lazy loading list", wrapper );
     }
@@ -1972,6 +2008,11 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.09.02.5
+ * Page Creator (page_creator.js v_128): the file details dropdown counts a show word anywhere in
+ * the suggested title or the player's own title, not only in the entity slot - "Vamos Music
+ * Radio Show - Guest Mix Tovio" had the show parsed as the artist and got none.
  *
  * 2026.09.02.4
  * Page Creator (page_creator.js v_127): the file details dropdown also for a show the wiki has

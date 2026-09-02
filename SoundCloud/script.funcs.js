@@ -88,13 +88,22 @@ function linkRemoveSetParameter( url ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// listRowSelector
+// One entry of a list the hiding options work on. Streams and profiles list them as
+// li.soundList__item, the search results as li.searchList__item - what sits INSIDE the row is
+// the same markup in both (.sound__body, a.soundTitle__title, .sc-button-like), only the row
+// around it differs, so every "which entry does this button belong to" lookup takes both.
+// Lives here rather than in script.user.js because this file is @require'd first and its
+// own handlers need it too.
+const listRowSelector = "li.soundList__item, li.searchList__item";
+
 // removeFavedPlayer_ifOptedIn
 function removeFavedPlayer_ifOptedIn( jNode ) {
     logFunc( "removeFavedPlayer_ifOptedIn" );
 
     if( getHideFav == "true" ) {
         log( "Hidden: " + jNode.closest(".soundTitle__title") );
-        jNode.closest(".soundList__item").remove();
+        jNode.closest(listRowSelector).remove();
     }
 }
 

@@ -5164,12 +5164,15 @@ function mdbPageCreator_recentBodyChoice( findings ) {
  *
  * Only for a SERIES: the question "table or StandardShow" exists for a show, a podcast or a
  * radio programme, and nowhere else. A series is one the wiki knows as such
- * (mdbTitle_entityTypes - what MixesDB files under Category:Show) - or, where the wiki knows
- * no category of that name yet, a name whose own words say it ("Low Orbit Radio Show",
- * mdbTitle_saysShowNotPromo): its first page is exactly where the editor has to decide with
- * nothing to read. A venue's or a label's pages, an artist's, a Promo Mix: none of them has a
- * standard length, so none of them gets the dropdown - the table is right there, not written
- * on silence.
+ * (mdbTitle_entityTypes - what MixesDB files under Category:Show) - or one the TITLE says it
+ * is: a show word anywhere in the suggested title or in the player's own title
+ * (mdbTitle_saysShowNotPromo - "Low Orbit Radio Show 092", "Vamos Music Radio Show - Guest
+ * Mix Tovio"). Anywhere, not only in the entity slot: the wiki knowing no category of that
+ * name is exactly the first page of a show, where there is nothing to read, and the parse can
+ * put the show in the wrong slot (the Vamos case filed the show as the artist) - a show word
+ * in the wrong place still says what this is. A venue's or a label's pages, an artist's, a
+ * Promo Mix whose title says nothing of the kind: none of them has a standard length, so none
+ * of them gets the dropdown - the table is right there, not written on silence.
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -5180,9 +5183,9 @@ var mdbPageCreator_bodyOptions = [ "table", "StandardShow1h", "StandardShow2h" ]
 // mdbPageCreator_bodyChoiceState
 // Whether the file details body needs the editor's decision, and with what preselected.
 // Returns { show, chosen, why, tally }:
-// - show:   true where the entity is a series - a show/podcast/radio category the wiki
-//           knows, or a name the wiki has no category for whose words say it is one - and
-//           its siblings could not settle it: no pages to read, a fetch that failed, too few
+// - show:   true where this is a series - a show/podcast/radio category the wiki knows, or
+//           a show word anywhere in the title or the player's own title - and the entity's
+//           siblings could not settle it: no pages to read, a fetch that failed, too few
 //           pages, a vote under the 90% bar, a sample that uses neither shape, or a
 //           {{StandardShow*}} verdict this file's duration contradicts. false for every other
 //           kind of entity (venue, event, label, artist, Promo Mix - none has a standard
@@ -5208,14 +5211,22 @@ function mdbPageCreator_bodyChoiceState( title ) {
 
     if( pending ) return state;
 
-    // A series by the wiki's answer - or, where the wiki has no category of that name, by the
-    // name's own words ("Low Orbit Radio Show"; typeof-guarded against a stale cached
-    // title_builder.js). Anything else (Promo Mix, an artist, a venue, a nameless slot) is no
-    // series: the table is the right body, there is nothing to ask.
+    // A series by the wiki's answer - or by a show word anywhere in the suggested title or
+    // the player's own ("Radio Show", "Podcast", "Sessions" - the words that keep a name out
+    // of Promo Mix; typeof-guarded against a stale cached title_builder.js). The whole title,
+    // not the entity slot: the parse can file the show as the artist ("Vamos Music Radio Show
+    // - Guest Mix Tovio"), and the word says what this is wherever it stands. Anything else
+    // (Promo Mix, an artist, a venue, a nameless slot) is no series: the table is the right
+    // body, there is nothing to ask.
     var type = String( ( info.match && info.match.type ) || "" ),
-        wordsSaySeries = info.skip === "unknown" && typeof mdbTitle_saysShowNotPromo === "function" && mdbTitle_saysShowNotPromo( info.catName );
+        wikiSaysSeries = seriesTypes.indexOf( type ) !== -1,
+        wordsSaySeries = typeof mdbTitle_saysShowNotPromo === "function" &&
+                         ( mdbTitle_saysShowNotPromo( title ) || mdbTitle_saysShowNotPromo( mdbPageCreator_sourceTitle ) );
 
-    if( seriesTypes.indexOf( type ) === -1 && !wordsSaySeries ) return state;
+    if( !wikiSaysSeries && !wordsSaySeries ) return state;
+
+    // the tooltip should say why this counts as a show at all where the wiki did not say so
+    var showAside = wikiSaysSeries ? "" : " (the title says it is a show)";
 
     // mdbPageCreator_reasoningRecentState already phrases every reason nothing could be read
     // off the siblings (no entity, unknown category, failed fetch, too few pages, ...) - the
@@ -5224,7 +5235,7 @@ function mdbPageCreator_bodyChoiceState( title ) {
 
     if( !findings || unread ) {
         state.show = true;
-        state.why = unread || "the entity's recent pages could not be read";
+        state.why = ( unread || "the entity's recent pages could not be read" ) + showAside;
         return state;
     }
 
