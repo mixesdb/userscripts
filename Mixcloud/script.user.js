@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mixcloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.28.8
+// @version      2026.09.02.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_89
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_124
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_125
 // @include      http*mixcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=mixcloud.com
 // @noframes
@@ -34,7 +34,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 39,
+var cacheVersion = 40,
     scriptName = "Mixcloud";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -443,6 +443,13 @@ waitForKeyElements('div[data-testid="playerHero"] + div + div:not(.mdb-processed
 })();
 
 /* ## Changelog
+ * 2026.09.02.1  Page Creator (page_creator.js v_125, CSS): a dropdown behind "Create" for the
+ *               file details body - the dur table with this file's duration, {{StandardShow1h}}
+ *               or {{StandardShow2h}} (plus the siblings' own template where it is another one).
+ *               Shown only where the entity's recent pages could not decide it: no known show
+ *               category, a vote under the 90% bar, a template this file's duration contradicts,
+ *               a failed fetch or too few pages. Opens on what the page text writes anyway; a
+ *               pick rides into the created page and is named in the reasoning panel.
  * 2026.08.28.1  MixesDB Page Creator on show pages (shared/page_creator/, new @requires): the
  *               suggested page title, the confidence score and the "Create" link above the
  *               toolkit, plus the tracklist an uploader wrote into the description as an
