@@ -231,6 +231,21 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   reads its credit out of a release database while the page row was typed by hand. That is why
   the exception is safe and why it does not generalize: `tlImporter_takesCandidateText()` still
   governs every other match.
+- **A VERSION named on both sides has to be the same one, and a track the page lists twice
+  takes its rows in order.** The matching norms drop the title's bracket on purpose – one side
+  leaves the version out as often as not – so `Break It Down (Percy X Remix)` and `Break It Down
+  (Cari Lekebusch Remix)` are one norm, and the lookup kept the LAST page row per norm: the
+  candidate's Percy X Remix landed on the Cari Lekebusch row 20 rows further down, and every
+  candidate behind it was ordered against that anchor, so `[050] FLR - PART 7` came out in
+  FRONT of `[031] Percy X` (reported: Claude Young @ Fuse 2000-11-04, curid 322992). Every
+  matching step (1, 2, 2b) now collects ALL its hits and `pickOriginal()` chooses: a row whose
+  version CONTRADICTS the candidate's is no hit (`tlImporter_versionTokens` – the bracket with
+  the version words stripped, so `(Original Mix)` and `(Edit)` name none while `(A1)` and a
+  remixer do; `tlImporter_versionsContradict` – both sides name one and none of them is
+  similar). Among the rest the row that also NAMES the version wins, then one no earlier
+  candidate has taken, then the one behind the previous match (`lastOrigIndex`), then page
+  order. The "taken" step is what fixes the track played twice as a side effect: the Feathers &
+  Bones Radians match their own rows now instead of both landing on the last one.
 - **A Discogs artist number is not part of the name.** Discogs numbers names that exist more
   than once in its database (`Majestic (3)`), and the sites reading their metadata from there
   hand the number through. `tlImporter_stripArtistNumbers()` takes it out of every comparison
@@ -413,6 +428,20 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   of the merged list, because a `[??]`-heavy original has no parseable cues to sort against and
   every mid-list unknown would otherwise read as "at the end" too. An unknown whose cue lands
   within tolerance of an original track is still dropped, tail or not.
+- **A candidate `?` is dropped where the page fills its stretch with NAMED rows.** The gap-less
+  rule above reads the WHOLE list, and a page with one `?` row anywhere admitted the candidate's
+  unknowns everywhere: TrackId.net's `[000] ?` plus `...` – its reading of "the first detection
+  is at [005]" – went in FRONT of the page's `DJ Urban - Jack Your Big Booty`, the one track that
+  plays there (same report). `namedRowsOnly()` in the insert step reads the stretch between the
+  two page rows the candidate's neighbours matched (`anchorSegment()`, the slot search's
+  segment): named rows and nothing else – no `...`, no `?`, at least one row – and the `?` is
+  dropped together with the `...` it would have brought along; the page has already answered
+  the guess. Rows the merge inserted itself do not count as the page's word. An EMPTY stretch
+  keeps the old reading (the whole-list test), and the TAIL is exempt on purpose: rows behind
+  the last matched one have no cue bounding them from above, so they may all have played before
+  the candidate's trailing `?`, which is then the one hint that the stream runs on (the tail
+  rule above). Head and middle ARE bounded – by minute zero and by the next anchor's cue – so
+  the named rows there are the tracks of that span.
 - **A row the merge cannot PLACE is not placed.** An unmatched candidate track is inserted in
   front of the first original row with a BIGGER cue, so it always lands at the END of the
   cue-less run in front of that row - the merge has nothing in there to order it against and
@@ -433,6 +462,20 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   duplicates out of the NTS Japanese Techno example along the way (`Hiroshi Watanabe - Lost
   City` behind `Hiroshi W. - Lost City`, `FLR - PART 8` behind `FLR - Easy Filter Part 8`),
   which is exactly the shape the report names.
+- **A `?` slot WITHOUT a cue is only filled where a cue nearby pins it down.** The slot search
+  takes the first unconsumed `?` of the segment whose cue does not contradict the candidate's –
+  and a slot with NO cue contradicts nothing, so it took any cued candidate of the segment. Once
+  Percy X sat right in the Claude Young set, the segment behind it ran 25 cue-less rows to
+  `[104] Coda` with one `?` between `Hanoi Hanoi` and the second `Break It Down`, and every
+  unmatched detection of those 70 minutes would have filled it – `[042] Oliver Ho|James Ruskin`
+  (the `|` credit the artist compare cannot read), `[050] FLR - PART 7`, `[087] Regis & Female -
+  Hanoi Hanoi` – each of them a track the page lists a few rows away under another spelling.
+  `tlImporter_slotRunLength()` counts the cue-less rows from the slot to the nearest readable
+  cue, `...` or list end on whichever side is nearer, and a CUED candidate may not fill a slot
+  further out than `tlImporter_insertMaxUnplacedRows` – the insert's own limit, for the same
+  reason: a minute the merge cannot hold against anything places nothing. A cue-LESS candidate
+  keeps filling by order, it has nothing else to offer. The slot right behind an anchor is 0
+  rows out, so `[034] Hardrive` still fills the `?` behind `[031] Percy X`.
 - **A `...` the merge filled up is dropped, measured against the list's OWN median runtime.**
   `tlImporter_dropRedundantGaps()` is the last step of the merge, after every cue is final. A gap
   claims tracks are missing; between two known cues that claim is checkable, because the span it

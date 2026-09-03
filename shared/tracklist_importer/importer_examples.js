@@ -225,10 +225,9 @@ var tlImporterExamples_merge = [
         // onto one entry in the title lookup, so two candidate rows match one original row and
         // the 1:1 count comes up short. Guard: two lists that serialize to the same text are
         // identical, whatever the matcher made of their duplicates.
-        // The unused cues are the matcher's current reading of those duplicates, NOT part of
-        // the guard: both Radian rows match the LAST Radian of the original, so the first one's
-        // cue reads as 5 minutes off. It only shows in the diff view's Candidate column, which
-        // a no-merge case never opens.
+        // Since pickOriginal() (Claude Young @ Fuse report) the two Radian rows take the two
+        // Radians of the page in order - each the one no earlier candidate took - so no cue is
+        // left unused any more and the 1:1 count comes out right by itself.
         name: "identical lists with a track played twice",
         original: "[00] ?\n" +
                   "...\n" +
@@ -262,7 +261,7 @@ var tlImporterExamples_merge = [
                 "...",
         changed: false,
         identical: true,
-        unused: { cues: [3, 8], texts: [], labels: [] }
+        unused: { cues: [], texts: [], labels: [] }
     },
     {
         // The weaker no-change shape: everything the candidate has is on the page, but the
@@ -884,6 +883,201 @@ var tlImporterExamples_merge = [
                 "[58] Nick Stoynoff - The Hero's Journey (Dusty Kid Remix) [NOFF!]",
         changed: true,
         unused: { cues: [], texts: [], labels: [ 1, 6 ] }
+    },
+    {
+        // Reported 2026-09-03 (Claude Young @ Fuse, Brussels 2000-11-04, trackid.net -> curid
+        // 322992): a three hour set, the page cue-less and complete, the candidate 29
+        // detections. Three guards:
+        //   1. VERSIONS. The page plays "Percy X - Break It Down" twice, as the Percy X Remix
+        //      at [031] and as the Cari Lekebusch Remix 43 minutes later. Both norm to
+        //      "percy x - break it down", the lookup kept the LAST row per norm, and the
+        //      candidate's Percy X Remix landed on the Cari Lekebusch row - which also made that
+        //      row the anchor for everything behind it, so "[050] FLR - PART 7" was ordered in
+        //      FRONT of "[031] Percy X". pickOriginal(): a row naming another version is no hit.
+        //   2. The candidate's "[000] ?" and "..." in front of its first detection at [005] are
+        //      the site's guess at the opening minutes; the page names the one track that plays
+        //      there. The merge wrote the guess in front of the fact, because the "gap-less
+        //      original" test read the whole list and this page has "?" rows further down. A
+        //      "?" is dropped where the page fills its stretch with NAMED rows (namedRowsOnly).
+        //   3. Once Percy X sits right, the stretch behind it runs 25 cue-less rows to [104]
+        //      Coda with one "?" in the middle, and every unmatched detection of those 70
+        //      minutes (Mutate & Survive under a "|" credit, FLR - PART 7, Regis & Female for
+        //      the page's Karl O'Connor & Peter Sutton) would have filled it - each a track the
+        //      page already lists. A cue-less "?" is only filled within
+        //      tlImporter_insertMaxUnplacedRows of a cue (tlImporter_slotRunLength).
+        // What does land: the "?" directly behind [031] takes "[034] Hardrive" - zero rows from
+        // its anchor, the candidate's very next detection. And the "[008] ?" behind Sugar
+        // Experiment Station hands its cue to the page's next row, Surgeon - Waiting For Me,
+        // although the candidate finds that track at [012] - the following-unknown rule as it
+        // stands, kept here as the reported reading.
+        name: "two versions of one track, and a guessed opening",
+        durationSec: 10685, // 2:58:05
+        original: "# DJ Urban - Jack Your Big Booty [Pro-Jex - PROX 024]\n" +
+                  "# Sugar Experiment Station - Influence Technology [Scandinavia - SCAN 003]\n" +
+                  "# Surgeon - Waiting For Me (A1) [Counterbalance - CBX 003]\n" +
+                  "# Surgeon - Midnight Club Tracks II (A1) [Counterbalance - CBX 005] & Acapella\n" +
+                  "# Richie Hawtin - Minus Orange (A1) [Minus - ORANGE]\n" +
+                  "# Jel Ford - Optimistic [Primate - PRMT 048] & Acapella\n" +
+                  "# Luke Slater - Engine One [NovaMute - NoMu57LP]\n" +
+                  "# Gaetano Parisio - 19-99 (B1) [Drumcode - DC 19]\n" +
+                  "# Oliver Ho - From Modern To Ancient (B3) [Meta - 11]\n" +
+                  "# Damon Wild - Subtractive Synthesis V (A1) [Synewave - SW 45]\n" +
+                  "# ?\n" +
+                  "# Percy X - Break It Down (Percy X Remix) [Soma - 099]\n" +
+                  "# ?\n" +
+                  "# Adam Beyer - Time (A1) [Drumcode - DC 21]\n" +
+                  "# Claude Young - Malfunkshun 1 [Djax-Up-Beats - DJAX-UP-299]\n" +
+                  "# James Ruskin & Oliver Ho - Mutate & Survive (A2) [Meta - 10]\n" +
+                  "# Matthew Dear - Hands Up For Detroit [Ghostly International - GHS 001]\n" +
+                  "# FLR - Easy Filter Part 7 [Reel Musiq - RLEP035]\n" +
+                  "# Technasia - Shenzhen 97.1 [Technasia - TA 03]\n" +
+                  "# Oliver Ho - Moonlight [Meta - LP 001] & Acapella\n" +
+                  "# Max Duley - Walking Wounded [Arcane - ARC 03]\n" +
+                  "# Jay Denham - Smoker's Delight [Mechanisms Industries - M 1980]\n" +
+                  "# Sterac - Sitting On Clouds [100% Pure - PURE 05]\n" +
+                  "# Technasia - Force [Technasia - TA 05]\n" +
+                  "# James Ruskin - Version [Tresor - 145]\n" +
+                  "# Tons Of Tones - Platinum [Urban Sound Of Amsterdam - USA 3051 LP]\n" +
+                  "# Jay Denham - Peacemaker [Cosmic - COS 018]\n" +
+                  "# Adam Beyer - Remainings III (DK Remix 2) [Drumcode - DC 20.5]\n" +
+                  "# Oliver Ho - From Modern To Ancient (A2) [Meta - 11]\n" +
+                  "# Marco Bailey - Sygno Power [Session - SESS 994004]\n" +
+                  "# Karl O'Connor & Peter Sutton - Hanoi Hanoi [Tresor - 147]\n" +
+                  "# ?\n" +
+                  "# Percy X - Break It Down (Cari Lekebusch Remix) [Soma - 099]\n" +
+                  "# Querida - The Riot Capsule [Deta - 004]\n" +
+                  "# John Thomas - Undisputed Life (Technasia Remix 1) [Sino - 02 A]\n" +
+                  "# Psychic Warfare - Who Are You (Vocal Mix) [Slavery 2000 - SLV2000]\n" +
+                  "# Joel Mull - Beginners [Inside - IS 05]\n" +
+                  "# Gene Hunt - Juno 106 [Contaminated Muzik - CTM 9808-1]\n" +
+                  "# James Ruskin - Coda [Tresor - 145]\n" +
+                  "# Defenders Of The Ghetto - My God (Vocal) [Black Nation - BNR 330]\n" +
+                  "# DJ Rush - Groove Me [Pro-Jex - PROXLP 1]\n" +
+                  "# Surgeon - La Real [Counterbalance - CBX 002]\n" +
+                  "# Oscar Mulero - Routine Operations [Warm Up - WU 002]\n" +
+                  "# Inigo Kennedy - XX5 (A1) [Molecular - MOL XX5]\n" +
+                  "# Oscar Mulero - Sans Souci [Warm Up - WU 002]\n" +
+                  "# Fanon Flowers - Never Enough [Konsequent - KSQ 010]\n" +
+                  "# Marco Carola - Mania EP [1000 - OTS 1007]\n" +
+                  "# Christian Smith - Mojito (Samuel L. Session Remix) [Tronic - TR 015]\n" +
+                  "# DJ Zank - Chibullian [U7 DJ Toolz - U7 04]\n" +
+                  "# Electric Deluxe - Electric Deluxe [Plus 8 - PLUS 8072]\n" +
+                  "# Speedy J - Pannik [Novamute - 12 NOMU 060]\n" +
+                  "# Plastikman - Spastik [Novamute - 12 NOMU 028]\n" +
+                  "# Electric Deluxe - Glitch [Plus 8 - PLUS 8072]\n" +
+                  "# Devilfish - Man Alive (Past) [Bush - 1089]\n" +
+                  "# Adam Beyer - Remainings III (DK Remix 2K) [Drumcode - DC 20.5]\n" +
+                  "# Steve Rachmad - Divide & Conquer [Rotation - ROT 00023]\n" +
+                  "# Chris Liebing - Analogon (A1) [CLR - 7]\n" +
+                  "# Luke Slater - Quad-Fonik [Peacefrog - PF 019]\n" +
+                  "# Trans Am - Instinctive Codes EP [Phont Music - PM 03]",
+        candidate: "[000] ?\n" +
+                   "...\n" +
+                   "[005] Sugar Experiment Station - Influence Technology [Pocket]\n" +
+                   "[008] ?\n" +
+                   "[012] Surgeon - Waiting For Me [Rxxistance]\n" +
+                   "[014] Richie Hawtin - Minus/Orange 1 [Minus]\n" +
+                   "...\n" +
+                   "[020] Luke Slater - Engine One [Mute]\n" +
+                   "...\n" +
+                   "[031] Percy X - Break It Down (Percy X Remix) [Soma]\n" +
+                   "[034] Hardrive: 2000 Feat. Lynae - Never Forget (When You Touch Me) (Kaytronik Groove Da Dub)\n" +
+                   "...\n" +
+                   "[042] Oliver Ho|James Ruskin - Mutate & Survive [Rxxistance]\n" +
+                   "...\n" +
+                   "[050] FLR - PART 7\n" +
+                   "...\n" +
+                   "[079] Adam Beyer - Remainings III Original Jesper Dahlbäck Remastered Remix [Drumcode]\n" +
+                   "...\n" +
+                   "[087] Regis & Female - Hanoi Hanoi\n" +
+                   "...\n" +
+                   "[104] James Ruskin - Coda\n" +
+                   "[107] ?\n" +
+                   "...\n" +
+                   "[112] Surgeon - La Real, Pt.1 [Counterbalance]\n" +
+                   "[116] ?\n" +
+                   "[120] Inigo Kennedy - XX 5 A1 [Molecular]\n" +
+                   "...\n" +
+                   "[126] Fanon Flowers - Never Enough [Konsequent]\n" +
+                   "[129] ?\n" +
+                   "...\n" +
+                   "[146] Electric Deluxe - Electric Deluxe [Overlast]\n" +
+                   "[147] Speedy J - Pannik [Overlast]\n" +
+                   "[151] ?\n" +
+                   "[155] Electric Deluxe - Glitch 2\n" +
+                   "[159] Devilfish - Manalive [Bush]\n" +
+                   "[161] Adam Beyer - B DK Remix 2 (K) [Drumcode]\n" +
+                   "[165] Steve Rachmad - Divide And Conquer [Rotation]\n" +
+                   "[171] Chris Liebing & Andre Walter - CLR 07 B1 [CLR]\n" +
+                   "[174] Luke Slater - Quadronik [Peacefrog]\n" +
+                   "[177] ?",
+        expect: "[000] DJ Urban - Jack Your Big Booty [Pro-Jex - PROX 024]\n" +
+                "[005] Sugar Experiment Station - Influence Technology [Scandinavia - SCAN 003]\n" +
+                "[008] Surgeon - Waiting For Me (A1) [Counterbalance - CBX 003]\n" +
+                "[0??] Surgeon - Midnight Club Tracks II (A1) [Counterbalance - CBX 005] & Acapella\n" +
+                "[014] Richie Hawtin - Minus Orange (A1) [Minus - ORANGE]\n" +
+                "[0??] Jel Ford - Optimistic [Primate - PRMT 048] & Acapella\n" +
+                "[020] Luke Slater - Engine One [NovaMute - NoMu57LP]\n" +
+                "[0??] Gaetano Parisio - 19-99 (B1) [Drumcode - DC 19]\n" +
+                "[0??] Oliver Ho - From Modern To Ancient (B3) [Meta - 11]\n" +
+                "[0??] Damon Wild - Subtractive Synthesis V (A1) [Synewave - SW 45]\n" +
+                "[0??] ?\n" +
+                "[031] Percy X - Break It Down (Percy X Remix) [Soma - 099]\n" +
+                "[034] Hardrive: 2000 Feat. Lynae - Never Forget (When You Touch Me) (Kaytronik Groove Da Dub)\n" +
+                "[???] Adam Beyer - Time (A1) [Drumcode - DC 21]\n" +
+                "[???] Claude Young - Malfunkshun 1 [Djax-Up-Beats - DJAX-UP-299]\n" +
+                "[???] James Ruskin & Oliver Ho - Mutate & Survive (A2) [Meta - 10]\n" +
+                "[???] Matthew Dear - Hands Up For Detroit [Ghostly International - GHS 001]\n" +
+                "[???] FLR - Easy Filter Part 7 [Reel Musiq - RLEP035]\n" +
+                "[???] Technasia - Shenzhen 97.1 [Technasia - TA 03]\n" +
+                "[???] Oliver Ho - Moonlight [Meta - LP 001] & Acapella\n" +
+                "[???] Max Duley - Walking Wounded [Arcane - ARC 03]\n" +
+                "[???] Jay Denham - Smoker's Delight [Mechanisms Industries - M 1980]\n" +
+                "[???] Sterac - Sitting On Clouds [100% Pure - PURE 05]\n" +
+                "[???] Technasia - Force [Technasia - TA 05]\n" +
+                "[???] James Ruskin - Version [Tresor - 145]\n" +
+                "[???] Tons Of Tones - Platinum [Urban Sound Of Amsterdam - USA 3051 LP]\n" +
+                "[???] Jay Denham - Peacemaker [Cosmic - COS 018]\n" +
+                "[???] Adam Beyer - Remainings III (DK Remix 2) [Drumcode - DC 20.5]\n" +
+                "[???] Oliver Ho - From Modern To Ancient (A2) [Meta - 11]\n" +
+                "[???] Marco Bailey - Sygno Power [Session - SESS 994004]\n" +
+                "[???] Karl O'Connor & Peter Sutton - Hanoi Hanoi [Tresor - 147]\n" +
+                "[???] ?\n" +
+                "[???] Percy X - Break It Down (Cari Lekebusch Remix) [Soma - 099]\n" +
+                "[???] Querida - The Riot Capsule [Deta - 004]\n" +
+                "[???] John Thomas - Undisputed Life (Technasia Remix 1) [Sino - 02 A]\n" +
+                "[???] Psychic Warfare - Who Are You (Vocal Mix) [Slavery 2000 - SLV2000]\n" +
+                "[???] Joel Mull - Beginners [Inside - IS 05]\n" +
+                "[???] Gene Hunt - Juno 106 [Contaminated Muzik - CTM 9808-1]\n" +
+                "[104] James Ruskin - Coda [Tresor - 145]\n" +
+                "[107] Defenders Of The Ghetto - My God (Vocal) [Black Nation - BNR 330]\n" +
+                "[1??] DJ Rush - Groove Me [Pro-Jex - PROXLP 1]\n" +
+                "[1??] Surgeon - La Real [Counterbalance - CBX 002]\n" +
+                "[1??] Oscar Mulero - Routine Operations [Warm Up - WU 002]\n" +
+                "[120] Inigo Kennedy - XX5 (A1) [Molecular - MOL XX5]\n" +
+                "[12?] Oscar Mulero - Sans Souci [Warm Up - WU 002]\n" +
+                "[126] Fanon Flowers - Never Enough [Konsequent - KSQ 010]\n" +
+                "[129] Marco Carola - Mania EP [1000 - OTS 1007]\n" +
+                "[1??] Christian Smith - Mojito (Samuel L. Session Remix) [Tronic - TR 015]\n" +
+                "[1??] DJ Zank - Chibullian [U7 DJ Toolz - U7 04]\n" +
+                "[146] Electric Deluxe - Electric Deluxe [Plus 8 - PLUS 8072]\n" +
+                "[147] Speedy J - Pannik [Novamute - 12 NOMU 060]\n" +
+                "[151] Plastikman - Spastik [Novamute - 12 NOMU 028]\n" +
+                "[155] Electric Deluxe - Glitch [Plus 8 - PLUS 8072]\n" +
+                "[159] Devilfish - Man Alive (Past) [Bush - 1089]\n" +
+                "[1??] Adam Beyer - Remainings III (DK Remix 2K) [Drumcode - DC 20.5]\n" +
+                "[161] Adam Beyer - B DK Remix 2 (K) [Drumcode]\n" +
+                "[165] Steve Rachmad - Divide & Conquer [Rotation - ROT 00023]\n" +
+                "[1??] Chris Liebing - Analogon (A1) [CLR - 7]\n" +
+                "[171] Chris Liebing & Andre Walter - CLR 07 B1 [CLR]\n" +
+                "[174] Luke Slater - Quad-Fonik [Peacefrog - PF 019]\n" +
+                "[177] Trans Am - Instinctive Codes EP [Phont Music - PM 03]",
+        changed: true,
+        // 1: the dropped "[000] ?"; 5: Surgeon - Waiting For Me keeps the [008] the "?" in front
+        // of it handed over; 13, 15, 17, 19: the four rows the merge cannot place; 24: La Real
+        // Pt.1, three cue-less rows in front of [120]; 25: the "[116] ?" in that same stretch
+        unused: { cues: [1, 5, 13, 15, 17, 19, 24, 25], texts: [13, 15, 17, 19, 24],
+                  labels: [3, 5, 6, 8, 10, 13, 17, 24, 26, 28, 31, 32, 35, 37, 39] }
     }
 ];
 
