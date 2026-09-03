@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.03.1
+// @version      2026.09.03.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,7 +13,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-1001_Tracklists_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_112
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_10
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_11
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_21
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
@@ -292,6 +292,21 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.09.03.2
+ * Tracklist Importer merge, three fixes off one report (merge_core.js v11, Claude Young @ Fuse
+ * 2000-11-04, trackid.net). A VERSION named on both sides has to agree: the page plays "Percy X
+ * - Break It Down" twice, as the Percy X Remix and as the Cari Lekebusch Remix 43 minutes
+ * later, and the found Percy X Remix was written onto the Cari Lekebusch row - which also
+ * anchored every detection behind it against the wrong row, so "[050] FLR - PART 7" stood in
+ * front of "[031] Percy X" in the merged list. A row naming another version is no match now,
+ * and a track played twice takes its two page rows in order. The found list's "[000] ?" and
+ * "..." in front of its first detection are no longer written where the page names the track
+ * that plays there - they went in because the page has "?" rows further down, which made the
+ * whole list count as one with gaps. And a page "?" without a cue is only filled when a cue at
+ * most two rows away places it - the one "?" in a stretch of 25 cue-less rows would otherwise
+ * have taken any unmatched detection of those 70 minutes, each a track the page already lists
+ * under another spelling.
  *
  * 2026.09.03.1
  * Tracklist Importer: the review block's Original and Candidate columns are EDITABLE

@@ -430,6 +430,63 @@ function tlImporter_titleNorm( text ) {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
+ * Versions
+ *
+ * The bracket a title carries names a VERSION – "(Cari Lekebusch Remix)", "(DK Remix 2)",
+ * "(A1)" – and that version is part of what the track IS: "Break It Down (Percy X Remix)" and
+ * "Break It Down (Cari Lekebusch Remix)" are two records, played 43 minutes apart in the set
+ * this was reported on. The matching norms drop the bracket on purpose, because one side leaves
+ * the version out as often as not ("Break It Down" is whichever of the two the other side
+ * names), so the version is read APART from the norm here – and it only ever says no: two rows
+ * that BOTH name a version have to name the same one.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// tlImporter_versionTokens
+// The versions a title names, one lowercased token per bracket, with the version WORDS taken
+// out the way the matching norm takes them out: "(Cari Lekebusch Remix)" -> "cari lekebusch",
+// "(DK Remix 2)" -> "dk 2", "(A1)" -> "a1". A bracket that says nothing once those words are
+// gone – "(Original Mix)", "(Extended Mix)", "(Edit)" – is no token: it is the version a row
+// without any bracket means as well. Neither is a featuring credit or a bare number (a year),
+// which name the record, not the version of it. Title half only – a Discogs number on the
+// artist ("Majestic (3)") is no version.
+function tlImporter_versionTokens( text ) {
+    var title = tlImporter_unknownParts( text ).title,
+        tokens = [],
+        re = /\(([^()]*)\)/g,
+        m;
+
+    while( ( m = re.exec( title ) ) ) {
+        var inner = m[1].trim();
+
+        if( !inner ) { continue; }
+        if( tlImporter_removePointlessVersions( " (" + inner + ")" ) === "" ) { continue; } // "(Vocal Mix)"
+        if( /^(?:ft|feat\.?|featuring|pres\.?|presents|with)\b/i.test( inner ) ) { continue; }
+
+        var token = tlImporter_removeVersionWords( inner ).toLowerCase().replace( /\s{2,}/g, " " ).trim();
+
+        // a token without a letter is a year or a catalogue number, not a version
+        if( token && /\p{L}/u.test( token ) ) { tokens.push( token ); }
+    }
+
+    return tokens;
+}
+
+// tlImporter_versionsContradict
+// Both rows name a version, and not the same one. A row without a version contradicts nothing
+// – "Break It Down" is whichever remix the other side names – and the two only have to be
+// SIMILAR, so a typo in a remixer's name does not turn one record into two.
+function tlImporter_versionsContradict( aTokens, bTokens ) {
+    if( !aTokens.length || !bTokens.length ) { return false; }
+
+    return !aTokens.some(function( a ){
+        return bTokens.some(function( b ){ return tlImporter_isSimilar( a, b, tlImporter_similarityThreshold ); });
+    });
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
  * Tracklist text <-> array
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1111,15 +1168,15 @@ function tlImporter_cueClose( a, b ) {
 
 
 
-// tlImporter_unplacedRunLength
-// How many original rows an insert at insertIndex would step over with no evidence for its
-// place among them: the rows between the insert point and the nearest thing that BOUNDS it -
-// a row with a readable cue (there the merge can order), a "..." (there the page itself says
-// tracks are missing) or the start of the list.
-function tlImporter_unplacedRunLength( arr, insertIndex ) {
+// tlImporter_cuelessRun
+// How many track rows WITHOUT a readable cue stand between arr[from] (inclusive) and the
+// nearest thing that BOUNDS them, walking in direction step (-1 back towards the start, +1 on
+// towards the end): a row with a readable cue (there the merge can order), a "..." (there the
+// page itself says tracks are missing) or the end of the list either way.
+function tlImporter_cuelessRun( arr, from, step ) {
     var rows = 0;
 
-    for( var k = insertIndex - 1; k >= 0; k-- ) {
+    for( var k = from; k >= 0 && k < arr.length; k += step ) {
         var item = arr[k];
 
         if( item.type === "gap" ) break;                        // the page invited an insert here
@@ -1130,6 +1187,28 @@ function tlImporter_unplacedRunLength( arr, insertIndex ) {
     }
 
     return rows;
+}
+
+// tlImporter_unplacedRunLength
+// How many original rows an insert at insertIndex would step over with no evidence for its
+// place among them: the cue-less rows in front of the insert point, back to whatever bounds
+// them (tlImporter_cuelessRun).
+function tlImporter_unplacedRunLength( arr, insertIndex ) {
+    return tlImporter_cuelessRun( arr, insertIndex - 1, -1 );
+}
+
+// tlImporter_slotRunLength
+// The same question for a "?" row WITHOUT a cue that a cued candidate would fill: how far is
+// the nearest cue (or "...", or list end) that pins the slot down, in cue-less rows, on
+// whichever side it is nearer. A slot with a cue next to it is a place; a slot 19 cue-less rows
+// behind the last cue and 5 in front of the next is a guess (reported: Claude Young @ Fuse,
+// where the page's "?" between "Hanoi Hanoi" and the second "Break It Down" was the only free
+// slot in a stretch of 25 cue-less rows, and every unmatched candidate of the next 70 minutes
+// wanted to be it – "FLR - PART 7", the alias-credited "Regis & Female - Hanoi Hanoi", each of
+// them a track the page already lists under another name).
+function tlImporter_slotRunLength( arr, slotIndex ) {
+    return Math.min( tlImporter_cuelessRun( arr, slotIndex - 1, -1 ),
+                     tlImporter_cuelessRun( arr, slotIndex + 1, 1 ) );
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1154,7 +1233,8 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
     candidate_arr = candidate_arr.filter(function( item ){ return item.type !== "track (false)"; });
 
     // Build exact lookup + fuzzy list for all original track items
-    var originalMap   = {}, // normalizedTitle -> original item
+    var originalMap   = {}, // normalizedTitle -> [original items]: two rows share a norm when a
+                            // track is played twice or in two VERSIONS – pickOriginal() decides
         fuzzyList     = [], // [{ norm, item, len, head }]
         fuzzyBuckets  = {}, // first-char -> fuzzyList entries
         fuzzyByLen    = [], // grouped by norm length
@@ -1179,7 +1259,8 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
             var norms = tlImporter_matchNorms( item.trackText );
             norms.forEach(function( norm ) {
-                originalMap[norm] = item;
+                if (!originalMap[norm]) originalMap[norm] = [];
+                if (originalMap[norm].indexOf(item) === -1) originalMap[norm].push(item);
                 var entry = { norm: norm, item: item, len: norm.length, head: norm.charAt(0) };
                 fuzzyList.push(entry);
 
@@ -1220,6 +1301,47 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
     var unmatched = [];
 
+    // Where in the original the previous candidate landed. The candidate is walked in its own
+    // order, so where two original rows are equally good for a candidate, the one BEHIND the
+    // last match is the one that keeps that order.
+    var lastOrigIndex = -1;
+
+    // pickOriginal
+    // ONE original row out of the rows a matching step found for a candidate. One hit is the
+    // normal case. Two or more mean the page lists the track twice – played twice (Feathers &
+    // Bones Mixtape 04: the same Radian at [20] and [25]) or in two VERSIONS (reported: Claude
+    // Young @ Fuse 2000-11-04, trackid.net – "Break It Down (Percy X Remix)" at [031] and
+    // "Break It Down (Cari Lekebusch Remix)" 43 minutes later, both "percy x - break it down"
+    // once the norm has dropped the bracket). The lookup used to keep the LAST row per norm, so
+    // the candidate's Percy X Remix landed on the Cari Lekebusch row, 20 rows too far down –
+    // and every candidate row behind it was then ordered against that wrong anchor, which put
+    // "[050] FLR - PART 7" in FRONT of "[031] Percy X" in the merged list.
+    // A row whose version CONTRADICTS the candidate's is no hit at all
+    // (tlImporter_versionsContradict). Among the rest the row that NAMES the same version wins,
+    // then one no earlier candidate has taken, then the one that keeps the candidate's order –
+    // and the first in page order where that still leaves a tie.
+    function pickOriginal( items, candTokens ) {
+        var best = null, bestScore = -1, bestIndex = -1;
+
+        items.forEach(function( item ) {
+            var origTokens = tlImporter_versionTokens( item.trackText );
+            if (tlImporter_versionsContradict( candTokens, origTokens )) return;
+
+            var index = original_arr.indexOf( item ),
+                score = 0;
+
+            if (candTokens.length && origTokens.length) score += 4;                 // the same version, named on both sides
+            if (typeof item._mergeMatchedCandidateIndex !== "number") score += 2; // no earlier candidate took it
+            if (index > lastOrigIndex) score += 1;                                 // keeps the candidate's order
+
+            if (score > bestScore || (score === bestScore && index < bestIndex)) {
+                best = item; bestScore = score; bestIndex = index;
+            }
+        });
+
+        return best;
+    }
+
     // Walk through candidate tracks
     for (var i = 0; i < candidate_arr.length; i++) {
         var cand = candidate_arr[i];
@@ -1228,32 +1350,37 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         var candidateName  = cand.trackText,
             candidateLabel = cand.label,
             isUnknown      = tlImporter_isUnknownText( candidateName ),
+            candTokens     = [],
             origItem = null,
             candNorms, c, e;
 
         if (!isUnknown) {
-            candNorms = tlImporter_matchNorms( candidateName );
+            candNorms  = tlImporter_matchNorms( candidateName );
+            candTokens = tlImporter_versionTokens( candidateName );
 
-            // 1) Exact match by normalized title
-            for (c = 0; c < candNorms.length; c++) {
+            // 1) Exact match by normalized title. The norms stand most specific first (with the
+            //    bracket, then without it), so the first norm that has hits decides – and among
+            //    its hits pickOriginal() does, version first.
+            for (c = 0; c < candNorms.length && !origItem; c++) {
                 if (originalMap.hasOwnProperty( candNorms[c] )) {
-                    origItem = originalMap[ candNorms[c] ];
-                    break;
+                    origItem = pickOriginal( originalMap[ candNorms[c] ], candTokens );
                 }
             }
 
-            // 2) Fallback to fuzzy matching
+            // 2) Fallback to fuzzy matching – every row within the threshold is a hit, and
+            //    pickOriginal() takes the one that agrees on the version
             if (!origItem) {
-                outer:
+                var fuzzyHits = [];
                 for (c = 0; c < candNorms.length; c++) {
                     var fuzzyCandidates = getFuzzyCandidates( candNorms[c] );
                     for (e = 0; e < fuzzyCandidates.length; e++) {
-                        if (isLikelySimilarText( fuzzyCandidates[e].norm, candNorms[c], tlImporter_similarityThreshold )) {
-                            origItem = fuzzyCandidates[e].item;
-                            break outer;
+                        if (isLikelySimilarText( fuzzyCandidates[e].norm, candNorms[c], tlImporter_similarityThreshold )
+                            && fuzzyHits.indexOf( fuzzyCandidates[e].item ) === -1) {
+                            fuzzyHits.push( fuzzyCandidates[e].item );
                         }
                     }
                 }
+                if (fuzzyHits.length) origItem = pickOriginal( fuzzyHits, candTokens );
             }
 
             // 2b) Fallback: artist and title compared APART. A page that writes the artist
@@ -1268,13 +1395,14 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
                     candTitleNorm   = tlImporter_titleNorm( candidateName );
 
                 if (candTitleNorm && candArtistNames.length) {
+                    var splitHits = [];
                     for (e = 0; e < splitList.length; e++) {
                         if (!isLikelySimilarText( splitList[e].titleNorm, candTitleNorm, tlImporter_similarityThreshold )) continue;
                         if (!tlImporter_artistNamesCompatible( splitList[e].artistNames, candArtistNames )) continue;
 
-                        origItem = splitList[e].item;
-                        break;
+                        splitHits.push( splitList[e].item );
                     }
+                    if (splitHits.length) origItem = pickOriginal( splitHits, candTokens );
                 }
             }
 
@@ -1346,6 +1474,7 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
         if (origItem) {
             cand._ti_matchedOrig = origItem;
+            lastOrigIndex = original_arr.indexOf( origItem );
 
             // A swapped match (step 2c) is the one place where the candidate's text beats the
             // page's – there is no half to lose, only the order of the two to correct.
@@ -1374,11 +1503,15 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             origItem._mergeMatchedCandidateIndex = i;
 
             // A following unknown candidate carries a cue the original's next cue-less track
-            // can take over.
+            // can take over. Not across a "..." – behind a gap the page's next row is not the
+            // next track, and the cue would land on a row that plays much later (a "..." item
+            // has no cue of its own either and used to take the cue itself).
             var nextCand = candidate_arr[i + 1];
             if (nextCand && nextCand.type === "track" && tlImporter_isUnknownText( nextCand.trackText ) && nextCand.cue) {
                 var origIndex = original_arr.indexOf(origItem);
                 for (var j = origIndex + 1; j < original_arr.length; j++) {
+                    if (original_arr[j].type === "gap") break;
+                    if (original_arr[j].type !== "track") continue;
                     if (!original_arr[j].cue) {
                         original_arr[j].cue = nextCand.cue;
                         nextCand._ti_cueUsed = true;
@@ -1397,11 +1530,12 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
         unmatchedByIndex[item.index] = item;
     });
 
-    // Between the two matched neighbours of a candidate index, find the original's first
-    // unconsumed "?" placeholder. candCueSec limits the pick to slots whose cue lies within
-    // the cue tolerance – a candidate detected at 01:18 must not claim a "?" at 01:10 just
-    // because that slot comes first in the segment.
-    function findUnknownSlotForCandidateIndex( candidateIndex, candCueSec ) {
+    // anchorSegment
+    // The stretch of the original a candidate index falls into: behind the original row the
+    // candidate's nearest MATCHED predecessor took, in front of the one its nearest matched
+    // successor took – { start, end } as indexes into original_arr, end exclusive. null when the
+    // two anchors stand the wrong way round in the original, where the stretch means nothing.
+    function anchorSegment( candidateIndex ) {
         var prevAnchor = null,
             nextAnchor = null;
 
@@ -1424,14 +1558,59 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
 
         if (startIndex > endIndex) return null;
 
-        for (var k = startIndex; k < endIndex; k++) {
+        return { start: startIndex, end: endIndex };
+    }
+
+    // namedRowsOnly
+    // Does the ORIGINAL fill this stretch with named tracks and nothing else – no "...", no "?"
+    // row, at least one row? Then the page says what plays there, and a candidate's "?" in
+    // that stretch repeats one of those tracks under a worse name. Rows the merge itself
+    // inserted are the candidate's and do not count as the page's word.
+    function namedRowsOnly( segment ) {
+        var named = 0;
+
+        for (var k = segment.start; k < segment.end; k++) {
+            var item = original_arr[k];
+
+            if (item.type === "gap") return false;
+            if (item.type !== "track" || item._ti_inserted) continue;
+            if (tlImporter_isUnknownText( item.trackText )) return false;
+
+            named++;
+        }
+
+        return named > 0;
+    }
+
+    // Between the two matched neighbours of a candidate index, find the original's first
+    // unconsumed "?" placeholder. candCueSec limits the pick to slots whose cue lies within
+    // the cue tolerance – a candidate detected at 01:18 must not claim a "?" at 01:10 just
+    // because that slot comes first in the segment.
+    function findUnknownSlotForCandidateIndex( candidateIndex, candCueSec ) {
+        var segment = anchorSegment( candidateIndex );
+
+        if (!segment) return null;
+
+        for (var k = segment.start; k < segment.end; k++) {
             var item = original_arr[k];
             if (item.type === "track" && tlImporter_isUnknownText( item.trackText ) && !item._mergeConsumedUnknown) {
                 var slotSec = tlImporter_cueToSec( item.cue );
-                if (candCueSec === null || slotSec === null || Math.abs( slotSec - candCueSec ) <= tlImporter_cueToleranceSec) {
-                    return item;
-                }
+
                 // cue contradicts the candidate's – keep looking further down the segment
+                if (candCueSec !== null && slotSec !== null && Math.abs( slotSec - candCueSec ) > tlImporter_cueToleranceSec) continue;
+
+                // A slot WITHOUT a cue is only a place when a cue nearby pins it down – the
+                // same limit an insert has (tlImporter_insertMaxUnplacedRows). A cued candidate
+                // has a minute to offer and a slot deep inside a run of cue-less rows has
+                // nothing to hold it against: which of the 25 rows between [031] and [104] the
+                // page's "?" is, no cue can tell, so a "[050]" that fills it is a guess – and
+                // where the candidate row is one the page already lists under another spelling,
+                // a duplicate (see tlImporter_slotRunLength). A cue-less candidate has nothing
+                // to offer but its order, and keeps filling by order as before.
+                if (candCueSec !== null && slotSec === null &&
+                    tlImporter_slotRunLength( original_arr, k ) > tlImporter_insertMaxUnplacedRows) continue;
+
+                return item;
             }
         }
 
@@ -1529,6 +1708,24 @@ function tlImporter_mergeArrays( original_arr, candidate_arr, state ) {
             });
 
             if (duplicatesOriginalCue) return;
+
+            // The page already says what plays here. Between the original rows the candidate's
+            // two neighbours matched, the page lists NAMED tracks and nothing else – no "...",
+            // no "?" – so a "?" the candidate puts in there repeats one of them under a worse
+            // name, and the "..." it brings along repeats a guess the page has already
+            // answered. Reported (Claude Young @ Fuse 2000-11-04, trackid.net): the candidate
+            // opened on "[000] ?" and a "...", the site's reading of "the first detection is at
+            // [005]", the page opened on the ONE track that plays there (DJ Urban - Jack Your
+            // Big Booty), and the merge wrote both – the guess in front of the fact – because
+            // the "gap-less original" test below reads the WHOLE list, and this page has "?"
+            // rows further down. The tail is exempt on purpose: rows behind the last matched
+            // one have no cue bounding them from above, so they may all have played before the
+            // candidate's trailing "?", which then is the one hint that the stream runs on.
+            if (!isTailUnknown) {
+                var segment = anchorSegment( index );
+                if (segment && namedRowsOnly( segment )) return;
+            }
+
             if (!originalHasGaps && !isTailUnknown) return;
         }
 

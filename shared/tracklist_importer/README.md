@@ -71,7 +71,10 @@ original is treated as more correct; the candidate only enriches it:
 
 - cue times and labels are added to tracks both lists carry
 - `?` unknown tracks are filled with the candidate's identification – keeping the original's
-  own, usually more precise cue time
+  own, usually more precise cue time. A `?` row without a cue of its own is only filled when a
+  cue at most two rows away – or a `...`, or the end of the list – says where it stands: deep
+  inside a run of rows without cues the found track's minute has nothing to hold against, and
+  the filled row would be a guess
 - a track does not have to be a bare `?` to count as unknown: `ID`, `Chris Stussy - ?` and
   `? - Untitled (B1)` are half-known rows, and the candidate fills the half that is missing –
   the label, the title, the whole credit. Rows like these are recognized by their cue time, so
@@ -79,6 +82,11 @@ original is treated as more correct; the candidate only enriches it:
   without one, a page row without a title only one that credits the same artist
 - undiscovered tracks are inserted between existing consecutive tracks
 - tracks are added in `...` gaps
+- an unknown `?` the found tracklist carries is only added where the page leaves room for it –
+  a `...` or a `?` of its own between the two page tracks its neighbours matched. Where the page
+  names the tracks that play there, the `?` and the `...` that comes with it are left out: they
+  are the player site's guess at a stretch the page has already answered, most often the
+  `[000] ?` in front of a first detection at `[005]`
 - an unknown the candidate found *behind* the last track of the tracklist is appended, even
   when the tracklist has no gaps at all – it is the one hint that the mix runs on past where
   the page ends
@@ -98,6 +106,12 @@ duplicates. Artist and title are compared apart as well, so an artist the page w
 than the player site does – `Costigane` where the site says `Brendan Costigane` – is still the
 same track as long as the title matches: the page's spelling stays, the site's one stands in the
 Candidate column for you to judge.
+
+A version named in the title counts: `Break It Down (Percy X Remix)` is not `Break It Down
+(Cari Lekebusch Remix)`, and a set that plays both gets each detection on its own row. A row
+that names no version matches either – one side leaves it out as often as not – and words like
+`Original Mix`, `Extended Mix` or `Edit` name none. A track played twice takes its two page rows
+in order instead of both detections landing on the last one.
 
 A page row that has artist and title **the other way round** is found as well: `Caprock -
 Majestic` on the page and `Majestic - Caprock` on the player site are one track, and until now
