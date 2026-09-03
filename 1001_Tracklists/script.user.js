@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.01.1
+// @version      2026.09.03.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -14,7 +14,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_112
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_10
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_20
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_21
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
@@ -34,7 +34,7 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var cacheVersion = 46,
+var cacheVersion = 47,
     scriptName = "1001_Tracklists";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -292,6 +292,18 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.09.03.1
+ * Tracklist Importer: the review block's Original and Candidate columns are EDITABLE
+ * (tracklist_importer funcs.js v21, CSS). The highlighted <pre> stays as the backdrop and a
+ * textarea with invisible text lies exactly on top of it, so the green/orange marking is
+ * still there while the text can be typed in. Editing a box drops that box's colours until
+ * the next merge - they describe a text that no longer stands there - and its border turns
+ * dashed to say so. A "Merge" button in front of Apply re-merges what the two boxes hold
+ * into the Merged box; with Live updates on, a typing pause does it by itself. Down, the
+ * Merged column's heading and help line now stand above the site's own Tracklist Editor box
+ * instead of disappearing with the hidden column, and merge mode's button below the columns
+ * says "Merge another" so the two are not both called "Merge".
  *
  * 2026.09.01.1
  * Tracklist Importer merge: a TEXT ROW keeps its wiki italics (merge_core.js v10). A row the

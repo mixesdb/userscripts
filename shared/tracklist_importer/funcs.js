@@ -1067,6 +1067,330 @@ function tlImporter_renderPre( items, partClass ) {
     return pre;
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ * The Original and Candidate columns as EDITABLE boxes
+ *
+ * They used to be plain <pre>s: readable, and nothing else. Everything a reader wanted to DO
+ * with what they saw in them - strike a row the merge should not have taken, fix a typo the
+ * other source printed, drop a line that is not a track at all - had to be done in the Merged
+ * box afterwards, by hand, against two lists they could only look at.
+ *
+ * So both columns are boxes now. The catch is that the highlighting IS the columns' whole
+ * point (orange = the merge rewrote this, green = the merge took this over, orange on the
+ * candidate = it could not place this), and a <textarea> holds plain text - put the text in
+ * one and the colours are gone.
+ *
+ * Hence the overlay: the highlighted <pre> stays exactly where it was and becomes the
+ * BACKDROP, and a textarea with transparent text lies on top of it, pixel for pixel. The
+ * reader sees the pre, types into the textarea, and the caret and selection are the
+ * textarea's. Everything below depends on the two lining up, which is why the CSS repeats the
+ * pre's font, padding, border box and wrapping on the textarea instead of trusting a cascade,
+ * and why the textarea's value is read OFF the rendered pre rather than serialized a second
+ * time - two serializers of the same rows drift, and a drift of one space puts every highlight
+ * behind it on the wrong word.
+ *
+ * The moment the text is edited the backdrop drops its spans and becomes the typed text,
+ * plain. It has to: the highlighting describes a merge of a text that no longer stands there,
+ * and highlighting held over an edited line would colour the wrong words. The colours come
+ * back with the next merge - which is what the Merge button next to Apply is for.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// tlImporter_renderEditable
+// One column's body: the highlighted <pre> plus the transparent textarea over it.
+function tlImporter_renderEditable( items, partClass ) {
+    var pre = tlImporter_renderPre( items, partClass ),
+        box = $( '<textarea class="mdb-tlImporter-hl-input" spellcheck="false"></textarea>' ),
+        text = pre.text();
+
+    // read BEFORE the padding below, or the box starts with a space nobody typed
+    box.val( text );
+
+    // an empty list would leave a <pre> with no line box at all: it collapses to its own
+    // padding, and the box lying on top of it collapses with it - a column that cannot be
+    // clicked into. See tlImporter_hlStale for the same problem on the way back down to empty.
+    if( text === "" ) pre.append( document.createTextNode( " " ) );
+
+    return $( '<div class="mdb-tlImporter-hl"></div>' ).append( pre, box );
+}
+
+// tlImporter_hlBox
+// The Original or the Candidate box of a standing block - "original" / "candidate". Empty
+// where that column has no box: an insert has no Original at all, and merge mode's Candidate
+// is the paste box (#mdb-tlImporter-candidate) until the first merge has run.
+function tlImporter_hlBox( wrap, which ) {
+    return $( wrap ).find( ".mdb-tlImporter-col-" + which + " .mdb-tlImporter-hl-input" ).first();
+}
+
+// tlImporter_hlStale
+// The backdrop under a box that was just typed into: the spans go, the typed text takes their
+// place. An empty last line gets a trailing space, because a <pre> draws no line box for a
+// final "\n" (nor for no text at all) while a textarea does - without it the two drift apart
+// by a row and the caret sits below the box the reader is looking at.
+function tlImporter_hlStale( box ) {
+    var hl = box.closest( ".mdb-tlImporter-hl" ),
+        pre = hl.children( "pre.mdb-tlImporter-pre" ).first();
+
+    if( !pre.length ) return;
+
+    var text = String( box.val() || "" );
+
+    pre.text( text === "" || /\n$/.test( text ) ? text + " " : text );
+    hl.addClass( "mdb-tlImporter-hl-stale" );
+}
+
+/*
+ * The Merge button, and when it presses itself
+ *
+ * Editing one of the two boxes is only half a wish - what the reader wants is the MERGED box
+ * to follow. Which of the two ways it follows is the Tracklist Editor's own "Live updates"
+ * switch, the one already sitting in the feedback box under the Merged column (and beside
+ * Apply while the block is down): ON, a typing pause re-runs the merge by itself; OFF, a
+ * "Merge" button in front of Apply does it on a click.
+ *
+ * Deliberately that switch and not one of our own: it already means "follow what I type at the
+ * cost of a call per pause" on this very form, and a merge is exactly that kind of work - the
+ * TLE is asked for the result's formatting the same way the live check asks for a verdict.
+ *
+ * The button sleeps while neither box has been touched since the last merge - pressing it
+ * would re-merge the same two texts into the same result, one more API call for nothing.
+ */
+
+// what the two boxes held when the merge that is on screen ran - the button's sleep baseline
+var tlImporter_reMergeBase = { original: "", candidate: "" },
+    tlImporter_reMergeTimer = null;
+
+// tlImporter_reMergeSnapshot
+// Both boxes as they stand right now become the baseline: called after every merge and after
+// the block is built, so a block nobody has typed in yet opens with a sleeping button.
+function tlImporter_reMergeSnapshot( wrap ) {
+    var orig = tlImporter_hlBox( wrap, "original" ),
+        cand = tlImporter_hlBox( wrap, "candidate" );
+
+    tlImporter_reMergeBase = {
+        original: orig.length ? String( orig.val() || "" ) : "",
+        candidate: cand.length ? String( cand.val() || "" ) : ""
+    };
+
+    tlImporter_refreshReMerge();
+}
+
+// tlImporter_reMergeDirty
+// Has either box been edited since that snapshot? No Candidate box means there is nothing to
+// merge from - the insert reading and merge mode's paste state both land here.
+function tlImporter_reMergeDirty() {
+    var wrap = $( "#mdb-tlImporter-diff" ).first();
+
+    if( !wrap.length ) return false;
+
+    var orig = tlImporter_hlBox( wrap, "original" ),
+        cand = tlImporter_hlBox( wrap, "candidate" );
+
+    if( !cand.length || !orig.length ) return false;
+
+    return $.trim( orig.val() || "" ) !== $.trim( tlImporter_reMergeBase.original )
+        || $.trim( cand.val() || "" ) !== $.trim( tlImporter_reMergeBase.candidate );
+}
+
+// tlImporter_reMergeButton
+// The button itself. Two of them exist over a block's life - one in the Merged column's action
+// row, one in the down row beside the site's own editor - so the id is passed in, the way the
+// Apply pair does it.
+function tlImporter_reMergeButton( id ) {
+    return $( '<button class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Merge</button>' )
+        .attr( "id", id );
+}
+
+// tlImporter_refreshReMerge
+// Both buttons' wake state and their tooltip, off tlImporter_reMergeDirty().
+function tlImporter_refreshReMerge() {
+    var buttons = $( "#mdb-tlImporter-remerge, #mdb-tlImporter-remerge-down" );
+
+    if( !buttons.length ) return;
+
+    var dirty = tlImporter_reMergeDirty(),
+        live = typeof tlBoxAutoUpdate === "function" && tlBoxAutoUpdate();
+
+    buttons
+        .prop( "disabled", !dirty )
+        .toggleClass( "mdb-tlImporter-locked", !dirty )
+        .attr( "title", dirty
+            ? "Merge the Candidate box into the Original box again and put the result in the Merged box.\nNothing is written to the page - Apply does that."
+            : live
+                ? "Nothing to merge: the two boxes hold what this result was merged from.\nLive updates are ON, so an edit in either of them re-runs the merge by itself."
+                : "Nothing to merge: the two boxes hold what this result was merged from.\nEdit the Original or the Candidate box and the button wakes up." );
+}
+
+// tlImporter_scheduleReMerge
+// The Live updates half. Same pause the Tracklist Editor's own live check waits out, so typing
+// in the Merged box and typing in one of the two boxes beside it behave alike.
+function tlImporter_scheduleReMerge() {
+    if( typeof tlBoxAutoUpdate !== "function" || !tlBoxAutoUpdate() ) return;
+
+    if( tlImporter_reMergeTimer ) clearTimeout( tlImporter_reMergeTimer );
+
+    tlImporter_reMergeTimer = setTimeout(function() {
+        tlImporter_reMergeTimer = null;
+
+        if( tlImporter_reMergeDirty() ) tlImporter_reMergeRun( $( "#mdb-tlImporter-diff" ).first() );
+    }, typeof tlBoxTypeDelayMs !== "undefined" ? tlBoxTypeDelayMs : 800 );
+}
+
+// tlImporter_fillMergedColumns
+// The merge result into a block that is already standing: both columns get a freshly
+// highlighted backdrop with a fresh box over it, the Merged box gets the text. Never a
+// re-render of the block - it carries the down state, the dragged column widths, the site
+// editor moved up next to it and two MutationObservers.
+function tlImporter_fillMergedColumns( wrap, res, finalTl, feedback ) {
+    wrap = $( wrap ).first();
+
+    // Original: the merge's reading of it, with what the merge rewrote flagged
+    wrap.find( ".mdb-tlImporter-col-original .mdb-tlImporter-hl" ).first()
+        .replaceWith( tlImporter_renderEditable( res.originalItems, function( item, p ) {
+            return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
+        }) );
+
+    // Candidate: green what the merge took over, orange what it could not place
+    wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-cand-body" ).first()
+        .replaceWith( tlImporter_handWrapBody( tlImporter_renderEditable( res.diffItems, function( item, p ) {
+            if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
+            if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
+            return "";
+        }) ) );
+
+    // Merged: wherever that box currently is - down it IS the page's own Tracklist Editor.
+    // mdbTlboxKnown travels with the text so the next blur does not re-ask for a verdict this
+    // merge already paid for; the input event re-sizes the box and wakes the Apply watcher.
+    var box = tlImporter_mergedBox( wrap );
+
+    if( box.length ) {
+        box.data( "mdbTlboxKnown", finalTl );
+        box.val( finalTl );
+        box.get( 0 ).dispatchEvent( new Event( "input", { bubbles: true } ) );
+
+        if( feedback && feedback.text ) tlBoxRenderFeedback( box, feedback );
+    }
+
+    tlImporter_reMergeSnapshot( wrap );
+    tlImporter_syncDownHead( wrap );
+}
+
+// tlImporter_reMergeRun
+// One merge of what the two boxes hold right now. The two texts on screen are the whole input:
+// what the reader can see is what is merged, which is the only reading that survives them
+// having edited either of the boxes.
+function tlImporter_reMergeRun( wrap ) {
+    wrap = $( wrap ).first();
+
+    if( !wrap.length ) return;
+
+    var origBox = tlImporter_hlBox( wrap, "original" ),
+        candBox = tlImporter_hlBox( wrap, "candidate" );
+
+    if( !origBox.length || !candBox.length ) return;
+
+    logFunc( "tlImporter_reMergeRun" );
+
+    var original = $.trim( origBox.val() || "" ),
+        candidate = $.trim( candBox.val() || "" );
+
+    if( !candidate ) {
+        tlImporter_handNote( wrap, "The Candidate box is empty - there is nothing left to merge into the Original." );
+        return;
+    }
+
+    // Chapters on either side, exactly as everywhere else in this feature: there is no merge
+    // logic for ";Name" rows yet. Said out loud rather than merged around, because the reader
+    // is standing in front of both lists and the Merged box, which is where it gets done.
+    var origChapters = /^\s*;/m.test( original ),
+        candChapters = /^\s*;/m.test( candidate );
+
+    if( origChapters || candChapters ) {
+        tlImporter_handNote( wrap, "The " + ( origChapters ? "Original" : "Candidate" )
+            + " box has chapters (\";Name\" rows) - those are never merged automatically. Put the two lists together in the Merged box by hand, then Apply." );
+        tlImporter_reMergeSnapshot( wrap );
+        return;
+    }
+
+    var durationSec = tlImporter_editPageDurationSec( $( "#wpTextbox1" ).val() || "" ),
+        res = tlImporter_merge( original, candidate, tlImporter_mergeOptions( durationSec ) ),
+        finalTl = res.mergedText,
+        status = "",
+        feedback = null;
+
+    // the one TLE call: it decides the "#" numbering and hands back the verdict the
+    // "Tracklist:" category follows when Apply writes. Skipped when the merge took nothing -
+    // the result is the original, which the page already knows about
+    if( res.changed ) {
+        var api = apiTracklist( res.mergedText, "standard" );
+
+        finalTl = api.text || res.mergedText;
+        status = api.feedback && api.feedback.status ? api.feedback.status : "";
+        feedback = api.feedback || null;
+    }
+
+    var note = res.changed ? ""
+        : "The merge took nothing from the Candidate box - the Original already holds everything it says.";
+
+    tlImporter_fillMergedColumns( wrap, res, finalTl, feedback );
+    tlImporter_handNote( wrap, note );
+
+    // the stored block has to describe what is on screen now, or "Show changes" brings the
+    // merge before this one back. Everything that is a READING of the block (mode, hand,
+    // chapters) is carried over - a re-merge does not change which of them this block is.
+    var stored = tlImporter_readStoredDiff() || {};
+
+    stored.items = res.diffItems;
+    stored.originalItems = res.originalItems;
+    stored.mergedTl = finalTl;
+    stored.status = status;
+    stored.feedback = feedback;
+    stored.unchanged = !res.changed;
+    stored.handNote = note;
+
+    tlImporter_storeDiff( stored );
+
+    log( "tlImporter: re-merged " + res.diffItems.length + " candidate rows into "
+        + res.originalItems.length + " original rows (" + ( res.changed ? "TLE status: " + ( status || "(none)" ) : "nothing was taken over" ) + ")." );
+}
+
+// Delegated, not bound: the block is built again from sessionStorage after every form POST,
+// and a handler bound to the boxes would have to be bound again with them.
+$(document).on( "input.mdbTlImporterHl", "#mdb-tlImporter-diff .mdb-tlImporter-hl-input", function() {
+    // only the instance that claimed the page answers - see tlImporter_ownsEditPage
+    if( !tlImporter_ownsEditPage ) return;
+
+    var box = $( this ),
+        wrap = box.closest( "#mdb-tlImporter-diff" );
+
+    tlImporter_hlStale( box );
+
+    // merge mode holds Original and Candidate to one height, and the box that just grew is one
+    // of them. Only there: in the link flow each column is as tall as its own text.
+    if( wrap.children( "#mdb-tlImporter-handActions" ).length ) tlImporter_handMatchHeights( wrap );
+
+    tlImporter_alignResizers( wrap.children( ".mdb-tlImporter-cols" ).first() );
+
+    tlImporter_refreshReMerge();
+    tlImporter_scheduleReMerge();
+});
+
+$(document).on( "click.mdbTlImporterHl", "#mdb-tlImporter-remerge, #mdb-tlImporter-remerge-down", function() {
+    if( !tlImporter_ownsEditPage ) return;
+
+    tlImporter_reMergeRun( $( "#mdb-tlImporter-diff" ).first() );
+});
+
+// the Live updates switch decides which of the two halves above is in charge, so the button's
+// tooltip has to follow a click on it. Bound after the switch's own handler by load order, so
+// tlBoxAutoUpdate() already answers with the new state here.
+$(document).on( "click.mdbTlImporterHl", ".mdb-tlEditor-liveUpdates", function() {
+    if( !tlImporter_ownsEditPage ) return;
+
+    tlImporter_refreshReMerge();
+});
+
 // tlImporter_flattenFeedbackList
 // MixesDB's own affiliate/search decorator (ext.mixesdb.global) treats EVERY <li> under
 // #mw-content-text as a potential track row on ns-0 edit/submit pages - the TLE feedback's
@@ -1651,6 +1975,65 @@ $(document).on( "input.mdbTlImporterDown", "#tlEditor-textarea", function() {
     tlImporter_refreshDownApply();
 });
 
+/*
+ * tlImporter_syncDownHead
+ *
+ * Down, the Merged COLUMN is hidden and its text lives in the site's own Tracklist Editor -
+ * and with the column went the two lines above its box: the "Merged" heading and the sentence
+ * saying what that box is for. What was left down there was a textarea in the site's fieldset
+ * with nothing saying it is now holding a merge result, next to two boxes that still carry
+ * their headings.
+ *
+ * So the pair is put back directly above #tlEditor-textarea, and it is COPIED from the hidden
+ * column rather than written a second time: that column already says "Merged" or "Inserted",
+ * and in merge mode its help line changes with the state (tlImporter_handSetHelp). One source,
+ * so the two can never say different things about the same box.
+ *
+ * Re-run wherever those lines can change - the way down, a merge, and merge mode's help swap.
+ */
+function tlImporter_syncDownHead( wrap ) {
+    wrap = $( wrap || "#mdb-tlImporter-diff" ).first();
+
+    // not down (any more): the column carries its own lines again and a second copy would
+    // stand under the site's fieldset legend saying the same thing twice. Answered BEFORE the
+    // editor section is asked for - a copy left standing on a page whose editor has gone is
+    // exactly the case that needs clearing up
+    if( !wrap.length || !wrap.hasClass( "mdb-tlImporter-down" ) ) {
+        $( "#mdb-tlImporter-downHead" ).remove();
+        return;
+    }
+
+    var ed = tlImporter_siteEditor();
+
+    if( !ed ) return;
+
+    var head = wrap.find( ".mdb-tlImporter-col-merged .mdb-tlImporter-col-head" ).first(),
+        help = wrap.find( ".mdb-tlImporter-col-merged .mdb-tlImporter-col-help" ).first();
+
+    if( !head.length ) return;
+
+    var row = $( "#mdb-tlImporter-downHead" ).first();
+
+    if( !row.length ) {
+        row = $( '<div id="mdb-tlImporter-downHead" class="mdb-element"></div>' ).append(
+            $( '<div class="mdb-tlImporter-col-head"></div>' ),
+            $( '<div class="mdb-tlImporter-col-help"></div>' )
+        );
+
+        // above the textarea, inside the editor's own wrapper - not above the fieldset, where
+        // it would read as a heading for the toolbar rows as well
+        ed.box.before( row );
+    }
+
+    row.children( ".mdb-tlImporter-col-head" )
+        .attr( "title", head.attr( "title" ) || head.text() )
+        .text( head.text() );
+
+    row.children( ".mdb-tlImporter-col-help" )
+        .attr( "title", help.attr( "title" ) || help.text() )
+        .text( help.text() );
+}
+
 // tlImporter_addDownActions
 // The row below the editor's #tlEditor-formActions: the Apply button and the Live updates
 // switch - what the Merged column has under its box. No tracklist state icons here either:
@@ -1662,10 +2045,13 @@ function tlImporter_addDownActions( ed ) {
     var row = $( '<div id="mdb-tlImporter-downActions" class="mdb-element"></div>' ),
         applyButton = $( '<button id="mdb-tlImporter-apply-down" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
 
-    row.append( applyButton, tlImporter_downLiveChip() );
+    // the same three things the Merged column has under its box, in the same order: Merge,
+    // Apply, and the switch that decides whether the merge waits for the button at all
+    row.append( tlImporter_reMergeButton( "mdb-tlImporter-remerge-down" ), applyButton, tlImporter_downLiveChip() );
     ed.actions.after( row );
 
     tlImporter_refreshDownApply();
+    tlImporter_refreshReMerge();
 
     // the poll behind the delegated input handler above - every value change wakes or sleeps
     // the button within half a second, however it was made. Cleared on the way up
@@ -1782,6 +2168,10 @@ function tlImporter_applyDown( wrap, down ) {
 
         tlImporter_addDownActions( ed );
 
+        // the hidden Merged column's heading and help line, above the box that now holds its
+        // text - see tlImporter_syncDownHead
+        tlImporter_syncDownHead( wrap );
+
         // the li-smashing decorator (see tlImporter_flattenFeedbackList) does not care whose
         // feedback box it wrecks - watch the editor's textarea wrapper while our live and
         // apply renders can put one there
@@ -1815,6 +2205,7 @@ function tlImporter_applyDown( wrap, down ) {
         // stays, and stays quiet: the box keeps its text and its known state, so nothing
         // fires until the reader really edits down there again
         $( "#mdb-tlImporter-downActions" ).remove();
+        $( "#mdb-tlImporter-downHead" ).remove();
 
         // the text back into the Merged box, the known state with it; the input trigger
         // re-sizes the box and wakes its Apply watcher
@@ -2013,7 +2404,7 @@ function tlImporter_renderDiffView( data ) {
             // named so merge mode can swap this column's <pre> for the highlighted one when
             // the merge has run - see tlImporter_handFillColumns
             .addClass( "mdb-tlImporter-col-original" )
-            .append( tlImporter_renderPre( data.originalItems, function( item, p ) {
+            .append( tlImporter_renderEditable( data.originalItems, function( item, p ) {
                 return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
             }) )
     );
@@ -2059,6 +2450,11 @@ function tlImporter_renderDiffView( data ) {
     // sleep if the reader undoes their change. In the chaptered case the box starts EMPTY, so
     // the very same rule keeps it asleep until the reader has written something.
     var applyButton = $( '<button id="mdb-tlImporter-apply" class="hand oo-ui-inputWidget-input oo-ui-buttonElement-button" type="button">Apply</button>' );
+
+    // Merge in FRONT of Apply, and only where there are two boxes to merge: an insert has no
+    // Original column (the page's section was empty), so there is nothing to merge against.
+    // The order is the order of the work - merge what the two boxes hold, then write it.
+    if( !inserted ) applyWrap.append( tlImporter_reMergeButton( "mdb-tlImporter-remerge" ) );
 
     applyWrap.append( applyButton );
 
@@ -2107,7 +2503,7 @@ function tlImporter_renderDiffView( data ) {
             .addClass( "mdb-tlImporter-col-candidate" )
             .append( handPasting
                 ? tlImporter_handPasteBody()
-                : tlImporter_handWrapBody( tlImporter_renderPre( data.items, function( item, p ) {
+                : tlImporter_handWrapBody( tlImporter_renderEditable( data.items, function( item, p ) {
                     if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
                     if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
                     return "";
@@ -2226,6 +2622,10 @@ function tlImporter_renderDiffView( data ) {
     // merge mode's two columns are held to one height, in both states - see
     // tlImporter_handMatchHeights
     if( hand ) tlImporter_handMatchHeights( wrap );
+
+    // the two boxes as they stand are what this block's merge was made of, so the Merge button
+    // starts asleep - see tlImporter_reMergeSnapshot
+    tlImporter_reMergeSnapshot( wrap );
 
     // the boxes have their final height only now - the grab bars' rails are drawn to match it
     tlImporter_alignResizers( cols );
@@ -2841,6 +3241,9 @@ function tlImporter_handSetHelp( wrap, state ) {
 
         help.attr( "title", text ).text( text );
     });
+
+    // down, the Merged column's copy of these two lines stands above the site's editor
+    tlImporter_syncDownHead( wrap );
 }
 
 // tlImporter_handWrapBody
@@ -2967,7 +3370,10 @@ function tlImporter_refreshHandMerge() {
     button
         .prop( "disabled", false )
         .removeClass( "mdb-tlImporter-locked" )
-        .text( merged || typed ? "Merge" : "Paste clipboard & merge" )
+        // "Merge another" and not "Merge" once a merge has run: from that moment there is a
+        // second Merge button beside Apply, the one that re-merges the two boxes on screen.
+        // Two buttons with the same word on them in one block say nothing about which is which.
+        .text( merged ? "Merge another" : typed ? "Merge" : "Paste clipboard & merge" )
         .attr( "title", merged
             ? "Merge the NEXT tracklist into this one: the Candidate column is emptied, what you copied goes in, and the merge runs - all on this click.\nThe result so far stays and the next merge builds on it."
             : typed
@@ -3100,42 +3506,18 @@ function tlImporter_handNote( wrap, text ) {
 // two MutationObservers; tearing it down and building it again would have to restore all of
 // that, and the one thing that actually changes is the content of three boxes.
 function tlImporter_handFillColumns( wrap, res, finalTl, feedback ) {
-    // Original: the verbatim rows the block opened with give way to the merge's reading of
-    // the same list, with what the merge rewrote flagged
-    wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).first()
-        .replaceWith( tlImporter_renderPre( res.originalItems, function( item, p ) {
-            return item.changed && item.changed[ p ] === true ? "mdb-tlImporter-changed" : "";
-        }) );
-
-    // Candidate: the paste box gives way to the usual highlighted list, plus the way back
-    wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-cand-body" ).first()
-        .replaceWith( tlImporter_handWrapBody( tlImporter_renderPre( res.diffItems, function( item, p ) {
-            if( item.used && item.used[ p ] === true ) return "mdb-tlImporter-used";
-            if( item.use && item.use[ p ] === false ) return "mdb-tlImporter-unused";
-            return "";
-        }) ) );
+    // the verbatim rows the block opened with (Original) and the paste box (Candidate) both
+    // give way to the merge's reading of the two lists - the same three boxes a re-merge
+    // fills, so it is the same function
+    tlImporter_fillMergedColumns( wrap, res, finalTl, feedback );
 
     tlImporter_handActions( wrap );
-
-    // Merged: wherever that box currently is. mdbTlboxKnown travels with the text so the next
-    // blur does not re-ask for a verdict this merge already paid for; the input event is what
-    // re-sizes the box and wakes the Apply watcher.
-    var box = tlImporter_mergedBox( wrap );
-
-    if( box.length ) {
-        box.data( "mdbTlboxKnown", finalTl );
-        box.val( finalTl );
-        box.get( 0 ).dispatchEvent( new Event( "input", { bubbles: true } ) );
-
-        if( feedback && feedback.text ) tlBoxRenderFeedback( box, feedback );
-    }
-
     tlImporter_handSetHelp( wrap, "merged" );
 
     wrap.children( "legend" ).html( "<strong>Merge mode</strong> – nothing is written to the page until you press Apply" );
 
-    // the two columns are <pre>s now, and they are held level as they were while one of them
-    // was the paste box - the merged pair is the one that gets read side by side the longest
+    // the two columns are highlighted boxes now, and they are held level as they were while
+    // one of them was the paste box - the merged pair is read side by side the longest
     tlImporter_handMatchHeights( wrap );
 
     // the boxes have new heights - the grab bars' rails are drawn to match them
@@ -3192,13 +3574,14 @@ function tlImporter_handMergeRun() {
             feedback: null
         };
 
-        wrap.find( ".mdb-tlImporter-col-original pre.mdb-tlImporter-pre" ).first()
-            .replaceWith( tlImporter_renderPre( chapterData.originalItems, function() { return ""; } ) );
+        wrap.find( ".mdb-tlImporter-col-original .mdb-tlImporter-hl" ).first()
+            .replaceWith( tlImporter_renderEditable( chapterData.originalItems, function() { return ""; } ) );
 
         wrap.find( ".mdb-tlImporter-col-candidate .mdb-tlImporter-cand-body" ).first()
             .replaceWith( tlImporter_handWrapBody(
-                tlImporter_renderPre( chapterData.items, function() { return ""; } ) ) );
+                tlImporter_renderEditable( chapterData.items, function() { return ""; } ) ) );
 
+        tlImporter_reMergeSnapshot( wrap );
         tlImporter_handActions( wrap );
         tlImporter_handMatchHeights( wrap );
 
@@ -3308,6 +3691,10 @@ function tlImporter_handPasteAgain() {
 
     tlImporter_handActions( wrap );
     tlImporter_handMatchHeights( wrap );
+
+    // no Candidate box any more - the paste box took its place, and the button beside Apply
+    // has nothing to merge until the next merge has run
+    tlImporter_refreshReMerge();
 
     wrap.find( "#mdb-tlImporter-candidate" ).trigger( "focus" );
 

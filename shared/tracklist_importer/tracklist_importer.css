@@ -324,8 +324,74 @@ body.mdb-tlImporter-resizing {
     margin-top: .5em;
 }
 
+/* The Original and Candidate columns are EDITABLE: the highlighted <pre> above stays where it
+ * is and becomes the backdrop, and a textarea with invisible text lies exactly on top of it.
+ * The <pre> is the one in the flow, so it still decides the column's height (and still answers
+ * the min-height merge mode measures onto it); the box just fills whatever that height is.
+ *
+ * Every value below is a COPY of the <pre>'s, on purpose and not by inheritance: font, size,
+ * line-height, padding, border box and both wrapping rules. If any one of them differs the two
+ * texts wrap at different words, and every highlight behind that point sits on the wrong one. */
+#mdb-tlImporter-diff .mdb-tlImporter-hl {
+    position: relative;
+}
+
+#mdb-tlImporter-diff .mdb-tlImporter-hl-input {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    /* transparent, not none: the border is a pixel of width, and without one here the text
+     * inside would start a pixel further left than the text in the <pre> under it */
+    border: 1px solid transparent;
+    border-radius: .3em;
+    background: transparent;
+    font-family: monospace, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    /* the <pre> under it is exactly as tall as this text, so there is never anything to
+     * scroll - and a scrollbar appearing here would shift the box's text against the pre's */
+    overflow: hidden;
+    resize: none;
+    /* the letters are the <pre>'s; only the caret and the selection are this box's */
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    caret-color: #202122;
+}
+
+/* translucent on purpose: an opaque selection would paint over the highlighted text in the
+ * <pre> behind it, and the reader would be selecting text they can no longer read */
+#mdb-tlImporter-diff .mdb-tlImporter-hl-input::selection {
+    background: rgba( 51, 102, 204, .25 );
+}
+
+/* the focus ring belongs to the box, so it is drawn on the box - it covers the <pre>'s own
+ * grey border, which is why that border is repeated here rather than removed there */
+#mdb-tlImporter-diff .mdb-tlImporter-hl-input:focus {
+    outline: none;
+    border-color: #36c;
+    box-shadow: inset 0 0 0 1px #36c;
+}
+
+/* edited since the last merge: the backdrop dropped its spans (tlImporter_hlStale), and the
+ * dashed border says the colours are gone until the next merge rather than simply absent */
+#mdb-tlImporter-diff .mdb-tlImporter-hl-stale > pre.mdb-tlImporter-pre {
+    border-style: dashed;
+}
+
+/* Merge and Apply under the Merged column, in that order - merge what the two boxes hold,
+ * then write it. Flex rather than text-align, so the two keep their gap at any width. */
 #mdb-tlImporter-diff .mdb-tlImporter-apply-wrap {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: .8em;
     margin-top: 8px;
 }
 
@@ -481,6 +547,31 @@ body.mdb-tlImporter-resizing {
     background-color: #fff8e1;
     border: 1px solid #ffe1a8;
     border-radius: .3em;
+}
+
+/* The hidden Merged column's heading and help line, copied above the site's own textarea
+ * while the block is down (tlImporter_syncDownHead). The rules above are scoped to
+ * #mdb-tlImporter-diff and this row stands outside the block, so they are repeated here.
+ *
+ * One difference on purpose: the help line WRAPS here instead of being cut with an ellipsis.
+ * The ellipsis up there protects the three columns from starting at different heights - down
+ * there is one box on the full width of the form, nothing to keep level, and a sentence cut
+ * off in the middle for no reason. */
+#mdb-tlImporter-downHead {
+    margin-bottom: 4px;
+}
+
+#mdb-tlImporter-downHead .mdb-tlImporter-col-head {
+    font-weight: bold;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#mdb-tlImporter-downHead .mdb-tlImporter-col-help {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 6px;
+    text-align: center;
 }
 
 /* the row below #tlEditor-formActions while the block is down: the Apply button and the Live
