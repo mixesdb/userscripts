@@ -558,6 +558,7 @@ body.mdb-tlImporter-resizing {
  * there is one box on the full width of the form, nothing to keep level, and a sentence cut
  * off in the middle for no reason. */
 #mdb-tlImporter-downHead {
+    margin-top: -5px;
     margin-bottom: 4px;
 }
 
