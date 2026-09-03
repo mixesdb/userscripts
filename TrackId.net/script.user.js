@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.03.1
+// @version      2026.09.03.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -15,7 +15,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_20
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_50
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_51
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_90
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
@@ -39,7 +39,7 @@
  * after the frame opt-out below, so foreign frames stay untouched
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-var cacheVersion = 226,
+var cacheVersion = 227,
     scriptName = "TrackId.net";
 window.scriptName = scriptName; // toolkit.js reads this global directly
 window.cacheVersion = cacheVersion; // same reason: the @require'd shared files cache-bust their own CSS with it
@@ -2838,6 +2838,18 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.09.03.2
+ * Tracklist Importer: the review block's Original and Candidate columns are EDITABLE
+ * (tracklist_importer funcs.js v51, CSS). The highlighted <pre> stays as the backdrop and a
+ * textarea with invisible text lies exactly on top of it, so the green/orange marking is
+ * still there while the text can be typed in. Editing a box drops that box's colours until
+ * the next merge - they describe a text that no longer stands there - and its border turns
+ * dashed to say so. A "Merge" button in front of Apply re-merges what the two boxes hold
+ * into the Merged box; with Live updates on, a typing pause does it by itself. Down, the
+ * Merged column's heading and help line now stand above the site's own Tracklist Editor box
+ * instead of disappearing with the hidden column, and merge mode's button below the columns
+ * says "Merge another" so the two are not both called "Merge".
  *
  * 2026.09.02.5
  * Page Creator (title_builder.js v_90, page_creator.js v_129): the upload date is cut down to the

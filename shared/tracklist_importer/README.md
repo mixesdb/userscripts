@@ -170,7 +170,8 @@ hand there.
 After a merge, a three-column block sits between MediaWiki's diff and the wiki textbox – after
 an insert it has two of them, see below:
 
-- **Original** – the tracklist the page had, with the parts the merge changed highlighted
+- **Original** – the tracklist the page had, with the parts the merge changed highlighted. The
+  box is editable: strike a row, fix a spelling, drop a line that is not a track at all
 - **Merged** – the result as applied, in the same editable [Tracklist box](../tracklist_editor/)
   the player sites show: it grows with the text, checks itself against the Tracklist Editor
   (with the Live updates switch, the API call counter and the row count under it – no
@@ -183,7 +184,25 @@ an insert it has two of them, see below:
 - **Candidate** – the tracklist the player site found: green marks the parts the merge took
   over, orange the parts it could not place – a label the page already had differently, a cue
   that was not taken, a track that found no spot. Salvage the orange parts by hand into the
-  Merged box if they are worth it; parts the page simply already had stay plain.
+  Merged box if they are worth it; parts the page simply already had stay plain. This box is
+  editable too – correct what the other source printed wrong before it is merged in.
+
+Original and Candidate are real text boxes now, not just something to read: click into either
+one and type. The colours stay where they are until you touch a box; the first keystroke drops
+them in that box, because they describe a merge of a text that no longer stands there, and its
+border turns dashed to say so. They come back the moment the merge runs again.
+
+A **Merge** button in front of Apply is what runs it: it takes what the two boxes hold at that
+moment, merges them, and puts the result in the Merged box – nothing is written to the page,
+Apply still does that. It is greyed out while neither box has been touched since the last merge.
+With the Tracklist Editor's **Live updates** switch on, no click is needed: a pause in your
+typing re-runs the merge by itself, the same way that switch already makes the Merged box check
+itself while you type. Each re-merge asks the Tracklist Editor once for the result's formatting,
+so with Live updates on it costs an API call per typing pause.
+
+After a merge both columns show the merge's reading of the two lists again – which is not
+always character for character what you typed: the parser drops `#` numbering, `''` italics and
+blank lines. What you see after the merge is what was actually merged.
 
 The bars between the columns can be dragged to give one of them more room – double-click a bar
 for three equal columns again. Every block starts with three equal columns: the widths belong to
@@ -196,8 +215,11 @@ The block is a fieldset named **Diff**, like the form's own sections. By default
 to the page's own full Tracklist Editor as soon as that section has loaded: block and editor
 section stand directly below the wiki's Save/Preview buttons, the Merged text goes into that
 editor, the empty Merged column disappears, and Original and Candidate stay side by side above
-it – so final fixes happen in the editor you know, with its menu, find/replace and undo. Below
-the editor's own buttons the block adds an **Apply** button and the Live updates switch (no
+it – so final fixes happen in the editor you know, with its menu, find/replace and undo. The
+**Merged** heading and its help line move down with the text and stand above that editor's box,
+so it still says what the box is holding. Below
+the editor's own buttons the block adds a **Merge** button, an **Apply** button and the Live
+updates switch (no
 tracklist state icons here either, for the same reason as in the Merged column).
 That Apply always writes what stands in the editor at the moment you click it, so anything the
 editor's own buttons just did to the text goes into the page with it; it is only greyed out
@@ -268,10 +290,15 @@ rather than the other source's.
 
 After the merge the three columns read exactly as after a link merge: the Original with what the
 merge changed highlighted, the merge result in the box, the pasted list with green for what was
-used and orange for what could not be placed. The button below still says **Merge**, and one
+used and orange for what could not be placed. Both of them are editable boxes from then on, with
+the **Merge** button in front of Apply re-merging what they hold – see the review block above.
+
+The button below the columns becomes **Merge another**, and one
 click on it does the whole next source at once: the Candidate column is emptied, what you copied
 goes in, and the merge runs – so several sources can go into one page one after the other, each
-building on the result of the last.
+building on the result of the last. Note that this is the only button that builds on the result
+so far: the **Merge** button in front of Apply always merges the two boxes on screen, so after
+several sources it starts from the page's tracklist in the Original box again.
 
 Original and Candidate are held to the same height throughout, before the merge and after it.
 Both sides are measured rather than counted in lines, so a long track row that wraps onto two
@@ -347,6 +374,12 @@ checked instead of guessed at. Where nothing could be measured the line says so 
   on such a page most found tracks stay in the Candidate column instead of being inserted. That
   is deliberate – see above – but it means the merge adds little there beyond cues and labels
   for the tracks it recognized.
+- Editing the Original or the Candidate box drops that box's colours until the next merge: they
+  describe the merge of a text that is no longer there, and colours left standing over an edited
+  line would mark the wrong words.
+- A re-merge shows the merge's reading of the two lists, not your keystrokes character for
+  character – `#` numbering, `''` italics and blank lines are dropped by the parser, as they
+  always have been in these two columns.
 - The candidate travels in the link's URL fragment; the link must be followed normally
   (left/middle/ctrl-click) for it to arrive. Merge mode has no link and no fragment – what you
   paste is what it merges.

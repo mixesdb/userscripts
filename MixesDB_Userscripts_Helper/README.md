@@ -60,7 +60,9 @@ On the edit form of a mix page that already has a tracklist, a small **Merge mod
 the Tracklist editor section's label, right behind its name. It opens the
 [Tracklist Importer](../shared/tracklist_importer/)'s review block in **merge mode**: one click
 on **Paste clipboard & merge** takes the tracklist you copied from anywhere, puts it in the
-Candidate column and merges it into the page's list; then read the three columns and **Apply**
+Candidate column and merges it into the page's list; then read and correct the three columns –
+Original and Candidate are editable boxes, and a **Merge** button next to Apply re-merges what
+they hold – and **Apply**
 writes the result back into the page – tracklist, `Tracklist:` category and indicator icons in
 one click. Nothing is written into the page, and nothing into the Tracklist Editor you may be
 working in, before a merge has run.
