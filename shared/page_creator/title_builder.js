@@ -3929,23 +3929,23 @@ function mdbTitle_lookupCategories( names, callback ) {
     logFunc( "mdbTitle_lookupCategories" );
 
     var wanted = [],
+        // one key is asked ONCE per call: the cache is only seeded further down, so nothing
+        // else stops two chunks that mdbTitle_askableName rewrites into the same question
+        // ("Hecklastig 009 >< Monokyma" and "Hecklastig 009 Monokyma") from burning two of the
+        // ten names the request takes
+        askedHere = {},
         i, key, name;
 
     for( i = 0; i < names.length; i++ ) {
-        // "#" is illegal in a wiki title, so a name carrying one ("DJ Mix #677") could only
-        // ever answer empty - it is asked with the "#" written out. The cache key ignores
-        // punctuation anyway, so the answer lands where every reader looks it up.
-        // Our own markers come off in the same breath (mdbTitle_dropMarkers): no category is
-        // called "... (Promo Mix)", so a caller handing one over is asking about a name that
-        // cannot exist. Here rather than in the callers alone, so no round can ask for one.
-        // ... and composed (mdbTitle_nfc), so the request carries what MediaWiki stores: the
-        // module answers a decomposed name with a "non-normalized data" warning and echoes it
-        // COMPOSED, and an answer whose name is spelled differently than the question lands
-        // under a cache key nobody reads.
-        name = mdbTitle_nfc( mdbTitle_dropMarkers( names[i] ) ).replace( /#/g, " " ).replace( /\s+/g, " " ).trim();
+        // The one askable form of the name - illegal title characters rewritten, our own
+        // markers off, composed. Here rather than in the callers alone, so no round can ask
+        // for a name the module has to refuse. See mdbTitle_askableName.
+        name = mdbTitle_askableName( names[i] );
         key = mdbTitle_normalizeCompare( name );
 
-        if( !key ) continue;
+        if( !key || askedHere[key] ) continue;
+
+        askedHere[key] = true;
 
         // A name that is nothing but a counting word can only answer empty, so it is not asked
         // and gets no chip in the panel - it was never a candidate
@@ -4036,6 +4036,22 @@ function mdbTitle_lookupCategories( names, callback ) {
         dataType: "json",
         data: apiData,
         success: function( data ) {
+            // A 200 carrying an ERROR instead of an answer. The module refuses the WHOLE
+            // request over a single bad name (mdbnames-invalid-name), and the loop below would
+            // read that as "the wiki has nothing" about every name in the batch - the one
+            // reading a report can never take back, because "no category of this name" is
+            // exactly what a real empty answer says. mdbTitle_askableName is what keeps our
+            // own names out of that trap; this is the net under it, and it says "lookup
+            // failed" on every chip of the batch instead of denying them.
+            if( data && data.error ) {
+                apiCall.status = "failed";
+                log( "mdbTitle_lookupCategories REFUSED (" + ( data.error.code || "?" ) + ": " +
+                     ( data.error.info || "" ) + ") - carrying on with the title alone." );
+                mdbTitle_lookupLogSettle( wanted, true );
+                callback( mdbTitle_categoryCache );
+                return;
+            }
+
             apiCall.status = "done";
 
             var entries = ( data && data.mdbnames ) || [],
@@ -4250,6 +4266,18 @@ function mdbTitle_lookupVariants( names, callback ) {
         dataType: "json",
         data: apiData,
         success: function( data ) {
+            // Same net as the round before - a refused request is no answer. Settled like this
+            // round's error branch (not failed): the NAME was asked and answered there, and
+            // only its second spelling died here.
+            if( data && data.error ) {
+                apiCall.status = "failed";
+                log( "mdbTitle_lookupVariants REFUSED (" + ( data.error.code || "?" ) + ": " +
+                     ( data.error.info || "" ) + ") - carrying on with what the first round answered." );
+                mdbTitle_lookupLogSettle( pending, false );
+                callback( mdbTitle_categoryCache );
+                return;
+            }
+
             apiCall.status = "done";
 
             var entries = ( data && data.mdbnames ) || [],
@@ -4774,6 +4802,37 @@ function mdbTitle_joinArtists( artist, extraArtists ) {
 // names a request takes, while "Unedited" is the name that can actually be known.
 function mdbTitle_dropMarkers( name ) {
     return String( name || "" ).replace( /\s*\(\s*(?:Promo Mix|Live\s*P\.?\s*A\.?)\s*\)\s*$/i, "" );
+}
+
+// mdbTitle_askableName
+// The one form a name can be asked about in - EVERY round that sends a name to action=mdbnames
+// runs through here (mdbTitle_lookupCategories, and through its log the row's prefix round).
+//
+// MediaWiki refuses "#<>[]|{}" in a page title, and the module answers a name carrying one of
+// them with an ERROR FOR THE WHOLE REQUEST - one bad name and every other name of the batch
+// comes back as if MixesDB had nothing. Reported 2026-09-04 on "Hecklastig #009 >< Monokyma":
+// the chunk "Hecklastig 009 >< Monokyma" killed the round, so Category:Monokyma (3 mixes) and
+// Category:Hecklastig (8 mixes) were both denied although they sit right there - and the row
+// then offered them as "similar" names, which is how it came out at all.
+//
+// They are rewritten to a SPACE rather than dropped: "DJ Mix #677" is asked as "DJ Mix 677",
+// and a decoration like "><" leaves the two names it separated standing apart instead of
+// gluing them into one word. "|" has a second reason - it IS the separator of the request's
+// names parameter, so a name carrying one would silently split into two questions.
+// The cache key ignores punctuation anyway (mdbTitle_normalizeCompare), so the answer lands
+// where every reader looks it up.
+//
+// Our own markers come off in the same breath (mdbTitle_dropMarkers): no category is called
+// "... (Promo Mix)", so a caller handing one over is asking about a name that cannot exist.
+// ... and the result is composed (mdbTitle_nfc), so the request carries what MediaWiki stores:
+// the module answers a decomposed name with a "non-normalized data" warning and echoes it
+// COMPOSED, and an answer whose name is spelled differently than the question lands under a
+// cache key nobody reads.
+function mdbTitle_askableName( name ) {
+    return mdbTitle_nfc( mdbTitle_dropMarkers( name ) )
+               .replace( /[#<>\[\]|{}]/g, " " )
+               .replace( /\s+/g, " " )
+               .trim();
 }
 
 // mdbTitle_splitArtists

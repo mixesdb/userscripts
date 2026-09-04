@@ -565,3 +565,31 @@ every other one.
 
 Load: one extra request per CHANNEL (cached for the tab), and only where the name lookups left
 the artist or the entity slot open. See "The channel-URL round" in `CLAUDE.md`.
+
+
+## 14. Note: one invalid name refuses the whole request (found 2026-09-04)
+
+Nothing needed from you - written down because it cost a real title and because the behaviour is
+worth knowing before somebody asks for a batch of names again.
+
+A name carrying a character MediaWiki refuses in a page title makes the module answer with an
+error for the ENTIRE request instead of an empty `matches` for that one name:
+
+```
+action=mdbnames&names=Hecklastig|Hecklastig 009 >< Monokyma|Hecklastig 009|Monokyma
+```
+
+```json
+{ "error": { "code": "mdbnames-invalid-name",
+             "info": "The name 'Hecklastig 009 >< Monokyma' is not a valid category title." } }
+```
+
+`Category:Monokyma` (artist, 3 mixes) and `Category:Hecklastig` (podcast, 8 mixes) both exist and
+answer perfectly well on their own - they were denied because they shared a request with a chunk
+of the SoundCloud title `Hecklastig #009 >< Monokyma`.
+
+Handled on our side (`mdbTitle_askableName`): `#<>[]|{}` are rewritten to a space before a name
+is asked about, so nothing invalid leaves the client any more, and every round now tells a `200`
+carrying an `error` apart from a real empty answer. The one thing that would be nicer from the
+server is a per-name verdict - an invalid name answering `"matches": []` like any unknown name,
+so a batch is never all-or-nothing - but it is not worth a change on its own.

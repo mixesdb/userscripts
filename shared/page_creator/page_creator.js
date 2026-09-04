@@ -2366,12 +2366,41 @@ function mdbPageCreator_prefixEnsure( title ) {
                       " MixesDB has no category of (" + wanted.join( ", " ) + ") - the \"Similar:\" row",
                       apiData );
 
+    // The one way this round can end badly - a dead request, or a 200 the module filled with an
+    // error instead of an answer. Both leave the names ASKED AND UNANSWERED, which is what
+    // section 8 and the report's "Similar lookups" block then say; settling them as "done" would
+    // put "no category starts like this name either" under a name nobody looked at.
+    function prefixFailed() {
+        apiCall.status = "failed";
+
+        for( var i = 0; i < wanted.length; i++ ) {
+            mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( wanted[i] ) ].status = "failed";
+        }
+
+        // the failure is a line in the box as much as in the panel - same two surfaces
+        var row = $("#mdb-pageCreator");
+
+        mdbPageCreator_fillReport( row );
+        mdbPageCreator_renderReasoning( row );
+    }
+
     $.ajax({
         url: mdbTitle_categoryApiUrl,
         type: "get",
         dataType: "json",
         data: apiData,
         success: function( data ) {
+            // A 200 carrying an ERROR is not an empty answer: the module refuses the whole
+            // request over one bad name, and the settle below would make section 8 say "no
+            // category starts like this name either" about names it never got to look at.
+            // Routed through the error branch, which says so.
+            if( data && data.error ) {
+                log( "mdbPageCreator_prefixEnsure REFUSED (" + ( data.error.code || "?" ) + ": " +
+                     ( data.error.info || "" ) + ") for " + wanted.join( " | " ) );
+                prefixFailed();
+                return;
+            }
+
             apiCall.status = "done";
 
             var rows = ( data && data.mdbnames ) || [],
@@ -2424,18 +2453,8 @@ function mdbPageCreator_prefixEnsure( title ) {
             mdbPageCreator_renderReasoning( row );
         },
         error: function( xhr, status ) {
-            apiCall.status = "failed";
             log( "mdbPageCreator_prefixEnsure FAILED (" + status + ") for " + wanted.join( " | " ) );
-
-            for( var i = 0; i < wanted.length; i++ ) {
-                mdbPageCreator_prefixCache[ mdbTitle_normalizeCompare( wanted[i] ) ].status = "failed";
-            }
-
-            // the failure is a line in the box as much as in the panel - same two surfaces
-            var row = $("#mdb-pageCreator");
-
-            mdbPageCreator_fillReport( row );
-            mdbPageCreator_renderReasoning( row );
+            prefixFailed();
         }
     });
 }
