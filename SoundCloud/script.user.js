@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.04.2
+// @version      2026.09.04.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,7 +16,7 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_91
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_130
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_131
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_60
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
 // @include      http*soundcloud.com*
@@ -32,6 +32,7 @@
 // @connect      is.gd
 // @connect      cutt.ly
 // @connect      shorturl.at
+// @connect      shorturl.fm
 // @run-at       document-end
 // ==/UserScript==
 
@@ -2017,6 +2018,13 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.09.04.3
+ * Page Creator (page_creator.js v_131): shorturl.fm is followed like bit.ly now, so a
+ * description that writes "Check out episode 105 on TU https://shorturl.fm/..." instead of the
+ * episode page itself can still fill the created page's "== Notes ==" section. Its own host,
+ * not a typo for the shorturl.at already in the list, and a plain 302 with a Location header.
+ * Added to the @connect list too - without it the reader gets a permission dialog.
  *
  * 2026.09.04.2
  * Page Creator (title_definitions.js v_58, title_builder.js v_91, page_creator.js v_130), four
