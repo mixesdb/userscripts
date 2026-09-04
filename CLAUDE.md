@@ -11,6 +11,11 @@ Userscripts that help contributors of the mixesdb.com (MixesDB) Wiki.
 
 ## Structure
 - `<script-name-with-underscores>/` - one .user.js file per userscript, named `script.user.js`
+- `Tracklist_box_userscripts/<script-name>/` - the site scripts whose only feature is the shared
+  Tracklist box (BBC, Discogs, NTS, radioeins, The Lot Radio, True Underground). Same layout per
+  folder, just one level down: their `@updateURL`/`@downloadURL`, the README install links, the
+  README's relative `../../shared/` links and a script's own `script.css` path in `loadRawCss()`
+  all carry that extra folder.
 - No shared build system; each script must work standalone when copy-pasted into a userscript manager
 - Each script can has own script.css files in the same folder
 - Each script can `@require` shared code from `/shared/`, e.g. `/shared/global.js`.
@@ -88,7 +93,7 @@ Every script must start with a complete `==UserScript==` metadata block:
   messages and in every Markdown file. The only em dashes allowed in this repo are the ones that
   are DATA: character classes and separator patterns that have to match an em dash in a scraped
   title (`title_builder.js`, `title_definitions.js`, `tracklist_detector.js`,
-  `Discogs/script.user.js`), and the test fixtures in `tracklist_examples.js`. Never "fix" those.
+  `Tracklist_box_userscripts/Discogs/script.user.js`), and the test fixtures in `tracklist_examples.js`. Never "fix" those.
   A grep for U+2014 across `*.md` must stay empty.
 - Prefer plain JS, but do not change existing jQuery code
 - Wrap script body in an IIFE: `(function() { ... })();` right after `// ==/UserScript==`, closed at end of file. No `'use strict'` – too risky to audit every implicit global across this much legacy jQuery code; a silent bug would become a hard `ReferenceError`.
@@ -142,7 +147,7 @@ fine and every page after it is stale or empty:
   3. Check browser console for errors on page load
 
 ## Common Tasks
-- Adding a new script: create `<Script_Name>/script.user.js`, follow header template above, write its `README.md` (see Feature Docs) and add a row to the root README.md table
+- Adding a new script: create `<Script_Name>/script.user.js` (under `Tracklist_box_userscripts/` when the Tracklist box is its only feature), follow header template above, write its `README.md` (see Feature Docs) and add a row to the root README.md table (plus the folder's own README.md table for a Tracklist box script)
 - Updating a script: bump `@version`, note change in a `## Changelog` comment block at bottom of file if non-trivial
 - Adding new features to a userscript or shared script: Log debugging diagnostics for crucial steps from the beginning not just when bugs occur
 - Renaming/moving a script: update `@namespace`/`@updateURL`/`@downloadURL` if present, since users' managers track updates by these

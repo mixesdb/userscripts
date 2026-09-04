@@ -1,0 +1,26 @@
+/*
+ * Text selection
+ *
+ * The site's "protection" script (hmwp) appends this to the END of the body:
+ *
+ *     body * :not(input):not(textarea) { user-select: none !important; ... }
+ *
+ * Coming later in the document it beats anything of equal specificity in <head>, so this is
+ * won on specificity, not on order: html + body + :not + :not is 0,0,4 against its 0,0,3.
+ * "auto" rather than "text", so buttons and images keep their normal behaviour. The event
+ * side of the same blocker (contextmenu, copy, keydown) is handled in script.user.js.
+ */
+html body * :not(input):not(textarea) {
+    user-select: auto !important;
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -webkit-touch-callout: default !important;
+}
+
+/*
+ * Its "Right click is disabled!" toast. Nothing of ours lets it fire any more, but should the
+ * site add another blocked shortcut, this keeps the toast down for that one too.
+ */
+#disable_msg {
+    display: none !important;
+}

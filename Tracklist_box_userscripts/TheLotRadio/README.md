@@ -3,8 +3,8 @@
 Turns a The Lot Radio show tracklist into MixesDB wiki syntax.
 
 - **Runs on:** thelotradio.com – show pages
-- **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/TheLotRadio/script.user.js)
-- **Shared features:** [Tracklist box](../shared/tracklist_editor/)
+- **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_box_userscripts/TheLotRadio/script.user.js)
+- **Shared features:** [Tracklist box](../../shared/tracklist_editor/)
 
 ## Features
 
