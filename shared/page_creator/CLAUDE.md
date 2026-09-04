@@ -1322,10 +1322,21 @@ does not get re-litigated:
   host a series and still upload a festival set. The support is re-run per TITLE while the
   answer is cached per CHANNEL: the second track of the same channel asks the title question
   again, not the wiki.
-- **Two more fences.** Several linking categories that this title backs EQUALLY leave it alone
-  (`ambiguous` - a channel with an artist category and a show category is exactly where only the
-  title can pick), and a category MixesDB gives no TYPE is never applied (typeless means neither
-  artist nor series). An ARTIST category carries `show: ""`: it says the channel is a person, so
+- **The signals are WEIGHED, not counted** (2026-09-04). Each one carries a number - 8 for the
+  title writing the category name, 6/5 for the episode-id ones, 3 for a denied name that THIS
+  title writes opening it, 2 for one only the channel carries and 2 for the channel and the
+  category name opening each other - and the categories are ranked by the sum
+  (`mdbPageCreator_channelCatSupportWeight`; `mdbPageCreator_channelCatSupportText` prints the
+  sentences, the numbers are never shown). Counted instead, a fact about the CHANNEL, true of
+  every category it links, weighed as much as a name read off this title: two categories linked
+  `soundcloud.com/trueundergroundone`, `True Underground` was backed by the channel name and
+  `True Techno Podcast` by the title's own "True Techno", and the tie left the title with the
+  wrong show. Which of a channel's series THIS upload belongs to is a question only the title
+  can answer, so a title signal has to outweigh a channel one.
+- **Two more fences.** Several linking categories that this title backs EQUALLY - equal WEIGHT
+  now - leave it alone (`ambiguous` - a channel with an artist category and a show category is
+  exactly where only the title can pick), and a category MixesDB gives no TYPE is never applied
+  (typeless means neither artist nor series). An ARTIST category carries `show: ""`: it says the channel is a person, so
   no show name grows from it - correcting the artist's SPELLING from it is not done and is a
   README limitation.
 - **The gate is the half-miss, not the total one** (`mdbPageCreator_channelCatWanted`): the

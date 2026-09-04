@@ -3741,15 +3741,27 @@ function mdbPageCreator_titleEpisodeIds( text ) {
 // channel name and the cleaned words, the player title carries what the uploader really wrote
 // (the id "EGE.090" survives in both, a "Free Download" tag only in one).
 //
+// Each signal carries a WEIGHT, and every sentence comes back as { text, weight }. The weight
+// is not about this one category - it is what picks between SEVERAL categories linking the same
+// channel. Counted instead of weighed, "the channel name opens the category name" - a fact
+// about the channel, and true of every category it links - weighed as much as a name read off
+// THIS title, and the two answers came out equal ("ambiguous", nothing applied). Reported
+// 2026-09-04: soundcloud.com/trueundergroundone is linked from Category:True Underground and
+// from Category:True Techno Podcast, and only the title ("True Techno 111 - Pan-Pot") says
+// which of the two this upload belongs in.
+//
 // The signals, strongest first:
-// 1. the title WRITES the category name - nothing to infer at all
-// 2. the category's own pages number their episodes with an id this title carries
+// 1. (8) the title WRITES the category name - nothing to infer at all
+// 2. (6) the category's own pages number their episodes with an id this title carries
 //    (mdbTitle_seriesIdPrefix off the recent titles the name lookup brought along)
-// 3. that id spells the category's initials - the same evidence one step weaker, for a series
-//    whose MixesDB pages do not write the id (a category filled from another platform)
-// 4. the channel name opens the category name, or the other way round ("HATE" / "HATE Podcast")
-// 5. a name the wiki DENIED opens it - the denied candidate and the category are the same
-//    series under two spellings ("Deep Space" / "Deep Space Series")
+// 3. (5) that id spells the category's initials - the same evidence one step weaker, for a
+//    series whose MixesDB pages do not write the id (a category filled from another platform)
+// 4. (3/2) a name the wiki DENIED opens it - the denied candidate and the category are the same
+//    series under two spellings ("Deep Space" / "Deep Space Series"). 3 where THIS title writes
+//    the denied name, 2 where it is only the channel's own name coming back denied: the first
+//    says something about this upload, the second only about the channel
+// 5. (2) the channel name opens the category name, or the other way round ("HATE" / "HATE
+//    Podcast") - true of the channel however many series it hosts
 function mdbPageCreator_channelCatSupport( catTitle, match, title ) {
     var player = mdbPageCreator_sourceTitle || "",
         channel = mdbPageCreator_sourceChannel || "",
@@ -3761,7 +3773,7 @@ function mdbPageCreator_channelCatSupport( catTitle, match, title ) {
 
     // 1) the title writes it
     if( mdbPageCreator_titleWritesName( player, catTitle ) || mdbPageCreator_titleWritesName( title, catTitle ) ) {
-        out.push( "the title writes \"" + catTitle + "\"" );
+        out.push( { text: "the title writes \"" + catTitle + "\"", weight: 8 } );
     }
 
     // 2) its pages number their episodes with an id this title carries
@@ -3769,7 +3781,7 @@ function mdbPageCreator_channelCatSupport( catTitle, match, title ) {
 
     for( i = 0; scheme && i < ids.length; i++ ) {
         if( ids[i].toUpperCase() === scheme.toUpperCase() ) {
-            out.push( "its pages number their episodes \"" + scheme + " <n>\", the id this title carries" );
+            out.push( { text: "its pages number their episodes \"" + scheme + " <n>\", the id this title carries", weight: 6 } );
             break;
         }
     }
@@ -3781,41 +3793,78 @@ function mdbPageCreator_channelCatSupport( catTitle, match, title ) {
 
     for( i = 0; initials.length > 1 && i < ids.length; i++ ) {
         if( ids[i].length > 1 && initials.indexOf( ids[i].toUpperCase() ) === 0 ) {
-            out.push( "\"" + ids[i] + "\" in the title spells the category's initials (" + initials + ")" );
+            out.push( { text: "\"" + ids[i] + "\" in the title spells the category's initials (" + initials + ")", weight: 5 } );
             break;
         }
     }
 
-    // 4) the channel name and the category name open each other
-    if( channel && ( mdbPageCreator_nameStartsName( channel, catTitle ) || mdbPageCreator_nameStartsName( catTitle, channel ) ) ) {
-        out.push( "the channel name \"" + channel + "\" and the category name open each other" );
-    }
-
-    // 5) a name the wiki denied is the same series spelled otherwise
+    // 4) a name the wiki denied is the same series spelled otherwise - and where the TITLE
+    // writes that name it is this upload speaking, not the channel: "True Techno" is a chunk
+    // of "True Techno 111 - Pan-Pot" and opens Category:True Techno Podcast, which is what
+    // tells that category from the other one the same channel links.
     for( i = 0; i < log.length; i++ ) {
         if( log[i].pending || log[i].failed || log[i].skipped ) continue;
         if( mdbTitle_knownMatch( cache, log[i].name, null ) ) continue;
         if( !mdbPageCreator_nameStartsName( log[i].name, catTitle ) ) continue;
 
-        out.push( "\"" + log[i].name + "\", which MixesDB has no category of, opens it" );
+        var writesDenied = mdbPageCreator_titleWritesName( player, log[i].name ) ||
+                           mdbPageCreator_titleWritesName( title, log[i].name );
+
+        out.push( { text: "\"" + log[i].name + "\", which MixesDB has no category of, opens it" +
+                          ( writesDenied ? " - and this title writes it" : "" ),
+                    weight: writesDenied ? 3 : 2 } );
         break;
+    }
+
+    // 5) the channel name and the category name open each other
+    if( channel && ( mdbPageCreator_nameStartsName( channel, catTitle ) || mdbPageCreator_nameStartsName( catTitle, channel ) ) ) {
+        out.push( { text: "the channel name \"" + channel + "\" and the category name open each other", weight: 2 } );
     }
 
     return out;
 }
 
+// mdbPageCreator_channelCatSupportWeight
+// What a title backs a category with, as one number: the sum of its signals' weights. The
+// number orders the categories a channel links, nothing else - a category with one strong
+// signal outranks one with two weak ones, which is the whole point of weighing them.
+function mdbPageCreator_channelCatSupportWeight( support ) {
+    var sum = 0,
+        i;
+
+    for( i = 0; i < ( support || [] ).length; i++ ) sum += ( support[i].weight || 0 );
+
+    return sum;
+}
+
+// mdbPageCreator_channelCatSupportText
+// The sentences of a support list, joined the way the panel and the report box print them.
+// The weights are for the ranking and are never shown: a reader checks the sentence, and a
+// number next to it would only invite an argument about the number.
+function mdbPageCreator_channelCatSupportText( support ) {
+    var texts = [],
+        i;
+
+    for( i = 0; i < ( support || [] ).length; i++ ) texts.push( support[i].text );
+
+    return texts.join( ", and " );
+}
+
 // mdbPageCreator_channelCatFinding
 // The round's verdict for THIS title: { cat, match, support, show } or null. cat is the
 // category whose page links the channel, match the wiki's answer about it (type, mix count,
-// recent pages), support the sentences that back it and show the name the parse is handed -
-// "" for an ARTIST category, which says the channel is a person, not a series.
+// recent pages), support the { text, weight } sentences that back it and show the name the
+// parse is handed - "" for an ARTIST category, which says the channel is a person, not a series.
 //
 // Of several linking categories the best BACKED one wins, and only when it is backed better
 // than the rest: a channel with an artist AND a show category (Deep Space Helsinki has both)
 // is exactly where the title has to pick, and where it says nothing about either, nothing
-// picks - `ambiguous` marks that and the apply stops at it. A mix count is no argument here:
-// which of a channel's two categories THIS upload belongs in is not decided by which of them
-// is fuller. It only orders two answers the title backs equally, so the panel names one.
+// picks - `ambiguous` marks that and the apply stops at it. "Better" is the summed WEIGHT of
+// the signals, not how many of them there are: one signal read off this title says more about
+// which series this upload is than two that only describe the channel. A mix count is no
+// argument here at all: which of a channel's two categories THIS upload belongs in is not
+// decided by which of them is fuller. It only orders two answers of equal weight, so the panel
+// names one.
 // A category MixesDB answers nothing about is never picked - see the section comment.
 function mdbPageCreator_channelCatFinding( entry, title ) {
     var cache = ( typeof mdbTitle_categoryCache !== "undefined" && mdbTitle_categoryCache ) ? mdbTitle_categoryCache : {},
@@ -3844,10 +3893,13 @@ function mdbPageCreator_channelCatFinding( entry, title ) {
     if( !typed.length ) return null;
 
     typed.sort( function( a, b ) {
-        return ( b.support.length - a.support.length ) || ( ( b.match.mixes || 0 ) - ( a.match.mixes || 0 ) );
+        return ( mdbPageCreator_channelCatSupportWeight( b.support ) - mdbPageCreator_channelCatSupportWeight( a.support ) ) ||
+               ( ( b.match.mixes || 0 ) - ( a.match.mixes || 0 ) );
     } );
 
-    typed[0].ambiguous = typed.length > 1 && typed[1].support.length === typed[0].support.length;
+    typed[0].ambiguous = typed.length > 1 &&
+                         mdbPageCreator_channelCatSupportWeight( typed[1].support ) ===
+                         mdbPageCreator_channelCatSupportWeight( typed[0].support );
     typed[0].others = typed.slice( 1 );
 
     return typed[0];
@@ -6517,7 +6569,7 @@ function mdbPageCreator_reportChannelCat( title ) {
     else if( !found.show ) lines.push( "* not used as a show: \"" + found.cat.title + "\" is an artist category" );
     else if( !found.support.length ) lines.push( "* not used: nothing in this title backs \"" + found.cat.title + "\"" );
     else if( found.ambiguous ) lines.push( "* not used: this title backs several of them equally" );
-    else lines.push( "* used: the channel's uploads are filed under \"" + found.cat.title + "\" - backed by " + found.support.join( ", and " ) );
+    else lines.push( "* used: the channel's uploads are filed under \"" + found.cat.title + "\" - backed by " + mdbPageCreator_channelCatSupportText( found.support ) );
 
     return lines;
 }
@@ -7634,7 +7686,7 @@ function mdbPageCreator_reasoningChannelCat( title ) {
 
     return row.append( mdbPageCreator_reasoningNote(
         "the channel's uploads are filed under \"" + found.cat.title + "\" (" + what + ") - backed by " +
-        found.support.join( ", and " ), "good" ) );
+        mdbPageCreator_channelCatSupportText( found.support ), "good" ) );
 }
 
 // mdbPageCreator_reasoningApiCalls

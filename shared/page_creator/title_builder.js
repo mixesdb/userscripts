@@ -1036,6 +1036,29 @@ function mdbTitle_showSuffixWords() {
     ];
 }
 
+// mdbTitle_showWithoutSuffixWord
+// A show name minus the suffix word it ENDS in ("True Techno Podcast" -> "True Techno"), or ""
+// where it ends in none or where taking it off leaves too little to recognise the show by.
+//
+// What it is for: a title writing a curated or looked-up show name SHORT, with the episode
+// number standing where the word stands in the name ("True Techno 111 - Pan-Pot" on a channel
+// MixesDB files under "True Techno Podcast"). The suffix word is the one part of a series name
+// an uploader leaves out - their own channel already says what the thing is.
+//
+// Two guards, both about the base being a NAME rather than a common word: four characters at
+// least, and no series word left in it. Without the second, "Radio Show" would go looking for
+// "Radio" in every title, and a word off the list names no show on its own - the same call
+// mdbTitle_dropCutLeftoverBit makes about a word left standing alone.
+function mdbTitle_showWithoutSuffixWord( show ) {
+    var m = new RegExp( "^(.*\\S)\\s+(?:" + mdbTitle_wordListAlternation( mdbTitle_showSuffixWords() ) + ")$", "i" )
+                .exec( String( show || "" ).trim() ),
+        base = m ? m[1].trim() : "";
+
+    if( !base || base.length < 4 || mdbTitle_hasSeriesWord( base ) ) return "";
+
+    return base;
+}
+
 // mdbTitle_channelInsideKnownName
 // Whether the channel name found at index/length stands INSIDE a longer name MixesDB knows as
 // an artist - "hogi" inside "Hogi Wirjono", a category with mixes of its own. Then the word is
@@ -1123,33 +1146,64 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
     // tracked as they are built - a hard-coded m[2]/m[3] would silently read the wrong group.
     // The name is a group of its own because its spaces are optional: how long it stands in the
     // title is not its own length ("FrenzyPodcast" is 14 characters of "Frenzy Podcast").
-    var pattern = "(^|[^\\w])(" + mdbTitle_escapeReLooseSpaces( show ) + ")",
-        nameGroup = 2,
+    var nameGroup = 2,
         suffixGroup = 0,
         wordGroup = 0,
         numberGroup = 0,
         groups = 2;
 
-    if( allowExtend ) {
-        // "HATE" + " Podcast" -> the show is "HATE Podcast"
-        pattern += "(\\s+(?:" + mdbTitle_showSuffixWords().join("|") + "))?";
-        suffixGroup = ++groups;
+    // Built per NAME rather than once, because the title may write the show SHORT and the
+    // second attempt below then needs the same groups around a different name.
+    function showRe( name, extend ) {
+        var pattern = "(^|[^\\w])(" + mdbTitle_escapeReLooseSpaces( name ) + ")";
 
-        // "EG" + " AFTER.188" -> the show is "EG AFTER", numbered 188. ANY word is allowed
-        // here, but only together with the number behind it: the number is what says the word
-        // belongs to the series name rather than being the start of the artist.
-        pattern += "(?:(?:\\s+([A-Za-z][A-Za-z0-9]*))?\\.(\\d{1,5}))?";
-        wordGroup = ++groups;
-        numberGroup = ++groups;
-    } else {
-        // a mapped channel name is curated and never gains a word from the title, but a
-        // number written onto it is still its episode number
-        pattern += "(?:\\.(\\d{1,5}))?";
-        numberGroup = ++groups;
+        nameGroup = 2;
+        suffixGroup = 0;
+        wordGroup = 0;
+        numberGroup = 0;
+        groups = 2;
+
+        if( extend ) {
+            // "HATE" + " Podcast" -> the show is "HATE Podcast"
+            pattern += "(\\s+(?:" + mdbTitle_showSuffixWords().join("|") + "))?";
+            suffixGroup = ++groups;
+
+            // "EG" + " AFTER.188" -> the show is "EG AFTER", numbered 188. ANY word is allowed
+            // here, but only together with the number behind it: the number is what says the word
+            // belongs to the series name rather than being the start of the artist.
+            pattern += "(?:(?:\\s+([A-Za-z][A-Za-z0-9]*))?\\.(\\d{1,5}))?";
+            wordGroup = ++groups;
+            numberGroup = ++groups;
+        } else {
+            // a mapped channel name is curated and never gains a word from the title, but a
+            // number written onto it is still its episode number
+            pattern += "(?:\\.(\\d{1,5}))?";
+            numberGroup = ++groups;
+        }
+
+        return new RegExp( pattern + "(?![\\w])", "i" );
     }
 
-    var re = new RegExp( pattern + "(?![\\w])", "i" ),
-        m = re.exec( text );
+    var m = showRe( show, allowExtend ).exec( text ),
+        // the SHORT form of the name, where that is what the title wrote - "" otherwise
+        shortForm = "";
+
+    // The title writes the show name short: a name ending in a suffix word stands in the title
+    // without it, the episode number in its place - "True Techno 111 - Pan-Pot" on a channel
+    // MixesDB files under "True Techno Podcast". The mirror of the extend above, and the same
+    // fact read from the other side: the word says "series", and whether the uploader typed it
+    // or only the category carries it says nothing about which series this is.
+    // Without it the show is nowhere in the title, so the whole title becomes the artist and
+    // its two halves are glued into one name that is nobody ("True Techno 111 Pan-Pot").
+    // The name the RESULT carries stays the full one either way - the title writing it short
+    // does not rename the category (reported 2026-09-04).
+    if( !m ) {
+        shortForm = mdbTitle_showWithoutSuffixWord( show );
+
+        // no extend on the short form: the only word it could grow back is the one just taken
+        // off, and any OTHER word off the list would build a name neither side ever wrote
+        if( shortForm ) m = showRe( shortForm, false ).exec( text );
+    }
 
     if( !m ) return result;
 
@@ -1157,8 +1211,10 @@ function mdbTitle_takeShowOutOfTitle( text, show, allowExtend, known ) {
         index = m.index + lead,
         length = m[0].length - lead;
 
-    // "hogi" inside "Hogi Wirjono" is a name, not the channel signing its own title
-    if( mdbTitle_channelInsideKnownName( text, index, length, known, show ) ) return result;
+    // "hogi" inside "Hogi Wirjono" is a name, not the channel signing its own title. Asked
+    // about the form that MATCHED: a short form standing inside somebody's name is the same
+    // mistake, and the full name is not what the title has there.
+    if( mdbTitle_channelInsideKnownName( text, index, length, known, shortForm || show ) ) return result;
 
     // How the TITLE spells the channel name. A channel name in ALL CAPS is shouted the same
     // way a title is, so it says nothing about the spelling: the title wins there.
@@ -3405,9 +3461,15 @@ function mdbTitle_canonicalArtists( known, group ) {
 // the strip fell back to taking the digits alone: "AKA AKA Episode #117" was asked about as
 // "AKA AKA Episode", a name the wiki cannot hold, spending one of the ten slots on an answer
 // that can only come back empty (reported 2026-08-23).
+//
+// And the counting word has to BEGIN where a word begins. Without that boundary its own
+// letters were found inside the name in front of it: "True Techno 111" ends in "no" + digits,
+// so the strip read the word as a counter and asked the wiki about "True Tech" - a name
+// nothing links to the show, while "True Techno", which opens the category MixesDB files
+// these under, was never asked (reported 2026-09-04). "Sleep 3" lost its "ep" the same way.
 function mdbTitle_stripTrailingNumber( name ) {
     return String( name || "" )
-        .replace( /[\s.#-]*(?:no\.?|nr\.?|ep\.?|episode|vol\.?|part|pt\.?)?[\s.#-]*\d{1,4}\s*$/i, "" )
+        .replace( /(?:[\s.#-]*\b(?:no|nr|ep|episode|vol|part|pt)\.?)?[\s.#-]*\d{1,4}\s*$/i, "" )
         .trim();
 }
 
@@ -5500,11 +5562,32 @@ function mdbTitle_usernameConversionKey( username ) {
 // The names a channel name lists: "Lone Saxon / Nick J. Smith" -> [ "Lone Saxon", "Nick J.
 // Smith" ]. Only a slash or a pipe with whitespace on BOTH sides separates two names - see
 // "A channel naming SEVERAL names" in title_definitions.js.
+//
+// A trailing bracket that LISTS names is taken apart with it: "True Underground (ONE / True
+// Techno Podcast)" names three things, and split on the slash alone it came out as the two
+// fragments "True Underground (ONE" and "True Techno Podcast)" - neither of them a name
+// anybody wrote, and the second one worse than useless: its normalized key is the key of the
+// real "True Techno Podcast", so the wiki's "no category of this name" about the fragment was
+// cached as the answer about the category the channel is actually filed under, and every later
+// reader saw a hole where the podcast stands (reported 2026-09-04).
+// Only a bracket with the separator INSIDE it: "DJ Name (Official)" is one name with a note
+// behind it, and taking that apart would ask the wiki about "Official".
+// A fragment out of the bracket has to be four characters long to count - "ONE" would
+// otherwise be picked as the channel's name by any title carrying the word "one", the same
+// call the channel/artist containment test makes about a short name.
 function mdbTitle_channelNames( username ) {
-    var parts = String( username || "" ).split( /\s+[\/|]+\s+/ ),
+    var text = String( username || "" ),
+        split = function( part ) { return String( part || "" ).split( /\s+[\/|]+\s+/ ); },
+        listing = /^(.*\S)\s*\(([^()]*\s[\/|]+\s[^()]*)\)\s*$/.exec( text ),
+        parts = split( listing ? listing[1] : text ),
+        inner = listing ? split( listing[2] ) : [],
         names = [],
         name,
         i;
+
+    for( i = 0; i < inner.length; i++ ) {
+        if( mdbTitle_trimSeparators( inner[i] ).length >= 4 ) parts.push( inner[i] );
+    }
 
     for( i = 0; i < parts.length; i++ ) {
         name = mdbTitle_trimSeparators( parts[i] );

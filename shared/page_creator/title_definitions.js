@@ -1510,6 +1510,24 @@ var mdbTitleGuestConnectors = [
  * tracklist detector holds a slash to - without the blanks it sits inside names and addresses
  * all the time ("AC/DC"). An "&" or a "," never splits one: a duo is one act with one name.
  *
+ * A trailing BRACKET listing names is taken apart the same way:
+ *
+ *     "True Techno 111 - Pan-Pot"  (channel "True Underground (ONE / True Techno Podcast)")
+ *     WRONG: 2026-09-03 - True Techno 111 Pan-Pot - True Underground
+ *     RIGHT: 2026-09-03 - Pan-Pot - True Techno Podcast 111
+ *
+ * Split on the slash alone that channel name is "True Underground (ONE" and "True Techno
+ * Podcast)" - two fragments nobody wrote, and the second one does damage: mdbTitle_normalizeCompare
+ * drops the stray bracket, so the wiki's "no category of this name" about the fragment was
+ * cached as the answer about Category:True Techno Podcast, the category these episodes are
+ * really filed under. Everything downstream then saw a hole where the podcast stands - the
+ * channel-URL round included, which dropped it as a category MixesDB gives no type.
+ *
+ * Only a bracket with the separator INSIDE it is opened: "DJ Name (Official)" is one name with
+ * a note behind it, and taking that apart would spend a lookup on "Official". A name out of the
+ * bracket has to be four characters long to count - "ONE" would otherwise be picked as the
+ * channel's name by any title carrying the word "one".
+ *
  * A channel in mdbTitleUsernameConversions is never split - that name is curated, and whatever
  * stands in it stands there on purpose.
  */
@@ -1627,6 +1645,21 @@ var mdbTitleNonNameLeadWords = [
  *
  * Only used for channels WITHOUT an entry in mdbTitleUsernameConversions - a mapped name is the
  * curated one and must not be extended behind the editor's back.
+ *
+ * The same word read from the OTHER side is what a title leaves out. A show whose name MixesDB
+ * ends on one of these words is written in the title without it, the episode number standing
+ * where the word does:
+ *
+ *     "True Techno 111 - Pan-Pot"  (the channel is filed under "True Techno Podcast")
+ *     WRONG: 2026-09-03 - True Techno 111 Pan-Pot - True Techno Podcast
+ *     RIGHT: 2026-09-03 - Pan-Pot - True Techno Podcast 111
+ *
+ * With the show nowhere in the title, nothing takes the title apart: the whole of it becomes
+ * the artist, and its two halves are glued into one name that is nobody. So the name is looked
+ * for short as well (mdbTitle_showWithoutSuffixWord), and what is found that way is still the
+ * FULL name in the suggestion - the uploader leaving the word out does not rename the category.
+ * The base has to be a name of its own for it: four characters at least, and no series word
+ * left in it, or "Radio Show" would go looking for "Radio" in every title.
  *
  * The same words are what carries an episode NUMBER wherever they stand, so mdbTitle_episodeWords()
  * is built out of this list and mdbTitleCounterWords rather than repeating them. Adding a word

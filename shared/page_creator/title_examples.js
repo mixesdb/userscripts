@@ -1986,5 +1986,49 @@ var mdbTitleExamples = [
         // under is the name without it, and that cut is mdbPageCreator_entityCategory's
         expectEntity: "Terrence Parker And Friends Radio Show 131",
         expect: "2026-08-07 - Terrence Parker - Terrence Parker And Friends Radio Show 131"
+    },
+    {
+        // Three things at once, all on this one SoundCloud track, and the first of them is
+        // what made the other two unreachable.
+        // 1. The channel name lists its names in a BRACKET: "True Underground (ONE / True
+        //    Techno Podcast)". Split on the slash alone that is "True Underground (ONE" and
+        //    "True Techno Podcast)" - and the second fragment normalizes to the same cache key
+        //    as the real "True Techno Podcast", so the wiki's "no category of this name" about
+        //    a name with a stray bracket was cached as the answer about the category these
+        //    episodes are filed under. See mdbTitle_channelNames.
+        // 2. "True Techno 111" ends in "no" + digits, and the trailing-number strip read those
+        //    two letters as a counting word: the wiki was asked about "True Tech" and never
+        //    about "True Techno", the one name that opens the show's category. See
+        //    mdbTitle_stripTrailingNumber.
+        // 3. The title writes the show name SHORT - "True Techno 111", where MixesDB files
+        //    the show as "True Techno Podcast". With the show nowhere in the title, the whole
+        //    title became the artist and its two halves were glued into one name that is
+        //    nobody: "True Techno 111 Pan-Pot". See mdbTitle_showWithoutSuffixWord.
+        //
+        // channelUrlShow is the channel-URL round's answer. TWO category pages link this
+        // channel (Category:True Underground and Category:True Techno Podcast) and picking
+        // between them is page_creator.js's (mdbPageCreator_channelCatSupport, which weighs
+        // its signals since this report: a name out of THIS title opening the category beats
+        // the channel name and the category name merely opening each other). What this case
+        // guards is what the parse makes of the answer.
+        url: "https://soundcloud.com/trueundergroundone/true-techno-111-pan-pot",
+        title: "True Techno 111 - Pan-Pot",
+        channel: "True Underground (ONE / True Techno Podcast)",
+        date: "2026-09-03",
+        channelUrlShow: "True Techno Podcast",
+        known: {
+            "Pan-Pot": { type: "artist", mixes: 448 },
+            "True Underground": { type: "podcast", mixes: 8 },
+            "True Techno Podcast": { type: "podcast", mixes: 111 }
+        },
+        expectChunks: [ "True Techno 111", "Pan-Pot" ],
+        expectAsked: [ "True Techno", "True Techno Podcast", "Pan-Pot" ],
+        // "True Techno Podcast)" cannot stand here: the stray bracket is exactly what
+        // mdbTitle_normalizeCompare drops, so the runner reads it as the podcast's own name -
+        // which is the collision that made the fragment poison the cache in the first place
+        expectNotAsked: [ "True Tech", "True Underground (ONE" ],
+        expectArtists: [ "Pan-Pot" ],
+        expectEntity: "True Techno Podcast 111",
+        expect: "2026-09-03 - Pan-Pot - True Techno Podcast 111"
     }
 ];
