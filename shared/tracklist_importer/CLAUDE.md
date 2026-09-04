@@ -179,6 +179,22 @@ the reader pastes into. Everything is in the `tlImporter_hand*` block of `funcs.
   rows are exactly the ones the wrapper test has to let through (three quotes open, none close).
   The intro text itself stays part of the track text.
 
+- **Every dash variant becomes a plain hyphen, on the way IN.** `tlImporter_normalizeDashes()`
+  (merge_core.js, the dash block U+2010..U+2015 plus U+2212 and the small/fullwidth forms) runs
+  at four points: `tlImporter_candidateText()` (the one read of the shared Tracklist box, so the
+  link's hash, the "would this change anything" try and the Report all get the same text),
+  `tlImporter_candidateFromHash()` (older senders, and INSERT mode, which reaches the TLE API and
+  the page with no merge in between), `tlImporter_handMergeRun()` (the paste box) and
+  `tlImporter_applyNow()` (the last gate before the page text). Plus both texts entering
+  `tlImporter_merge()` as the safety net - on the ORIGINAL that is the only place, which is why
+  the `changed` test serializes the same normalized text: a page row whose only difference is an
+  en dash must not turn a merge that took nothing into a page edit.
+  Reported (trackid.net, a candidate whose rows were all en-dashed): artist and title are told
+  apart by `" - "` by EVERY reader - the TLE API, `tlImporter_normalizeForMatching()`,
+  `tlImporter_artistNames()`, `tlImporter_titleNorm()` - so `Ben Sims \u2013 Snapshot 99` has no
+  artist half at all. It matched badly, its artist was never compared, and where it was inserted
+  the en dash went into the wiki. The cost is a title that genuinely wants an en dash losing it;
+  reading every `–` as the separator it almost always is wins by far.
 - **The live page decides Insert vs Merge**, not the link's label: the page can change between
   the link being built and clicked. The label is only what the fetch at link-build time said.
 - **The original wins.** The candidate never overwrites an original cue, title or label – it

@@ -68,6 +68,25 @@ function tlImporter_log( text ) {
     if( typeof log === "function" ) log( "tlImporter: " + text );
 }
 
+// tlImporter_normalizeDashes
+// Every dash variant a scraped tracklist can carry, turned into the plain hyphen-minus MixesDB
+// writes. Unlike the matching normalizers below this one DOES change the output: it runs on the
+// candidate before it ever reaches the TLE API and on both texts entering tlImporter_merge(),
+// so no en dash can survive into the page.
+//
+// Why it matters beyond looks: artist and title are told apart by " - " everywhere - the TLE
+// API, tlImporter_normalizeForMatching(), tlImporter_artistNames(), tlImporter_titleNorm(). A
+// row written "Ben Sims \u2013 Snapshot 99" therefore has NO artist half at all: it matches
+// worse, it is inserted without its artist being read, and it lands on the page in a shape the
+// wiki does not use. Reported for a trackid.net candidate whose rows were all en-dashed.
+//
+// The class is the dash block (U+2010 hyphen .. U+2015 horizontal bar), the minus sign and the
+// small/fullwidth forms. Written as escapes, not as literals, so a grep for a real em dash in
+// this repo keeps finding only the places that MEAN one.
+function tlImporter_normalizeDashes( text ) {
+    return String( text == null ? "" : text ).replace( /[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, "-" );
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -1989,6 +2008,14 @@ function tlImporter_endMinute( options ) {
 // options.durationSec is the mix runtime when the player site knows one - it bounds the
 // unknown cues at the END of the list, see tlImporter_fillUnknownCuePrefixes.
 function tlImporter_merge( originalText, candidateText, options ) {
+    // Both sides lose their dash variants before anything reads them - see
+    // tlImporter_normalizeDashes(). On the candidate this is the safety net behind the
+    // normalization the callers already do; on the ORIGINAL it is the only place, which is why
+    // the "changed" test further down serializes this same normalized text: a page row whose
+    // only difference is an en dash must not turn a merge that took nothing into a page edit.
+    originalText = tlImporter_normalizeDashes( originalText );
+    candidateText = tlImporter_normalizeDashes( candidateText );
+
     var original_arr = tlImporter_parse( originalText ),
         candidate_arr = tlImporter_parse( candidateText );
 

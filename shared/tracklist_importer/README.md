@@ -167,6 +167,14 @@ the found tracklist has nothing to give is never rewritten; every track in the l
 a real cue, because one `[??]` makes the times around it guesses; and a `...` at the very start or
 the very end of the list is left alone, having only one cue next to it.
 
+**Dashes** become the plain `-` MixesDB writes, whatever variant the other source used – the
+en dash `–`, the longer one twice its width, and the rarer ones too. That is not cosmetics: artist and title are told apart by ` - `
+everywhere, so a row written `Ben Sims – Snapshot 99` had no artist half at all. It matched the
+page's own row for that track badly or not at all, its artist was never compared, and where it
+was inserted it went into the wiki in a shape the wiki does not use. The same cleaning is done
+on an inserted tracklist, on anything pasted into merge mode, and once more on the Merged box
+when you press Apply.
+
 ### On the edit form
 
 The edit form opens with the tracklist inserted or merged, the `Tracklist:` category and the
@@ -388,6 +396,10 @@ checked instead of guessed at. Where nothing could be measured the line says so 
   on such a page most found tracks stay in the Candidate column instead of being inserted. That
   is deliberate – see above – but it means the merge adds little there beyond cues and labels
   for the tracks it recognized.
+- Every dash variant becomes a `-`, including one that was meant to stay: a title genuinely
+  written with an en dash loses it. Track titles that need one are rare enough that reading
+  every `–` as the separator it almost always is wins by far – but it is worth knowing when a
+  title comes out looking odd.
 - Editing the Original or the Candidate box drops that box's colours until the next merge: they
   describe the merge of a text that is no longer there, and colours left standing over an edited
   line would mark the wrong words.

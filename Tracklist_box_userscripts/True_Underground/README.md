@@ -30,6 +30,10 @@ there on load would take you away from the player.
 
 ## Known limitations
 
+- The box depends on MixesDB's Tracklist Editor API allowing this site. Until it does, the box
+  says so above the tracklist, shows the tracks as the site wrote them, and has neither the API
+  feedback nor the **Live updates** switch – paste the text into the Tracklist Editor on MixesDB
+  instead.
 - No cues: the site publishes no track times.
 - Only a few mixes carry a tracklist at all (True Techno 105 was the first) – the others get no
   box.
