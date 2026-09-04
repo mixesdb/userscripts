@@ -60,7 +60,10 @@ function tlImporter_boxSelector() {
 
 // tlImporter_candidateText
 function tlImporter_candidateText() {
-    return $.trim( $( tlImporter_boxSelector() ).first().val() || "" );
+    // Dash variants out on the way in (tlImporter_normalizeDashes in merge_core.js): this is
+    // the single read of the shared Tracklist box, so the Insert/Merge link's hash, the
+    // "would this merge change anything" try and the Report all get the same plain-hyphen text.
+    return tlImporter_normalizeDashes( $.trim( $( tlImporter_boxSelector() ).first().val() || "" ) );
 }
 
 // tlImporter_scriptName
@@ -912,7 +915,10 @@ function tlImporter_candidateFromHash() {
     if( !m ) return "";
 
     try {
-        return decodeURIComponent( m[1] );
+        // Same normalization as on the sending side (tlImporter_candidateText), because an
+        // older script generation may have built the link before that existed - and in INSERT
+        // mode this text goes to the TLE API and onto the page without a merge in between.
+        return tlImporter_normalizeDashes( decodeURIComponent( m[1] ) );
     } catch( e ) {
         log( "tlImporter: the hash could not be decoded (" + e.message + ")" );
         return "";
@@ -2800,7 +2806,9 @@ $(document).on( "click", "#mdb-tlImporter-apply, #mdb-tlImporter-apply-down", fu
 // on screen in this moment, never the one some watcher looked at earlier.
 function tlImporter_applyNow( button, tl ) {
     var textbox = $( "#wpTextbox1" ).first(),
-        text = $.trim( tl.val() || "" );
+        // The last gate before the page text: the Merged box is editable, so rows pasted into
+        // it by hand never went through any of the earlier normalizations.
+        text = tlImporter_normalizeDashes( $.trim( tl.val() || "" ) );
 
     if( !tl.length || !textbox.length || !text ) {
         log( "tlImporter: nothing to apply." );
@@ -3530,7 +3538,9 @@ function tlImporter_handMergeRun() {
     var wrap = $( "#mdb-tlImporter-diff" ).first(),
         box = $( "#mdb-tlImporter-candidate" ).first(),
         textbox = $( "#wpTextbox1" ).first(),
-        candidate = $.trim( box.val() || "" );
+        // pasted from anywhere, so this is where the other source's en dashes end - before
+        // the TLE call below and before the merge reads an artist half that is not there
+        candidate = tlImporter_normalizeDashes( $.trim( box.val() || "" ) );
 
     if( !wrap.length || !box.length || !textbox.length || !candidate ) return;
 

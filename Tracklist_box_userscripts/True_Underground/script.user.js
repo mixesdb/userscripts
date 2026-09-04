@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         True Underground (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.04.1
+// @version      2026.09.04.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -261,6 +261,17 @@ function tuBuildTracklist( contentNode ) {
         .attr("rows", Math.max(lines.length, 8))
         .val( tlApi )
         .show();
+
+    // No answer means the browser could not READ one: the API allows the site scripts per
+    // origin (Access-Control-Allow-Origin), and a site it does not know yet gets its answer
+    // withheld by the browser - the request itself went through. Say so on the page rather
+    // than showing unformatted lines as if they were the API's word: without an answer there
+    // is no feedback box either, and with it neither the Live updates switch nor the check on
+    // leaving the box, so the reader would otherwise look for both in vain.
+    if( !res || !res.text ) {
+        log( "The Tracklist Editor API gave no readable answer - is " + location.hostname + " on its origin allow list?" );
+        tlEditor.append( '<p class="mdb-highlight mdb-element">MixesDB\'s Tracklist Editor API did not answer - ' + location.hostname + ' is probably not on its allow list yet. What follows is the tracklist as the site wrote it: format it by pasting it into the Tracklist Editor on MixesDB.</p>' );
+    }
 
     tlEditor.append( tlTextarea );
 

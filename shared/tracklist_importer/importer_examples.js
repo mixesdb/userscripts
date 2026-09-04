@@ -291,6 +291,9 @@ var tlImporterExamples_merge = [
         // Their parts are highlighted in the Candidate column instead. What stays is
         // ――――― - IN YER MEMORY next to Takkyu Ishino's: it is APPENDED behind the last row,
         // where no other slot exists, and its double is the fuzzy threshold's current reading.
+        // Its "artist" is five horizontal bars (U+2015), so the expectation shows them as
+        // "-----": tlImporter_normalizeDashes() turns every dash variant into the plain hyphen
+        // before the merge sees either side. The INPUT keeps the bars - that is what was reported.
         // It doubles as the counter-case to the unknown-cue prefixes below: the runs with room
         // around them take the one digit their bounds agree on ("[0??]": before minute 100,
         // which on a 128-minute mix says something), while the three rows behind [099] have no
@@ -396,7 +399,7 @@ var tlImporterExamples_merge = [
                 "[???] Takkyu Ishino - In Yer Memory\n" +
                 "[???] Shin - Plus Tokyo\n" +
                 "[???] Ringo aka Susumu Yokota - Tsukushi\n" +
-                "[106] ――――― - IN YER MEMORY\n" +
+                "[106] ----- - IN YER MEMORY\n" +
                 "[111] ?\n" +
                 "...",
         changed: true,
@@ -1078,6 +1081,26 @@ var tlImporterExamples_merge = [
         // Pt.1, three cue-less rows in front of [120]; 25: the "[116] ?" in that same stretch
         unused: { cues: [1, 5, 13, 15, 17, 19, 24, 25], texts: [13, 15, 17, 19, 24],
                   labels: [3, 5, 6, 8, 10, 13, 17, 24, 26, 28, 31, 32, 35, 37, 39] }
+    },
+    {
+        // Reported (trackid.net): a candidate whose rows separate artist and title with an EN
+        // DASH. Every reader of a track text splits on " - " - the TLE API, the matching norms,
+        // tlImporter_artistNames() - so those rows had no artist half at all: they matched the
+        // page's own rows badly and the ones that were inserted carried the en dash into the
+        // wiki. tlImporter_normalizeDashes() takes it out of BOTH texts before the merge, so
+        // [00] and [18] match their page rows (label and nothing else is added) and the
+        // inserted [05] lands with a plain hyphen.
+        name: "an en-dashed candidate is read and written with plain hyphens",
+        original: "[00] Ben Sims - Snapshot 99 (ANNE Remix V1)\n" +
+                  "[18] Joey Beltram - Energy Flash",
+        candidate: "[00] Ben Sims – Snapshot 99 (ANNE Remix V1) [Hardgroove]\n" +
+                   "[05] Sola Contagio – Mutatio 02 [Ketra]\n" +
+                   "[18] Joey Beltram – Energy Flash",
+        expect: "[00] Ben Sims - Snapshot 99 (ANNE Remix V1) [Hardgroove]\n" +
+                "[05] Sola Contagio - Mutatio 02 [Ketra]\n" +
+                "[18] Joey Beltram - Energy Flash",
+        changed: true,
+        unused: { cues: [], texts: [], labels: [] }
     }
 ];
 
