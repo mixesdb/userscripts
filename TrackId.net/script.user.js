@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.03.3
+// @version      2026.09.04.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -16,10 +16,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_21
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_51
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_57
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_90
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_58
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_91
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_129
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_130
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -2838,6 +2838,21 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.09.04.1
+ * Page Creator (title_definitions.js v_58, title_builder.js v_91, page_creator.js v_130), four
+ * things off one report: "True Techno 111 - Pan-Pot" on the channel "True Underground (ONE / True
+ * Techno Podcast)" came out as "2026-09-03 - True Techno 111 Pan-Pot - True Underground". A channel
+ * name listing its names in a BRACKET is taken apart now - split on the slash alone it left the
+ * fragment "True Techno Podcast)", and the wiki's "no category of this name" about that fragment
+ * was cached as the answer about Category:True Techno Podcast, the category these episodes are
+ * filed under. The trailing-number strip no longer reads a counting word out of the middle of a
+ * word: "True Techno 111" was asked about as "True Tech", so the one name that opens that category
+ * was never asked. A show whose name ends in "Podcast"/"Radio"/... is found in a title that writes
+ * it WITHOUT that word, the episode number in its place, instead of the whole title becoming the
+ * artist and its two halves being glued into one name. And of several category pages linking one
+ * channel, the one THIS title backs wins: the signals are weighed now rather than counted, so a
+ * name read off the title outranks the channel name merely opening the category name.
  *
  * 2026.09.03.3
  * Tracklist Importer merge, three fixes off one report (merge_core.js v21, Claude Young @ Fuse
