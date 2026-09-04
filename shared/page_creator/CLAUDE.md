@@ -721,10 +721,32 @@ Rules the implementation follows, settled before it was built - do not re-litiga
   adjacent case: not for a mapped channel, not onto a show that already carries a series word,
   and not for a word that only COUNTS (`mdbTitleCounterWords`). Costs nothing - the word is
   the title's own and the channel name stands in the title too.
-- **"#" is never sent** - `mdbTitle_lookupCategories` writes it out (`X #12` asks as `X 12`):
-  the character is illegal in a wiki title, so a name carrying one can only answer empty.
+- **No character MediaWiki refuses in a title is ever sent** (2026-09-04, `mdbTitle_askableName`)
+  - `#<>[]|{}` are rewritten to a space before a name goes into a request (`X #12` asks as
+  `X 12`, `Hecklastig 009 >< Monokyma` as `Hecklastig 009 Monokyma`). It started as the "#"
+  rewrite alone, on the reasoning that such a name could only answer empty. **That reasoning
+  was far too mild**: the module does not answer such a name empty, it refuses the ENTIRE
+  request with `mdbnames-invalid-name`, so ONE bad name in the batch denies every other name
+  in it. Reported on `Hecklastig #009 >< Monokyma`, where `Category:Monokyma` (artist, 3
+  mixes) and `Category:Hecklastig` (podcast, 8 mixes) both came back as "no category of this
+  name" and the hints bar painted them red - the prefix round found them a moment later,
+  because the invalid chunk is not written in the finished title and so never reached THAT
+  request. `|` has a second reason on top: it is the separator of the `names` parameter, so a
+  name carrying one would silently split into two questions.
+  Rewritten to a SPACE, never dropped - `><` between two names leaves them standing apart
+  instead of glued into one word. The rewrite can make two chunks the same question, so
+  `mdbTitle_lookupCategories` asks each key once per call (`askedHere`) rather than spending
+  two of its ten names on it.
   Sits in the one funnel both lookup rounds pass through, so an edited title's names are
   covered too.
+- **A 200 carrying an `error` is not an empty answer** (2026-09-04, same report) - all three
+  `mdbnames` rounds (`mdbTitle_lookupCategories`, `mdbTitle_lookupVariants`,
+  `mdbPageCreator_prefixEnsure`) check `data.error` before they read `data.mdbnames` and take
+  their failure path instead. Without it a refused request is indistinguishable from "the wiki
+  has nothing": the chips go red, and the report says `no category of this name` about names
+  the server never looked at - the one line a reporter cannot take back, because that is
+  exactly what a real empty answer says. `mdbTitle_askableName` is what keeps our own names
+  out of the trap; this is the net under it.
 - **Our own markers are never sent** - `mdbTitle_dropMarkers` takes the " (Promo Mix)" and the
   " (Live PA)" off a name first. We write those into a title to say something about the
   RECORDING; no category is called that, so `Unedited (Promo Mix)` could only answer empty.

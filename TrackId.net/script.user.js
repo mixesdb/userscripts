@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.04.2
+// @version      2026.09.04.3
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -17,9 +17,9 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_52
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_58
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_91
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_92
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_130
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_132
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
@@ -2838,6 +2838,17 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.09.04.3
+ * Page Creator (title_builder.js v_92, page_creator.js v_132): a title carrying a character
+ * MixesDB cannot have in a page name no longer blinds the whole wiki lookup. Reported on
+ * "Hecklastig #009 >< Monokyma": the chunk "Hecklastig 009 >< Monokyma" went into the
+ * request as it stood, the mdbnames module refuses an invalid name for the WHOLE request, and
+ * the row read that refusal as "no category of this name" about every name in it - so
+ * Category:Monokyma and Category:Hecklastig were both painted red although they exist, and the
+ * "Similar:" row was left offering the very categories the page should have been filed under.
+ * "#<>[]|{}" is rewritten to a space before a name is asked about now, and a request that
+ * comes back refused says "lookup failed" on its chips instead of denying them.
  *
  * 2026.09.04.1
  * Page Creator (title_definitions.js v_58, title_builder.js v_91, page_creator.js v_130), four
