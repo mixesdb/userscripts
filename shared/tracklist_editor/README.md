@@ -7,9 +7,12 @@ site scripts, so it looks and behaves the same everywhere.
 
 - **Runs on:** every site whose script loads it – [SoundCloud](../../SoundCloud/),
   [TrackId.net](../../TrackId.net/), [RA](../../RA/),
-  [1001 Tracklists](../../1001_Tracklists/), [NTS](../../NTS/), [BBC](../../BBC/),
-  [The Lot Radio](../../TheLotRadio/), [radioeins](../../radioeins/),
-  [Discogs](../../Discogs/), [Apple Music](../../Apple_Music/),
+  [1001 Tracklists](../../1001_Tracklists/), [NTS](../../Tracklist_box_userscripts/NTS/),
+  [BBC](../../Tracklist_box_userscripts/BBC/),
+  [The Lot Radio](../../Tracklist_box_userscripts/TheLotRadio/),
+  [radioeins](../../Tracklist_box_userscripts/radioeins/),
+  [True Underground](../../Tracklist_box_userscripts/True_Underground/),
+  [Discogs](../../Tracklist_box_userscripts/Discogs/), [Apple Music](../../Apple_Music/),
   [Player Checker](../../Player_Checker/)
 - **Install:** nothing to install – it comes with the site scripts
 - **Shared features:** [Toolkit](../toolkit/), [Page Creator](../page_creator/)

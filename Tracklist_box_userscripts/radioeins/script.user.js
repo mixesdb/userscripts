@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         radioeins (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.08.26.2
+// @version      2026.09.04.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
-// @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/radioeins/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/radioeins/script.user.js
+// @updateURL    https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_box_userscripts/radioeins/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_box_userscripts/radioeins/script.user.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/jquery-3.7.1.min.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/waitForKeyElements.js
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-radioeins_4

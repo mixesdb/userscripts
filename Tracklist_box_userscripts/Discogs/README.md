@@ -4,8 +4,8 @@ Turns a Discogs release tracklist into MixesDB wiki syntax, with cues added up f
 durations.
 
 - **Runs on:** discogs.com – release pages
-- **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Discogs/script.user.js)
-- **Shared features:** [Tracklist box](../shared/tracklist_editor/)
+- **Install:** [script.user.js](https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_box_userscripts/Discogs/script.user.js)
+- **Shared features:** [Tracklist box](../../shared/tracklist_editor/)
 
 ## Features
 

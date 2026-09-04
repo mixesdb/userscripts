@@ -6,7 +6,8 @@ See https://www.mixesdb.com/w/Help:MixesDB_userscripts for installation and gene
 
 ## The scripts
 
-Each folder holds one userscript and a README describing its features.
+Each folder holds one userscript and a README describing its features. The scripts whose only
+feature is the tracklist box sit together in [Tracklist_box_userscripts/](Tracklist_box_userscripts/).
 
 | Script | Runs on | What it does |
 | --- | --- | --- |
@@ -17,11 +18,12 @@ Each folder holds one userscript and a README describing its features.
 | [RA](RA/) | ra.co | Toolkit, podcast tracklist, artwork URLs, copy buttons |
 | [1001 Tracklists](1001_Tracklists/) | 1001tracklists.com, mixesdb.com | Tracklist in wiki syntax, toolkit for every player, tracklist import to MixesDB |
 | [hearthis.at](hearthis.at/) | hearthis.at | Page Creator, tracklist from the description, toolkit for both player URL variants |
-| [NTS](NTS/) | nts.live | Tracklist in wiki syntax |
-| [BBC](BBC/) | bbc.co.uk | Tracklist in wiki syntax |
-| [The Lot Radio](TheLotRadio/) | thelotradio.com | Tracklist in wiki syntax |
-| [radioeins](radioeins/) | radioeins.de | Tracklist in wiki syntax |
-| [Discogs](Discogs/) | discogs.com | Release tracklist in wiki syntax, file details |
+| [NTS](Tracklist_box_userscripts/NTS/) | nts.live | Tracklist in wiki syntax |
+| [BBC](Tracklist_box_userscripts/BBC/) | bbc.co.uk | Tracklist in wiki syntax |
+| [The Lot Radio](Tracklist_box_userscripts/TheLotRadio/) | thelotradio.com | Tracklist in wiki syntax |
+| [radioeins](Tracklist_box_userscripts/radioeins/) | radioeins.de | Tracklist in wiki syntax |
+| [True Underground](Tracklist_box_userscripts/True_Underground/) | trueunderground.one | Tracklist in wiki syntax, right click and copying re-enabled |
+| [Discogs](Tracklist_box_userscripts/Discogs/) | discogs.com | Release tracklist in wiki syntax, file details |
 | [Apple Music](Apple_Music/) | music.apple.com | Album tracklist in wiki syntax |
 | [Apple Podcasts](Apple_Podcasts/) | podcasts.apple.com | Episode URL fields, MixesDB search links |
 | [Internet Archive](InternetArchive/) | archive.org | Episode table with downloads and MixesDB usage (beta) |
