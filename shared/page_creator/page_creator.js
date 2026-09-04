@@ -5562,8 +5562,11 @@ var mdbPageCreator_notesUrlMinPath = 10;
 // answers with itself and costs a request for nothing. Kept in step with the @connect lines
 // of the site script that hands over followRedirect: a host missing there costs the reader a
 // permission dialog, a host missing here is never followed at all. Meant to grow from reports.
+// shorturl.fm is its own service, not a typo for shorturl.at - it answers the same plain 302
+// with a Location header (verified on a True Underground episode, 2026-09-04).
 var mdbPageCreator_notesShorteners = [ "bit.ly", "tinyurl.com", "t.co", "ow.ly", "buff.ly",
-                                       "rb.gy", "is.gd", "cutt.ly", "shorturl.at" ];
+                                       "rb.gy", "is.gd", "cutt.ly", "shorturl.at",
+                                       "shorturl.fm" ];
 
 // mdbPageCreator_notesUrlIn
 // The first URL in a text that stands on host and carries enough path to be an episode page,
