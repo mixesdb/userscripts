@@ -31,7 +31,7 @@ SoundCloud-only bits that must stay on this side, not move into the Page Creator
   what keeps the majority of tracks, which have no tracklist, from costing a request. The
   Page Creator is told about the swap through `mdbPageCreator_addTracklistNotice()` and never
   learns that handles were involved.
-- `getScTrackComments()` in `api_funcs.js` - the endpoint and the OAuth token are ours. The
+- `getScTrackComments()` in `api_funcs.js` - MixesDB performs the bounded provider request and keeps its OAuth token server-side. The
   Page Creator decides WHETHER the comments are worth fetching (only when the description held
   no tracklist) and calls this through the `loadComments` callback of
   `mdbPageCreator_addTracklist()`; it never learns where they came from.

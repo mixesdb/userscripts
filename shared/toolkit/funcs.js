@@ -138,26 +138,20 @@ function getToolkit_fromScUrl_api( scUrl_api="", type, outputType, wrapper, inse
     logFunc( "getToolkit_fromSCscUrl_api" );
 
     if( scUrl_api ) {
-        getScAccessTokenFromApi(function(output){
-            var scAccessToken = output;
-
-            $.ajax({
-                beforeSend: function(request) {
-                    request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
-                },
-                dataType: "json",
-                url: scUrl_api,
-                success: function( data ) {
-                    var playerUrl = data.permalink_url;
-                    log( "getToolkit_fromScUrl_api: resolved playerUrl: " + playerUrl );
-                    if( playerUrl != "" ) {
-                        getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl, playerOrder );
-                    }
-                },
-                error: function( jqXHR, textStatus, errorThrown ) {
-                    log( "getToolkit_fromScUrl_api: FAILED to resolve SC API URL (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + "): " + scUrl_api );
+        $.ajax({
+            type: "POST",
+            url: "https://www.mixesdb.com/tools/api/api.php",
+            dataType: "json",
+            data: { query: "getScPermalink", url: scUrl_api },
+            success: function( data ) {
+                var playerUrl = data && data.permalink_url;
+                if( playerUrl ) {
+                    getToolkit( playerUrl, type, outputType, wrapper, insertType, titleText, linkClass, max_toolboxIterations, "", siteHasTl, playerOrder );
                 }
-            });
+            },
+            error: function() {
+                log( "getToolkit_fromScUrl_api: SoundCloud permalink unavailable." );
+            }
         });
     }
 }

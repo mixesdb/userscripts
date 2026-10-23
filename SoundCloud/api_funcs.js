@@ -7,28 +7,41 @@ log( "/SoundCloud/api_funcs.js loaded" );
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// getScAccessTokenFromApi
-// Get access_token
-function getScAccessTokenFromApi(handleData) {
-    logFunc( "getScAccessTokenFromApi" );
-    $.ajax({
+// Provider credentials stay on MixesDB. Only metadata crosses this boundary.
+// Complete either callback so a provider failure cannot leave a page waiting for a token.
+function getScTrackFromApi( trackUrl, handleData, handleError ) {
+    return $.ajax({
         type: "POST",
         url: "https://www.mixesdb.com/tools/api/api.php",
-        data: { query: "getScAccessToken" }
-    })
-    .fail(function( jqXHR, textStatus, errorThrown ) {
-        log( "getScAccessTokenFromApi: FAILED to reach MixesDB API (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")" );
-    })
-    .done(function(data) {
-        log( "getScAccessTokenFromApi: API responded. data: " + data );
-        var dataParsed = jQuery.parseJSON( data );
-        log( "getScAccessTokenFromApi: data parsed, access_token: " + ( dataParsed ? dataParsed.access_token : "null" ) );
-        if( dataParsed !== null ) {
-            handleData( dataParsed.access_token );
-        } else {
-            log( "getScAccessTokenFromApi: dataParsed is null - handleData() not called, caller will hang waiting for scAccessToken." );
+        dataType: "json",
+        data: { query: "getScTrack", url: scMetadataLocator( trackUrl ) }
+    }).done(function( data ) {
+        if( data && data.kind === "track" ) {
+            handleData( data );
+        } else if( handleError ) {
+            handleError();
         }
+    }).fail(function() {
+        log( "getScTrackFromApi: metadata unavailable." );
+        if( handleError ) handleError();
     });
+}
+
+// Discard tracking parameters, but retain a caller's explicit private-share capability.
+function scMetadataLocator( value ) {
+    try {
+        var url = new URL( value );
+        var secrets = url.searchParams.getAll( "secret_token" );
+        if( secrets.length > 1 ) return "";
+        var secret = secrets[0];
+        url.protocol = "https:";
+        url.hash = "";
+        url.search = "";
+        if( secret ) url.searchParams.set( "secret_token", secret );
+        return url.href;
+    } catch( error ) {
+        return "";
+    }
 }
 
 // formatScDate
@@ -58,49 +71,21 @@ function scArtworkOriginalUrl( artwork_url ) {
         .replace( /-(t\d\d\d?\d?x\d\d\d?\d?|crop|large|badge|small|tiny|mini|original)/g, "-original" );
 }
 
-// getScTrackComments
-// The comments under a track, reduced to their plain bodies - which is all the tracklist
-// detector wants. Only ever called when the description held no tracklist (the Page Creator
-// decides that, see mdbPageCreator_addTracklist), so this costs a request on the minority of
-// tracks rather than on all of them.
-//
-// One page of 200 and no paging beyond it: 200 is the endpoint's maximum, and a track busy
-// enough to bury a tracklist under more than 200 comments is not one where it would be found.
-function getScTrackComments( trackId, accessToken, handleData ) {
-    logFunc( "getScTrackComments" );
-
-    if( !trackId || !accessToken ) {
-        log( "getScTrackComments: no track ID or no access token - no comments to look at." );
-        handleData( [] );
-        return;
-    }
-
-    $.ajax({
-        beforeSend: function( request ) {
-            request.setRequestHeader( "Authorization", "OAuth " + accessToken );
-        },
+// One page of plain comment bodies, only when the description held no tracklist.
+// The server checks the same track locator before reading comments; no arbitrary API URL.
+function getScTrackComments( trackUrl, handleData ) {
+    return $.ajax({
+        type: "POST",
+        url: "https://www.mixesdb.com/tools/api/api.php",
         dataType: "json",
-        url: "https://api.soundcloud.com/tracks/" + trackId + "/comments?limit=200&linked_partitioning=true",
-        success: function( data ) {
-            // linked_partitioning wraps the array in a "collection", but the endpoint has
-            // answered with a bare array often enough to be worth catching both
-            var list = ( data && data.collection ) ? data.collection : ( Array.isArray( data ) ? data : [] ),
-                bodies = [];
-
-            $.each( list, function( i, comment ) {
-                if( comment && comment.body ) bodies.push( comment.body );
-            });
-
-            logVar( "getScTrackComments: comments read", bodies.length );
-            handleData( bodies );
-        },
-        error: function( jqXHR, textStatus, errorThrown ) {
-            log( "getScTrackComments: FAILED (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ") - carrying on without comments." );
-            handleData( [] );
-        }
+        data: { query: "getScTrackComments", url: scMetadataLocator( trackUrl ) }
+    }).done(function( data ) {
+        handleData( data && Array.isArray( data.bodies ) ? data.bodies : [] );
+    }).fail(function() {
+        log( "getScTrackComments: unavailable; carrying on without comments." );
+        handleData( [] );
     });
 }
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *

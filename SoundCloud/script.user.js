@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SoundCloud (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.04.4
+// @version      2026.10.22.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,13 +12,13 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-SoundCloud_49
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-SoundCloud_3
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-SoundCloud_17
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_131
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-SoundCloud_132
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_92
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_15
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_132
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/script.funcs.js?v_60
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_6
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v_7
 // @include      http*soundcloud.com*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=soundcloud.com
 // @grant        unsafeWindow
@@ -307,8 +307,6 @@ loadRawCss( scriptCssUrl );
  * Basics
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-var scAccessToken;
 
 const fast = 200,
       soundActionFakeButtonClass = 'sc_button-mdb sc-button-secondary sc-button sc-button-medium mdb-item';
@@ -994,8 +992,8 @@ waitForKeyElements(".sc-link-primary.soundTitle__title", function( jNode ) {
  * answer is in, they park their getToolkit() call here and it is released (or dropped)
  * when the answer names the duration.
  *
- * The SC API can also die on the way (a failing token fetch never calls back - see
- * getScAccessTokenFromApi), and the toolkit must not die with it: a parked call is released
+ * The SC API can also die on the way (a failing metadata request releases this gate - see
+ * getScTrackFromApi), and the toolkit must not die with it: a parked call is released
  * ungated after 10s. A duration of 0/unknown releases too - only a duration we positively
  * know may drop the toolkit, the same rule mdbPageCreator_setTitle applies.
  *
@@ -1224,8 +1222,8 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
 
     if( RUN_sc_button_group ) {
         var isNewSoundCloudLayout = jNode.is('#mdb-sc-trackExtras'),
-            // Which track this run is for. Everything below is two network round trips deep
-            // (access token, then the track), and jNode/title/artwork/description all describe
+            // Which track this run is for. The metadata request is asynchronous,
+            // and jNode/title/artwork/description all describe
             // THIS track - so if the reader has clicked on to the next one meanwhile, the
             // answer has to be dropped instead of written into their page. See
             // mdbPageGeneration in global.js.
@@ -1238,427 +1236,379 @@ waitForKeyElements('.l-listen-wrapper .soundActions .sc-button-group, .listen-co
             logFunc( "Player page / sound action buttons" );
             logVar( "isNewSoundCloudLayout", isNewSoundCloudLayout );
 
-            // API call
-            getScAccessTokenFromApi(function(output){
+            // Resolve the current page once; reuse this locator for optional comments.
+            var trackLocator = getScPlayerUrl();
+            getScTrackFromApi( trackLocator, function( t ) {
+                // The reader moved on while this was in the air - this whole
+                // block writes the track it describes into the page, so it would
+                // put the PREVIOUS mix's header, Page Creator row and tracklist
+                // onto the one now on screen.
                 if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-                scAccessToken = output;
-                logVar( "scAccessToken", scAccessToken );
+                var kind = t.kind,
+                    id = t.id,
+                    title = t.title,
+                    created_at = formatScDate( t.created_at ),
+                    release_date = formatScDate( t.release_date ),
+                    last_modified = formatScDate( t.last_modified ),
+                    dur_ms = t.duration,
+                    downloadable = t.downloadable,
+                    apiArtworkUrl = t.artwork_url,
+                    purchase_url = t.purchase_url,
+                    purchase_title = t.purchase_title;
 
-                if( scAccessToken != "null" ) {
-                    /*
-                     * Which track this page is about: asked of the API by its PLAYER URL.
-                     *
-                     * It used to be read out of meta[property="al:ios:url"] in the top
-                     * document, and that only ever worked because we forced a full reload on
-                     * every URL change. SoundCloud writes that meta when it SERVER-renders a
-                     * track page and does not rewrite it when its own router navigates, so
-                     * under SPA navigation it is either
-                     *   - absent, coming from the feed          -> "no track ID", no toolkit
-                     *   - the PREVIOUS track, coming from one   -> the mix before this one is
-                     *     what gets looked up, which is how its header, Page Creator row and
-                     *     tracklist ended up on the next mix's page.
-                     * Both symptoms disappear on a manual reload, which is exactly the tell.
-                     *
-                     * getScPlayerUrl() is built from the live pageLocation (the address bar in
-                     * either frame), so it always names the track actually on screen.
-                     */
-                    var scApiURl_currentTrack = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( getScPlayerUrl() );
+                logVar( "kind", kind );
+                logVar( "title", title );
+                logVar( "downloadable", downloadable );
 
-                    logVar( "scApiURl_currentTrack", scApiURl_currentTrack );
+                // releases (or drops) the parked getToolkit() call - see the
+                // toolkit duration gate. A non-track answer counts as "no
+                // usable duration", which releases ungated.
+                toolkitDurationGate_resolve( kind == "track" ? dur_ms : 0 );
 
-                    $.ajax({
-                        beforeSend: function(request) {
-                            request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
-                        },
-                        dataType: "json",
-                        url: scApiURl_currentTrack,
-                        success: function( t ) {
-                            // The reader moved on while this was in the air - this whole
-                            // block writes the track it describes into the page, so it would
-                            // put the PREVIOUS mix's header, Page Creator row and tracklist
-                            // onto the one now on screen.
+                // MixesDB does not take recordings under 20 min: no Page Creator
+                // row, no tracklist box (the toolkit was dropped by the gate
+                // above). Read off the gate so both use the same verdict.
+                var tooShortForMixesdb = toolkitDurationGate_tooShort();
+
+                if( kind == "track" ) {
+                    // trackHeader
+                    // in the new layout jNode is #mdb-sc-trackExtras itself, which already
+                    // brings its own #mdb-trackHeader, #mdb-sc-trackButtons and #mdb-toggle-target
+                    var soundActions = jNode,
+                        trackHeader = isNewSoundCloudLayout ? $("#mdb-sc-trackHead #mdb-trackHeader") : $("#mdb-trackHeader"),
+                        buttonTarget = isNewSoundCloudLayout ? $("#mdb-sc-trackButtons") : jNode;
+
+                    // Guard on the headline's own id, NOT on an h1 inside
+                    // trackHeader: in the new layout the headline is lifted out of
+                    // #mdb-trackHeader further down (insertAfter #mdb-sc-trackHead),
+                    // so trackHeader is h1-less again on the next API answer and the
+                    // whole block ran a second time - a duplicate headline until reload.
+                    if( $("#mdb-trackHeader-headline").length === 0 ) {
+                        var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span></h1>';
+
+                        trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
+                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
+                        if( release_date != "" ) {
+                            trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-releaseDate"><span>Release date:</span> <date id="mdb-trackHeader-date2" class="mdb-selectOnClick hand">'+release_date+'</date></span>';
+                        }
+                        if( last_modified != "" ) {
+                            trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-lastmodDate"><span>Last modified:</span> <date id="mdb-trackHeader-date3" class="mdb-selectOnClick hand">'+last_modified+'</date></span>';
+                        }
+                        trackHeader_content += '</p>';
+
+                        logVar( "trackHeader_content", trackHeader_content );
+
+                        trackHeader.append( trackHeader_content );
+
+                        var dateClass = "highlight mdb-selectOnClick hand";
+                        if( release_date == "" ) {
+                            $("#mdb-trackHeader-releaseInfo-createDate date").addClass( dateClass );
+                        } else {
+                            $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
+                        }
+
+                        // new layout: the dates share one row with the buttons
+                        // (DL, duration, API), so move them over there before they are
+                        // added. Move the whole #mdb-trackHeader-releaseInfo paragraph
+                        // instead of the single spans - the grey and the date.highlight
+                        // styles are scoped to that wrapper.
+                        if( isNewSoundCloudLayout ) {
+                            $("#mdb-trackHeader-releaseInfo").prependTo( buttonTarget );
+
+                            // #mdb-trackHeader is one column of the #mdb-sc-trackHead
+                            // flex row (the artwork info bar is the other), so a
+                            // headline left in there only gets part of the width, and
+                            // long titles wrap early. Lift it out to be a direct child
+                            // of the wrapper, where it spans everything.
+                            // It goes AFTER #mdb-sc-trackHead, not before it: that row
+                            // has to stay the first thing in the wrapper so the artwork
+                            // info bar keeps sitting directly below SoundCloud's own
+                            // artwork. Putting the headline above it would push the bar
+                            // down by the height of the headline plus the title row.
+                            // #mdb-trackHeader stays behind as the empty flex spacer
+                            // that keeps the artwork bar over on the right.
+                            // The title suggestion is inserted AFTER the headline, so it
+                            // follows it out here and gets the full width too.
+                            $("#mdb-trackHeader-headline").insertAfter( $("#mdb-sc-trackHead") );
+                        }
+                    }
+
+                    // MixesDB Page Creator (shared/page_creator/), below the
+                    // headline. Everything site-specific is read off the API
+                    // response here and handed over - the creator itself never
+                    // looks at a SoundCloud page.
+                    // Outside the h1 guard above: the row is only added once the
+                    // toolkit reported "not on MixesDB yet", which can land long
+                    // after the header was built (and the other way round).
+                    // dur_ms gates it: MixesDB does not take recordings under 20 min.
+                    // getScPlayerUrl() rides along for the {{Player}} of the page the
+                    // "Create" link starts - the same URL MixesDB embeds, which is
+                    // not what location.href holds here (see its comment above).
+                    // The artwork URL goes with it for MixesDB's image upload form;
+                    // it is NOT put on the page. scArtworkOriginalUrl() is applied
+                    // HERE and not over there: asking for the "-original" size is a
+                    // SoundCloud CDN trick, not something a Page Creator knows.
+                    // target as a selector string, not a node: SoundCloud re-renders
+                    // under us, and the string is looked up again on every render.
+                    // Not called at all for a track under the 20 min minimum:
+                    // mdbPageCreator_setTitle() would refuse the title anyway, but
+                    // skipping here also saves its MixesDB category lookup.
+                    if( !tooShortForMixesdb ) {
+                        mdbPageCreator_add({
+                            title:       title,
+                            channel:     ( t.user && t.user.username ) ? t.user.username : "",
+                            createdAt:   created_at,
+                            releaseDate: release_date,
+                            durationMs:  dur_ms,
+                            playerUrl:   getScPlayerUrl(),
+                            // The uploader's channel page, off the same API answer
+                            // as the channel name. The Page Creator compares it to
+                            // the URLs in the entity category's sibling pages -
+                            // the wikitext linking this channel is what ties a
+                            // category to a channel beyond the name.
+                            channelUrl:  ( t.user && t.user.permalink_url ) ? t.user.permalink_url : "",
+                            artworkUrl:  scArtworkOriginalUrl( apiArtworkUrl ),
+                            // Not for the tracklist - that is the separate call below.
+                            // The TITLE builder reads the labels the tracklist credits
+                            // ("Artist - Title [Label]") out of it, so it can tell a
+                            // label in brackets behind an artist from a second artist.
+                            description: t.description,
+                            // The "Buy" / "Free download" field. Searched for the
+                            // Notes link next to the description and never written
+                            // to the page as itself: on a podcast it is where the
+                            // episode's own page is linked, and it is filled on
+                            // plenty of tracks whose description names nothing.
+                            // Every Groove Podcast episode carries its bit.ly here.
+                            purchaseUrl: scPurchaseUrl( t.purchase_url ),
+                            // Lets the created page's "== Notes ==" section reach
+                            // the episode's real page where the description only
+                            // shortens the link to it ("Go to bit.ly/BRCPod ...").
+                            // Handed over rather than called over there because it
+                            // needs GM_xmlhttpRequest, which is this script's grant
+                            // - see scFollowRedirect() in script.funcs.js and the
+                            // @connect list in the header, which has to name every
+                            // shortener mdbPageCreator_notesShorteners does.
+                            followRedirect: scFollowRedirect,
+                            // what the "Report" box calls this site ("SC title:",
+                            // "SC date:") - the short name a reported title is written
+                            // with, not the script name
+                            sourceLabel: "SC",
+                            target:      "#mdb-trackHeader-headline",
+                            placement:   "after"
+                        });
+                    } else {
+                        log( "Track is under the 20 min MixesDB minimum - no Page Creator row and no tracklist box." );
+                    }
+
+                    // add toggleTarget
+                    if( $("#mdb-toggle-target").length === 0 ) {
+                        $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
+                    }
+
+                    // The tracklist an uploader wrote into the description (or, when
+                    // there is none there, into a comment): the Page Creator finds
+                    // it, has MixesDB's Tracklist Editor format it and puts it into
+                    // an editable box that then rides along into the created page.
+                    // Only the description is handed over up front - the comments
+                    // cost another API call and are fetched from the callback, which
+                    // the creator only reaches when the description gave nothing.
+                    // Below the toolkit and above SoundCloud's own description, which
+                    // #mdb-toolkit gives us in BOTH layouts: in the new one the
+                    // toolkit is the last thing in #mdb-sc-trackExtras (which sits
+                    // right under the Track header), in the old one it is inserted
+                    // before .listenDetails__partialInfo, which holds the
+                    // description. It arrives from a MixesDB API call of its own, so
+                    // the creator waits for it rather than expecting it to be there.
+                    // Skipped for a too-short track along with mdbPageCreator_add()
+                    // above: its box waits for a toolkit verdict, and the duration
+                    // gate dropped that toolkit.
+                    if( !tooShortForMixesdb ) {
+                        // Channel handles before the creator ever sees the text:
+                        // uploaders credit remixers by @handle ("Blur - Tender
+                        // (@reyneke Reinterpretation)"), and a handle is not an
+                        // artist name. See scResolveHandles() in api_funcs.js.
+                        //
+                        // The detector runs HERE first, and only its own text is
+                        // scanned for handles - that is the gate that keeps a
+                        // description without a tracklist (most of them) from
+                        // costing a single lookup. The creator detects again on
+                        // the text handed over, which is what it has always done.
+                        var descFound = mdbTracklist_detectInText( t.description );
+
+                        scResolveHandles( descFound ? descFound.text : "", [ t.description ], function( descTexts, descReplaced ) {
+                            // the lookups are a round trip of their own - the
+                            // reader may have clicked on to the next track since
                             if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-                            var kind = t.kind,
-                                id = t.id,
-                                title = t.title,
-                                created_at = formatScDate( t.created_at ),
-                                release_date = formatScDate( t.release_date ),
-                                last_modified = formatScDate( t.last_modified ),
-                                dur_ms = t.duration,
-                                downloadable = t.downloadable,
-                                download_url = t.download_url,
-                                apiArtworkUrl = t.artwork_url,
-                                purchase_url = t.purchase_url,
-                                purchase_title = t.purchase_title;
+                            // no-op when nothing was resolved: the box only warns
+                            // about names we actually put there
+                            mdbPageCreator_addTracklistNotice( scHandleNoticeHtml( descReplaced ) );
 
-                            logVar( "kind", kind );
-                            logVar( "title", title );
-                            logVar( "downloadable", downloadable );
+                            mdbPageCreator_addTracklist({
+                                description:  descTexts[0],
+                                loadComments: function( done ) {
+                                    // Reuse the captured locator rather than the next SPA page.
+                                    // MixesDB checks its track identity and access before comments.
+                                    getScTrackComments( trackLocator, function( bodies ) {
+                                        var found = mdbTracklist_detectInComments( bodies );
 
-                            // releases (or drops) the parked getToolkit() call - see the
-                            // toolkit duration gate. A non-track answer counts as "no
-                            // usable duration", which releases ungated.
-                            toolkitDurationGate_resolve( kind == "track" ? dur_ms : 0 );
+                                        // Same gate as above. The swap is made in ALL
+                                        // bodies, not just the one the detector picked:
+                                        // the creator re-reads the array itself, so a
+                                        // replacement in a single body would be lost.
+                                        scResolveHandles( found ? found.text : "", bodies, function( swapped, swappedReplaced ) {
+                                            if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-                            // MixesDB does not take recordings under 20 min: no Page Creator
-                            // row, no tracklist box (the toolkit was dropped by the gate
-                            // above). Read off the gate so both use the same verdict.
-                            var tooShortForMixesdb = toolkitDurationGate_tooShort();
-
-                            if( kind == "track" ) {
-                                // trackHeader
-                                // in the new layout jNode is #mdb-sc-trackExtras itself, which already
-                                // brings its own #mdb-trackHeader, #mdb-sc-trackButtons and #mdb-toggle-target
-                                var soundActions = jNode,
-                                    trackHeader = isNewSoundCloudLayout ? $("#mdb-sc-trackHead #mdb-trackHeader") : $("#mdb-trackHeader"),
-                                    buttonTarget = isNewSoundCloudLayout ? $("#mdb-sc-trackButtons") : jNode;
-
-                                // Guard on the headline's own id, NOT on an h1 inside
-                                // trackHeader: in the new layout the headline is lifted out of
-                                // #mdb-trackHeader further down (insertAfter #mdb-sc-trackHead),
-                                // so trackHeader is h1-less again on the next API answer and the
-                                // whole block ran a second time - a duplicate headline until reload.
-                                if( $("#mdb-trackHeader-headline").length === 0 ) {
-                                    var trackHeader_content = '<h1 id="mdb-trackHeader-headline" class="hand"><span class="mdb-selectOnClick">'+title+'</span></h1>';
-
-                                    trackHeader_content += '<p id="mdb-trackHeader-releaseInfo" class="sc-text-grey">';
-                                    trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-createDate"><span>Created at:</span> <date id="mdb-trackHeader-date1" class="mdb-selectOnClick hand">'+created_at+'</date></span>';
-                                    if( release_date != "" ) {
-                                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-releaseDate"><span>Release date:</span> <date id="mdb-trackHeader-date2" class="mdb-selectOnClick hand">'+release_date+'</date></span>';
-                                    }
-                                    if( last_modified != "" ) {
-                                        trackHeader_content += '<span id="mdb-trackHeader-releaseInfo-lastmodDate"><span>Last modified:</span> <date id="mdb-trackHeader-date3" class="mdb-selectOnClick hand">'+last_modified+'</date></span>';
-                                    }
-                                    trackHeader_content += '</p>';
-
-                                    logVar( "trackHeader_content", trackHeader_content );
-
-                                    trackHeader.append( trackHeader_content );
-
-                                    var dateClass = "highlight mdb-selectOnClick hand";
-                                    if( release_date == "" ) {
-                                        $("#mdb-trackHeader-releaseInfo-createDate date").addClass( dateClass );
-                                    } else {
-                                        $("#mdb-trackHeader-releaseInfo-releaseDate date").addClass( dateClass );
-                                    }
-
-                                    // new layout: the dates share one row with the buttons
-                                    // (DL, duration, API), so move them over there before they are
-                                    // added. Move the whole #mdb-trackHeader-releaseInfo paragraph
-                                    // instead of the single spans - the grey and the date.highlight
-                                    // styles are scoped to that wrapper.
-                                    if( isNewSoundCloudLayout ) {
-                                        $("#mdb-trackHeader-releaseInfo").prependTo( buttonTarget );
-
-                                        // #mdb-trackHeader is one column of the #mdb-sc-trackHead
-                                        // flex row (the artwork info bar is the other), so a
-                                        // headline left in there only gets part of the width, and
-                                        // long titles wrap early. Lift it out to be a direct child
-                                        // of the wrapper, where it spans everything.
-                                        // It goes AFTER #mdb-sc-trackHead, not before it: that row
-                                        // has to stay the first thing in the wrapper so the artwork
-                                        // info bar keeps sitting directly below SoundCloud's own
-                                        // artwork. Putting the headline above it would push the bar
-                                        // down by the height of the headline plus the title row.
-                                        // #mdb-trackHeader stays behind as the empty flex spacer
-                                        // that keeps the artwork bar over on the right.
-                                        // The title suggestion is inserted AFTER the headline, so it
-                                        // follows it out here and gets the full width too.
-                                        $("#mdb-trackHeader-headline").insertAfter( $("#mdb-sc-trackHead") );
-                                    }
-                                }
-
-                                // MixesDB Page Creator (shared/page_creator/), below the
-                                // headline. Everything site-specific is read off the API
-                                // response here and handed over - the creator itself never
-                                // looks at a SoundCloud page.
-                                // Outside the h1 guard above: the row is only added once the
-                                // toolkit reported "not on MixesDB yet", which can land long
-                                // after the header was built (and the other way round).
-                                // dur_ms gates it: MixesDB does not take recordings under 20 min.
-                                // getScPlayerUrl() rides along for the {{Player}} of the page the
-                                // "Create" link starts - the same URL MixesDB embeds, which is
-                                // not what location.href holds here (see its comment above).
-                                // The artwork URL goes with it for MixesDB's image upload form;
-                                // it is NOT put on the page. scArtworkOriginalUrl() is applied
-                                // HERE and not over there: asking for the "-original" size is a
-                                // SoundCloud CDN trick, not something a Page Creator knows.
-                                // target as a selector string, not a node: SoundCloud re-renders
-                                // under us, and the string is looked up again on every render.
-                                // Not called at all for a track under the 20 min minimum:
-                                // mdbPageCreator_setTitle() would refuse the title anyway, but
-                                // skipping here also saves its MixesDB category lookup.
-                                if( !tooShortForMixesdb ) {
-                                    mdbPageCreator_add({
-                                        title:       title,
-                                        channel:     ( t.user && t.user.username ) ? t.user.username : "",
-                                        createdAt:   created_at,
-                                        releaseDate: release_date,
-                                        durationMs:  dur_ms,
-                                        playerUrl:   getScPlayerUrl(),
-                                        // The uploader's channel page, off the same API answer
-                                        // as the channel name. The Page Creator compares it to
-                                        // the URLs in the entity category's sibling pages -
-                                        // the wikitext linking this channel is what ties a
-                                        // category to a channel beyond the name.
-                                        channelUrl:  ( t.user && t.user.permalink_url ) ? t.user.permalink_url : "",
-                                        artworkUrl:  scArtworkOriginalUrl( apiArtworkUrl ),
-                                        // Not for the tracklist - that is the separate call below.
-                                        // The TITLE builder reads the labels the tracklist credits
-                                        // ("Artist - Title [Label]") out of it, so it can tell a
-                                        // label in brackets behind an artist from a second artist.
-                                        description: t.description,
-                                        // The "Buy" / "Free download" field. Searched for the
-                                        // Notes link next to the description and never written
-                                        // to the page as itself: on a podcast it is where the
-                                        // episode's own page is linked, and it is filled on
-                                        // plenty of tracks whose description names nothing.
-                                        // Every Groove Podcast episode carries its bit.ly here.
-                                        purchaseUrl: scPurchaseUrl( t.purchase_url ),
-                                        // Lets the created page's "== Notes ==" section reach
-                                        // the episode's real page where the description only
-                                        // shortens the link to it ("Go to bit.ly/BRCPod ...").
-                                        // Handed over rather than called over there because it
-                                        // needs GM_xmlhttpRequest, which is this script's grant
-                                        // - see scFollowRedirect() in script.funcs.js and the
-                                        // @connect list in the header, which has to name every
-                                        // shortener mdbPageCreator_notesShorteners does.
-                                        followRedirect: scFollowRedirect,
-                                        // what the "Report" box calls this site ("SC title:",
-                                        // "SC date:") - the short name a reported title is written
-                                        // with, not the script name
-                                        sourceLabel: "SC",
-                                        target:      "#mdb-trackHeader-headline",
-                                        placement:   "after"
-                                    });
-                                } else {
-                                    log( "Track is under the 20 min MixesDB minimum - no Page Creator row and no tracklist box." );
-                                }
-
-                                // add toggleTarget
-                                if( $("#mdb-toggle-target").length === 0 ) {
-                                    $(".listenDetails").prepend( '<div id="mdb-toggle-target"></div>' );
-                                }
-
-                                // The tracklist an uploader wrote into the description (or, when
-                                // there is none there, into a comment): the Page Creator finds
-                                // it, has MixesDB's Tracklist Editor format it and puts it into
-                                // an editable box that then rides along into the created page.
-                                // Only the description is handed over up front - the comments
-                                // cost another API call and are fetched from the callback, which
-                                // the creator only reaches when the description gave nothing.
-                                // Below the toolkit and above SoundCloud's own description, which
-                                // #mdb-toolkit gives us in BOTH layouts: in the new one the
-                                // toolkit is the last thing in #mdb-sc-trackExtras (which sits
-                                // right under the Track header), in the old one it is inserted
-                                // before .listenDetails__partialInfo, which holds the
-                                // description. It arrives from a MixesDB API call of its own, so
-                                // the creator waits for it rather than expecting it to be there.
-                                // Skipped for a too-short track along with mdbPageCreator_add()
-                                // above: its box waits for a toolkit verdict, and the duration
-                                // gate dropped that toolkit.
-                                if( !tooShortForMixesdb ) {
-                                    // Channel handles before the creator ever sees the text:
-                                    // uploaders credit remixers by @handle ("Blur - Tender
-                                    // (@reyneke Reinterpretation)"), and a handle is not an
-                                    // artist name. See scResolveHandles() in api_funcs.js.
-                                    //
-                                    // The detector runs HERE first, and only its own text is
-                                    // scanned for handles - that is the gate that keeps a
-                                    // description without a tracklist (most of them) from
-                                    // costing a single lookup. The creator detects again on
-                                    // the text handed over, which is what it has always done.
-                                    var descFound = mdbTracklist_detectInText( t.description );
-
-                                    scResolveHandles( descFound ? descFound.text : "", [ t.description ], function( descTexts, descReplaced ) {
-                                        // the lookups are a round trip of their own - the
-                                        // reader may have clicked on to the next track since
-                                        if( !mdbIsCurrentPage( pageGeneration ) ) return;
-
-                                        // no-op when nothing was resolved: the box only warns
-                                        // about names we actually put there
-                                        mdbPageCreator_addTracklistNotice( scHandleNoticeHtml( descReplaced ) );
-
-                                        mdbPageCreator_addTracklist({
-                                            description:  descTexts[0],
-                                            loadComments: function( done ) {
-                                                // id, not a track ID read off the page: it comes out of
-                                                // the very response being handled, so it cannot name
-                                                // another track than the one this row is for.
-                                                getScTrackComments( id, scAccessToken, function( bodies ) {
-                                                    var found = mdbTracklist_detectInComments( bodies );
-
-                                                    // Same gate as above. The swap is made in ALL
-                                                    // bodies, not just the one the detector picked:
-                                                    // the creator re-reads the array itself, so a
-                                                    // replacement in a single body would be lost.
-                                                    scResolveHandles( found ? found.text : "", bodies, function( swapped, swappedReplaced ) {
-                                                        if( !mdbIsCurrentPage( pageGeneration ) ) return;
-
-                                                        mdbPageCreator_addTracklistNotice( scHandleNoticeHtml( swappedReplaced ) );
-                                                        done( swapped );
-                                                    });
-                                                });
-                                            },
-                                            target:       "#mdb-toolkit",
-                                            placement:    "after"
+                                            mdbPageCreator_addTracklistNotice( scHandleNoticeHtml( swappedReplaced ) );
+                                            done( swapped );
                                         });
                                     });
-                                }
+                                },
+                                target:       "#mdb-toolkit",
+                                placement:    "after"
+                            });
+                        });
+                    }
 
-                                // indicate download is available
-                                // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
-                                // therefor rename the dropdown to "DL"
-                                // In the new layout the hint gets its own button next to the other
-                                // trackExtras buttons, which forwards the click to SoundCloud's own
-                                // download button - see triggerScDownload().
-                                if( downloadable ) {
-                                    if( isNewSoundCloudLayout ) {
-                                        if( $("#mdb-dlInfo").length === 0 ) {
-                                            buttonTarget.append('<button id="mdb-dlInfo" class="'+soundActionFakeButtonClass+'" title="Download this track (triggers SoundCloud\'s own download button)">DL</button>');
+                    // indicate download is available
+                    // cannot add DL url, thus only a button, but that cannot trigger the dropown to open
+                    // therefor rename the dropdown to "DL"
+                    // In the new layout the hint gets its own button next to the other
+                    // trackExtras buttons, which forwards the click to SoundCloud's own
+                    // download button - see triggerScDownload().
+                    if( downloadable ) {
+                        if( isNewSoundCloudLayout ) {
+                            if( $("#mdb-dlInfo").length === 0 ) {
+                                buttonTarget.append('<button id="mdb-dlInfo" class="'+soundActionFakeButtonClass+'" title="Download this track (triggers SoundCloud\'s own download button)">DL</button>');
 
-                                            $("#mdb-dlInfo").click(function(){
-                                                var dlInfoButton = $(this);
+                                $("#mdb-dlInfo").click(function(){
+                                    var dlInfoButton = $(this);
 
-                                                triggerScDownload(function(){
-                                                    log( "SoundCloud's own download button was not found" );
-                                                    dlInfoButton.addClass("mdb-dlInfo-failed")
-                                                                .attr( "title", "SoundCloud's own download button could not be found - please use it directly" );
-                                                });
-                                            });
-                                        }
-                                    } else {
-                                        $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
-                                    }
-                                }
-
-                                // buy/purchase link
-                                // The old layout offered it as .soundActions__purchaseLink in the DOM, the
-                                // new one hides it away - take it from the API response instead.
-                                // The link IS the button, it is not an <a> inside a <button>: SoundCloud's
-                                // own .sc-button rule (which soundActionFakeButtonClass pulls in for the
-                                // look) sets pointer-events: none on every child, so a nested anchor never
-                                // receives the click - the button swallows it and nothing happens. An <a>
-                                // carrying the button classes is what SoundCloud does itself and what we
-                                // already do for a.mdb-tidSubmit.sc_button-mdb.
-                                if( isNewSoundCloudLayout && purchase_url && $("#mdb-purchaseLink").length === 0 ) {
-                                    var purchase_href = scPurchaseUrl( purchase_url ),
-                                        purchase_text = purchase_title ? purchase_title : "Buy";
-
-                                    buttonTarget.append( '<a id="mdb-purchaseLink" class="'+soundActionFakeButtonClass+'" href="'+purchase_href+'" target="_blank">Link</a>' );
-                                }
-
-                                // artwork: link to the original plus its dimensions/file type
-                                // goes into the head row (right of the title), not into the button row
-                                if( isNewSoundCloudLayout && apiArtworkUrl && $("#mdb-artwork-input-wrapper").length === 0 ) {
-                                    append_artwork_trackExtras( $("#mdb-sc-trackHead"), apiArtworkUrl );
-                                }
-
-                                // file details
-                                // TODO: get bytes from download url
-                                if( dur_ms ) {
-                                    if( $("#mdb-fileInfo").length === 0 ) {
-                                        //var bytes = getBytesSizeFromUrl_api( download_url, scAccessToken );
-                                        var bytes = "",
-                                            dur_sec = Math.floor(dur_ms/ 1000),
-                                            dur = convertHMS( dur_sec ),
-                                            // Too short for MixesDB: the file details are the
-                                            // wikitext that goes onto a mix page, and this track
-                                            // will never get one - so the duration is a plain
-                                            // label here and nothing opens under it. The red fill
-                                            // says why the toolkit and Page Creator are missing
-                                            // (styled in script.css, cursor included), and the
-                                            // tooltip spells it out. Leaving mdb-toggle and
-                                            // data-toggleid off is what makes it inert: the click
-                                            // handler in global.js binds by that class.
-                                            fileInfoClass = soundActionFakeButtonClass + ( tooShortForMixesdb ? ' mdb-fileInfo-tooShort' : ' mdb-toggle' ),
-                                            fileInfoToggle = tooShortForMixesdb ? '' : ' data-toggleid="mdb-fileDetails"',
-                                            fileInfoTitle = tooShortForMixesdb
-                                                ? 'Too short for MixesDB (under 20:00), so no toolkit, no Page Creator and no file details for this track.'
-                                                : 'Click to copy file details';
-
-                                        if( isNewSoundCloudLayout ) {
-                                            buttonTarget.append('<button id="mdb-fileInfo" class="'+fileInfoClass+'"'+fileInfoToggle+' title="'+fileInfoTitle+'">'+dur+'</button>');
-                                        } else {
-                                            soundActions.after('<button id="mdb-fileInfo" class="'+fileInfoClass+'"'+fileInfoToggle+' title="'+fileInfoTitle+'">'+dur+'</button>');
-                                        }
-
-                                        // no box for a track that is too short - it would only
-                                        // ever hold file details nobody can use
-                                        if( !tooShortForMixesdb ) {
-                                            $("#mdb-toggle-target").append( getFileDetails_forToggle( dur_sec, bytes ) );
-                                        }
-                                    }
-                                }
-
-                                // apiText-toggleButton
-                                //log($("#apiText-toggleButton").length);
-                                if( $("#apiText-toggleButton").length === 0 ) {
-                                    // remove artwork_url
-                                    // add modified artwork url for -original.ext
-                                    // tracks without an artwork return null here
-                                    var artwork_url = t.artwork_url,
-                                        artwork_url_original_try = artwork_url ? artwork_url.replace("-large.", "-original.") : "";
-                                    delete t["artwork_url"];
-
-                                    // move description to end of t array
-                                    var description = t.description;
-                                    delete t["description"];
-                                    t["description"] = description;
-
-                                    // move user to end of t array
-                                    var user = t.user;
-                                    delete t["user"];
-                                    t["user"] = user;
-
-                                    // build new re-ordered t_new array
-                                    // artwork urls on top
-                                    var t_new = { "artwork_url_original (try)" : artwork_url_original_try };
-                                    t_new["artwork_url"] = artwork_url;
-                                    // add remaining t values
-                                    $.each( t, function(key, value) {
-                                        t_new[key] = value;
+                                    triggerScDownload(function(){
+                                        log( "SoundCloud's own download button was not found" );
+                                        dlInfoButton.addClass("mdb-dlInfo-failed")
+                                                    .attr( "title", "SoundCloud's own download button could not be found - please use it directly" );
                                     });
-
-                                    // prepare apiText for toggle output
-                                    var apiText = textify( JSON.stringify( t_new, null, "\t" ) ),
-                                        apiTextLinkified = linkify( apiText );
-                                    //logVar( "apiText", apiText );
-
-                                    if( isNewSoundCloudLayout ) {
-                                        buttonTarget.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
-                                    } else {
-                                        soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
-                                    }
-                                    $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
-                                }
-                            } else {
-                                // /resolve normally answers with the resource itself. If it ever
-                                // hands back a { status, location } pointer instead, kind is
-                                // undefined and everything above silently does nothing - which
-                                // is the one failure mode of switching to it, so it says so.
-                                log( "The API answered, but not with a track (kind: " + kind + ")" +
-                                     ( t && t.location ? " - it returned a pointer to " + t.location + " instead." : "." ) );
-                                addApiErrorNote( "no track in the API answer" );
+                                });
                             }
-                        },
-                        error: function() {
-                            log( "No track or no API!" );
-                            addApiErrorNote( "unknown error" );
+                        } else {
+                            $(".sc-button-more", jNode).html('<span class="mdb-fakeDlButton">DL</span>');
+                        }
+                    }
 
-                            // no duration to gate on - release the parked toolkit call, but
-                            // only if the reader is still on the page this answer was for
-                            if( mdbIsCurrentPage( pageGeneration ) ) {
-                                toolkitDurationGate_resolve( 0 );
+                    // buy/purchase link
+                    // The old layout offered it as .soundActions__purchaseLink in the DOM, the
+                    // new one hides it away - take it from the API response instead.
+                    // The link IS the button, it is not an <a> inside a <button>: SoundCloud's
+                    // own .sc-button rule (which soundActionFakeButtonClass pulls in for the
+                    // look) sets pointer-events: none on every child, so a nested anchor never
+                    // receives the click - the button swallows it and nothing happens. An <a>
+                    // carrying the button classes is what SoundCloud does itself and what we
+                    // already do for a.mdb-tidSubmit.sc_button-mdb.
+                    if( isNewSoundCloudLayout && purchase_url && $("#mdb-purchaseLink").length === 0 ) {
+                        var purchase_href = scPurchaseUrl( purchase_url ),
+                            purchase_text = purchase_title ? purchase_title : "Buy";
+
+                        buttonTarget.append( '<a id="mdb-purchaseLink" class="'+soundActionFakeButtonClass+'" href="'+purchase_href+'" target="_blank">Link</a>' );
+                    }
+
+                    // artwork: link to the original plus its dimensions/file type
+                    // goes into the head row (right of the title), not into the button row
+                    if( isNewSoundCloudLayout && apiArtworkUrl && $("#mdb-artwork-input-wrapper").length === 0 ) {
+                        append_artwork_trackExtras( $("#mdb-sc-trackHead"), apiArtworkUrl );
+                    }
+
+                    // file details
+                    // TODO: get bytes from download url
+                    if( dur_ms ) {
+                        if( $("#mdb-fileInfo").length === 0 ) {
+                            var bytes = "",
+                                dur_sec = Math.floor(dur_ms/ 1000),
+                                dur = convertHMS( dur_sec ),
+                                // Too short for MixesDB: the file details are the
+                                // wikitext that goes onto a mix page, and this track
+                                // will never get one - so the duration is a plain
+                                // label here and nothing opens under it. The red fill
+                                // says why the toolkit and Page Creator are missing
+                                // (styled in script.css, cursor included), and the
+                                // tooltip spells it out. Leaving mdb-toggle and
+                                // data-toggleid off is what makes it inert: the click
+                                // handler in global.js binds by that class.
+                                fileInfoClass = soundActionFakeButtonClass + ( tooShortForMixesdb ? ' mdb-fileInfo-tooShort' : ' mdb-toggle' ),
+                                fileInfoToggle = tooShortForMixesdb ? '' : ' data-toggleid="mdb-fileDetails"',
+                                fileInfoTitle = tooShortForMixesdb
+                                    ? 'Too short for MixesDB (under 20:00), so no toolkit, no Page Creator and no file details for this track.'
+                                    : 'Click to copy file details';
+
+                            if( isNewSoundCloudLayout ) {
+                                buttonTarget.append('<button id="mdb-fileInfo" class="'+fileInfoClass+'"'+fileInfoToggle+' title="'+fileInfoTitle+'">'+dur+'</button>');
+                            } else {
+                                soundActions.after('<button id="mdb-fileInfo" class="'+fileInfoClass+'"'+fileInfoToggle+' title="'+fileInfoTitle+'">'+dur+'</button>');
+                            }
+
+                            // no box for a track that is too short - it would only
+                            // ever hold file details nobody can use
+                            if( !tooShortForMixesdb ) {
+                                $("#mdb-toggle-target").append( getFileDetails_forToggle( dur_sec, bytes ) );
                             }
                         }
-                    });
+                    }
+
+                    // apiText-toggleButton
+                    //log($("#apiText-toggleButton").length);
+                    if( $("#apiText-toggleButton").length === 0 ) {
+                        // remove artwork_url
+                        // add modified artwork url for -original.ext
+                        // tracks without an artwork return null here
+                        var artwork_url = t.artwork_url,
+                            artwork_url_original_try = artwork_url ? artwork_url.replace("-large.", "-original.") : "";
+                        delete t["artwork_url"];
+
+                        // move description to end of t array
+                        var description = t.description;
+                        delete t["description"];
+                        t["description"] = description;
+
+                        // move user to end of t array
+                        var user = t.user;
+                        delete t["user"];
+                        t["user"] = user;
+
+                        // build new re-ordered t_new array
+                        // artwork urls on top
+                        var t_new = { "artwork_url_original (try)" : artwork_url_original_try };
+                        t_new["artwork_url"] = artwork_url;
+                        // add remaining t values
+                        $.each( t, function(key, value) {
+                            t_new[key] = value;
+                        });
+
+                        // prepare apiText for toggle output
+                        var apiText = textify( JSON.stringify( t_new, null, "\t" ) ),
+                            apiTextLinkified = linkify( apiText );
+                        //logVar( "apiText", apiText );
+
+                        if( isNewSoundCloudLayout ) {
+                            buttonTarget.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
+                        } else {
+                            soundActions.append( '<button id="apiText-toggleButton" class="'+soundActionFakeButtonClass+' mdb-toggle" data-toggleid="apiText">API</button>' );
+                        }
+                        $("#mdb-toggle-target").append('<div id="apiText" style="display:none">'+apiTextLinkified+'</div>');
+                    }
                 } else {
-                    addApiErrorNote( "no access token" );
-                    toolkitDurationGate_resolve( 0 ); // no duration to gate on - release the parked toolkit call
+                    // /resolve normally answers with the resource itself. If it ever
+                    // hands back a { status, location } pointer instead, kind is
+                    // undefined and everything above silently does nothing - which
+                    // is the one failure mode of switching to it, so it says so.
+                    log( "The API answered, but not with a track (kind: " + kind + ")" +
+                         ( t && t.location ? " - it returned a pointer to " + t.location + " instead." : "." ) );
+                    addApiErrorNote( "no track in the API answer" );
                 }
+            }, function() {
+                if( !mdbIsCurrentPage( pageGeneration ) ) return;
+                addApiErrorNote( "metadata unavailable" );
+                toolkitDurationGate_resolve( 0 );
             });
         }
     } else {
@@ -2018,6 +1968,10 @@ log( "script.user.js IIFE finished - all handlers registered." );
 
 /*
  * Changelog
+ *
+ * 2026.10.22.1
+ * SoundCloud metadata and widget lookup now use the server-side metadata boundary.
+ * Application credentials are no longer requested or sent by userscripts.
  *
  * 2026.09.04.4
  * Page Creator (title_builder.js v_92, page_creator.js v_132): a title carrying a character

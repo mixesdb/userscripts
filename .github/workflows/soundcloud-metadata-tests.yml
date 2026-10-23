@@ -1,0 +1,35 @@
+name: SoundCloud metadata compatibility
+on:
+  pull_request:
+    paths:
+      - 'SoundCloud/**'
+      - 'TrackId.net/script.user.js'
+      - 'shared/toolkit/**'
+      - 'tests/soundcloud_metadata_test.js'
+      - '.github/workflows/soundcloud-metadata-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'SoundCloud/**'
+      - 'TrackId.net/script.user.js'
+      - 'shared/toolkit/**'
+      - 'tests/soundcloud_metadata_test.js'
+      - '.github/workflows/soundcloud-metadata-tests.yml'
+permissions:
+  contents: read
+jobs:
+  offline-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.7.12
+      - name: Exercise SoundCloud, TrackId.net and toolkit consumers
+        run: deno test --allow-read tests/soundcloud_metadata_test.js
+      - name: Check existing Page Creator and tracklist behavior
+        run: |
+          deno run --allow-read shared/page_creator/title_examples_test.js
+          deno run --allow-read shared/page_creator/tracklist_examples_test.js
+          deno run --allow-read shared/tracklist_importer/importer_examples_test.js

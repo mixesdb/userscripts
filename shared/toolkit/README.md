@@ -35,7 +35,10 @@ player is unused. The different wording is on purpose: the URL is written on tha
 not its indexed player, so give the page a quick look before adding anything.
 
 Player URLs are read out of the page's embedded players, so a SoundCloud, Mixcloud, hearthis.at
-or YouTube widget is recognised wherever it is embedded.
+or YouTube widget is recognised wherever it is embedded. SoundCloud track and playlist
+widgets are resolved through MixesDB. A private widget can be looked up when the page supplies
+its share token; the toolkit still uses the returned track permalink. Application credentials
+are kept on the server.
 
 ### Used / Unused players
 
