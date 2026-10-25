@@ -71,7 +71,7 @@ Next to the player:
 
 - **duration** – click for the copy-paste ready [File details](../shared/README.md#file-details) table.
   Not clickable on a track under 20 minutes, see above
-- **API** – toggles the raw SoundCloud API answer for the track, with the artwork URLs on top and
+- **API** – toggles the supported SoundCloud metadata for the track, with the artwork URLs on top and
   every URL clickable
 - **DL** – shown when the track is downloadable; forwards the click to SoundCloud's own download
   button, including when that button hides in the overflow menu

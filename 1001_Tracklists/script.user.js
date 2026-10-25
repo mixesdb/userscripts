@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         1001 Tracklists (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.04.1
+// @version      2026.10.25.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -12,10 +12,10 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-1001_Tracklists_27
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-1001_Tracklists_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-1001_Tracklists_16
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-1001_Tracklists_112
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.v2.js?v-1001_Tracklists_113
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-1001_Tracklists_12
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-1001_Tracklists_22
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-1001_Tracklists_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.v2.js?v-1001_Tracklists_2
 // @include      http*1001tracklists.com*
 // @include      http*mixesdb.com/w/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=1001tracklists.com
@@ -292,6 +292,10 @@ if( visitDomain != "mixesdb.com" ) {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Changelog
+ *
+ * 2026.10.25.1
+ * SoundCloud metadata and widget lookup now use the server-side metadata boundary.
+ * Application credentials are no longer requested or sent by userscripts.
  *
  * 2026.09.03.2
  * Tracklist Importer merge, three fixes off one report (merge_core.js v11, Claude Young @ Fuse

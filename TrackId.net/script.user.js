@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.09.04.3
+// @version      2026.10.25.1
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -13,14 +13,14 @@
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/global.js?v-TrackId.net_115
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/mixesdb_modal/funcs.js?v-TrackId.net_4
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_editor/funcs.js?v-TrackId.net_19
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.js?v-TrackId.net_133
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/toolkit/funcs.v2.js?v-TrackId.net_134
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/merge_core.js?v-TrackId.net_22
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/tracklist_importer/funcs.js?v-TrackId.net_52
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_definitions.js?v_58
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/title_builder.js?v_92
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/tracklist_detector.js?v_13
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/shared/page_creator/page_creator.js?v_132
-// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.js?v-TrackId.net_1
+// @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/SoundCloud/api_funcs.v2.js?v-TrackId.net_2
 // @require      https://raw.githubusercontent.com/mixesdb/userscripts/refs/heads/main/Tracklist_Cue_Switcher/script.funcs.js?v_2
 // @include      http*trackid.net*
 // @include      http*mixesdb.com/w/*
@@ -1266,74 +1266,51 @@ function funcTidPageCreator( playerUrl ) {
         return;
     }
 
-    // Two network round trips deep (access token, then the track). If the reader has clicked
-    // on to the next audiostream meanwhile, the answer must be dropped instead of written into
-    // that page - see mdbPageGeneration in global.js.
+    // One metadata round trip; never write a previous audiostream into the current page.
     var pageGeneration = mdbPageGeneration;
-
-    getScAccessTokenFromApi(function( scAccessToken ) {
+    getScTrackFromApi( playerUrl, function( t ) {
         if( !mdbIsCurrentPage( pageGeneration ) ) return;
 
-        if( !scAccessToken || scAccessToken == "null" ) {
-            log( "funcTidPageCreator: no SC access token - no Page Creator row." );
+        if( !t || t.kind != "track" ) {
+            log( "funcTidPageCreator: the API answered, but not with a track (kind: " + ( t ? t.kind : "no data" ) + ")." );
             return;
         }
 
-        var scApiUrl_track = "https://api.soundcloud.com/resolve?url=" + encodeURIComponent( playerUrl );
-        logVar( "funcTidPageCreator: scApiUrl_track", scApiUrl_track );
+        logVar( "funcTidPageCreator: title", t.title );
+        logVar( "funcTidPageCreator: channel", t.user ? t.user.username : "" );
+        logVar( "funcTidPageCreator: created_at", t.created_at );
+        logVar( "funcTidPageCreator: duration", t.duration );
 
-        $.ajax({
-            beforeSend: function( request ) {
-                request.setRequestHeader( "Authorization", "OAuth " + scAccessToken );
-            },
-            dataType: "json",
-            url: scApiUrl_track,
-            success: function( t ) {
-                if( !mdbIsCurrentPage( pageGeneration ) ) return;
-
-                if( !t || t.kind != "track" ) {
-                    log( "funcTidPageCreator: the API answered, but not with a track (kind: " + ( t ? t.kind : "no data" ) + ")." );
-                    return;
-                }
-
-                logVar( "funcTidPageCreator: title", t.title );
-                logVar( "funcTidPageCreator: channel", t.user ? t.user.username : "" );
-                logVar( "funcTidPageCreator: created_at", t.created_at );
-                logVar( "funcTidPageCreator: duration", t.duration );
-
-                mdbPageCreator_add({
-                    title:        t.title,
-                    channel:      ( t.user && t.user.username ) ? t.user.username : "",
-                    createdAt:    formatScDate( t.created_at ),
-                    releaseDate:  formatScDate( t.release_date ),
-                    durationMs:   t.duration,
-                    playerUrl:    playerUrl,
-                    artworkUrl:   scArtworkOriginalUrl( t.artwork_url ),
-                    // the TITLE builder reads the labels a description tracklist credits out
-                    // of this ("Artist - Title [Label]") - the tracklist itself comes from the
-                    // TID box, see tracklistBox below
-                    description:  t.description,
-                    // the values above are SoundCloud's, so a report reads "SC title:" here too
-                    sourceLabel:  "SC",
-                    // "after" the player wrapper, not appended INTO it: the row becomes a
-                    // direct child of #mdb-tid-audiostreamExtras between player and toolkit,
-                    // which is what lets the loading skeleton cover it - the player wrapper
-                    // itself stays visible (keep) while everything loads, so a row inside it
-                    // would pop in before the one reveal
-                    target:       ".mdb-player-audiostream",
-                    placement:    "after",
-                    // TID's own tracklist box: what is in it when "Create" is clicked goes
-                    // onto the new page, and its API verdict files the "Tracklist:" category
-                    tracklistBox: "#tlEditor #mixesdb-TLbox",
-                    // TID's "Style suggestions" box: its [[Category:...]] lines fill the two
-                    // style slots of the new page - also read at click time, no waiting needed
-                    stylesBox:    "#mixesdb-TIDstyles"
-                });
-            },
-            error: function( jqXHR, textStatus, errorThrown ) {
-                log( "funcTidPageCreator: FAILED to resolve the SC track (" + textStatus + ": " + errorThrown + ", status " + jqXHR.status + ")." );
-            }
+        mdbPageCreator_add({
+            title:        t.title,
+            channel:      ( t.user && t.user.username ) ? t.user.username : "",
+            createdAt:    formatScDate( t.created_at ),
+            releaseDate:  formatScDate( t.release_date ),
+            durationMs:   t.duration,
+            playerUrl:    playerUrl,
+            artworkUrl:   scArtworkOriginalUrl( t.artwork_url ),
+            // the TITLE builder reads the labels a description tracklist credits out
+            // of this ("Artist - Title [Label]") - the tracklist itself comes from the
+            // TID box, see tracklistBox below
+            description:  t.description,
+            // the values above are SoundCloud's, so a report reads "SC title:" here too
+            sourceLabel:  "SC",
+            // "after" the player wrapper, not appended INTO it: the row becomes a
+            // direct child of #mdb-tid-audiostreamExtras between player and toolkit,
+            // which is what lets the loading skeleton cover it - the player wrapper
+            // itself stays visible (keep) while everything loads, so a row inside it
+            // would pop in before the one reveal
+            target:       ".mdb-player-audiostream",
+            placement:    "after",
+            // TID's own tracklist box: what is in it when "Create" is clicked goes
+            // onto the new page, and its API verdict files the "Tracklist:" category
+            tracklistBox: "#tlEditor #mixesdb-TLbox",
+            // TID's "Style suggestions" box: its [[Category:...]] lines fill the two
+            // style slots of the new page - also read at click time, no waiting needed
+            stylesBox:    "#mixesdb-TIDstyles"
         });
+    }, function() {
+        log( "funcTidPageCreator: SoundCloud metadata unavailable." );
     });
 }
 
@@ -2838,6 +2815,10 @@ function on_submitrequest() {
 
 /*
  * Changelog
+ *
+ * 2026.10.25.1
+ * SoundCloud metadata and widget lookup now use the server-side metadata boundary.
+ * Application credentials are no longer requested or sent by userscripts.
  *
  * 2026.09.04.3
  * Page Creator (title_builder.js v_92, page_creator.js v_132): a title carrying a character
