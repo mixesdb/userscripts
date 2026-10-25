@@ -17,6 +17,10 @@ That checkout must contain `tests/test_soundcloud_public_track.py` from MixesDB 
 Python 3 and PHP are required for this paired mode. The existing PHP fixture dispatches
 real API code with a disposable mocked provider; it does not contact SoundCloud.
 
+The old `SoundCloud/api_funcs.js` and `shared/toolkit/funcs.js` remain byte-for-byte compatible.
+Updated consumers load the new `.v2.js` paths and self-report bounded migration labels
+(`client_family` and `client_version=2026.10.25.1`). Labels are not user identities.
+
 The server must provide `getScTrack`, `getScTrackComments` and `getScPermalink` before these
 updated dependencies are used. Old scripts still using `getScAccessToken` must be updated
 before that action is retired. Coordinate the server and userscript rollout; never restore

@@ -5,10 +5,10 @@ import assert from 'node:assert/strict';
 
 const root = new URL('../', import.meta.url);
 const read = file => Deno.readTextFileSync(new URL(file, root));
-const api = read('SoundCloud/api_funcs.js');
+const api = read('SoundCloud/api_funcs.v2.js');
 const sc = read('SoundCloud/script.user.js');
 const tid = read('TrackId.net/script.user.js');
-const toolkit = read('shared/toolkit/funcs.js');
+const toolkit = read('shared/toolkit/funcs.v2.js');
 const serverRoot = Deno.args.find(value => value.startsWith('--server-root='))?.slice(14);
 const sentinel = 'offline-application-bearer-sentinel';
 const track = {
@@ -68,6 +68,7 @@ function environment() {
         assert.equal(options.type, 'POST');
         assert.equal(options.beforeSend, undefined);
         assert.equal(options.headers, undefined);
+        assert.equal(options.data.client_version, '2026.10.25.1');
         assert.ok(!JSON.stringify(options.data).includes(sentinel));
         const request = { options, done: options.success, fail: options.error };
         requests.push(request);
@@ -243,7 +244,42 @@ Deno.test('all dependency consumers are versioned and no browser bearer path rem
     for (const name of consumers) {
         const source = read(name + '/script.user.js');
         const version = source.match(/@version\s+(\d{4}\.\d{2}\.\d{2}\.\d+)/);
-        assert.ok(version && version[1].slice(0, 10) >= '2026.10.22');
-        assert.ok(source.includes('/shared/toolkit/funcs.js?'));
+        assert.ok(version && version[1].slice(0, 10) >= '2026.10.25');
+        assert.ok(source.includes('/shared/toolkit/funcs.v2.js?'));
     }
+});
+
+Deno.test('legacy helper bytes and token/comment signatures survive mixed cached versions', async () => {
+    const hashes = {
+        'SoundCloud/api_funcs.js': 'fc555f0700225f4a2ecf8e5dea28fa885cb72ebbce97821fe75169265c87cffd',
+        'shared/toolkit/funcs.js': '4c9246326d282a23e55eeeac749aa9dc0baaff321bd2a551a6e568355b361f38',
+    };
+    for (const [file, expected] of Object.entries(hashes)) {
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(read(file)));
+        const actual = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+        assert.equal(actual, expected);
+    }
+    const requests = [];
+    const $ = () => ({});
+    $.ajax = options => {
+        requests.push(options);
+        return {
+            fail() { return this; },
+            done(callback) { callback(JSON.stringify({access_token: 'legacy-fixture'})); return this; }
+        };
+    };
+    $.each = (items, callback) => Object.entries(items).forEach(([key, item]) => callback(key,item));
+    const context = vm.createContext({ $, jQuery: {parseJSON: JSON.parse}, log() {}, logFunc() {}, logVar() {} });
+    vm.runInContext(read('SoundCloud/api_funcs.js'), context);
+    let token;
+    context.getScAccessTokenFromApi(value => { token = value; });
+    assert.equal(token, 'legacy-fixture');
+    assert.equal(requests[0].data.query, 'getScAccessToken');
+    let comments;
+    context.getScTrackComments(123, token, value => { comments = value; });
+    let authorization;
+    requests[1].beforeSend({setRequestHeader(key,value) { authorization = [key,value]; }});
+    assert.equal(JSON.stringify(authorization), JSON.stringify(['Authorization', 'OAuth legacy-fixture']));
+    requests[1].success({collection:[{body:'old signature still works'}]});
+    assert.equal(JSON.stringify(comments), '["old signature still works"]');
 });
