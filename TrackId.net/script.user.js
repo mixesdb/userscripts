@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TrackId.net (by MixesDB)
 // @author       User:Martin@MixesDB (Subfader@GitHub)
-// @version      2026.10.25.1
+// @version      2026.10.29.2
 // @description  Change the look and behaviour of certain DJ culture related websites to help contributing to MixesDB, e.g. add copy-paste ready tracklists in wiki syntax.
 // @homepageURL  https://www.mixesdb.com/w/Help:MixesDB_userscripts
 // @supportURL   https://discord.com/channels/1258107262833262603/1261652394799005858
@@ -1674,6 +1674,55 @@ waitForKeyElements(".mdb-mixesdbLink.lastEdit", function( jNode ) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// Normalize either m:ss or h:mm:ss; missing/invalid times must not become zero.
+function tidTimestamp(text) {
+    var value = String(text || "").trim();
+    if (!/^\d+:[0-5]\d(?::[0-5]\d)?$/.test(value)) return "";
+    return value.split(":").length === 2 ? "0:" + value : value;
+}
+
+function tidRowTimes(row) {
+    if (!row) return { start: "", end: "" };
+    function cell(selector) {
+        var element = row.querySelector(selector);
+        return element ? element.textContent.trim() : "";
+    }
+    var range = cell(".time, [data-field='time']").split(/\s*[–—-]\s*/);
+    return {
+        start: tidTimestamp(cell(".startTime, [data-field='startTime']")) || tidTimestamp(range[0]),
+        end: tidTimestamp(cell(".endTime, [data-field='endTime']")) || tidTimestamp(range[1])
+    };
+}
+
+function tidTotalDuration(root) {
+    // Current header: channel link, provider icon, separator, duration.
+    var channels = root.querySelectorAll('a[href*="/audiostreams?channel="]');
+    for (var channel of channels) {
+        for (var sibling of channel.parentElement.children) {
+            if (sibling.tagName !== "SPAN") continue;
+            var duration = tidTimestamp(sibling.textContent);
+            if (duration) return duration;
+        }
+    }
+    // Legacy request-summary layout.
+    return tidTimestamp($("p.MuiTypography-body1:contains('Duration')", root)
+        .closest("div").next(".MuiGrid-item").text());
+}
+
+function tidGapText(times, nextTimes, totalDuration, isLast, unknownThreshold, spanThreshold) {
+    if (!times.start || !times.end) return "";
+    unknownThreshold = unknownThreshold == null ? (isLast ? 70 : 30) : unknownThreshold;
+    spanThreshold = spanThreshold == null ? (isLast ? 240 : 180) : spanThreshold;
+    var start = durToSec(times.start), end = durToSec(times.end);
+    if (end < start) return isLast ? "" : "\n...";
+    var boundary = isLast ? totalDuration : nextTimes.start;
+    if (!boundary) return "";
+    var gap = durToSec(boundary) - end;
+    var text = gap > unknownThreshold ? "\n[" + times.end + "] ?" : "";
+    if (gap > spanThreshold) text += "\n...";
+    return text;
+}
+
 /*
  * Tracklist table
  * via table .mdb-tid-table
@@ -1745,8 +1794,9 @@ function mdbTid_medianTrackRuntimeSec( tlWrapper ) {
         i;
 
     $("tr", tlWrapper).each(function(){
-        var startSec = durToSec( $(".startTime", this).text() ),
-            endSec = durToSec( $(".endTime", this).text() );
+        var times = tidRowTimes(this),
+            startSec = times.start ? durToSec(times.start) : NaN,
+            endSec = times.end ? durToSec(times.end) : NaN;
 
         // the header row and anything else without a start time is no detection at all
         if( !isFinite( startSec ) ) { return; }
@@ -1846,9 +1896,8 @@ function mdbTid_dropRedundantGaps( tl_arr ) {
 // merged tracklist: a row behind [61] on a 1:04:54 mix can only be a "6x" minute, so it reads
 // "[6?]" instead of "[??]".
 function mdbTid_totalDurSec() {
-    var text = $("p.MuiTypography-body1:contains('Duration')").closest("div").next(".MuiGrid-item").text().trim(),
-        parts = text.split(":"),
-        sec = parts.length === 3 ? durToSec( text ) : parts.length === 2 ? durToSec_MS( text ) : 0;
+    var text = tidTotalDuration(document),
+        sec = text ? durToSec(text) : 0;
 
     return isFinite( sec ) && sec > 0 ? sec : 0;
 }
@@ -1868,8 +1917,7 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
 
     var heading = $(".MuiGrid-container .MuiGrid-grid-xs-12 p.MuiTypography-body1").first(),
         mixTitle = heading.text(),
-        totalDur = $("p.MuiTypography-body1:contains('Duration')").closest("div").next(".MuiGrid-item").text(),
-        totalDur_Sec = mdbTid_totalDurSec();
+        totalDur = tidTotalDuration(document);
     log(mixTitle);
     logVar( "totalDur", totalDur);
 
@@ -1950,16 +1998,10 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
             logVar( "label after fixing", label );
         }
 
-        var startTime = $(".startTime", this).text(),
-            startTime_Sec = durToSec(startTime),
-            endTime = $(".endTime", this).text(),
-            endTime_Sec = durToSec(endTime),
-            previousTrack = $("tr:eq(" + (i - 2) + ")", tlWrapper), // eq starts at 0
-            endTimePrevious = $(".endTime", previousTrack).text(),
-            endTimePrevious_Sec = durToSec(endTimePrevious),
-            nextTrack = $("tr:eq(" + (i) + ")", tlWrapper), // eq starts at 0
-            startTimeNext = $(".startTime", nextTrack).text(),
-            startTimeNext_Sec = durToSec(startTimeNext);
+        var times = tidRowTimes(this),
+            startTime = times.start,
+            startTime_Sec = startTime ? durToSec(startTime) : NaN,
+            nextTimes = tidRowTimes(li[i]);
 
         artist = stripCountryCodes( artist );
         title = removePointlessVersions( title );
@@ -2026,51 +2068,12 @@ waitForKeyElements(".mdb-tid-table:not('.tlEditor-processed')", function( jNode 
         tl += thisTrack;
         //logVar( "thisTrack", thisTrack );
 
-        // gaps
-        // add "..." row if gap is too laarge
-        if( !$(this).is(':last-child') ) {
-            // not last track
-            var gapSec = startTimeNext_Sec - endTime_Sec;
-            //log( "-------------------------------" );
-            //log( "> startTime: " + startTime );
-            //log( "> startTime_Sec: " + startTime_Sec );
-            //log( "> endTime: " + endTime );
-            //log( "> next startTime: " + startTimeNext );
-            //log( "> gapSec: " + gapSec );
-
-            // TID end times sometimes before start time
-            // https://trackid.net/audiostreams/b5096745-56ad-4d4d-af61-8d16e32e0521
-            // don't create next "[dur] ?" tracks then
-            if( endTime_Sec < startTime_Sec ) {
-                log( "Negative gapSec!" );
-                tl += "\n...";
-
-            } else {
-                if( gapSec > mdbTid_gapUnknownSec.mid ) {
-                    tl += "\n[" + endTime + "] ?";
-                    if (gapSec > gapSpanMidSec) {
-                        tl += "\n...";
-                    }
-                }
-            }
-
-            tl += "\n";
-
-        } else {
-            // last track
-            //log( "> last track" );
-            //log( "> lastTrack_gap: " + lastTrack_gap );
-            var lastTrack_gap = totalDur_Sec - endTime_Sec;
-            //log( "> lastTrack_gap: " + lastTrack_gap );
-
-            // is the last track close to end or possible gap?
-            if (lastTrack_gap > mdbTid_gapUnknownSec.end) {
-                tl += "\n[" + endTime + "] ?";
-            }
-            if (lastTrack_gap > gapSpanEndSec) {
-                tl += "\n...";
-            }
-        }
+        // Keep upstream's per-mix gap thresholds, using the same parsed table rows.
+        var isLast = i === li.length;
+        tl += tidGapText(times, nextTimes, totalDur, isLast,
+            isLast ? mdbTid_gapUnknownSec.end : mdbTid_gapUnknownSec.mid,
+            isLast ? gapSpanEndSec : gapSpanMidSec);
+        if (!isLast) tl += "\n";
 
         i++;
     });
